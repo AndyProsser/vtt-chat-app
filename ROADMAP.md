@@ -25,7 +25,11 @@ Repo scaffold, monorepo tooling, and baseline docs.
 - 🟢 CI pipeline: ESLint + Prettier + `tsc --noEmit` for TS packages, `cargo fmt --check` + `cargo clippy` for Rust
 - 🟢 Initial `shared/` package: empty but building, with the folder convention in place (§3 of CLAUDE.md) — and the same scaffold (`package.json`, `tsconfig.json`, folder convention) applied to `backend/`, `ddb/`, `ai/`, `status/`, `tauri-client/overlay-ui/` so every workspace package actually builds
 
-**Done when:** `npm install` succeeds at the root, every workspace package builds (even if empty), and CI runs lint on a PR. *(Scaffolding is in place; not yet verified on this machine — no local Node.js or Rust toolchain to run `npm install` / `cargo build` against, see note below. Needs a first CI run or a machine with the toolchains installed to confirm green.)*
+**Done when:** `npm install` succeeds at the root, every workspace package builds (even if empty), and CI runs lint on a PR.
+
+Verified locally: `npm install`, `npm run lint`, `npm run format:check`, `npm run typecheck`, and `npm run build` all pass across every workspace package. `cargo fmt --check` and `cargo clippy` pass for both Rust crates. `cargo build`'s final linking step for the `src-tauri` binary is untested on this machine (missing the MSVC linker / VS Build Tools on Windows) — CI runs on `ubuntu-latest`, which has a linker preinstalled, so this should still go green there; needs a first real CI run to confirm.
+
+**Note:** `typescript` is pinned to `^6.0.3`, not the `^7.0.2` from the prior commit — `typescript-eslint` (latest, 8.66.0) doesn't yet support TypeScript 7's compiler internals (peer range caps at `<6.1.0`). Revisit once `typescript-eslint` catches up. Similarly, `eslint-plugin-react`/`eslint-plugin-react-hooks` were left out of the ESLint config for now — `eslint-plugin-react`'s peer range caps at ESLint `^9.7`, short of the `^10.0.0` this repo pins, and there's no real JSX yet to lint. Add them back in Stage 3 when `overlay-ui`/`status` get real components, checking peer-range compatibility again at that point.
 
 ---
 
