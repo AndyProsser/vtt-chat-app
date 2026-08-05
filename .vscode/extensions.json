@@ -1,0 +1,13 @@
+{
+  "recommendations": [
+    "Anthropic.claude-code",
+    "esbenp.prettier-vscode",
+    "dbaeumer.vscode-eslint",
+    "EditorConfig.EditorConfig",
+    "rust-lang.rust-analyzer",
+    "tauri-apps.tauri-vscode",
+    "tamasfe.even-better-toml",
+    "redhat.vscode-yaml",
+    "DavidAnson.vscode-markdownlint"
+  ]
+}
