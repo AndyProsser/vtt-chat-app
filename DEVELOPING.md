@@ -8,7 +8,7 @@ Primary target: **Ubuntu Server / Ubuntu desktop**. Other Linux distros and macO
 
 ## Requirements
 
-- **Node.js 22+** and npm (this repo uses npm workspaces — see [CLAUDE.md §3](CLAUDE.md))
+- **Node.js 26+** and npm (this repo uses npm workspaces — see [CLAUDE.md §3](CLAUDE.md))
 - **Rust** (stable, via [rustup](https://rustup.rs)) — needed for `tauri-client/src-tauri/` and `tauri-client/rust-livekit/`
 - **Tauri prerequisites** for your OS — see the [Tauri prerequisites guide](https://tauri.app/start/prerequisites/) (WebView2 on Windows, WebKitGTK on Linux, Xcode command line tools on macOS)
 - **PostgreSQL** (native install, e.g. `apt install postgresql`)

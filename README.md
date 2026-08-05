@@ -63,9 +63,15 @@ Each module has its own `README.md` describing its purpose and current status.
 
 This project is inspired by two earlier, archived projects — [vtt-chat](https://github.com/AndyProsser/vtt-chat) and [vtt-chat-extension](https://github.com/AndyProsser/vtt-chat-extension) — but is a deliberate simplification, not a continuation. See [CLAUDE.md §15–16](CLAUDE.md) for what changed and why.
 
-## Third-Party IP Notice
+## A Note to Wizards of the Coast & D&D Beyond
 
-VTT Chat App is a fan project. It is not affiliated with, endorsed by, or intended to compete with Wizards of the Coast LLC or D&D Beyond. It reads D&D Beyond data the logged-in user already has access to, using their own session, for the sole purpose of syncing identity and character data into the overlay. If Wizards of the Coast or D&D Beyond has concerns, we are open to discussion and happy to make changes as needed.
+VTT Chat App is a fan-built project, made by players who love this game and just want to make playing it a little easier. It's not affiliated with, endorsed by, or intended to compete with Wizards of the Coast or D&D Beyond — our only goal is to add a bit of voice and chat magic on top of the game we already play there.
+
+The app reads D&D Beyond data that the logged-in user already has access to, using their own session, purely to sync identity and character info into the overlay so players don't have to re-enter anything by hand.
+
+We know this relies on unofficial access to DDB, and we're genuinely happy to work with you on it. If anything here ever raises a legal, product, or technical concern for Wizards of the Coast or D&D Beyond, please reach out — we'll gladly make whatever changes are needed, no argument. And if an official, supported way to integrate ever becomes available, we'd love to move to it.
+
+You're welcome to open an issue on this repository any time, or get in touch directly — we're happy to talk.
 
 _Dungeons & Dragons and D&D Beyond are trademarks of Wizards of the Coast LLC._
 
