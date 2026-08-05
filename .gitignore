@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+target/
+
+# Tauri
+tauri-client/src-tauri/target/
+
+# Environment
+.env
+.env.local
+*.env
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor / OS
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+*.swp
+
+# Rust
+Cargo.lock
+!tauri-client/**/Cargo.lock
