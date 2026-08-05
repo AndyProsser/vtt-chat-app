@@ -21,11 +21,11 @@ Repo scaffold, monorepo tooling, and baseline docs.
 - 🟢 Root docs: `README.md`, `CONTRIBUTING.md`, `DEVELOPING.md`
 - 🟢 Architecture docs: `docs/architecture/OVERVIEW.md`, `docs/architecture/DDB-AUTH.md`, `docs/CONVENTIONS.md`
 - 🟢 Per-module `README.md` stubs (`backend/`, `ddb/`, `ai/`, `status/`, `shared/`, `tauri-client/`, `livekit/`, `infra/`)
-- ⚪ Cargo workspace initialized in `tauri-client/` (`src-tauri/` + `rust-livekit/` crates)
-- ⚪ CI pipeline: ESLint + Prettier + `tsc --noEmit` for TS packages, `cargo fmt --check` + `cargo clippy` for Rust
-- ⚪ Initial `shared/` package: empty but building, with the folder convention in place (§3 of CLAUDE.md)
+- 🟢 Cargo workspace initialized in `tauri-client/` (`src-tauri/` + `rust-livekit/` crates)
+- 🟢 CI pipeline: ESLint + Prettier + `tsc --noEmit` for TS packages, `cargo fmt --check` + `cargo clippy` for Rust
+- 🟢 Initial `shared/` package: empty but building, with the folder convention in place (§3 of CLAUDE.md) — and the same scaffold (`package.json`, `tsconfig.json`, folder convention) applied to `backend/`, `ddb/`, `ai/`, `status/`, `tauri-client/overlay-ui/` so every workspace package actually builds
 
-**Done when:** `npm install` succeeds at the root, every workspace package builds (even if empty), and CI runs lint on a PR.
+**Done when:** `npm install` succeeds at the root, every workspace package builds (even if empty), and CI runs lint on a PR. *(Scaffolding is in place; not yet verified on this machine — no local Node.js or Rust toolchain to run `npm install` / `cargo build` against, see note below. Needs a first CI run or a machine with the toolchains installed to confirm green.)*
 
 ---
 

@@ -1,0 +1,11 @@
+{
+  "files": [],
+  "references": [
+    { "path": "shared" },
+    { "path": "backend" },
+    { "path": "ddb" },
+    { "path": "ai" },
+    { "path": "status" },
+    { "path": "tauri-client/overlay-ui" }
+  ]
+}

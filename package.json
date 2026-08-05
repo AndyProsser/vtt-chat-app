@@ -2,6 +2,7 @@
   "name": "vtt-chat-app",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "license": "AGPL-3.0-only",
   "description": "Voice + chat overlay for D&D Beyond Maps VTT — Tauri desktop client, Rust LiveKit, native Ubuntu backend.",
   "engines": {
@@ -16,12 +17,20 @@
     "tauri-client/overlay-ui"
   ],
   "scripts": {
-    "lint": "eslint . --ext .ts,.tsx",
-    "format": "prettier --write ."
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "build": "npm run build --workspaces --if-present"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.0",
     "eslint": "^10.0.0",
+    "eslint-config-prettier": "^10.1.0",
+    "eslint-plugin-react": "^7.37.0",
+    "eslint-plugin-react-hooks": "^5.1.0",
     "prettier": "^3.8.0",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "typescript-eslint": "^8.20.0"
   }
 }

@@ -1,0 +1,11 @@
+[package]
+name = "rust-livekit"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "rust_livekit"
+path = "src/lib.rs"
+
+[dependencies]

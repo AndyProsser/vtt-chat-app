@@ -1,0 +1,16 @@
+[package]
+name = "src-tauri"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "vtt_chat_app_lib"
+path = "src/lib.rs"
+
+[[bin]]
+name = "vtt-chat-app"
+path = "src/main.rs"
+
+[dependencies]
+rust-livekit = { path = "../rust-livekit" }
