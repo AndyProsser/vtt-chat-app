@@ -53,10 +53,12 @@ Each module has its own `README.md` describing its purpose and current status.
 ## Documentation
 
 - [CLAUDE.md](CLAUDE.md) — full architecture spec and build constraints
+- [ROADMAP.md](ROADMAP.md) — staged build order, from foundations through cross-platform hardening
 - [CONTRIBUTING.md](CONTRIBUTING.md) — how to contribute, PR process
 - [DEVELOPING.md](DEVELOPING.md) — local dev environment setup
 - [docs/architecture/OVERVIEW.md](docs/architecture/OVERVIEW.md) — system diagram + module responsibilities
 - [docs/architecture/DDB-AUTH.md](docs/architecture/DDB-AUTH.md) — cobalt cookie → JWT exchange flow
+- [docs/architecture/STATE-AND-RESILIENCE.md](docs/architecture/STATE-AND-RESILIENCE.md) — state boundaries, leaf isolation, and recovery rules for long sessions
 - [docs/CONVENTIONS.md](docs/CONVENTIONS.md) — folder/style conventions in detail
 
 ## Prior Art

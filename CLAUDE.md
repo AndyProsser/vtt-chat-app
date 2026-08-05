@@ -505,8 +505,10 @@ Claude must keep the following documentation current as the project evolves. Upd
 - `README.md` — project overview, quick start, links
 - `CONTRIBUTING.md` — how to contribute, PR process, code style
 - `DEVELOPING.md` — local dev environment setup
+- `ROADMAP.md` — staged build order, dependencies, and definition-of-done per stage
 - `docs/architecture/OVERVIEW.md` — system diagram + module responsibilities
 - `docs/architecture/DDB-AUTH.md` — cobalt cookie → JWT exchange flow
+- `docs/architecture/STATE-AND-RESILIENCE.md` — client state boundaries, leaf isolation, and recovery rules for long-running sessions
 - `docs/CONVENTIONS.md` — folder/style conventions, detailed version of §3
 
 Keep docs lean and current over exhaustive. A short doc that matches reality beats a long one that has drifted.
