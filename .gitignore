@@ -9,6 +9,7 @@ target/
 
 # Tauri
 tauri-client/src-tauri/target/
+tauri-client/src-tauri/gen/
 
 # Environment
 .env

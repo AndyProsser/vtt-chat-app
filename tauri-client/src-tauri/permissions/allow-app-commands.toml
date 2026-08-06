@@ -1,0 +1,6 @@
+"$schema" = "./schemas/schema.json"
+
+[[permission]]
+identifier = "allow-app-commands"
+description = "Allows invoking this app's own custom commands (LiveKit connect/disconnect)."
+commands.allow = ["livekit_connect", "livekit_disconnect"]

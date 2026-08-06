@@ -470,6 +470,7 @@ Claude must **not** implement:
 
 Claude must:
 
+- Ask clarifying questions whenever a request is ambiguous, underspecified, or involves a decision the user hasn't made yet (e.g. open questions flagged in `ROADMAP.md` or the architecture docs) — do not guess and proceed silently. This is the standard way of working on this project, not a one-off request.
 - Generate modular, deterministic code
 - Avoid monolithic files
 - Prefer small, composable modules

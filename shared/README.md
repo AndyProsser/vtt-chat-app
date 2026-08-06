@@ -2,7 +2,7 @@
 
 Cross-module TypeScript types, event contracts, and validators — see [CLAUDE.md §3](../CLAUDE.md) and [docs/CONVENTIONS.md](../docs/CONVENTIONS.md).
 
-**Status:** scaffold only — not yet implemented.
+**Status:** Stage 1 subset implemented — DDB identity types, session/LiveKit token contracts, the Tauri IPC connection-state type, and zod schemas for the `/api/session` contract. Bookmark types land in Stage 4.
 
 ## Responsibilities
 

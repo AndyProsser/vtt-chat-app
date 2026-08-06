@@ -1,0 +1,5 @@
+[target.x86_64-pc-windows-msvc]
+# libwebrtc's prebuilt static lib (pulled in by the `livekit` crate's `webrtc-sys`) is built
+# against the static CRT (/MT). Rust defaults to the dynamic CRT (/MD) on this target, which
+# fails to link with LNK2038 "RuntimeLibrary mismatch" against that prebuilt lib.
+rustflags = ["-C", "target-feature=+crt-static"]

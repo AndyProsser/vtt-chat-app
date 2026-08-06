@@ -2,7 +2,7 @@
 
 The cross-platform Tauri desktop client — see [CLAUDE.md §8.1](../CLAUDE.md) and [docs/architecture/OVERVIEW.md](../docs/architecture/OVERVIEW.md).
 
-**Status:** scaffold only — not yet implemented.
+**Status:** Stage 1 (walking skeleton) implemented — see each submodule's README and [ROADMAP.md](../ROADMAP.md).
 
 This is a Cargo workspace (for `src-tauri/` and `rust-livekit/`) that also hosts one npm package (`overlay-ui/`) built and bundled into the Tauri app.
 

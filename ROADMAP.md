@@ -52,23 +52,25 @@ No feature code — this locks in the rules every later stateful surface must fo
 
 ## Stage 1 — Walking Skeleton: Auth + Voice End-to-End
 
-**Status:** ⚪ Not Started
+**Status:** 🟡 In Progress
 **Depends on:** Stage 0
 
 Prove the riskiest integration — DDB auth, native audio, and overlay injection — works end-to-end before building any real feature UI. No chat, no bookmarks, no DM tools, no multi-window yet.
 
 **Deliverables:**
 
-- Cobalt cookie detection in the Tauri WebView (`tauri-client/src-tauri/`)
-- Cobalt → JWT exchange + Character Service call (`ddb/`), per [docs/architecture/DDB-AUTH.md](docs/architecture/DDB-AUTH.md)
-- Backend endpoint that accepts extracted identity and issues an app session + LiveKit token (`backend/`)
-- Native LiveKit server running (dev-mode is fine — doesn't need `infra/` install scripts yet)
-- Rust LiveKit client (`tauri-client/rust-livekit/`) joins a room and publishes/subscribes to one audio track
-- Minimal overlay (`tauri-client/overlay-ui/`) — a single Shadow DOM root showing "connected" + one live participant, built under the Stage 0.5 rules from the start
+- 🟢 Cobalt cookie detection in the Tauri WebView (`tauri-client/src-tauri/`) — async `WebviewWindow::cookies_for_url` polling, per the now-resolved [DDB-AUTH.md](docs/architecture/DDB-AUTH.md)
+- 🟢 Cobalt → JWT exchange + Character Service call (`ddb/`), per [docs/architecture/DDB-AUTH.md](docs/architecture/DDB-AUTH.md)
+- 🟢 Backend endpoint that accepts extracted identity and issues an app session + LiveKit token (`backend/`)
+- 🟢 Rust LiveKit client (`tauri-client/rust-livekit/`) joins a room, publishes the default mic (via `cpal`), and plays back subscribed remote tracks
+- 🟢 Minimal overlay (`tauri-client/overlay-ui/`) — a single Shadow DOM root showing "connected" + the live participant list, with leaf-isolated selectors per Stage 0.5
+- ⚪ Native LiveKit server running in dev mode — up to you locally (`livekit-server --dev`); not yet run end-to-end against the app
 
 **Done when:** two instances of the app, logged into DDB as two different users in the same campaign, can hear each other over LiveKit, with identity correctly extracted from DDB for both.
 
-**Notes:** the [DDB-AUTH.md open questions](docs/architecture/DDB-AUTH.md#open-questions-to-resolve-during-implementation) (cookie access mechanism, JWT refresh cadence) need to be resolved here, first — they gate everything downstream.
+**Verified locally:** `npm run lint`, `format:check`, `typecheck`, and `build` pass across every TS workspace; `cargo fmt --check`, `cargo clippy`, and a full `cargo build` (real linking, not just `cargo check`) pass for both Rust crates on Windows; the built binary launches, opens a window, and injects the overlay bundle without crashing. **Not yet verified:** an actual DDB login (no test account available this session — cobalt-token/Character Service field names in `ddb/` are inferred from archived docs and flagged for live-traffic verification), a real LiveKit connection, or the two-account "done when" bar above — those need the local dev services running and a second DDB account, which is on you per the setup in [DEVELOPING.md](DEVELOPING.md#running-stage-1-locally).
+
+**Notes:** the [DDB-AUTH.md open questions](docs/architecture/DDB-AUTH.md#resolved-cookie-access-exchange--refresh-stage-1) are resolved — see that section for the cookie access mechanism and JWT refresh strategy this stage implements.
 
 ---
 

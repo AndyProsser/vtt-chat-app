@@ -2,7 +2,7 @@
 
 DDB auth and extraction module — see [CLAUDE.md §8.5](../CLAUDE.md) and [docs/architecture/DDB-AUTH.md](../docs/architecture/DDB-AUTH.md).
 
-**Status:** scaffold only — not yet implemented.
+**Status:** Stage 1 subset implemented — cobalt-token exchange, Character Service calls, and the identity-extraction orchestrator. DOM extraction (current map, token conditions) is Stage 3.
 
 ## Responsibilities
 
@@ -15,8 +15,7 @@ DDB auth and extraction module — see [CLAUDE.md §8.5](../CLAUDE.md) and [docs
 
 ## Consumers
 
-- `tauri-client/overlay-ui/` — runs the extraction inside the DDB WebView
-- `backend/` — verifies the identity handed off from the client and caches character/campaign data
+- `tauri-client/overlay-ui/` — runs the full extraction inside the DDB WebView, then hands the normalized `DdbIdentity` to `backend/` over REST (`backend/` does not import `ddb/` — see [docs/architecture/DDB-AUTH.md](../docs/architecture/DDB-AUTH.md))
 
 ## Non-Goals
 

@@ -7,12 +7,18 @@
   "types": "./dist/index.d.ts",
   "scripts": {
     "build": "tsc -b",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "start": "node dist/index.js"
   },
   "dependencies": {
-    "@vtt-chat-app/shared": "*"
+    "@vtt-chat-app/shared": "*",
+    "express": "^5.1.0",
+    "jose": "^6.0.0",
+    "livekit-server-sdk": "^2.13.0"
   },
   "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^26.0.0",
     "typescript": "^6.0.3"
   }
 }

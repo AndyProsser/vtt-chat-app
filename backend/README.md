@@ -2,7 +2,7 @@
 
 Node.js + Express + TypeScript API. The only server-side application component (aside from the LiveKit server and native infra services) — see [CLAUDE.md §8.3](../CLAUDE.md).
 
-**Status:** scaffold only — not yet implemented.
+**Status:** Stage 1 subset implemented — `POST /api/session` (issues an app-session JWT + LiveKit token from a client-supplied `DdbIdentity`). Everything else below is still scaffold.
 
 ## Responsibilities
 
@@ -11,7 +11,7 @@ Node.js + Express + TypeScript API. The only server-side application component (
 - REST endpoints for audio FX, group management, chat logs, bookmarks, room metadata
 - Recording control, transcription job, and AI summary endpoints (delegates to `ai/`)
 - Serve the public status page and client downloads
-- Verify DDB-derived identity handed off from the Tauri client (via `ddb/`)
+- Accept DDB-derived identity handed off from the Tauri client (see [docs/architecture/DDB-AUTH.md](../docs/architecture/DDB-AUTH.md) — extraction happens client-side in `overlay-ui`, not here)
 
 ## Folder Layout
 
@@ -27,8 +27,7 @@ src/
 
 ## Depends On
 
-- `shared/` — cross-module types and contracts
-- `ddb/` — DDB identity verification
+- `shared/` — cross-module types and contracts (deliberately does not depend on `ddb/` — see [docs/architecture/OVERVIEW.md](../docs/architecture/OVERVIEW.md))
 - `ai/` — recording/transcription/summary job dispatch
 
 ## Non-Goals

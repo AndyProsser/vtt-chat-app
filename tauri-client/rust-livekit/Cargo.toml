@@ -9,3 +9,8 @@ name = "rust_livekit"
 path = "src/lib.rs"
 
 [dependencies]
+cpal = "0.15"
+futures = "0.3"
+livekit = "0.8"
+thiserror = "2"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync"] }

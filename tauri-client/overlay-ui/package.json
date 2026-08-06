@@ -6,19 +6,23 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "build": "tsc -b",
+    "build": "vite build",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@radix-ui/themes": "^3.2.0",
+    "@tauri-apps/api": "^2.9.0",
     "@vtt-chat-app/ddb": "*",
     "@vtt-chat-app/shared": "*",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "zustand": "^5.0.0"
   },
   "devDependencies": {
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
-    "typescript": "^6.0.3"
+    "@vitejs/plugin-react": "^5.0.0",
+    "typescript": "^6.0.3",
+    "vite": "^7.0.0"
   }
 }

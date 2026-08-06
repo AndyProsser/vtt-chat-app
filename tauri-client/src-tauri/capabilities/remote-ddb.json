@@ -1,0 +1,10 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "remote-ddb",
+  "description": "Grants the injected overlay script (running in the D&D Beyond page's own origin) access to this app's LiveKit commands and to listen for cookie/connection-state events.",
+  "windows": ["main"],
+  "remote": {
+    "urls": ["https://www.dndbeyond.com/*"]
+  },
+  "permissions": ["core:default", "core:event:default", "allow-app-commands"]
+}

@@ -27,7 +27,14 @@ This system does the equivalent **inside the Tauri WebView directly** — there 
 
 This app never asks the user for a password, and never stores one. D&D Beyond's own session is the only credential.
 
-## Open Questions (to resolve during implementation)
+## Resolved: Cookie Access, Exchange & Refresh (Stage 1)
 
-- Exact cobalt cookie access mechanism from within a Tauri WebView (cookie store API vs. request interception) — needs a spike against Tauri's current cookie APIs per platform (WebView2 / WebKit / WebKitGTK).
-- JWT refresh behavior for long-running sessions (campaigns run for months) — the cookie may need periodic re-validation rather than a one-time exchange.
+**Cookie access.** Tauri's `WebviewWindow::cookies_for_url()` (Tauri ≥2.4.0, built on wry ≥0.47) reads cookies for a given http/https URL — including httpOnly ones — across Windows (WebView2), macOS (WebKit), and Linux (WebKitGTK). It is not available for `tauri://`/`file://` schemes, which doesn't matter here since DDB is loaded over https. **It must be called asynchronously, off the main thread** — Tauri's own docs flag a Windows-specific deadlock risk if called synchronously on the UI thread. `src-tauri` calls this after the DDB window has loaded, looking for the `CobaltSession` cookie on `dndbeyond.com`.
+
+The `CobaltSession` cookie is very likely httpOnly: the archived `vtt-chat-extension` needed the privileged `chrome.cookies` API rather than reading `document.cookie` from a content script, which only makes sense if page-context JS can't see it. This is consistent with needing `cookies_for_url` (a privileged, Rust-side read) rather than any JS-side approach.
+
+**Cobalt → JWT exchange.** `POST https://auth-service.dndbeyond.com/v1/cobalt-token` with the cookie. The resulting JWT is short-lived — approximately 5 minutes, per the archived repo's currency-writeback doc (`nbf`/`exp` ~300s apart). Neither archived repo captured an exact request/response body for this endpoint; `ddb/`'s client assumes a `{ token: string }` response (the commonly-documented DDB shape) and passes the cookie as a `Cookie: CobaltSession=<value>` header, but **this needs live-traffic verification during implementation** — flagged as a verify-as-you-go item, not a hard blocker to writing the client.
+
+**Refresh behavior.** There is no refresh-token mechanism for this JWT. The pattern is **re-exchange, not caching**: re-POST `/v1/cobalt-token` using the still-valid `CobaltSession` cookie to get a fresh JWT before each Character Service call, rather than reusing a cached token that may have expired. The archived repo's explicit warning applies here too: any flow needs a fresh token at call time, not a cached one. `CobaltSession` cookie expiry/re-validation itself is DDB's own session lifetime and is out of scope for this app — if the cookie itself is gone, the user needs to log into DDB again, which surfaces naturally as a failed exchange.
+
+**Character Service reads.** `GET https://character-service.dndbeyond.com/character/v5/characters/list?userId=<id>` → character list. DM detection: `GET https://api.dndbeyond.com/campaigns/v1/details/:id` → `data.dmId`, compared against the logged-in user's id. The auth header format for these reads was never explicitly confirmed in the archived docs — assumed to be `Authorization: Bearer <jwt>` (the confirmed pattern on the one documented write endpoint) and needs live verification alongside the exchange endpoint above.

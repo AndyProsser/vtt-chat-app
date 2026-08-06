@@ -1,0 +1,53 @@
+use std::sync::Arc;
+
+use rust_livekit::{ConnectionState, LiveKitClient, SharedClient};
+use serde::Serialize;
+use tauri::{AppHandle, Emitter, State};
+
+#[derive(Debug, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+struct LiveKitStatePayload {
+    connected: bool,
+    room_name: Option<String>,
+    participant_identities: Vec<String>,
+}
+
+impl From<ConnectionState> for LiveKitStatePayload {
+    fn from(state: ConnectionState) -> Self {
+        Self {
+            connected: state.connected,
+            room_name: state.room_name,
+            participant_identities: state.participant_identities,
+        }
+    }
+}
+
+#[tauri::command]
+pub async fn livekit_connect(
+    app: AppHandle,
+    state: State<'_, SharedClient>,
+    url: String,
+    token: String,
+) -> Result<(), String> {
+    let emit_app = app.clone();
+    let callback: rust_livekit::StateChangeCallback = Arc::new(move |connection_state| {
+        let payload: LiveKitStatePayload = connection_state.into();
+        let _ = emit_app.emit("livekit:state", payload);
+    });
+
+    let client = LiveKitClient::connect(&url, &token, callback)
+        .await
+        .map_err(|err| err.to_string())?;
+
+    *state.lock().unwrap() = Some(client);
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn livekit_disconnect(state: State<'_, SharedClient>) -> Result<(), String> {
+    let client = state.lock().unwrap().take();
+    if let Some(client) = client {
+        client.disconnect().await.map_err(|err| err.to_string())?;
+    }
+    Ok(())
+}

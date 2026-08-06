@@ -2,7 +2,7 @@
 
 Native Rust LiveKit client — the only thing that talks WebRTC in this app. See [CLAUDE.md §8.2](../../CLAUDE.md).
 
-**Status:** scaffold only — not yet implemented.
+**Status:** Stage 1 subset implemented — room connect/disconnect, mic capture and remote playback via `cpal` (dedicated OS threads per device, since `cpal::Stream` isn't `Send`), and connection-state callbacks. Echo cancellation, audio FX, and recording are future work (see Responsibilities below).
 
 ## Responsibilities
 

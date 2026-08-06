@@ -2,7 +2,7 @@
 
 The Tauri shell (Rust). See [CLAUDE.md §8.1](../../CLAUDE.md).
 
-**Status:** scaffold only — not yet implemented.
+**Status:** Stage 1 subset implemented — window creation, cobalt cookie detection/emission, overlay bundle injection, and the `livekit_connect`/`livekit_disconnect` commands. Multi-window, page restriction, ad-block, and hotkeys are Stage 2+.
 
 ## Responsibilities
 
