@@ -1,0 +1,13 @@
+# eol=lf overrides core.autocrlf on checkout, so Windows clones stay LF too (see .editorconfig).
+* text=auto eol=lf
+*.sh text eol=lf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
