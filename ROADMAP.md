@@ -35,7 +35,7 @@ Verified locally: `npm install`, `npm run lint`, `npm run format:check`, `npm ru
 
 ## Stage 0.5 — State & Resilience Architecture
 
-**Status:** 🟢 Done (design) · ⚪ Not started (enforcement tooling)
+**Status:** 🟢 Done
 **Depends on:** Stage 0
 
 No feature code — this locks in the rules every later stateful surface must follow, informed directly by the prior system's multi-week memory-leak and state-recovery postmortem.
@@ -43,8 +43,8 @@ No feature code — this locks in the rules every later stateful surface must fo
 **Deliverables:**
 
 - 🟢 [`docs/architecture/STATE-AND-RESILIENCE.md`](docs/architecture/STATE-AND-RESILIENCE.md) — store boundaries (domain vs. UI-only), leaf-isolation pattern, write discipline, timer/animation rules, bounded retention, recovery contract, WebSocket reliability model
-- ⚪ Lint rule or code-review checklist item enforcing "no composed projection objects passed to leaf components" (even a simple ESLint custom rule or documented PR checklist is enough to start)
-- ⚪ Dev-mode churn-diagnostics flag scaffolded in `overlay-ui/` (can be a no-op until Stage 3 has real stores to diagnose)
+- 🟢 Code-review checklist item enforcing "no composed projection objects passed to leaf components" — see [CONTRIBUTING.md](CONTRIBUTING.md#state--resilience-checklist) (a lint rule can replace/augment this later; not required to close this stage)
+- 🟢 Dev-mode churn-diagnostics flag scaffolded in `overlay-ui/` (`lib/churnDiagnostics.ts` + `hooks/useChurnDiagnostics.ts`) — no-op until Stage 3 wires it into real selectors
 
 **Done when:** the document exists and is linked from `CLAUDE.md` §17 and `README.md`, and there's at least a manual checklist (lint rule can come later) reviewers use before merging new stores/selectors.
 

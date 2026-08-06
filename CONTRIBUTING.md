@@ -18,6 +18,18 @@ Follow [CLAUDE.md §3](CLAUDE.md) and [docs/CONVENTIONS.md](docs/CONVENTIONS.md)
 - Cross-module types and contracts belong in `shared/`, not duplicated per-module.
 - `rustfmt` + `clippy` clean for Rust; ESLint + Prettier clean for TypeScript.
 
+## State & Resilience Checklist
+
+Before merging any new store, selector, or effect touching per-participant or per-session state (`overlay-ui/`, `status/`, or Zustand/React tooling UIs), check it against [docs/architecture/STATE-AND-RESILIENCE.md](docs/architecture/STATE-AND-RESILIENCE.md):
+
+- [ ] No composed "projection" object is passed as a prop to a leaf component — high-frequency/per-participant data (speaking, mic level, presence, typing) flows through a dedicated leaf subscribing to one primitive selector for one key.
+- [ ] Every store write checks whether the value actually changed before writing (no unconditional collection replacement).
+- [ ] Anything on an interval only runs while actually needed (visible/transmitting), capped around 30Hz — not defaulted to `requestAnimationFrame`.
+- [ ] Every unbounded-growth collection (chat, activity feed, per-participant history) has an explicit retention limit decided at creation time.
+- [ ] Domain state (backend-sourced) and UI-only state (client-only) aren't blurred — domain state is replaced wholesale on reconnect, never merged/patched.
+
+This is a manual checklist, not an automated lint rule yet — reviewers apply it by hand until enforcement tooling exists.
+
 ## Making Changes
 
 1. Fork or branch from `main`.
