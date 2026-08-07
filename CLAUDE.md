@@ -88,7 +88,7 @@ src/
 └── lib/             # Non-React logic: API clients, extraction, state, services
 ```
 
-Types and contracts shared *across* modules (DDB character/campaign shapes, bookmark types, Tauri IPC event payloads) live in `shared/`, not duplicated per-module.
+Types and contracts shared _across_ modules (DDB character/campaign shapes, bookmark types, Tauri IPC event payloads) live in `shared/`, not duplicated per-module.
 
 ### Formatting & linting
 
@@ -129,7 +129,7 @@ Claude must support:
 
 Claude must implement a **simple, public, read‑only status page** served by the backend.
 
-### Must display:
+### Must display
 
 - LiveKit server health
 - Backend health
@@ -144,7 +144,7 @@ Claude must implement a **simple, public, read‑only status page** served by th
   - macOS client
   - Linux client
 
-### Purpose:
+### Purpose
 
 DM can say:
 
@@ -495,7 +495,7 @@ This project is inspired by two archived predecessors — `vtt-chat` (a Docker�
 
 - DDB data‑extraction patterns and known DOM/API quirks (see the extension repo's `docs/DDB-DATA-EXTRACTION.md` and `docs/EXTENSION-INTEGRATION.md`)
 - The trust‑delegation auth model (external platform session ⇒ app token) that this project adapts for its own cobalt‑cookie → JWT exchange (see the main repo's `docs/extension/GUEST-AUTH.md`)
-- What a fuller feature set (inventory, chat commands, audio conditions) could look like *if* this project grows in that direction later
+- What a fuller feature set (inventory, chat commands, audio conditions) could look like _if_ this project grows in that direction later
 
 Consult them for ideas. Do not copy their architecture wholesale (Docker, the Express/Prisma monolith shape, the 4‑layer state machine, the browser extension) — see §15 for what is intentionally left behind.
 
