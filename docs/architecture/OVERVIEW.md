@@ -59,6 +59,16 @@ flowchart TB
 - **`livekit/`** — LiveKit server configuration and helper scripts for the native binary.
 - **`infra/`** — Ubuntu deployment: install script, systemd units, config generation.
 
+## Network Topology (STUN/TURN & Ports)
+
+`rust-livekit` talks to the LiveKit server directly — players never connect to each other peer-to-peer. Because the SFU is always the public-facing side of every connection, **STUN alone is sufficient for the common case**: a player behind NAT (including CGNAT) only needs to discover their own reflexive address and send outbound UDP to the SFU, which NAT/CGNAT does not block. This is a materially simpler trust model than a mesh/P2P voice system would need.
+
+- **Default:** STUN for ICE candidate discovery (LiveKit's default STUN servers, optionally with `stun.cloudflare.com:3478` added to the ICE server list for redundancy — free, no account needed), plus LiveKit's own `7881/tcp` ICE fallback for clients that can't establish UDP at all (VPNs, some corporate networks).
+- **Optional fallback:** LiveKit's _built-in_ TURN/TLS server, enabled in `livekit/`'s config and exposed on `443`, for the remaining edge cases STUN + the TCP fallback don't cover — symmetric NAT, hotel wifi, and firewalls that permit only port 443 outbound. This is a native LiveKit feature, not a separate service or third-party dependency, so it stays consistent with [CLAUDE.md §4](../../CLAUDE.md)'s native-services/no-Docker requirement. It's off by default and only matters for players on unusually restrictive networks.
+- **Cloudflare Tunnel** (if an operator chooses to front their Caddy instance with one) may only carry the HTTPS signaling/API/status-page paths. It cannot carry LiveKit's UDP media or the TCP ICE fallback — `cloudflared` doesn't proxy arbitrary WebRTC traffic — so those ports always need direct port-forwarding to the server regardless of what fronts the HTTP(S) paths.
+
+Concrete port requirements and TURN config live in [livekit/README.md](../../livekit/README.md); the operator-facing firewall/port-forwarding checklist lives in [infra/README.md](../../infra/README.md).
+
 ## Data Flow Notes
 
 - **Audio never routes through the backend.** `rust-livekit` talks to the LiveKit server directly over WebRTC; the backend only issues tokens and manages room/participant metadata.

@@ -138,6 +138,7 @@ Move from dev-mode services to the real native-Ubuntu deployment target, and shi
 
 - Postgres schema for campaigns, rooms, bookmarks; Redis for ephemeral/pub-sub state
 - Caddy reverse proxy + TLS config
+- Network topology per [docs/architecture/OVERVIEW.md](docs/architecture/OVERVIEW.md#network-topology-stunturn--ports): STUN-only default, LiveKit's built-in TURN/TLS-on-443 as an operator-toggleable fallback, required port-forwarding documented in [livekit/README.md](livekit/README.md#network-topology-ports-stunturn) and [infra/README.md](infra/README.md#operator-firewall--port-forwarding-checklist)
 - Public status page (`status/`): LiveKit/backend/Redis/Postgres health, connected player count, DM-connected flag, current campaign/room/map, client download links (§5)
 - `infra/`: bash install script, systemd units, config generation for a blank Ubuntu Server
 
