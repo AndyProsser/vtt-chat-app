@@ -44,8 +44,18 @@ A `MutationObserver` on `document.documentElement` (`subtree: true, childList: t
 
 This exists specifically because the tracker-blocking mechanism above can't reliably catch it — DDB's `<source src="...">` elements are set by the HTML parser from static server-rendered markup, not by a script property setter. A `MutationObserver` fires as elements are inserted into the DOM regardless of how their attributes were set, which is why it's the right tool for this one case instead of extending mechanism 1 to cover it.
 
-## Testing
+## Root Cause, Revised After Testing
 
-- `cargo build --bin vtt-chat-app` — must still build clean on Linux (existing dev environment).
-- Manual: point `consts::DDB_URL` at the homepage temporarily (as done during the original crash investigation), launch, confirm no segfault and no video element renders. Revert the URL after.
-- Manual: confirm `/characters` still loads and behaves as before (no regression from adding a second `initialization_script`).
+Live-testing the JS mitigation against the real homepage (`consts::DDB_URL` temporarily pointed at `/`) showed the video-stripping worked exactly as designed — zero requests to any `cdn.media.amplience.net/v/...` video path — **and the app still segfaulted anyway.** So the autoplaying background video was not the sole (and possibly not even the real) cause. The crash consistently happens during a burst of dozens of concurrent thumbnail image requests from the same CDN (`/i/wizardsprod/...`); a plain image-heavy page (Wikipedia's Dragon article, tested earlier in the original investigation) doesn't crash under similar concurrency, so the leading open theory is an image-codec decode issue (e.g. AVIF/WebP, since DDB's CDN does `fmt=auto` content negotiation) rather than anything JS-blockable. Root cause remains unconfirmed — this is now a documented gap, not a solved mystery.
+
+## Implemented: Navigation-Level Redirect
+
+Because the JS mitigation alone was proven insufficient, the contingency was built: `tauri-client/src-tauri/src/homepage_redirect.rs`'s `is_ddb_homepage()` matches navigation to `www.dndbeyond.com`/`dndbeyond.com` at `/` or a bare two-letter locale path (DDB redirects `/` → `/en`, etc.) — not `/characters`, `/games/...`, or any other real page. `lib.rs`'s `on_navigation` hook on the main window intercepts a match, cancels it (`return false`), and calls `.navigate()` to send the window to a self-contained `data:` URL page instead (`homepage_redirect::url()`) — HTML + a bundled poster image (`src-tauri/assets/homepage-redirect-poster.png`, base64-embedded via `include_bytes!`, no new asset-serving pipeline) with a link onward to `/characters`. Because this runs at `on_navigation` (native, pre-load), the crash-prone page never loads at all — confirmed via network log: zero requests to `www.dndbeyond.com` or its CDN when the redirect fires.
+
+The `base64` crate was added as a dependency for this (encoding the bundled PNG and the final HTML into `data:` URLs) — the only new dependency this change introduces.
+
+## Testing (as performed)
+
+- `cargo build --bin vtt-chat-app`, `cargo fmt --check`, `cargo clippy` — all clean.
+- Manual: `consts::DDB_URL` temporarily pointed at the bare homepage — confirmed via `G_MESSAGES_DEBUG=all` network log that zero requests reach `www.dndbeyond.com` or its CDN, and the process runs the full test duration with no crash (redirected to the local fallback page instead). URL reverted to `/characters` after.
+- Manual: `/characters` still loads and runs cleanly for the full test duration — no regression from the added `initialization_script` or `on_navigation` hook.

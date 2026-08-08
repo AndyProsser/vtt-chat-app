@@ -1,8 +1,10 @@
 mod cobalt;
 mod commands;
 mod consts;
+mod homepage_redirect;
+mod safety_net;
 
-use tauri::{WebviewUrl, WebviewWindowBuilder};
+use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
 
 /// Reads the built `overlay-ui` bundle at runtime (not `include_str!`) so `src-tauri` can be
 /// compiled before `overlay-ui` has a `dist/` output — see Stage 1 build-order notes in
@@ -30,13 +32,24 @@ pub fn run() {
             commands::livekit_disconnect
         ])
         .setup(|app| {
+            let app_handle = app.handle().clone();
             let mut builder = WebviewWindowBuilder::new(
                 app,
                 "main",
                 WebviewUrl::External(consts::DDB_URL.parse()?),
             )
             .title("VTT Chat App")
-            .inner_size(1280.0, 800.0);
+            .inner_size(1280.0, 800.0)
+            .initialization_script(safety_net::SCRIPT)
+            .on_navigation(move |url| {
+                if homepage_redirect::is_ddb_homepage(url) {
+                    if let Some(main_window) = app_handle.get_webview_window("main") {
+                        let _ = main_window.navigate(homepage_redirect::url());
+                    }
+                    return false;
+                }
+                true
+            });
 
             if let Some(overlay_script) = load_overlay_script() {
                 builder = builder.initialization_script(&overlay_script);

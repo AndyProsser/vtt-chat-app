@@ -20,6 +20,9 @@ tauri-client/src-tauri/gen/
 *.log
 npm-debug.log*
 
+# Local diagnostic traces (HAR files, etc. — may contain live credentials/session cookies)
+/trace/
+
 # Editor / OS
 .DS_Store
 .vscode/*

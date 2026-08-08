@@ -4087,6 +4087,7 @@ dependencies = [
 name = "src-tauri"
 version = "0.1.0"
 dependencies = [
+ "base64 0.22.1",
  "rust-livekit",
  "serde",
  "serde_json",
