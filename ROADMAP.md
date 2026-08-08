@@ -113,6 +113,8 @@ The first real test of the state architecture: speaking indicators, presence, an
 
 **Done when:** a simulated multi-hour session (can be sped up / synthetic load in dev) with continuous speaking-state churn shows stable memory in the overlay's WebView, and a mid-session refresh recovers full state within a couple seconds with no duplicate messages or stuck indicators.
 
+**Known issue (Linux), unconfirmed root cause:** on a real Maps VTT page (`/games/<id>`), maps with an *animated background* render nothing — static maps, tokens, and other in-map animations are all unaffected; it's specifically the animated map background that goes blank. Reproduced in Epiphany independently of this app, so it's WebKitGTK, not app code. Leading theory: DDB implements animated map backgrounds the same way as the homepage's hero banners — a looping `<video>` element — and this is the same underlying WebKitGTK media-rendering issue as the Stage 1 homepage crash above, just failing silently (blank) here instead of segfaulting there. `safety_net.rs`'s video-stripping is scoped only to the homepage's specific `SiteWide_backgroundVideo` class, so it isn't touching Maps VTT at all — this is WebKitGTK's native behavior on this content, not a side effect of our own mitigation. This directly threatens this stage's "overlay injection scoped to Maps VTT" deliverable for any campaign using an animated map — not yet investigated further; logged here for whoever picks up Stage 3.
+
 ---
 
 ## Stage 4 — Multi-Window & DM Controls
