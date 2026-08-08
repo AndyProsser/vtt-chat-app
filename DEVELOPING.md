@@ -33,7 +33,7 @@ npm install
 
 Four things need to be running, in this order:
 
-1. **LiveKit dev server** — `livekit-server --dev` (no config needed; prints `devkey`/`secret` as the API key/secret and binds `ws://127.0.0.1:7880`, which are `backend/`'s defaults below).
+1. **LiveKit dev server** — `livekit-server --dev` (no config needed; prints `devkey`/`secret` as the API key/secret and binds `ws://127.0.0.1:7880`, which are `backend/`'s defaults below). For two-party testing across machines, run it on a shared dev box instead of localhost: `livekit-server --dev --bind 0.0.0.0` behind a systemd unit (`Restart=on-failure`), and point `LIVEKIT_URL` at `ws://<dev-host>:7880` from each machine's `backend/` env.
 2. **Backend** — `cd backend && npm run build && npm start` (listens on `:4000`). Override via env vars if needed: `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`, `APP_JWT_SECRET`, `PORT`.
 3. **Build the overlay bundle** — `cd tauri-client/overlay-ui && npm run build` (produces `dist/overlay.js`, which `src-tauri` reads from disk at startup — rebuild this after any overlay change, then relaunch the app).
 4. **Tauri app** — `cd tauri-client && cargo run --bin vtt-chat-app`. Opens a window on D&D Beyond and injects the overlay; watch the terminal for `cookies_for_url failed`/`overlay bundle not found` if something's off.

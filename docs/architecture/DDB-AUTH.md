@@ -27,6 +27,43 @@ This system does the equivalent **inside the Tauri WebView directly** — there 
 
 This app never asks the user for a password, and never stores one. D&D Beyond's own session is the only credential.
 
+## Login Flow (Wizards Account, Auth0)
+
+Before any `CobaltSession` cookie exists, the user reaches DDB's sign-in link, which navigates to Wizards' hosted login at `myaccounts.wizards.com/login` with a standard OAuth2 authorization-code request. Confirmed live (Stage 1):
+
+```text
+https://myaccounts.wizards.com/login?client_id=7G6UYZSMWRBL5AT5EDFJXCBTE4&prompt=consent
+  &redirect_uri=https%3A%2F%2Fwww.dndbeyond.com%2Foauth-wizards-callback
+  &response_type=code&scope=email&state=<base64>&version=2
+```
+
+- `client_id` — DDB's registered Auth0 client, confirmed live as `7G6UYZSMWRBL5AT5EDFJXCBTE4`.
+- `redirect_uri` — `https://www.dndbeyond.com/oauth-wizards-callback`. DDB's own callback handler completes the exchange and sets `CobaltSession` server-side once Wizards' Auth0 issues the authorization code; this app never sees that exchange, only the resulting cookie.
+- `response_type=code`, `scope=email`, `state` — standard Auth0 authorization-code parameters. `state` is base64 and decodes to `<random-id>|<origin>|<return-url>` in the observed sample (e.g. the return URL is the character-sheet page the user started from).
+
+This confirms what was previously an assumption in this doc: **DDB delegates real authentication to a Wizards-owned Auth0 tenant**; DDB itself never handles a password. The trust model in this document (this app never asks for or stores a password) holds one level further up than originally documented — it's true of DDB *and* of Wizards.
+
+## Known Issue: Login Form Fails Under WebKitGTK (Akamai Bot Manager)
+
+Loading `myaccounts.wizards.com/login` directly (without OAuth params) renders a page offering email/password *and* OAuth options (Google, Apple, Steam). On Linux — reproduced in both Epiphany (GNOME Web) and this app's WebView, i.e. it's WebKitGTK itself, not app code — the plain email/password form does not submit correctly; login silently fails to complete. Steam/Google/Apple OAuth work fine on the same page, on the same machine.
+
+**Root cause.** The login domain is fronted by **Akamai Bot Manager** — confirmed via the `_abck` and `bm_sz` cookies it sets. Akamai fingerprints the browser (JS engine behavior, WebGL vendor/renderer strings, timing characteristics, sensor telemetry) and scores how trustworthy the client looks. WebKitGTK-on-Linux is a comparatively rare fingerprint next to Chrome/Firefox/Safari-on-supported-OSes, and plausibly scores low enough that the credential POST is silently dropped or degraded server-side, with no visible error. OAuth flows redirect to a completely different domain (Google's/Apple's/Steam's own login), which has nothing to do with Wizards' Akamai config, so the blocked code path never runs — this is why OAuth reliably works around it.
+
+**Mitigation history (Stage 1).** First attempt: a Linux-only popup window that intercepted navigation to `myaccounts.wizards.com` and reopened it with the UA spoofed to a common desktop Chrome string. **Live-tested and confirmed worse, not better** — the login flow's own JS requests came back as an HTML "Site Maintenance" page (a disguised WAF block) instead of the JSON the same requests return under the real UA. This was reverted.
+
+Second attempt, live-tested directly in the WebView's devtools by trying several UA strings against the real login flow:
+
+| UA claimed | Result |
+| --- | --- |
+| WebKitGTK's real UA | fails (silent — the original symptom) |
+| Chrome (Linux) | fails (active block — the reverted attempt above) |
+| Safari-on-Ubuntu (an inconsistent combination that doesn't exist in the real world) | fails |
+| **Firefox (Linux)** | **works** |
+
+Firefox is the one UA that gets through. Most plausible explanation: anti-bot vendors invest far more heavily in detecting Chromium-engine mismatches than Gecko ones, because the overwhelming majority of headless automation (Puppeteer, Playwright, Selenium) impersonates Chrome — claiming Firefox is comparatively under-scrutinized, not necessarily "safe" in principle. It's still a UA claim that doesn't match the underlying engine, so treat it as fragile: Akamai's ruleset can change without notice, and there's no guarantee this keeps working.
+
+**Mitigation implemented (Stage 1, Linux only).** `tauri-client/src-tauri/src/consts.rs`'s `LINUX_UA_OVERRIDE` sets the WebView to a Firefox-on-Linux UA string, applied to the whole main window in `lib.rs` (not scoped to just the login domain like the reverted Chrome attempt) — unlike Chrome, this hasn't shown any downside on `/characters` or Maps VTT, so the added complexity of a separate popup window wasn't justified. **Steam/Google/Apple OAuth remains the documented fallback** if this override ever stops working — it needs no UA games at all and covers most of this app's actual audience (D&D players skew heavily toward already having a Steam account).
+
 ## Resolved: Cookie Access, Exchange & Refresh (Stage 1)
 
 **Cookie access.** Tauri's `WebviewWindow::cookies_for_url()` (Tauri ≥2.4.0, built on wry ≥0.47) reads cookies for a given http/https URL — including httpOnly ones — across Windows (WebView2), macOS (WebKit), and Linux (WebKitGTK). It is not available for `tauri://`/`file://` schemes, which doesn't matter here since DDB is loaded over https. **It must be called asynchronously, off the main thread** — Tauri's own docs flag a Windows-specific deadlock risk if called synchronously on the UI thread. `src-tauri` calls this after the DDB window has loaded, looking for the `CobaltSession` cookie on `dndbeyond.com`.
