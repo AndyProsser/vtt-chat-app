@@ -8,8 +8,6 @@ use std::sync::{Arc, Mutex};
 use livekit::options::TrackPublishOptions;
 use livekit::prelude::*;
 use livekit::track::{LocalAudioTrack, LocalTrack, RemoteTrack};
-use livekit::webrtc::audio_source::native::NativeAudioSource;
-use livekit::webrtc::audio_source::AudioSourceOptions;
 use livekit::webrtc::prelude::RtcAudioSource;
 
 /// Mirrors `shared`'s `LiveKitConnectionState` IPC type — kept dependency-free here since
@@ -43,11 +41,11 @@ impl LiveKitClient {
 
         emit_state(&room, &on_state_change);
 
-        let capture_source =
-            NativeAudioSource::new(AudioSourceOptions::default(), 48_000, 1, 1_000);
+        let (capture_source, capture_thread) =
+            audio::spawn_microphone_capture(tokio::runtime::Handle::current())?;
         let capture_track = LocalAudioTrack::create_audio_track(
             "microphone",
-            RtcAudioSource::Native(capture_source.clone()),
+            RtcAudioSource::Native(capture_source),
         );
         room.local_participant()
             .publish_track(
@@ -58,8 +56,6 @@ impl LiveKitClient {
                 },
             )
             .await?;
-        let capture_thread =
-            audio::spawn_microphone_capture(capture_source, tokio::runtime::Handle::current())?;
 
         let event_room = room.clone();
         let event_cb = on_state_change.clone();

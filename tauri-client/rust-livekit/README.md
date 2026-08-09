@@ -2,7 +2,9 @@
 
 Native Rust LiveKit client — the only thing that talks WebRTC in this app. See [CLAUDE.md §8.2](../../CLAUDE.md).
 
-**Status:** Stage 1 subset implemented — room connect/disconnect, mic capture and remote playback via `cpal` (dedicated OS threads per device, since `cpal::Stream` isn't `Send`), and connection-state callbacks. Echo cancellation, audio FX, and recording are future work (see Responsibilities below).
+**Status:** Stage 1 subset implemented — room connect/disconnect, mic capture and remote playback via `cpal` (dedicated OS threads per device, since `cpal::Stream` isn't `Send`), and connection-state callbacks. The `NativeAudioSource` is built from the input device's actual negotiated sample rate rather than a hardcoded value — `capture_frame` silently rejects every frame if the two don't match exactly. Echo cancellation, audio FX, and recording are future work (see Responsibilities below).
+
+`examples/loopback.rs` connects two `LiveKitClient`s to the same room under different identities against a real LiveKit server, to manually verify the capture → publish → subscribe → playback pipeline without needing a second DDB account or a Tauri window — see [ROADMAP.md](../../ROADMAP.md#stage-1--walking-skeleton-auth--voice-end-to-end) for the run log. `cargo run --example loopback -- <ws-url> <token-a> <token-b> [seconds]`.
 
 ## Responsibilities
 

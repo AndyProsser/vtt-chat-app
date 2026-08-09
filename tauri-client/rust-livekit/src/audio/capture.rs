@@ -2,6 +2,7 @@ use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::{FromSample, Sample};
 use livekit::webrtc::audio_frame::AudioFrame;
 use livekit::webrtc::audio_source::native::NativeAudioSource;
+use livekit::webrtc::audio_source::AudioSourceOptions;
 use tokio::sync::mpsc;
 
 use super::FRAME_DURATION_MS;
@@ -9,13 +10,15 @@ use crate::error::LiveKitError;
 
 const NUM_CHANNELS: u32 = 1;
 
-/// Opens the default input device, downmixes to mono, and forwards 10ms frames to `source`.
-/// Runs the cpal stream on a dedicated OS thread — `cpal::Stream` isn't `Send` on every
-/// platform, so it must be created and kept alive on the thread that owns it.
+/// Opens the default input device, downmixes to mono, and forwards 10ms frames to a
+/// freshly created `NativeAudioSource`. The source is built from whatever sample rate the
+/// device actually negotiates (not a hardcoded rate) — `capture_frame` rejects every frame
+/// outright if its rate doesn't exactly match the source's, so the two must never be chosen
+/// independently. Runs the cpal stream on a dedicated OS thread — `cpal::Stream` isn't `Send`
+/// on every platform, so it must be created and kept alive on the thread that owns it.
 pub fn spawn_microphone_capture(
-    source: NativeAudioSource,
     runtime: tokio::runtime::Handle,
-) -> Result<std::thread::JoinHandle<()>, LiveKitError> {
+) -> Result<(NativeAudioSource, std::thread::JoinHandle<()>), LiveKitError> {
     let host = cpal::default_host();
     let device = host
         .default_input_device()
@@ -29,9 +32,17 @@ pub fn spawn_microphone_capture(
     let sample_format = supported_config.sample_format();
     let config: cpal::StreamConfig = supported_config.into();
 
+    let source = NativeAudioSource::new(
+        AudioSourceOptions::default(),
+        sample_rate,
+        NUM_CHANNELS,
+        1_000,
+    );
+
     let samples_per_frame = (sample_rate / 1000 * FRAME_DURATION_MS) as usize;
     let (tx, mut rx) = mpsc::unbounded_channel::<Vec<i16>>();
 
+    let capture_source = source.clone();
     let handle = std::thread::spawn(move || {
         let stream = match build_stream(&device, &config, sample_format, input_channels, tx) {
             Ok(stream) => stream,
@@ -56,7 +67,7 @@ pub fn spawn_microphone_capture(
                     num_channels: NUM_CHANNELS,
                     samples_per_channel: samples_per_frame as u32,
                 };
-                if let Err(err) = runtime.block_on(source.capture_frame(&frame)) {
+                if let Err(err) = runtime.block_on(capture_source.capture_frame(&frame)) {
                     eprintln!("[rust-livekit] capture_frame failed: {err}");
                 }
             }
@@ -64,7 +75,7 @@ pub fn spawn_microphone_capture(
         // Stream is dropped (and stops) once this thread exits.
     });
 
-    Ok(handle)
+    Ok((source, handle))
 }
 
 fn build_stream(
