@@ -32,3 +32,5 @@ pub const ALLOWED_DOMAINS: &[&str] = &["dndbeyond.com", "wizards.com"];
 /// can't import the TS package (CLAUDE.md §3), same duplication rationale as the cookie name.
 pub const OVERLAY_TOGGLE_EVENT: &str = "overlay:toggle";
 pub const MICROPHONE_STATE_EVENT: &str = "livekit:microphone";
+/// Mirrors `shared`'s `LIVEKIT_SPEAKERS_EVENT` — same duplication rationale as the two above.
+pub const SPEAKERS_STATE_EVENT: &str = "livekit:speakers";

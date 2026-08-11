@@ -49,7 +49,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::livekit_connect,
             commands::livekit_disconnect,
-            commands::hotkey_action
+            commands::hotkey_action,
+            commands::set_microphone_muted
         ])
         .setup(|app| {
             let nav_handle = app.handle().clone();

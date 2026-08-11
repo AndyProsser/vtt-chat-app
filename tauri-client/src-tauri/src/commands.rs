@@ -22,6 +22,12 @@ impl From<ConnectionState> for LiveKitStatePayload {
     }
 }
 
+#[derive(Debug, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+struct SpeakersPayload {
+    speaking_identities: Vec<String>,
+}
+
 #[tauri::command]
 pub async fn livekit_connect(
     app: AppHandle,
@@ -35,11 +41,18 @@ pub async fn livekit_connect(
         let _ = emit_app.emit("livekit:state", payload);
     });
 
-    // No-op until Task 4 wires speaker identities through to the frontend; this keeps the
-    // workspace building against the new `connect` signature (Stage 3a Task 3).
-    let on_speakers_change: rust_livekit::SpeakersChangeCallback = Arc::new(|_speakers| {});
+    let speakers_emit_app = app.clone();
+    let speakers_callback: rust_livekit::SpeakersChangeCallback =
+        Arc::new(move |speaking_identities| {
+            let _ = speakers_emit_app.emit(
+                crate::consts::SPEAKERS_STATE_EVENT,
+                SpeakersPayload {
+                    speaking_identities,
+                },
+            );
+        });
 
-    let client = LiveKitClient::connect(&url, &token, callback, on_speakers_change)
+    let client = LiveKitClient::connect(&url, &token, callback, speakers_callback)
         .await
         .map_err(|err| err.to_string())?;
 
@@ -67,5 +80,14 @@ pub fn hotkey_action(app: AppHandle, action: String) -> Result<(), String> {
     let parsed = crate::hotkeys::HotkeyAction::from_name(&action)
         .ok_or_else(|| format!("unknown hotkey action: {action}"))?;
     crate::hotkeys::dispatch(&app, parsed);
+    Ok(())
+}
+
+/// Delivery path for the overlay's mute button (Stage 3a spec §5) — shares
+/// `hotkeys::apply_microphone_mute` with the hotkey path so a click and a keypress can't
+/// leave the overlay showing stale mic state.
+#[tauri::command]
+pub fn set_microphone_muted(app: AppHandle, muted: bool) -> Result<(), String> {
+    crate::hotkeys::apply_microphone_mute(&app, muted);
     Ok(())
 }

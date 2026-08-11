@@ -54,6 +54,28 @@ struct MicrophoneStatePayload {
     muted: bool,
 }
 
+/// Applies a mute state directly and emits `livekit:microphone`. The one place that touches the
+/// microphone gate — both the hotkey path (`dispatch`, below) and the UI mute button
+/// (`commands::set_microphone_muted`) call this, so a click and a keypress can't drift: without
+/// this, the emit is exactly the step that would get forgotten in one of the two paths, leaving
+/// the overlay showing stale mic state.
+pub fn apply_microphone_mute(app: &AppHandle, muted: bool) {
+    let state = app.state::<SharedClient>();
+    let guard = match state.lock() {
+        Ok(guard) => guard,
+        Err(poisoned) => {
+            eprintln!("[src-tauri] LiveKit client mutex poisoned; recovering to apply mute");
+            poisoned.into_inner()
+        }
+    };
+    let Some(client) = guard.as_ref() else {
+        return;
+    };
+
+    client.set_microphone_muted(muted);
+    let _ = app.emit(MICROPHONE_STATE_EVENT, MicrophoneStatePayload { muted });
+}
+
 /// Applies an action. A no-op for microphone actions when not connected — hotkeys are live
 /// before any room is joined, and pressing PTT then shouldn't be an error.
 pub fn dispatch(app: &AppHandle, action: HotkeyAction) {
@@ -62,23 +84,26 @@ pub fn dispatch(app: &AppHandle, action: HotkeyAction) {
         return;
     }
 
-    let state = app.state::<SharedClient>();
-    let guard = match state.lock() {
-        Ok(guard) => guard,
-        Err(poisoned) => {
-            eprintln!("[src-tauri] LiveKit client mutex poisoned; recovering to apply hotkey");
-            poisoned.into_inner()
-        }
+    let currently_muted = {
+        let state = app.state::<SharedClient>();
+        let guard = match state.lock() {
+            Ok(guard) => guard,
+            Err(poisoned) => {
+                eprintln!("[src-tauri] LiveKit client mutex poisoned; recovering to apply hotkey");
+                poisoned.into_inner()
+            }
+        };
+        let Some(client) = guard.as_ref() else {
+            return;
+        };
+        client.is_microphone_muted()
     };
-    let Some(client) = guard.as_ref() else {
-        return;
-    };
-    let Some(muted) = mute_state_for(action, client.is_microphone_muted()) else {
+
+    let Some(muted) = mute_state_for(action, currently_muted) else {
         return;
     };
 
-    client.set_microphone_muted(muted);
-    let _ = app.emit(MICROPHONE_STATE_EVENT, MicrophoneStatePayload { muted });
+    apply_microphone_mute(app, muted);
 }
 
 fn toggle_mute_shortcut() -> Shortcut {
