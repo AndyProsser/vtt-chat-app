@@ -2,6 +2,7 @@
 
 **Stage:** [Stage 2](../../../ROADMAP.md#stage-2-audio-continuity-hotkeys-page-restriction-ad-block) — global hotkeys, page-restriction allowlist, ad-block extension, audio-continuity verification.
 **Depends on:** Stage 1 (auth + voice end-to-end, done).
+**Status:** Approved 2026-08-11, with the amendments in [Amendments](#amendments-2026-08-11) applied. Where the amendments and the original body disagree, the amendments win.
 
 ## Why one spec for four deliverables
 
@@ -9,7 +10,7 @@ Stage 2 bundles four items in `CLAUDE.md` §8.1. They aren't independent subsyst
 
 ## Architecture overview
 
-```
+```text
 main.rs
   └─ lib.rs::run()
        ├─ tauri-plugin-global-shortcut (new)  → hotkeys.rs (new)
@@ -107,3 +108,46 @@ No new code. `SharedClient` (`Arc<Mutex<Option<LiveKitClient>>>`) has lived in T
 1. **OAuth allowlist gap** (above) — needs a live HAR capture of a real OAuth login to close.
 2. **Ad-block domain list growth** — needs a live AdGuard capture on Maps VTT / Rules pages to responsibly extend beyond what's here.
 3. Whether `target="_blank"` actually bypasses `on_new_window` in practice on this Tauri/WebKitGTK version, or whether the JS-side strip is defense-in-depth for a case that would've worked anyway — unconfirmed either way from documentation alone, will become clear during implementation testing.
+
+---
+
+## Amendments (2026-08-11)
+
+Three corrections found while validating the design against the actual target platform and the `livekit` crate's mute semantics. Sections 2 (allowlist), 3 (ad-block) and 4 (audio continuity) above are unchanged.
+
+### A. Global hotkeys are unreachable on the dev machine — two delivery paths, not one
+
+The design assumed `tauri-plugin-global-shortcut` works everywhere and that a claimed shortcut surfaces as a registration error to log. Neither holds on this project's primary Linux dev target.
+
+The dev machine runs **GNOME Shell 50.1 on Wayland** (`XDG_SESSION_TYPE=wayland`, `XDG_CURRENT_DESKTOP=ubuntu:GNOME`). The plugin sits on `global-hotkey`/`tao`, whose global-shortcut thread is X11-specific and is [deliberately disabled on Wayland](https://github.com/tauri-apps/tao/pull/543) to avoid a `libX11` segfault. So on Wayland registration **silently no-ops** — §1's "registration failure is logged and the app continues" never fires, because there is no failure to observe. The only real Wayland route is the XDG `GlobalShortcuts` portal, which is mature on KDE but [reported as a no-op on GNOME 50](https://github.com/aaddrick/claude-desktop-debian/blob/main/docs/learnings/wayland-global-shortcuts-portal.md) — exactly this machine. The portal route was considered and rejected for this stage: meaningful extra complexity (`ashpd`, an async portal session, a user-facing permission dialog) for a path that cannot be verified locally.
+
+`hotkeys.rs` therefore becomes an abstraction over two independent delivery paths feeding one set of action handlers:
+
+```text
+hotkeys.rs
+  ├─ actions: push_to_talk(bool) | toggle_mute() | toggle_overlay()   ← pure, unit-testable
+  ├─ path 1: tauri-plugin-global-shortcut         → true global (Windows/macOS/X11; no-op on Wayland)
+  └─ path 2: injected key handler in safety_net.rs → Tauri command → same actions
+             (app-focused only, but works on every platform including Wayland)
+```
+
+Path 2 is a capture-phase `keydown`/`keyup` listener on `document`, matching `event.code` (`ControlRight`; `KeyM`/`KeyO` with ctrl+shift), calling `preventDefault()` and invoking a Tauri command. It lives in `safety_net.rs`'s script rather than the overlay bundle because it must work on DDB pages where the overlay isn't mounted — the same reasoning §1 already uses to keep shell concerns out of `overlay-ui`.
+
+**This supersedes the architecture overview's "No new Tauri IPC commands."** Path 2 requires them. Muting still does not route through the overlay's `livekit_connect`/`livekit_disconnect` bridge; these are new shell-level commands invoked by injected script, and the overlay's only involvement remains receiving `overlay:toggle`.
+
+Both paths must be idempotent — on Windows/X11 a single Right Ctrl press can fire both, and `push_to_talk(false)` twice must be harmless.
+
+**Effect on the stage's "Done when".** *"PTT/mute work via hotkey without the overlay focused"* is satisfied on every platform via path 2 (DDB page focused, overlay not). Without the **app** focused it is satisfied on Windows/macOS/X11 only, and remains an open gap on Wayland. `ROADMAP.md` records that split rather than marking the bar unqualifiedly passed.
+
+### B. Mute is a local capture gate, mirrored to the track — not track mute alone
+
+§1 specifies holding the `LocalAudioTrack` and calling `mute()`/`unmute()`. Necessary, but insufficient for push-to-talk on its own: track mute is a signalling operation carrying a server round-trip, so the first ~100–200 ms after the key goes down is clipped — precisely when the user starts speaking.
+
+- `rust-livekit` holds an `Arc<AtomicBool>` shared with the capture thread in `audio/capture.rs`. When set, the thread skips `capture_frame` entirely. Local, instant, no round-trip.
+- The same setter **also** calls `LocalAudioTrack::mute()`/`unmute()`, so remote participants see accurate mute state — which Stage 3's speaking indicators depend on.
+
+The public API is as §1 specified — `set_microphone_muted(bool)` / `is_microphone_muted()`. The atomic is the source of truth for whether audio actually flows; the track flag is advisory remote state.
+
+### C. OAuth allowlist gap — decided: ship and fix forward
+
+The gap documented in §2 is accepted as-specced rather than pre-empted. The allowlist is enforced strictly in this stage. Concretely: **completing an OAuth login on Linux may be impossible after this stage lands**, until the redirect chain is captured and allowlisted. Logged as a known issue in `ROADMAP.md`, closed by a live OAuth HAR capture as a fast-follow — evidence-gated, per open question 1.
