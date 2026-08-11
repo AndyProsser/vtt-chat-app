@@ -46,3 +46,16 @@
   margin-top: 4px;
   opacity: 0.7;
 }
+
+/* Radix's Theme wrapper is now an ancestor of .vtt-overlay inside the Shadow DOM. It should be
+   inert by default (no layout size of its own — its only child is position:fixed), but this
+   makes it explicit rather than assumed: pointer-events is inherited, so declaring none here
+   and opting back in on .vtt-overlay's interactive descendants covers both this wrapper and the
+   container in one place. */
+.radix-themes {
+  pointer-events: none;
+}
+
+.vtt-overlay button {
+  pointer-events: auto;
+}
