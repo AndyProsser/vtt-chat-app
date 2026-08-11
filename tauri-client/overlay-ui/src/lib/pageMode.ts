@@ -28,3 +28,39 @@ export function classifyPage(url: URL): OverlayMode {
   if (isOverlayEverywhereEnabled()) return 'full';
   return MAPS_PATH_PATTERN.test(url.pathname) ? 'full' : 'pill';
 }
+
+const PAGE_MODE_CHANGE_EVENT = 'vtt-page-mode-check';
+let historyPatched = false;
+
+function patchHistoryOnce(): void {
+  if (historyPatched) return;
+  historyPatched = true;
+
+  for (const method of ['pushState', 'replaceState'] as const) {
+    const original = history[method];
+    history[method] = function (
+      this: History,
+      ...args: Parameters<History[typeof method]>
+    ): ReturnType<History[typeof method]> {
+      const result = original.apply(this, args);
+      window.dispatchEvent(new Event(PAGE_MODE_CHANGE_EVENT));
+      return result;
+    };
+  }
+}
+
+/**
+ * Fires `listener` on `popstate` and on patched `pushState`/`replaceState`, covering both a
+ * hard navigation and DDB routing client-side. Whether DDB actually needs the patched-history
+ * half is unconfirmed (see the Stage 3a design's "Open questions") — the mechanism is small and
+ * correct either way, so it's built rather than gambled on.
+ */
+export function subscribeToPageModeChanges(listener: () => void): () => void {
+  patchHistoryOnce();
+  window.addEventListener('popstate', listener);
+  window.addEventListener(PAGE_MODE_CHANGE_EVENT, listener);
+  return () => {
+    window.removeEventListener('popstate', listener);
+    window.removeEventListener(PAGE_MODE_CHANGE_EVENT, listener);
+  };
+}
