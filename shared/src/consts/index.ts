@@ -8,4 +8,5 @@
 export const COBALT_COOKIE_EVENT = 'ddb:cobalt-cookie';
 export const LIVEKIT_STATE_EVENT = 'livekit:state';
 export const LIVEKIT_MICROPHONE_EVENT = 'livekit:microphone';
+export const LIVEKIT_SPEAKERS_EVENT = 'livekit:speakers';
 export const OVERLAY_TOGGLE_EVENT = 'overlay:toggle';

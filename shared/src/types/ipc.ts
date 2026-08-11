@@ -30,3 +30,16 @@ export interface CobaltCookieDetectedPayload {
 export interface MicrophoneStatePayload {
   muted: boolean;
 }
+
+/**
+ * Payload of the `livekit:speakers` Tauri event, emitted by `rust-livekit` (via `src-tauri`)
+ * on every `RoomEvent::ActiveSpeakersChanged`. Carries the complete current speaker set, not a
+ * delta — a participant who stops speaking is simply absent from the next payload.
+ *
+ * Separate from `LiveKitConnectionState` for the same reason as `MicrophoneStatePayload`: this
+ * changes several times per second, and folding it into connection state would churn the
+ * participant roster on every utterance.
+ */
+export interface SpeakingStatePayload {
+  speakingIdentities: string[];
+}
