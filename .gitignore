@@ -23,6 +23,9 @@ npm-debug.log*
 # Local diagnostic traces (HAR files, etc. — may contain live credentials/session cookies)
 /trace/
 
+# Core dumps (e.g. from reproducing docs/WEBKITGTK-NVIDIA-EGL-CRASH.md — can be multi-GB)
+core.[0-9]*
+
 # Subagent-driven-development scratch workspace (ledgers, briefs, review packages)
 /.superpowers/
 
