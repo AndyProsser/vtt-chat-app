@@ -136,20 +136,33 @@ Two findings behind that table, both from running the app rather than from docum
 
 ## Stage 3 — Overlay UI, DDB Extraction & Chat
 
-**Status:** ⚪ Not Started
+**Status:** ⚪ Not Started — split into 3a/3b/3c (2026-08-11)
 **Depends on:** Stage 2, Stage 0.5
 
 The first real test of the state architecture: speaking indicators, presence, and chat are exactly the "rapidly-changing, long-running" surfaces Stage 0.5 exists for.
 
-**Deliverables:**
+**Split into three parts**, because the original stage bundled three subsystems that share a stage number but not a dependency chain — and because chat's transport is an unresolved architectural question that shouldn't gate the overlay work behind it:
 
-- Full Shadow DOM overlay: voice controls, group selector, speaking indicators (leaf-isolated per Stage 0.5), minimal chat
+| Part | Contents | Status |
+| --- | --- | --- |
+| **3a** | Page-scoped overlay mounting, speaking indicators, voice controls, churn diagnostics wired up — [design](docs/superpowers/specs/2026-08-11-stage-3a-overlay-shell-voice-ui-design.md) | ⚪ Not Started |
+| **3b** | DDB DOM extraction — character metadata, campaign metadata, token conditions | ⚪ Not Started |
+| **3c** | Chat, bounded retention, refresh recovery, reconnect/backoff/event-replay | ⚪ Not Started |
+
+Two items moved or deferred out of the stage:
+
+- **The group selector moves to Stage 4**, where group routing — the mechanism it drives — already lives. A selector with nothing to select is busywork.
+- **The chat transport is an open architectural question, deferred to 3c.** [CLAUDE.md §8.4](CLAUDE.md) says LiveKit carries "data events for chat + bookmarks"; this stage and [STATE-AND-RESILIENCE.md](docs/architecture/STATE-AND-RESILIENCE.md#websocket-reliability) instead describe a WebSocket layer with a *server-side* bounded replay buffer. The docs currently assert both. Compounding it, `backend/` has no WebSocket layer and Postgres/Redis are Stage 5 deliverables, so a server-side replay buffer has nowhere durable to live yet. 3c resolves this deliberately rather than by whichever gets built first.
+
+**Deliverables (unchanged in total, now distributed across 3a/3b/3c):**
+
+- Full Shadow DOM overlay: voice controls, speaking indicators (leaf-isolated per Stage 0.5), minimal chat
 - DOM extraction for character metadata, campaign metadata, token conditions (`ddb/` + `overlay-ui/`)
-- Overlay injection scoped to Maps VTT only, with the "overlay everywhere" debug toggle
+- Overlay injection scoped to Maps VTT, with the "overlay everywhere" debug toggle — 3a additionally renders a minimal mic pill on other allowed pages, so a player mid-session isn't left without mute or mic-state feedback while reading rules (push-to-talk is app-focused-only, per Stage 2)
 - Refresh recovery implemented and manually verified: reload the WebView mid-session, confirm domain state (roster, presence, chat) comes back atomically and UI-only state (panel state) restores separately
 - Reconnect/backoff + bounded event-replay on the WebSocket layer (per [STATE-AND-RESILIENCE.md](docs/architecture/STATE-AND-RESILIENCE.md#websocket-reliability))
 
-**Done when:** a simulated multi-hour session (can be sped up / synthetic load in dev) with continuous speaking-state churn shows stable memory in the overlay's WebView, and a mid-session refresh recovers full state within a couple seconds with no duplicate messages or stuck indicators.
+**Done when:** a simulated multi-hour session (can be sped up / synthetic load in dev) with continuous speaking-state churn shows stable memory in the overlay's WebView, and a mid-session refresh recovers full state within a couple seconds with no duplicate messages or stuck indicators. This bar belongs to 3c — 3a and 3b close on their own narrower criteria, recorded in their specs.
 
 **Known issue (Linux), unconfirmed root cause:** on a real Maps VTT page (`/games/<id>`), maps with an *animated background* render nothing — static maps, tokens, and other in-map animations are all unaffected; it's specifically the animated map background that goes blank. Reproduced in Epiphany independently of this app, so it's WebKitGTK, not app code. Leading theory: DDB implements animated map backgrounds the same way as the homepage's hero banners — a looping `<video>` element — and this is the same underlying WebKitGTK media-rendering issue as the Stage 1 homepage crash above, just failing silently (blank) here instead of segfaulting there. `safety_net.rs`'s video-stripping is scoped only to the homepage's specific `SiteWide_backgroundVideo` class, so it isn't touching Maps VTT at all — this is WebKitGTK's native behavior on this content, not a side effect of our own mitigation. This directly threatens this stage's "overlay injection scoped to Maps VTT" deliverable for any campaign using an animated map — not yet investigated further; logged here for whoever picks up Stage 3.
 
