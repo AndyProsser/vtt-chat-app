@@ -1,8 +1,8 @@
 import { useOverlayBridge } from '../hooks/useOverlayBridge.js';
 import { useOverlayVisible } from '../hooks/useOverlayVisible.js';
-import { ConnectionStatus } from './ConnectionStatus.js';
-import { MicrophoneStatus } from './MicrophoneStatus.js';
-import { ParticipantList } from './ParticipantList.js';
+import { usePageMode } from '../hooks/usePageMode.js';
+import { FullPanel } from './FullPanel.js';
+import { MicPill } from './MicPill.js';
 
 export function OverlayRoot() {
   // Called before the visibility check on purpose: the bridge owns the Tauri event listeners,
@@ -11,14 +11,9 @@ export function OverlayRoot() {
   // the LiveKit session wiring along with it.
   useOverlayBridge();
   const visible = useOverlayVisible();
+  const mode = usePageMode();
 
   if (!visible) return null;
 
-  return (
-    <div className="vtt-overlay">
-      <ConnectionStatus />
-      <MicrophoneStatus />
-      <ParticipantList />
-    </div>
-  );
+  return <div className="vtt-overlay">{mode === 'full' ? <FullPanel /> : <MicPill />}</div>;
 }
