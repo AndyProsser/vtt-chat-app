@@ -59,3 +59,21 @@
 .vtt-overlay button {
   pointer-events: auto;
 }
+
+.vtt-participant-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.vtt-speaking-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #444c56;
+}
+
+.vtt-speaking-dot-active {
+  background: #7ee787;
+}
