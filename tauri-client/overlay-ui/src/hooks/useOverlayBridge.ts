@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { requestSession } from '../lib/backendClient.js';
 import { useMicrophoneStore } from '../lib/microphoneStore.js';
 import { useOverlayVisibilityStore } from '../lib/overlayVisibilityStore.js';
+import { useSpeakingStore } from '../lib/speakingStore.js';
 import { useLiveKitStore } from '../lib/store.js';
 import {
   connectLiveKit,
@@ -11,6 +12,7 @@ import {
   onLiveKitState,
   onMicrophoneState,
   onOverlayToggle,
+  onSpeakersChanged,
 } from '../lib/tauriBridge.js';
 
 /**
@@ -19,13 +21,14 @@ import {
  * store. Call once from the overlay root — see docs/architecture/DDB-AUTH.md for the flow.
  *
  * Stage 2 adds the two hotkey-driven events: `livekit:microphone` (push-to-talk / mute toggle)
- * and `overlay:toggle`. Each lands in its own store — see `microphoneStore` and
- * `overlayVisibilityStore` for why they aren't folded into `useLiveKitStore`.
+ * and `overlay:toggle`. Stage 3a adds `livekit:speakers`, into its own store for the same
+ * reason `livekit:microphone` isn't folded into `useLiveKitStore` — see `speakingStore`.
  */
 export function useOverlayBridge(): void {
   const applyState = useLiveKitStore((state) => state.applyState);
   const applyMuted = useMicrophoneStore((state) => state.applyMuted);
   const toggleVisibility = useOverlayVisibilityStore((state) => state.toggle);
+  const applySpeakers = useSpeakingStore((state) => state.applySpeakers);
 
   useEffect(() => {
     let cancelled = false;
@@ -40,6 +43,10 @@ export function useOverlayBridge(): void {
 
     const unlistenOverlayToggle = onOverlayToggle(() => {
       if (!cancelled) toggleVisibility();
+    });
+
+    const unlistenSpeakers = onSpeakersChanged(({ speakingIdentities }) => {
+      if (!cancelled) applySpeakers(speakingIdentities);
     });
 
     const unlistenCookie = onCobaltCookieDetected(({ cookieValue }) => {
@@ -59,7 +66,8 @@ export function useOverlayBridge(): void {
       void unlistenState.then((unlisten) => unlisten());
       void unlistenMicrophone.then((unlisten) => unlisten());
       void unlistenOverlayToggle.then((unlisten) => unlisten());
+      void unlistenSpeakers.then((unlisten) => unlisten());
       void unlistenCookie.then((unlisten) => unlisten());
     };
-  }, [applyState, applyMuted, toggleVisibility]);
+  }, [applyState, applyMuted, toggleVisibility, applySpeakers]);
 }
