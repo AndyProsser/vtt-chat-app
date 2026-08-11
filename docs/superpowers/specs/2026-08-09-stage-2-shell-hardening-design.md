@@ -127,9 +127,14 @@ The dev machine runs **GNOME Shell 50.1 on Wayland** (`XDG_SESSION_TYPE=wayland`
 hotkeys.rs
   ├─ actions: push_to_talk(bool) | toggle_mute() | toggle_overlay()   ← pure, unit-testable
   ├─ path 1: tauri-plugin-global-shortcut         → true global (Windows/macOS/X11; no-op on Wayland)
+  │                                                 mute + overlay toggle only — see below
   └─ path 2: injected key handler in safety_net.rs → Tauri command → same actions
              (app-focused only, but works on every platform including Wayland)
 ```
+
+**Correction found during implementation: push-to-talk is not on path 1 at all.** `global-hotkey` has no scancode mapping for bare modifier keys, so registering Right Ctrl fails with `Unable to register hotkey: Unknown scancode for key: ControlRight` on *every* platform, not just Wayland. PTT is delivered solely by path 2, which reads `event.code === 'ControlRight'` without difficulty. The global registration attempt was removed rather than left to fail on every launch. Decided 2026-08-11 to keep Right Ctrl as the single binding rather than introduce a second, chord-based global PTT — a chord is worse to hold while talking, and Ctrl+Shift+M remains globally registered for the alt-tabbed emergency-mute case.
+
+Registration is also **per-shortcut, not batched**: `on_shortcuts` is all-or-nothing, so PTT's failure initially took mute and overlay toggle down with it.
 
 Path 2 is a capture-phase `keydown`/`keyup` listener on `document`, matching `event.code` (`ControlRight`; `KeyM`/`KeyO` with ctrl+shift), calling `preventDefault()` and invoking a Tauri command. It lives in `safety_net.rs`'s script rather than the overlay bundle because it must work on DDB pages where the overlay isn't mounted — the same reasoning §1 already uses to keep shell concerns out of `overlay-ui`.
 
@@ -137,7 +142,7 @@ Path 2 is a capture-phase `keydown`/`keyup` listener on `document`, matching `ev
 
 Both paths must be idempotent — on Windows/X11 a single Right Ctrl press can fire both, and `push_to_talk(false)` twice must be harmless.
 
-**Effect on the stage's "Done when".** *"PTT/mute work via hotkey without the overlay focused"* is satisfied on every platform via path 2 (DDB page focused, overlay not). Without the **app** focused it is satisfied on Windows/macOS/X11 only, and remains an open gap on Wayland. `ROADMAP.md` records that split rather than marking the bar unqualifiedly passed.
+**Effect on the stage's "Done when".** *"PTT/mute work via hotkey without the overlay focused"* is satisfied on every platform via path 2 (DDB page focused, overlay not). Without the **app** focused, only mute and overlay toggle qualify, and only on Windows/macOS/X11 — push-to-talk is app-focused everywhere, per the correction above. `ROADMAP.md` carries the full platform matrix rather than marking the bar unqualifiedly passed.
 
 ### B. Mute is a local capture gate, mirrored to the track — not track mute alone
 

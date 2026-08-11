@@ -38,6 +38,24 @@ Four things need to be running, in this order:
 3. **Build the overlay bundle** — `cd tauri-client/overlay-ui && npm run build` (produces `dist/overlay.js`, which `src-tauri` reads from disk at startup — rebuild this after any overlay change, then relaunch the app).
 4. **Tauri app** — `cd tauri-client && cargo run --bin vtt-chat-app`. Opens a window on D&D Beyond and injects the overlay; watch the terminal for `cookies_for_url failed`/`overlay bundle not found` if something's off.
 
+## Shell Behaviour (Stage 2)
+
+Once the app is running, the Tauri shell enforces a few things that are easy to mistake for bugs:
+
+**The microphone starts muted.** This is true push-to-talk — nothing is transmitted until you hold the PTT key. The overlay shows `Mic muted` / `Mic live`.
+
+| Shortcut | Action | Works when |
+| --- | --- | --- |
+| Right Ctrl (hold) | Push to talk | App window focused, all platforms |
+| Ctrl+Shift+M | Toggle mute | Globally on Windows/macOS/Linux X11; app-focused on Wayland |
+| Ctrl+Shift+O | Show/hide overlay | Globally on Windows/macOS/Linux X11; app-focused on Wayland |
+
+On a Wayland session the app prints a startup line saying OS-level shortcuts are unavailable — that's expected, not a failure. `global-hotkey` is X11-only. Push-to-talk is app-focused on every platform because bare modifier keys can't be registered as global shortcuts at all. See [ROADMAP.md](ROADMAP.md#stage-2--audio-continuity-hotkeys-page-restriction--ad-block) for the details.
+
+**Navigation is restricted** to `*.dndbeyond.com` and `*.wizards.com` (see `tauri-client/src-tauri/src/consts.rs`). Anything else lands on a blocked page showing the URL that was refused; the terminal logs `blocked navigation to <url>`.
+
+> **Known issue:** this blocks OAuth login (Steam/Google/Apple), which is the recommended login path on Linux. If you're stuck at login, that's why — the redirect chain hasn't been captured and allowlisted yet.
+
 ## Per-Module Setup
 
 Each module has its own `README.md` with module-specific setup once it's implemented:

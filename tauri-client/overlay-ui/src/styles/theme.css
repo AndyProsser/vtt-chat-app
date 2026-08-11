@@ -23,6 +23,19 @@
   font-weight: 600;
 }
 
+.vtt-mic {
+  margin-top: 2px;
+}
+
+.vtt-mic-muted {
+  opacity: 0.7;
+}
+
+.vtt-mic-live {
+  color: #7ee787;
+  font-weight: 600;
+}
+
 .vtt-participants {
   margin: 4px 0 0;
   padding: 0;

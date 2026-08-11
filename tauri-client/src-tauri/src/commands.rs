@@ -51,3 +51,17 @@ pub async fn livekit_disconnect(state: State<'_, SharedClient>) -> Result<(), St
     }
     Ok(())
 }
+
+/// Delivery path 2 for hotkeys (Stage 2 spec, Amendment A): the key handler injected by
+/// `safety_net.rs` calls this when it sees one of the bindings. Needed because the OS-level
+/// global-shortcut plugin silently does nothing on Wayland.
+///
+/// This is the one place untrusted page script reaches the hotkey system, so the action name is
+/// parsed against a closed set — an unrecognized name is an error, never a default.
+#[tauri::command]
+pub fn hotkey_action(app: AppHandle, action: String) -> Result<(), String> {
+    let parsed = crate::hotkeys::HotkeyAction::from_name(&action)
+        .ok_or_else(|| format!("unknown hotkey action: {action}"))?;
+    crate::hotkeys::dispatch(&app, parsed);
+    Ok(())
+}

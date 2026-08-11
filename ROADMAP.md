@@ -98,19 +98,39 @@ Mesa cannot initialise a working path on this device at all (`libEGL warning: fa
 
 ## Stage 2 — Audio Continuity, Hotkeys, Page Restriction & Ad-Block
 
-**Status:** ⚪ Not Started
+**Status:** 🟡 In Progress — implemented and building clean; manual in-app verification outstanding (see below)
 **Depends on:** Stage 1
 
-Round out the Tauri shell requirements that don't depend on the overlay having real features yet.
+Round out the Tauri shell requirements that don't depend on the overlay having real features yet. Design: [docs/superpowers/specs/2026-08-09-stage-2-shell-hardening-design.md](docs/superpowers/specs/2026-08-09-stage-2-shell-hardening-design.md), including the 2026-08-11 amendments that supersede parts of the original body.
 
 **Deliverables:**
 
-- Audio survives window navigation/switching — Rust LiveKit client confirmed to run once per app instance, decoupled from any single window (§8.1)
-- Global hotkeys: PTT, mute, overlay toggle
-- Page-restriction allowlist (`*.dndbeyond.com/*`, `*.wizards.com/*`, configurable allowed list) with navigation blocking
-- Basic ad-block: known ad/tracker/analytics domain blocking, autoplay video blocking
+- 🟢 Audio survives window navigation/switching — `SharedClient` is Tauri app-level state (`.manage()`), not window state, so in-window navigation structurally cannot touch it. Code-verified; manual test outstanding.
+- 🟡 Hotkeys: PTT (Right Ctrl), mute (Ctrl+Shift+M), overlay toggle (Ctrl+Shift+O) — two delivery paths, see the platform matrix below
+- 🟢 Page-restriction allowlist (`consts::ALLOWED_DOMAINS`, subdomain-inclusive) enforced in `on_navigation` *and* `on_new_window`, cancelling to a shared blocked page (`blocked_page.rs`)
+- 🟢 Ad-block: `safety_net.rs`'s `blockedHosts` extended with six near-universal ad/analytics domains, kept visibly separate from the AdGuard-sourced DDB-specific list
+- 🟢 Microphone starts muted (true push-to-talk) — `rust-livekit` now retains the `LocalAudioTrack` and gates capture on an `AtomicBool`
 
 **Done when:** navigating around DDB (Maps, Character Sheet, Rules) in one window doesn't interrupt an active voice call, blocked domains actually fail to load, and PTT/mute work via hotkey without the overlay focused.
+
+**Hotkey platform matrix — the "without the overlay focused" bar is met everywhere; "without the *app* focused" is not.**
+
+| Binding | Windows / macOS / Linux X11 | Linux Wayland |
+| --- | --- | --- |
+| Right Ctrl (PTT) | app-focused only | app-focused only |
+| Ctrl+Shift+M (mute) | global | app-focused only |
+| Ctrl+Shift+O (overlay) | global | app-focused only |
+
+Two findings behind that table, both from running the app rather than from documentation:
+
+1. **Push-to-talk can never be an OS-level global shortcut.** `global-hotkey` has no scancode mapping for bare modifier keys — registering Right Ctrl fails with `Unknown scancode for key: ControlRight` on every platform, not just Wayland. The injected in-page handler reads `event.code === 'ControlRight'` without trouble, so PTT is app-focused by design now; the global registration was removed rather than left to fail noisily at each launch. Decided 2026-08-11 to keep one binding rather than add a second, chord-based global PTT.
+2. **Global shortcuts silently no-op on Wayland.** `global-hotkey`/`tao`'s shortcut thread is X11-specific and [disabled on Wayland](https://github.com/tauri-apps/tao/pull/543), so registration *succeeds* and then never fires — there is no error to log. The [XDG `GlobalShortcuts` portal](https://github.com/aaddrick/claude-desktop-debian/blob/main/docs/learnings/wayland-global-shortcuts-portal.md) is the only real Wayland route and is reported as a no-op on GNOME 50, which is this project's dev machine (GNOME Shell 50.1, Wayland). Not attempted for that reason. The app logs the degradation explicitly at startup.
+
+**Known issue — OAuth login is blocked by the allowlist (deliberate, ship-and-fix-forward).** [DDB-AUTH.md](docs/architecture/DDB-AUTH.md) names Steam/Google/Apple OAuth as the recommended login path on Linux, and those redirect to domains outside `dndbeyond.com`/`wizards.com` (plus, most likely, an Auth0 tenant in between). None are allowlisted, so **completing an OAuth login on Linux may now be impossible.** Accepted deliberately rather than pre-empted with guessed domains: closing it needs a live HAR capture of a real OAuth login, held to the same evidence standard as the ad-block list. `allowlist.rs` has a test asserting the current blocked behaviour, so closing the gap is a visible change. Fast-follow.
+
+**Verified:** `cargo fmt --check`, `cargo clippy --all-targets -D warnings`, `cargo test --all` (19 tests), and a full `cargo build` of the binary all pass; `npm run lint`, `format:check`, `typecheck`, and `build` pass across every TS workspace. The built binary launches on Linux/Wayland, loads `/characters`, registers the mute/overlay shortcuts without error, and logs the Wayland degradation.
+
+**Not yet verified (manual, needs a real session):** hotkeys actually firing end-to-end (PTT opening the mic, mute toggling, overlay hiding/showing); a disallowed URL actually landing on the blocked page; `target="_blank"` stripping against a real DDB link; whether `on_new_window` or the JS strip is the path that actually catches new-window requests on this WebKitGTK build; and audio surviving navigation across allowed DDB pages during a live call.
 
 ---
 

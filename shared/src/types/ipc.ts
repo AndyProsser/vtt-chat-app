@@ -19,3 +19,14 @@ export interface LiveKitConnectionState {
 export interface CobaltCookieDetectedPayload {
   cookieValue: string;
 }
+
+/**
+ * Payload of the `livekit:microphone` Tauri event, emitted by `src-tauri`'s hotkey dispatch
+ * whenever push-to-talk or the mute toggle changes the microphone gate (Stage 2).
+ *
+ * Separate from `LiveKitConnectionState` on purpose: mute changes on every push-to-talk press,
+ * so folding it into the connection-state payload would churn the participant list alongside it.
+ */
+export interface MicrophoneStatePayload {
+  muted: boolean;
+}

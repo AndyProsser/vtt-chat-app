@@ -1,67 +1,27 @@
-use base64::Engine;
 use tauri::Url;
+
+use crate::blocked_page::{self, BlockedPage};
 
 /// Native-level fallback for the WebKitGTK homepage crash (see safety_net.rs and
 /// docs/superpowers/specs/2026-08-08-tracker-video-safety-net-design.md) — the JS mitigation
-/// alone was confirmed insufficient (the crash trigger turned out not to be solely the
-/// autoplaying video), so `lib.rs` intercepts navigation to the bare DDB homepage via
-/// `on_navigation` and sends the window here instead, before the crash-prone page ever loads.
-const PAGE_TEMPLATE: &str = r##"<!doctype html>
-<html>
-<head>
-<meta charset="utf-8">
-<title>VTT Chat App</title>
-<style>
-  html, body { margin: 0; height: 100%; font-family: -apple-system, sans-serif; }
-  body {
-    background-image: url('data:image/png;base64,__POSTER_B64__');
-    background-size: cover;
-    background-position: center;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .card {
-    background: rgba(10, 8, 6, 0.78);
-    color: #f5f0e6;
-    padding: 2.5rem 3rem;
-    border-radius: 12px;
-    text-align: center;
-    max-width: 32rem;
-  }
-  h1 { margin: 0 0 0.75rem; font-size: 1.75rem; }
-  p { margin: 0.5rem 0; line-height: 1.5; }
-  a {
-    display: inline-block;
-    margin-top: 1.25rem;
-    padding: 0.6rem 1.4rem;
-    background: #c0392b;
-    color: white;
-    text-decoration: none;
-    border-radius: 6px;
-    font-weight: 600;
-  }
-  a:hover { background: #a5281b; }
-</style>
-</head>
-<body>
-  <div class="card">
-    <h1>Natural 1.</h1>
-    <p>The D&amp;D Beyond homepage doesn't play nicely with this app on Linux yet, so we've sent you here instead.</p>
-    <a href="https://www.dndbeyond.com/characters">Continue to your characters</a>
-  </div>
-</body>
-</html>"##;
-
-const POSTER_PNG: &[u8] = include_bytes!("../assets/homepage-redirect-poster.png");
-
+/// alone was confirmed insufficient (the crash trigger turned out not to be the autoplaying
+/// video, but a bug in NVIDIA's proprietary EGL driver — see
+/// docs/WEBKITGTK-NVIDIA-EGL-CRASH.md), so `lib.rs` intercepts navigation to the bare DDB
+/// homepage via `on_navigation` and sends the window here instead, before the crash-prone page
+/// ever loads.
+///
+/// The page itself is built by `blocked_page.rs`, shared with the Stage 2 page-restriction
+/// blocker — this module owns only the matching rule and this copy.
 pub fn url() -> Url {
-    let poster_b64 = base64::engine::general_purpose::STANDARD.encode(POSTER_PNG);
-    let html = PAGE_TEMPLATE.replace("__POSTER_B64__", &poster_b64);
-    let html_b64 = base64::engine::general_purpose::STANDARD.encode(html.as_bytes());
-    format!("data:text/html;base64,{html_b64}")
-        .parse()
-        .expect("constructed data: URL is always valid")
+    blocked_page::url(&BlockedPage {
+        title: "VTT Chat App",
+        heading: "Natural 1.",
+        message: "The D&D Beyond homepage doesn't play nicely with this app on Linux yet, \
+                  so we've sent you here instead.",
+        detail: None,
+        link_url: "https://www.dndbeyond.com/characters",
+        link_label: "Continue to your characters",
+    })
 }
 
 /// Matches the bare DDB marketing homepage: `www.dndbeyond.com` at `/` or a bare two-letter
@@ -80,4 +40,38 @@ pub fn is_ddb_homepage(url: &Url) -> bool {
         || (path.len() == 3
             && path.starts_with('/')
             && path[1..].bytes().all(|b| b.is_ascii_lowercase()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn parse(url: &str) -> Url {
+        url.parse().expect("test URL is valid")
+    }
+
+    #[test]
+    fn matches_bare_homepage_and_locale_paths() {
+        assert!(is_ddb_homepage(&parse("https://www.dndbeyond.com/")));
+        assert!(is_ddb_homepage(&parse("https://dndbeyond.com/")));
+        assert!(is_ddb_homepage(&parse("https://www.dndbeyond.com/en")));
+        assert!(is_ddb_homepage(&parse("https://www.dndbeyond.com/fr")));
+    }
+
+    #[test]
+    fn does_not_match_real_app_pages() {
+        assert!(!is_ddb_homepage(&parse(
+            "https://www.dndbeyond.com/characters"
+        )));
+        assert!(!is_ddb_homepage(&parse(
+            "https://www.dndbeyond.com/games/123"
+        )));
+        assert!(!is_ddb_homepage(&parse("https://www.dndbeyond.com/abc")));
+    }
+
+    #[test]
+    fn does_not_match_other_hosts() {
+        assert!(!is_ddb_homepage(&parse("https://www.wizards.com/")));
+        assert!(!is_ddb_homepage(&parse("https://example.com/")));
+    }
 }

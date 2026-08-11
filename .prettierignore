@@ -4,3 +4,4 @@ build
 target
 package-lock.json
 tauri-client/src-tauri/gen
+.remember

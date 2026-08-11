@@ -50,6 +50,11 @@ async fn main() {
         .await
         .expect("identity B failed to connect");
 
+    // Clients start muted (push-to-talk default, Stage 2). This harness has no key handling,
+    // so it opens both mics for the duration — otherwise it would verify silence.
+    client_a.set_microphone_muted(false);
+    client_b.set_microphone_muted(false);
+
     println!(
         "\nBoth identities connected and publishing. Speak into your microphone for the next \
          {seconds}s — you should hear yourself played back (with round-trip network delay) \

@@ -1,3 +1,6 @@
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
+
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::{FromSample, Sample};
 use livekit::webrtc::audio_frame::AudioFrame;
@@ -16,8 +19,15 @@ const NUM_CHANNELS: u32 = 1;
 /// outright if its rate doesn't exactly match the source's, so the two must never be chosen
 /// independently. Runs the cpal stream on a dedicated OS thread — `cpal::Stream` isn't `Send`
 /// on every platform, so it must be created and kept alive on the thread that owns it.
+///
+/// `muted` gates capture locally: while set, assembled frames are dropped instead of pushed
+/// to the source. This is the source of truth for whether audio actually leaves this machine.
+/// `LocalAudioTrack::mute()` is *also* set by the caller, but only as advisory remote state —
+/// it carries a server round-trip, so relying on it alone would clip the first ~100-200ms of
+/// every push-to-talk press. See the Stage 2 spec, Amendment B.
 pub fn spawn_microphone_capture(
     runtime: tokio::runtime::Handle,
+    muted: Arc<AtomicBool>,
 ) -> Result<(NativeAudioSource, std::thread::JoinHandle<()>), LiveKitError> {
     let host = cpal::default_host();
     let device = host
@@ -61,6 +71,11 @@ pub fn spawn_microphone_capture(
             pending.extend_from_slice(&chunk);
             while pending.len() >= samples_per_frame {
                 let frame_samples: Vec<i16> = pending.drain(..samples_per_frame).collect();
+                // Drain first, then drop — skipping the drain would let `pending` grow
+                // without bound for the whole time the mic is muted.
+                if muted.load(Ordering::Relaxed) {
+                    continue;
+                }
                 let frame = AudioFrame {
                     data: frame_samples.into(),
                     sample_rate,

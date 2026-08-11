@@ -1,11 +1,21 @@
-import type { CobaltCookieDetectedPayload, LiveKitConnectionState } from '@vtt-chat-app/shared';
+import type {
+  CobaltCookieDetectedPayload,
+  LiveKitConnectionState,
+  MicrophoneStatePayload,
+} from '@vtt-chat-app/shared';
+import {
+  COBALT_COOKIE_EVENT,
+  LIVEKIT_MICROPHONE_EVENT,
+  LIVEKIT_STATE_EVENT,
+  OVERLAY_TOGGLE_EVENT,
+} from '@vtt-chat-app/shared';
 import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 
 export function onCobaltCookieDetected(
   handler: (payload: CobaltCookieDetectedPayload) => void,
 ): Promise<UnlistenFn> {
-  return listen<CobaltCookieDetectedPayload>('ddb:cobalt-cookie', (event) =>
+  return listen<CobaltCookieDetectedPayload>(COBALT_COOKIE_EVENT, (event) =>
     handler(event.payload),
   );
 }
@@ -13,7 +23,20 @@ export function onCobaltCookieDetected(
 export function onLiveKitState(
   handler: (state: LiveKitConnectionState) => void,
 ): Promise<UnlistenFn> {
-  return listen<LiveKitConnectionState>('livekit:state', (event) => handler(event.payload));
+  return listen<LiveKitConnectionState>(LIVEKIT_STATE_EVENT, (event) => handler(event.payload));
+}
+
+export function onMicrophoneState(
+  handler: (payload: MicrophoneStatePayload) => void,
+): Promise<UnlistenFn> {
+  return listen<MicrophoneStatePayload>(LIVEKIT_MICROPHONE_EVENT, (event) =>
+    handler(event.payload),
+  );
+}
+
+/** Emitted by Ctrl+Shift+O, from either hotkey delivery path. Carries no payload. */
+export function onOverlayToggle(handler: () => void): Promise<UnlistenFn> {
+  return listen(OVERLAY_TOGGLE_EVENT, () => handler());
 }
 
 export function connectLiveKit(url: string, token: string): Promise<void> {

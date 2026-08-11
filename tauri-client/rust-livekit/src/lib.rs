@@ -3,6 +3,7 @@ mod error;
 
 pub use error::LiveKitError;
 
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
 use livekit::options::TrackPublishOptions;
@@ -23,6 +24,12 @@ pub type StateChangeCallback = Arc<dyn Fn(ConnectionState) + Send + Sync>;
 
 pub struct LiveKitClient {
     room: Arc<Room>,
+    /// Retained so the mic can be muted after publish — Stage 1 dropped this handle, which
+    /// left nothing able to mute the track later.
+    microphone_track: LocalAudioTrack,
+    /// Source of truth for whether captured audio actually reaches the track. Shared with the
+    /// capture thread; see `audio::spawn_microphone_capture`.
+    microphone_muted: Arc<AtomicBool>,
     _event_task: tokio::task::JoinHandle<()>,
     _capture_thread: std::thread::JoinHandle<()>,
 }
@@ -41,15 +48,22 @@ impl LiveKitClient {
 
         emit_state(&room, &on_state_change);
 
-        let (capture_source, capture_thread) =
-            audio::spawn_microphone_capture(tokio::runtime::Handle::current())?;
+        // Starts muted: true push-to-talk, silent until the PTT key is held. An unattended
+        // open mic during a live session is a real hot-mic risk (Stage 2 spec §1).
+        let microphone_muted = Arc::new(AtomicBool::new(true));
+
+        let (capture_source, capture_thread) = audio::spawn_microphone_capture(
+            tokio::runtime::Handle::current(),
+            microphone_muted.clone(),
+        )?;
         let capture_track = LocalAudioTrack::create_audio_track(
             "microphone",
             RtcAudioSource::Native(capture_source),
         );
+        capture_track.mute();
         room.local_participant()
             .publish_track(
-                LocalTrack::Audio(capture_track),
+                LocalTrack::Audio(capture_track.clone()),
                 TrackPublishOptions {
                     source: TrackSource::Microphone,
                     ..Default::default()
@@ -83,9 +97,28 @@ impl LiveKitClient {
 
         Ok(Self {
             room,
+            microphone_track: capture_track,
+            microphone_muted,
             _event_task: event_task,
             _capture_thread: capture_thread,
         })
+    }
+
+    /// Gates the microphone. The atomic is set first and is what actually stops audio leaving
+    /// this machine — instantly, with no server round-trip. The track's own mute flag is then
+    /// mirrored so remote participants see accurate state; because it is only advisory here,
+    /// its signalling latency can't clip the start of a push-to-talk press.
+    pub fn set_microphone_muted(&self, muted: bool) {
+        self.microphone_muted.store(muted, Ordering::Relaxed);
+        if muted {
+            self.microphone_track.mute();
+        } else {
+            self.microphone_track.unmute();
+        }
+    }
+
+    pub fn is_microphone_muted(&self) -> bool {
+        self.microphone_muted.load(Ordering::Relaxed)
     }
 
     pub async fn disconnect(self) -> Result<(), LiveKitError> {
