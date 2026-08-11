@@ -2,7 +2,7 @@
 
 The React + Radix UI Shadow DOM overlay injected into D&D Beyond's Maps VTT canvas — see [CLAUDE.md §9](../../CLAUDE.md).
 
-**Status:** Stage 1 subset implemented — minimal Shadow DOM root (`ConnectionStatus` + `ParticipantList`, leaf-isolated per [STATE-AND-RESILIENCE.md](../../docs/architecture/STATE-AND-RESILIENCE.md)), built via Vite into a single injectable `dist/overlay.js`. Voice controls, group selector, chat, and DM controls are Stage 3.
+**Status:** Stage 3a implemented (manual verification outstanding — see [ROADMAP.md](../../ROADMAP.md#stage-3--overlay-ui-ddb-extraction--chat)). Page-scoped Shadow DOM root — `FullPanel` (Maps VTT: `ConnectionStatus`, `MicrophoneStatus`, `MuteButton`, `ParticipantList` with per-row `SpeakingDot`) or `MicPill` (everywhere else allowed) chosen by `usePageMode()`, all leaf-isolated per [STATE-AND-RESILIENCE.md](../../docs/architecture/STATE-AND-RESILIENCE.md). Built via Vite into a single injectable `dist/overlay.js`, tested via Vitest. Group selector moved to Stage 4; chat and DDB DOM extraction are 3b/3c.
 
 ## Responsibilities
 

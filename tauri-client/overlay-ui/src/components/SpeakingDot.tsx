@@ -7,11 +7,7 @@ import { useIsSpeaking } from '../hooks/useIsSpeaking.js';
  * `participantId` — never a composed participant object — so a participant re-renders only
  * when their own speaking state flips.
  */
-export const SpeakingDot = memo(function SpeakingDot({
-  participantId,
-}: {
-  participantId: string;
-}) {
+export const SpeakingDot = memo(function SpeakingDot({ participantId }: { participantId: string }) {
   const speaking = useIsSpeaking(participantId);
   return (
     <span className={speaking ? 'vtt-speaking-dot vtt-speaking-dot-active' : 'vtt-speaking-dot'} />

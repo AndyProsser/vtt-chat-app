@@ -4,9 +4,7 @@ import { classifyPage, subscribeToPageModeChanges, type OverlayMode } from '../l
 
 /** Re-classifies on navigation — see `subscribeToPageModeChanges` for what triggers it. */
 export function usePageMode(): OverlayMode {
-  const [mode, setMode] = useState<OverlayMode>(() =>
-    classifyPage(new URL(window.location.href)),
-  );
+  const [mode, setMode] = useState<OverlayMode>(() => classifyPage(new URL(window.location.href)));
 
   useEffect(() => {
     const recompute = () => setMode(classifyPage(new URL(window.location.href)));

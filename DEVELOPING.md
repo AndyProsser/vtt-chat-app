@@ -70,7 +70,7 @@ Each module has its own `README.md` with module-specific setup once it's impleme
 
 ## Code Style
 
-- TypeScript: ESLint + Prettier + EditorConfig (`npm run lint`, `npm run format` at the root).
+- TypeScript: ESLint + Prettier + EditorConfig (`npm run lint`, `npm run format` at the root). `npm test` runs Vitest for any workspace that has tests (currently `overlay-ui` only).
 - Rust: `cargo fmt` and `cargo clippy` inside `tauri-client/`.
 
 VS Code is the recommended editor; enable format-on-save with Prettier and rust-analyzer.
