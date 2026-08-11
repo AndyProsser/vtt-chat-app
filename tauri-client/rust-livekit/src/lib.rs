@@ -22,6 +22,13 @@ pub struct ConnectionState {
 
 pub type StateChangeCallback = Arc<dyn Fn(ConnectionState) + Send + Sync>;
 
+/// Fired from `RoomEvent::ActiveSpeakersChanged`, carrying the complete current speaker set
+/// (identities), never a delta. See the Stage 3a design §2 for why this is a separate callback
+/// from `StateChangeCallback` rather than folded into `ConnectionState`: speaker sets change
+/// several times per second, and routing them through connection-state would replace the
+/// participant roster on every utterance.
+pub type SpeakersChangeCallback = Arc<dyn Fn(Vec<String>) + Send + Sync>;
+
 pub struct LiveKitClient {
     room: Arc<Room>,
     /// Retained so the mic can be muted after publish — Stage 1 dropped this handle, which
@@ -42,6 +49,7 @@ impl LiveKitClient {
         url: &str,
         token: &str,
         on_state_change: StateChangeCallback,
+        on_speakers_change: SpeakersChangeCallback,
     ) -> Result<Self, LiveKitError> {
         let (room, mut events) = Room::connect(url, token, RoomOptions::default()).await?;
         let room = Arc::new(room);
@@ -73,6 +81,7 @@ impl LiveKitClient {
 
         let event_room = room.clone();
         let event_cb = on_state_change.clone();
+        let speakers_cb = on_speakers_change.clone();
         let event_task = tokio::spawn(async move {
             while let Some(event) = events.recv().await {
                 match event {
@@ -89,6 +98,13 @@ impl LiveKitClient {
                     | RoomEvent::ParticipantDisconnected(_)
                     | RoomEvent::Disconnected { .. } => {
                         emit_state(&event_room, &event_cb);
+                    }
+                    RoomEvent::ActiveSpeakersChanged { speakers } => {
+                        let speaking_identities = speakers
+                            .into_iter()
+                            .map(|participant| participant.identity().to_string())
+                            .collect();
+                        speakers_cb(speaking_identities);
                     }
                     _ => {}
                 }

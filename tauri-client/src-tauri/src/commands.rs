@@ -35,7 +35,11 @@ pub async fn livekit_connect(
         let _ = emit_app.emit("livekit:state", payload);
     });
 
-    let client = LiveKitClient::connect(&url, &token, callback)
+    // No-op until Task 4 wires speaker identities through to the frontend; this keeps the
+    // workspace building against the new `connect` signature (Stage 3a Task 3).
+    let on_speakers_change: rust_livekit::SpeakersChangeCallback = Arc::new(|_speakers| {});
+
+    let client = LiveKitClient::connect(&url, &token, callback, on_speakers_change)
         .await
         .map_err(|err| err.to_string())?;
 

@@ -41,14 +41,24 @@ async fn main() {
     let seconds: u64 = args.get(4).and_then(|s| s.parse().ok()).unwrap_or(20);
 
     println!("connecting identity A...");
-    let client_a = LiveKitClient::connect(url, token_a, Arc::new(|s| print_state("A", s)))
-        .await
-        .expect("identity A failed to connect");
+    let client_a = LiveKitClient::connect(
+        url,
+        token_a,
+        Arc::new(|s| print_state("A", s)),
+        Arc::new(|_speakers| {}),
+    )
+    .await
+    .expect("identity A failed to connect");
 
     println!("connecting identity B...");
-    let client_b = LiveKitClient::connect(url, token_b, Arc::new(|s| print_state("B", s)))
-        .await
-        .expect("identity B failed to connect");
+    let client_b = LiveKitClient::connect(
+        url,
+        token_b,
+        Arc::new(|s| print_state("B", s)),
+        Arc::new(|_speakers| {}),
+    )
+    .await
+    .expect("identity B failed to connect");
 
     // Clients start muted (push-to-talk default, Stage 2). This harness has no key handling,
     // so it opens both mics for the duration — otherwise it would verify silence.
