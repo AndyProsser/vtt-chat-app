@@ -31,7 +31,9 @@ npm install
 
 ## Running Stage 1 Locally
 
-Four things need to be running, in this order:
+**One command:** `npm run dev` from the repo root builds and launches everything below — LiveKit dev server (if `livekit-server` is on your `PATH`; skipped with a warning otherwise, since voice just won't connect), the backend, the overlay bundle, then the Tauri client in the foreground. Ctrl+C stops all of it, LiveKit and the backend included. It's a plain Node script (`scripts/dev.ts`, run via `node`'s built-in TypeScript support — no build step, no extra dependency), so it works the same way on Windows, macOS, and Linux; the four platform-specific prerequisites above still apply, this just orchestrates them.
+
+**Manual, four steps in order** — useful if you want one piece running under a debugger, or don't want the others restarted every time:
 
 1. **LiveKit dev server** — `livekit-server --dev` (no config needed; prints `devkey`/`secret` as the API key/secret and binds `ws://127.0.0.1:7880`, which are `backend/`'s defaults below). For two-party testing across machines, run it on a shared dev box instead of localhost: `livekit-server --dev --bind 0.0.0.0` behind a systemd unit (`Restart=on-failure`), and point `LIVEKIT_URL` at `ws://<dev-host>:7880` from each machine's `backend/` env.
 2. **Backend** — `cd backend && npm run build && npm start` (listens on `:4000`). Override via env vars if needed: `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`, `APP_JWT_SECRET`, `PORT`.
