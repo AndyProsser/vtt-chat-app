@@ -68,6 +68,12 @@ The Firefox UA was briefly applied app-wide (`consts::LINUX_UA_OVERRIDE` in `tau
 
 **Handling live credentials during this kind of investigation:** a HAR capture taken during this debugging session contained a real plaintext password in a POST body. HAR/network-trace files capture exactly what the browser sends, credentials included — treat any HAR from a real login attempt as a secret, keep it out of the repo (`/trace/` is gitignored specifically because of this), and rotate the credential if one is ever captured to disk.
 
+## Known Issue: OAuth Recommended Path Was Also Blocked (Partially Fixed 2026-08-13)
+
+Until this app's own page-restriction allowlist (`tauri-client/src-tauri/src/consts.rs`, `ALLOWED_DOMAINS`) is amended, the "Steam/Google/Apple OAuth remains the standing recommended path" line above was itself broken by this app's own code, not by Wizards/Akamai — meaning both login paths (plain email/password *and* the OAuth fallback) failed at once, just for unrelated reasons. Confirmed live 2026-08-13: clicking "Sign in with Google" on `myaccounts.wizards.com/login` navigates to Google Identity Services' button endpoint, `accounts.google.com/gsi/button?...`, which the allowlist rejected (only `dndbeyond.com`/`wizards.com` were listed) and replaced with this app's blocked page.
+
+`accounts.google.com` is now in `ALLOWED_DOMAINS`, unblocking that endpoint. **Not yet confirmed:** whether the rest of the flow — the actual consent screen and the redirect back to DDB's `oauth-wizards-callback` — needs any domain beyond this one, since Google's flow may stay entirely on `accounts.google.com` or may not. Apple and Steam are unconfirmed and still blocked; each needs its own live click-through before being added, per the evidence bar in [ROADMAP.md](../../ROADMAP.md#stage-2--audio-continuity-hotkeys-page-restriction--ad-block).
+
 ## Resolved: Cookie Access, Exchange & Refresh (Stage 1)
 
 **Cookie access.** Tauri's `WebviewWindow::cookies_for_url()` (Tauri ≥2.4.0, built on wry ≥0.47) reads cookies for a given http/https URL — including httpOnly ones — across Windows (WebView2), macOS (WebKit), and Linux (WebKitGTK). It is not available for `tauri://`/`file://` schemes, which doesn't matter here since DDB is loaded over https. **It must be called asynchronously, off the main thread** — Tauri's own docs flag a Windows-specific deadlock risk if called synchronously on the UI thread. `src-tauri` calls this after the DDB window has loaded, looking for the `CobaltSession` cookie on `dndbeyond.com`.

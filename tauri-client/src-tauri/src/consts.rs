@@ -23,10 +23,16 @@ pub const COBALT_COOKIE_POLL_INTERVAL_SECS: u64 = 3;
 /// Adding a domain is a code change and a rebuild, which is acceptable while the allowed set
 /// is this small and this static.
 ///
-/// **Known gap:** OAuth providers (Google/Apple/Steam, and any Auth0 tenant in between) are not
-/// listed, so OAuth login is blocked. Deliberate — see the Stage 2 spec, Amendment C. Closing
-/// it needs a live HAR capture of a real OAuth login, not guessed domains.
-pub const ALLOWED_DOMAINS: &[&str] = &["dndbeyond.com", "wizards.com"];
+/// `accounts.google.com` closes part of the OAuth gap below — confirmed live 2026-08-13 (a real
+/// "Sign in with Google" click on `myaccounts.wizards.com/login` was blocked navigating to
+/// Google Identity Services' button endpoint, `accounts.google.com/gsi/button?...`), not guessed,
+/// per the evidence bar the gap was left open under (Stage 2 spec §C). Unblocks the button;
+/// whether the rest of the flow (consent screen, redirect back) needs anything further is
+/// unconfirmed until someone completes a real Google sign-in.
+///
+/// **Remaining known gap:** Apple and Steam OAuth (and any Auth0 tenant in between) are still
+/// not listed, so those two remain blocked until their own redirect chains are observed live.
+pub const ALLOWED_DOMAINS: &[&str] = &["dndbeyond.com", "wizards.com", "accounts.google.com"];
 
 /// Tauri event names emitted to the overlay. Mirrored in `shared/src/consts/index.ts` — Rust
 /// can't import the TS package (CLAUDE.md §3), same duplication rationale as the cookie name.

@@ -82,13 +82,25 @@ mod tests {
         assert!(!allowed("file:///etc/passwd"));
     }
 
-    /// OAuth providers are *not* allowlisted in this stage — a known, deliberate gap that
-    /// breaks OAuth login on Linux until the real redirect chain is captured. See the Stage 2
-    /// spec, Amendment C. This test documents the current behaviour so that closing the gap
-    /// is a visible, intentional change rather than a silent one.
+    /// Google OAuth's identity-service domain is now allowlisted, confirmed live 2026-08-13
+    /// (see `consts::ALLOWED_DOMAINS`) — closing part of the gap documented in the Stage 2
+    /// spec, §C. This test documents that the domain, and any subdomain of it, is now let
+    /// through; `oauth_providers_still_blocked` below documents what isn't yet.
     #[test]
-    fn oauth_providers_are_currently_blocked() {
-        assert!(!allowed("https://accounts.google.com/o/oauth2/auth"));
+    fn google_oauth_domain_is_allowed() {
+        assert!(allowed("https://accounts.google.com/o/oauth2/auth"));
+        assert!(allowed(
+            "https://accounts.google.com/gsi/button?type=standard"
+        ));
+    }
+
+    /// Apple and Steam OAuth are *not* allowlisted yet — a known, deliberate gap that breaks
+    /// those two login paths on Linux until their real redirect chains are captured live, same
+    /// evidence bar that closed the Google case above. This test documents the current
+    /// behaviour so that closing the gap is a visible, intentional change rather than a silent
+    /// one.
+    #[test]
+    fn oauth_providers_still_blocked() {
         assert!(!allowed("https://appleid.apple.com/auth/authorize"));
         assert!(!allowed("https://steamcommunity.com/openid/login"));
     }
