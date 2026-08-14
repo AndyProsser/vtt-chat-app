@@ -136,35 +136,45 @@ Two findings behind that table, both from running the app rather than from docum
 
 ---
 
-## Stage 3 — Overlay UI, DDB Extraction & Chat
+## Stage 3 — Overlay UI & DDB Extraction
 
-**Status:** ⚪ Not Started — split into 3a/3b/3c (2026-08-11)
+**Status:** ⚪ Not Started — split into 3a/3b (2026-08-11), 3a redesigned and re-planned 2026-08-14
 **Depends on:** Stage 2, Stage 0.5
 
-The first real test of the state architecture: speaking indicators, presence, and chat are exactly the "rapidly-changing, long-running" surfaces Stage 0.5 exists for.
+The first real test of the state architecture: speaking indicators, presence, groups, and conditions are exactly the "rapidly-changing, long-running" surfaces Stage 0.5 exists for.
 
-**Split into three parts**, because the original stage bundled three subsystems that share a stage number but not a dependency chain — and because chat's transport is an unresolved architectural question that shouldn't gate the overlay work behind it:
+**Split into two parts** (chat, formerly a third part here, has moved to its own [Stage 3.5](#stage-35--text-chat-deferred) — see below):
 
 | Part | Contents | Status |
 | --- | --- | --- |
-| **3a** | Page-scoped overlay mounting, speaking indicators, voice controls, churn diagnostics wired up — [design](docs/superpowers/specs/2026-08-11-stage-3a-overlay-shell-voice-ui-design.md), [plan](docs/superpowers/plans/2026-08-11-stage-3a-overlay-shell-voice-ui-plan.md) | 🟡 In Progress — implemented and building clean; manual in-app verification outstanding (see below) |
-| **3b** | DDB DOM extraction — character metadata, campaign metadata, token conditions | ⚪ Not Started |
-| **3c** | Chat, bounded retention, refresh recovery, reconnect/backoff/event-replay | ⚪ Not Started |
+| **3a** | Compact/expanded overlay views, avatar strip, groups, DM controls, conditions, WS sync layer — [original design](docs/superpowers/specs/2026-08-11-stage-3a-overlay-shell-voice-ui-design.md), [original plan](docs/superpowers/plans/2026-08-11-stage-3a-overlay-shell-voice-ui-plan.md) (mounting/speaking-indicator groundwork, implemented); redesigned per [2026-08-14 design](docs/superpowers/specs/2026-08-14-overlay-compact-view-groups-dm-controls-design.md) and re-planned as [Plan A](docs/superpowers/plans/2026-08-14-overlay-compact-view-plan-a-plan.md) (compact/expanded UI), [Plan B](docs/superpowers/plans/2026-08-14-ws-layer-plan-b-plan.md) (WS sync layer), [Plan C](docs/superpowers/plans/2026-08-14-conditions-plan-c-plan.md) (conditions) | 🟡 In Progress — original mounting/speaking-indicator groundwork implemented (see below); Plans A/B/C written, self-reviewed, and committed 2026-08-14, execution not yet started |
+| **3b** | DDB DOM extraction — character metadata, campaign metadata | ⚪ Not Started |
 
-Two items moved or deferred out of the stage:
+**What changed 2026-08-14, and why:** live-testing the original 3a groundwork (mounting bug, z-index, PTT rebind — see below) surfaced the next real question — what the overlay should actually look like once it has more than one participant, groups, and DM controls to show. That became a full brainstorm ([spec](docs/superpowers/specs/2026-08-14-overlay-compact-view-groups-dm-controls-design.md)): a horizontal avatar-strip compact view (mute icon first, separator, then avatars, condition dots on hover), a per-corner-persisted vertical expanded view toggled per-window-instance (never persisted across refresh, to avoid ever hiding critical state), right-click-revealed group management (DM drag/drop between groups, groups voice-isolated, empty groups hidden from players, DM broadcasts to all groups by default with an override, a dedicated Whisper group that locks the DM to it until released), and a two-tier D&D-5e condition model (audio-effect conditions like silenced/drunk-confused always DM-only; everything else player-editable by default, DM-lockable). Two things surfaced mid-design that reshaped the plan split itself:
 
-- **The group selector moves to Stage 4**, where group routing — the mechanism it drives — already lives. A selector with nothing to select is busywork.
-- **The chat transport is an open architectural question, deferred to 3c.** [CLAUDE.md §8.4](CLAUDE.md) says LiveKit carries "data events for chat + bookmarks"; this stage and [STATE-AND-RESILIENCE.md](docs/architecture/STATE-AND-RESILIENCE.md#websocket-reliability) instead describe a WebSocket layer with a *server-side* bounded replay buffer. The docs currently assert both. Compounding it, `backend/` has no WebSocket layer and Postgres/Redis are Stage 5 deliverables, so a server-side replay buffer has nowhere durable to live yet. 3c resolves this deliberately rather than by whichever gets built first.
+- **Conditions need real-time sync across clients, which nothing in the codebase provides yet.** The natural mechanism is the backend WebSocket broadcast layer from the archived `vtt-chat` predecessor (see [CLAUDE.md §16](CLAUDE.md)) — adapted so **Rust owns the connection/state machine** (consistent with `rust-livekit` already owning LiveKit's) and **TS/JS stays pure UI**, reusing the already-issued-but-unconsumed `appSessionToken` for WS auth. This became **Plan B**, self-contained infrastructure with no chat dependency.
+- **Chat's requirements are different enough from voice that it doesn't need to gate this stage** — chat moves to its own stage ([3.5](#stage-35--text-chat-deferred)), which will consume Plan B's WS layer once it exists rather than the other way around.
 
-**Deliverables (unchanged in total, now distributed across 3a/3b/3c):**
+Plan A (compact/expanded UI, no WS dependency) and Plan C (conditions, consumes Plan B's `wsSend`/`onWsMessage` primitives) are written to execute in order A → B → C. All three are fully-specified TDD implementation plans (exact code, no placeholders, self-reviewed) but **none has been executed yet** — per-session instruction, planning work was completed and committed, then paused for review before implementation resumes.
 
-- Full Shadow DOM overlay: voice controls, speaking indicators (leaf-isolated per Stage 0.5), minimal chat
-- DOM extraction for character metadata, campaign metadata, token conditions (`ddb/` + `overlay-ui/`)
-- Overlay injection scoped to Maps VTT, with the "overlay everywhere" debug toggle — 3a additionally renders a minimal mic pill on other allowed pages, so a player mid-session isn't left without mute or mic-state feedback while reading rules (push-to-talk is app-focused-only, per Stage 2)
-- Refresh recovery implemented and manually verified: reload the WebView mid-session, confirm domain state (roster, presence, chat) comes back atomically and UI-only state (panel state) restores separately
-- Reconnect/backoff + bounded event-replay on the WebSocket layer (per [STATE-AND-RESILIENCE.md](docs/architecture/STATE-AND-RESILIENCE.md#websocket-reliability))
+One item moved out of the stage during the original split:
 
-**Done when:** a simulated multi-hour session (can be sped up / synthetic load in dev) with continuous speaking-state churn shows stable memory in the overlay's WebView, and a mid-session refresh recovers full state within a couple seconds with no duplicate messages or stuck indicators. This bar belongs to 3c — 3a and 3b close on their own narrower criteria, recorded in their specs.
+- **The group selector moves to Stage 4** in the original 3a/3b/3c split rationale — since then, group *management* (not just selection) has folded into 3a's own redesign above, since the compact/expanded views need groups to render at all. Stage 4's DM-controls deliverable now covers group routing's *audio* effects (isolation, routing) layered on top of the UI this stage builds.
+
+**Deliverables (now distributed across 3a/3b):**
+
+- Compact-view overlay: horizontal avatar strip, mute icon + separator, per-corner persisted position, condition dots (Plan A + Plan C)
+- Expanded-view overlay: per-window-instance toggle, never persisted across refresh, full condition badges (Plan A + Plan C)
+- Group management UI: DM drag/drop, hidden-when-empty, Whisper group (Plan A, per the 2026-08-14 spec — audio isolation itself is Stage 4)
+- DM corner-menu controls: corner picker, condition-editing permission toggle (Plan A + Plan C)
+- Conditions: fixed D&D-5e-based list, two-tier DM/player editing permission, synced via the WS layer (Plan C)
+- WS sync layer: Rust-owned connection/state machine (`ws_client.rs`, `SharedWsSender`), generic send/receive Tauri bridge (`wsSend`/`onWsMessage`), backend `ws` server with Redis-Streams-backed bounded replay buffer, `appSessionToken`-based auth (Plan B)
+- DOM extraction for character metadata, campaign metadata (`ddb/` + `overlay-ui/`) — token-condition extraction from DDB itself is unresolved (see Plan C's flagged assumption) and deferred until DDB's own condition data is better understood
+- Overlay injection scoped to Maps VTT, with the "overlay everywhere" debug toggle — the original 3a groundwork additionally renders a minimal mic pill on other allowed pages, so a player mid-session isn't left without mute or mic-state feedback while reading rules (push-to-talk is app-focused-only, per Stage 2)
+- Refresh recovery implemented and manually verified: reload the WebView mid-session, confirm domain state (roster, presence, conditions) comes back atomically and UI-only state (panel expand/collapse) restores separately
+- Reconnect/backoff + bounded event-replay on the WebSocket layer (per [STATE-AND-RESILIENCE.md](docs/architecture/STATE-AND-RESILIENCE.md#websocket-reliability)) — delivered by Plan B, decoupled from chat now that chat has its own stage
+
+**Done when:** a simulated multi-hour session (can be sped up / synthetic load in dev) with continuous speaking-state and condition churn shows stable memory in the overlay's WebView, and a mid-session refresh recovers full state within a couple seconds with no duplicate events or stuck indicators. 3a and 3b close on their own narrower criteria, recorded in their specs/plans.
 
 **Known issue (Linux), unconfirmed root cause:** on a real Maps VTT page (`/games/<id>`), maps with an *animated background* render nothing — static maps, tokens, and other in-map animations are all unaffected; it's specifically the animated map background that goes blank. Reproduced in Epiphany independently of this app, so it's WebKitGTK, not app code. Leading theory: DDB implements animated map backgrounds the same way as the homepage's hero banners — a looping `<video>` element — and this is the same underlying WebKitGTK media-rendering issue as the Stage 1 homepage crash above, just failing silently (blank) here instead of segfaulting there. `safety_net.rs`'s video-stripping is scoped only to the homepage's specific `SiteWide_backgroundVideo` class, so it isn't touching Maps VTT at all — this is WebKitGTK's native behavior on this content, not a side effect of our own mitigation. This directly threatens this stage's "overlay injection scoped to Maps VTT" deliverable for any campaign using an animated map — not yet investigated further; logged here for whoever picks up Stage 3.
 
@@ -173,6 +183,23 @@ Two items moved or deferred out of the stage:
 **3a implemented, manual verification outstanding.** `classifyPage`/`usePageMode`, `speakingStore`, the `livekit:speakers` event (Rust: new `RoomEvent::ActiveSpeakersChanged` arm and `SpeakersChangeCallback`; relayed by `src-tauri`), `MuteButton`/`set_microphone_muted` (sharing its apply/emit path with the hotkey handler), and the `FullPanel`/`MicPill` split are all in place, Vitest-covered where the design specifies (`classifyPage`, `speakingStore.applySpeakers`, `microphoneStore.applyMuted`), and pass `cargo fmt`/`clippy`/`build`/`test` and `npm run lint`/`format:check`/`typecheck`/`build`/`test`. This is also the overlay's first genuinely interactive control, so it's the point where `@radix-ui/themes` — a dependency since Stage 1 but never actually imported — finally gets wired in for real (`main.tsx` wraps the render tree in Radix's `Theme` provider; `MuteButton` uses Radix's `Button`), fulfilling CLAUDE.md §3/§19's Radix mandate that Stage 1/2's components had been deviating from. Accepted cost: Radix's `tokens.css` + `components.css` inline into the injected bundle, growing `overlay.js` from 654.84KB to 1,195.63KB (gzip 195.95KB → 269.54KB) — injected via `initialization_script` on every DDB page load, not just Maps. **First real manual session, 2026-08-14 — two mounting bugs found and fixed.** The pill renders on `/characters` now, confirmed live, but only after two real, previously-invisible bugs surfaced (both masked all session by locally-persisting `dist/` build artifacts, same root cause as several CI-only bugs that day — see git history for `main.tsx`/`vite.config.ts` around 2026-08-14): (1) React's bundled CJS entry threw `process is not defined` on evaluation, since Vite's library-mode build wasn't statically replacing `process.env.NODE_ENV` the way its normal app build does — the overlay had likely never actually mounted in a real WebView since Stage 1; (2) `.vtt-overlay`'s `position: fixed` + max z-index lived several levels down inside the Shadow DOM, so DDB's own header still painted over it regardless of the z-index value (already maxed at 2147483647, nothing higher to set) — moved to the light-DOM host element itself, the standard fix for injected overlays. PTT rebound from Right Ctrl to **Left Ctrl** the same day (easier to hold with a mouse in the right hand).
 
 **Not yet verified (manual, needs a real session):** a full panel on a real Maps VTT page; the `/games/<id>` pattern matches a real Maps URL; whether DDB routes Maps client-side (making the SPA-navigation subscription load-bearing) or hard-navigates; speaking dots lighting up for the correct participant during a two-party call; the debug flag forcing the full panel off-Maps; and whether LiveKit's server-side active-speaker throttling needs a client-side cap (see the design's §2 — add one at the Rust emit site only if observed firing faster than ~10Hz). **Also open:** the mute button and PTT both appeared inert during this session's test — matches the existing by-design no-op when no LiveKit client is connected yet (`hotkeys.rs`), but that's unconfirmed as the actual cause, and either way there's no UI feedback distinguishing "no-op, not connected" from "broken."
+
+---
+
+## Stage 3.5 — Text Chat (Deferred)
+
+**Status:** ⚪ Not Started
+**Depends on:** Stage 3 (specifically Plan B's WS sync layer)
+
+Split out of the original Stage 3 on 2026-08-14 — chat's requirements are different enough from voice that it doesn't need to gate the overlay/conditions/groups work in Stage 3, and can be bolted on once the WS layer it needs already exists rather than co-designed with it. [CLAUDE.md §8.4](CLAUDE.md) says LiveKit carries "data events for chat + bookmarks"; this repo's actual direction (per Stage 3's Plan B) is a backend-owned WebSocket layer with a Redis-Streams-backed bounded replay buffer instead — this stage should resolve that discrepancy in `CLAUDE.md` when it starts, not before.
+
+**Deliverables:**
+
+- Minimal chat UI in the overlay (leaf-isolated per Stage 0.5), consuming Plan B's `wsSend`/`onWsMessage` primitives the same way Plan C's conditions do
+- Chat message persistence/retention policy (bounded, same replay-buffer mechanism conditions use — no new backend transport)
+- Refresh recovery for chat specifically: reload mid-session, confirm message history comes back without duplicates or gaps within the replay buffer's window
+
+**Done when:** two participants in the same campaign can exchange chat messages that survive a mid-session refresh for at least the replay buffer's retention window, with no duplicate or dropped messages.
 
 ---
 
