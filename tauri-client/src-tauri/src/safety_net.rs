@@ -18,7 +18,12 @@ pub const SCRIPT: &str = r#"
     'gsght.com',
     'datadoghq-browser-agent.com',
     'ketchcdn.com',
-    'optimizely.com',
+    // 'optimizely.com' deliberately NOT blocked, despite appearing in the AdGuard capture this
+    // list was sourced from: confirmed live 2026-08-13 that blocking it breaks DDB's own nav
+    // mega-menus (PLAY D&D / RULES / LIBRARY / COMMUNITY) — the panels toggle open but render
+    // with a zero-size box, no content. DDB evidently uses Optimizely to gate what renders
+    // inside them, not just as a passive analytics beacon, so blocking it is an ad-block false
+    // positive against the site's own UI, not a tracker win. See ROADMAP.md's Stage 2 entry.
     'hotjar.com',
     // Near-universal ad/analytics infrastructure, blocked by every mainstream ad-blocker
     // regardless of site. A different category from the list above: these are not sourced
