@@ -4,7 +4,7 @@
 
 **Goal:** Stand up the general-purpose backend WebSocket layer — server (`backend/`), Rust client (`src-tauri`) owning the connection/reconnect state machine, relay to `overlay-ui` via a Tauri event — with **zero domain message types**. This is a pipe, not a feature: Plan C (conditions) is its first real consumer, and a future chat stage reuses the same layer. Resolves the chat-transport ambiguity `STATE-AND-RESILIENCE.md` and CLAUDE.md §8.4 currently disagree on, in favor of backend WS (not LiveKit data events) — see [docs/superpowers/specs/2026-08-14-overlay-compact-view-groups-dm-controls-design.md](../specs/2026-08-14-overlay-compact-view-groups-dm-controls-design.md).
 
-**Architecture:** `backend/` gains a `ws` package (the `ws` library, attached to the same HTTP server Express already runs on) authenticated by the **existing** `appSessionToken` JWT (`verifyAppSessionToken`, already implemented, currently issued but never consumed beyond being returned to the client) passed as a query parameter on the WS upgrade request. Connections are tracked per `campaignId` (a claim already in the token) for broadcast scoping. A bounded, in-memory, per-campaign replay buffer keyed by `lastEventId` covers brief reconnects; Redis-backed durability is an explicit non-goal here, deferred to whenever Stage 5 sets up Redis for real. `src-tauri` gains a `tokio-tungstenite` WS client (already a transitive dependency via `livekit`'s own signaling — this adds no new crate to the build) that connects in parallel to `livekit_connect`, owns exponential-backoff reconnection, and relays every inbound message to the frontend as one generic `ws:message` Tauri event — `overlay-ui` doesn't get a typed dispatcher in this plan, just the raw wrapper Plan C builds on.
+**Architecture:** `backend/` gains a `ws` package (the `ws` library, attached to the same HTTP server Express already runs on) authenticated by the **existing** `appSessionToken` JWT (`verifyAppSessionToken`, already implemented, currently issued but never consumed beyond being returned to the client) passed as a query parameter on the WS upgrade request. Connections are tracked per `campaignId` (a claim already in the token) for broadcast scoping — an inbound client message is validated for shape only (not domain-typed) and re-broadcast to the rest of that campaign, registering it in the replay buffer along the way. A bounded, in-memory, per-campaign replay buffer keyed by `lastEventId` covers brief reconnects; Redis-backed durability is an explicit non-goal here, deferred to whenever Stage 5 sets up Redis for real. `src-tauri` gains a `tokio-tungstenite` WS client (already a transitive dependency via `livekit`'s own signaling — this adds no new crate to the build) that connects in parallel to `livekit_connect`, owns exponential-backoff reconnection, relays every inbound message to the frontend as one generic `ws:message` Tauri event, and exposes a `ws_send` command for the reverse direction — `overlay-ui` doesn't get a typed dispatcher or a typed send helper in this plan, just the raw two-way wrapper Plan C builds on.
 
 **Tech Stack:** Rust (`tokio-tungstenite` 0.29 promoted from transitive to direct dependency — verified present in `Cargo.lock` and the vendored source before this plan was written), Node/Express (`ws` — new direct dependency, matching the archived `vtt-chat`'s own choice, not socket.io/uWS), TypeScript/Zod (`shared/`), Vitest (new for `backend/`, mirroring how Stage 3a stood it up for `overlay-ui`).
 
@@ -642,7 +642,7 @@ git commit -m "feat(backend): attach the WS layer to the same HTTP server Expres
 **Interfaces:**
 - Produces: `tokio_tungstenite`, `futures_util` available to `src-tauri`. Task 11 (`ws_client.rs`) consumes both.
 
-Both crates are already in `Cargo.lock` as transitive dependencies (via `livekit`'s own WebSocket signaling) at the exact versions checked below — this adds no new crate to the build, only promotes existing ones to direct dependencies. Verified against the vendored source before this plan was written (`tokio-tungstenite` 0.29.0: `connect_async<R: IntoClientRequest>(request: R) -> Result<(WebSocketStream<MaybeTlsStream<TcpStream>>, Response), Error>`; `WebSocketStream` implements `Stream<Item = Result<Message, WsError>>` + `Sink<Message>`; `Message::text(impl Into<Utf8Bytes>)` constructor; `Message::Text(Utf8Bytes)` where `Utf8Bytes: AsRef<str>`).
+Both crates are already in `Cargo.lock` as transitive dependencies (via `livekit`'s own WebSocket signaling) at the exact versions checked below — this adds no new crate to the build, only promotes existing ones to direct dependencies. Verified against the vendored source before this plan was written (`tokio-tungstenite` 0.29.0: `connect_async<R: IntoClientRequest>(request: R) -> Result<(WebSocketStream<MaybeTlsStream<TcpStream>>, Response), Error>`; `WebSocketStream` implements `Stream<Item = Result<Message, WsError>>` + `Sink<Message>`; `Message::text(impl Into<Utf8Bytes>)` constructor; `Message::Text(Utf8Bytes)` where `Utf8Bytes: AsRef<str>`). `futures-util`'s `"sink"` feature (gating the `Sink`-related traits/utilities `SinkExt` needs) isn't part of its default feature set, but `"std"` already is — `tokio-tungstenite` itself depends on `futures-util` with exactly `features = ["sink", "std"]` and no `default-features = false`, so matching that shape (add `"sink"`, leave defaults on) is the safe, minimal change; Cargo unifies feature flags across the whole dependency graph regardless.
 
 - [ ] **Step 1: Add the dependencies**
 
@@ -651,7 +651,7 @@ Edit `tauri-client/src-tauri/Cargo.toml`:
 ```toml
 [dependencies]
 base64 = "0.22"
-futures-util = { version = "0.3", default-features = false, features = ["sink", "std"] }
+futures-util = { version = "0.3", features = ["sink"] }
 rust-livekit = { path = "../rust-livekit" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
@@ -721,7 +721,9 @@ git commit -m "feat(src-tauri): add WS event name and reconnect-backoff consts"
 
 **Interfaces:**
 - Consumes: `tokio_tungstenite::connect_async`, `futures_util::{StreamExt, SinkExt}`, `consts::{WS_MESSAGE_EVENT, WS_RECONNECT_BASE_DELAY_MS, WS_RECONNECT_MAX_ATTEMPTS}`.
-- Produces: `pub fn backoff_delay(attempt: u32) -> std::time::Duration` (pure, tested) and `pub fn spawn(app: tauri::AppHandle, url: String)` (starts the connect/reconnect loop as a background Tokio task). Task 12 (`commands.rs`) consumes `spawn`.
+- Produces: `pub fn backoff_delay(attempt: u32) -> std::time::Duration` (pure, tested), `pub type SharedWsSender = Arc<Mutex<Option<UnboundedSender<String>>>>`, and `pub fn spawn(app: tauri::AppHandle, url: String, sender_state: SharedWsSender)` (starts the connect/reconnect loop as a background Tokio task). Task 11 (`commands.rs`) consumes `spawn`, `SharedWsSender`, and manages a `SharedWsSender` as Tauri app state (parallel to `SharedClient` for LiveKit) so a `ws_send` command can reach it.
+
+**This is a two-way pipe, not receive-only** — a WS layer that consumers (Plan C, a future chat stage) can only listen on but never send through isn't a general-purpose layer. Each successful connection spawns a dedicated writer task owning the split's write-half, fed by an `mpsc::UnboundedSender<String>` stored in `SharedWsSender`; `ws_send` (Task 11) just pushes onto that channel. On disconnect, `SharedWsSender` is cleared back to `None` before the loop attempts to reconnect, so a send attempt while disconnected fails cleanly rather than silently going to a dead channel from a previous connection.
 
 The reconnect loop itself has no automated test — consistent with this codebase's existing boundary (`rust-livekit`'s actual network code isn't unit-tested either, verified manually/via the loopback harness instead; see the Stage 3a plan's Task 3 for the precedent). Only the pure backoff calculation is tested here.
 
@@ -789,23 +791,36 @@ mod ws_client;
 Run (from `tauri-client/`): `cargo test --package src-tauri ws_client::`
 Expected: PASS — 2 tests.
 
-- [ ] **Step 5: Implement the connect/reconnect/relay loop**
+- [ ] **Step 5: Implement the connect/reconnect/relay loop, both directions**
 
 Append to `tauri-client/src-tauri/src/ws_client.rs`, below the `#[cfg(test)]` block:
 
 ```rust
+use std::sync::{Arc, Mutex};
+
 use futures_util::{SinkExt, StreamExt};
 use tauri::{AppHandle, Emitter};
+use tokio::sync::mpsc::{self, UnboundedSender};
 use tokio_tungstenite::connect_async;
 use tokio_tungstenite::tungstenite::Message;
 
 use crate::consts::{WS_MESSAGE_EVENT, WS_RECONNECT_MAX_ATTEMPTS};
 
+/// Holds the current connection's outgoing-message channel, if connected. `None` between
+/// connections (including during a reconnect backoff wait) so a send attempt fails cleanly
+/// instead of silently going to a dead channel from a previous connection. Managed as Tauri app
+/// state, same pattern as `rust_livekit::SharedClient`.
+pub type SharedWsSender = Arc<Mutex<Option<UnboundedSender<String>>>>;
+
 /// Starts the WS client as a background task: connects, relays every inbound text message to
 /// the frontend as `WS_MESSAGE_EVENT` (Plan B defines no per-type Tauri events — `overlay-ui`
 /// filters by the envelope's own `type` field), and reconnects with exponential backoff on
 /// disconnect, up to `WS_RECONNECT_MAX_ATTEMPTS` before giving up entirely for this session.
-pub fn spawn(app: AppHandle, url: String) {
+///
+/// Two-way: each successful connection also spawns a writer task owning the split's write-half,
+/// fed by a fresh `mpsc` channel whose sender is published into `sender_state` for `ws_send`
+/// (`commands.rs`) to push onto.
+pub fn spawn(app: AppHandle, url: String, sender_state: SharedWsSender) {
     tokio::spawn(async move {
         let mut attempt: u32 = 0;
 
@@ -814,6 +829,20 @@ pub fn spawn(app: AppHandle, url: String) {
                 Ok((stream, _response)) => {
                     attempt = 0;
                     let (mut write, mut read) = stream.split();
+
+                    let (tx, mut rx) = mpsc::unbounded_channel::<String>();
+                    *sender_state.lock().unwrap() = Some(tx);
+
+                    let writer = tokio::spawn(async move {
+                        while let Some(payload) = rx.recv().await {
+                            if write.send(Message::text(payload)).await.is_err() {
+                                break;
+                            }
+                        }
+                        // The channel closed (connection dropped, sender_state cleared below and
+                        // dropped) or a send failed — either way, nothing left to write.
+                        let _ = write.close().await;
+                    });
 
                     while let Some(message) = read.next().await {
                         match message {
@@ -829,9 +858,11 @@ pub fn spawn(app: AppHandle, url: String) {
                         }
                     }
 
-                    // Drain the write half cleanly; ignore errors, the connection is already
-                    // going away either way.
-                    let _ = write.close().await;
+                    // Clear before the writer task necessarily finishes — a send racing this
+                    // moment either lands on the old channel (writer drains it, then exits once
+                    // dropped) or finds `None` and no-ops; both are fine, neither hangs.
+                    *sender_state.lock().unwrap() = None;
+                    writer.abort();
                 }
                 Err(err) => {
                     eprintln!("[src-tauri] WS connect failed: {err}");
@@ -874,19 +905,19 @@ git commit -m "feat(src-tauri): add ws_client — connect, relay, exponential-ba
 
 ---
 
-## Task 11: Rust — `ws_connect` command
+## Task 11: Rust — `ws_connect` and `ws_send` commands
 
 **Files:**
 - Modify: `tauri-client/src-tauri/src/commands.rs`
-- Modify: `tauri-client/src-tauri/src/lib.rs` (register the command)
+- Modify: `tauri-client/src-tauri/src/lib.rs` (manage `SharedWsSender` state, register both commands)
 
 **Interfaces:**
-- Consumes: `ws_client::spawn` (Task 10).
-- Produces: `#[tauri::command] pub fn ws_connect(app: AppHandle, url: String) -> Result<(), String>`. Task 12 (`tauriBridge.ts`) invokes it by name.
+- Consumes: `ws_client::spawn`, `ws_client::SharedWsSender` (Task 10).
+- Produces: `#[tauri::command] pub fn ws_connect(app: AppHandle, state: State<'_, SharedWsSender>, url: String) -> Result<(), String>` and `#[tauri::command] pub fn ws_send(state: State<'_, SharedWsSender>, payload: String) -> Result<(), String>`. Task 12 (`tauriBridge.ts`) invokes both by name; Plan C's DM-facing condition-set/clear actions call `ws_send`.
 
-Fire-and-forget by design — `ws_client::spawn` owns its own reconnect loop for the app's lifetime; there's no `ws_disconnect` command in this plan (nothing in the app currently tears down the LiveKit connection outside of the whole app closing either, so this matches existing precedent — revisit if a real disconnect need shows up later).
+`ws_send` is a no-op (not an error) when there's no live connection — same accepted pattern as `hotkeys.rs`'s mute-when-disconnected, for the same reason (hotkeys/actions are live before a connection necessarily exists, and erroring on every such call would just be noise the caller has to swallow anyway). Fire-and-forget on connect, same as before — no `ws_disconnect` command in this plan.
 
-- [ ] **Step 1: Add the command**
+- [ ] **Step 1: Add both commands**
 
 Edit `tauri-client/src-tauri/src/commands.rs`, appended after `set_microphone_muted`:
 
@@ -895,25 +926,46 @@ Edit `tauri-client/src-tauri/src/commands.rs`, appended after `set_microphone_mu
 /// `overlay-ui` has an `appSessionToken` from the backend session response, in parallel with
 /// `livekit_connect`.
 #[tauri::command]
-pub fn ws_connect(app: AppHandle, url: String) -> Result<(), String> {
-    crate::ws_client::spawn(app, url);
+pub fn ws_connect(
+    app: AppHandle,
+    state: State<'_, crate::ws_client::SharedWsSender>,
+    url: String,
+) -> Result<(), String> {
+    crate::ws_client::spawn(app, url, state.inner().clone());
+    Ok(())
+}
+
+/// Sends a raw JSON envelope over the WS connection (Plan B), for whatever domain type the
+/// caller constructs — this command doesn't know or validate `type`/`payload` shapes, same
+/// generic-pipe boundary as `ws_client`'s relay side. No-ops silently when there's no live
+/// connection, matching `hotkeys.rs`'s mute-when-disconnected precedent.
+#[tauri::command]
+pub fn ws_send(state: State<'_, crate::ws_client::SharedWsSender>, payload: String) -> Result<(), String> {
+    if let Some(sender) = state.lock().unwrap().as_ref() {
+        let _ = sender.send(payload);
+    }
     Ok(())
 }
 ```
 
-- [ ] **Step 2: Register it**
+- [ ] **Step 2: Manage the state and register both commands**
 
 Edit `tauri-client/src-tauri/src/lib.rs`:
 
 ```rust
+        .manage(rust_livekit::SharedClient::default())
+        .manage(crate::ws_client::SharedWsSender::default())
         .invoke_handler(tauri::generate_handler![
             commands::livekit_connect,
             commands::livekit_disconnect,
             commands::hotkey_action,
             commands::set_microphone_muted,
-            commands::ws_connect
+            commands::ws_connect,
+            commands::ws_send
         ])
 ```
+
+(`SharedWsSender = Arc<Mutex<Option<UnboundedSender<String>>>>` — `Arc<Mutex<Option<T>>>::default()` resolves to `Arc::new(Mutex::new(None))` via the standard `Default` impls, same pattern `rust_livekit::SharedClient::default()` already relies on.)
 
 - [ ] **Step 3: Verify**
 
@@ -933,18 +985,18 @@ Expected: PASS — 22 tests (20 existing + 2 new `ws_client` tests).
 
 ```bash
 git add tauri-client/src-tauri/src/commands.rs tauri-client/src-tauri/src/lib.rs
-git commit -m "feat(src-tauri): add ws_connect command"
+git commit -m "feat(src-tauri): add ws_connect and ws_send commands"
 ```
 
 ---
 
-## Task 12: TS — `wsConnect`/`onWsMessage` in `tauriBridge.ts`
+## Task 12: TS — `wsConnect`/`wsSend`/`onWsMessage` in `tauriBridge.ts`
 
 **Files:**
 - Modify: `tauri-client/overlay-ui/src/lib/tauriBridge.ts`
 
 **Interfaces:**
-- Produces: `export function wsConnect(url: string): Promise<void>` and `export function onWsMessage(handler: (payload: string) => void): Promise<UnlistenFn>`. Task 13 (`backendWsUrl` helper + `useOverlayBridge` wiring) consumes both.
+- Produces: `export function wsConnect(url: string): Promise<void>`, `export function wsSend(payload: string): Promise<void>`, and `export function onWsMessage(handler: (payload: string) => void): Promise<UnlistenFn>`. Task 13 (`backendWsUrl` helper + `useOverlayBridge` wiring) consumes `wsConnect`/`onWsMessage`; `wsSend` has no consumer in this plan — it exists so Plan C's DM-facing condition-set/clear actions can call it without another round of `tauriBridge.ts` plumbing.
 
 `onWsMessage`'s handler receives the raw JSON string, not a parsed `WsEnvelope` — Plan B has no domain types to validate against yet, so parsing/validating is each consumer's job (Plan C etc.), matching the same "generic pipe" boundary the backend side keeps.
 
@@ -985,6 +1037,12 @@ Append, after `setMicrophoneMuted`:
 ```ts
 export function wsConnect(url: string): Promise<void> {
   return invoke('ws_connect', { url });
+}
+
+/** Sends a raw JSON envelope over the WS connection (Plan B) — no-ops silently on the Rust
+ * side when there's no live connection, same as `setMicrophoneMuted` before a room is joined. */
+export function wsSend(payload: string): Promise<void> {
+  return invoke('ws_send', { payload });
 }
 ```
 
