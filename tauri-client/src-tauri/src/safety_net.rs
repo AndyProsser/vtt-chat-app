@@ -151,7 +151,7 @@ pub const SCRIPT: &str = r#"
       // Auto-repeat would otherwise re-fire push-to-talk dozens of times per second.
       if (event.repeat) return;
 
-      if (event.code === 'ControlRight') {
+      if (event.code === 'ControlLeft') {
         if (pttHeld) return;
         pttHeld = true;
         invokeHotkey('push_to_talk_pressed');
@@ -173,7 +173,7 @@ pub const SCRIPT: &str = r#"
   document.addEventListener(
     'keyup',
     function (event) {
-      if (event.code === 'ControlRight' && pttHeld) {
+      if (event.code === 'ControlLeft' && pttHeld) {
         pttHeld = false;
         invokeHotkey('push_to_talk_released');
       }

@@ -48,7 +48,7 @@ Once the app is running, the Tauri shell enforces a few things that are easy to 
 
 | Shortcut | Action | Works when |
 | --- | --- | --- |
-| Right Ctrl (hold) | Push to talk | App window focused, all platforms |
+| Left Ctrl (hold) | Push to talk | App window focused, all platforms |
 | Ctrl+Shift+M | Toggle mute | Globally on Windows/macOS/Linux X11; app-focused on Wayland |
 | Ctrl+Shift+O | Show/hide overlay | Globally on Windows/macOS/Linux X11; app-focused on Wayland |
 

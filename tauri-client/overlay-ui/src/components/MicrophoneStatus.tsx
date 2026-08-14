@@ -11,7 +11,7 @@ export const MicrophoneStatus = memo(function MicrophoneStatus() {
   const muted = useMicrophoneMuted();
   return (
     <div className={muted ? 'vtt-mic vtt-mic-muted' : 'vtt-mic vtt-mic-live'}>
-      {muted ? 'Mic muted — hold Right Ctrl to talk' : 'Mic live'}
+      {muted ? 'Mic muted — hold Left Ctrl to talk' : 'Mic live'}
     </div>
   );
 });

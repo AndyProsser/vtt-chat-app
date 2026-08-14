@@ -120,10 +120,13 @@ fn toggle_overlay_shortcut() -> Shortcut {
 /// Two deliberate absences here, both confirmed by running the app rather than inferred:
 ///
 /// - **Push-to-talk is not registered globally, on any platform.** `global-hotkey` has no
-///   scancode mapping for bare modifier keys, so Right Ctrl fails with "Unknown scancode for
-///   key: ControlRight" everywhere, not just on Wayland. PTT is therefore app-focused only,
-///   delivered by the injected key handler, which reads `event.code === 'ControlRight'` fine.
-///   Attempting the registration anyway would only print an error on every launch.
+///   scancode mapping for bare modifier keys — confirmed live with Right Ctrl, which failed
+///   with "Unknown scancode for key: ControlRight" everywhere, not just on Wayland. PTT was
+///   rebound to Left Ctrl 2026-08-14 (easier to hold with a mouse in the right hand); the same
+///   bare-modifier limitation is expected to apply equally, not separately re-confirmed. PTT is
+///   therefore app-focused only, delivered by the injected key handler, which reads
+///   `event.code === 'ControlLeft'` fine. Attempting the OS-level registration anyway would
+///   only print an error on every launch.
 /// - **On Wayland nothing registered here ever fires.** The underlying `global-hotkey`/`tao`
 ///   shortcut thread is X11-specific and disabled on Wayland (tauri-apps/tao#543), so
 ///   registration *succeeds* and then silently does nothing. That is why the injected in-page
