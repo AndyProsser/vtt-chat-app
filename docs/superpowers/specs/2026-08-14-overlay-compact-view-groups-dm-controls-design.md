@@ -11,15 +11,17 @@ Stage 3a shipped a working `FullPanel`/`MicPill` split, but real usage (2026-08-
 
 ## Scope & Phasing
 
-This spec covers four areas that sit at different points in the roadmap. Building it is not one task — treat each tier as its own future plan.
+This spec covers four areas that sit at different points in the roadmap. Building it is not one task — it maps to three separate implementation plans, revised 2026-08-14 after discussing how condition sync actually needs to work:
 
-| Tier | Covers | Needs |
-| --- | --- | --- |
-| **Buildable now** | Compact view (flat, no groups), expand/collapse + fade, corner positioning, avatar placeholders, conditions as a manual/local stopgap | Nothing beyond what Stage 3a already ships |
-| **Blocked on Stage 3b** | Real DDB avatars replacing placeholders; conditions sourced from DDB token data instead of manually toggled | DDB DOM extraction |
-| **Blocked on Stage 4 + new `rust-livekit` work** | Actual groups (creation, DM drag-drop, Whisper, broadcast-vs-lock), DM voice modifiers, per-listener-different condition audio (silenced, drunk/confused) | LiveKit room-topology/subscription routing; new audio DSP capability in `rust-livekit` |
+| Tier | Covers | Needs | Plan |
+| --- | --- | --- | --- |
+| **Plan A — buildable now** | Compact view (flat, no groups), expand/collapse + fade, corner positioning, avatar placeholders | Nothing beyond what Stage 3a already ships — pure `overlay-ui` TS, no Rust, no voice/audio changes | [2026-08-14-overlay-compact-view-plan-a-plan.md](../plans/2026-08-14-overlay-compact-view-plan-a-plan.md) |
+| **Plan B — WS layer (foundational)** | A general-purpose backend WebSocket server + a Rust WS client (`src-tauri`) owning the connection/reconnect state machine, relaying to `overlay-ui` via Tauri events — same pattern as `livekit:speakers`. Not conditions-specific: this is Stage 3c's core infrastructure, pulled forward because conditions need it now. Resolves the chat-transport ambiguity `STATE-AND-RESILIENCE.md` and CLAUDE.md §8.4 currently disagree on (see that doc's note) in favor of backend WS, not LiveKit data events. | In-memory bounded replay buffer to start; Redis-backed durable replay is a later enhancement once Stage 5 sets up Redis, not a blocker for v1 | Not yet written — needs its own architecture-focused brainstorm before a plan (message envelope shape, event catalog, reconnect parameters aren't decided yet) |
+| **Plan C — conditions** | Fixed D&D 5e condition list, badges (compact view: color-coded dot + hover tooltip; expanded view: full badge), the two-tier permission model, DM set/clear, built on Plan B's WS layer for cross-client sync | Plan B | Not yet written |
+| **Blocked on Stage 3b** | Real DDB avatars replacing Plan A's placeholders; conditions sourced from DDB token data instead of manually toggled (Plan C stays manual/local until this lands) | DDB DOM extraction | — |
+| **Blocked on Stage 4 + new `rust-livekit` audio work** | Actual groups (creation, DM drag-drop, Whisper, broadcast-vs-lock); DM voice modifiers; per-listener-different condition audio (silenced, drunk/confused) | LiveKit room-topology/subscription routing; new audio DSP capability in `rust-livekit` | — |
 
-Explicitly **out of scope**: text chat. Sequenced after voice is solid (Stage 3c), not touched by this spec at all.
+**Text chat moved out of this spec entirely, into its own future stage** (decided 2026-08-14) — its requirements differ enough from voice that it doesn't need to ship alongside it, and Plan B's WS layer is exactly the shared foundation that stage will build on when it happens. Not designed here at all.
 
 ## Compact View (the one default view)
 
@@ -86,7 +88,7 @@ Groups exist only for the DM to isolate voice for a side-quest (scouting, jail, 
 - **Two permission tiers, by condition, not a single global toggle:**
   - Conditions **with** an audio effect (silenced, drunk/confused, etc.) are **always DM-only** — never player-editable, at any setting. Silenced: the DM hears the player, other players don't. Drunk/confused: other players hear that participant's voice muddled. Since these drive real per-listener audio routing, letting a player self-apply one would be a way to grief the audio pipeline, not a roleplay choice.
   - Conditions **without** an audio effect default to **player-editable** — trusting players by default. The DM can flip a setting to lock these down to DM-only too, and can always directly override any condition regardless of who's allowed to edit it.
-- **Now vs. later:** the condition list and badges are buildable today as a manual, local stopgap (DM/player toggles them by hand). Syncing from DDB's actual token-condition data is Stage 3b work — this spec doesn't block on it.
+- **Now vs. later, revised 2026-08-14:** the condition list and badges are Plan C, not Plan A — a DM-toggled badge needs to reach *every* player's screen, not just the DM's own client, which means real cross-client sync, not local-only state. That's the same shape of problem Stage 3a solved for speaking state, except conditions are manually triggered rather than derived from LiveKit's own room events, so the natural mechanism is the backend WS layer (Plan B) rather than a new LiveKit data event. Manual/DM-toggled either way until Stage 3b's DDB extraction can drive it automatically — Plan C doesn't wait on Stage 3b, only on Plan B.
 
 ## DM Voice Modifiers
 
@@ -118,6 +120,6 @@ Extends the existing Stage 0.5 rules ([STATE-AND-RESILIENCE.md](../../architectu
 
 ## Out of Scope
 
-- Text chat — deliberately not covered anywhere in this spec. Comes after voice is solid (Stage 3c), on its own design pass.
+- Text chat — deliberately not covered anywhere in this spec. Moved out of Stage 3c into its own future stage (decided 2026-08-14) — not designed here at all, though it will build on Plan B's WS layer when it happens.
 - Free-drag corner positioning (v1 is pick-a-corner only).
 - The exact TTL/session-boundary/AI-pipeline-trigger mechanism (noted as a future direction under [Groups](#groups), not decided here).
