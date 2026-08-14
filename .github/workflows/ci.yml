@@ -18,8 +18,14 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run format:check
-      - run: npm run typecheck
+      # Build before typecheck: overlay-ui imports @vtt-chat-app/shared and @vtt-chat-app/ddb,
+      # both TS project references whose .d.ts output only exists after their own `tsc -b` runs.
+      # `tsc --noEmit` doesn't build referenced projects itself, so on a clean checkout (nothing
+      # in the gitignored dist/ folders yet) typecheck-before-build fails with "Cannot find
+      # module" for every cross-package import — reproduced locally 2026-08-14 by clearing all
+      # dist/ folders and running typecheck first, confirming this ordering is load-bearing.
       - run: npm run build
+      - run: npm run typecheck
       - run: npm test
 
   rust:
@@ -36,5 +42,23 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: tauri-client
+      # Tauri's Linux build links against WebKitGTK/GTK/AppIndicator via -sys crates (glib-sys,
+      # gtk-sys, etc.), none of which ship on the bare ubuntu-latest runner image — confirmed
+      # 2026-08-14 by a real CI run failing at `cargo clippy` with "Package glib-2.0 was not
+      # found in the pkg-config search path" from glib-sys's build script. This was flagged as
+      # unverified back in Stage 0 (ROADMAP.md: "needs a first real CI run to confirm") and this
+      # is that first run surfacing the gap. Full list per Tauri's official Linux prerequisites
+      # (https://tauri.app/start/prerequisites/); libxdo-dev specifically covers
+      # tauri-plugin-global-shortcut's X11 backend, which this project uses (hotkeys.rs).
+      - name: Install Tauri Linux build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            libxdo-dev \
+            libssl-dev \
+            patchelf
       - run: cargo fmt --all -- --check
       - run: cargo clippy --workspace --all-targets --all-features -- -D warnings
