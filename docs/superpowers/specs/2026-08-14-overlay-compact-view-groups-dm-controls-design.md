@@ -48,7 +48,7 @@ Replaces Stage 3a's `FullPanel`/`MicPill` split entirely — there is one compac
 - Group headers only render once the DM has actually split the table. The default "everyone together" state stays exactly like the ungrouped layout above — no header, no visual change from the common case. This keeps the minimal case minimal even after groups exist as a feature.
 - Each active group: small text header (group name), avatar row underneath.
 
-**Conditions in the compact view:** not explicitly discussed during brainstorming, so documenting the call made here — compact-view avatars show at most a small indicator dot when any condition is active (not full badge icons; that level of detail is expanded-view-only), consistent with "just enough info to be useful, never get in the way." Revisit if this reads as too vague in practice.
+**Conditions in the compact view:** compact-view avatars show at most a small indicator dot when any condition is active (not full badge icons; that level of detail is expanded-view-only), consistent with "just enough info to be useful, never get in the way." The dot is color-coded and hoverable — hovering reveals the exact condition name(s) as a tooltip, so the compact view stays a glance-able summary while the detail is one hover away, not hidden entirely. Exact color mapping (e.g., distinguishing the DM-locked audio-effect conditions from purely cosmetic ones, versus a fuller per-condition palette) is left to implementation/mockup time — not decided here.
 - Empty groups: invisible to players. The DM's view differs — see [Groups](#groups).
 
 ## Expand / Collapse
