@@ -3,9 +3,6 @@
   "productName": "VTT Chat App",
   "version": "0.1.0",
   "identifier": "app.vttchat.desktop",
-  "build": {
-    "frontendDist": "../overlay-ui/dist"
-  },
   "app": {
     "windows": [],
     "security": {
