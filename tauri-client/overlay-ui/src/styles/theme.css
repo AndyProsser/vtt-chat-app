@@ -2,10 +2,10 @@
 }
 
 .vtt-overlay {
-  position: fixed;
-  top: 16px;
-  left: 16px;
-  z-index: 2147483647;
+  /* Fixed positioning + max z-index live on the light-DOM host now (main.tsx) — this is just
+     the visual box, offset from the host's viewport-anchored (0,0) origin by margin instead of
+     its own top/left. */
+  margin: 16px;
   padding: 10px 14px;
   border-radius: 8px;
   background: rgba(20, 20, 24, 0.85);
@@ -47,11 +47,10 @@
   opacity: 0.7;
 }
 
-/* Radix's Theme wrapper is now an ancestor of .vtt-overlay inside the Shadow DOM. It should be
-   inert by default (no layout size of its own — its only child is position:fixed), but this
-   makes it explicit rather than assumed: pointer-events is inherited, so declaring none here
-   and opting back in on .vtt-overlay's interactive descendants covers both this wrapper and the
-   container in one place. */
+/* Radix's Theme wrapper is an ancestor of .vtt-overlay inside the Shadow DOM, and now takes on
+   .vtt-overlay's real size (no longer position:fixed itself — the light-DOM host carries that).
+   pointer-events is inherited, so declaring none here and opting back in on .vtt-overlay's
+   interactive descendants covers both this wrapper and the container in one place. */
 .radix-themes {
   pointer-events: none;
 }

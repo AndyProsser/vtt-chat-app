@@ -13,6 +13,20 @@ function mount(): void {
 
   const host = document.createElement('div');
   host.id = HOST_ELEMENT_ID;
+  // Positioning lives here, on the light-DOM host, not on anything inside the Shadow DOM.
+  // `.vtt-overlay` (styles/theme.css) used to carry `position: fixed` + this same z-index, but
+  // that stacking context gets evaluated relative to wherever the host element sits in DDB's
+  // own page — confirmed live 2026-08-14 that DDB's own header/breadcrumb bar still painted
+  // over it despite z-index already being maxed out (2147483647, the ceiling for a CSS z-index;
+  // there's no higher number to "bump" to). Setting it directly on the host, with `!important`
+  // as defense against any DDB page rule that happens to target bare `div`s, is the standard
+  // fix for injected overlays: it establishes the fixed-position stacking context at the
+  // topmost point in the light DOM instead of several shadow-tree levels down.
+  host.setAttribute(
+    'style',
+    'all: initial; position: fixed !important; top: 0 !important; left: 0 !important; ' +
+      'z-index: 2147483647 !important; pointer-events: none !important;',
+  );
   document.body.appendChild(host);
 
   // Shadow DOM keeps DDB's page CSS from bleeding into the overlay and vice versa (CLAUDE.md §9).
