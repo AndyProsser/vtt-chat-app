@@ -1,7 +1,7 @@
 # WebKitGTK 2.52.3 segfaults on NVIDIA 580 when pages play video
 
-**Status:** root cause narrowed to the EGL vendor library. Two configurations prevent the crash, each with a significant trade-off — see [Mitigations evaluated](#mitigations-evaluated). NVIDIA has acknowledged an equivalent regression internally (bug 5701801, unresolved) — see [Corroboration](#corroboration). Filed here for upstream (WebKitGTK, Tauri, NVIDIA).
-**Investigated:** 2026-08-09, updated 2026-08-11
+**Status:** root cause narrowed to the EGL vendor library, and now confirmed NVIDIA-specific — the identical WebKitGTK build and reproduction pages run clean on Intel GPU, see [Positive control](#positive-control-intel-gpu-2026-08-19). Two configurations prevent the crash on NVIDIA, each with a significant trade-off — see [Mitigations evaluated](#mitigations-evaluated). NVIDIA has acknowledged an equivalent regression internally (bug 5701801, unresolved) — see [Corroboration](#corroboration). Filed here for upstream (WebKitGTK, Tauri, NVIDIA).
+**Investigated:** 2026-08-09, updated 2026-08-11, 2026-08-19
 **Reporter context:** hit while building a Tauri 2 app that hosts D&D Beyond in a WebKitGTK WebView. Reproduces in stock WebKitGTK browsers with no app code involved.
 
 ## Summary
@@ -126,7 +126,7 @@ Ruled out by experiment:
 
 A bug in NVIDIA's proprietary EGL implementation (`libnvidia-eglcore` / `libEGL_nvidia`) in the 580 branch, triggered by GL work WebKitGTK performs while compositing certain video-playing pages.
 
-This is stated as an assessment, not proof. What is _established_ is that the EGL vendor library is the determining variable across eleven single-variable tests.
+This is stated as an assessment, not proof of the exact mechanism. What is _established_: the EGL vendor library is the determining variable across eleven single-variable tests on the NVIDIA machine, and the identical WebKitGTK build running the identical reproduction pages is crash-free on Intel GPU — see [Positive control](#positive-control-intel-gpu-2026-08-19). Together these confirm the fault requires NVIDIA's driver specifically; they don't yet identify the precise EGL/GL call sequence responsible (see [Open questions](#open-questions)).
 
 ## Corroboration
 
@@ -219,7 +219,7 @@ WebKitGTK is fully open source (LGPL, [github.com/WebKit/WebKit](https://github.
 
 **This is a hypothesis, not a confirmed cause** — it is *consistent with* crash signature 2 (a driver-internal fault 7 frames deep in `libnvidia-eglcore`, the classic result of corrupted internal state from concurrent misuse) but not proven. It also lines up with [WebKit bug 262607](https://www2.webkit.org/show_bug.cgi?id=262607) ("[GTK] Disable DMABuf renderer for NVIDIA proprietary drivers"), which proposed blanket-disabling DMA-BUF for NVIDIA and was closed **WONTFIX** in 2024 — WebKit maintainers were already aware NVIDIA + DMA-BUF is fragile in general (not video-specific) and chose not to address it broadly, which tracks with this still being unresolved.
 
-**To actually test the race hypothesis** without needing symbolicated backtraces: an `LD_PRELOAD` shim intercepting `eglCreateImageKHR`/`eglDestroyImage`/`eglMakeCurrent`, logging thread ID + timestamp on each call during a live repro, would show directly whether calls from different threads interleave on the same context around the crash. Not yet built — a reasonable next step if the driver-downgrade tests don't resolve things first.
+**To actually test the race hypothesis** without needing symbolicated backtraces: an `LD_PRELOAD` shim intercepting `eglCreateImageKHR`/`eglDestroyImage`/`eglMakeCurrent`, logging thread ID + timestamp on each call during a live repro, would show directly whether calls from different threads interleave on the same context around the crash. Built at [`docs/scripts/egl-tracer/`](scripts/egl-tracer/) — `build.sh` compiles the shim, `run.sh <url>` reproduces under it (disabling WebKitGTK's process sandbox so the preload reaches `WebKitWebProcess`, where crash signature 2 actually happens), and `analyze_egl_trace.py` pairs the ENTER/EXIT log into call intervals and flags any that overlap across threads on the same EGL context. Not yet run against real NVIDIA hardware — the next step once a 580-branch machine is available.
 
 ## Additional diagnostics (2026-08-11)
 
@@ -231,6 +231,25 @@ WebKitGTK is fully open source (LGPL, [github.com/WebKit/WebKit](https://github.
   No `NVRM: Xid` line appears in the kernel log at any point around either fault. That rules out a kernel-visible GPU-level event — hung engine, MMU fault, ECC error, thermal/watchdog reset — as the trigger. The fault is a plain userspace SIGSEGV inside the closed-source EGL library itself (bad pointer/use-after-free/corrupted state), not something the GPU hardware or the `nvidia.ko` kernel module ever flags. This is consistent with a fixable userspace driver bug rather than a hardware fault, and is worth stating explicitly in any report to NVIDIA.
 - **Isolated GStreamer-only reproduction: does not crash.** Ran `filesrc ! matroskademux ! vp9parse ! nvvp9dec ! glimagesink` (NVDEC VP9 decode → `GstGLUploadElement` → `glcolorconvert` → GL display, i.e. the same CUDA-decode-to-GL-texture path WebKit's video sink also exercises) against a synthetic profile-0 8-bit 4:2:0 VP9 clip — 15 back-to-back runs, fresh GL/CUDA context each time, zero crashes. This is a negative result and doesn't clear the driver — it extends the existing "not HTML5 video generally" finding one level further: even bare NVDEC-decode-into-GLMemory, repeated with fresh context setup/teardown each run, doesn't trip it outside a browser. Whatever triggers this needs something specific to WebKit's own usage (its particular EGLImage/DMA-BUF import call pattern, or the compositing complexity of a live YouTube watch page — multiple layers, dynamic resize, overlay UI) that a single-sink synthetic pipeline doesn't replicate. Caveat: the synthetic clip is a solid-color test pattern, not a real YouTube-encoded stream — a real clip (e.g. via `yt-dlp`, not installed on this machine) would be a closer match if this is revisited.
 
+## Positive control: Intel GPU (2026-08-19)
+
+**Update, same day — clean single-variable result.** An initial test used Konqueror (see "Earlier, weaker result" below), which turned out not to be a strict single-variable swap. Ran the actual repro instead: the exact `webkit2gtk-4.1` `MiniBrowser` binary (2.52.5) against both repro URLs from [Reproduction](#reproduction) — the DDB homepage and the YouTube watch page — on the same Intel machine (Lenovo Yoga laptop, CachyOS/Arch, Intel Iris Xe (TigerLake-LP), Mesa 26.1.6, hardware-accelerated GL confirmed via `glxinfo`).
+
+First attempt crashed (SIGABRT, confirmed via `coredumpctl`) — but the log showed `GStreamer element autoaudiosink not found`, and the crash traced to a GLib assertion failure from a NULL signal-connect target, not the documented fault. This machine was simply missing `gst-plugins-good` (fresh CachyOS install). After installing it, both repros were re-run for the full 60s each:
+
+- DDB homepage: 60s, clean, empty log, no crash.
+- YouTube watch page (`jNQXAC9IVRw`, the faster/more reliable trigger on the NVIDIA machine — crashes there in 5–10s): 60s, clean, empty log, no crash.
+- No new `coredumpctl` entries from either run.
+- Visually confirmed, not just process-survival: video played correctly in both cases — no frozen frame, no black box, no dropped/frozen playback.
+
+This is the clean version of the test: same WebKitGTK build, same binary, same exact reproduction URLs, only the GPU vendor changed (NVIDIA → Intel). It ran clean on the page that reliably segfaults NVIDIA in 5–10 seconds. Combined with the existing [bisection](#bisection) result (the only variable that prevents the crash on NVIDIA is which EGL vendor library loads) and NVIDIA's own [acknowledged internal bug](#corroboration) for the same fault class, this is strong confirmation that the crash is NVIDIA-specific rather than a general WebKitGTK/GStreamer/DDB-content defect. It is not, on its own, proof of the specific race-condition mechanism below — see [Open questions](#open-questions) for what would close that gap.
+
+Given this, and given that KDE Plasma's WebKitGTK stack (WebKitGTK + GStreamer, same as GNOME's) is the same rendering path — not a separate one — the crash is expected to reproduce under KDE too if it reproduces under GNOME, since nothing about the fault as understood so far ([root cause assessment](#root-cause-assessment)) is GNOME-specific. That extrapolation is still untested on a KDE/NVIDIA machine.
+
+**Updated working theory:** the [source-level investigation](#source-level-investigation-2026-08-11) already flagged the likely mechanism — GStreamer's `gsteglimage.c` serializes `eglDestroyImage` onto the owning GL thread via `gst_gl_context_thread_add()` but has no equivalent confinement for `eglCreateImageKHR`, leaving EGL-context calls from WebKit's compositor thread and GStreamer's streaming thread unsynchronized. The Intel-GPU result reinforces that this only matters on NVIDIA: a spec-compliant EGL implementation is expected to either serialize internally or reject concurrent use of a context from multiple threads cleanly, rather than corrupt state and segfault. Read that way, NVIDIA's proprietary EGL driver is the fault ultimately responsible for crashing on invalid input — but GStreamer calling `eglCreateImageKHR` without the same thread confinement it already applies to `eglDestroyImage` is what actually produces the race, and closing that asymmetry in GStreamer (thread-confining image creation the same way destruction already is) would likely prevent the crash regardless of whose fault the underlying driver behavior is. Still a hypothesis, not proven — see [Getting better data](#getting-better-data) for how to confirm it with an `LD_PRELOAD` EGL-call tracer.
+
+**Earlier, weaker result (superseded above):** an initial test ran the DDB homepage under Konqueror on the same Intel machine and also found no crash. That result is superseded by the `MiniBrowser` test above, but is recorded for completeness: it wasn't a strict single-variable swap (GPU vendor *and* browser changed at once), and modern Konqueror typically renders via QtWebEngine (Chromium) rather than WebKitGTK, so it likely didn't exercise the same GStreamer/EGLImage-import code path at all.
+
 ## Open questions
 
 - The exact GL/EGL call that faults — unidentified.
@@ -240,4 +259,6 @@ WebKitGTK is fully open source (LGPL, [github.com/WebKit/WebKit](https://github.
 - Whether the two crash signatures share one cause or are two distinct faults.
 - Whether the zink `Failed to create EGL image from DMABuf` failure and the crash share a root: both sit on the DMA-BUF → EGLImage import path, which would be a natural place to look first.
 - Why Mesa EGL cannot create a DRI2 screen on this device even with `LIBGL_ALWAYS_SOFTWARE=1` — a working software fallback would at least give affected users a slow-but-usable escape hatch.
-- Whether an Intel-GPU machine (open-source Mesa driver, real hardware acceleration rather than this machine's broken DRI2 fallback) reproduces the crash at all — untested here, would be a clean positive control for "NVIDIA-specific" vs. "Linux/WebKitGTK-general." Andy has an Arch/Intel laptop that could run the same two-line repro from [Reproduction](#reproduction).
+- ~~Whether WebKitGTK specifically (not just "some Linux browser") is crash-free on Intel GPU~~ — **resolved 2026-08-19**: the exact `MiniBrowser`/`webkit2gtk-4.1` repro from [Reproduction](#reproduction) ran clean, full 60s, on both trigger URLs on Intel GPU — see [Positive control](#positive-control-intel-gpu-2026-08-19).
+- Whether the crash reproduces on KDE/NVIDIA — expected to, since KDE uses the same WebKitGTK + GStreamer stack as GNOME, but untested.
+- Whether GStreamer's `_gst_egl_image_create()` (in `gsteglimage.c`) is actually called from a different thread than the one destroying/using the same EGL context around the crash — the concrete way to confirm the [thread-safety hypothesis above](#positive-control-intel-gpu-2026-08-19), via the `LD_PRELOAD` EGL-call tracer described in [Getting better data](#getting-better-data).
