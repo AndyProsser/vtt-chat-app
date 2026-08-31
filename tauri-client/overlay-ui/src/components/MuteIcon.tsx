@@ -3,6 +3,7 @@ import { memo, useCallback } from 'react';
 
 import { useConnected } from '../hooks/useConnected.js';
 import { useMicrophoneMuted } from '../hooks/useMicrophoneMuted.js';
+import { useShadowPortalContainer } from '../lib/shadowRootContext.js';
 import { setMicrophoneMuted } from '../lib/tauriBridge.js';
 
 /**
@@ -14,6 +15,7 @@ import { setMicrophoneMuted } from '../lib/tauriBridge.js';
 export const MuteIcon = memo(function MuteIcon() {
   const connected = useConnected();
   const muted = useMicrophoneMuted();
+  const container = useShadowPortalContainer();
 
   const handleClick = useCallback(() => {
     void setMicrophoneMuted(!muted).catch((err: unknown) => {
@@ -28,7 +30,7 @@ export const MuteIcon = memo(function MuteIcon() {
       : 'Mic live';
 
   return (
-    <Tooltip content={label}>
+    <Tooltip content={label} container={container}>
       <IconButton
         type="button"
         size="1"
@@ -36,6 +38,7 @@ export const MuteIcon = memo(function MuteIcon() {
         color={muted || !connected ? 'gray' : 'green'}
         className={connected ? 'vtt-mute-icon' : 'vtt-mute-icon vtt-mute-icon-disconnected'}
         onClick={handleClick}
+        aria-label={label}
       >
         <span aria-hidden="true">{muted || !connected ? '○' : '●'}</span>
       </IconButton>

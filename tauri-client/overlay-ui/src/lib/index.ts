@@ -5,6 +5,7 @@ export * from './corner.js';
 export * from './expandStore.js';
 export * from './microphoneStore.js';
 export * from './overlayVisibilityStore.js';
+export * from './shadowRootContext.js';
 export * from './speakingStore.js';
 export * from './store.js';
 export * from './tauriBridge.js';

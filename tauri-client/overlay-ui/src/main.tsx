@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 
 import { OverlayRoot } from './components/OverlayRoot.js';
 import { cornerStyle, getCorner } from './lib/corner.js';
+import { ShadowPortalContainerProvider } from './lib/shadowRootContext.js';
 import overlayStyles from './styles/theme.css?inline';
 import radixComponents from '@radix-ui/themes/components.css?inline';
 import radixTokens from '@radix-ui/themes/tokens.css?inline';
@@ -45,9 +46,19 @@ function mount(): void {
   const reactRoot = document.createElement('div');
   shadowRoot.appendChild(reactRoot);
 
+  // Dedicated portal target, a sibling of `reactRoot` rather than reusing it: Radix's
+  // `Tooltip`/`ContextMenu.Content` portal their DOM elsewhere in the tree regardless of where
+  // they're declared in JSX, and giving them their own element inside the shadow root (instead
+  // of the default `document.body`, which is outside the Shadow DOM entirely) keeps that portaled
+  // content under the same injected stylesheets and the host's max z-index — see Critical 1.
+  const portalContainer = document.createElement('div');
+  shadowRoot.appendChild(portalContainer);
+
   createRoot(reactRoot).render(
     <Theme appearance="dark" accentColor="gray" hasBackground={false}>
-      <OverlayRoot />
+      <ShadowPortalContainerProvider container={portalContainer}>
+        <OverlayRoot />
+      </ShadowPortalContainerProvider>
     </Theme>,
   );
 }

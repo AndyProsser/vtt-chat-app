@@ -2,6 +2,7 @@ import { IconButton, Tooltip } from '@radix-ui/themes';
 import { memo } from 'react';
 
 import { useExpandStore } from '../lib/expandStore.js';
+import { useShadowPortalContainer } from '../lib/shadowRootContext.js';
 
 /**
  * The compact view's dedicated expand affordance (and the expanded view's collapse affordance
@@ -12,10 +13,12 @@ import { useExpandStore } from '../lib/expandStore.js';
 export const ExpandToggle = memo(function ExpandToggle() {
   const expanded = useExpandStore((state) => state.expanded);
   const toggle = useExpandStore((state) => state.toggle);
+  const container = useShadowPortalContainer();
+  const label = expanded ? 'Collapse' : 'Expand';
 
   return (
-    <Tooltip content={expanded ? 'Collapse' : 'Expand'}>
-      <IconButton type="button" size="1" variant="ghost" onClick={toggle}>
+    <Tooltip content={label} container={container}>
+      <IconButton type="button" size="1" variant="ghost" onClick={toggle} aria-label={label}>
         <span aria-hidden="true">{expanded ? '⌃' : '⌄'}</span>
       </IconButton>
     </Tooltip>

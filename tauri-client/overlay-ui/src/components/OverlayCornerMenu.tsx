@@ -2,6 +2,7 @@ import { ContextMenu } from '@radix-ui/themes';
 import { type ReactNode, useState } from 'react';
 
 import { getCorner, setCorner, type Corner } from '../lib/corner.js';
+import { useShadowPortalContainer } from '../lib/shadowRootContext.js';
 
 const CORNER_LABELS: Record<Corner, string> = {
   'top-left': 'Top left',
@@ -21,11 +22,12 @@ const CORNER_LABELS: Record<Corner, string> = {
  */
 export function OverlayCornerMenu({ children }: { children: ReactNode }) {
   const [selected, setSelected] = useState<Corner>(() => getCorner());
+  const container = useShadowPortalContainer();
 
   return (
     <ContextMenu.Root>
       <ContextMenu.Trigger>{children}</ContextMenu.Trigger>
-      <ContextMenu.Content>
+      <ContextMenu.Content container={container}>
         <ContextMenu.RadioGroup
           value={selected}
           onValueChange={(value) => {
