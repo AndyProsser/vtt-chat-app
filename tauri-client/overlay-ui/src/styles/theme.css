@@ -76,3 +76,16 @@
 .vtt-speaking-dot-active {
   background: #7ee787;
 }
+
+.vtt-avatar {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 2px transparent;
+}
+
+.vtt-avatar-speaking {
+  box-shadow: 0 0 0 2px #7ee787;
+}

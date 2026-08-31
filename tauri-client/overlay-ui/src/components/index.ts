@@ -1,3 +1,4 @@
+export * from './Avatar.js';
 export * from './ConnectionStatus.js';
 export * from './FullPanel.js';
 export * from './MicPill.js';
