@@ -121,3 +121,32 @@
     opacity: 1;
   }
 }
+
+.vtt-expanded-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 180px;
+  animation: vtt-fade-in 150ms ease-out;
+}
+
+.vtt-expanded-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.vtt-expanded-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.vtt-expanded-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
