@@ -1,4 +1,5 @@
 export * from './Avatar.js';
+export * from './CompactPanel.js';
 export * from './ConnectionStatus.js';
 export * from './ExpandToggle.js';
 export * from './FullPanel.js';

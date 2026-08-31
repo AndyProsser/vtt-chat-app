@@ -93,3 +93,31 @@
 .vtt-mute-icon-disconnected {
   opacity: 0.4;
 }
+
+.vtt-compact-panel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  animation: vtt-fade-in 150ms ease-out;
+}
+
+.vtt-divider {
+  width: 1px;
+  align-self: stretch;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.vtt-avatar-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+@keyframes vtt-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
