@@ -3,6 +3,7 @@ export * from './ConnectionStatus.js';
 export * from './FullPanel.js';
 export * from './MicPill.js';
 export * from './MicrophoneStatus.js';
+export * from './MuteIcon.js';
 export * from './MuteButton.js';
 export * from './OverlayRoot.js';
 export * from './ParticipantList.js';

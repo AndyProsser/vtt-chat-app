@@ -89,3 +89,7 @@
 .vtt-avatar-speaking {
   box-shadow: 0 0 0 2px #7ee787;
 }
+
+.vtt-mute-icon-disconnected {
+  opacity: 0.4;
+}
