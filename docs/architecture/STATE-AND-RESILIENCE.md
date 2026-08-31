@@ -39,7 +39,7 @@ Anything that changes per-participant and often — speaking on/off, mic level, 
 ❌ <ParticipantRow participant={fullParticipantObject} />
    — re-renders on any change to any field of any participant sharing that object
 
-✅ <SpeakingDot participantId={id} />
+✅ <Avatar participantId={id} />
    — subscribes to useIsSpeaking(id), a single boolean primitive selector
    — re-renders only when this participant's speaking state changes
 ```

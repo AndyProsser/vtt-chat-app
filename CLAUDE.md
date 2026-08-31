@@ -244,6 +244,8 @@ Claude must implement:
 - Optional “overlay everywhere” debug mode
 - Overlay removed when leaving Maps (unless toggled)
 
+> **2026-08-31 note:** shipped behavior is overlay-everywhere, not Maps-scoped — deliberate, not a regression. The compact view (`tauri-client/overlay-ui`) is designed to always render, on every allowed page, as a minimal mic pill/avatar strip outside of Maps. `usePageMode`/`pageMode.ts` (the page-classification logic that scoped injection above) were deleted as part of that redesign. This paragraph was never amended when the design changed; treat this note as the correction.
+
 #### **Audio continuity**
 
 Switching windows or pages **must not disrupt audio**.
