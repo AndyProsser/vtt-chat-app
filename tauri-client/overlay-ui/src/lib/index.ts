@@ -1,3 +1,4 @@
+export * from './avatarColor.js';
 export * from './backendClient.js';
 export * from './churnDiagnostics.js';
 export * from './microphoneStore.js';
