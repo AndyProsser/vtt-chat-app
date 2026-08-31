@@ -19,29 +19,6 @@
   pointer-events: none;
 }
 
-.vtt-status {
-  font-weight: 600;
-}
-
-.vtt-mic {
-  margin-top: 2px;
-}
-
-.vtt-mic-muted {
-  opacity: 0.7;
-}
-
-.vtt-mic-live {
-  color: #7ee787;
-  font-weight: 600;
-}
-
-.vtt-participants {
-  margin: 4px 0 0;
-  padding: 0;
-  list-style: none;
-}
-
 .vtt-participants-empty {
   margin-top: 4px;
   opacity: 0.7;
@@ -53,28 +30,6 @@
    interactive descendants covers both this wrapper and the container in one place. */
 .radix-themes {
   pointer-events: none;
-}
-
-.vtt-overlay button {
-  pointer-events: auto;
-}
-
-.vtt-participant-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.vtt-speaking-dot {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #444c56;
-}
-
-.vtt-speaking-dot-active {
-  background: #7ee787;
 }
 
 .vtt-avatar {
@@ -90,15 +45,27 @@
   box-shadow: 0 0 0 2px #7ee787;
 }
 
+/* `.vtt-mute-icon` is just a hook for the `-disconnected` modifier below — it carries no
+   styling of its own. Kept as a class (rather than dropped) so a future state-specific rule has
+   somewhere to attach without touching MuteIcon.tsx. */
 .vtt-mute-icon-disconnected {
   opacity: 0.4;
 }
 
+/* The whole visible panel opts back into pointer events, not just its buttons (the old
+   `.vtt-overlay button` rule) — otherwise a right-click, or an avatar hover for its native
+   `title` tooltip, landing on the panel background, divider, or avatar row falls through to
+   `.vtt-overlay`'s `pointer-events: none` and passes straight through to DDB underneath instead
+   of reaching `OverlayCornerMenu`'s `ContextMenu.Trigger`, which wraps the whole panel
+   (`asChild`, so its handler lives on this element). `.vtt-overlay` itself, and the transparent
+   margin around the panel, stay click-through so the panel's positioning box doesn't block DDB's
+   canvas beyond its own visible content. */
 .vtt-compact-panel {
   display: flex;
   align-items: center;
   gap: 6px;
   animation: vtt-fade-in 150ms ease-out;
+  pointer-events: auto;
 }
 
 .vtt-divider {
@@ -128,6 +95,7 @@
   gap: 8px;
   min-width: 180px;
   animation: vtt-fade-in 150ms ease-out;
+  pointer-events: auto;
 }
 
 .vtt-expanded-header {
