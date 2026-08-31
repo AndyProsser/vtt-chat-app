@@ -8,6 +8,7 @@ export * from './MicPill.js';
 export * from './MicrophoneStatus.js';
 export * from './MuteIcon.js';
 export * from './MuteButton.js';
+export * from './OverlayCornerMenu.js';
 export * from './OverlayRoot.js';
 export * from './ParticipantList.js';
 export * from './ParticipantRow.js';
