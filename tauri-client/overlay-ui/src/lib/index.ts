@@ -1,6 +1,7 @@
 export * from './avatarColor.js';
 export * from './backendClient.js';
 export * from './churnDiagnostics.js';
+export * from './expandStore.js';
 export * from './microphoneStore.js';
 export * from './overlayVisibilityStore.js';
 export * from './pageMode.js';
