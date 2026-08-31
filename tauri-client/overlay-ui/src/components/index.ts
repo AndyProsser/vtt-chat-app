@@ -1,5 +1,6 @@
 export * from './Avatar.js';
 export * from './ConnectionStatus.js';
+export * from './ExpandToggle.js';
 export * from './FullPanel.js';
 export * from './MicPill.js';
 export * from './MicrophoneStatus.js';
