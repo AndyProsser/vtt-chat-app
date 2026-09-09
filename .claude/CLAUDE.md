@@ -7,6 +7,18 @@ It also defines a **public status page**, **multi‑window client**, **page rest
 
 Claude must follow this document when generating code, architecture, or implementation details.
 
+This directory (`.claude/`) also holds two files worth checking at the start of nontrivial work:
+
+- [`.claude/memory.md`](memory.md) — durable, cross-machine facts and lessons about this repo
+  that aren't derivable from the code or git history. Committed to git specifically so it
+  survives moving between Andy's machines, unlike Claude Code's per-machine auto-memory.
+- [`.claude/intent.md`](intent.md) — current goals and in-flight, session-spanning threads
+  (e.g. which Stage 3 plan is next).
+
+See also `~/.claude/CLAUDE.md` (loaded automatically alongside this file) for Andy's account-wide
+tone, working-style, and cross-project preferences — this file only covers what's specific to
+`vtt-chat-app`.
+
 ## **1. High‑Level Concept**
 
 VTT Chat App is a **cross‑platform desktop client + native backend** that:
