@@ -96,21 +96,39 @@ static EGLContext current_ctx_safe(void) {
     return (EGLContext)0;
 }
 
+// Re-entrancy guard: if real_eglCreateImageKHR/real_eglDestroyImageKHR ever
+// end up aliased back to our own wrapper (seen with eglMakeCurrent — see the
+// comment above the dlsym() interposer), this stops a silent stack-overflow
+// loop and instead makes the mistake visible as one obvious log line.
+static __thread int in_wrapper = 0;
+
 EGLImageKHR eglCreateImageKHR(EGLDisplay dpy, EGLContext ctx, EGLenum target,
                                EGLClientBuffer buffer, const EGLint *attrib_list) {
     ensure_init();
+    if (in_wrapper) {
+        log_line("REENTRANT", "eglCreateImageKHR", (void *)dpy, (void *)ctx, NULL);
+        return real_eglCreateImageKHR(dpy, ctx, target, buffer, attrib_list);
+    }
+    in_wrapper = 1;
     log_line("ENTER", "eglCreateImageKHR", (void *)dpy, (void *)ctx, (void *)(intptr_t)target);
     EGLImageKHR result = real_eglCreateImageKHR(dpy, ctx, target, buffer, attrib_list);
     log_line("EXIT", "eglCreateImageKHR", (void *)dpy, (void *)ctx, (void *)result);
+    in_wrapper = 0;
     return result;
 }
 
 EGLBoolean eglDestroyImageKHR(EGLDisplay dpy, EGLImageKHR image) {
     ensure_init();
+    if (in_wrapper) {
+        log_line("REENTRANT", "eglDestroyImageKHR", (void *)dpy, NULL, (void *)image);
+        return real_eglDestroyImageKHR(dpy, image);
+    }
+    in_wrapper = 1;
     EGLContext cur = current_ctx_safe();
     log_line("ENTER", "eglDestroyImageKHR", (void *)dpy, (void *)cur, (void *)image);
     EGLBoolean result = real_eglDestroyImageKHR(dpy, image);
     log_line("EXIT", "eglDestroyImageKHR", (void *)dpy, (void *)cur, (void *)(intptr_t)result);
+    in_wrapper = 0;
     return result;
 }
 
@@ -142,4 +160,54 @@ __eglMustCastToProperFunctionPointerType eglGetProcAddress(const char *procname)
         return (__eglMustCastToProperFunctionPointerType)eglDestroyImageKHR;
     }
     return real;
+}
+
+// WebKitGTK's PlatformDisplay dlopen()s "libEGL.so.1" itself (confirmed via
+// `strings libwebkit2gtk-4.1.so.0`: the string "Could not dlopen native EGL:"
+// sits directly next to "libEGL.so.1") and resolves EGL entry points via
+// dlsym() against that private handle. Handle-scoped dlsym only searches the
+// target library's own export table, so it never sees a preloaded global
+// symbol — LD_PRELOAD alone is blind to this path. Interposing dlsym itself
+// closes the gap: whatever handle the caller resolves against, hand back our
+// wrapper instead.
+//
+// eglMakeCurrent is deliberately NOT handled here (only via direct linkage /
+// eglGetProcAddress above). A first attempt that also intercepted it here
+// produced ~174k identical, no-op-returning eglMakeCurrent ENTER events in
+// under 200ms on a single thread before the process died in libc, not
+// libnvidia-eglcore as documented — a self-recursion artifact of this shim,
+// not the real bug (glvnd's dispatch layer appears to re-resolve
+// eglMakeCurrent through dlsym internally on this driver; interposing it
+// here fed the shim's own wrapper back in as "the real one"). Since
+// eglMakeCurrent isn't needed to test the create/destroy race hypothesis
+// (destroy's owning context comes from eglGetCurrentContext, not from
+// snooping makeCurrent calls), the safe fix is to leave it uninterposed here
+// rather than chase glvnd's internal resolution order further.
+typedef void *(*dlsym_t)(void *, const char *);
+static dlsym_t real_dlsym;
+
+static void ensure_real_dlsym(void) {
+    if (real_dlsym) return;
+    // Can't use dlsym(RTLD_NEXT, "dlsym") to find dlsym itself — that would
+    // recurse into this same function. dlvsym sidesteps it: it is a distinct
+    // libdl entry point not routed through our dlsym interposer.
+    real_dlsym = (dlsym_t)dlvsym(RTLD_NEXT, "dlsym", "GLIBC_2.2.5");
+}
+
+void *dlsym(void *handle, const char *symbol) {
+    ensure_real_dlsym();
+    ensure_init();
+    if (symbol) {
+        if (strcmp(symbol, "eglCreateImageKHR") == 0) {
+            if (!real_eglCreateImageKHR)
+                real_eglCreateImageKHR = (eglCreateImageKHR_t)real_dlsym(handle, symbol);
+            return (void *)eglCreateImageKHR;
+        }
+        if (strcmp(symbol, "eglDestroyImageKHR") == 0) {
+            if (!real_eglDestroyImageKHR)
+                real_eglDestroyImageKHR = (eglDestroyImageKHR_t)real_dlsym(handle, symbol);
+            return (void *)eglDestroyImageKHR;
+        }
+    }
+    return real_dlsym(handle, symbol);
 }
