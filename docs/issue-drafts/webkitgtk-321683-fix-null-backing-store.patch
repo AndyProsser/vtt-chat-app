@@ -1,0 +1,28 @@
+--- a/Source/WebKit/UIProcess/API/gtk/WebKitWebViewBase.cpp
++++ b/Source/WebKit/UIProcess/API/gtk/WebKitWebViewBase.cpp
+@@ -2900,19 +2900,22 @@
+ 
+ void webkitWebViewBaseEnterAcceleratedCompositingMode(WebKitWebViewBase* webkitWebViewBase, const LayerTreeContext& layerTreeContext)
+ {
+-    ASSERT(webkitWebViewBase->priv->acceleratedBackingStore);
++    if (!webkitWebViewBase->priv->acceleratedBackingStore)
++        return;
+     webkitWebViewBase->priv->acceleratedBackingStore->update(layerTreeContext);
+ }
+ 
+ void webkitWebViewBaseUpdateAcceleratedCompositingMode(WebKitWebViewBase* webkitWebViewBase, const LayerTreeContext& layerTreeContext)
+ {
+-    ASSERT(webkitWebViewBase->priv->acceleratedBackingStore);
++    if (!webkitWebViewBase->priv->acceleratedBackingStore)
++        return;
+     webkitWebViewBase->priv->acceleratedBackingStore->update(layerTreeContext);
+ }
+ 
+ void webkitWebViewBaseExitAcceleratedCompositingMode(WebKitWebViewBase* webkitWebViewBase)
+ {
+-    ASSERT(webkitWebViewBase->priv->acceleratedBackingStore);
++    if (!webkitWebViewBase->priv->acceleratedBackingStore)
++        return;
+     webkitWebViewBase->priv->acceleratedBackingStore->update(LayerTreeContext());
+ }
+ 
