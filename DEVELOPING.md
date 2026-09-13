@@ -40,6 +40,65 @@ npm install
 3. **Build the overlay bundle** — `cd tauri-client/overlay-ui && npm run build` (produces `dist/overlay.js`, which `src-tauri` reads from disk at startup — rebuild this after any overlay change, then relaunch the app).
 4. **Tauri app** — `cd tauri-client && cargo run --bin vtt-chat-app`. Opens a window on D&D Beyond and injects the overlay; watch the terminal for `cookies_for_url failed`/`overlay bundle not found` if something's off.
 
+## Building a patched WebKitGTK (NVIDIA crash workaround)
+
+**Only relevant if the app segfaults on startup or when loading a page with video, on Linux with an NVIDIA GPU.** See [`docs/WEBKITGTK-NVIDIA-EGL-CRASH.md`](docs/WEBKITGTK-NVIDIA-EGL-CRASH.md) for the full investigation — in short, a stock `webkit2gtk-4.1` (2.52.3 through at least 2.52.6) crashes on certain video-playing pages on the NVIDIA 580 driver branch, via a null-pointer bug in `AcceleratedBackingStore::update()` (upstream [WebKit bug 321683](https://bugs.webkit.org/show_bug.cgi?id=321683)) that then cascades into a second crash in NVIDIA's own driver. The fix is a 3-line WebKitGTK patch, not yet released by any distro.
+
+Everyone else can ignore this section — it only matters if you're actually hitting the crash.
+
+### 1. Prerequisites
+
+- **Podman** (not Docker) — `sudo apt install podman` on Ubuntu. This uses [Igalia's `webkit-container-sdk`](https://github.com/Igalia/webkit-container-sdk), upstream's own recommended way to build the GTK port, so the whole toolchain (cmake, ninja, every `-dev` package) stays inside the container rather than on your host.
+- ~30GB free disk, a few hours of build time (compiling all of WebKit is slow regardless of hardware — ~1h50m on an 8-core/31GB machine).
+
+### 2. Build it, outside this repo
+
+Pick a scratch directory *outside* `vtt-chat-app` — a full WebKit checkout + build tree is tens of GB and has nothing to do with this project's own code:
+
+```bash
+mkdir -p ~/Development/webkitgtk-321683-build && cd ~/Development/webkitgtk-321683-build
+
+# WebKit source, at the tag matching your installed webkit2gtk version
+git clone --depth 1 --branch webkitgtk-2.52.6 https://github.com/WebKit/WebKit.git
+cd WebKit
+git apply /path/to/vtt-chat-app/docs/patches/webkitgtk-321683-null-backing-store.patch
+
+# The container SDK
+cd ..
+git clone https://github.com/Igalia/webkit-container-sdk.git
+source webkit-container-sdk/register-sdk-on-host.sh
+wkdev-create --create-home   # needs sudo once, for host GPU-container integration
+wkdev-enter --name wkdev     # drops you into the container shell
+
+# Inside the container:
+cd "${HOST_HOME}/Development/webkitgtk-321683-build/WebKit"
+./Tools/Scripts/build-webkit --gtk --release --cmakeargs="-DUSE_GTK4=OFF -DUSE_LIBRICE=OFF"
+```
+
+Notes on the flags: `-DUSE_GTK4=OFF` is required — without it you get `webkitgtk-6.0` (GTK4), not the `webkit2gtk-4.1` (GTK3) API Tauri actually links against. `-DUSE_LIBRICE=OFF` works around a `librice` dependency missing from this container image (WebRTC ICE candidate gathering inside WebKit's own GL stack — irrelevant to this app, since LiveKit's native Rust client handles audio, not WebKit's WebRTC).
+
+A successful build ends with `WebKit is now built (...)`. and produces `WebKitBuild/GTK/Release/lib/libwebkit2gtk-4.1.so.0.*`.
+
+### 3. Use it
+
+```bash
+./scripts/dev-with-patched-webkitgtk.sh
+```
+
+Runs the normal `npm run dev` stack with `LD_LIBRARY_PATH` pointed at that patched build instead of your system's `webkit2gtk-4.1` — nothing on your system is modified or replaced. If your build lives somewhere other than the default `~/Development/webkitgtk-321683-build/...` path, set `WEBKIT_PATCHED_LIB_DIR` first.
+
+### 4. Confirm it actually fixed something (optional)
+
+```bash
+source ~/Development/webkitgtk-321683-build/webkit-container-sdk/register-sdk-on-host.sh
+wkdev-enter --exec --name wkdev -- bash -c '
+  cd "${HOST_HOME}/Development/webkitgtk-321683-build/WebKit"
+  ./Tools/Scripts/run-minibrowser --release --gtk "https://www.youtube.com/watch?v=jNQXAC9IVRw"
+'
+```
+
+Should run indefinitely without crashing; the stock system build reliably segfaults on this URL within 5-10 seconds (`journalctl -k | grep -i segfault` confirms either way).
+
 ## Shell Behaviour (Stage 2)
 
 Once the app is running, the Tauri shell enforces a few things that are easy to mistake for bugs:

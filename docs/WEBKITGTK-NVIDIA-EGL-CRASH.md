@@ -378,7 +378,7 @@ This closes the last open question from [Symbolized backtraces](#symbolized-back
 
 ## Patch validated locally (2026-09-11)
 
-Wrote the fix 321683 proposes — replacing the three `ASSERT(webkitWebViewBase->priv->acceleratedBackingStore)` call sites in `Source/WebKit/UIProcess/API/gtk/WebKitWebViewBase.cpp` (`webkitWebViewBaseEnterAcceleratedCompositingMode`/`UpdateAcceleratedCompositingMode`/`ExitAcceleratedCompositingMode`, lines 2901/2907/2913) with `if (!...) return;`, matching the pattern two other functions in the same file already use — as a real patch: [`docs/issue-drafts/webkitgtk-321683-fix-null-backing-store.patch`](issue-drafts/webkitgtk-321683-fix-null-backing-store.patch).
+Wrote the fix 321683 proposes — replacing the three `ASSERT(webkitWebViewBase->priv->acceleratedBackingStore)` call sites in `Source/WebKit/UIProcess/API/gtk/WebKitWebViewBase.cpp` (`webkitWebViewBaseEnterAcceleratedCompositingMode`/`UpdateAcceleratedCompositingMode`/`ExitAcceleratedCompositingMode`, lines 2901/2907/2913) with `if (!...) return;`, matching the pattern two other functions in the same file already use — as a real patch: [`docs/patches/webkitgtk-321683-null-backing-store.patch`](patches/webkitgtk-321683-null-backing-store.patch), with build/link instructions for it in [`DEVELOPING.md`](../DEVELOPING.md#building-a-patched-webkitgtk-nvidia-crash-workaround).
 
 Built it and tested it for real, not just read the diff:
 
