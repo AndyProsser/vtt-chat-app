@@ -50,6 +50,7 @@ Everyone else can ignore this section — it only matters if you're actually hit
 
 - **Podman** (not Docker) — `sudo apt install podman` on Ubuntu. This uses [Igalia's `webkit-container-sdk`](https://github.com/Igalia/webkit-container-sdk), upstream's own recommended way to build the GTK port, so the whole toolchain (cmake, ninja, every `-dev` package) stays inside the container rather than on your host.
 - ~30GB free disk, a few hours of build time (compiling all of WebKit is slow regardless of hardware — ~1h50m on an 8-core/31GB machine).
+- Two runtime packages on the **host** (not just inside the build container), needed to actually *run* the patched library, not to build it: `sudo apt install libopenxr-loader1 libmanette-0.2-0`. This container's default build enables WebXR/Gamepad support, which Ubuntu's stock `webkit2gtk-4.1` package doesn't — so `libwebkit2gtk-4.1.so.0` from this build links against them directly and won't load without them, even though your system runs fine without them today. **This is also a real deployment dependency, not just a dev-machine one**: if this patched build (or its eventual upstream-released equivalent) ever ships to end users before a distro release fixes it upstream, whatever bundles `vtt-chat-app` needs to depend on these two packages too. `tauri.conf.json`'s `bundle` is `"active": false` right now (no packaging exists yet — see [ROADMAP.md](ROADMAP.md)), so there's nowhere to encode that yet; when bundling is set up, add both to `bundle.linux.deb.depends`.
 
 ### 2. Build it, outside this repo
 
@@ -72,12 +73,12 @@ wkdev-enter --name wkdev     # drops you into the container shell
 
 # Inside the container:
 cd "${HOST_HOME}/Development/webkitgtk-321683-build/WebKit"
-./Tools/Scripts/build-webkit --gtk --release --cmakeargs="-DUSE_GTK4=OFF -DUSE_LIBRICE=OFF"
+./Tools/Scripts/build-webkit --gtk --release --no-experimental-features --cmakeargs="-DUSE_GTK4=OFF -DUSE_LIBRICE=OFF"
 ```
 
-Notes on the flags: `-DUSE_GTK4=OFF` is required — without it you get `webkitgtk-6.0` (GTK4), not the `webkit2gtk-4.1` (GTK3) API Tauri actually links against. `-DUSE_LIBRICE=OFF` works around a `librice` dependency missing from this container image (WebRTC ICE candidate gathering inside WebKit's own GL stack — irrelevant to this app, since LiveKit's native Rust client handles audio, not WebKit's WebRTC).
+Notes on the flags: `-DUSE_GTK4=OFF` is required — without it you get `webkitgtk-6.0` (GTK4), not the `webkit2gtk-4.1` (GTK3) API Tauri actually links against. `-DUSE_LIBRICE=OFF` works around a `librice` dependency missing from this container image (WebRTC ICE candidate gathering inside WebKit's own GL stack — irrelevant to this app, since LiveKit's native Rust client handles audio, not WebKit's WebRTC). `--no-experimental-features` matters more than it looks: without it, `ENABLE_ENCRYPTED_MEDIA` (DRM/EME video) gets enabled by default and pulls in `libocdm.so`, which isn't packaged in Ubuntu *at all* — there's no `apt install` fix for that one, only not building it in the first place.
 
-A successful build ends with `WebKit is now built (...)`. and produces `WebKitBuild/GTK/Release/lib/libwebkit2gtk-4.1.so.0.*`.
+A successful build ends with `WebKit is now built (...)`. and produces `WebKitBuild/GTK/Release/lib/libwebkit2gtk-4.1.so.0.*` and `WebKitBuild/GTK/Release/bin/WebKitWebProcess` (and its `WebKitGPUProcess`/`WebKitNetworkProcess` siblings).
 
 ### 3. Use it
 
@@ -85,7 +86,7 @@ A successful build ends with `WebKit is now built (...)`. and produces `WebKitBu
 ./scripts/dev-with-patched-webkitgtk.sh
 ```
 
-Runs the normal `npm run dev` stack with `LD_LIBRARY_PATH` pointed at that patched build instead of your system's `webkit2gtk-4.1` — nothing on your system is modified or replaced. If your build lives somewhere other than the default `~/Development/webkitgtk-321683-build/...` path, set `WEBKIT_PATCHED_LIB_DIR` first.
+Runs the normal `npm run dev` stack with two env vars pointed at that patched build instead of your system's `webkit2gtk-4.1`: `LD_LIBRARY_PATH` (so the patched library itself gets loaded) and `WEBKIT_EXEC_PATH` (so it launches *this build's own* `WebKitWebProcess`/`WebKitGPUProcess`/`WebKitNetworkProcess`, not your system's stock ones — this build's library has `/usr/local/libexec/webkit2gtk-4.1` compiled in as a fallback location for those, which doesn't exist on a normal system, and mixing a patched library with stock helper binaries is untested and best avoided since the two are normally compiled as one matched unit). Nothing on your system is modified or replaced. If your build lives somewhere other than the default `~/Development/webkitgtk-321683-build/...` path, set `WEBKIT_PATCHED_LIB_DIR` and `WEBKIT_PATCHED_BIN_DIR` first.
 
 ### 4. Confirm it actually fixed something (optional)
 
