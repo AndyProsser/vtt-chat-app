@@ -57,6 +57,9 @@ echo "Using patched webkit2gtk-4.1 from: ${WEBKIT_PATCHED_LIB_DIR}"
 echo "Using matching WebKitWebProcess/etc. from: ${WEBKIT_PATCHED_BIN_DIR}"
 export LD_LIBRARY_PATH="${WEBKIT_PATCHED_LIB_DIR}${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
 export WEBKIT_EXEC_PATH="${WEBKIT_PATCHED_BIN_DIR}"
+# Same idea as WEBKIT_EXEC_PATH above, but for the injected-bundle .so specifically
+# (a separate lookup in WebKitWebContext.cpp, not covered by WEBKIT_EXEC_PATH at all).
+export WEBKIT_INJECTED_BUNDLE_PATH="${WEBKIT_PATCHED_LIB_DIR}"
 
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 exec npm run dev
