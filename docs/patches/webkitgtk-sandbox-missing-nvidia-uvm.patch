@@ -1,0 +1,19 @@
+diff --git a/Source/WebKit/UIProcess/Launcher/glib/BubblewrapLauncher.cpp b/Source/WebKit/UIProcess/Launcher/glib/BubblewrapLauncher.cpp
+index ce8330ee89..a9fab333c3 100644
+--- a/Source/WebKit/UIProcess/Launcher/glib/BubblewrapLauncher.cpp
++++ b/Source/WebKit/UIProcess/Launcher/glib/BubblewrapLauncher.cpp
+@@ -471,6 +471,14 @@ static void bindOpenGL(Vector<CString>& args)
+         "--dev-bind-try", "/dev/nvidiactl", "/dev/nvidiactl",
+         "--dev-bind-try", "/dev/nvidia0", "/dev/nvidia0",
+         "--dev-bind-try", "/dev/nvidia", "/dev/nvidia",
++        // Required by CUDA context creation (nvdec/nvenc, and any CUDA/GL interop) — without
++        // these, nvh264dec etc. fail to init inside the sandbox and GStreamer silently falls
++        // back to a software decoder. See docs/WEBKITGTK-NVIDIA-EGL-CRASH.md in vtt-chat-app
++        // for the investigation (missing device -> software fallback -> separate glupload/
++        // glcolorconvert I420 bug -> solid green video frame).
++        "--dev-bind-try", "/dev/nvidia-uvm", "/dev/nvidia-uvm",
++        "--dev-bind-try", "/dev/nvidia-uvm-tools", "/dev/nvidia-uvm-tools",
++        "--dev-bind-try", "/dev/nvidia-modeset", "/dev/nvidia-modeset",
+         // Adreno
+         "--dev-bind-try", "/dev/kgsl-3d0", "/dev/kgsl-3d0",
+         "--dev-bind-try", "/dev/ion", "/dev/ion",
