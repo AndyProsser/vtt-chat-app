@@ -86,6 +86,32 @@ Draft reports, not yet submitted (matches this project's existing practice of dr
 - [`docs/issue-drafts/webkitgtk-sandbox-missing-nvidia-uvm.md`](issue-drafts/webkitgtk-sandbox-missing-nvidia-uvm.md) — WebKitGTK, `BubblewrapLauncher.cpp` device allowlist.
 - [`docs/issue-drafts/gstreamer-glupload-i420-green-screen.md`](issue-drafts/gstreamer-glupload-i420-green-screen.md) — GStreamer, `glupload`/`glcolorconvert` I420 path.
 
+## Update 2026-09-14: a third, unrelated bug blocked live confirmation — now unblocked
+
+While attempting the live confirmation above, the actual `npm run dev` / Tauri app crashed on startup with `Gdk-Message: Error 71 (Protocol error) dispatching to Wayland display` — the exact same signature this doc's [Evidence #4](#4-live-end-to-end-confirmation-sandboxed-vs-webkit_disable_sandbox_this_is_dangerous1--inconclusive-not-pursued-further) had dismissed as a shell/tool-specific `MiniBrowser` artifact. That dismissal was wrong. With `WAYLAND_DEBUG=1`, the actual protocol error is:
+
+```text
+wl_display#1.error(wp_linux_drm_syncobj_surface_v1#55, 2, "Explicit Sync only supported on dmabuf buffers")
+```
+
+Mutter fatally errors the whole Wayland connection when the patched WebKitGTK build's window surface has a `wp_linux_drm_syncobj_surface_v1` (explicit-sync) object set up, but then attaches a non-DMA-BUF `wl_buffer`. This kills the client outright — it's why the app exits instead of just rendering wrong.
+
+**Isolated as a pre-existing issue, unrelated to either patch in this doc:**
+
+- Reproduces identically with the `/dev/nvidia-uvm` sandbox patch reverted (`git stash` in the WebKit tree, rebuild, retest) — same crash, same error.
+- Reproduces in a completely bare `MiniBrowser "about:blank"` — no video, no Tauri, no app code.
+- Reproduces via the **system-installed** patched library too (`/usr/lib/x86_64-linux-gnu/webkit2gtk-4.1/MiniBrowser`, no `LD_LIBRARY_PATH`/`WEBKIT_EXEC_PATH` override at all) — ruling out the dev script's override mechanism as the cause.
+
+**Unresolved:** why the very first report in this investigation (Epiphany, system-installed patched library, playing the actual DDB video) reportedly did *not* hit this — it got as far as a rendered-but-green frame, further than any test in this session managed. Whether something in the environment changed between that test and this session (package update, session restart) or the crash is timing/non-deterministic is not established. Worth asking whoever reproduces this next to also try Epiphany fresh, for comparison.
+
+**Confirmed workaround: `WEBKIT_DISABLE_DMABUF_RENDERER=1`.** With it set, the app survived the full run (no crash), and — combined with the `/dev/nvidia-uvm` sandbox patch — `nvh264dec` was instantiated with no fallback and no errors, decoding the real DDB video via hardware inside the sandbox:
+
+```bash
+WEBKIT_DISABLE_DMABUF_RENDERER=1 ./scripts/dev-with-patched-webkitgtk.sh
+```
+
+This wasn't confirmed against the original NVIDIA crash this doc's sibling doc investigates (that doc's own bisection table found `WEBKIT_DISABLE_DMABUF_RENDERER=1` did *not* prevent that crash on its own) — but for this explicit-sync issue specifically, it's a clean fix: it stops WebKit from negotiating the DMA-BUF/explicit-sync surface path that Mutter is rejecting. Not yet added to `dev-with-patched-webkitgtk.sh` itself — that's a judgment call (disabling DMA-BUF rendering has its own performance trade-offs, per the sibling doc's "Mitigations evaluated" section) left for whoever picks this up next to decide, informed by an actual visual check that video still renders correctly (not just that the decoder instantiates) under this combination.
+
 ## Open questions
 
 - Whether the rebuilt WebKit (with `/dev/nvidia-uvm` bound) actually restores hardware decode inside the real sandboxed app — rebuild was in progress as this doc was written; update once confirmed.
