@@ -112,6 +112,19 @@ WEBKIT_DISABLE_DMABUF_RENDERER=1 ./scripts/dev-with-patched-webkitgtk.sh
 
 This wasn't confirmed against the original NVIDIA crash this doc's sibling doc investigates (that doc's own bisection table found `WEBKIT_DISABLE_DMABUF_RENDERER=1` did *not* prevent that crash on its own) — but for this explicit-sync issue specifically, it's a clean fix: it stops WebKit from negotiating the DMA-BUF/explicit-sync surface path that Mutter is rejecting. Not yet added to `dev-with-patched-webkitgtk.sh` itself — that's a judgment call (disabling DMA-BUF rendering has its own performance trade-offs, per the sibling doc's "Mitigations evaluated" section) left for whoever picks this up next to decide, informed by an actual visual check that video still renders correctly (not just that the decoder instantiates) under this combination.
 
+## Update 2026-09-14: retested Epiphany directly — confirms the story, refines defect #2
+
+Asked for a fresh comparison: **Epiphany still works** (no explicit-sync crash — that crash is specific to `MiniBrowser`/Tauri, not this build in general), **DDB still shows the green screen**, but **YouTube plays correctly**. Investigated why YouTube — also software-decoded, since the system install doesn't have the `/dev/nvidia-uvm` patch yet — doesn't hit the same bug DDB does.
+
+Traced Epiphany's actual GStreamer pipeline for both (`GST_DEBUG=GST_ELEMENT_FACTORY:4`, system-installed patched library, no overrides):
+
+- DDB (H.264): `avdec_h264` — software, confirming the sandbox device gap (defect #1) is real and still present in the system install.
+- YouTube (VP9): `vp9dec` — also software. **Not hardware decode either** — so YouTube's success isn't "the sandbox gap doesn't affect it."
+
+So both are software-decoded, yet only one shows green. This forced a correction to [defect #2](#summary): it is **not** "I420 breaks `glupload`/`glcolorconvert`" as originally stated. Re-tested directly: `vp9dec`'s native I420 output renders correctly through the identical `glupload ! glcolorconvert` chain `avdec_h264`'s I420 output turns green through. Tried forcing `avdec_h264`'s output to match `vp9dec`'s caps exactly (`chroma-site`, `multiview-mode`) — neither fixed it; a bare `videoconvert` passthrough with no format change didn't either. Only an actual re-encode to NV12 fixes it. So the real bug is specific to `avdec_h264`'s buffers in some way not visible in caps — see the corrected [GStreamer issue draft](issue-drafts/gstreamer-glupload-i420-green-screen.md) for the full bisection.
+
+**This doesn't change the recommended fix.** The `/dev/nvidia-uvm` sandbox patch remains the right primary fix: once hardware decode works, DDB's H.264 content decodes via `nvh264dec` (NV12, zero-copy `GLMemory`) and never reaches `avdec_h264` at all, sidestepping whatever `avdec_h264`'s bug actually is rather than needing to fully solve it.
+
 ## Open questions
 
 - Whether the rebuilt WebKit (with `/dev/nvidia-uvm` bound) actually restores hardware decode inside the real sandboxed app — rebuild was in progress as this doc was written; update once confirmed.
