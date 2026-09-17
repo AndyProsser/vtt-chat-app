@@ -1,6 +1,8 @@
 # WebKitGTK video plays green instead of frame content, on NVIDIA, after the 321683 sandbox-crash patch
 
-**Status:** root cause identified and reproduced outside WebKit entirely. Fix patched locally in the same scratch WebKit checkout as [`docs/WEBKITGTK-NVIDIA-EGL-CRASH.md`](WEBKITGTK-NVIDIA-EGL-CRASH.md); rebuild in progress to confirm on real hardware. Two upstream reports drafted, not yet filed — see [Filing](#filing).
+**Status:** Video decode fix confirmed live on GTK4/Epiphany. The `/dev/nvidia-uvm` sandbox patch (defect #1) restores hardware decode inside the real sandboxed WebProcess — confirmed 2026-09-16 in Epiphany against the system-installed patched library: DDB video plays picture correctly (no green), and `GST_DEBUG=GST_ELEMENT_FACTORY:4` shows `nvh264dec` instantiated for all 4 videos tested, with no `avdec_h264` fallback. Defect #2 (the `avdec_h264`/`glupload` I420 bug) is sidestepped in practice since hardware decode now handles DDB's H.264 content, but remains a real GStreamer bug worth filing on its own merits. Two upstream reports drafted, ready to file — see [Filing](#filing).
+
+**Still not usable end-to-end on GTK3 (this project's actual dependency)**: testing the real Tauri app (`webkit2gtk-4.1`) against the real DDB homepage on 2026-09-17 found and fixed two real WebKitGTK bugs blocking it (a stale build that silently dropped the 321683 fix, and a second unpatched null-guard gap in the paint/draw path) — see [`WEBKITGTK-NVIDIA-EGL-CRASH.md`'s 2026-09-17 updates](WEBKITGTK-NVIDIA-EGL-CRASH.md#root-cause-found-a-stale-build-plus-a-second-unpatched-null-guard-gap-2026-09-17) for the full writeup. With both fixed, the crash is gone, but the homepage now renders **blank** instead — confirmed *not* a video-decode or DMA-BUF-frame issue (forcing software decode made no difference; non-video DOM content is blank too) — see that doc's [remaining open issue section](WEBKITGTK-NVIDIA-EGL-CRASH.md#remaining-open-issue-gtk3-homepage-renders-blank-once-it-enters-accelerated-compositing-2026-09-17-unresolved). This app's homepage-redirect workaround stays in place until that's resolved.
 
 **Reporter context:** found immediately after validating the [321683 sandbox null-pointer patch](WEBKITGTK-NVIDIA-EGL-CRASH.md#patch-validated-locally-2026-09-11) under Epiphany — the crash is gone, but DDB's homepage background video (and any local `<video>` tested) now plays audio only, rendering as a solid dark-green frame instead of picture.
 
@@ -125,9 +127,14 @@ So both are software-decoded, yet only one shows green. This forced a correction
 
 **This doesn't change the recommended fix.** The `/dev/nvidia-uvm` sandbox patch remains the right primary fix: once hardware decode works, DDB's H.264 content decodes via `nvh264dec` (NV12, zero-copy `GLMemory`) and never reaches `avdec_h264` at all, sidestepping whatever `avdec_h264`'s bug actually is rather than needing to fully solve it.
 
+## Update 2026-09-16: live confirmation — hardware decode restored, video renders correctly
+
+Retested in Epiphany (system-installed patched library, no overrides) against DDB's actual video content. Result: video plays correctly, no green frame, across all 4 videos tested. `GST_DEBUG=GST_ELEMENT_FACTORY:4` confirms `nvh264dec` (hardware) is instantiated each time, with no `avdec_h264` fallback — closing the last open item from [Evidence #4](#4-live-end-to-end-confirmation-sandboxed-vs-webkit_disable_sandbox_this_is_dangerous1--inconclusive-not-pursued-further) and the Fix section's "next step." The `/dev/nvidia-uvm` sandbox patch is the confirmed fix for this app's real-world traffic; defect #2 remains real but is no longer on the path DDB's content takes.
+
+Both draft reports in [Filing](#filing) are ready to submit as-is.
+
 ## Open questions
 
-- Whether the rebuilt WebKit (with `/dev/nvidia-uvm` bound) actually restores hardware decode inside the real sandboxed app — rebuild was in progress as this doc was written; update once confirmed.
 - Whether `/dev/nvidia-uvm-tools` is actually required (added alongside `/dev/nvidia-uvm` defensively — the CUDA docs describe it as used for profiling/tools, not core context creation — but untested whether omitting it still works).
 - The exact mechanism inside `glcolorconvert`'s I420 shader path that produces green specifically (not just wrong colors) — not investigated at the GLSL/shader level, only bisected behaviorally. Root cause deep enough for this project's purposes (identified the fix), but a GStreamer maintainer will likely want the shader-level explanation.
 - Whether this I420 upload bug is specific to this GStreamer 1.28.2 build, or reproduces on other versions/distros — untested elsewhere.

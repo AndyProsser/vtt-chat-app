@@ -2,6 +2,8 @@
 
 **Status:** root cause narrowed to the EGL vendor library, and confirmed NVIDIA-specific — the identical WebKitGTK build and reproduction pages run clean on Intel GPU, see [Positive control](#positive-control-intel-gpu-2026-08-19). **Update 2026-09-11: both crash signatures now have fully symbolized backtraces** (see [Symbolized backtraces](#symbolized-backtraces-2026-09-11)), and they supersede the earlier `gsteglimage.c` create/destroy-race hypothesis — GStreamer is not implicated by any evidence gathered so far. Signature 2 is a SIGSEGV inside NVIDIA's own `eglDestroyContext()`, called from WebKit's `GLContext::~GLContext()` while tearing down a page's GL context; signature 1 is a distinct WebKit-side null-pointer bug in `AcceleratedBackingStore::update()`. Working theory for how they connect: signature 1 kills the UI process, which severs the IPC connection to the WebProcess, which reacts by self-terminating — and it's during *that* teardown that `eglDestroyContext()` crashes. Two configurations prevent the crash on NVIDIA, each with a significant trade-off — see [Mitigations evaluated](#mitigations-evaluated). NVIDIA has acknowledged an equivalent regression internally (bug 5701801, unresolved) — see [Corroboration](#corroboration).
 
+**Update 2026-09-17: the 321683 patch does *not* cover the DDB homepage trigger — signature 1 still reproduces.** [Patch validated locally](#patch-validated-locally-2026-09-11) tested the patched build against "the exact reproduction URL" from this doc's [Reproduction](#reproduction) list, but that list has always included both the YouTube watch page *and* `https://www.dndbeyond.com/`, and the validation run only specifies using the faster YouTube trigger — the DDB homepage was never separately re-tested post-patch until today. It just was, for the first time (see [DDB homepage still crashes with the 321683 patch applied](#ddb-homepage-still-crashes-with-the-321683-patch-applied-2026-09-17) below), in both the real Tauri app and standalone sandboxed `MiniBrowser`: identical signature-1 backtrace, identical null `this` in `AcceleratedBackingStore::update()`. The patch guards three specific call sites in `WebKitWebViewBase.cpp` (all reachable from `document.startViewTransition()`, per 321683's own root-cause finding); the DDB homepage's video-driven entry into accelerated compositing evidently reaches the same null backing store through a path those three guards don't cover. `homepage_redirect.rs` in this project's Tauri client has silently redirected away from this exact page since 2026-08-08, which is why this gap went unnoticed until it was deliberately bypassed for testing.
+
 **Filed upstream 2026-09-11** — see [Filed reports](#filed-reports-2026-09-11) for status/links:
 
 - WebKitGTK, signature 1: [bug 323949](https://bugs.webkit.org/show_bug.cgi?id=323949) — likely a duplicate of pre-existing [bug 321683](https://bugs.webkit.org/show_bug.cgi?id=321683) (filed 2026-08-13, found independently), which has the actual root cause: `document.startViewTransition()` as the first trigger of accelerated compositing hits three `ASSERT()`-guarded null checks in `WebKitWebViewBase.cpp` that release builds silently strip. **321683's proposed fix was built and locally validated on 2026-09-11 — eliminates both crash signatures** (the null-pointer crash directly, and the NVIDIA `eglDestroyContext()` crash as a consequence, since the patched build never reaches the teardown path that trips it). See [Patch validated locally](#patch-validated-locally-2026-09-11).
@@ -388,6 +390,93 @@ Built it and tested it for real, not just read the diff:
 - Ran the patched `MiniBrowser` against the exact reproduction URL from [Reproduction](#reproduction), on this same NVIDIA GTX 1080 / driver 580.178.04 that reliably segfaults the stock build within 5-10 seconds: one run survived the full 65 seconds (confirmed still running via `timeout`'s exit code 124, not just "didn't crash immediately"), then three more quick runs on top. **Zero segfaults across all four runs**, confirmed via the same `journalctl -k` method used throughout this doc — kernel log is completely clean, where the stock build reliably produces two segfault lines within seconds every time.
 
 This confirms, on real hardware rather than by inspection, that the 321683 fix eliminates signature 1 — and, consistent with the [self-termination cascade theory](#why-does-the-page-close-at-all), eliminates signature 2 along with it, since the patched build never reaches the `WebPage::close()` → `eglDestroyContext()` path at all. The underlying NVIDIA `eglDestroyContext()` bug is presumably still real (nothing here touched NVIDIA's driver), just no longer reachable through this particular trigger.
+
+## DDB homepage still crashes with the 321683 patch applied (2026-09-17)
+
+Context: separately, the [video greenscreen investigation](WEBKITGTK-NVIDIA-VIDEO-GREENSCREEN.md) confirmed its own fix (the `/dev/nvidia-uvm` sandbox patch) live in Epiphany on 2026-09-16. Natural next step was confirming the GTK3 build (this project's actual dependency, via `webkit2gtk-4.1`) behind the real Tauri app — which had never actually been tested, because `tauri-client/src-tauri/src/homepage_redirect.rs` (added 2026-08-08) has redirected every navigation to the bare DDB homepage away to `/characters` since before any of this NVIDIA work started, specifically *because* of this doc's original crash. Every "confirmed working" claim involving the real app was therefore never actually exercised against the real crash-prone page.
+
+Temporarily bypassed the redirect (env-var gate, reverted after testing) and rebuilt. Result: **instant crash**, same session as [the greenscreen doc's live confirmation](WEBKITGTK-NVIDIA-VIDEO-GREENSCREEN.md), same GTK3 build, `WEBKIT_DISABLE_DMABUF_RENDERER=1` set (the workaround for the *separate* Wayland explicit-sync crash documented in that doc's 2026-09-14 update).
+
+**Core dump, `gdb -batch -ex "bt full"`:**
+
+```text
+Program terminated with signal SIGSEGV, Segmentation fault.
+#0  WebKit::AcceleratedBackingStore::update(WebKit::LayerTreeContext const&) ()
+#1  WebKit::WebPageProxy::enterAcceleratedCompositingMode(WebKit::LayerTreeContext const&) ()
+#2  WebKit::DrawingAreaProxyCoordinatedGraphics::enterAcceleratedCompositingMode(unsigned long, WebKit::LayerTreeContext const&) ()
+#3  WebKit::DrawingAreaProxy::didReceiveMessage(IPC::Connection&, IPC::Decoder&) ()
+...
+#9  IPC::Connection::dispatchIncomingMessages() ()
+...
+rdi = 0x0   ; `this` for AcceleratedBackingStore::update(), confirmed null via
+             ; `mov 0x48(%rdi),%rdx` as the faulting instruction
+```
+
+Frame-for-frame identical to [Signature 1](#signature-1-resolved-null-pointer-not-a-driver-frame) above — same functions, same offset pattern, same null-`this` mechanism. No GStreamer frame, no NVIDIA frame; `nvh264dec`/`avdec_h264` never even got instantiated (`GST_ELEMENT_FACTORY:4` trace shows only audio-pipeline + `webkitwebsrc`/`typefind` elements before the crash) — this fires before the video decoder is ever selected, purely on entering accelerated compositing for the page.
+
+**Ruled out as Tauri/wry-specific:** re-ran standalone `MiniBrowser` directly against `https://www.dndbeyond.com/`, same patched libs, same env vars — first attempt (no `--enable-sandbox`) hit an unrelated network load failure and was a false negative, since `MiniBrowser` doesn't sandbox by default unlike a real embedding app. Re-ran with `--enable-sandbox` explicitly: **identical crash, identical backtrace**, own core dump confirms the same `rdi = 0x0` fault in the same three frames. This is a plain WebKitGTK bug, reproducible with zero app code involved.
+
+**Why 321683's guards don't catch this:** the patch adds `if (!webkitWebViewBase->priv->acceleratedBackingStore) return;` to three call sites in `WebKitWebViewBase.cpp` — all reachable from `document.startViewTransition()`, per 321683's own root-cause finding, and all confirmed present in this build's source (`grep` on the working tree shows the patched `if` checks, not the old `ASSERT()`s). The DDB homepage's crash comes through `WebPageProxy::enterAcceleratedCompositingMode`'s virtual `PageClient` dispatch, which — per the disassembly of this specific release build — appears to reach `AcceleratedBackingStore::update()` via tail-call chaining through the same GTK layer, making it hard to prove from the binary alone whether the null check executes and is bypassed, or whether this path never reaches the patched functions at all. **Not fully root-caused** — see [Open questions](#open-questions).
+
+**Practical effect on this project:** GTK3/`webkit2gtk-4.1` (what Tauri actually links) cannot load the real DDB homepage yet, patches and workarounds notwithstanding. `homepage_redirect.rs` stays in place — it is not a stale workaround for an already-fixed bug, it is still load-bearing. The video-decode fix ([greenscreen doc](WEBKITGTK-NVIDIA-VIDEO-GREENSCREEN.md)) is real and confirmed, but only reachable on pages that don't also trip this compositing crash first.
+
+## Root cause found: a stale build, plus a second unpatched null-guard gap (2026-09-17)
+
+Two distinct, now-fixed defects were found chasing the crash above. Both confirmed by rebuilding and re-testing, not just by reading source.
+
+### 1. The 321683 patch was never actually compiled into the binary being tested
+
+`grep` on the WebKit source tree confirmed the 321683 patch's `if (!webkitWebViewBase->priv->acceleratedBackingStore) return;` guards were present in `WebKitWebViewBase.cpp` — but disassembling the actual `.so` (`objdump -d -C`, by symbol name — `webkitWebViewBaseEnterAcceleratedCompositingMode`) showed the compiled code had **no null check at all**: it unconditionally loaded `priv->acceleratedBackingStore`'s raw pointer and tail-jumped straight into `AcceleratedBackingStore::update()`. Source had the fix; the binary didn't.
+
+Cause: `Source/WebKit/UIProcess/API/gtk/WebKitWebViewBase.cpp`'s object file was older than the source file (confirmed via `stat`), and a later incremental `build-webkit` run for the unrelated nvidia-uvm patch reported "only this one file changed" (`BubblewrapLauncher.cpp`) — i.e. ninja's dependency tracking believed this file's object was already up to date and skipped recompiling it. Best-supported explanation: the `git stash`/`git stash pop` cycle used earlier (2026-09-14, to test the nvidia-uvm patch with/without) round-tripped this file's mtime in a way ninja's mtime-based tracking didn't catch as "needs rebuild," leaving a stale, pre-321683 object linked into every `.so` built since — including the one this app, Epiphany, and every MiniBrowser test in this doc and the sibling greenscreen doc used.
+
+Fix: forced a rebuild (`./Tools/Scripts/build-webkit --gtk --release ...` inside the `wkdev` container — ninja correctly picked up the stale file this time, `[14/77] Building CXX object .../WebKitWebViewBase.cpp.o`). Re-disassembled: the null check (`test %rdi,%rdi; je ...`) is now actually present. Re-tested standalone sandboxed `MiniBrowser` against the real DDB homepage: no crash, `nvh264dec` (hardware decode) instantiated and ran well past where it used to die.
+
+**Lesson for this project's own workflow:** don't trust "the source has the patch" as evidence the *build* does. After any `git stash` cycle in the WebKit tree, treat every previously-built `.so` as suspect and force a rebuild before drawing conclusions from it.
+
+### 2. A second, previously-unpatched instance of the exact same bug class
+
+With defect #1 fixed, the real Tauri app still crashed on the real homepage — a *different* crash this time: `WebKit::AcceleratedBackingStore::paint()`, called from `webkitWebViewBaseDraw()` (GTK3's `draw` signal handler), with the same null-`this` signature. Source shows why:
+
+```cpp
+// Source/WebKit/UIProcess/API/gtk/WebKitWebViewBase.cpp, GTK3 draw path
+if (drawingArea->isInAcceleratedCompositingMode()) {
+    ASSERT(webViewBase->priv->acceleratedBackingStore);   // compiles to nothing in release
+    notifyNextPresentationUpdate = webViewBase->priv->acceleratedBackingStore->paint(cr, clipRect);
+}
+```
+
+Same file, same `priv->acceleratedBackingStore` field, same "`ASSERT` silently stripped in release" defect class 321683 fixed — but in the **paint/draw path**, a call site 321683 never touched (it only guarded the three `Enter`/`Update`/`ExitAcceleratedCompositingMode` functions). The parallel GTK4 path, `webkitWebViewBaseSnapshot()`, has the identical gap with **no guard at all**, not even an `ASSERT`:
+
+```cpp
+// GTK4 snapshot path — same file
+if (drawingArea->isInAcceleratedCompositingMode())
+    notifyNextPresentationUpdate = webViewBase->priv->acceleratedBackingStore->snapshot(pageSnapshot);
+```
+
+Patched both the same way 321683 did (guard, don't assert): [`docs/patches/webkitgtk-accelerated-backing-store-draw-snapshot-null-guard.patch`](patches/webkitgtk-accelerated-backing-store-draw-snapshot-null-guard.patch). Confirmed safe to just skip painting on this frame when the guard fails: `DrawingAreaProxyCoordinatedGraphics::paint()` (the non-accelerated fallback both call sites fall through to) already early-returns when `isInAcceleratedCompositingMode()` is true, so the fallback path is a clean no-op, not a new risk. Rebuilt, re-tested: this specific crash is gone too, confirmed via a live Tauri app session that ran well past where it used to die on click.
+
+Only applied to the GTK3 tree (`~/Development/webkitgtk-321683-build/WebKit`, `USE_GTK4=OFF` — this project's actual dependency). The separate `WebKit-gtk4` tree was not touched; if GTK4 is ever built again from this project, the same patch applies there (the GTK4 `webkitWebViewBaseSnapshot` gap is real too, just not exercised by anything tested so far).
+
+## Remaining open issue: GTK3 homepage renders blank once it enters accelerated compositing (2026-09-17, unresolved)
+
+With both defects above fixed, the DDB homepage no longer *crashes* under GTK3 — but it also doesn't render. Confirmed in both the real Tauri app and standalone sandboxed `MiniBrowser` (so not Tauri/wry-specific): the page loads (DOM present, confirmed via the inspector — `#lanyard_root` and DDB's real markup are there) but the viewport stays blank, and interacting with the page (a click) makes even previously-visible content vanish.
+
+**Not a deadlock.** Live `gdb -p <pid> thread apply all bt` on both the Tauri process and its `WebKitWebProcess` (caught via a watcher script auto-attaching the moment the app's log went quiet, working around Yama `ptrace_scope` blocking cross-tree attachment) shows **every thread on both processes idle** in ordinary `poll()`/condition-variable waits — main thread, compositor thread, GPU workers, all of it. Nothing is spinning, blocked mid-call, or holding a contested lock. The render pipeline simply never produces a frame to display; it isn't stuck fighting over one.
+
+**Ruled out:** a DMA-BUF video-frame producer/consumer mismatch (the working theory going in — hardware decode's zero-copy DMA-BUF output vs. a compositor told not to accept DMA-BUF via `WEBKIT_DISABLE_DMABUF_RENDERER=1`, the workaround [`WEBKITGTK-NVIDIA-VIDEO-GREENSCREEN.md`'s 2026-09-14 update](WEBKITGTK-NVIDIA-VIDEO-GREENSCREEN.md#update-2026-09-14-a-third-unrelated-bug-blocked-live-confirmation--now-unblocked) still requires to avoid the separate Wayland explicit-sync crash). Forcing software decode instead (`GST_PLUGIN_FEATURE_RANK=nvh264dec:0`, confirmed via trace to actually switch to `avdec_h264`) made no difference — still blank. Since `avdec_h264` produces plain system-memory buffers, not DMA-BUF, this rules out the video-frame path specifically: the blank result isn't about *what kind* of frame the decoder hands over, it's that nothing paints at all once the page is in accelerated compositing mode with DMA-BUF disabled — non-video DOM content is affected too.
+
+**Also tried:** `WEBKIT_DISABLE_COMPOSITING_MODE=1` instead of disabling DMA-BUF specifically (forcing the page through the plain software/cairo path unconditionally, the same one `/characters` — confirmed working fine throughout this investigation — already uses). Content rendered *briefly*, then vanished on the first interaction. Not yet diagnosed further — this may be a related manifestation of the same underlying gap, or something new; distinguishing those needs another live thread-dump session.
+
+**Confirmed unaffected:** GTK4 (`webkitgtk-6.0`, Epiphora) — the video-decode fix from the [greenscreen doc](WEBKITGTK-NVIDIA-VIDEO-GREENSCREEN.md) works cleanly there, no blank-page symptom reported. Whatever this is appears specific to GTK3/`webkit2gtk-4.1`, or at least hasn't been observed on GTK4 yet.
+
+**Also confirmed unaffected:** the DDB `/characters` page (Tauri app's actual default start page, no video, no accelerated-compositing content) — stayed fully responsive throughout, under the same `WEBKIT_DISABLE_DMABUF_RENDERER=1` config that leaves the homepage blank. Whatever gap this is, it's specific to pages that push WebKit into accelerated compositing mode at all, not a general regression.
+
+**Picking this up later — the natural next steps:**
+
+- Live thread-dump the `WEBKIT_DISABLE_COMPOSITING_MODE=1` "renders then vanishes on interaction" case the same way the blank-page case was diagnosed here, to see whether it's the same root cause or a new one.
+- Check whether the blank page is actually stuck *negotiating* a GL surface/EGL context (a caps negotiation or context-creation call that never completes) rather than "idle with nothing queued" — the thread dumps taken so far show idle waits, but didn't specifically trace EGL/GL call activity the way the [EGL call-level tracing](#egl-call-level-tracing-2026-09-11) session earlier in this doc did for a different symptom. The same `LD_PRELOAD` tracer built then (`docs/scripts/egl-tracer/`) could show whether a GL context/surface ever gets created for this page at all.
+- `homepage_redirect.rs` must stay in place until this is resolved — it is currently the only thing preventing users from reaching a blank, unresponsive page.
 
 ## Open questions
 

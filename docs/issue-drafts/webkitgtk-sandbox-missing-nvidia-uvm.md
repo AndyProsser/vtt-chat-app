@@ -1,7 +1,7 @@
 # Draft: [GTK] Bubblewrap sandbox missing /dev/nvidia-uvm and /dev/nvidia-modeset breaks NVDEC hardware video decode
 
 **Target:** https://bugs.webkit.org/ — Component: `WebKitGTK`
-**Status:** draft, not yet filed. Investigation at `vtt-chat-app/docs/WEBKITGTK-NVIDIA-VIDEO-GREENSCREEN.md`.
+**Status:** draft, ready to file — fix confirmed live 2026-09-16 (see below). Investigation at `vtt-chat-app/docs/WEBKITGTK-NVIDIA-VIDEO-GREENSCREEN.md`.
 
 ---
 
@@ -52,7 +52,9 @@ Two of the four opened devices aren't in the allowlist.
 +        "--dev-bind-try", "/dev/nvidia-modeset", "/dev/nvidia-modeset",
 ```
 
-Full patch at `vtt-chat-app/docs/patches/webkitgtk-sandbox-missing-nvidia-uvm.patch`. `--dev-bind-try` is already a no-op for paths that don't exist, so this is safe on systems without an NVIDIA GPU/driver. Locally rebuilt and (per the linked doc) pending confirmation that hardware decode is restored end-to-end in the sandboxed process.
+Full patch at `vtt-chat-app/docs/patches/webkitgtk-sandbox-missing-nvidia-uvm.patch`. `--dev-bind-try` is already a no-op for paths that don't exist, so this is safe on systems without an NVIDIA GPU/driver.
+
+**Confirmed live, 2026-09-16:** rebuilt and installed, tested in Epiphany against real DDB video content — plays correctly (no green frame). `GST_DEBUG=GST_ELEMENT_FACTORY:4` confirms `nvh264dec` (hardware) is instantiated for every video tested (4/4), with no software-decoder fallback.
 
 ## Notes for triage
 

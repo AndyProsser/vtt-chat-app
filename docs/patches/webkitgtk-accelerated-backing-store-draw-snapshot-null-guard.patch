@@ -1,0 +1,20 @@
+--- a/Source/WebKit/UIProcess/API/gtk/WebKitWebViewBase.cpp
++++ b/Source/WebKit/UIProcess/API/gtk/WebKitWebViewBase.cpp
+@@ -894,8 +894,8 @@
+     bool notifyNextPresentationUpdate = false;
+     auto* pageSnapshot = gtk_snapshot_new();
+     if (!webViewBase->priv->isBlank) {
+-        if (drawingArea->isInAcceleratedCompositingMode())
++        if (drawingArea->isInAcceleratedCompositingMode() && webViewBase->priv->acceleratedBackingStore)
+             notifyNextPresentationUpdate = webViewBase->priv->acceleratedBackingStore->snapshot(pageSnapshot);
+         else {
+@@ -943,9 +943,8 @@
+         if (showingNavigationSnapshot)
+             cairo_push_group(cr);
+
+-        if (drawingArea->isInAcceleratedCompositingMode()) {
+-            ASSERT(webViewBase->priv->acceleratedBackingStore);
+-            notifyNextPresentationUpdate = webViewBase->priv->acceleratedBackingStore->paint(cr, clipRect);
++        if (drawingArea->isInAcceleratedCompositingMode() && webViewBase->priv->acceleratedBackingStore) {
++            notifyNextPresentationUpdate = webViewBase->priv->acceleratedBackingStore->paint(cr, clipRect);
+         } else {
