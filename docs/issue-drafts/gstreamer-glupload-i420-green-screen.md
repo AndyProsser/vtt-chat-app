@@ -7,7 +7,7 @@
 
 ## Summary
 
-Feeding `avdec_h264`'s decoded I420 (3-plane Y/U/V) output into `glupload ! glcolorconvert` produces a solid, uniform dark-green frame instead of the decoded picture. **This is narrower than it first looked**: it is not "I420 upload is broken in general" — `vp9dec`'s native I420 output goes through the identical `glupload ! glcolorconvert` chain and renders correctly. Converting `avdec_h264`'s output to NV12 before `glupload` also fixes it. So something about `avdec_h264`'s specific I420 buffers (not the I420 *format* itself, and not any caps field tested so far — see [What this rules out](#what-this-rules-out)) trips the bug.
+Feeding `avdec_h264`'s decoded I420 (3-plane Y/U/V) output into `glupload ! glcolorconvert` produces a solid, uniform dark-green frame instead of the decoded picture. **This is narrower than it first looked**: it is not "I420 upload is broken in general" — `vp9dec`'s native I420 output goes through the identical `glupload ! glcolorconvert` chain and renders correctly. Converting `avdec_h264`'s output to NV12 before `glupload` also fixes it. So something about `avdec_h264`'s specific I420 buffers (not the I420 _format_ itself, and not any caps field tested so far — see [What this rules out](#what-this-rules-out)) trips the bug.
 
 Found via WebKitGTK (`webkitglvideosink` uses this exact `glupload ! glcolorconvert` chain for its video sink), but reproduces with plain `gst-launch-1.0`, no WebKit involved.
 
@@ -50,7 +50,7 @@ gst-launch-1.0 -e filesrc location=vp9bars.webm ! matroskademux ! vp9dec ! \
 
 `avdec_h264`'s native output caps, confirmed via `fakesink -v`:
 
-```
+```text
 video/x-raw, format=(string)I420, width=(int)640, height=(int)360, interlace-mode=(string)progressive,
 pixel-aspect-ratio=(fraction)1/1, chroma-site=(string)jpeg, colorimetry=(string)bt601, framerate=(fraction)30/1
 ```
@@ -65,10 +65,10 @@ pixel-aspect-ratio=(fraction)1/1, chroma-site=(string)jpeg, colorimetry=(string)
 - **Not actually I420-vs-NV12 as a format, despite first appearances**: `vp9dec`'s native I420 output (same `format=(string)I420` caps) renders correctly through the identical `glupload ! glcolorconvert` chain. Confirmed twice, with fresh output files each time, to rule out a fluke.
 - Not the `chroma-site` caps field: `avdec_h264` tags `chroma-site=jpeg`, `vp9dec` omits the field entirely (defaults to mpeg2 siting). Forcing `avdec_h264`'s output to `chroma-site=mpeg2` via `videoconvert` before `glupload` — matching `vp9dec`'s siting — **did not** fix the green screen.
 - Not the `multiview-mode`/`multiview-flags` caps fields: `vp9dec` sets `multiview-mode=mono` (+ flags), `avdec_h264` omits both. Forcing `avdec_h264`'s output to `multiview-mode=mono` **did not** fix it either.
-- Not fixed by buffer normalization alone: piping `avdec_h264`'s output through a plain `videoconvert` with *no* caps changes at all (I420 in, I420 out) still produces the green screen — ruling out "it's really about `avdec_h264`'s buffer pool/stride, and any copy through `videoconvert` fixes it regardless of format."
+- Not fixed by buffer normalization alone: piping `avdec_h264`'s output through a plain `videoconvert` with _no_ caps changes at all (I420 in, I420 out) still produces the green screen — ruling out "it's really about `avdec_h264`'s buffer pool/stride, and any copy through `videoconvert` fixes it regardless of format."
 - **Is fixed by an actual format conversion to NV12** — the one intervention that reliably works, from either decoder's I420 output.
 
-So the working theory is narrower than "any I420 breaks it": something specific to the *pixel content or buffer layout* `avdec_h264` produces — not visible in caps, not fixed by any caps field forced to match `vp9dec` — differs from `vp9dec`'s I420 output in a way that only an actual NV12 re-encode papers over. That's as far as black-box behavioral testing can narrow it.
+So the working theory is narrower than "any I420 breaks it": something specific to the _pixel content or buffer layout_ `avdec_h264` produces — not visible in caps, not fixed by any caps field forced to match `vp9dec` — differs from `vp9dec`'s I420 output in a way that only an actual NV12 re-encode papers over. That's as far as black-box behavioral testing can narrow it.
 
 ## Not yet investigated
 

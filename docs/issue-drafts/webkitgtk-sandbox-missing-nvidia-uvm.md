@@ -22,7 +22,7 @@ This is a plain missing-entry gap in an existing allowlist, not a sandbox-policy
 
 `strace -f -e trace=openat` on a working, unsandboxed `nvh264dec ! glupload ! glcolorconvert` pipeline decoding real H.264 content shows:
 
-```
+```text
 openat(..., "/dev/nvidia0", ...)
 openat(..., "/dev/nvidiactl", ...)
 openat(..., "/dev/nvidia-modeset", ...)

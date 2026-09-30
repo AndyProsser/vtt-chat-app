@@ -29,7 +29,7 @@ Segfaults within roughly 5-10 seconds. **Caveat: this reproduction is not yet is
 
 ## Caller-side backtrace (gdb, WebKitGTK-side frames resolved via `-dbgsym`; NVIDIA frames unresolved — proprietary)
 
-```
+```text
 Program terminated with signal SIGSEGV, Segmentation fault.
 #0  0x0000709ed185f05f in ??? () from libnvidia-eglcore.so.580.178.04     <-- fault
 #1  0x0000709ed1555e81 in ??? () from libnvidia-eglcore.so.580.178.04

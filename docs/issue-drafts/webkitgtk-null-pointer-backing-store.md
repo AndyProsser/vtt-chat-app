@@ -15,7 +15,7 @@ This was found while investigating a separate NVIDIA-driver-specific crash (`lib
 
 - WebKitGTK 2.52.6 (`2.52.6-0ubuntu0.26.04.1`), `webkit2gtk-4.1`. Also confirmed on 2.52.3 and 2.52.5 in earlier testing (see the linked doc's revision history).
 - Ubuntu 26.04 LTS, kernel 7.0.0-31-generic
-- Reproduced on both NVIDIA GTX 1080 (proprietary driver, 580 branch) and — for the *combined* crash sequence — ruled out as Intel-specific; see caveat below.
+- Reproduced on both NVIDIA GTX 1080 (proprietary driver, 580 branch) and — for the _combined_ crash sequence — ruled out as Intel-specific; see caveat below.
 - Wayland (GNOME) and X11 (`GDK_BACKEND=x11`), same result.
 
 ## Steps to reproduce
@@ -28,7 +28,7 @@ No app code involved — reproduces in stock `MiniBrowser`, `epiphany --private-
 
 ## Backtrace (gdb, with `-dbgsym` symbols, `2.52.6-0ubuntu0.26.04.1`)
 
-```
+```text
 Program terminated with signal SIGSEGV, Segmentation fault.
 #0  update () at Source/WebKit/UIProcess/gtk/AcceleratedBackingStore.cpp:808
 #1  0x0000759fd022871b in enterAcceleratedCompositingMode () at Source/WebKit/UIProcess/WebPageProxy.cpp:12800
@@ -51,7 +51,7 @@ Program terminated with signal SIGSEGV, Segmentation fault.
 
 Disassembly of the faulting instruction (`update()+34`):
 
-```
+```text
 => mov    0x48(%rdi),%rcx
 ```
 
