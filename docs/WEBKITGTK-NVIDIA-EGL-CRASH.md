@@ -478,6 +478,30 @@ With both defects above fixed, the DDB homepage no longer *crashes* under GTK3 �
 - Check whether the blank page is actually stuck *negotiating* a GL surface/EGL context (a caps negotiation or context-creation call that never completes) rather than "idle with nothing queued" — the thread dumps taken so far show idle waits, but didn't specifically trace EGL/GL call activity the way the [EGL call-level tracing](#egl-call-level-tracing-2026-09-11) session earlier in this doc did for a different symptom. The same `LD_PRELOAD` tracer built then (`docs/scripts/egl-tracer/`) could show whether a GL context/surface ever gets created for this page at all.
 - `homepage_redirect.rs` must stay in place until this is resolved — it is currently the only thing preventing users from reaching a blank, unresponsive page.
 
+## Update 2026-09-30: rebuilt against current WebKit main — blank-render retest blocked by two new, mutually-exclusive crashes
+
+Context: [bug #323978](https://bugs.webkit.org/show_bug.cgi?id=323978), landed 2026-09-21, looked like a plausible fix for the [blank-render issue above](#remaining-open-issue-gtk3-homepage-renders-blank-once-it-enters-accelerated-compositing-2026-09-17-unresolved) — its commit message describes recovering from "GTK loses its displayed image without any WebCore damage." Rebuilt the GTK3 tree at current WebKit `main` (537fe4583eb1, ~6 months past this doc's `webkitgtk-2.52.6` baseline) to get it, carrying forward all three local patches (321683 guards, the draw/snapshot guard, the `/dev/nvidia-uvm` sandbox patch) via a 3-way merge — clean, `-DENABLE_BACK_FORWARD_LIST_SWIFT=OFF` added to route around an unrelated new Swift-bindings build dependency. Build succeeded (1h30m); `objdump` confirmed the null-guards are actually compiled in this time (no repeat of the 2026-09-17 stale-build mistake).
+
+**Live testing is currently blocked by two separate, mutually exclusive crashes** — every combination of the one env var that matters hits one or the other:
+
+1. **Without `WEBKIT_DISABLE_DMABUF_RENDERER=1`**: the pre-existing Wayland explicit-sync crash from [the greenscreen doc's 2026-09-14 update](WEBKITGTK-NVIDIA-VIDEO-GREENSCREEN.md#update-2026-09-14-a-third-unrelated-bug-blocked-live-confirmation--now-unblocked) — still reproduces, unchanged, on current main.
+2. **With `WEBKIT_DISABLE_DMABUF_RENDERER=1`** (the workaround for #1): a **new** crash, `RELEASE_ASSERT_NOT_REACHED()` in `WebKit::FrameRenderer::graphicsLayerFactory()` (`Source/WebKit/WebProcess/WebPage/CoordinatedGraphics/FrameRenderer.h:63`) — the base-class stub, meant to be overridden by whichever concrete renderer is active. Symbolized backtrace (core dump captured from the container's private `/tmp`, since the sandboxed WebProcess doesn't honor the host's relative `core_pattern` — see [Getting better data](#getting-better-data) for the general technique):
+
+   ```
+   WTFCrash → WTFCrashWithInfo → FrameRenderer::graphicsLayerFactory()
+     → WebChromeClient::graphicsLayerFactory() → RenderLayerCompositor::ensureRootLayer()
+     → RenderLayerCompositor::enableCompositingMode() → …updateBacking() → …computeCompositingRequirements()
+     → …updateCompositingLayers() → LocalFrameViewLayoutContext::updateCompositingLayersAfterLayout()
+     → Document::updateLayout() → Page::updateRendering() → WebPage::updateRendering()
+     → NonCompositedFrameRenderer::updateRendering()
+   ```
+
+   Root cause, from reading the current source (this is exactly the class `#323978` introduced): `DrawingAreaCoordinatedGraphics::enterAcceleratedCompositingModeIfNeeded()` (`DrawingAreaCoordinatedGraphicsGLib.cpp:145`) picks the concrete `FrameRenderer` subclass **once**, based only on the page's `acceleratedCompositingEnabled()` *setting* — `LayerTreeHost` (which overrides `graphicsLayerFactory()`) if true, `NonCompositedFrameRenderer` (which doesn't — it inherits the assert-stub) if false. But `RenderLayerCompositor::enableCompositingMode()` is a **separate, content-driven** decision WebCore can make independently later in the page's life (a video element, a transform, anything that needs a real layer) — and nothing swaps `m_renderer` over to `LayerTreeHost` when that happens. If the page was handed a `NonCompositedFrameRenderer` and then WebCore decides it needs compositing anyway, `WebChromeClient::graphicsLayerFactory()` calls straight into the assert stub. Confirmed the two crashes are the true alternatives, not an artifact of test setup: re-ran without the DMA-BUF workaround specifically to confirm crash #1 recurs.
+
+**Not yet established** why `acceleratedCompositingEnabled()` reads false for this page in the first place — worth checking whether `WEBKIT_DISABLE_DMABUF_RENDERER=1` itself influences that setting (plausible, untested), since that would mean this bug is specifically provoked by the one workaround this doc's own testing depends on to get past crash #1 at all. Either way this looks like a genuine, newly-introduced gap in `#323978`'s own refactor, not something present before 2026-09-21 — worth a WebKit bug report once the `acceleratedCompositingEnabled()` question is answered, since "which env var crashes you" isn't a complete report on its own.
+
+**Net effect:** the blank-render fix from `#323978` remains untested — every path to it currently ends in a different crash first. `homepage_redirect.rs` stays in place.
+
 ## Open questions
 
 - ~~The exact GL/EGL call that faults — unidentified.~~ — **resolved 2026-09-11**: signature 2 is `eglDestroyContext()`, signature 1 is a null-pointer `this` in `AcceleratedBackingStore::update()`, no EGL call involved. See [Symbolized backtraces](#symbolized-backtraces-2026-09-11).
