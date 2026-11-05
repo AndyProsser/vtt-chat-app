@@ -502,6 +502,7 @@ doc in the same change as the code it describes — don't batch documentation fo
 - `CONTRIBUTING.md` — how to contribute, PR process, code style
 - `DEVELOPING.md` — local dev environment setup
 - `ROADMAP.md` — staged build order, dependencies, and definition-of-done per stage
+- `docs/BUILD-STATUS.md` — what is built vs verified, what needs the dev box, unconfirmed assumptions (update with the work)
 - `docs/architecture/OVERVIEW.md` — system diagram + module responsibilities
 - `docs/architecture/RECORDING-AND-SUMMARIES.md` — recording, consent cue, transcription, summaries
 - `docs/architecture/DEPLOYMENT-AND-TRANSPORT.md` — self‑host topology, ports, TURN options, optional cloud adapters
