@@ -9,10 +9,6 @@
     "build": "tsc -b",
     "typecheck": "tsc --noEmit"
   },
-  "dependencies": {
-    "@vtt-chat-app/shared": "*",
-    "jose": "^6.0.0"
-  },
   "devDependencies": {
     "@types/node": "^26.0.0",
     "typescript": "^7.0.2"

@@ -45,14 +45,14 @@ pattern and its reconciliation conventions.
 - **The project pivoted on 2026-10-29 (decided) / 2026-11-05 (repo rewritten): from a Tauri DDB
   browser with an injected overlay to a self-hosted, audio-only tray app with server-side records.**
   There is no embedded browser, page restriction, ad-block, overlay injection, cobalt-cookie auth
-  or DDB coupling any more. The old design is in `docs/archive/`; its code is still in
-  `tauri-client/src-tauri/`, `tauri-client/overlay-ui/`, `ddb/`, and `backend/`'s `POST /api/session`
-  until ROADMAP Stage 1 removes it.
+  or DDB coupling any more. The old design is in `docs/archive/` (its DDB code in
+  `docs/archive/ddb-legacy/`). The code teardown (ROADMAP Stage 1) is done: `overlay-ui` became
+  `panels-ui`, and the allowlist/cobalt/overlay-injection code and `POST /api/session` are gone.
   **Why:** the group's real behaviour is one Discord channel with open mics; the missing value is
   *records and AI summaries*, and the embedded browser carried large platform risk (the
   WebKitGTK/NVIDIA crash and blank-render investigation) for little benefit.
   **How to apply:** if code you find references the overlay, the allowlist, `usePageMode`, the
-  cobalt cookie or DDB identity, it's legacy awaiting removal — not a pattern to copy or extend.
+  cobalt cookie or DDB identity, it's a leftover to remove — not a pattern to copy or extend.
   The 2026-08-31 "overlay everywhere, not Maps-scoped" note is moot.
 
 - **Records & AI summary are CORE, not a plugin; recording is server-side.** (Andy, 2026-11-05.)

@@ -2,7 +2,7 @@
 
 Node.js + Express + TypeScript API and WebSocket layer. The only server-side application component (aside from the LiveKit binaries and native infra services) — see [CLAUDE.md §8.3](../.claude/CLAUDE.md).
 
-**Status:** one legacy piece exists — `POST /api/session`, which accepts a client-supplied **DDB identity** and issues an app-session JWT + a LiveKit token. That contract belongs to the previous design and is being replaced ([ROADMAP Stage 1](../ROADMAP.md#stage-1--pivot-cleanup)); the LiveKit token issuance (`lib/session/liveKitToken.ts`) is reusable. Everything else below is scaffold.
+**Status:** skeleton. It serves `GET /api/health` and holds the reusable LiveKit token minting (`lib/session/liveKitToken.ts`). The previous design's DDB-identity `POST /api/session` was removed in Stage 1 (archived in [docs/archive/ddb-legacy/](../docs/archive/ddb-legacy/README.md)); real auth and the rest arrive in [ROADMAP Stage 3](../ROADMAP.md#stage-3--server-core). Everything else below is scaffold.
 
 ## Responsibilities
 

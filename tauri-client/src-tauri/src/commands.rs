@@ -69,11 +69,10 @@ pub async fn livekit_disconnect(state: State<'_, SharedClient>) -> Result<(), St
     Ok(())
 }
 
-/// Delivery path 2 for hotkeys (Stage 2 spec, Amendment A): the key handler injected by
-/// `safety_net.rs` calls this when it sees one of the bindings. Needed because the OS-level
-/// global-shortcut plugin silently does nothing on Wayland.
+/// Delivery path 2 for hotkeys: a panel page's key handler calls this when it sees one of the
+/// bindings. Needed because the OS-level global-shortcut plugin silently does nothing on Wayland.
 ///
-/// This is the one place untrusted page script reaches the hotkey system, so the action name is
+/// This is the one place panel script reaches the hotkey system, so the action name is
 /// parsed against a closed set — an unrecognized name is an error, never a default.
 #[tauri::command]
 pub fn hotkey_action(app: AppHandle, action: String) -> Result<(), String> {
@@ -83,9 +82,9 @@ pub fn hotkey_action(app: AppHandle, action: String) -> Result<(), String> {
     Ok(())
 }
 
-/// Delivery path for the overlay's mute button (Stage 3a spec §5) — shares
+/// Delivery path for a panel's mute button — shares
 /// `hotkeys::apply_microphone_mute` with the hotkey path so a click and a keypress can't
-/// leave the overlay showing stale mic state.
+/// leave a panel showing stale mic state.
 #[tauri::command]
 pub fn set_microphone_muted(app: AppHandle, muted: bool) -> Result<(), String> {
     crate::hotkeys::apply_microphone_mute(&app, muted);

@@ -2,7 +2,7 @@
 
 Cross-module TypeScript types, event contracts, and validators — see [CLAUDE.md §4](../.claude/CLAUDE.md) and [docs/CONVENTIONS.md](../docs/CONVENTIONS.md).
 
-**Status:** contains the previous design's types — DDB identity (`types/ddb.ts`), the session/LiveKit token contract (`types/session.ts`), the Tauri IPC connection-state type (`types/ipc.ts`) and zod schemas for `POST /api/session` (`lib/schemas.ts`). The DDB-identity pieces are legacy and go in [ROADMAP Stage 1](../ROADMAP.md#stage-1--pivot-cleanup); the LiveKit-token and IPC pieces are reusable.
+**Status:** currently holds only the Tauri IPC types (`types/ipc.ts`) and event names (`consts/`). The previous design's DDB-identity and session types and their zod schemas were removed in Stage 1. The contracts listed below are added as the stages that need them land.
 
 ## Responsibilities
 

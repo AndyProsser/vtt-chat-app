@@ -4115,14 +4115,11 @@ dependencies = [
 name = "src-tauri"
 version = "0.2.0"
 dependencies = [
- "base64 0.22.1",
  "rust-livekit",
  "serde",
- "serde_json",
  "tauri",
  "tauri-build",
  "tauri-plugin-global-shortcut",
- "tokio",
 ]
 
 [[package]]

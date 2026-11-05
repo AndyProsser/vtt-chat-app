@@ -14,7 +14,7 @@
     "ai",
     "status",
     "shared",
-    "tauri-client/overlay-ui"
+    "tauri-client/panels-ui"
   ],
   "scripts": {
     "lint": "eslint .",

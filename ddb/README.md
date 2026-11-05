@@ -2,7 +2,7 @@
 
 **Optional** D&D Beyond character import. Not part of the default install and not on any critical path — see [CLAUDE.md §8.7](../.claude/CLAUDE.md).
 
-**Status:** the previous design's code is still here — cobalt-token exchange, Character Service calls, and an identity-extraction orchestrator, all built for an embedded DDB WebView. **It is legacy** and will be reduced or removed in [ROADMAP Stage 1](../ROADMAP.md#stage-1--pivot-cleanup). The import feature itself is Stage 10.
+**Status:** an empty stub. The previous design's code (cobalt-token exchange, Character Service calls, identity orchestrator) was removed in Stage 1 and is kept for reference in [docs/archive/ddb-legacy/](../docs/archive/ddb-legacy/README.md). The import feature itself is [ROADMAP Stage 10](../ROADMAP.md#stage-10--optional-integrations-advanced-users).
 
 ## What it will be
 

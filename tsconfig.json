@@ -6,6 +6,6 @@
     { "path": "ddb" },
     { "path": "ai" },
     { "path": "status" },
-    { "path": "tauri-client/overlay-ui" }
+    { "path": "tauri-client/panels-ui" }
   ]
 }

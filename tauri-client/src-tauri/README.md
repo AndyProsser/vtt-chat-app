@@ -2,7 +2,7 @@
 
 The Tauri shell (Rust). See [CLAUDE.md §8.1](../../.claude/CLAUDE.md).
 
-**Status:** contains the **previous design's** code, to be removed in [ROADMAP Stage 1](../../ROADMAP.md#stage-1--pivot-cleanup): the page-restriction allowlist (`allowlist.rs`, `blocked_page.rs`, `consts.rs` domains), the DDB homepage redirect and video safety net (`homepage_redirect.rs`, `safety_net.rs`), cobalt-cookie detection (`cobalt.rs`), overlay injection, and the `remote-ddb` capability. **Do not extend them.** Stage 4 builds the real tray shell.
+**Status:** a windowless shell. The previous design's allowlist, blocked page, homepage redirect, safety net, cobalt watcher, overlay injection and `remote-ddb` capability were removed in Stage 1. What remains: the app-level audio client, the Tauri commands, the hotkey plumbing, a strict CSP and a capability set with no remote origins. Stage 4 builds the tray and the panel windows.
 
 Reusable from the old shell: `SharedClient` as app-level (`.manage()`) state so audio is independent of any window; the hotkey plumbing and its platform findings (see [DEVELOPING.md](../../DEVELOPING.md#shell-behaviour-hotkeys-carried-over)); the Tauri-command bridge to `rust-livekit`.
 

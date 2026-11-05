@@ -16,12 +16,12 @@ Update this file as threads open, progress, or close — stale entries here are 
     `docs/CONVENTIONS.md`, all module READMEs, `docs/architecture/OVERVIEW.md` and
     `STATE-AND-RESILIENCE.md` revised; new `RECORDING-AND-SUMMARIES.md` and
     `DEPLOYMENT-AND-TRANSPORT.md`; the old design archived under `docs/archive/`.
-  - **Not done (code):** the legacy code is still in the tree. **ROADMAP Stage 1** removes it
-    (`src-tauri` allowlist/safety-net/cobalt/overlay injection, `overlay-ui` → `panels-ui`,
-    `backend`'s DDB-identity session contract, `ddb/` demoted, `scripts/dev.ts`, CI).
-    Deliberately not done in the docs pass because the design isn't signed off.
+  - **Done (code, Stage 1):** legacy `src-tauri` modules and the `remote-ddb` capability removed;
+    `overlay-ui` → `panels-ui` (placeholder panel); `backend` `POST /api/session` removed (now
+    `GET /api/health` + LiveKit token minting); `ddb/` is an empty stub; old DDB/session code is in
+    `docs/archive/ddb-legacy/`; strict CSP, no remote origins. Toolchain moved to TS 7 / v0.2.0.
   - **Next:** work through the design topics below with Andy ("specific design & platform
-    considerations"), then do Stage 1, then Stage 2 (the audio + records spike).
+    considerations"), then Stage 2 (the audio + records spike).
 
 ## Open design topics (ask Andy; don't resolve by writing code)
 

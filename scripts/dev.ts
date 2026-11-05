@@ -1,5 +1,5 @@
 // Builds and launches the full local dev stack in one command: LiveKit dev server, the backend,
-// the overlay bundle, then the Tauri client — see DEVELOPING.md#running-stage-1-locally for the
+// the panels, then the Tauri client — see DEVELOPING.md#running-stage-1-locally for the
 // manual four-step version this automates. Cross-platform (Windows/macOS/Linux) via Node's
 // built-in child_process rather than shell scripts, since Node 26+ is already a hard requirement
 // on every platform (CLAUDE.md §3) and this repo has no other cross-platform shell tooling.
@@ -113,8 +113,8 @@ async function main(): Promise<void> {
   }
 
   // LiveKit is a soft dependency: the client still launches without it, just without working
-  // voice, matching this codebase's degrade-gracefully pattern elsewhere (e.g. src-tauri starting
-  // without the overlay bundle rather than refusing to launch).
+  // voice, matching this codebase's degrade-gracefully pattern elsewhere (e.g. the client starting
+  // without voice rather than refusing to launch).
   if (commandExists('livekit-server')) {
     spawnBackground('livekit', 'livekit-server', ['--dev'], ROOT);
   } else {
@@ -128,9 +128,9 @@ async function main(): Promise<void> {
   await run('backend-build', 'npm', ['run', 'build'], backendDir);
   spawnBackground('backend', 'npm', ['start'], backendDir);
 
-  // Must finish before the Tauri client starts — src-tauri reads dist/overlay.js from disk once,
-  // at startup (DEVELOPING.md step 3).
-  await run('overlay-ui', 'npm', ['run', 'build'], path.join(ROOT, 'tauri-client/overlay-ui'));
+  // The panels are the app's own local pages. Stage 4 wires the windows that load them; building
+  // here keeps the dev loop honest about the build order in the meantime.
+  await run('panels-ui', 'npm', ['run', 'build'], path.join(ROOT, 'tauri-client/panels-ui'));
 
   // Foreground: this is the process the developer is here for. Its own exit — interactive Ctrl+C,
   // a crash, or cleanup() above reaching it via a non-interactive stop — resolves this and falls

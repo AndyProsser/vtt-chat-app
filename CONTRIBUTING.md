@@ -48,7 +48,7 @@ This is a manual checklist, not an automated lint rule yet — reviewers apply i
 ## Pull Requests
 
 - Give the PR a clear title and a short description of *why*, not just *what*.
-- Run `npm test` for any change touching a workspace with a `test` script (`panels-ui/` and, until Stage 1, `overlay-ui/`) and note any manual testing you did beyond that — most modules still don't have automated coverage, so call out what you verified by hand.
+- Run `npm test` for any change touching a workspace with a `test` script (currently `panels-ui/`) and note any manual testing you did beyond that — most modules still don't have automated coverage, so call out what you verified by hand.
 - Link the issue it addresses, if any.
 
 ## Reporting Bugs

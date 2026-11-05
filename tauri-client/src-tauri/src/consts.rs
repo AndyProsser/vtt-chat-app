@@ -1,42 +1,7 @@
-/// Mirrors `ddb/src/consts/index.ts`'s `DDB_COBALT_COOKIE_NAME` — duplicated here since Rust
-/// is confined to `tauri-client/` and can't import the TS `ddb/` package (CLAUDE.md §3).
-pub const DDB_COBALT_COOKIE_NAME: &str = "CobaltSession";
-/// `/characters`, not the bare domain — the marketing homepage reliably segfaults WebKitGTK
-/// on at least one Linux+NVIDIA dev setup (reproduced in Epiphany too, so it's a WebKitGTK
-/// issue, not app code). Root cause was confirmed 2026-08-09 as a bug in NVIDIA's proprietary
-/// EGL driver; there is **no viable in-app workaround** (the EGL-vendor switch that avoids the
-/// crash drops rendering to ~0.2 FPS — see docs/WEBKITGTK-NVIDIA-EGL-CRASH.md), so this
-/// constant and homepage_redirect.rs remain the actual mitigation. `/characters` does not
-/// crash on affected hardware and is the page this app wants anyway.
-/// `lib.rs`'s `on_navigation` hook also redirects away from the bare homepage natively, so
-/// this constant isn't the only line of defense if a link ever points back there.
-pub const DDB_URL: &str = "https://www.dndbeyond.com/characters";
+//! Tauri event names emitted to the panel pages. Mirrored in `shared/src/consts/index.ts` — Rust
+//! can't import the TS package (CLAUDE.md §3), so the names are duplicated and must be kept in
+//! step by hand.
 
-pub const COBALT_COOKIE_POLL_INTERVAL_SECS: u64 = 3;
-
-/// Page-restriction allowlist (CLAUDE.md §8.1) — each entry matches the domain itself and all
-/// its subdomains. `dndbeyond.com` covers `*.dndbeyond.com/auth/*` too, so that isn't listed
-/// separately.
-///
-/// A compile-time constant rather than a config file: there is no config/persistence layer
-/// until Stage 5, and inventing one here would build it against an unknown future shape.
-/// Adding a domain is a code change and a rebuild, which is acceptable while the allowed set
-/// is this small and this static.
-///
-/// `accounts.google.com` closes part of the OAuth gap below — confirmed live 2026-08-13 (a real
-/// "Sign in with Google" click on `myaccounts.wizards.com/login` was blocked navigating to
-/// Google Identity Services' button endpoint, `accounts.google.com/gsi/button?...`), not guessed,
-/// per the evidence bar the gap was left open under (Stage 2 spec §C). Unblocks the button;
-/// whether the rest of the flow (consent screen, redirect back) needs anything further is
-/// unconfirmed until someone completes a real Google sign-in.
-///
-/// **Remaining known gap:** Apple and Steam OAuth (and any Auth0 tenant in between) are still
-/// not listed, so those two remain blocked until their own redirect chains are observed live.
-pub const ALLOWED_DOMAINS: &[&str] = &["dndbeyond.com", "wizards.com", "accounts.google.com"];
-
-/// Tauri event names emitted to the overlay. Mirrored in `shared/src/consts/index.ts` — Rust
-/// can't import the TS package (CLAUDE.md §3), same duplication rationale as the cookie name.
-pub const OVERLAY_TOGGLE_EVENT: &str = "overlay:toggle";
+pub const PANEL_TOGGLE_EVENT: &str = "panel:toggle";
 pub const MICROPHONE_STATE_EVENT: &str = "livekit:microphone";
-/// Mirrors `shared`'s `LIVEKIT_SPEAKERS_EVENT` — same duplication rationale as the two above.
 pub const SPEAKERS_STATE_EVENT: &str = "livekit:speakers";

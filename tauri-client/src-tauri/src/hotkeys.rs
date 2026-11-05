@@ -3,12 +3,12 @@ use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
 
-use crate::consts::{MICROPHONE_STATE_EVENT, OVERLAY_TOGGLE_EVENT};
+use crate::consts::{MICROPHONE_STATE_EVENT, PANEL_TOGGLE_EVENT};
 
 /// The three bindings from the Stage 2 spec §1, decoupled from *how* the key was delivered.
 ///
 /// Two independent paths produce these (spec Amendment A): the global-shortcut plugin, which
-/// works on Windows/macOS/X11 and silently no-ops on Wayland, and an injected in-page key
+/// works on Windows/macOS/X11 and silently no-ops on Wayland, and a panel-page key
 /// handler, which is app-focused-only but works everywhere. Both call `dispatch`, and both must
 /// be safe to fire for the same physical keypress — see `mute_state_for`'s idempotence.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -16,18 +16,18 @@ pub enum HotkeyAction {
     PushToTalkPressed,
     PushToTalkReleased,
     ToggleMute,
-    ToggleOverlay,
+    TogglePanel,
 }
 
 impl HotkeyAction {
-    /// Parses the action name sent by the injected key handler. Returns `None` for anything
+    /// Parses the action name sent by a panel page's key handler. Returns `None` for anything
     /// unrecognized rather than defaulting, so a typo can't silently unmute the microphone.
     pub fn from_name(name: &str) -> Option<Self> {
         match name {
             "push_to_talk_pressed" => Some(Self::PushToTalkPressed),
             "push_to_talk_released" => Some(Self::PushToTalkReleased),
             "toggle_mute" => Some(Self::ToggleMute),
-            "toggle_overlay" => Some(Self::ToggleOverlay),
+            "toggle_panel" => Some(Self::TogglePanel),
             _ => None,
         }
     }
@@ -44,7 +44,7 @@ pub fn mute_state_for(action: HotkeyAction, currently_muted: bool) -> Option<boo
         HotkeyAction::PushToTalkPressed => Some(false),
         HotkeyAction::PushToTalkReleased => Some(true),
         HotkeyAction::ToggleMute => Some(!currently_muted),
-        HotkeyAction::ToggleOverlay => None,
+        HotkeyAction::TogglePanel => None,
     }
 }
 
@@ -58,7 +58,7 @@ struct MicrophoneStatePayload {
 /// microphone gate — both the hotkey path (`dispatch`, below) and the UI mute button
 /// (`commands::set_microphone_muted`) call this, so a click and a keypress can't drift: without
 /// this, the emit is exactly the step that would get forgotten in one of the two paths, leaving
-/// the overlay showing stale mic state.
+/// a panel showing stale mic state.
 pub fn apply_microphone_mute(app: &AppHandle, muted: bool) {
     let state = app.state::<SharedClient>();
     let guard = match state.lock() {
@@ -79,8 +79,8 @@ pub fn apply_microphone_mute(app: &AppHandle, muted: bool) {
 /// Applies an action. A no-op for microphone actions when not connected — hotkeys are live
 /// before any room is joined, and pressing PTT then shouldn't be an error.
 pub fn dispatch(app: &AppHandle, action: HotkeyAction) {
-    if action == HotkeyAction::ToggleOverlay {
-        let _ = app.emit(OVERLAY_TOGGLE_EVENT, ());
+    if action == HotkeyAction::TogglePanel {
+        let _ = app.emit(PANEL_TOGGLE_EVENT, ());
         return;
     }
 
@@ -110,8 +110,8 @@ fn toggle_mute_shortcut() -> Shortcut {
     Shortcut::new(Some(Modifiers::CONTROL | Modifiers::SHIFT), Code::KeyM)
 }
 
-fn toggle_overlay_shortcut() -> Shortcut {
-    Shortcut::new(Some(Modifiers::CONTROL | Modifiers::SHIFT), Code::KeyO)
+fn toggle_panel_shortcut() -> Shortcut {
+    Shortcut::new(Some(Modifiers::CONTROL | Modifiers::SHIFT), Code::KeyP)
 }
 
 /// Registers the OS-level shortcuts. Failures are logged and swallowed — a shortcut already
@@ -124,31 +124,31 @@ fn toggle_overlay_shortcut() -> Shortcut {
 ///   with "Unknown scancode for key: ControlRight" everywhere, not just on Wayland. PTT was
 ///   rebound to Left Ctrl 2026-08-14 (easier to hold with a mouse in the right hand); the same
 ///   bare-modifier limitation is expected to apply equally, not separately re-confirmed. PTT is
-///   therefore app-focused only, delivered by the injected key handler, which reads
+///   therefore app-focused only, delivered by a panel page's key handler, which reads
 ///   `event.code === 'ControlLeft'` fine. Attempting the OS-level registration anyway would
 ///   only print an error on every launch.
 /// - **On Wayland nothing registered here ever fires.** The underlying `global-hotkey`/`tao`
 ///   shortcut thread is X11-specific and disabled on Wayland (tauri-apps/tao#543), so
-///   registration *succeeds* and then silently does nothing. That is why the injected in-page
+///   registration *succeeds* and then silently does nothing. That is why the panel-page
 ///   handler exists as a second path; see the Stage 2 spec, Amendment A.
 pub fn register_global_shortcuts(app: &AppHandle) {
     if is_wayland() {
         eprintln!(
             "[src-tauri] Wayland session detected: OS-level global shortcuts are unavailable \
-             (global-hotkey is X11-only). Mute and overlay toggle will work only while the app \
-             window has focus, via the injected key handler."
+             (global-hotkey is X11-only). Mute and panel toggle will work only while a panel \
+             has focus, via its own key handler."
         );
     }
 
     // Registered one at a time, not as a batch. `on_shortcuts` is all-or-nothing: one
     // unregisterable binding aborts the whole call, which is how push-to-talk's failure
-    // silently cost mute *and* overlay toggle their global paths.
+    // silently cost mute *and* panel toggle their global paths.
     register_one(app, toggle_mute_shortcut(), |state| {
         // Key-down only; acting on both edges would toggle twice per press.
         (state == ShortcutState::Pressed).then_some(HotkeyAction::ToggleMute)
     });
-    register_one(app, toggle_overlay_shortcut(), |state| {
-        (state == ShortcutState::Pressed).then_some(HotkeyAction::ToggleOverlay)
+    register_one(app, toggle_panel_shortcut(), |state| {
+        (state == ShortcutState::Pressed).then_some(HotkeyAction::TogglePanel)
     });
 }
 
@@ -168,7 +168,7 @@ fn register_one(
     if let Err(err) = result {
         eprintln!(
             "[src-tauri] could not register global shortcut {shortcut:?} ({err}); \
-             the injected in-page key handler still covers the app-focused case"
+             a panel-page key handler still covers the app-focused case"
         );
     }
 }
@@ -217,9 +217,9 @@ mod tests {
     }
 
     #[test]
-    fn overlay_toggle_does_not_touch_the_microphone() {
-        assert_eq!(mute_state_for(HotkeyAction::ToggleOverlay, true), None);
-        assert_eq!(mute_state_for(HotkeyAction::ToggleOverlay, false), None);
+    fn panel_toggle_does_not_touch_the_microphone() {
+        assert_eq!(mute_state_for(HotkeyAction::TogglePanel, true), None);
+        assert_eq!(mute_state_for(HotkeyAction::TogglePanel, false), None);
     }
 
     #[test]
@@ -229,8 +229,8 @@ mod tests {
             Some(HotkeyAction::PushToTalkPressed)
         );
         assert_eq!(
-            HotkeyAction::from_name("toggle_overlay"),
-            Some(HotkeyAction::ToggleOverlay)
+            HotkeyAction::from_name("toggle_panel"),
+            Some(HotkeyAction::TogglePanel)
         );
     }
 

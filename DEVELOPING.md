@@ -32,9 +32,9 @@ npm install
 
 ## Running Locally
 
-### Today: the legacy stack **(works today, goes away in Stage 1)**
+### Today: the Stage 1 skeleton
 
-`npm run dev` still builds and launches the previous design's stack — LiveKit dev server (if `livekit-server` is on your `PATH`), the backend, the **overlay bundle**, then the Tauri client, which opens a window on D&D Beyond. It is useful right now only as a smoke test of `rust-livekit` and `backend`'s LiveKit token issuance. Ctrl+C stops everything. `scripts/dev.ts` will be rewritten in Stage 1.
+`npm run dev` starts the LiveKit dev server (if `livekit-server` is on your `PATH`), the backend, builds `panels-ui`, then runs the Tauri client. The client has **no window yet** (the tray arrives in Stage 4), so what you can exercise is the backend (`GET /api/health`), the global shortcuts, and the audio crate. Ctrl+C stops everything. `scripts/dev.ts` is rewritten again in Stage 3.
 
 For the audio path alone, `rust-livekit` has a standalone harness that needs no Tauri and no DDB:
 
@@ -89,5 +89,5 @@ VS Code is the recommended editor; enable format-on-save with Prettier and rust-
 
 - [CLAUDE.md](.claude/CLAUDE.md) — architecture spec and module boundaries.
 - [docs/architecture/](docs/architecture/) — system diagram, records pipeline, deployment.
-- [docs/archive/](docs/archive/README.md) — the previous design, including the WebKitGTK/NVIDIA investigation and the patched-WebKitGTK build guide, in case you hit those errors in legacy code.
+- [docs/archive/](docs/archive/README.md) — the previous design, including the WebKitGTK/NVIDIA investigation, should you ever see those errors from a local panel.
 - Open an issue if something in this guide is wrong or missing — it should track reality as modules get built.

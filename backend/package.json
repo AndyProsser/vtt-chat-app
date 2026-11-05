@@ -13,7 +13,6 @@
   "dependencies": {
     "@vtt-chat-app/shared": "*",
     "express": "^5.1.0",
-    "jose": "^6.0.0",
     "livekit-server-sdk": "^2.13.0"
   },
   "devDependencies": {

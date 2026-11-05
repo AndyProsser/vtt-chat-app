@@ -14,7 +14,7 @@ Claude must follow this document when generating code, architecture, or implemen
 > gone. There is no embedded browser, no page restriction, no ad‑blocking, no overlay injection,
 > and no dependency on D&D Beyond. The old material lives in [`docs/archive/`](../docs/archive/README.md)
 > and is **not** a requirement. If you find a surviving reference to the overlay, the allowlist, or
-> the cobalt cookie in code, it is legacy awaiting removal in ROADMAP Stage 1 — not a pattern to follow.
+> the cobalt cookie in code, it is a leftover and should be removed — not a pattern to follow. (ROADMAP Stage 1 removed the known ones.)
 
 This directory (`.claude/`) also holds two files worth checking at the start of nontrivial work:
 
@@ -86,7 +86,7 @@ vtt-chat-app/
 │   ├── src-tauri/         # Rust: Tauri shell — tray, panels, hotkeys, autostart, updater
 │   ├── rust-livekit/      # Native Rust client: audio engine + LiveKit + cue player
 │   └── panels-ui/         # TS/React panels (chat, handouts, loot, RSVP, DM soundboard)
-│                          #   (replaces the legacy overlay-ui/ — see ROADMAP Stage 1)
+│                          #   (replaced the old overlay-ui/ in Stage 1)
 ├── web/                   # Mobile-first SPA (messages, RSVP, handouts, listen/talk) — planned
 ├── ai/                    # Records pipeline worker: transcode, Whisper, diarize, summarise
 ├── ddb/                   # OPTIONAL D&D Beyond character import (public pages)
