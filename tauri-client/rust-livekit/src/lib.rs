@@ -1,3 +1,4 @@
+pub mod cue;
 mod error;
 mod reconnect;
 
