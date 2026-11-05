@@ -165,7 +165,7 @@ Claude must design the backend to run **natively** on Ubuntu Server (VM or host)
 
 - **Caddy** (reverse proxy + TLS)
 - **Postgres** (persistent storage)
-- **Redis** (ephemeral state + pub/sub)
+- **Valkey** (ephemeral state + pub/sub; Redis-protocol, so plain Redis also works — decided 2026-11-05, see SYNC-PROTOCOL.md)
 - **NodeJS Express backend**
 - **LiveKit server** + **LiveKit Egress** (recording)
 - **Whisper.cpp** (local transcription) and **ffmpeg** (transcoding)

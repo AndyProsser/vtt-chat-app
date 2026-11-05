@@ -80,6 +80,22 @@ Notifications (summary ready, schedule changes, loot, level-up guidance) are **s
 and delivered in the snapshot on next connect. An optional email nudge (needs SMTP) can cover
 players whose app isn't running; it is never required.
 
+## Where live state lives (Redis/Valkey, with a fallback)
+
+Three tiers, chosen by how much it hurts to lose the data:
+
+| State | Examples | Lives in | If the store is down |
+| --- | --- | --- | --- |
+| Live connection state | who is online, speaking, typing, mute, latest stats sample | **in the backend process** (a map per socket), mirrored to Redis/Valkey only if configured | Nothing lost: clients are still connected and re-announce on reconnect. The process is the truth for its own sockets. |
+| Short-lived shared state | replay buffer (500 events / 10 min), per-recording cue acknowledgements (TTL), pub/sub between `backend` and the `ai` worker | **Redis/Valkey**, with an **in-memory implementation behind the same interface** | Falls back to memory: a backend restart then forces a snapshot instead of a replay, and acknowledgements are re-asked (one extra cue). Annoying, never wrong. |
+| Durable facts | accounts, sessions, memberships, consent, recording status and its **timeline metadata** (speaking indicators, mute, join/leave), notifications | **Postgres** | This is the real failure; the server says so and stops accepting changes rather than guess. |
+
+**Postgres is not the fallback for live state.** Speaking events and 5-second stats samples would turn into constant writes for data that is worthless a minute later. The exception is the recording timeline: those events are part of the record, so they are batched and written to Postgres during a recording whatever Redis is doing.
+
+**Decided (Andy, 2026-11-05): Valkey.** Redis stays a drop-in alternative. The code speaks the Redis protocol and use only strings, hashes, sets, TTLs and pub/sub, so either server works with the same client. Valkey is the BSD-licensed fork (Linux Foundation) made after Redis changed its licence; for a project whose point is that anyone can self-host it, Valkey is the default the install script sets up; plain Redis is accepted where Valkey isn't packaged. A Redis-compatible server is needed anyway because LiveKit Egress requires one for recording ([DEPLOYMENT-AND-TRANSPORT.md](DEPLOYMENT-AND-TRANSPORT.md)). **Unverified:** that LiveKit server and Egress run cleanly against Valkey, and which Ubuntu LTS ships a `valkey` package. Check both in the Stage 2 smoke test.
+
+A single-node install (the default) works with no Redis-compatible server for the backend at all; it is needed for Egress, and used by the backend once the `ai` worker is a separate process.
+
 ## Open
 
 - Max frame size and rate limits per connection.

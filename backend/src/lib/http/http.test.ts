@@ -1,0 +1,376 @@
+import type { AddressInfo } from 'node:net';
+import type { Server } from 'node:http';
+
+import { jwtVerify } from 'jose';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+
+import { createApp } from '../app.js';
+import { MemoryStore } from '../store/memoryStore.js';
+import type { MagicLinkMessage, MagicLinkSender } from './delivery.js';
+import { RateLimiter } from './rateLimit.js';
+
+class CapturingSender implements MagicLinkSender {
+  messages: MagicLinkMessage[] = [];
+  async send(message: MagicLinkMessage): Promise<void> {
+    this.messages.push(message);
+  }
+}
+
+const CONFIG = {
+  port: 0,
+  liveKitUrl: 'ws://livekit.test',
+  liveKitApiKey: 'testkey',
+  liveKitApiSecret: 'testsecret-testsecret-testsecret-1234',
+};
+
+// Responses are checked field by field in the tests, so a loose JSON shape is the honest type.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Json = any;
+
+interface Api {
+  call(
+    method: string,
+    path: string,
+    options?: { token?: string; body?: unknown; raw?: string },
+  ): Promise<{ status: number; body: Json }>;
+}
+
+let server: Server;
+let store: MemoryStore;
+let sender: CapturingSender;
+let api: Api;
+
+beforeEach(async () => {
+  store = new MemoryStore();
+  sender = new CapturingSender();
+  const app = createApp({ config: CONFIG, store, sender });
+  await new Promise<void>((resolve) => {
+    server = app.listen(0, '127.0.0.1', resolve);
+  });
+  const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+  api = {
+    async call(method, path, options = {}) {
+      const response = await fetch(`${base}${path}`, {
+        method,
+        headers: {
+          ...(options.body !== undefined || options.raw !== undefined
+            ? { 'Content-Type': 'application/json' }
+            : {}),
+          ...(options.token ? { Authorization: `Bearer ${options.token}` } : {}),
+        },
+        ...(options.raw !== undefined
+          ? { body: options.raw }
+          : options.body !== undefined
+            ? { body: JSON.stringify(options.body) }
+            : {}),
+      });
+      const text = await response.text();
+      return { status: response.status, body: text ? JSON.parse(text) : undefined };
+    },
+  };
+});
+
+afterEach(async () => {
+  await new Promise<void>((resolve) => server.close(() => resolve()));
+});
+
+const PASSWORD = 'correct horse battery';
+
+async function signUp(name: string): Promise<{ token: string; id: string }> {
+  const res = await api.call('POST', '/api/auth/register', {
+    body: {
+      email: `${name}@example.com`,
+      displayName: name,
+      password: PASSWORD,
+      acceptedConsentVersion: '1',
+    },
+  });
+  expect(res.status).toBe(201);
+  return { token: res.body.sessionToken, id: res.body.user.id };
+}
+
+describe('health and hardening', () => {
+  it('answers health without auth and sets safe headers', async () => {
+    const res = await fetch(
+      `http://127.0.0.1:${(server.address() as AddressInfo).port}/api/health`,
+    );
+    expect(res.status).toBe(200);
+    expect(res.headers.get('x-powered-by')).toBeNull();
+    expect(res.headers.get('x-content-type-options')).toBe('nosniff');
+    expect(res.headers.get('cache-control')).toBe('no-store');
+  });
+
+  it('rejects malformed JSON and invalid bodies with 400, not 500', async () => {
+    expect((await api.call('POST', '/api/auth/login', { raw: '{nope' })).status).toBe(400);
+    const bad = await api.call('POST', '/api/auth/register', { body: { email: 1 } });
+    expect(bad.status).toBe(400);
+    expect(bad.body.error).toBe('invalid_input');
+  });
+
+  it('rejects oversize bodies', async () => {
+    const res = await api.call('POST', '/api/auth/login', {
+      body: { email: 'a@b.co', password: 'x'.repeat(200_000) },
+    });
+    expect(res.status).toBe(413);
+  });
+});
+
+describe('accounts over HTTP', () => {
+  it('registers, never leaks the password hash, and signs in', async () => {
+    const res = await api.call('POST', '/api/auth/register', {
+      body: {
+        email: 'Ann@Example.com',
+        displayName: 'Ann',
+        password: PASSWORD,
+        acceptedConsentVersion: '1',
+      },
+    });
+    expect(res.status).toBe(201);
+    expect(res.body.user).toMatchObject({ email: 'ann@example.com', isAdmin: true });
+    expect(JSON.stringify(res.body)).not.toMatch(/passwordHash|scrypt/);
+
+    const login = await api.call('POST', '/api/auth/login', {
+      body: { email: 'ann@example.com', password: PASSWORD, deviceLabel: 'desktop' },
+    });
+    expect(login.status).toBe(200);
+    expect(login.body.needsConsent).toBe(false);
+
+    const me = await api.call('GET', '/api/auth/me', { token: login.body.sessionToken });
+    expect(me.status).toBe(200);
+    expect(me.body.user.displayName).toBe('Ann');
+  });
+
+  it('refuses registration without the current consent text', async () => {
+    const res = await api.call('POST', '/api/auth/register', {
+      body: { email: 'a@b.co', displayName: 'A', acceptedConsentVersion: 'old' },
+    });
+    expect(res.status).toBe(403);
+    expect(res.body.error).toBe('consent_required');
+  });
+
+  it('requires a valid session for protected routes', async () => {
+    expect((await api.call('GET', '/api/auth/me')).status).toBe(401);
+    expect((await api.call('GET', '/api/auth/me', { token: 'bogus.token' })).status).toBe(401);
+    expect((await api.call('GET', '/api/campaigns')).status).toBe(401);
+  });
+
+  it('gives the same answer for a wrong password and an unknown account', async () => {
+    await signUp('ann');
+    const wrong = await api.call('POST', '/api/auth/login', {
+      body: { email: 'ann@example.com', password: 'not the password' },
+    });
+    const unknown = await api.call('POST', '/api/auth/login', {
+      body: { email: 'ghost@example.com', password: 'not the password' },
+    });
+    expect(wrong.status).toBe(401);
+    expect(unknown.status).toBe(401);
+    expect(wrong.body).toEqual(unknown.body);
+  });
+
+  it('locks out repeated bad logins, then allows a correct one only after the window', async () => {
+    await signUp('ann');
+    let last = 0;
+    for (let i = 0; i < 12; i += 1) {
+      last = (
+        await api.call('POST', '/api/auth/login', {
+          body: { email: 'ann@example.com', password: 'wrong wrong wrong' },
+        })
+      ).status;
+    }
+    expect(last).toBe(429);
+    const correct = await api.call('POST', '/api/auth/login', {
+      body: { email: 'ann@example.com', password: PASSWORD },
+    });
+    expect(correct.status).toBe(429);
+  });
+
+  it('logs out and revokes remotely', async () => {
+    const { token } = await signUp('ann');
+    const second = (
+      await api.call('POST', '/api/auth/login', {
+        body: { email: 'ann@example.com', password: PASSWORD, deviceLabel: 'phone' },
+      })
+    ).body.sessionToken as string;
+
+    const list = await api.call('GET', '/api/auth/sessions', { token });
+    expect(list.body.sessions).toHaveLength(2);
+    const phone = list.body.sessions.find(
+      (s: { deviceLabel: string }) => s.deviceLabel === 'phone',
+    );
+    expect(phone.current).toBe(false);
+
+    expect((await api.call('DELETE', `/api/auth/sessions/${phone.id}`, { token })).status).toBe(
+      204,
+    );
+    expect((await api.call('GET', '/api/auth/me', { token: second })).status).toBe(401);
+    expect((await api.call('POST', '/api/auth/logout', { token })).status).toBe(204);
+    expect((await api.call('GET', '/api/auth/me', { token })).status).toBe(401);
+  });
+
+  it('never returns the magic-link token; it only goes to the sender', async () => {
+    await signUp('ann');
+    const res = await api.call('POST', '/api/auth/magic-link', {
+      body: { email: 'ann@example.com', purpose: 'signin' },
+    });
+    expect(res.status).toBe(202);
+    expect(JSON.stringify(res.body)).not.toContain(sender.messages[0]?.token ?? 'x');
+    expect(sender.messages).toHaveLength(1);
+
+    const redeem = await api.call('POST', '/api/auth/magic-link/redeem', {
+      body: { token: sender.messages[0]?.token },
+    });
+    expect(redeem.status).toBe(200);
+    expect(
+      (await api.call('GET', '/api/auth/me', { token: redeem.body.sessionToken })).status,
+    ).toBe(200);
+  });
+
+  it('answers an unknown address exactly like a known one, and sends nothing', async () => {
+    const res = await api.call('POST', '/api/auth/magic-link', {
+      body: { email: 'ghost@example.com', purpose: 'reset' },
+    });
+    expect(res.status).toBe(202);
+    expect(res.body).toEqual({ ok: true });
+    expect(sender.messages).toHaveLength(0);
+  });
+});
+
+describe('campaigns over HTTP', () => {
+  it('runs the whole flow: create, invite, join, character, swap, voice token', async () => {
+    const dm = await signUp('dm'); // first account = Admin, may create campaigns while closed
+    const player = await signUp('player');
+
+    const created = await api.call('POST', '/api/campaigns', {
+      token: dm.token,
+      body: { name: 'Lost Mine' },
+    });
+    expect(created.status).toBe(201);
+    const campaignId = created.body.campaign.id as string;
+
+    const invite = await api.call('POST', `/api/campaigns/${campaignId}/invites`, {
+      token: dm.token,
+      body: {},
+    });
+    expect(invite.status).toBe(201);
+
+    const joined = await api.call('POST', '/api/campaigns/join', {
+      token: player.token,
+      body: { code: invite.body.code },
+    });
+    expect(joined.status).toBe(201);
+    expect(joined.body.membership.role).toBe('player');
+
+    const sheet = await api.call('POST', `/api/campaigns/${campaignId}/characters`, {
+      token: player.token,
+      body: { name: 'Aria', className: 'Rogue', level: 3 },
+    });
+    expect(sheet.status).toBe(201);
+
+    // Voice token: identity is the account, the displayed name is the active character.
+    const voice = await api.call('POST', `/api/campaigns/${campaignId}/voice-token`, {
+      token: player.token,
+    });
+    expect(voice.status).toBe(200);
+    expect(voice.body).toMatchObject({ url: 'ws://livekit.test', roomName: campaignId });
+    const { payload } = await jwtVerify(
+      voice.body.token,
+      new TextEncoder().encode(CONFIG.liveKitApiSecret),
+    );
+    expect(payload.sub).toBe(player.id);
+    expect(payload.name).toBe('Aria');
+    expect((payload.video as { room: string }).room).toBe(campaignId);
+
+    // Swap: the player becomes DM and can now create invites; the old DM cannot.
+    expect(
+      (
+        await api.call('POST', `/api/campaigns/${campaignId}/dm-swap`, {
+          token: dm.token,
+          body: { newDmUserId: player.id },
+        })
+      ).status,
+    ).toBe(204);
+    expect(
+      (
+        await api.call('POST', `/api/campaigns/${campaignId}/invites`, {
+          token: player.token,
+          body: {},
+        })
+      ).status,
+    ).toBe(201);
+    expect(
+      (
+        await api.call('POST', `/api/campaigns/${campaignId}/invites`, {
+          token: dm.token,
+          body: {},
+        })
+      ).status,
+    ).toBe(403);
+
+    const mine = await api.call('GET', '/api/campaigns', { token: dm.token });
+    expect(mine.body.campaigns[0].role).toBe('player');
+  });
+
+  it('refuses a voice token to anyone outside the campaign', async () => {
+    const dm = await signUp('dm');
+    const outsider = await signUp('outsider');
+    const campaignId = (
+      await api.call('POST', '/api/campaigns', { token: dm.token, body: { name: 'Private' } })
+    ).body.campaign.id as string;
+
+    expect(
+      (
+        await api.call('POST', `/api/campaigns/${campaignId}/voice-token`, {
+          token: outsider.token,
+        })
+      ).status,
+    ).toBe(403);
+    expect(
+      (await api.call('GET', `/api/campaigns/${campaignId}/members`, { token: outsider.token }))
+        .status,
+    ).toBe(403);
+  });
+
+  it('keeps campaign creation closed to non-admins until the instance opens it', async () => {
+    await signUp('admin');
+    const player = await signUp('player');
+    expect(
+      (await api.call('POST', '/api/campaigns', { token: player.token, body: { name: 'Nope' } }))
+        .status,
+    ).toBe(403);
+
+    await store.putSettings({ ...(await store.getSettings()), campaignCreation: 'open' });
+    expect(
+      (await api.call('POST', '/api/campaigns', { token: player.token, body: { name: 'Yes' } }))
+        .status,
+    ).toBe(201);
+  });
+
+  it('rejects a bad invite code with 400 and does not reveal which part was wrong', async () => {
+    const { token } = await signUp('ann');
+    const res = await api.call('POST', '/api/campaigns/join', {
+      token,
+      body: { code: 'NOPENOPE12' },
+    });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('invite_invalid');
+  });
+});
+
+describe('RateLimiter', () => {
+  it('allows up to the limit per window, then blocks, then recovers', () => {
+    let now = 0;
+    const limiter = new RateLimiter(3, 1000, () => now);
+    expect([1, 2, 3, 4].map(() => limiter.allow('k'))).toEqual([true, true, true, false]);
+    expect(limiter.allow('other')).toBe(true);
+    now = 1001;
+    expect(limiter.allow('k')).toBe(true);
+  });
+
+  it('can be reset for a key', () => {
+    const limiter = new RateLimiter(1, 1000, () => 0);
+    limiter.allow('k');
+    expect(limiter.allow('k')).toBe(false);
+    limiter.reset('k');
+    expect(limiter.allow('k')).toBe(true);
+  });
+});
