@@ -82,10 +82,10 @@ The riskiest unknowns are all "does this actually work on real machines with ope
 
 ## Stage 3 — Server Core
 
-**Status:** ⚪ Not Started
+**Status:** 🟡 In Progress — identity/campaign domain layer built and tested in memory (no HTTP/WS surface, Postgres adapter or install script yet); schema written but untested
 **Depends on:** Stage 2 (and the open identity decision, below)
 
-**Resolve first, with Andy:** the **identity & access model** (CLAUDE.md §11) and the **client↔server sync protocol** (revive the archived Plan B?). Do not write auth code before this.
+**Decided with Andy (2026-11-05):** the identity & access model ([CLAUDE.md §11](.claude/CLAUDE.md#11-identity--access-model--direction-decided-2026-11-05-details-open)) and the sync protocol ([SYNC-PROTOCOL.md](docs/architecture/SYNC-PROTOCOL.md), draft). Remaining open: Admin quick-access extras, OIDC specifics, and the assumed defaults (invite expiry 7 days, magic-link lifetime 15 minutes, minimum password length 10).
 
 **Deliverables:**
 

@@ -2,7 +2,14 @@
 
 Node.js + Express + TypeScript API and WebSocket layer. The only server-side application component (aside from the LiveKit binaries and native infra services) — see [CLAUDE.md §8.3](../.claude/CLAUDE.md).
 
-**Status:** skeleton. It serves `GET /api/health` and holds the reusable LiveKit token minting (`lib/session/liveKitToken.ts`). The previous design's DDB-identity `POST /api/session` was removed in Stage 1 (archived in [docs/archive/ddb-legacy/](../docs/archive/ddb-legacy/README.md)); real auth and the rest arrive in [ROADMAP Stage 3](../ROADMAP.md#stage-3--server-core). Everything else below is scaffold.
+**Status:** the **domain layer** for identity and campaigns exists and is unit-tested (36 tests) against an in-memory store, but **there is no HTTP/WebSocket surface for it yet** — the app still only serves `GET /api/health`. Built from the decisions in [CLAUDE.md §11](../.claude/CLAUDE.md):
+
+- `lib/auth/` — accounts (first account = Admin; recording consent captured at sign-up with its text version), scrypt passwords, magic links (sign-in and reset, single-use, expiring), long-lived **remotely revocable sessions** with a configurable offline limit (default 30 days) kept alive by client pings.
+- `lib/campaigns/` — campaigns (creation `closed` to the Admin or `open` to anyone), **multi-use expiring invites**, characters (one active per player), and the **DM swap** (old DM becomes a player, characters parked and restored).
+- `lib/store/` — a `Store` interface with an in-memory implementation. The Postgres adapter is **not written**; [migrations/0001_init.sql](migrations/0001_init.sql) is the schema, **untested** (no Postgres was available).
+- `lib/session/liveKitToken.ts` — LiveKit token minting, not yet wired behind auth.
+
+Still to build ([ROADMAP Stage 3](../ROADMAP.md#stage-3--server-core)): the Postgres adapter, the REST routes (rare, heavy actions) and WebSocket layer ([SYNC-PROTOCOL.md](../docs/architecture/SYNC-PROTOCOL.md)), OIDC, the email sender (optional SMTP), and the Admin CLI.
 
 ## Responsibilities
 
