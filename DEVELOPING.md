@@ -9,6 +9,7 @@ Primary server target: **Ubuntu Server**. Client targets, in priority order: **W
 ## Requirements
 
 - **Node.js 26+** with npm — required for everything, including `npm install` at the root (npm workspaces — [CLAUDE.md §4](.claude/CLAUDE.md)). Verified against Node 26.5.1 / npm 12.0.2.
+- **Two TypeScript versions on purpose.** Every workspace compiles with **TypeScript 7** (`tsc` from its own `node_modules`). The **root** pins **TypeScript ~6.0** only because `typescript-eslint` needs the JS compiler API, which TS 7 doesn't ship (it requires `typescript <6.1`). Don't "fix" the root back to 7 until typescript-eslint supports it; it will fail to install.
 - **Rust** (stable, via [rustup](https://rustup.rs)) — for `tauri-client/src-tauri/` and `tauri-client/rust-livekit/`. `rustup` installs `cargo`/`rustc` but **not** a linker:
   - **Windows:** install the "Desktop development with C++" workload from [Visual Studio Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) (the default `x86_64-pc-windows-msvc` target needs `link.exe`). VS Code is not sufficient. Separately, `rust-livekit`'s prebuilt `libwebrtc_sys` is built against the static CRT (`/MT`) while rustc defaults to `/MD`, which fails with `LNK2038` unless static CRT linkage is forced. That is handled by `tauri-client/.cargo/config.toml` (`target-feature=+crt-static`) — don't remove that file.
   - **Linux:** `build-essential`, plus the audio dev headers (`libasound2-dev`) for `cpal`.

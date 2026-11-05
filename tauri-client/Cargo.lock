@@ -3577,7 +3577,7 @@ checksum = "4ade083ccbb4bf536df69d1f6432cc23deb7acccff86b183f3923a6fd56a1153"
 
 [[package]]
 name = "rust-livekit"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "cpal",
  "futures",
@@ -4113,7 +4113,7 @@ dependencies = [
 
 [[package]]
 name = "src-tauri"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "base64 0.22.1",
  "rust-livekit",
