@@ -85,6 +85,7 @@ vtt-chat-app/
 ├── tauri-client/          # Cross-platform Tauri tray app
 │   ├── src-tauri/         # Rust: Tauri shell — tray, panels, hotkeys, autostart, updater
 │   ├── rust-livekit/      # Native Rust client: audio engine + LiveKit + cue player
+│   ├── rust-sync/         # Native Rust WebSocket client: presence, chat, resume/replay
 │   └── panels-ui/         # TS/React panels (chat, handouts, loot, RSVP, DM soundboard)
 │                          #   (replaced the old overlay-ui/ in Stage 1)
 ├── web/                   # Mobile-first SPA (messages, RSVP, handouts, listen/talk) — planned
@@ -125,7 +126,7 @@ same way regardless of which module you're in.
 
 - **npm workspaces.** Each TypeScript module is its own npm package with its own `package.json`,
   listed under `workspaces` in the root `package.json`.
-- `rust-livekit/` and `tauri-client/src-tauri/` are Cargo crates, managed as a Cargo workspace
+- `rust-livekit/`, `rust-sync/` and `tauri-client/src-tauri/` are Cargo crates, managed as a Cargo workspace
   inside `tauri-client/`. They are not npm packages.
 
 ### Per-module folder convention

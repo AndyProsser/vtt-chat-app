@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["src-tauri", "rust-livekit"]
+members = ["src-tauri", "rust-livekit", "rust-sync"]
 
 [workspace.package]
 version = "0.2.0"

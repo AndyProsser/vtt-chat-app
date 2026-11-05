@@ -6,11 +6,12 @@ The cross-platform **system-tray** client — see [CLAUDE.md §8.1](../.claude/C
 
 A tiny app that lives in the tray, with floating React panels the user opens when they want them. It serves **only its own pages** — no embedded browser, no remote origins, no injected content. Players leave it hidden ~90% of the time, so it is built to be quiet: near-zero idle CPU, autostart, auto-update, auto-rejoin, crash recovery, and a tray icon that always shows live / muted / recording / disconnected.
 
-This is a Cargo workspace (`src-tauri/` and `rust-livekit/`) that also hosts one npm package (`panels-ui/`) bundled into the app.
+This is a Cargo workspace (`src-tauri/`, `rust-livekit/` and `rust-sync/`) that also hosts one npm package (`panels-ui/`) bundled into the app.
 
 ## Submodules
 
 - **[src-tauri/](src-tauri/README.md)** — the Tauri shell: tray, panel windows, hotkeys, autostart, updater, and the command bridge to `rust-livekit`.
+- **[rust-sync/](rust-sync/README.md)** — the WebSocket client for the backend's live channel: authenticate, follow campaigns, resume from the last sequence number after a drop, stop on revocation.
 - **[rust-livekit/](rust-livekit/README.md)** — the audio engine and LiveKit client: capture, echo cancellation, noise suppression, mixer, per-player gain, the local cue/soundboard player, auto-rejoin.
 - **[panels-ui/](panels-ui/README.md)** — the React + Radix panels.
 

@@ -1,7 +1,7 @@
 # Sync Protocol (Draft)
 
 How the clients and the server stay in step. **Status: draft defaults chosen by Claude, accepted by
-Andy as a starting point (2026-11-05) — expected to change once real traffic is measured.** Implemented in `backend/src/lib/realtime/` against in-memory stores; the Valkey-backed buffer is not written.
+Andy as a starting point (2026-11-05) — expected to change once real traffic is measured.** Implemented in `backend/src/lib/realtime/` against in-memory stores; the Valkey-backed buffer is not written. The Rust client is `tauri-client/rust-sync/` (verified once against the real backend).
 
 Builds on the archived "Plan B" (bounded replay buffer + snapshot fallback); see
 [docs/archive/](../archive/README.md). Principles come from
