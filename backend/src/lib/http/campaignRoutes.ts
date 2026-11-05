@@ -30,6 +30,8 @@ export interface CampaignRouteDeps {
   liveKit: { url: string; apiKey: string; apiSecret: string };
   /** Slows guessing of invite codes. Keyed by client address. */
   inviteLimiter: RateLimiter;
+  /** Called when roles, members or characters change, so live clients can refresh. */
+  onRosterChanged?: (campaignId: string) => void;
 }
 
 function param(value: string | string[] | undefined): string {
@@ -38,7 +40,7 @@ function param(value: string | string[] | undefined): string {
 }
 
 export function campaignRoutes(deps: CampaignRouteDeps): Router {
-  const { campaigns, store, liveKit, inviteLimiter } = deps;
+  const { campaigns, store, liveKit, inviteLimiter, onRosterChanged } = deps;
   const router = Router();
   router.use(requireAuth(deps.accounts));
 
@@ -68,6 +70,7 @@ export function campaignRoutes(deps: CampaignRouteDeps): Router {
       return;
     }
     const membership = await campaigns.joinWithInvite(authOf(res).user, body.code);
+    onRosterChanged?.(membership.campaignId);
     res.status(201).json({ membership });
   });
 
@@ -95,7 +98,9 @@ export function campaignRoutes(deps: CampaignRouteDeps): Router {
 
   router.post('/:id/characters', async (req, res) => {
     const body = characterBody.parse(req.body);
-    const character = await campaigns.addCharacter(authOf(res).user, param(req.params.id), body);
+    const campaignId = param(req.params.id);
+    const character = await campaigns.addCharacter(authOf(res).user, campaignId, body);
+    onRosterChanged?.(campaignId);
     res.status(201).json({ character });
   });
 
@@ -112,12 +117,16 @@ export function campaignRoutes(deps: CampaignRouteDeps): Router {
   // The DM and a player swap places in one request.
   router.post('/:id/dm-swap', async (req, res) => {
     const body = swapBody.parse(req.body);
-    await campaigns.swapDm(authOf(res).user, param(req.params.id), body.newDmUserId);
+    const campaignId = param(req.params.id);
+    await campaigns.swapDm(authOf(res).user, campaignId, body.newDmUserId);
+    onRosterChanged?.(campaignId);
     res.status(204).end();
   });
 
   router.post('/:id/leave', async (req, res) => {
-    await campaigns.leaveCampaign(authOf(res).user, param(req.params.id));
+    const campaignId = param(req.params.id);
+    await campaigns.leaveCampaign(authOf(res).user, campaignId);
+    onRosterChanged?.(campaignId);
     res.status(204).end();
   });
 

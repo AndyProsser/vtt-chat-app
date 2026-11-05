@@ -15,6 +15,11 @@ export interface AppDeps {
   store: Store;
   /** Delivers magic-link tokens. Defaults to "not configured". */
   sender?: MagicLinkSender;
+  /** Realtime hooks, so REST changes reach live sockets. Optional: REST works without a hub. */
+  realtime?: {
+    revokeSession(sessionId: string): void;
+    announceRosterChanged(campaignId: string): void;
+  };
 }
 
 const MINUTE = 60_000;
@@ -22,9 +27,9 @@ const MINUTE = 60_000;
 /**
  * The REST surface — the rare, heavy actions (sign-up, sign-in, password/profile changes, creating
  * campaigns, invites, voice tokens). Everything live and frequent goes over the WebSocket layer
- * instead (docs/architecture/SYNC-PROTOCOL.md), which is not built yet.
+ * instead (`realtime/`, docs/architecture/SYNC-PROTOCOL.md); the `realtime` hooks below connect the two.
  */
-export function createApp({ config, store, sender }: AppDeps): Express {
+export function createApp({ config, store, sender, realtime }: AppDeps): Express {
   const accounts = new AccountService({ store });
   const campaigns = new CampaignService({ store });
 
@@ -50,6 +55,7 @@ export function createApp({ config, store, sender }: AppDeps): Express {
       sender: sender ?? new NoMailTransport(),
       loginLimiter: new RateLimiter(10, 15 * MINUTE),
       linkLimiter: new RateLimiter(10, 15 * MINUTE),
+      ...(realtime ? { onSessionRevoked: (id: string) => realtime.revokeSession(id) } : {}),
     }),
   );
   app.use(
@@ -64,6 +70,7 @@ export function createApp({ config, store, sender }: AppDeps): Express {
         apiSecret: config.liveKitApiSecret,
       },
       inviteLimiter: new RateLimiter(20, 15 * MINUTE),
+      ...(realtime ? { onRosterChanged: (id: string) => realtime.announceRosterChanged(id) } : {}),
     }),
   );
 

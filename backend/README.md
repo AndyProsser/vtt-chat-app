@@ -2,14 +2,17 @@
 
 Node.js + Express + TypeScript API and WebSocket layer. The only server-side application component (aside from the LiveKit binaries and native infra services) — see [CLAUDE.md §8.3](../.claude/CLAUDE.md).
 
-**Status:** the **domain layer** for identity and campaigns exists and is unit-tested (36 tests) against an in-memory store, but **there is no HTTP/WebSocket surface for it yet** — the app still only serves `GET /api/health`. Built from the decisions in [CLAUDE.md §11](../.claude/CLAUDE.md):
+**Status:** identity, campaigns, a REST layer and a **WebSocket hub** exist and are tested (100 tests, including real sockets), all against **in-memory** stores — state is lost on restart. Built from the decisions in [CLAUDE.md §11](../.claude/CLAUDE.md) and [SYNC-PROTOCOL.md](../docs/architecture/SYNC-PROTOCOL.md):
 
 - `lib/auth/` — accounts (first account = Admin; recording consent captured at sign-up with its text version), scrypt passwords, magic links (sign-in and reset, single-use, expiring), long-lived **remotely revocable sessions** with a configurable offline limit (default 30 days) kept alive by client pings.
 - `lib/campaigns/` — campaigns (creation `closed` to the Admin or `open` to anyone), **multi-use expiring invites**, characters (one active per player), and the **DM swap** (old DM becomes a player, characters parked and restored).
 - `lib/store/` — a `Store` interface with an in-memory implementation. The Postgres adapter is **not written**; [migrations/0001_init.sql](migrations/0001_init.sql) is the schema, **untested** (no Postgres was available).
 - `lib/session/liveKitToken.ts` — LiveKit token minting, not yet wired behind auth.
 
-Still to build ([ROADMAP Stage 3](../ROADMAP.md#stage-3--server-core)): the Postgres adapter, the REST routes (rare, heavy actions) and WebSocket layer ([SYNC-PROTOCOL.md](../docs/architecture/SYNC-PROTOCOL.md)), OIDC, the email sender (optional SMTP), and the Admin CLI.
+- `lib/http/` — REST (`/api/auth`, `/api/campaigns`): sign-up, sign-in, magic links, sessions, invites, characters, DM swap, and member-only LiveKit voice tokens; rate limiting; safe error handling.
+- `lib/realtime/` — the WebSocket protocol (`/ws`, versioned JSON frames), a transport-agnostic `Hub` (auth-first, per-campaign subscriptions, presence, speaking, DM-only connection stats, chat, replay/snapshot on reconnect, remote revocation), an in-memory `ReplayBuffer`, and the `ws` adapter.
+
+Still to build ([ROADMAP Stage 3](../ROADMAP.md#stage-3--server-core)): the Postgres adapter and the Valkey-backed replay buffer/cue acknowledgements (the in-memory ones are the fallback), OIDC, the email sender (optional SMTP), recording status events, chat persistence, and the Admin CLI.
 
 ## Responsibilities
 

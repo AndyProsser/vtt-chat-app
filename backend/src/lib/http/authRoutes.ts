@@ -36,9 +36,17 @@ export interface AuthRouteDeps {
   loginLimiter: RateLimiter;
   /** Slows magic-link requests and redemptions. Keyed by client address. */
   linkLimiter: RateLimiter;
+  /** Called after a session is revoked, so a live socket on it can be dropped at once. */
+  onSessionRevoked?: (sessionId: string) => void;
 }
 
-export function authRoutes({ accounts, sender, loginLimiter, linkLimiter }: AuthRouteDeps): Router {
+export function authRoutes({
+  accounts,
+  sender,
+  loginLimiter,
+  linkLimiter,
+  onSessionRevoked,
+}: AuthRouteDeps): Router {
   const router = Router();
   const auth = requireAuth(accounts);
 
@@ -143,12 +151,14 @@ export function authRoutes({ accounts, sender, loginLimiter, linkLimiter }: Auth
     const id = req.params.id;
     if (!id) throw new DomainError('invalid_input');
     await accounts.revokeSession(authOf(res).user.id, id);
+    onSessionRevoked?.(id);
     res.status(204).end();
   });
 
   router.post('/logout', async (_req, res) => {
     const { user, session } = authOf(res);
     await accounts.revokeSession(user.id, session.id);
+    onSessionRevoked?.(session.id);
     res.status(204).end();
   });
 
