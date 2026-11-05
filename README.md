@@ -2,7 +2,7 @@
 
 > Self-hosted voice, chat and **session records with AI summaries** for tabletop groups. A tiny tray app for players, a mobile web app, and a server you run yourself — no cloud account required.
 
-**Status:** Redesign in progress. The project changed direction on 2026-10-29 and the repo's docs were rewritten on 2026-11-05; the code still contains the previous design's pieces until [Stage 1](ROADMAP.md#stage-1--pivot-cleanup) removes them. Nothing user-facing is built yet. See [CLAUDE.md](.claude/CLAUDE.md) for the spec and [ROADMAP.md](ROADMAP.md) for the plan.
+**Status:** Rebuild in progress (v0.2.0). The project changed direction on 2026-10-29; the old design is gone from the code and archived in `docs/archive/`. The server-side foundations (accounts, campaigns, REST, WebSocket, recording consent) and the Rust client libraries exist and are tested, but **nothing user-facing runs yet** — the tray app has no window, and much has not been run against real infrastructure. **[docs/BUILD-STATUS.md](docs/BUILD-STATUS.md) says exactly what is built, what is verified, and what is next.** See [CLAUDE.md](.claude/CLAUDE.md) for the spec and [ROADMAP.md](ROADMAP.md) for the plan.
 
 ---
 

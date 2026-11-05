@@ -20,10 +20,15 @@ Update this file as threads open, progress, or close — stale entries here are 
     `overlay-ui` → `panels-ui` (placeholder panel); `backend` `POST /api/session` removed (now
     `GET /api/health` + LiveKit token minting); `ddb/` is an empty stub; old DDB/session code is in
     `docs/archive/ddb-legacy/`; strict CSP, no remote origins. Toolchain moved to TS 7 / v0.2.0.
-  - **Next:** work through the design topics below with Andy ("specific design & platform
-    considerations"), then Stage 2 (the audio + records spike).
+  - **Done (2026-11-05, away from the dev box):** Stages 2 and 3 groundwork — platform-audio voice
+    client, cue player, records pipeline library, identity/campaign domain, REST, WebSocket hub, Rust
+    sync client, recording-consent loop. **Built is not verified:** see
+    [docs/BUILD-STATUS.md](../docs/BUILD-STATUS.md) for what has and hasn't run against real
+    infrastructure.
+  - **Next (when the dev box is back):** the verification list in BUILD-STATUS.md (Postgres, Valkey,
+    two-machine voice test, Part B on a Linux server). Then Stage 4 (tray shell wiring).
 
-## Open design topics (ask Andy; don't resolve by writing code)
+## Design topics (1–4 are decided; 5–9 still open — ask Andy, don't resolve by writing code)
 
 1. **Identity & access model** — *decided 2026-11-05:* local accounts (email/password, magic
    links, optional OIDC); per-campaign DM + players; many characters per player, one active; DM
@@ -53,8 +58,8 @@ Update this file as threads open, progress, or close — stale entries here are 
    raw audio deleted after DM-confirmed summary, stale audio purged by rules (next session / age /
    free storage); cues on every status change incl. resume; Whisper model chosen by CPU-only vs
    GPU at setup (env/CLI override); standing consent collected at sign-up and stored in Postgres
-   with consent-text version. **Open:** purge defaults, per-recording cue-ack storage (proposed
-   Redis TTL).
+   with consent-text version. **Open:** purge defaults. (Cue-ack storage is decided and built:
+   server-side, 30-min expiry assumed — see RECORDING-AND-SUMMARIES.md "The consent loop as built".)
 4. **Audio platform findings** — decided approach: manage per platform, aim for consistent
    behaviour; **Windows is the target, Linux and macOS are best-effort**. The Stage 2 spike still
    supplies the measurements (AEC/NS, device release on mute, unmute latency).
@@ -63,7 +68,8 @@ Update this file as threads open, progress, or close — stale entries here are 
    install? CLAUDE.md says no Docker today.
 7. **Server sizing** — minimum spec for voice + records; Whisper model default; what a GPU buys.
    Answered by the Stage 2 spike.
-8. **Admin CLI shape** — instance bootstrap and invite flow depend on topic 1.
+8. **Admin CLI shape** — instance bootstrap and invite flow depend on topic 1. Andy deferred the
+   CLI (2026-11-05).
 9. **Cloud-adapter seams** — which provider interfaces to define up front (transcription, LLM,
    TURN/ICE, storage) so adapters stay optional.
 
