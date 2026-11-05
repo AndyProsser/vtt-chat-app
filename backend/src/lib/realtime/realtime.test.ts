@@ -9,6 +9,7 @@ import { CloseCode, Hub, type Connection } from './hub.js';
 import { PresenceTracker } from './presence.js';
 import { parseClientFrame, PROTOCOL_VERSION } from './protocol.js';
 import { MemoryReplayBuffer } from './replayBuffer.js';
+import { replayBufferContract } from './replayContract.js';
 
 // ---------- protocol ----------
 
@@ -68,50 +69,7 @@ describe('parseClientFrame', () => {
 
 // ---------- replay buffer ----------
 
-describe('MemoryReplayBuffer', () => {
-  it('numbers events per campaign from 1', async () => {
-    const buffer = new MemoryReplayBuffer();
-    expect((await buffer.append('a', 't', 1)).seq).toBe(1);
-    expect((await buffer.append('a', 't', 2)).seq).toBe(2);
-    expect((await buffer.append('b', 't', 1)).seq).toBe(1);
-    expect(await buffer.latestSeq('a')).toBe(2);
-    expect(await buffer.latestSeq('nobody')).toBe(0);
-  });
-
-  it('replays exactly what a reconnecting client missed', async () => {
-    const buffer = new MemoryReplayBuffer();
-    for (let i = 1; i <= 5; i += 1) await buffer.append('a', 't', i);
-    expect((await buffer.since('a', 3))?.map((e) => e.seq)).toEqual([4, 5]);
-    expect(await buffer.since('a', 5)).toEqual([]);
-    expect((await buffer.since('a', 0))?.map((e) => e.seq)).toEqual([1, 2, 3, 4, 5]);
-  });
-
-  it('asks for a snapshot when the gap has been trimmed away', async () => {
-    const buffer = new MemoryReplayBuffer({ maxEvents: 3 });
-    for (let i = 1; i <= 6; i += 1) await buffer.append('a', 't', i); // keeps 4,5,6
-    expect(await buffer.since('a', 3)).toHaveLength(3); // next needed is 4: still there
-    expect(await buffer.since('a', 2)).toBeUndefined(); // needs 3: gone
-    expect(await buffer.since('a', 0)).toBeUndefined();
-  });
-
-  it('asks for a snapshot when the client is ahead of the server', async () => {
-    // e.g. the server restarted and its counter reset while the client remembers seq 40.
-    const buffer = new MemoryReplayBuffer();
-    await buffer.append('a', 't', 1);
-    expect(await buffer.since('a', 40)).toBeUndefined();
-  });
-
-  it('forgets events older than the age limit', async () => {
-    let now = 0;
-    const buffer = new MemoryReplayBuffer({ maxAgeMs: 1000, now: () => now });
-    await buffer.append('a', 't', 1);
-    now = 500;
-    await buffer.append('a', 't', 2);
-    now = 1200; // event 1 is now 1200 ms old
-    expect((await buffer.since('a', 1))?.map((e) => e.seq)).toEqual([2]);
-    expect(await buffer.since('a', 0)).toBeUndefined(); // event 1 is gone, so seq 0 can't be filled
-  });
-});
+replayBufferContract('in-memory', (options) => new MemoryReplayBuffer(options));
 
 // ---------- presence ----------
 
@@ -525,6 +483,7 @@ describe('Hub: reconnect, replay and snapshot', () => {
     await say('p1', 'one');
     await say('p1', 'two');
     const lastSeen = first.last('chat.message')?.seq ?? 0;
+    const epoch = first.last('snapshot')?.d.epoch as string;
     t.hub.closed('p1'); // the player's network drops
     await say('p1', 'ignored: p1 is gone').catch(() => undefined);
     await t.hub.receive('d1', frame('chat.message', { campaignId: t.campaignId, text: 'three' }));
@@ -534,7 +493,10 @@ describe('Hub: reconnect, replay and snapshot', () => {
     const back = new FakeConn('p2');
     t.hub.accept(back);
     await t.hub.receive('p2', frame('auth', { token: t.token.player }));
-    await t.hub.receive('p2', frame('resume', { campaignId: t.campaignId, lastSeq: lastSeen }));
+    await t.hub.receive(
+      'p2',
+      frame('resume', { campaignId: t.campaignId, lastSeq: lastSeen, epoch }),
+    );
 
     expect(back.of('snapshot')).toHaveLength(0);
     expect(back.of('chat.message').map((f) => f.d.text)).toEqual(['three', 'four']);
@@ -558,11 +520,53 @@ describe('Hub: reconnect, replay and snapshot', () => {
     const back = new FakeConn('p9');
     hub.accept(back);
     await hub.receive('p9', frame('auth', { token: small.token.player }));
-    await hub.receive('p9', frame('resume', { campaignId: small.campaignId, lastSeq: 1 }));
+    await hub.receive(
+      'p9',
+      frame('resume', {
+        campaignId: small.campaignId,
+        lastSeq: 1,
+        epoch: await replay.epoch(small.campaignId),
+      }),
+    );
     const snapshot = back.last('snapshot')?.d;
     expect(snapshot).toBeDefined();
     expect(snapshot.seq).toBe(5);
     expect(snapshot.recentChat.map((m: any) => m.text)).toEqual(['m4', 'm5']);
+    hub.close();
+  });
+
+  it('hands out the stream epoch so a client can prove which stream its sequence number is from', async () => {
+    const conn = await connect(t, 'p1', 'player');
+    const snapshot = conn.last('snapshot')?.d;
+    expect(snapshot.epoch).toBe(await t.replay.epoch(t.campaignId));
+  });
+
+  it('does not replay across a server restart: same sequence number, different stream', async () => {
+    await connect(t, 'd1', 'dm');
+    const first = await connect(t, 'p1', 'player');
+    await t.hub.receive('p1', frame('chat.message', { campaignId: t.campaignId, text: 'before' }));
+    const lastSeen = first.last('chat.message')?.seq ?? 0;
+    const oldEpoch = first.last('snapshot')?.d.epoch as string;
+    t.hub.close();
+
+    // "Restart": a brand-new hub and buffer over the same store. Seq 1 now means something else.
+    const replay = new MemoryReplayBuffer();
+    const hub = new Hub({ store: t.store, accounts: t.accounts, replay });
+    const table = { ...t, hub, replay };
+    await connect(table, 'd2', 'dm');
+    const other = await connect(table, 'p2', 'player');
+    await hub.receive('p2', frame('chat.message', { campaignId: t.campaignId, text: 'after' }));
+    expect(other.last('chat.message')?.seq).toBe(lastSeen); // same number, different event
+
+    const back = new FakeConn('p3');
+    hub.accept(back);
+    await hub.receive('p3', frame('auth', { token: t.token.player }));
+    await hub.receive(
+      'p3',
+      frame('resume', { campaignId: t.campaignId, lastSeq: lastSeen, epoch: oldEpoch }),
+    );
+    expect(back.of('snapshot')).toHaveLength(1);
+    expect(back.of('chat.message')).toHaveLength(0);
     hub.close();
   });
 

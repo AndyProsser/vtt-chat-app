@@ -16,8 +16,14 @@ const campaignId = z.string().min(1).max(64);
 /** Data schemas for each client → server frame type. */
 export const clientData = {
   auth: z.object({ token: z.string().min(1).max(512) }),
-  // Subscribe to a campaign's live stream; `lastSeq` is the last event this client saw, if any.
-  resume: z.object({ campaignId, lastSeq: z.number().int().nonnegative().optional() }),
+  // Subscribe to a campaign's live stream. `lastSeq` is the last event this client saw, and `epoch`
+  // names the event stream that number belongs to (from the last snapshot/resumed). A sequence
+  // number is only meaningful within its epoch, so the server replays only when both match.
+  resume: z.object({
+    campaignId,
+    lastSeq: z.number().int().nonnegative().optional(),
+    epoch: z.string().max(64).optional(),
+  }),
   // Audio-connected clients only; an idle client sends nothing but WebSocket pings.
   'audio.state': z.object({ campaignId, inVoice: z.boolean(), muted: z.boolean() }),
   'speaking.set': z.object({ campaignId, speaking: z.boolean() }),

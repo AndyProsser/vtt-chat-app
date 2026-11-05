@@ -219,7 +219,7 @@ export class Hub {
   private async resume(state: ConnState, data: ClientData<'resume'>): Promise<void> {
     const auth = state.auth;
     if (!auth) return;
-    const { campaignId, lastSeq } = data;
+    const { campaignId, lastSeq, epoch } = data;
 
     const membership = await this.options.store.getMembership(campaignId, auth.user.id);
     if (!membership) {
@@ -233,11 +233,14 @@ export class Hub {
     state.campaigns.add(campaignId);
 
     const missed =
-      lastSeq === undefined ? undefined : await this.options.replay.since(campaignId, lastSeq);
+      lastSeq === undefined
+        ? undefined
+        : await this.options.replay.since(campaignId, lastSeq, epoch);
     if (missed) {
       for (const event of missed) this.sendEvent(state, campaignId, event);
       this.send(state, 'resumed', {
         campaignId,
+        epoch: await this.options.replay.epoch(campaignId),
         seq: await this.options.replay.latestSeq(campaignId),
         replayed: missed.length,
       });
@@ -384,6 +387,7 @@ export class Hub {
     const recent = await replay.recent(campaignId, 50);
     return {
       campaignId,
+      epoch: await replay.epoch(campaignId),
       seq: await replay.latestSeq(campaignId),
       members,
       recentChat: recent

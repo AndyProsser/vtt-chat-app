@@ -6,6 +6,14 @@ use std::collections::BTreeMap;
 
 use crate::protocol::{auth_frame, parse_server_frame, resume_frame, ServerEvent};
 
+/// Where we are in one campaign's event stream. The sequence number only means something within
+/// its epoch, so they are always kept — and sent — together.
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct Cursor {
+    epoch: String,
+    seq: u64,
+}
+
 /// The WebSocket close code the backend uses for "not authenticated / session revoked".
 pub const CLOSE_UNAUTHORIZED: u16 = 4401;
 /// …and for an unsupported protocol version.
@@ -38,7 +46,7 @@ pub enum Action {
 pub struct Session {
     token: String,
     /// Campaigns we follow, and the last replayable event seen in each (`None` = never; ask for a snapshot).
-    campaigns: BTreeMap<String, Option<u64>>,
+    campaigns: BTreeMap<String, Option<Cursor>>,
     authenticated: bool,
     finished: bool,
 }
@@ -59,7 +67,16 @@ impl Session {
 
     /// The last sequence number seen for a campaign.
     pub fn last_seq(&self, campaign_id: &str) -> Option<u64> {
-        self.campaigns.get(campaign_id).copied().flatten()
+        self.cursor(campaign_id).map(|cursor| cursor.seq)
+    }
+
+    /// The event stream that sequence number belongs to.
+    pub fn epoch(&self, campaign_id: &str) -> Option<&str> {
+        self.cursor(campaign_id).map(|cursor| cursor.epoch.as_str())
+    }
+
+    fn cursor(&self, campaign_id: &str) -> Option<&Cursor> {
+        self.campaigns.get(campaign_id).and_then(Option::as_ref)
     }
 
     /// Starts following a campaign. If already authenticated, the resume goes out now; otherwise it
@@ -103,8 +120,9 @@ impl Session {
                 self.authenticated = true;
                 actions.push(Action::Emit(SyncEvent::Connected));
                 // Resume every campaign, telling the server where we left off.
-                for (campaign_id, last_seq) in &self.campaigns {
-                    actions.push(Action::Send(resume_frame(campaign_id, *last_seq)));
+                for (campaign_id, cursor) in &self.campaigns {
+                    let cursor = cursor.as_ref().map(|c| (c.epoch.as_str(), c.seq));
+                    actions.push(Action::Send(resume_frame(campaign_id, cursor)));
                 }
             }
             ServerEvent::AuthRevoked { .. } => {
@@ -117,26 +135,43 @@ impl Session {
             // A snapshot replaces our state wholesale and resets the cursor — including to a
             // *lower* number, which is what a restarted server looks like.
             ServerEvent::Snapshot {
-                campaign_id, seq, ..
+                campaign_id,
+                epoch,
+                seq,
+                ..
             } => {
-                if let Some(slot) = self.campaigns.get_mut(campaign_id) {
-                    *slot = Some(*seq);
+                // An empty epoch can't be proven later, so it never becomes a cursor.
+                if let (Some(slot), false) = (self.campaigns.get_mut(campaign_id), epoch.is_empty())
+                {
+                    *slot = Some(Cursor {
+                        epoch: epoch.clone(),
+                        seq: *seq,
+                    });
                 }
             }
             ServerEvent::Resumed {
-                campaign_id, seq, ..
+                campaign_id,
+                epoch,
+                seq,
+                ..
             } => {
-                if let Some(slot) = self.campaigns.get_mut(campaign_id) {
-                    *slot = Some(*seq);
+                // An empty epoch can't be proven later, so it never becomes a cursor.
+                if let (Some(slot), false) = (self.campaigns.get_mut(campaign_id), epoch.is_empty())
+                {
+                    *slot = Some(Cursor {
+                        epoch: epoch.clone(),
+                        seq: *seq,
+                    });
                 }
             }
             ServerEvent::ChatMessage {
                 campaign_id, seq, ..
             } => {
-                if let Some(slot) = self.campaigns.get_mut(campaign_id) {
-                    // Only ever move forward: a replayed older event must not rewind the cursor.
-                    if slot.is_none_or(|current| *seq > current) {
-                        *slot = Some(*seq);
+                // Only ever move forward within the stream we know: a replayed older event must not rewind
+                // the cursor, and a chat event can't start a cursor (no epoch to pair it with).
+                if let Some(Some(cursor)) = self.campaigns.get_mut(campaign_id) {
+                    if *seq > cursor.seq {
+                        cursor.seq = *seq;
                     }
                 }
             }
@@ -231,7 +266,7 @@ mod tests {
         authed(&mut s);
         s.on_text(&server(
             "snapshot",
-            json!({ "campaignId": "c", "seq": 3 }),
+            json!({ "campaignId": "c", "epoch": "e1", "seq": 3 }),
             None,
         ));
         s.on_text(&server(
@@ -250,7 +285,10 @@ mod tests {
         assert!(s.on_close(None).contains(&Action::Reconnect));
         s.on_open();
         let resumes = sent(&s.on_text(&server("auth.ok", json!({ "userId": "u" }), None)));
-        assert_eq!(resumes[0]["d"], json!({ "campaignId": "c", "lastSeq": 5 }));
+        assert_eq!(
+            resumes[0]["d"],
+            json!({ "campaignId": "c", "lastSeq": 5, "epoch": "e1" })
+        );
     }
 
     #[test]
@@ -260,7 +298,7 @@ mod tests {
         authed(&mut s);
         s.on_text(&server(
             "resumed",
-            json!({ "campaignId": "c", "seq": 10, "replayed": 0 }),
+            json!({ "campaignId": "c", "epoch": "e1", "seq": 10, "replayed": 0 }),
             None,
         ));
         s.on_text(&server(
@@ -279,15 +317,51 @@ mod tests {
         authed(&mut s);
         s.on_text(&server(
             "resumed",
-            json!({ "campaignId": "c", "seq": 40, "replayed": 0 }),
+            json!({ "campaignId": "c", "epoch": "e1", "seq": 40, "replayed": 0 }),
             None,
         ));
         s.on_text(&server(
             "snapshot",
-            json!({ "campaignId": "c", "seq": 2 }),
+            json!({ "campaignId": "c", "epoch": "e2", "seq": 2 }),
             None,
         ));
         assert_eq!(s.last_seq("c"), Some(2));
+        assert_eq!(
+            s.epoch("c"),
+            Some("e2"),
+            "the new stream's epoch replaces the old"
+        );
+    }
+
+    #[test]
+    fn chat_before_any_snapshot_cannot_start_a_cursor() {
+        // Without an epoch there is nothing to prove which stream the number belongs to.
+        let mut s = Session::new("tok");
+        s.subscribe("c");
+        authed(&mut s);
+        s.on_text(&server(
+            "chat.message",
+            json!({ "campaignId": "c" }),
+            Some(9),
+        ));
+        assert_eq!(s.last_seq("c"), None);
+    }
+
+    #[test]
+    fn a_missing_epoch_is_never_stored_so_the_next_resume_asks_for_a_snapshot() {
+        let mut s = Session::new("tok");
+        s.subscribe("c");
+        authed(&mut s);
+        s.on_text(&server(
+            "snapshot",
+            json!({ "campaignId": "c", "seq": 4 }),
+            None,
+        ));
+        assert_eq!(s.last_seq("c"), None);
+        assert!(s.on_close(None).contains(&Action::Reconnect));
+        s.on_open();
+        let resumes = sent(&s.on_text(&server("auth.ok", json!({ "userId": "u" }), None)));
+        assert_eq!(resumes[0]["d"], json!({ "campaignId": "c" }));
     }
 
     #[test]

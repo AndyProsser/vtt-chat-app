@@ -109,7 +109,7 @@ async fn authenticates_resumes_and_then_resumes_from_the_last_sequence_after_a_d
 
     ws.send(frame(
         "snapshot",
-        json!({ "campaignId": "camp", "seq": 3, "members": [] }),
+        json!({ "campaignId": "camp", "epoch": "ep1", "seq": 3, "members": [] }),
         None,
     ))
     .await
@@ -148,10 +148,13 @@ async fn authenticates_resumes_and_then_resumes_from_the_last_sequence_after_a_d
         .await
         .unwrap();
     let resume = next_json(&mut ws).await;
-    assert_eq!(resume["d"], json!({ "campaignId": "camp", "lastSeq": 5 }));
+    assert_eq!(
+        resume["d"],
+        json!({ "campaignId": "camp", "lastSeq": 5, "epoch": "ep1" })
+    );
     ws.send(frame(
         "resumed",
-        json!({ "campaignId": "camp", "seq": 5, "replayed": 0 }),
+        json!({ "campaignId": "camp", "epoch": "ep1", "seq": 5, "replayed": 0 }),
         None,
     ))
     .await

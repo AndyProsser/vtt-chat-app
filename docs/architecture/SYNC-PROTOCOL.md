@@ -1,7 +1,7 @@
 # Sync Protocol (Draft)
 
 How the clients and the server stay in step. **Status: draft defaults chosen by Claude, accepted by
-Andy as a starting point (2026-11-05) — expected to change once real traffic is measured.** Implemented in `backend/src/lib/realtime/` against in-memory stores; the Valkey-backed buffer is not written. The Rust client is `tauri-client/rust-sync/` (verified once against the real backend).
+Andy as a starting point (2026-11-05) — expected to change once real traffic is measured.** Implemented in `backend/src/lib/realtime/` against in-memory stores; the Valkey-backed buffer is written (`ValkeyReplayBuffer`) but only tested against a fake server. The Rust client is `tauri-client/rust-sync/` (verified once against the real backend).
 
 Builds on the archived "Plan B" (bounded replay buffer + snapshot fallback); see
 [docs/archive/](../archive/README.md). Principles come from
@@ -51,12 +51,14 @@ remote-revocation path ([CLAUDE.md §11](../../.claude/CLAUDE.md)).
 
 ## Reconnect and replay
 
-1. Client reconnects and sends `resume { lastSeq }`.
-2. If `lastSeq` is still inside the replay buffer → server replays the gap.
+1. Client reconnects and sends `resume { campaignId, lastSeq, epoch }`.
+2. If `epoch` is the stream's current epoch **and** `lastSeq` is still inside the replay buffer → server replays the gap.
 3. Otherwise → server sends a **snapshot** (campaign, roster, recording status, unread
    notifications) and the client replaces its cache.
 
 Defaults: buffer the last **500 events or 10 minutes per campaign stream**, whichever is smaller.
+
+**Epochs.** A sequence number only means something within one event stream. Whenever the stream is lost — the backend restarts with an in-memory buffer, Valkey is flushed — numbering starts again from 1, and a client holding "seq 3" from the old stream would be told it is up to date with a *different* stream, silently skipping events. So every stream has an **epoch** (a random id created with the stream). `snapshot` and `resumed` carry it, the client stores it beside its sequence number and sends both back, and a missing or different epoch always gets a snapshot. (Found while designing the Valkey buffer; fixed in both the TypeScript hub and the Rust client.)
 Reconnect uses exponential backoff with jitter, capped at 30 s.
 
 ## Presence and stats tiers

@@ -42,11 +42,14 @@ pub enum ServerEvent {
     },
     Snapshot {
         campaign_id: String,
+        /// Names the event stream `seq` belongs to; sent back on resume (see SYNC-PROTOCOL.md).
+        epoch: String,
         seq: u64,
         data: Value,
     },
     Resumed {
         campaign_id: String,
+        epoch: String,
         seq: u64,
         replayed: u64,
     },
@@ -124,11 +127,13 @@ pub fn parse_server_frame(raw: &str) -> Result<(ServerEvent, Option<u64>), Parse
         },
         "snapshot" => ServerEvent::Snapshot {
             campaign_id: campaign_id(),
+            epoch: text(d, "epoch"),
             seq: number(d, "seq"),
             data: d.clone(),
         },
         "resumed" => ServerEvent::Resumed {
             campaign_id: campaign_id(),
+            epoch: text(d, "epoch"),
             seq: number(d, "seq"),
             replayed: number(d, "replayed"),
         },
@@ -178,12 +183,14 @@ pub fn auth_frame(token: &str) -> String {
     frame("auth", json!({ "token": token }))
 }
 
-/// `last_seq` is the last replayable event this client saw; `None` asks for a snapshot.
-pub fn resume_frame(campaign_id: &str, last_seq: Option<u64>) -> String {
-    match last_seq {
-        Some(seq) => frame(
+/// `cursor` is `(epoch, last_seq)`: the last replayable event this client saw and the event stream
+/// it belongs to. `None` asks for a snapshot. A sequence number alone is not enough — it means
+/// nothing once the server's stream has been restarted — so the two always travel together.
+pub fn resume_frame(campaign_id: &str, cursor: Option<(&str, u64)>) -> String {
+    match cursor {
+        Some((epoch, seq)) => frame(
             "resume",
-            json!({ "campaignId": campaign_id, "lastSeq": seq }),
+            json!({ "campaignId": campaign_id, "lastSeq": seq, "epoch": epoch }),
         ),
         None => frame("resume", json!({ "campaignId": campaign_id })),
     }
@@ -269,7 +276,7 @@ mod tests {
 
         let (e, _) = parse_server_frame(&server(
             "resumed",
-            json!({ "campaignId": "c", "seq": 9, "replayed": 2 }),
+            json!({ "campaignId": "c", "epoch": "ep", "seq": 9, "replayed": 2 }),
             None,
         ))
         .unwrap();
@@ -277,6 +284,7 @@ mod tests {
             e,
             ServerEvent::Resumed {
                 campaign_id: "c".into(),
+                epoch: "ep".into(),
                 seq: 9,
                 replayed: 2
             }
@@ -354,8 +362,11 @@ mod tests {
             json!({ "v": 1, "t": "auth", "d": { "token": "tok" } })
         );
 
-        let with_seq: Value = serde_json::from_str(&resume_frame("c", Some(5))).unwrap();
-        assert_eq!(with_seq["d"], json!({ "campaignId": "c", "lastSeq": 5 }));
+        let with_seq: Value = serde_json::from_str(&resume_frame("c", Some(("e1", 5)))).unwrap();
+        assert_eq!(
+            with_seq["d"],
+            json!({ "campaignId": "c", "lastSeq": 5, "epoch": "e1" })
+        );
         let without: Value = serde_json::from_str(&resume_frame("c", None)).unwrap();
         assert_eq!(without["d"], json!({ "campaignId": "c" }));
 
