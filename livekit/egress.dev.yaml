@@ -1,0 +1,15 @@
+# LiveKit Egress — DEVELOPMENT config for the Stage 2 smoke test.
+# Run:  egress --config egress.dev.yaml
+#
+# UNVERIFIED: written from LiveKit's documented keys without a server to test against. The Stage 2
+# smoke run is what confirms (or corrects) this file — record the outcome in
+# docs/architecture/AUDIO-SPIKE-RESULTS.md. Track egress writes files to the Egress host's local
+# disk when no cloud storage block is configured, which is exactly the self-host default.
+
+log_level: info
+api_key: devkey
+api_secret: secret
+ws_url: ws://127.0.0.1:7880
+redis:
+  address: 127.0.0.1:6379
+health_port: 8080

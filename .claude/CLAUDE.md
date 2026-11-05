@@ -478,7 +478,7 @@ browser). It is a deliberate simplification each time. Do not reintroduce:
 - **No separate browser extension.**
 - **No Spectator role in v1.**
 - **No formal session state machine.** The prior system enforced `IDLE → ACTIVE → PAUSED → COOLDOWN
-  → ENDED`, with every change touching four layers in order. Recording is a server‑owned flag
+→ ENDED`, with every change touching four layers in order. Recording is a server‑owned flag
   with a timestamp record (§10).
 - **No Docker.**
 - **No cloud lock‑in.** The first redesign sketch listed Cloudflare components as if they were part
@@ -504,6 +504,7 @@ doc in the same change as the code it describes — don't batch documentation fo
 - `docs/architecture/OVERVIEW.md` — system diagram + module responsibilities
 - `docs/architecture/RECORDING-AND-SUMMARIES.md` — recording, consent cue, transcription, summaries
 - `docs/architecture/DEPLOYMENT-AND-TRANSPORT.md` — self‑host topology, ports, TURN options, optional cloud adapters
+- `docs/architecture/AUDIO-SPIKE-RESULTS.md` — Stage 2 measured audio findings (running log)
 - `docs/architecture/SYNC-PROTOCOL.md` — WebSocket/REST split, envelope, auth, replay, presence tiers
 - `docs/architecture/STATE-AND-RESILIENCE.md` — client state boundaries, leaf isolation, and recovery rules
 - `docs/CONVENTIONS.md` — folder/style conventions, detailed version of §4

@@ -1,0 +1,22 @@
+# LiveKit server — DEVELOPMENT config for the Stage 2 smoke test. Not a production config.
+# Run:  livekit-server --config livekit.dev.yaml
+#
+# The key/secret are LiveKit's well-known dev pair: anyone can mint tokens for this server, so keep
+# it off the public internet. The install script (ROADMAP Stage 3) generates real secrets.
+
+port: 7880
+bind_addresses:
+  - ''
+
+rtc:
+  tcp_port: 7881 # ICE-over-TCP fallback
+  port_range_start: 50000 # UDP media range — narrow it for a small group
+  port_range_end: 50100
+  use_external_ip: false # set true behind NAT with a public IP; see DEPLOYMENT-AND-TRANSPORT.md
+
+# Egress and the server coordinate through Redis.
+redis:
+  address: 127.0.0.1:6379
+
+keys:
+  devkey: secret

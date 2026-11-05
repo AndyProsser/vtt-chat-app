@@ -57,7 +57,7 @@ Make the repo match the new design, so nobody (human or Claude) builds on legacy
 
 ## Stage 2 — Audio & Records Spike
 
-**Status:** ⚪ Not Started
+**Status:** 🟡 In Progress — first findings logged in [AUDIO-SPIKE-RESULTS.md](docs/architecture/AUDIO-SPIKE-RESULTS.md) (platform audio layer chosen as the base; release-on-mute measured on Windows). Built without a live server: platform-audio client with release-on-mute and auto-rejoin, the `ai/` pipeline library, and the Part B runbook/scripts. **Still needs a live run:** acoustic AEC/CPU/latency, rejoin and sleep/wake, and Part B on a Linux server.
 **Depends on:** Stage 1 (the Rust crate part can start immediately; it doesn't need the cleanup)
 
 The riskiest unknowns are all "does this actually work on real machines with open mics?" — answer them with the smallest possible thing before any tray or React work.
@@ -219,17 +219,17 @@ Each item is independent, off by default, and must never be assumed by applicati
 
 For anyone wondering what happened to the first four stages. Details are in [docs/archive/](docs/archive/README.md).
 
-| Old stage | Outcome | What carried over |
-| --- | --- | --- |
-| 0 — Foundations | 🟢 kept | Everything |
-| 0.5 — State & resilience | 🟢 kept, revised | Everything; added "hidden is the default" |
-| 1 — Walking skeleton: DDB auth + voice | ⚫ superseded | `rust-livekit` audio capture/publish/subscribe/playback and the `loopback` harness; LiveKit token issuance in `backend/`. The DDB-auth half was never verified against live traffic (no second account) and is dropped |
-| 2 — Hotkeys, page restriction, ad-block | ⚫ superseded | The **hotkey findings**: bare-modifier PTT can't be a global shortcut; Wayland global shortcuts silently no-op. Page restriction and ad-block are gone with the embedded browser |
-| 3a — Overlay UI (Plans A/B/C) | ⚫ superseded | Plan B's Rust-owned WebSocket model with a bounded replay buffer is the candidate for client↔server sync. Plan A (overlay) and Plan C (D&D conditions) are obsolete |
-| 3b — DDB DOM extraction | ⚫ dropped | — |
-| 3.5 — Text chat | ⚫ folded into Stage 6 | — |
-| 4 — Multi-window & DM controls | ⚫ replaced by Stages 4 and 6 | Group/party model |
-| 5–8 — Persistence, status page, CLI, AI plugin, hardening | ⚫ reshaped | Became Stages 3, 5, 8, 9. **The AI plugin is no longer "optional, future" — it is core (Stage 5).** |
+| Old stage                                                 | Outcome                       | What carried over                                                                                                                                                                                                      |
+| --------------------------------------------------------- | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0 — Foundations                                           | 🟢 kept                       | Everything                                                                                                                                                                                                             |
+| 0.5 — State & resilience                                  | 🟢 kept, revised              | Everything; added "hidden is the default"                                                                                                                                                                              |
+| 1 — Walking skeleton: DDB auth + voice                    | ⚫ superseded                 | `rust-livekit` audio capture/publish/subscribe/playback and the `loopback` harness; LiveKit token issuance in `backend/`. The DDB-auth half was never verified against live traffic (no second account) and is dropped |
+| 2 — Hotkeys, page restriction, ad-block                   | ⚫ superseded                 | The **hotkey findings**: bare-modifier PTT can't be a global shortcut; Wayland global shortcuts silently no-op. Page restriction and ad-block are gone with the embedded browser                                       |
+| 3a — Overlay UI (Plans A/B/C)                             | ⚫ superseded                 | Plan B's Rust-owned WebSocket model with a bounded replay buffer is the candidate for client↔server sync. Plan A (overlay) and Plan C (D&D conditions) are obsolete                                                    |
+| 3b — DDB DOM extraction                                   | ⚫ dropped                    | —                                                                                                                                                                                                                      |
+| 3.5 — Text chat                                           | ⚫ folded into Stage 6        | —                                                                                                                                                                                                                      |
+| 4 — Multi-window & DM controls                            | ⚫ replaced by Stages 4 and 6 | Group/party model                                                                                                                                                                                                      |
+| 5–8 — Persistence, status page, CLI, AI plugin, hardening | ⚫ reshaped                   | Became Stages 3, 5, 8, 9. **The AI plugin is no longer "optional, future" — it is core (Stage 5).**                                                                                                                    |
 
 Two other things that ended with the old design, deliberately recorded so they aren't rediscovered:
 

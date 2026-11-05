@@ -6,4 +6,6 @@ pub enum LiveKitError {
     Room(#[from] livekit::RoomError),
     #[error("audio device error: {0}")]
     Audio(String),
+    #[error("could not obtain connection details: {0}")]
+    Provider(String),
 }
