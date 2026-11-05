@@ -1,76 +1,144 @@
 # Architecture Overview
 
-This document expands [CLAUDE.md §2 (Mono-Repo Structure)](../../CLAUDE.md) and [§7 (Core Technologies)](../../CLAUDE.md) into a system diagram and per-module responsibility summary. It is the entry point for understanding how the pieces fit together; it does not replace CLAUDE.md as the source of truth for constraints.
+Entry point for how the pieces fit together. It expands [CLAUDE.md §3 (Mono-Repo Structure)](../../.claude/CLAUDE.md)
+into a system diagram and per-module responsibilities; CLAUDE.md remains the source of truth for
+constraints.
+
+**Status:** design sketch (first drafted 2026-10-29, revised 2026-11-05 with the self-host-first,
+server-side-recording and records-are-core decisions). Not every box below exists in code yet — see
+[ROADMAP.md](../../ROADMAP.md).
+
+## What changed, and why this doc looks different
+
+The first design was a Tauri _browser_ that loaded D&D Beyond and injected a voice overlay. It was
+replaced because the group's real behaviour is "everyone sits in one Discord channel with open
+mics", and the valuable missing piece is **records and AI summaries**, not a nicer overlay.
+Dropping the embedded browser removes page restriction, ad-blocking, DDB auth, DOM extraction, the
+WebKitGTK/NVIDIA crash investigation, and an entire class of platform risk. What is left is a small
+audio app plus a server that does real work.
 
 ## System Diagram
 
 ```mermaid
-flowchart TB
-    subgraph Desktop["Tauri Desktop Client (tauri-client/)"]
-        Shell["src-tauri (Rust)\nwindows, page restriction,\nad-block, hotkeys"]
-        RustLK["rust-livekit (Rust)\nnative WebRTC + audio"]
-        Overlay["overlay-ui (TS/React/Radix)\ninjected into DDB Maps via Shadow DOM"]
-        Shell -- "Tauri commands" --> RustLK
-        Shell -- "loads + injects" --> Overlay
+flowchart LR
+    subgraph Clients["Client devices"]
+        subgraph Desktop["Tray app (tauri-client/)"]
+            Tray["Tray icon + state\n(live / muted / recording)"]
+            Core["Rust core\nsrc-tauri + rust-livekit"]
+            Audio["Audio engine\ncapture, AEC, NS, mixer,\nper-player gain"]
+            Cue["Local cue player\n+ soundboard"]
+            Panels["React panels\n(panels-ui)"]
+            Tray --- Core
+            Core --- Audio
+            Core --- Cue
+            Panels <-->|"Tauri commands / events"| Core
+        end
+        Mobile["Mobile SPA (web/)\nmessages, RSVP, handouts"]
     end
 
-    DDBSite["D&D Beyond (external)\nMaps VTT / Character Sheets"]
-    Shell -- "WebView navigation\n(page-restricted)" --> DDBSite
-    Overlay -- "DOM extraction +\ncobalt cookie detection" --> DDBSite
-
-    subgraph Server["Ubuntu Server (native services, no Docker)"]
-        Caddy["Caddy\nreverse proxy / TLS"]
-        Backend["backend (Node/Express + TS)"]
-        LiveKitSrv["LiveKit server (native binary)"]
-        Postgres[("PostgreSQL")]
+    subgraph Server["Your server: blank Ubuntu, native services, no Docker"]
+        Caddy["Caddy\nTLS + reverse proxy"]
+        API["backend\nExpress API + WebSocket"]
+        PG[("Postgres")]
         Redis[("Redis")]
-        AI["ai/ plugin\nrecording, transcription, summaries"]
-        Status["status/ (React + Radix)\npublic status page"]
+        LK["LiveKit SFU\nrooms: General / Campaign / party splits"]
+        Egress["LiveKit Egress\nper-speaker tracks"]
+        Store[("Local object storage\nrecordings, handouts")]
+        Pipe["ai/ worker\nffmpeg → Whisper.cpp → summarise"]
+        LLM["Ollama\nlocal LLM"]
+        Status["status/\npublic status page"]
+        CLI["Admin CLI\nsystem-level only"]
     end
 
-    RustLK -- "WebRTC (audio)" --> LiveKitSrv
-    Overlay -- "REST: tokens, bookmarks,\ngroups, audio FX" --> Caddy
-    Caddy --> Backend
-    Backend --> Postgres
-    Backend --> Redis
-    Backend -- "room/participant control" --> LiveKitSrv
-    Backend -- "recording jobs" --> AI
-    AI --> Postgres
-    Caddy -- "serves" --> Status
-    Status -- "reads health/presence" --> Backend
+    Core -->|"HTTPS + WSS"| Caddy
+    Mobile -->|"HTTPS + WSS"| Caddy
+    Caddy --> API
+    Caddy --> Status
+    API --> PG
+    API --> Redis
+    API -->|"room tokens,\nrecording start/stop"| LK
+    Core <==>|"WebRTC audio (UDP)"| LK
+    Mobile <==>|"WebRTC audio"| LK
+    LK --> Egress --> Store
+    Store --> Pipe --> LLM
+    Pipe --> PG
+    CLI -.->|"backup, health, restart"| API
+    CLI -.-> PG
+    CLI -.-> LK
 
-    CLI["Admin CLI (system-level only)"]
-    CLI -- "backup/restore, health,\nservice restart, log inspection" --> Backend
-    CLI --> Postgres
-    CLI --> Redis
-    CLI --> LiveKitSrv
+    subgraph Optional["Optional adapters (advanced users, never required)"]
+        CFTurn["Cloudflare TURN"]
+        CFSFU["Cloudflare Realtime SFU"]
+        CloudAI["Cloud LLM / transcription"]
+        Pages["Cloudflare Pages (SPA hosting)"]
+        DDB["D&D Beyond\npublic character pages"]
+    end
+    Core -.->|"ICE relay"| CFTurn
+    Pipe -.->|"opt-in"| CloudAI
+    API -.->|"character import"| DDB
+    Mobile -.-> Pages
+    LK -.- CFSFU
 ```
+
+Solid lines are the default install. Dotted lines into the **Optional** box are adapters an
+operator can switch on; the system must work with all of them off.
 
 ## Module Responsibilities
 
-- **`tauri-client/src-tauri/`** — the Tauri shell: window management, page-restriction allowlist, ad-block request interception, global hotkeys, and the Tauri command bridge to `rust-livekit`. Owns cobalt cookie detection at the WebView level.
-- **`tauri-client/rust-livekit/`** — native LiveKit client: WebRTC, audio device control, echo cancellation, track/group management. Runs once per app instance so audio survives window switches.
-- **`tauri-client/overlay-ui/`** — the injected Shadow DOM overlay (voice controls, chat, group selector, DM controls). React + Radix UI. Talks to the backend over REST and to the Rust shell over Tauri IPC.
-- **`ddb/`** — DDB auth and extraction: cobalt cookie → JWT exchange, Character Service calls, DOM extraction helpers and the TypeScript types for what comes back. Consumed by `overlay-ui`, which does the full extraction client-side and hands the normalized result to `backend` — see [DDB-AUTH.md](DDB-AUTH.md). `backend` does not depend on `ddb/` directly.
-- **`backend/`** — Node/Express API: LiveKit token issuance, campaign/room mapping, bookmarks, group + audio FX endpoints, serves the status page and client downloads, hosts the AI job queue endpoints.
-- **`ai/`** — recording, transcription (Whisper.cpp / cloud), and AI summary generation, anchored to DM bookmarks. Optional at runtime; off by default.
-- **`status/`** — the public, read-only status page (React + Radix): service health, connected players, current campaign/room/map, client download links.
-- **`shared/`** — cross-module TypeScript types and contracts (DDB character/campaign shapes, bookmark types, Tauri IPC event payloads) so `ddb/`, `backend/`, `overlay-ui/`, and `status/` don't redefine the same shapes.
-- **`livekit/`** — LiveKit server configuration and helper scripts for the native binary.
+- **`tauri-client/src-tauri/`** — the Tauri shell: tray icon and state, floating panel windows,
+  global hotkeys, autostart, auto-update, crash recovery, and the Tauri command bridge to
+  `rust-livekit`. Loads only local pages; no remote origins.
+- **`tauri-client/rust-livekit/`** — the audio engine and LiveKit client: capture, echo
+  cancellation, noise suppression, mixing, per-player gain, group routing, the local cue/soundboard
+  player, and room connection with auto-rejoin. Runs once per app instance and is independent of
+  any window.
+- **`tauri-client/panels-ui/`** — React + Radix panels: chat/whispers, handouts, loot, RSVP, history,
+  DM soundboard and party controls. Pure UI; talks to the Rust core over Tauri IPC and to the
+  backend through the core's connection.
+- **`web/`** — mobile-first SPA for messages, RSVP, handouts and basic listen/talk. Planned.
+- **`backend/`** — Express API and WebSocket layer: identity and campaign access, LiveKit tokens,
+  channels, chat, handouts, loot, scheduling, recording control and state, the records API, the
+  status endpoints and client downloads. Also hosts the Admin CLI.
+- **`ai/`** — the records pipeline worker: transcode, transcribe (Whisper.cpp), diarize by track,
+  summarise (Ollama). Consumes recordings the Egress wrote; writes transcripts and summaries.
+  Core, not optional — see [RECORDING-AND-SUMMARIES.md](RECORDING-AND-SUMMARIES.md).
+- **`ddb/`** — optional D&D Beyond character import from public pages. Not in the default install's
+  critical path.
+- **`status/`** — the public, read-only status page.
+- **`shared/`** — cross-module TypeScript types and contracts so the backend, panels, SPA and
+  status page don't redefine the same shapes.
+- **`livekit/`** — LiveKit server and Egress configuration and helper scripts.
 - **`infra/`** — Ubuntu deployment: install script, systemd units, config generation.
-
-## Network Topology (STUN/TURN & Ports)
-
-`rust-livekit` talks to the LiveKit server directly — players never connect to each other peer-to-peer. Because the SFU is always the public-facing side of every connection, **STUN alone is sufficient for the common case**: a player behind NAT (including CGNAT) only needs to discover their own reflexive address and send outbound UDP to the SFU, which NAT/CGNAT does not block. This is a materially simpler trust model than a mesh/P2P voice system would need.
-
-- **Default:** STUN for ICE candidate discovery (LiveKit's default STUN servers, optionally with `stun.cloudflare.com:3478` added to the ICE server list for redundancy — free, no account needed), plus LiveKit's own `7881/tcp` ICE fallback for clients that can't establish UDP at all (VPNs, some corporate networks).
-- **Optional fallback:** LiveKit's _built-in_ TURN/TLS server, enabled in `livekit/`'s config and exposed on `443`, for the remaining edge cases STUN + the TCP fallback don't cover — symmetric NAT, hotel wifi, and firewalls that permit only port 443 outbound. This is a native LiveKit feature, not a separate service or third-party dependency, so it stays consistent with [CLAUDE.md §4](../../CLAUDE.md)'s native-services/no-Docker requirement. It's off by default and only matters for players on unusually restrictive networks.
-- **Cloudflare Tunnel** (if an operator chooses to front their Caddy instance with one) may only carry the HTTPS signaling/API/status-page paths. It cannot carry LiveKit's UDP media or the TCP ICE fallback — `cloudflared` doesn't proxy arbitrary WebRTC traffic — so those ports always need direct port-forwarding to the server regardless of what fronts the HTTP(S) paths.
-
-Concrete port requirements and TURN config live in [livekit/README.md](../../livekit/README.md); the operator-facing firewall/port-forwarding checklist lives in [infra/README.md](../../infra/README.md).
 
 ## Data Flow Notes
 
-- **Audio never routes through the backend.** `rust-livekit` talks to the LiveKit server directly over WebRTC; the backend only issues tokens and manages room/participant metadata.
-- **The overlay is the only custom UI inside DDB.** Everything else the user sees (Maps, Character Sheets, Rules) is DDB's own page, loaded in a page-restricted WebView — see [CLAUDE.md §8.1](../../CLAUDE.md).
-- **The Admin CLI never touches gameplay data** (rooms, bookmarks, campaign mapping) — only system-level operations. See [CLAUDE.md §6](../../CLAUDE.md).
+- **Audio never routes through the backend or a webview.** `rust-livekit` talks to the LiveKit SFU
+  directly over WebRTC. The backend issues tokens and holds metadata.
+- **Recording state is server truth.** It lives in room/session metadata owned by the backend;
+  clients render it and play the consent cue from it. See [RECORDING-AND-SUMMARIES.md](RECORDING-AND-SUMMARIES.md).
+- **Clients are caches.** Domain state is replaced wholesale from snapshots on reconnect — see
+  [STATE-AND-RESILIENCE.md](STATE-AND-RESILIENCE.md).
+- **Transport and ports** are in [DEPLOYMENT-AND-TRANSPORT.md](DEPLOYMENT-AND-TRANSPORT.md).
+- **The Admin CLI never touches gameplay data** — only system-level operations
+  ([CLAUDE.md §7](../../.claude/CLAUDE.md)).
+
+## Decided vs. open
+
+| Decided | Source |
+| --- | --- |
+| Audio only, tray app, Rust owns audio, no injected pages | 2026-10-29 direction |
+| Self-host first, zero cloud reliance; Cloudflare / cloud AI are optional advanced adapters | Andy, 2026-11-05 |
+| Recording is **server-side** (Egress, per-speaker tracks) | Andy, 2026-11-05 |
+| Records + AI summary are **core**, not a plugin | Andy, 2026-11-05 |
+| Operator opens UDP for voice traffic | Andy, 2026-11-05 |
+| Self-hosted LiveKit as the SFU | follows from the above |
+| Local-first Whisper.cpp + Ollama | follows from the above |
+
+| Open (tracked in [.claude/intent.md](../../.claude/intent.md)) | |
+| --- | --- |
+| Identity and access model without DDB | |
+| Whether DM markers stay in scope | |
+| Client ↔ server sync protocol (revive archived "Plan B"?) | |
+| Container bundle for other self-hosters? | |
+| Per-platform audio findings (AEC quality, device release on mute) | |
+| Mobile SPA scope: listen/talk, or messages only? | |

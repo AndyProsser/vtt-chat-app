@@ -1,6 +1,8 @@
 # State & Resilience Architecture
 
-The rules in this document are mandatory for every stateful surface built in `tauri-client/overlay-ui/`, `status/`, and any Zustand/React code in `backend/` tooling UIs. They exist because the prior system ([`vtt-chat`](https://github.com/AndyProsser/vtt-chat)) lost **weeks** to memory growth and unrecoverable state during long sessions, and because this app is explicitly required to run **8+ hours** with constantly-changing indicators (speaking, presence, mic level) without degrading, and to recover cleanly from a page refresh or a DDB Maps glitch (a routine occurrence for DMs). See [CLAUDE.md §8.1 (audio continuity)](../../CLAUDE.md) and the brief in the roadmap's [Stage 0.5](../../ROADMAP.md).
+The rules in this document are mandatory for every stateful surface built in `tauri-client/panels-ui/`, `web/`, `status/`, and any Zustand/React code in tooling UIs. They exist because the prior system ([`vtt-chat`](https://github.com/AndyProsser/vtt-chat)) lost **weeks** to memory growth and unrecoverable state during long sessions, and because this app is explicitly required to run **8+ hours** — mostly _hidden in the tray_ — with constantly-changing indicators (speaking, presence, mic level) without degrading, and to recover cleanly from a panel being closed and reopened, a network drop, a laptop sleep/wake, or a server restart. See [CLAUDE.md §8.1 (always-ready, audio continuity)](../../.claude/CLAUDE.md) and the brief in the roadmap's [Stage 0.5](../../ROADMAP.md).
+
+> **2026-11-05 revision.** This document was written for the DDB-overlay design. The rules are unchanged — they were never about the overlay — but examples and recovery triggers now point at the tray app. The biggest shift: **a hidden panel is the normal state, not an edge case** (see _Hidden Is the Default_ below).
 
 This is a constraints document, not a tutorial — read it before writing any store, selector, or effect that touches per-participant or per-session state.
 
@@ -14,7 +16,7 @@ The old app's memory growth was **not** primarily classic leaked timers/refs (th
 - Chat/activity history grew as plain unbounded arrays with no retention limit.
 - A CSS "hide" (`visibility: hidden`) was used instead of actually stopping an animation, so a compositor animation ran forever in the background.
 
-Separately, a six-state session lifecycle (`IDLE → ACTIVE → PAUSED → COOLDOWN → ENDED → CLEANUP`) split its truth across Zustand, Redis, Postgres, and WebSocket broadcasts simultaneously. Keeping those four in sync required constant vigilance and produced recurring cross-layer consistency bugs. This system has no session state machine — see [CLAUDE.md §10, §15](../../CLAUDE.md) — and that choice is deliberate, not just a simplification for its own sake: fewer layers sharing one truth means fewer ways for them to disagree.
+Separately, a six-state session lifecycle (`IDLE → ACTIVE → PAUSED → COOLDOWN → ENDED → CLEANUP`) split its truth across Zustand, Redis, Postgres, and WebSocket broadcasts simultaneously. Keeping those four in sync required constant vigilance and produced recurring cross-layer consistency bugs. This system has no session state machine — see [CLAUDE.md §10, §15](../../.claude/CLAUDE.md) — and that choice is deliberate, not just a simplification for its own sake: fewer layers sharing one truth means fewer ways for them to disagree.
 
 The rules below are the fixes that emerged from that postmortem, applied from day one instead of retrofitted after months of profiling.
 
@@ -24,7 +26,7 @@ Every piece of client state is one of exactly two kinds. Don't blur them.
 
 |                      | Domain state                                                           | UI-only state                                                                                                                |
 | -------------------- | ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| Examples             | room/participant roster, presence, speaking, bookmarks, group routing  | panel open/closed, active tab, whisper target, overlay collapsed                                                             |
+| Examples             | room/participant roster, presence, speaking, recording state, channel/party membership, unread counts | panel open/closed, active tab, whisper target, panel position/size                                      |
 | Source of truth      | Backend (Postgres for durable, Redis for transient pub/sub)            | Client only                                                                                                                  |
 | On reconnect/refresh | **Replaced wholesale** from a fresh snapshot — never merged or patched | Restored from a local persisted UI store, with per-field validity checks (e.g. clear a whisper target that no longer exists) |
 | Ever sent to backend | Yes                                                                    | No                                                                                                                           |
@@ -61,23 +63,34 @@ Every store write (`set()` call, reducer branch) must check whether the value ac
 
 Every collection that grows for the life of a long-running session (chat history, activity/event feed, per-participant speaking history) needs an explicit retention limit and pruning strategy decided at the time it's created — not added after it's observed growing unbounded in production. If something is keyed by participant or session ID and can outlive its subject (e.g. a stale presence entry after someone leaves), it needs a TTL or an explicit removal path, not just a creation path.
 
+## Hidden Is the Default
+
+Players leave the tray app hidden ~90% of the time. So:
+
+- **No panel mounted ⇒ no React work.** Panels unmount (or fully suspend) when hidden. Tray state (live / muted / recording / disconnected) is driven from the **Rust core**, not a React store, so it is correct with zero panels open.
+- **Audio, auto-rejoin, recording-cue playback and hotkeys are Rust-owned** and work identically whether or not any webview exists.
+- A panel opening hydrates from a snapshot (below), exactly as after a reconnect. A panel must never depend on having been mounted earlier.
+- Idle means idle: no intervals, no `requestAnimationFrame`, no running CSS animation while hidden.
+
 ## Recovery Contract
 
-This is what "refresh survives" and "DDB Maps glitch → quick recovery" mean concretely:
+This is what "reopen / reconnect survives" means concretely:
 
-1. On reconnect (WebSocket drop, tab refresh, or DDB Maps reload), fetch authoritative snapshots for room/presence/bookmark state **in parallel**.
+1. On reconnect (WebSocket drop, sleep/wake, server restart) or when a panel opens, fetch authoritative snapshots for room/presence/recording state **in parallel**.
 2. Replace the corresponding domain stores **atomically and wholesale** once all snapshots land — never render a partial mix of old and new domain state.
 3. Restore UI-only state from the local UI store separately, validating each field against the freshly-loaded domain state (drop references to anything that no longer exists).
 4. The only visible recovery UX is a non-blocking status toast ("Reconnecting…" / "Restored") — no blocking overlay, no optimistic rendering against state you know is stale.
-5. Timeline boundary markers and similar durable events are written server-side and de-duplicated client-side, never re-created by the client on reconnect — so a refresh can't produce duplicates.
+5. Recording start/stop, loot pickups, RSVPs and similar durable events are written server-side and de-duplicated client-side, never re-created by the client on reconnect — so a reconnect can't produce duplicates. In particular the **recording consent cue** is driven by server state plus a per-recording acknowledgement, so a reconnect does not replay it ([RECORDING-AND-SUMMARIES.md](RECORDING-AND-SUMMARIES.md)).
 
 ## WebSocket Reliability
 
 - Reconnect with exponential backoff; re-authenticate the socket on reconnect rather than assuming session continuity.
 - Maintain a bounded, server-side event-replay buffer keyed by `lastEventId` so a brief disconnect can resync by replaying only what was missed.
 - If the buffer has evicted the client's `lastEventId` (long disconnect), fall back to a full snapshot resync per the Recovery Contract above — don't attempt partial replay against unknown state.
-- This is intentionally _not_ full event sourcing. A bounded replay window plus snapshot fallback covers the real failure mode (brief network blips, DDB Maps reloads) without the complexity of a fully durable event log.
+- This is intentionally _not_ full event sourcing. A bounded replay window plus snapshot fallback covers the real failure mode (brief network blips, sleep/wake, server restarts) without the complexity of a fully durable event log.
+
+> **Reuse note.** This model was planned as "Plan B" for the old design, with the connection owned by Rust so TS stays pure UI. That plan is archived at [`docs/archive/superpowers/plans/2026-08-14-ws-layer-plan-b-plan.md`](../archive/superpowers/plans/2026-08-14-ws-layer-plan-b-plan.md). Whether to revive it for the new client↔server sync is an open design topic (`.claude/intent.md`).
 
 ## Dev Tooling
 
-Build a lightweight churn-diagnostics toggle into the overlay from the start (e.g. a debug flag that logs re-render counts per store subscription over a session). This is how the old app's worst re-render cascades were eventually found — build it in up front rather than reaching for it only after a session has already degraded in front of a DM.
+Build a lightweight churn-diagnostics toggle into the panels from the start (e.g. a debug flag that logs re-render counts per store subscription over a session). This is how the old app's worst re-render cascades were eventually found — build it in up front rather than reaching for it only after a session has already degraded in front of a DM.

@@ -1,22 +1,28 @@
 # Code Conventions
 
-Detailed version of [CLAUDE.md §3](../CLAUDE.md). If this document and CLAUDE.md ever disagree, CLAUDE.md wins — file an issue to reconcile them.
+Detailed version of [CLAUDE.md §4](../.claude/CLAUDE.md). If this document and CLAUDE.md ever disagree, CLAUDE.md wins — file an issue to reconcile them.
 
 ## Languages
 
-- **TypeScript** for all application code: `backend/`, `ddb/`, `ai/`, `status/`, `tauri-client/overlay-ui/`, `shared/`.
-- **Rust**, confined to `tauri-client/src-tauri/` (the Tauri shell) and `tauri-client/rust-livekit/` (the native LiveKit client). No Rust anywhere else — the backend stays Node/Express.
+- **TypeScript** for all application code: `backend/`, `ai/`, `ddb/`, `status/`, `web/`, `tauri-client/panels-ui/`, `shared/`.
+- **Rust**, confined to `tauri-client/src-tauri/` (the Tauri shell) and `tauri-client/rust-livekit/` (the audio engine and LiveKit client). No Rust anywhere else — the backend stays Node/Express. External native binaries the backend orchestrates (LiveKit, Whisper.cpp, ffmpeg) are not "our Rust".
 - Strict TypeScript (`strict: true` in `tsconfig.json`) in every package. No `any` without a comment explaining why it's unavoidable.
 
 ## UI Stack
 
-- React 19 + Radix UI everywhere a human sees a UI: the DDB overlay (`overlay-ui/`) and the public status page (`status/`).
-- Don't reach for a second frontend framework for the overlay to save bundle size — one stack, one mental model, per [CLAUDE.md §3](../CLAUDE.md).
+- React 19 + Radix UI everywhere a human sees a UI: tray panels (`panels-ui/`), the mobile SPA (`web/`) and the public status page (`status/`). Client state is Zustand.
+- One stack, one mental model — don't add a second frontend framework to save bundle size, per [CLAUDE.md §4](../.claude/CLAUDE.md).
 - Style with Radix's theming primitives (tokens/CSS variables), not ad hoc inline styles or a separate CSS-in-JS library.
+- **Light and dark mode follow the OS preference by default.** Simple but stylish — never a plain engineering sample.
+- Panels load only local pages. No remote origins, no injected third-party content.
+
+## Self-Host-First Rule
+
+Application code never assumes a cloud service. Cloudflare, cloud LLM/transcription and similar are **adapters** behind an explicit config switch, absent from the default install, with the default code path working when every one is off. Put them behind a clear interface (e.g. a transcription provider interface with `whisper-cpp` as the default implementation), not scattered conditionals. See [DEPLOYMENT-AND-TRANSPORT.md](architecture/DEPLOYMENT-AND-TRANSPORT.md).
 
 ## Per-Module Folder Layout
 
-Every TypeScript package (e.g. `backend/`, `ddb/`, `tauri-client/overlay-ui/`) follows this shape inside its `src/`:
+Every TypeScript package (e.g. `backend/`, `ai/`, `tauri-client/panels-ui/`) follows this shape inside its `src/`:
 
 ```text
 src/
@@ -29,17 +35,17 @@ src/
 └── index.ts      # Package entry point / public exports
 ```
 
-Backend-only packages (`backend/`, `ai/`) omit `components/`, `hooks/`, and `styles/` and instead organize `lib/` by domain (e.g. `lib/rooms/`, `lib/bookmarks/`).
+Backend-only packages (`backend/`, `ai/`) omit `components/`, `hooks/`, and `styles/` and instead organize `lib/` by domain (e.g. `lib/campaigns/`, `lib/recordings/`, `lib/transcripts/`).
 
 Rules:
 
 - **Don't mix concerns in one file.** A component file contains JSX and the glue to render it — not fetch logic, not constants, not type definitions. Pull those into `hooks/`, `lib/`, `consts/`, `types/` respectively.
-- **A component that needs a lot of local logic gets a paired hook**, e.g. `components/BookmarkPanel.tsx` + `hooks/useBookmarkPanel.ts`.
+- **A component that needs a lot of local logic gets a paired hook**, e.g. `components/LootPanel.tsx` + `hooks/useLootPanel.ts`.
 - **No barrel-file sprawl.** Export what other modules need from `index.ts`; don't re-export everything from every folder.
 
 ## Shared Code
 
-- Types and contracts used by more than one module (DDB character/campaign shapes, bookmark types, Tauri IPC event payloads, REST/WS contracts) live in `shared/`, imported by consumers — never copy-pasted or redefined per-module.
+- Types and contracts used by more than one module (campaign/channel/message shapes, recording state, Tauri IPC event payloads, REST/WS contracts) live in `shared/`, imported by consumers — never copy-pasted or redefined per-module.
 - `shared/` has no dependency on any other workspace package. Everything else may depend on it.
 
 ## Monorepo Tooling
@@ -56,5 +62,6 @@ Rules:
 ## Naming
 
 - Files: `PascalCase.tsx` for React components, `camelCase.ts` for everything else (hooks, lib, types, consts).
-- Types/interfaces: `PascalCase`, no `I` prefix (e.g. `BookmarkPayload`, not `IBookmarkPayload`).
+- Types/interfaces: `PascalCase`, no `I` prefix (e.g. `RecordingState`, not `IRecordingState`).
+- Line endings: LF everywhere (`.gitattributes` + `.editorconfig`).
 - Constants: `SCREAMING_SNAKE_CASE` for true constants; `camelCase` for config objects.

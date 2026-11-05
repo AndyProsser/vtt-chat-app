@@ -1,79 +1,86 @@
 # VTT Chat App
 
-> Voice + chat, built for D&D Beyond Maps VTT. Replaces Discord for DDB campaigns — no separate app, no separate login.
+> Self-hosted voice, chat and **session records with AI summaries** for tabletop groups. A tiny tray app for players, a mobile web app, and a server you run yourself — no cloud account required.
 
-**Status:** Early scaffold — architecture and documentation are in place; implementation has not started yet. See [CLAUDE.md](CLAUDE.md) for the full spec.
+**Status:** Redesign in progress. The project changed direction on 2026-10-29 and the repo's docs were rewritten on 2026-11-05; the code still contains the previous design's pieces until [Stage 1](ROADMAP.md#stage-1--pivot-cleanup) removes them. Nothing user-facing is built yet. See [CLAUDE.md](.claude/CLAUDE.md) for the spec and [ROADMAP.md](ROADMAP.md) for the plan.
 
 ---
 
 ## What Is This?
 
-VTT Chat App is a cross-platform desktop client that loads **D&D Beyond** inside a native window, authenticates using DDB's own login (no separate account), and injects a minimal voice + chat overlay directly onto the Maps VTT canvas. A native Rust LiveKit client handles audio; a lightweight backend on a single Ubuntu server handles everything else.
+The usual way a group plays online: everyone joins one Discord channel and leaves their mics open. That works. What it doesn't give you is a record of what happened. VTT Chat App keeps the same open-mic experience and adds that record.
 
-- **One login.** DDB's cobalt cookie is the credential — the app extracts your identity, character, and campaign automatically.
-- **Voice lives where you play.** The overlay sits on top of the Maps canvas, not in a separate app or browser tab.
-- **DM has the controls.** Group routing, audio FX, and campaign mapping are DM-managed inside the app — nothing in a separate admin panel.
-- **Timeline, not sessions.** There's no session start/end lifecycle — the DM drops bookmarks (chapter, battle, custom) on a continuous timeline as the campaign goes.
-- **Self-hosted, no containers.** Deploys onto a blank Ubuntu Server with native services — Postgres, Redis, LiveKit, Caddy — no Docker required.
+- **Open-mic voice that stays out of the way.** A system-tray app, hidden ~90% of the time, with near-zero idle CPU, auto-rejoin, autostart and a tray icon that always shows whether you're live, muted or being recorded.
+- **Session records are core.** The server records each speaker separately, transcribes with Whisper, and writes AI summaries — session, chapter, per-character and DM-only — with a visible, audible consent cue every time recording starts.
+- **Self-host first.** One blank Ubuntu Server, native services, **no Docker, no cloud account**. LiveKit, recording, Whisper and a local LLM all run on your box. Anyone can deploy their own instance.
+- **Cloud is optional.** Cloudflare (TURN, SFU, Workers AI, Pages) and cloud LLM/transcription are _advanced-user adapters_, off by default and never required.
+- **Minimal table tools.** DM/player whispers, handouts and images, loot drops, a DM soundboard, party splits, and session reminders with RSVP.
+- **Campaigns are private.** A designated DM and access control per campaign, plus a General channel.
+- **Not tied to a VTT.** It works alongside whatever you play on — D&D Beyond, Foundry, Roll20, or paper. (Optional D&D Beyond character import is planned for later.)
 
 ## Tech Stack
 
-- **Desktop client** — Tauri (Rust + WebView)
-- **Voice / WebRTC** — Rust LiveKit client (native, in-process)
-- **DDB overlay UI** — React 19 + Radix UI + TypeScript
+- **Desktop client** — Tauri tray app (Rust + React panels)
+- **Audio / WebRTC** — Rust audio engine + LiveKit client, native and in-process (never in a webview)
+- **UI** — React 19 + Radix UI + Zustand + TypeScript; light/dark follows the OS
 - **Backend** — Node.js + Express + TypeScript
-- **Realtime** — LiveKit server (native binary)
-- **Database** — PostgreSQL
-- **Cache / pub-sub** — Redis
+- **Realtime / recording** — LiveKit server + Egress (native binaries)
+- **Records pipeline** — ffmpeg, Whisper.cpp, Ollama (all local by default)
+- **Database / cache** — PostgreSQL, Redis
 - **Reverse proxy** — Caddy
-- **Deployment** — native Ubuntu Server services, systemd — no Docker
+- **Deployment** — native Ubuntu Server services under systemd, no Docker
 
-See [CLAUDE.md §3](CLAUDE.md) for code conventions (per-module folder layout, monorepo tooling, etc).
+See [CLAUDE.md §4](.claude/CLAUDE.md) for code conventions.
 
 ## Repository Structure
 
 ```text
 vtt-chat-app/
-├── backend/               # Node.js/Express API + system-level CLI admin
-├── livekit/               # LiveKit server config + helpers
-├── tauri-client/          # Cross-platform Tauri desktop app
-│   ├── src-tauri/         # Rust: Tauri shell — windows, page restriction, ad-block, hotkeys
-│   ├── rust-livekit/      # Native Rust LiveKit client
-│   └── overlay-ui/        # TS/React overlay injected into DDB Maps
-├── ddb/                   # DDB auth + extraction module
-├── ai/                    # Recording, transcription, AI summary plugin
+├── backend/               # Node.js/Express API + WebSocket + system-level CLI admin
+├── livekit/               # LiveKit server + Egress config and helpers
+├── tauri-client/          # Cross-platform Tauri tray app
+│   ├── src-tauri/         # Rust: tray, panels, hotkeys, autostart, updater
+│   ├── rust-livekit/      # Rust: audio engine + LiveKit client + cue player
+│   └── panels-ui/         # TS/React panels (replaces legacy overlay-ui/)
+├── web/                   # Mobile-first SPA (planned)
+├── ai/                    # Records pipeline: transcode, Whisper, diarize, summarise
+├── ddb/                   # OPTIONAL D&D Beyond character import
 ├── status/                # Public status page (React + Radix)
 ├── shared/                # Cross-module TS types, event contracts, validators
 ├── infra/                 # Ubuntu deployment scripts + systemd units
-└── docs/                  # Architecture and setup documentation
+└── docs/                  # Architecture and setup (docs/archive/ = previous design)
 ```
 
 Each module has its own `README.md` describing its purpose and current status.
 
 ## Documentation
 
-- [CLAUDE.md](CLAUDE.md) — full architecture spec and build constraints
-- [ROADMAP.md](ROADMAP.md) — staged build order, from foundations through cross-platform hardening
+- [CLAUDE.md](.claude/CLAUDE.md) — full architecture spec and build constraints
+- [ROADMAP.md](ROADMAP.md) — staged build order
 - [CONTRIBUTING.md](CONTRIBUTING.md) — how to contribute, PR process
 - [DEVELOPING.md](DEVELOPING.md) — local dev environment setup
 - [docs/architecture/OVERVIEW.md](docs/architecture/OVERVIEW.md) — system diagram + module responsibilities
-- [docs/architecture/DDB-AUTH.md](docs/architecture/DDB-AUTH.md) — cobalt cookie → JWT exchange flow
-- [docs/architecture/STATE-AND-RESILIENCE.md](docs/architecture/STATE-AND-RESILIENCE.md) — state boundaries, leaf isolation, and recovery rules for long sessions
+- [docs/architecture/RECORDING-AND-SUMMARIES.md](docs/architecture/RECORDING-AND-SUMMARIES.md) — recording, consent cue, transcription, summaries
+- [docs/architecture/DEPLOYMENT-AND-TRANSPORT.md](docs/architecture/DEPLOYMENT-AND-TRANSPORT.md) — self-host topology, ports, TURN, optional cloud adapters
+- [docs/architecture/STATE-AND-RESILIENCE.md](docs/architecture/STATE-AND-RESILIENCE.md) — state boundaries and recovery rules for long sessions
 - [docs/CONVENTIONS.md](docs/CONVENTIONS.md) — folder/style conventions in detail
+- [docs/archive/](docs/archive/README.md) — the previous (DDB-overlay) design, kept for reference
+
+## Self-Hosting at a Glance
+
+You will need a server you control (VM or host) running Ubuntu, a domain name for TLS, and the ability to open a **UDP port range** for voice. You do not need a Cloudflare account, a cloud LLM, or Docker. The install script and operator checklist arrive in [Stage 3](ROADMAP.md#stage-3--server-core); the planned topology and port table are in [DEPLOYMENT-AND-TRANSPORT.md](docs/architecture/DEPLOYMENT-AND-TRANSPORT.md).
+
+## Recording & Privacy
+
+Recording is server-side and always announced: every client plays a "recording in progress" cue when it starts, late joiners hear it before their audio is captured, and the tray icon shows a recording state. Whispers and private channels are never recorded. Nothing leaves your server unless you explicitly enable a cloud adapter. Details in [RECORDING-AND-SUMMARIES.md](docs/architecture/RECORDING-AND-SUMMARIES.md).
 
 ## Prior Art
 
-This project is inspired by two earlier, archived projects — [vtt-chat](https://github.com/AndyProsser/vtt-chat) and [vtt-chat-extension](https://github.com/AndyProsser/vtt-chat-extension) — but is a deliberate simplification, not a continuation. See [CLAUDE.md §15–16](CLAUDE.md) for what changed and why.
+This project descends from [vtt-chat](https://github.com/AndyProsser/vtt-chat) and [vtt-chat-extension](https://github.com/AndyProsser/vtt-chat-extension) (both archived), and from its own first design — a Tauri browser that embedded D&D Beyond (see [docs/archive/](docs/archive/README.md)). Each step was a deliberate simplification. See [CLAUDE.md §15–16](.claude/CLAUDE.md).
 
-## A Note to Wizards of the Coast & D&D Beyond
+## Third-Party Notice
 
-VTT Chat App is a fan-built project, made by players who love this game and just want to make playing it a little easier. It's not affiliated with, endorsed by, or intended to compete with Wizards of the Coast or D&D Beyond — our only goal is to add a bit of voice and chat magic on top of the game we already play there.
-
-The app reads D&D Beyond data that the logged-in user already has access to, using their own session, purely to sync identity and character info into the overlay so players don't have to re-enter anything by hand.
-
-We know this relies on unofficial access to DDB, and we're genuinely happy to work with you on it. If anything here ever raises a legal, product, or technical concern for Wizards of the Coast or D&D Beyond, please reach out — we'll gladly make whatever changes are needed, no argument. And if an official, supported way to integrate ever becomes available, we'd love to move to it.
-
-You're welcome to open an issue on this repository any time, or get in touch directly — we're happy to talk.
+VTT Chat App is a fan-built project. It is not affiliated with, endorsed by, or intended to compete with Wizards of the Coast or D&D Beyond. It does not embed or scrape D&D Beyond. If the optional character-import feature is built, it will read only publicly available character pages, and we will happily change or remove it if that ever raises a concern — open an issue any time.
 
 _Dungeons & Dragons and D&D Beyond are trademarks of Wizards of the Coast LLC._
 

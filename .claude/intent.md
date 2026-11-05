@@ -9,43 +9,82 @@ Update this file as threads open, progress, or close — stale entries here are 
 
 ## Active threads
 
-- **Stage 3a: Plan A done, Plan B next.** `ROADMAP.md`'s Stage 3 is split into 3a (compact/
-  expanded overlay, WS sync layer, conditions — themselves split into Plan A/B/C) and 3b (DDB DOM
-  extraction). Plan A (compact/expanded overlay UI) is fully implemented, task-reviewed, and
-  whole-branch-reviewed as of 2026-08-31 — 15 commits on `main` (`73faa04`..`bf32ff5`), executed
-  via `superpowers:subagent-driven-development`. See [memory.md](memory.md) for the durable
-  lessons that came out of that review (overlay scoping correction, local-identity gap, two
-  Radix/pointer-events bugs).
-  - **Next up: Plan B** — the backend WS sync layer
-    (`docs/superpowers/plans/2026-08-14-ws-layer-plan-b-plan.md`), Rust-owned connection/state
-    machine (consistent with `rust-livekit` owning LiveKit's), TS/JS stays pure UI, reuses the
-    already-issued `appSessionToken` for WS auth. Written, self-reviewed, and committed
-    2026-08-14 — execution not yet started as of this file's creation (2026-09-09).
-  - **Then Plan C** — conditions (`docs/superpowers/plans/2026-08-14-conditions-plan-c-plan.md`),
-    consumes Plan B's `wsSend`/`onWsMessage` primitives. Also written and committed, not started.
-  - Stage 3.5 (text chat) depends on Plan B's WS layer once it exists, not the other way around.
+- **Pivot: from DDB-overlay browser to self-hosted audio/records tray app.**
+  Decided 2026-10-29; decisions confirmed and the docs rewritten 2026-11-05. The project had been
+  paused; it is active again as of 2026-11-05.
+  - **Done (docs):** `CLAUDE.md`, `ROADMAP.md`, `README.md`, `DEVELOPING.md`, `CONTRIBUTING.md`,
+    `docs/CONVENTIONS.md`, all module READMEs, `docs/architecture/OVERVIEW.md` and
+    `STATE-AND-RESILIENCE.md` revised; new `RECORDING-AND-SUMMARIES.md` and
+    `DEPLOYMENT-AND-TRANSPORT.md`; the old design archived under `docs/archive/`.
+  - **Not done (code):** the legacy code is still in the tree. **ROADMAP Stage 1** removes it
+    (`src-tauri` allowlist/safety-net/cobalt/overlay injection, `overlay-ui` → `panels-ui`,
+    `backend`'s DDB-identity session contract, `ddb/` demoted, `scripts/dev.ts`, CI).
+    Deliberately not done in the docs pass because the design isn't signed off.
+  - **Next:** work through the design topics below with Andy ("specific design & platform
+    considerations"), then do Stage 1, then Stage 2 (the audio + records spike).
 
-- **GTK3 homepage crash: root-caused and fixed (two bugs); a third, different blank-render issue remains open.** 2026-09-17 session found: (1) the 321683 patch's source was correct but a stale build (`WebKitWebViewBase.cpp.o` never recompiled after a `git stash` cycle) meant the *binary* everyone had been testing against never actually had the fix — rebuilding fixed it; (2) a second, previously-unpatched null-guard gap in the exact same bug class (`ASSERT`-only/no guard on `priv->acceleratedBackingStore`), in `webkitWebViewBaseDraw`/`webkitWebViewBaseSnapshot` (the paint/draw path, not the compositing-mode-transition path 321683 covered) — patched the same way 321683 did, see [`docs/patches/webkitgtk-accelerated-backing-store-draw-snapshot-null-guard.patch`](../docs/patches/webkitgtk-accelerated-backing-store-draw-snapshot-null-guard.patch). Both confirmed fixed via rebuild + retest, not just by reading source.
-  With both fixed, the DDB homepage no longer crashes but renders **blank** instead once it enters accelerated compositing — reproduces in both the real Tauri app and standalone sandboxed `MiniBrowser` (not Tauri-specific), confirmed not a deadlock (live thread dumps on both processes show everything idle) and not a DMA-BUF video-frame issue (forcing software decode didn't help; non-video DOM content is blank too). Not yet root-caused. `homepage_redirect.rs` must stay in place. Full writeup and next-step suggestions: [docs/WEBKITGTK-NVIDIA-EGL-CRASH.md](../docs/WEBKITGTK-NVIDIA-EGL-CRASH.md#remaining-open-issue-gtk3-homepage-renders-blank-once-it-enters-accelerated-compositing-2026-09-17-unresolved).
+## Open design topics (ask Andy; don't resolve by writing code)
+
+1. **Identity & access model** — *decided 2026-11-05:* local accounts (email/password, magic
+   links, optional OIDC); per-campaign DM + players; many characters per player, one active; DM
+   **swap** (old DM becomes player, character suspended while DM and restored on swap-back, must
+   be one quick action); invites by magic link / side-channel code / QR; first account = Admin;
+   campaign creation CLOSED or OPEN; minimal admin UI (CLI-first; connection-status screen for
+   DM/Admin); multi-use expiring invites; long-lived revocable sessions with offline-limit
+   re-auth. Default offline/expiry limit **30 days** (CLI-configurable). **Open:** extra Admin
+   quick-access actions beyond the connection-status screen (suggested: invite create/revoke + QR,
+   device/session list with revoke, pending summary confirmations, storage/pipeline health).
+   (CLAUDE.md §11.)
+2. **Client ↔ server sync protocol** — *decided 2026-11-05:* revive archived "Plan B" (Rust-owned
+   WebSocket, bounded replay buffer, snapshot fallback). **WebSocket carries everything
+   high-frequency or live:** events, presence, speaking, typing, audio-state changes, chat
+   messages, recording status. **REST only for large, infrequent operations:** create user,
+   password/profile changes, create campaign (character sync may go on WS). LiveKit carries media
+   (and data events only where WS is a poor fit). **Draft defaults written** in
+   [SYNC-PROTOCOL.md](../docs/architecture/SYNC-PROTOCOL.md) (Andy delegated; revisit after
+   measuring): versioned envelope, auth as first frame, 500 events/10 min replay buffer,
+   stats every 5 s in-session, online/offline only when idle.
+   **Character data (decided):** import from a **public** DDB character URL ("copy character URL")
+   for name, class, race, level, avatar only. Cobalt-cookie is out for players; an optional DM
+   browser extension is a **possible future add-on** (Andy: yes, optional, later). Not in scope now;
+   CLAUDE.md §13/§15 "no browser extension" applies until it's picked up.
+3. **Records details** — *decided 2026-11-05* (see RECORDING-AND-SUMMARIES.md): continuous
+   campaign, start/stop/pause bookmarks, rich metadata for speaker attribution, no opt-out, only
+   raw audio deleted after DM-confirmed summary, stale audio purged by rules (next session / age /
+   free storage); cues on every status change incl. resume; Whisper model chosen by CPU-only vs
+   GPU at setup (env/CLI override); standing consent collected at sign-up and stored in Postgres
+   with consent-text version. **Open:** purge defaults, per-recording cue-ack storage (proposed
+   Redis TTL).
+4. **Audio platform findings** — decided approach: manage per platform, aim for consistent
+   behaviour; **Windows is the target, Linux and macOS are best-effort**. The Stage 2 spike still
+   supplies the measurements (AEC/NS, device release on mute, unmute latency).
+5. **Mobile SPA scope** — messages/RSVP/handouts only, or basic listen/talk too?
+6. **Container bundle for other self-hosters** — optional Docker/compose alongside the native
+   install? CLAUDE.md says no Docker today.
+7. **Server sizing** — minimum spec for voice + records; Whisper model default; what a GPU buys.
+   Answered by the Stage 2 spike.
+8. **Admin CLI shape** — instance bootstrap and invite flow depend on topic 1.
+9. **Cloud-adapter seams** — which provider interfaces to define up front (transcription, LLM,
+   TURN/ICE, storage) so adapters stay optional.
 
 ## Open questions / noticed in passing
 
-- **Local player identity isn't exposed to the overlay** — `useParticipantIdentities()` only
-  returns remote participants. Flagged during Stage 3a Plan A's review as out of scope for that
-  UI-only plan; worth folding into Stage 3b or a Plan A follow-up rather than getting lost. See
-  [memory.md](memory.md) for the technical detail.
-- **Animated Maps VTT backgrounds render blank on Linux (WebKitGTK)** — likely the same root
-  cause as the Stage 1 homepage NVIDIA EGL driver crash (confirmed bug, workaround tried and
-  reverted). Directly threatens Stage 3's "overlay injection scoped to Maps VTT" deliverable for
-  any campaign using an animated map background. Not yet investigated further as of `ROADMAP.md`'s
-  Stage 3 section — see [docs/WEBKITGTK-NVIDIA-EGL-CRASH.md](../docs/WEBKITGTK-NVIDIA-EGL-CRASH.md)
-  for the full account and the cheap diagnostic check (`__EGL_VENDOR_LIBRARY_FILENAMES` override)
-  noted there.
+- **Retire the old hub records?** Memory Hub still holds `vtt-chat-app-architecture-and-decisions`
+  and `vtt-chat-app-state-resilience-and-overlay-gotchas`, which describe the old design. Andy
+  wants to review before they're dropped. (A `vtt-chat-app-pivot-decisions-2026-11` record has been
+  written to the hub alongside; supersede the old ones only on Andy's say-so.)
+- **Naming.** The repo is still `vtt-chat-app` and the package is still "VTT Chat App" though it's
+  no longer tied to any VTT. Not urgent; flag if a rename is wanted before a public release.
+- **License/IP notice** in `README.md` was reworded (no longer embeds or scrapes DDB). Worth a
+  glance from Andy.
 
 ## Resolved
 
-- **This `.claude/` restructure (2026-09-09).** Moved root `CLAUDE.md` → `.claude/CLAUDE.md`
-  (history preserved via `git mv`), added this file and `memory.md`, seeded from this machine's
-  (`CachyOS`) local Claude Code auto-memory for this repo. Mirrors the pattern built out in
-  `HomeLab` — see that repo's `.claude/intent.md` for the cross-machine reconciliation context
-  this is part of.
+- **WebKitGTK/NVIDIA homepage crash and blank-render investigation** (two bugs found and patched
+  upstream-style; a third blank-render issue left unrooted) — moot with the embedded browser gone.
+  Archived in `docs/archive/`. Revisit only if a *local* panel ever blank-renders on Linux+NVIDIA.
+- **Stage 3a Plans A/B/C** (overlay compact view, WS layer, conditions) — superseded; Plan B kept
+  as a reference for topic 2.
+- **Local player identity not exposed to the overlay** — moot; the overlay is gone.
+- **`.claude/` restructure (2026-09-09).** Moved root `CLAUDE.md` → `.claude/CLAUDE.md` and added
+  this file and `memory.md`, mirroring `HomeLab`.

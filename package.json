@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "license": "AGPL-3.0-only",
-  "description": "Voice + chat overlay for D&D Beyond Maps VTT — Tauri desktop client, Rust LiveKit, native Ubuntu backend.",
+  "description": "Self-hosted voice, chat and session records with AI summaries for tabletop groups — Tauri tray client, Rust audio + LiveKit, native Ubuntu backend.",
   "engines": {
     "node": ">=26.0.0"
   },

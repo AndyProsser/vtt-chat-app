@@ -1,21 +1,23 @@
 # tauri-client
 
-The cross-platform Tauri desktop client — see [CLAUDE.md §8.1](../CLAUDE.md) and [docs/architecture/OVERVIEW.md](../docs/architecture/OVERVIEW.md).
+The cross-platform **system-tray** client — see [CLAUDE.md §8.1](../.claude/CLAUDE.md) and [docs/architecture/OVERVIEW.md](../docs/architecture/OVERVIEW.md).
 
-**Status:** Stage 1 (walking skeleton) implemented — see each submodule's README and [ROADMAP.md](../ROADMAP.md).
+**Status:** mid-pivot. `rust-livekit/` (audio) is reusable and is the focus of [ROADMAP Stage 2](../ROADMAP.md#stage-2--audio--records-spike). `src-tauri/` and `overlay-ui/` still contain the previous design's browser/overlay code and are slated for removal/replacement in [Stage 1](../ROADMAP.md#stage-1--pivot-cleanup).
 
-This is a Cargo workspace (for `src-tauri/` and `rust-livekit/`) that also hosts one npm package (`overlay-ui/`) built and bundled into the Tauri app.
+A tiny app that lives in the tray, with floating React panels the user opens when they want them. It serves **only its own pages** — no embedded browser, no remote origins, no injected content. Players leave it hidden ~90% of the time, so it is built to be quiet: near-zero idle CPU, autostart, auto-update, auto-rejoin, crash recovery, and a tray icon that always shows live / muted / recording / disconnected.
+
+This is a Cargo workspace (`src-tauri/` and `rust-livekit/`) that also hosts one npm package (`panels-ui/`, currently still named `overlay-ui/`) bundled into the app.
 
 ## Submodules
 
-- **[src-tauri/](src-tauri/README.md)** — the Tauri shell: window management, page restriction, ad-blocking, global hotkeys, and the command bridge to `rust-livekit`.
-- **[rust-livekit/](rust-livekit/README.md)** — native LiveKit client: WebRTC, audio device control, track/group management.
-- **[overlay-ui/](overlay-ui/README.md)** — the React + Radix UI Shadow DOM overlay injected into DDB Maps.
+- **[src-tauri/](src-tauri/README.md)** — the Tauri shell: tray, panel windows, hotkeys, autostart, updater, and the command bridge to `rust-livekit`.
+- **[rust-livekit/](rust-livekit/README.md)** — the audio engine and LiveKit client: capture, echo cancellation, noise suppression, mixer, per-player gain, the local cue/soundboard player, auto-rejoin.
+- **[overlay-ui/](overlay-ui/README.md)** — _legacy_; becomes `panels-ui/` — the React + Radix panels.
 
-## Why One Client, Not a Client + Extension
+## Why Rust Owns Audio
 
-Unlike the archived `vtt-chat-extension`, this app does DDB cookie detection and DOM extraction itself, inside the WebView — no separate browser extension to build or distribute. See [CLAUDE.md §15–16](../CLAUDE.md).
+Audio never passes through a webview. That is the main reason this is an app and not a web page: native capture and playback, real echo cancellation, device control (including releasing the capture device on mute so OS mic indicators turn off), and a cue player that is independent of the SFU and absent from recordings.
 
 ## Cross-Platform Targets
 
-Windows (WebView2), macOS (WebKit), Linux GNOME/KDE (WebKitGTK) — see [CLAUDE.md §12](../CLAUDE.md). `rust-livekit` is responsible for consistent audio behavior across all three.
+Priority: **Windows** (WebView2; most players) > **Linux** (WebKitGTK, GNOME/KDE; Andy) > macOS (WebKit; possibly later). See [CLAUDE.md §12](../.claude/CLAUDE.md). Tray and global-shortcut support varies by desktop (GNOME needs an AppIndicator extension; Wayland blocks global shortcuts) and the client degrades gracefully rather than failing silently. `rust-livekit` is responsible for consistent audio behaviour across all three.

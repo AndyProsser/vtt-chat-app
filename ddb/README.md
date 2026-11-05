@@ -1,22 +1,17 @@
 # ddb
 
-DDB auth and extraction module — see [CLAUDE.md §8.5](../CLAUDE.md) and [docs/architecture/DDB-AUTH.md](../docs/architecture/DDB-AUTH.md).
+**Optional** D&D Beyond character import. Not part of the default install and not on any critical path — see [CLAUDE.md §8.7](../.claude/CLAUDE.md).
 
-**Status:** Stage 1 subset implemented — cobalt-token exchange, Character Service calls, and the identity-extraction orchestrator. DOM extraction (current map, token conditions) is Stage 3.
+**Status:** the previous design's code is still here — cobalt-token exchange, Character Service calls, and an identity-extraction orchestrator, all built for an embedded DDB WebView. **It is legacy** and will be reduced or removed in [ROADMAP Stage 1](../ROADMAP.md#stage-1--pivot-cleanup). The import feature itself is Stage 10.
 
-## Responsibilities
+## What it will be
 
-- Cobalt cookie detection helpers
-- `POST /v1/cobalt-token` exchange (cobalt cookie → DDB JWT)
-- JWT parsing
-- DDB Character Service API calls (character list, selected character, campaign metadata, DM role)
-- DOM extraction helpers for data not available via API (current map, live token conditions)
-- TypeScript types for everything above, re-exported for use by `overlay-ui/` and `backend/`
+A small module that, given a **public character URL** (or, if easy, a login token), fetches character name / class / portrait so a player's profile can show it. Public pages only. No login, no cookie access, no scraping beyond that page.
 
-## Consumers
+## What was removed, and why
 
-- `tauri-client/overlay-ui/` — runs the full extraction inside the DDB WebView, then hands the normalized `DdbIdentity` to `backend/` over REST (`backend/` does not import `ddb/` — see [docs/architecture/DDB-AUTH.md](../docs/architecture/DDB-AUTH.md))
+The previous design authenticated users through D&D Beyond's `CobaltSession` cookie inside an embedded WebView and treated DDB as the identity provider. That coupling is gone: identity is now this app's own (design pending — [CLAUDE.md §11](../.claude/CLAUDE.md)). The old flow is documented in [docs/archive/architecture/DDB-AUTH.md](../docs/archive/architecture/DDB-AUTH.md); its **Character Service endpoints** and the "re-exchange, don't cache" lesson are the useful parts if a token-based import is ever added.
 
 ## Non-Goals
 
-No bulk scraping, no caching of DDB content beyond what's needed for the active session, no modification of DDB data. See [CLAUDE.md §14, §16](../CLAUDE.md) and the Third-Party IP Notice in [README.md](../README.md).
+No bulk scraping, no caching of DDB content beyond what an import needs, no modification of DDB data, no embedding of DDB pages. See the third-party notice in [README.md](../README.md).
