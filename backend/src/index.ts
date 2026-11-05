@@ -32,7 +32,9 @@ if (isEntryPoint) {
     accounts: new AccountService({ store }),
     replay: new MemoryReplayBuffer(),
   });
-  const server = createServer(createApp({ config, store, realtime: hub }));
+  const server = createServer(
+    createApp({ config, store, realtime: hub, recording: hub.recording }),
+  );
   attachWebSocketServer(server, hub);
 
   server.listen(config.port, () => {

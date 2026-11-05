@@ -132,8 +132,21 @@ depends on measured CPU headroom.
   text**. A changed text re-prompts on next sign-in. The per-recording **cue** still plays: sign-up
   consent is the standing agreement, the cue is the in-the-moment notice.
 
+### The consent loop as built (2026-11-05)
+
+The **server** owns the recording state (an id plus a status) and the per-player acknowledgements; each **client** plays its own local cue.
+
+1. The DM starts, pauses, resumes or stops a recording (`POST /api/campaigns/:id/recording`, DM only).
+2. The server announces `recording.status` (`STARTED` / `PAUSED` / `RESUMED` / `STOPPED`) to everyone subscribed to the campaign.
+3. Each client plays the matching cue **locally**. For a start, the client first **closes its capture gate**, plays the cue, and only when it has finished sends `recording.ack` and opens the gate.
+4. After every snapshot *or replay*, the server sends `recording.state`: the current state (`IN-PROGRESS` or `PAUSED`) and whether **this viewer** has already acknowledged. A late joiner gets `acknowledged: false`, so they hear the start cue before being captured. A quick reconnect gets `acknowledged: true`, so nothing replays. A reconnect after the expiry gets `false` again.
+5. The DM is told who has acknowledged (`recording.ack.update`, DM only).
+
+The acknowledgement lives on the **server** (in memory now; Valkey with a TTL is the plan), not in a file on the player's machine: nothing for a player to lose or fake, and it works across their devices. If a cue can't be played (no speakers), the gate opens anyway so the player isn't locked out of voice, but no acknowledgement is sent — the DM can see they haven't heard it.
+
+What is *not* built: the durable record of each recording (start/stop/pause timestamps as session bookmarks), the link to LiveKit Egress, and everything downstream of it (Stage 5). Today a recording is a flag and an id in memory.
+
 ### Still open
 
 1. Default values for the purge rules, and whether the DM is warned before an automatic purge.
-2. Where the *per-recording* cue acknowledgement lives. Proposed: Redis with a TTL (it is
-   ephemeral and expires by design); Postgres keeps only the sign-up consent record.
+2. The acknowledgement expiry (30 minutes is an assumption; it is one constant) and whether it should be configurable per instance.

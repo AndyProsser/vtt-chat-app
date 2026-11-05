@@ -4,6 +4,7 @@ import { z } from 'zod';
 import type { AccountService } from '../auth/accountService.js';
 import type { CampaignService } from '../campaigns/campaignService.js';
 import { DomainError } from '../errors.js';
+import type { RecordingChange, RecordingState } from '../recording/recordingState.js';
 import { mintLiveKitToken } from '../session/liveKitToken.js';
 import type { Store } from '../store/store.js';
 import { authOf, requireAuth } from './middleware.js';
@@ -22,6 +23,7 @@ const characterBody = z.object({
 });
 const activeBody = z.object({ characterId: z.string().max(64) });
 const swapBody = z.object({ newDmUserId: z.string().max(64) });
+const recordingBody = z.object({ action: z.enum(['start', 'pause', 'resume', 'stop']) });
 
 export interface CampaignRouteDeps {
   accounts: AccountService;
@@ -32,6 +34,10 @@ export interface CampaignRouteDeps {
   inviteLimiter: RateLimiter;
   /** Called when roles, members or characters change, so live clients can refresh. */
   onRosterChanged?: (campaignId: string) => void;
+  /** Whether each campaign is recording. */
+  recording: RecordingState;
+  /** Called after a recording change, so every client can play its local cue. */
+  onRecordingChanged?: (change: RecordingChange) => void;
 }
 
 function param(value: string | string[] | undefined): string {
@@ -40,7 +46,15 @@ function param(value: string | string[] | undefined): string {
 }
 
 export function campaignRoutes(deps: CampaignRouteDeps): Router {
-  const { campaigns, store, liveKit, inviteLimiter, onRosterChanged } = deps;
+  const {
+    campaigns,
+    store,
+    liveKit,
+    inviteLimiter,
+    onRosterChanged,
+    recording,
+    onRecordingChanged,
+  } = deps;
   const router = Router();
   router.use(requireAuth(deps.accounts));
 
@@ -128,6 +142,22 @@ export function campaignRoutes(deps: CampaignRouteDeps): Router {
     await campaigns.leaveCampaign(authOf(res).user, campaignId);
     onRosterChanged?.(campaignId);
     res.status(204).end();
+  });
+
+  // Start / pause / resume / stop recording: the DM only. The server owns the state; clients are
+  // told and each plays its own local cue (never through the SFU, so it is not in the recording).
+  router.post('/:id/recording', async (req, res) => {
+    const body = recordingBody.parse(req.body);
+    const { user } = authOf(res);
+    const campaignId = param(req.params.id);
+    const membership = await store.getMembership(campaignId, user.id);
+    if (!membership) throw new DomainError('forbidden', 'not a member of this campaign');
+    if (membership.role !== 'dm')
+      throw new DomainError('forbidden', 'only the DM can control recording');
+
+    const change = recording[body.action](campaignId);
+    onRecordingChanged?.(change);
+    res.json({ recordingId: change.recordingId, event: change.event });
   });
 
   // Voice access follows membership: a LiveKit token is issued only to members, for that

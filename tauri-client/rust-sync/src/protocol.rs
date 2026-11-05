@@ -25,6 +25,25 @@ struct RawFrame {
     d: Value,
 }
 
+/// A recording transition, as announced to everyone in the campaign.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RecordingChange {
+    Started,
+    Paused,
+    Resumed,
+    Stopped,
+}
+
+/// The current state of an ongoing recording, from one viewer's point of view.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RecordingInfo {
+    pub recording_id: String,
+    /// `true` while capturing, `false` while paused.
+    pub capturing: bool,
+    /// This viewer has already heard the start cue for this recording (and it hasn't expired).
+    pub acknowledged: bool,
+}
+
 /// A decoded server → client frame. Campaign data the UI renders as-is (`Snapshot`, stats) stays
 /// as JSON so the panels can evolve without this crate changing in lock-step.
 #[derive(Debug, Clone, PartialEq)]
@@ -79,6 +98,19 @@ pub enum ServerEvent {
         seq: u64,
         data: Value,
     },
+    /// The recording changed: STARTED, PAUSED, RESUMED or STOPPED. Each client plays its own
+    /// local cue in response.
+    RecordingStatus {
+        campaign_id: String,
+        recording_id: String,
+        status: RecordingChange,
+    },
+    /// The *current* recording state, sent after every snapshot or replay (so a client that joined
+    /// or rejoined mid-recording learns it). `None` means not recording.
+    RecordingState {
+        campaign_id: String,
+        recording: Option<RecordingInfo>,
+    },
     RosterChanged {
         campaign_id: String,
     },
@@ -98,6 +130,14 @@ fn text(value: &Value, key: &str) -> String {
 
 fn flag(value: &Value, key: &str) -> bool {
     value.get(key).and_then(Value::as_bool).unwrap_or(false)
+}
+
+fn recording_status(d: &Value, status: RecordingChange) -> ServerEvent {
+    ServerEvent::RecordingStatus {
+        campaign_id: text(d, "campaignId"),
+        recording_id: text(d, "recordingId"),
+        status,
+    }
 }
 
 fn number(value: &Value, key: &str) -> u64 {
@@ -163,6 +203,33 @@ pub fn parse_server_frame(raw: &str) -> Result<(ServerEvent, Option<u64>), Parse
             seq: frame.seq.unwrap_or(0),
             data: d.clone(),
         },
+        "recording.status" => match text(d, "status").as_str() {
+            "STARTED" => recording_status(d, RecordingChange::Started),
+            "PAUSED" => recording_status(d, RecordingChange::Paused),
+            "RESUMED" => recording_status(d, RecordingChange::Resumed),
+            "STOPPED" => recording_status(d, RecordingChange::Stopped),
+            other => ServerEvent::Unknown {
+                t: format!("recording.status/{other}"),
+            },
+        },
+        "recording.state" => ServerEvent::RecordingState {
+            campaign_id: campaign_id(),
+            recording: d
+                .get("recording")
+                .and_then(Value::as_object)
+                .map(|r| RecordingInfo {
+                    recording_id: r
+                        .get("recordingId")
+                        .and_then(Value::as_str)
+                        .unwrap_or_default()
+                        .to_string(),
+                    capturing: r.get("status").and_then(Value::as_str) != Some("PAUSED"),
+                    acknowledged: r
+                        .get("acknowledged")
+                        .and_then(Value::as_bool)
+                        .unwrap_or(false),
+                }),
+        },
         "roster.changed" => ServerEvent::RosterChanged {
             campaign_id: campaign_id(),
         },
@@ -219,6 +286,14 @@ pub fn stats_frame(campaign_id: &str, rtt_ms: f64, jitter_ms: f64, packet_loss_p
             "jitterMs": jitter_ms,
             "packetLossPct": packet_loss_pct,
         }),
+    )
+}
+
+/// "I have heard the start cue for this recording" — sent once the cue has finished playing.
+pub fn recording_ack_frame(campaign_id: &str, recording_id: &str) -> String {
+    frame(
+        "recording.ack",
+        json!({ "campaignId": campaign_id, "recordingId": recording_id }),
     )
 }
 
@@ -351,6 +426,103 @@ mod tests {
                 user_id: String::new(),
                 online: false
             }
+        );
+    }
+
+    #[test]
+    fn decodes_recording_changes_and_the_current_recording_state() {
+        for (wire, expected) in [
+            ("STARTED", RecordingChange::Started),
+            ("PAUSED", RecordingChange::Paused),
+            ("RESUMED", RecordingChange::Resumed),
+            ("STOPPED", RecordingChange::Stopped),
+        ] {
+            let (e, _) = parse_server_frame(&server(
+                "recording.status",
+                json!({ "campaignId": "c", "recordingId": "r1", "status": wire }),
+                None,
+            ))
+            .unwrap();
+            assert_eq!(
+                e,
+                ServerEvent::RecordingStatus {
+                    campaign_id: "c".into(),
+                    recording_id: "r1".into(),
+                    status: expected
+                }
+            );
+        }
+
+        let (e, _) = parse_server_frame(&server(
+            "recording.state",
+            json!({ "campaignId": "c", "recording": {
+                "recordingId": "r1", "status": "IN-PROGRESS", "acknowledged": true } }),
+            None,
+        ))
+        .unwrap();
+        assert_eq!(
+            e,
+            ServerEvent::RecordingState {
+                campaign_id: "c".into(),
+                recording: Some(RecordingInfo {
+                    recording_id: "r1".into(),
+                    capturing: true,
+                    acknowledged: true
+                })
+            }
+        );
+
+        let (paused, _) = parse_server_frame(&server(
+            "recording.state",
+            json!({ "campaignId": "c", "recording": {
+                "recordingId": "r1", "status": "PAUSED", "acknowledged": false } }),
+            None,
+        ))
+        .unwrap();
+        assert!(matches!(
+            paused,
+            ServerEvent::RecordingState {
+                recording: Some(RecordingInfo {
+                    capturing: false,
+                    acknowledged: false,
+                    ..
+                }),
+                ..
+            }
+        ));
+
+        let (none, _) = parse_server_frame(&server(
+            "recording.state",
+            json!({ "campaignId": "c", "recording": null }),
+            None,
+        ))
+        .unwrap();
+        assert_eq!(
+            none,
+            ServerEvent::RecordingState {
+                campaign_id: "c".into(),
+                recording: None
+            }
+        );
+    }
+
+    #[test]
+    fn an_unrecognised_recording_status_is_ignored_not_trusted() {
+        let (e, _) = parse_server_frame(&server(
+            "recording.status",
+            json!({ "campaignId": "c", "recordingId": "r", "status": "EXPLODED" }),
+            None,
+        ))
+        .unwrap();
+        assert!(matches!(e, ServerEvent::Unknown { .. }));
+    }
+
+    #[test]
+    fn the_ack_frame_matches_the_backend_schema() {
+        let ack: Value = serde_json::from_str(&recording_ack_frame("c", "r1")).unwrap();
+        assert_eq!(
+            ack,
+            json!({ "v": 1, "t": "recording.ack", "d": { "campaignId": "c", "recordingId": "r1" } })
         );
     }
 

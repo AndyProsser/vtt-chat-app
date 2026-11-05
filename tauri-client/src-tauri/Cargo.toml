@@ -17,6 +17,7 @@ tauri-build = "2"
 
 [dependencies]
 rust-livekit = { path = "../rust-livekit" }
+rust-sync = { path = "../rust-sync" }
 serde = { version = "1", features = ["derive"] }
 tauri = "2"
 tauri-plugin-global-shortcut = "2"

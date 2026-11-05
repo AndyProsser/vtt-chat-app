@@ -8,8 +8,8 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use rust_sync::{
-    audio_state_frame, chat_frame, ConnectInfo, ConnectInfoProvider, ServerEvent, SyncClient,
-    SyncConfig, SyncEvent,
+    audio_state_frame, chat_frame, recording_ack_frame, ConnectInfo, ConnectInfoProvider,
+    ServerEvent, SyncClient, SyncConfig, SyncEvent,
 };
 use tokio::sync::mpsc;
 
@@ -56,6 +56,21 @@ async fn main() {
                     SyncEvent::Server(ServerEvent::Snapshot { data, .. }) => {
                         let members = data["members"].as_array().map_or(0, Vec::len);
                         println!("snapshot: seq={} members={members}", data["seq"]);
+                    }
+                    // The consent loop a real client runs: hear the cue, then acknowledge it.
+                    SyncEvent::Server(ServerEvent::RecordingStatus { recording_id, status, .. }) => {
+                        println!("recording {status:?} ({recording_id})");
+                        if matches!(status, rust_sync::RecordingChange::Started) {
+                            client.send(recording_ack_frame(&campaign, recording_id));
+                        }
+                    }
+                    SyncEvent::Server(ServerEvent::RecordingState { recording, .. }) => {
+                        println!("recording state: {recording:?}");
+                        if let Some(info) = recording {
+                            if !info.acknowledged {
+                                client.send(recording_ack_frame(&campaign, &info.recording_id));
+                            }
+                        }
                     }
                     other => println!("{other:?}"),
                 }

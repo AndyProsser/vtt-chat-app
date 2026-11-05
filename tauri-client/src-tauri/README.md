@@ -6,6 +6,10 @@ The Tauri shell (Rust). See [CLAUDE.md §8.1](../../.claude/CLAUDE.md).
 
 Reusable from the old shell: `SharedClient` as app-level (`.manage()`) state so audio is independent of any window; the hotkey plumbing and its platform findings (see [DEVELOPING.md](../../DEVELOPING.md#shell-behaviour-hotkeys-carried-over)); the Tauri-command bridge to `rust-livekit`.
 
+## Recording-consent coordinator
+
+`src/recording.rs` is the client's half of the consent loop as a **pure state machine** (server events and "cue finished/failed" in; commands out: play a cue, hold/release the capture gate, send the acknowledgement, set the tray/panel indicator). 12 unit tests; not yet driven by the shell — that is Stage 4. Rules and rationale: [RECORDING-AND-SUMMARIES.md](../../docs/architecture/RECORDING-AND-SUMMARIES.md#the-consent-loop-as-built-2026-11-05).
+
 ## Responsibilities (target)
 
 - **Tray icon and state** — live / muted / recording / disconnected, driven from the Rust core, correct with zero panels open

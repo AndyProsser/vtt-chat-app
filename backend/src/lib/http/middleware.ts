@@ -15,6 +15,7 @@ const STATUS: Record<ErrorCode, number> = {
   forbidden: 403,
   not_found: 404,
   invite_invalid: 400,
+  conflict: 409,
   dm_must_transfer: 409,
 };
 

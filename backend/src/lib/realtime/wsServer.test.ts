@@ -32,7 +32,9 @@ beforeEach(async () => {
     accounts: new AccountService({ store }),
     replay: new MemoryReplayBuffer(),
   });
-  server = createServer(createApp({ config: CONFIG, store, realtime: hub }));
+  server = createServer(
+    createApp({ config: CONFIG, store, realtime: hub, recording: hub.recording }),
+  );
   handle = attachWebSocketServer(server, hub);
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
   base = `127.0.0.1:${(server.address() as AddressInfo).port}`;
@@ -185,3 +187,103 @@ describe('WebSocket transport', () => {
     client.ws.close();
   });
 });
+
+describe('recording consent over the wire', () => {
+  async function table() {
+    const dmToken = await signUp('dm');
+    const playerToken = await signUp('player');
+    const campaignId = (await rest('POST', '/api/campaigns', dmToken, { name: 'Rec' })).body
+      .campaign.id as string;
+    const { code } = (await rest('POST', `/api/campaigns/${campaignId}/invites`, dmToken, {})).body;
+    await rest('POST', '/api/campaigns/join', playerToken, { code });
+
+    const join = async (token: string) => {
+      const client = await open();
+      client.send('auth', { token });
+      await client.waitFor('auth.ok');
+      client.send('resume', { campaignId });
+      await client.waitFor('recording.state');
+      return client;
+    };
+    return { dmToken, playerToken, campaignId, join };
+  }
+
+  it('lets the DM drive recording, and every client hears each change', async () => {
+    const { dmToken, playerToken, campaignId, join } = await table();
+    const player = await join(playerToken);
+
+    const started = await rest('POST', `/api/campaigns/${campaignId}/recording`, dmToken, {
+      action: 'start',
+    });
+    expect(started.status).toBe(200);
+    expect(started.body.event).toBe('STARTED');
+    const heard = await player.waitFor('recording.status');
+    expect(heard.d).toMatchObject({ status: 'STARTED', recordingId: started.body.recordingId });
+
+    for (const action of ['pause', 'resume', 'stop']) {
+      expect(
+        (await rest('POST', `/api/campaigns/${campaignId}/recording`, dmToken, { action })).status,
+      ).toBe(200);
+    }
+    await vi_waitUntil(() => player.frames.filter((f) => f.t === 'recording.status').length === 4);
+    expect(player.frames.filter((f) => f.t === 'recording.status').map((f) => f.d.status)).toEqual([
+      'STARTED',
+      'PAUSED',
+      'RESUMED',
+      'STOPPED',
+    ]);
+    player.ws.close();
+  });
+
+  it('refuses recording control to players and outsiders, and rejects impossible transitions', async () => {
+    const { dmToken, playerToken, campaignId } = await table();
+    const outsiderToken = await signUp('outsider');
+    const path = `/api/campaigns/${campaignId}/recording`;
+
+    expect((await rest('POST', path, playerToken, { action: 'start' })).status).toBe(403);
+    expect((await rest('POST', path, outsiderToken, { action: 'start' })).status).toBe(403);
+    expect((await rest('POST', path, dmToken, { action: 'pause' })).status).toBe(409); // nothing to pause
+    expect((await rest('POST', path, dmToken, { action: 'explode' })).status).toBe(400);
+    expect((await rest('POST', path, dmToken, { action: 'start' })).status).toBe(200);
+    expect((await rest('POST', path, dmToken, { action: 'start' })).status).toBe(409); // already on
+  });
+
+  it('runs the whole consent loop: late joiner is told, acks, and a reconnect stays quiet', async () => {
+    const { dmToken, playerToken, campaignId, join } = await table();
+    const recordingId = (
+      await rest('POST', `/api/campaigns/${campaignId}/recording`, dmToken, { action: 'start' })
+    ).body.recordingId as string;
+
+    // A player joins after recording began: told it is in progress and NOT yet acknowledged.
+    const first = await join(playerToken);
+    expect((await first.waitFor('recording.state')).d.recording).toEqual({
+      recordingId,
+      status: 'IN-PROGRESS',
+      acknowledged: false,
+    });
+
+    // Their client plays the cue, then acknowledges.
+    first.send('recording.ack', { campaignId, recordingId });
+    // Give the server a moment, then drop the connection (a network blip) and come back.
+    await vi_waitUntil(async () => {
+      const probe = await join(playerToken);
+      const state = probe.frames.find((f) => f.t === 'recording.state');
+      probe.ws.close();
+      return state?.d.recording?.acknowledged === true;
+    });
+    first.ws.close();
+  });
+});
+
+/** Polls until `check` is true (or fails the test), for effects that cross a real socket. */
+async function vi_waitUntil(
+  check: () => boolean | Promise<boolean>,
+  timeoutMs = 4000,
+): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (await check()) return;
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+  throw new Error('timed out waiting for condition');
+}

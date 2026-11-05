@@ -23,6 +23,10 @@ Live frames sent while disconnected are **dropped on purpose** (`SyncClient::sen
 
 Nothing else in the repo — a leaf crate, like `rust-livekit`. TLS (`wss://`) uses rustls with the system's root certificates.
 
+## Recording frames
+
+`recording.status`, `recording.state` and `recording.ack` are decoded and built here (`ServerEvent::RecordingStatus` / `RecordingState`, `recording_ack_frame`); the rules for what to do with them live in `src-tauri/src/recording.rs`.
+
 ## Still to do
 
 - Wire into `src-tauri/` (start/stop on sign-in, forward `SyncEvent`s to panels, and re-announce voice state on `Connected`)

@@ -8,6 +8,8 @@ import { campaignRoutes } from './http/campaignRoutes.js';
 import { NoMailTransport, type MagicLinkSender } from './http/delivery.js';
 import { errorHandler } from './http/middleware.js';
 import { RateLimiter } from './http/rateLimit.js';
+import { RecordingState } from './recording/recordingState.js';
+import type { RecordingChange } from './recording/recordingState.js';
 import type { Store } from './store/store.js';
 
 export interface AppDeps {
@@ -19,7 +21,10 @@ export interface AppDeps {
   realtime?: {
     revokeSession(sessionId: string): void;
     announceRosterChanged(campaignId: string): void;
+    announceRecording(change: RecordingChange): void;
   };
+  /** Shared with the realtime hub so REST changes and snapshots agree. Defaults to a fresh one. */
+  recording?: RecordingState;
 }
 
 const MINUTE = 60_000;
@@ -29,7 +34,7 @@ const MINUTE = 60_000;
  * campaigns, invites, voice tokens). Everything live and frequent goes over the WebSocket layer
  * instead (`realtime/`, docs/architecture/SYNC-PROTOCOL.md); the `realtime` hooks below connect the two.
  */
-export function createApp({ config, store, sender, realtime }: AppDeps): Express {
+export function createApp({ config, store, sender, realtime, recording }: AppDeps): Express {
   const accounts = new AccountService({ store });
   const campaigns = new CampaignService({ store });
 
@@ -70,7 +75,11 @@ export function createApp({ config, store, sender, realtime }: AppDeps): Express
         apiSecret: config.liveKitApiSecret,
       },
       inviteLimiter: new RateLimiter(20, 15 * MINUTE),
+      recording: recording ?? new RecordingState(),
       ...(realtime ? { onRosterChanged: (id: string) => realtime.announceRosterChanged(id) } : {}),
+      ...(realtime
+        ? { onRecordingChanged: (change: RecordingChange) => realtime.announceRecording(change) }
+        : {}),
     }),
   );
 

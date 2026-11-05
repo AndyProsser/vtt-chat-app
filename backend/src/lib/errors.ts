@@ -8,6 +8,7 @@ export type ErrorCode =
   | 'forbidden'
   | 'not_found'
   | 'invite_invalid'
+  | 'conflict'
   | 'dm_must_transfer';
 
 /** An expected, reportable failure (as opposed to a bug). The HTTP layer maps `code` to a status. */

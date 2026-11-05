@@ -1,6 +1,7 @@
 mod commands;
 mod consts;
 mod hotkeys;
+mod recording;
 
 /// Stage 1 shell: no windows, no remote content. It holds the audio client as app-level state and
 /// registers the global shortcuts. The tray icon and the local panel windows arrive in Stage 4

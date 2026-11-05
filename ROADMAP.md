@@ -82,7 +82,7 @@ The riskiest unknowns are all "does this actually work on real machines with ope
 
 ## Stage 3 — Server Core
 
-**Status:** 🟡 In Progress — identity/campaign domain, REST layer and in-memory WebSocket hub built and tested (Rust WebSocket client built (`rust-sync`, not yet wired into the shell); Valkey replay buffer written but tested only against a fake; no Postgres adapter, CLI or install script yet); schema written but untested
+**Status:** 🟡 In Progress — identity/campaign domain, REST layer and in-memory WebSocket hub built and tested (Rust WebSocket client built (`rust-sync`, not yet wired into the shell); Valkey replay buffer written but tested only against a fake; recording state + consent acknowledgement built (server + Rust coordinator, verified once against the real backend); no Postgres adapter, CLI or install script yet); schema written but untested
 **Depends on:** Stage 2 (and the open identity decision, below)
 
 **Decided with Andy (2026-11-05):** the identity & access model ([CLAUDE.md §11](.claude/CLAUDE.md#11-identity--access-model--direction-decided-2026-11-05-details-open)) and the sync protocol ([SYNC-PROTOCOL.md](docs/architecture/SYNC-PROTOCOL.md), draft). Remaining open: Admin quick-access extras, OIDC specifics, and the assumed defaults (invite expiry 7 days, magic-link lifetime 15 minutes, minimum password length 10).

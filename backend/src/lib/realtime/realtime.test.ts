@@ -8,6 +8,8 @@ import { MemoryStore } from '../store/memoryStore.js';
 import { CloseCode, Hub, type Connection } from './hub.js';
 import { PresenceTracker } from './presence.js';
 import { parseClientFrame, PROTOCOL_VERSION } from './protocol.js';
+import { MemoryAckStore } from '../recording/ackStore.js';
+import { RecordingState } from '../recording/recordingState.js';
 import { MemoryReplayBuffer } from './replayBuffer.js';
 import { replayBufferContract } from './replayContract.js';
 
@@ -605,5 +607,219 @@ describe('Hub: revocation', () => {
     const player = await connect(t, 'p1', 'player');
     await t.hub.recheckSessions();
     expect(player.closed).toBeNull();
+  });
+});
+
+// ---------- recording status and consent acknowledgement ----------
+
+describe('RecordingState', () => {
+  it('walks start → pause → resume → stop and reports the current state', () => {
+    const recording = new RecordingState(() => 'rec-1');
+    expect(recording.current('c')).toBeNull();
+    expect(recording.start('c')).toEqual({
+      campaignId: 'c',
+      recordingId: 'rec-1',
+      event: 'STARTED',
+    });
+    expect(recording.current('c')).toEqual({ recordingId: 'rec-1', status: 'IN-PROGRESS' });
+    expect(recording.isCapturing('c')).toBe(true);
+
+    expect(recording.pause('c').event).toBe('PAUSED');
+    expect(recording.current('c')?.status).toBe('PAUSED');
+    expect(recording.isCapturing('c')).toBe(false);
+
+    expect(recording.resume('c').event).toBe('RESUMED');
+    expect(recording.stop('c').event).toBe('STOPPED');
+    expect(recording.current('c')).toBeNull();
+  });
+
+  it('rejects impossible transitions with a conflict, and keeps campaigns apart', () => {
+    const recording = new RecordingState();
+    expect(() => recording.pause('c')).toThrow(/not being recorded/);
+    expect(() => recording.stop('c')).toThrow();
+    recording.start('c');
+    expect(() => recording.start('c')).toThrow(/already/);
+    expect(() => recording.resume('c')).toThrow(/not paused/);
+    recording.pause('c');
+    expect(() => recording.pause('c')).toThrow(/already paused/);
+    expect(recording.current('other')).toBeNull();
+  });
+
+  it('gives each recording its own id', () => {
+    const recording = new RecordingState();
+    const first = recording.start('c').recordingId;
+    recording.stop('c');
+    expect(recording.start('c').recordingId).not.toBe(first);
+  });
+});
+
+describe('MemoryAckStore', () => {
+  it('remembers an ack until it expires', async () => {
+    let now = 0;
+    const acks = new MemoryAckStore({ ttlMs: 1000, now: () => now });
+    await acks.ack('c', 'r', 'u');
+    expect(await acks.hasAcked('c', 'r', 'u')).toBe(true);
+    expect(await acks.hasAcked('c', 'r', 'someone-else')).toBe(false);
+    expect(await acks.hasAcked('c', 'other-recording', 'u')).toBe(false);
+    expect(await acks.ackedBy('c', 'r')).toEqual(['u']);
+    now = 1001;
+    expect(await acks.hasAcked('c', 'r', 'u')).toBe(false);
+    expect(await acks.ackedBy('c', 'r')).toEqual([]);
+  });
+});
+
+describe('Hub: recording consent flow', () => {
+  let t: Table;
+  let dm: FakeConn;
+  let player: FakeConn;
+  let now: number;
+
+  beforeEach(async () => {
+    now = 1_000_000;
+    t = await setup();
+    t.hub.close();
+    // Rebuild the hub with a controllable clock so ack expiry can be driven.
+    const recording = new RecordingState(() => 'rec-1');
+    const acks = new MemoryAckStore({ ttlMs: 30 * 60_000, now: () => now });
+    t.hub = new Hub({
+      store: t.store,
+      accounts: t.accounts,
+      replay: t.replay,
+      recording,
+      acks,
+      now: () => now,
+    });
+    dm = await connect(t, 'd1', 'dm');
+    player = await connect(t, 'p1', 'player');
+    dm.sent.length = 0;
+    player.sent.length = 0;
+  });
+  afterEach(() => t.hub.close());
+
+  const start = () => t.hub.announceRecording(t.hub.recording.start(t.campaignId));
+  const ack = (conn: string, recordingId = 'rec-1') =>
+    t.hub.receive(conn, frame('recording.ack', { campaignId: t.campaignId, recordingId }));
+
+  it('tells everyone in the campaign about each change', () => {
+    start();
+    t.hub.announceRecording(t.hub.recording.pause(t.campaignId));
+    t.hub.announceRecording(t.hub.recording.resume(t.campaignId));
+    t.hub.announceRecording(t.hub.recording.stop(t.campaignId));
+    for (const conn of [dm, player]) {
+      expect(conn.of('recording.status').map((f) => f.d.status)).toEqual([
+        'STARTED',
+        'PAUSED',
+        'RESUMED',
+        'STOPPED',
+      ]);
+      expect(conn.of('recording.status')[0]?.d.recordingId).toBe('rec-1');
+    }
+  });
+
+  it('does not tell people outside the campaign', async () => {
+    const outsider = await connect(t, 'o1', 'outsider');
+    outsider.sent.length = 0;
+    start();
+    expect(outsider.of('recording.status')).toHaveLength(0);
+  });
+
+  it('tells a late joiner the current state, unacknowledged, so they hear the cue before capture', async () => {
+    start();
+    const late = await connect(t, 'p2', 'player');
+    expect(late.last('recording.state')?.d).toEqual({
+      campaignId: t.campaignId,
+      recording: { recordingId: 'rec-1', status: 'IN-PROGRESS', acknowledged: false },
+    });
+  });
+
+  it('remembers an ack, so a quick reconnect is told not to replay the cue', async () => {
+    start();
+    await ack('p1');
+    t.hub.closed('p1'); // the network blips
+    const back = await connect(t, 'p2', 'player');
+    expect(back.last('recording.state')?.d.recording).toMatchObject({ acknowledged: true });
+  });
+
+  it('asks for the cue again once the ack has expired', async () => {
+    start();
+    await ack('p1');
+    t.hub.closed('p1');
+    now += 31 * 60_000;
+    const back = await connect(t, 'p2', 'player');
+    expect(back.last('recording.state')?.d.recording).toMatchObject({ acknowledged: false });
+  });
+
+  it('keeps acknowledgements per player, not per campaign', async () => {
+    start();
+    await ack('p1');
+    const dmView = await connect(t, 'd2', 'dm');
+    expect(dmView.last('recording.state')?.d.recording).toMatchObject({ acknowledged: false });
+  });
+
+  it('sends the recording state after a replay too, so a missed change is not missed', async () => {
+    // The player is mid-session with a cursor, drops, and a recording starts while they are away.
+    // (The beforeEach cleared the player's frames, so ask the buffer for the stream's epoch.)
+    const epoch = await t.replay.epoch(t.campaignId);
+    t.hub.closed('p1');
+    start();
+    const back = new FakeConn('p2');
+    t.hub.accept(back);
+    await t.hub.receive('p2', frame('auth', { token: t.token.player }));
+    await t.hub.receive('p2', frame('resume', { campaignId: t.campaignId, lastSeq: 0, epoch }));
+    expect(back.of('resumed')).toHaveLength(1); // replay path, not a snapshot
+    expect(back.last('recording.state')?.d.recording).toMatchObject({
+      recordingId: 'rec-1',
+      acknowledged: false,
+    });
+  });
+
+  it('reports a paused recording as paused, and a stopped one as none', async () => {
+    start();
+    t.hub.announceRecording(t.hub.recording.pause(t.campaignId));
+    const during = await connect(t, 'p2', 'player');
+    expect(during.last('recording.state')?.d.recording).toMatchObject({ status: 'PAUSED' });
+    t.hub.announceRecording(t.hub.recording.stop(t.campaignId));
+    const after = await connect(t, 'p3', 'player');
+    expect(after.last('recording.state')?.d.recording).toBeNull();
+  });
+
+  it('shows the DM who has heard the cue, and nobody else', async () => {
+    start();
+    dm.sent.length = 0;
+    player.sent.length = 0;
+    await ack('p1');
+    expect(dm.last('recording.ack.update')?.d).toEqual({
+      campaignId: t.campaignId,
+      recordingId: 'rec-1',
+      userId: t.player.id,
+    });
+    expect(player.of('recording.ack.update')).toHaveLength(0);
+  });
+
+  it('rejects an ack for a recording that is not the current one', async () => {
+    start();
+    await ack('p1', 'some-old-recording');
+    expect(player.last('error')?.d.code).toBe('stale_recording');
+    // …and nothing was stored: a reconnect still gets the cue.
+    t.hub.closed('p1');
+    const back = await connect(t, 'p2', 'player');
+    expect(back.last('recording.state')?.d.recording).toMatchObject({ acknowledged: false });
+  });
+
+  it('rejects an ack once the recording has stopped', async () => {
+    start();
+    t.hub.announceRecording(t.hub.recording.stop(t.campaignId));
+    await ack('p1');
+    expect(player.last('error')?.d.code).toBe('stale_recording');
+  });
+
+  it('requires a campaign subscription to ack', async () => {
+    start();
+    const loose = await connect(t, 'x1', 'player', false);
+    await t.hub.receive(
+      'x1',
+      frame('recording.ack', { campaignId: t.campaignId, recordingId: 'rec-1' }),
+    );
+    expect(loose.last('error')?.d.code).toBe('not_subscribed');
   });
 });

@@ -4102,6 +4102,7 @@ name = "src-tauri"
 version = "0.2.0"
 dependencies = [
  "rust-livekit",
+ "rust-sync",
  "serde",
  "tauri",
  "tauri-build",

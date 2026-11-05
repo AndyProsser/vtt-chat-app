@@ -18,3 +18,5 @@ export * from './realtime/protocol.js';
 export * from './realtime/replayBuffer.js';
 export * from './realtime/wsServer.js';
 export * from './realtime/valkeyReplayBuffer.js';
+export * from './recording/ackStore.js';
+export * from './recording/recordingState.js';

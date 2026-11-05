@@ -12,6 +12,8 @@ import {
   type ClientFrame,
   type ClientType,
 } from './protocol.js';
+import { MemoryAckStore, type AckStore } from '../recording/ackStore.js';
+import { RecordingState, type RecordingChange } from '../recording/recordingState.js';
 import type { BufferedEvent, ReplayBuffer } from './replayBuffer.js';
 
 /** What the hub needs from a socket. The `ws` adapter and the tests each implement it. */
@@ -34,6 +36,10 @@ export interface HubOptions {
   accounts: AccountService;
   replay: ReplayBuffer;
   presence?: PresenceTracker;
+  /** Whether each campaign is recording. Shared with the REST layer, which changes it. */
+  recording?: RecordingState;
+  /** Who has heard the recording-start cue. */
+  acks?: AckStore;
   now?: () => number;
   /** Drop a connection that hasn't authenticated within this long. */
   authTimeoutMs?: number;
@@ -64,6 +70,8 @@ const CHAT_KINDS = new Set(['chat.message']);
  */
 export class Hub {
   readonly presence: PresenceTracker;
+  readonly recording: RecordingState;
+  private readonly acks: AckStore;
   private readonly connections = new Map<string, ConnState>();
   private readonly now: () => number;
   private readonly authTimeoutMs: number;
@@ -71,6 +79,8 @@ export class Hub {
 
   constructor(private readonly options: HubOptions) {
     this.presence = options.presence ?? new PresenceTracker();
+    this.recording = options.recording ?? new RecordingState();
+    this.acks = options.acks ?? new MemoryAckStore({ now: options.now ?? Date.now });
     this.now = options.now ?? Date.now;
     this.authTimeoutMs = options.authTimeoutMs ?? 5_000;
     this.maxBadFrames = options.maxBadFrames ?? 20;
@@ -142,6 +152,18 @@ export class Hub {
     }
   }
 
+  /**
+   * Tells everyone in the campaign the recording changed (STARTED / PAUSED / RESUMED / STOPPED).
+   * Every client plays its own local cue in response; the server never plays audio.
+   */
+  announceRecording(change: RecordingChange): void {
+    this.broadcast(change.campaignId, 'recording.status', {
+      campaignId: change.campaignId,
+      recordingId: change.recordingId,
+      status: change.event,
+    });
+  }
+
   /** Tells a campaign's subscribers that roles/characters changed (e.g. after a DM swap). */
   announceRosterChanged(campaignId: string): void {
     this.broadcast(campaignId, 'roster.changed', { campaignId });
@@ -198,6 +220,9 @@ export class Hub {
       case 'chat.message':
         await this.chat(state, frame.data as ClientData<'chat.message'>);
         return;
+      case 'recording.ack':
+        await this.recordingAck(state, frame.data as ClientData<'recording.ack'>);
+        return;
     }
   }
 
@@ -247,6 +272,13 @@ export class Hub {
     } else {
       this.send(state, 'snapshot', await this.snapshot(campaignId, membership.role === 'dm'));
     }
+
+    // Always follows the snapshot or the replay, so a client that rejoined mid-recording learns the
+    // current state either way — a replay doesn't carry recording changes it missed.
+    this.send(state, 'recording.state', {
+      campaignId,
+      recording: await this.recordingSnapshot(campaignId, auth.user.id),
+    });
 
     if (newlyOnline) {
       this.broadcast(
@@ -307,6 +339,32 @@ export class Hub {
       data.campaignId,
       'stats.update',
       { campaignId: data.campaignId, userId: auth.user.id, stats },
+      { only: (other) => other.auth !== null && dmIds.has(other.auth.user.id) },
+    );
+  }
+
+  /**
+   * A player reports that the start cue finished playing on their machine. Recorded per player per
+   * recording (with an expiry), and shown to the DM so they can see who has heard it.
+   */
+  private async recordingAck(state: ConnState, data: ClientData<'recording.ack'>): Promise<void> {
+    const auth = state.auth;
+    if (!auth || !this.subscribed(state, data.campaignId)) return;
+    const current = this.recording.current(data.campaignId);
+    // An ack for a recording that has since ended (or a different one) is stale; say so.
+    if (!current || current.recordingId !== data.recordingId) {
+      this.send(state, 'error', {
+        code: 'stale_recording',
+        message: 'that recording is no longer in progress',
+      });
+      return;
+    }
+    await this.acks.ack(data.campaignId, data.recordingId, auth.user.id);
+    const dmIds = await this.dmUserIds(data.campaignId);
+    this.broadcast(
+      data.campaignId,
+      'recording.ack.update',
+      { campaignId: data.campaignId, recordingId: data.recordingId, userId: auth.user.id },
       { only: (other) => other.auth !== null && dmIds.has(other.auth.user.id) },
     );
   }
@@ -393,7 +451,21 @@ export class Hub {
       recentChat: recent
         .filter((event) => CHAT_KINDS.has(event.t))
         .map((event) => ({ seq: event.seq, ...(event.d as object) })),
-      recording: null, // wired up with the recording status work (Stage 5)
+    };
+  }
+
+  /**
+   * The *current* recording state for a joining client, including whether this person has already
+   * heard the cue. The client decides from `acknowledged` whether to play it — a blip-reconnect
+   * says `true` and stays quiet; a late joiner says `false` and hears it before being captured.
+   */
+  private async recordingSnapshot(campaignId: string, viewerId: string) {
+    const current = this.recording.current(campaignId);
+    if (!current) return null;
+    return {
+      recordingId: current.recordingId,
+      status: current.status,
+      acknowledged: await this.acks.hasAcked(campaignId, current.recordingId, viewerId),
     };
   }
 

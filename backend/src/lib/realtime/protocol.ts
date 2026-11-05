@@ -34,6 +34,8 @@ export const clientData = {
     packetLossPct: z.number().min(0).max(100),
   }),
   'chat.message': z.object({ campaignId, text: z.string().min(1).max(4000) }),
+  // "I have heard the recording-start cue for this recording" — sent after the cue finished playing.
+  'recording.ack': z.object({ campaignId, recordingId: z.string().min(1).max(64) }),
 } as const;
 
 export type ClientType = keyof typeof clientData;

@@ -61,6 +61,17 @@ Defaults: buffer the last **500 events or 10 minutes per campaign stream**, whic
 **Epochs.** A sequence number only means something within one event stream. Whenever the stream is lost — the backend restarts with an in-memory buffer, Valkey is flushed — numbering starts again from 1, and a client holding "seq 3" from the old stream would be told it is up to date with a *different* stream, silently skipping events. So every stream has an **epoch** (a random id created with the stream). `snapshot` and `resumed` carry it, the client stores it beside its sequence number and sends both back, and a missing or different epoch always gets a snapshot. (Found while designing the Valkey buffer; fixed in both the TypeScript hub and the Rust client.)
 Reconnect uses exponential backoff with jitter, capped at 30 s.
 
+## Recording frames
+
+| Frame | Direction | Meaning |
+| --- | --- | --- |
+| `recording.status` `{campaignId, recordingId, status}` | server → all in campaign | A transition just happened: `STARTED`, `PAUSED`, `RESUMED` or `STOPPED`. Not buffered for replay. |
+| `recording.state` `{campaignId, recording}` | server → one client | Sent after every `snapshot` **and** `resumed`: `null`, or `{recordingId, status: IN-PROGRESS|PAUSED, acknowledged}` for that viewer. |
+| `recording.ack` `{campaignId, recordingId}` | client → server | "I heard the start cue." Stale ids are refused (`stale_recording`). |
+| `recording.ack.update` `{campaignId, recordingId, userId}` | server → DMs | Who has heard it. |
+
+See [RECORDING-AND-SUMMARIES.md](RECORDING-AND-SUMMARIES.md#the-consent-loop-as-built-2026-11-05) for the full loop.
+
 ## Presence and stats tiers
 
 | Client state | What it sends | Cadence |
