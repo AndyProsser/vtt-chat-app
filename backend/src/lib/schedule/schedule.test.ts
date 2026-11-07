@@ -26,6 +26,8 @@ const CONFIG: BackendConfig = {
   recordingsDir: undefined,
   mediaDir: undefined,
   liveKitApiUrl: 'http://lk.test',
+  webDir: undefined,
+  clientDownloads: {},
 };
 const HOUR = 3_600_000;
 const MIN = 60_000;

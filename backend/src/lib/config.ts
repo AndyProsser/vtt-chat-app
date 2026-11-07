@@ -5,6 +5,12 @@ import {
   DEV_LIVEKIT_URL,
 } from '../consts/index.js';
 
+export interface ClientDownloads {
+  windows?: string;
+  macos?: string;
+  linux?: string;
+}
+
 export interface BackendConfig {
   port: number;
   liveKitUrl: string;
@@ -21,6 +27,10 @@ export interface BackendConfig {
   recordingsDir: string | undefined;
   /** Directory for uploaded files (handouts, soundboard clips). Unset: only text snippets work. */
   mediaDir: string | undefined;
+  /** Built join page (`web/dist`). Unset: no browser pages are served and invites are API-only. */
+  webDir: string | undefined;
+  /** Where players download the tray app, per platform. Shown on the join page; all optional. */
+  clientDownloads: ClientDownloads;
   /** LiveKit's HTTP API as the backend reaches it (room and Egress calls). */
   liveKitApiUrl: string;
 }
@@ -40,6 +50,12 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): BackendConfig 
     valkeyUrl: env.VALKEY_URL || undefined,
     recordingsDir: env.RECORDINGS_DIR || undefined,
     mediaDir: env.MEDIA_DIR || undefined,
+    webDir: env.WEB_DIR || undefined,
+    clientDownloads: {
+      ...(env.CLIENT_URL_WINDOWS ? { windows: env.CLIENT_URL_WINDOWS } : {}),
+      ...(env.CLIENT_URL_MACOS ? { macos: env.CLIENT_URL_MACOS } : {}),
+      ...(env.CLIENT_URL_LINUX ? { linux: env.CLIENT_URL_LINUX } : {}),
+    },
     liveKitApiUrl:
       env.LIVEKIT_API_URL ??
       env.LIVEKIT_HEALTH_URL ??

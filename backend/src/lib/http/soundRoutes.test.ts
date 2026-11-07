@@ -27,6 +27,8 @@ const CONFIG: BackendConfig = {
   recordingsDir: undefined,
   mediaDir: undefined,
   liveKitApiUrl: 'http://lk.test',
+  webDir: undefined,
+  clientDownloads: {},
 };
 
 const OGG = Buffer.concat([Buffer.from('OggS'), Buffer.alloc(60, 3)]);

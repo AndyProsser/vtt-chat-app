@@ -20,6 +20,8 @@ const CONFIG: BackendConfig = {
   valkeyUrl: undefined,
   recordingsDir: undefined,
   liveKitApiUrl: 'http://livekit.test',
+  webDir: undefined,
+  clientDownloads: {},
 };
 
 let server: Server;

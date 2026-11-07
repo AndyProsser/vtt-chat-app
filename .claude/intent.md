@@ -118,3 +118,9 @@ Update this file as threads open, progress, or close — stale entries here are 
 - **Local player identity not exposed to the overlay** — moot; the overlay is gone.
 - **`.claude/` restructure (2026-09-09).** Moved root `CLAUDE.md` → `.claude/CLAUDE.md` and added
   this file and `memory.md`, mirroring `HomeLab`.
+
+## First run is browser-based (decided 2026-11-07)
+
+Invite link → browser join page (create account, consent, join, app download + instructions) → the
+app is install-and-sign-in only. See `docs/architecture/JOIN-FLOW.md`. The app needs a sign-in
+screen, not a sign-up flow.

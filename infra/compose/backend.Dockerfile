@@ -14,6 +14,7 @@ COPY backend/package.json backend/
 COPY ai/package.json ai/
 COPY ddb/package.json ddb/
 COPY status/package.json status/
+COPY web/package.json web/
 COPY tauri-client/panels-ui/package.json tauri-client/panels-ui/
 
 FROM manifests AS build
@@ -22,6 +23,11 @@ COPY shared shared
 COPY ai ai
 COPY backend backend
 RUN npm run build -w shared -w ai -w backend
+
+FROM manifests AS web
+RUN npm ci -w web
+COPY web web
+RUN npm run build -w web
 
 FROM manifests AS deps
 RUN npm ci --omit=dev -w backend -w ai -w shared && npm cache clean --force
@@ -37,6 +43,8 @@ COPY --from=build /app/ai/dist ai/dist
 COPY --from=build /app/backend/package.json backend/package.json
 COPY --from=build /app/backend/dist backend/dist
 COPY backend/migrations backend/migrations
+# The browser join page (invite → account → app download), served by the backend at /join.
+COPY --from=web /app/web/dist web/dist
 
 FROM app AS worker
 # ffmpeg/ffprobe cut each track into speech windows; Whisper and the LLM are separate services.
@@ -47,7 +55,7 @@ CMD ["node", "ai/dist/cli/worker.js"]
 FROM app AS backend
 USER node
 EXPOSE 3000
-ENV PORT=3000
+ENV PORT=3000 WEB_DIR=/app/web/dist
 HEALTHCHECK --interval=10s --timeout=3s --retries=5 \
   CMD node -e "fetch('http://127.0.0.1:'+process.env.PORT+'/api/health').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"
 CMD ["node", "backend/dist/index.js"]

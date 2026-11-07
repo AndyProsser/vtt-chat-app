@@ -88,7 +88,7 @@ vtt-chat-app/
 │   ├── rust-sync/         # Native Rust WebSocket client: presence, chat, resume/replay
 │   └── panels-ui/         # TS/React panels (chat, handouts, loot, RSVP, DM soundboard)
 │                          #   (replaced the old overlay-ui/ in Stage 1)
-├── web/                   # Mobile-first SPA (messages, RSVP, handouts, listen/talk) — planned
+├── web/                   # Browser pages: the invite/join page (built); mobile SPA planned
 ├── ai/                    # Records pipeline worker: transcode, Whisper, diarize, summarise
 ├── ddb/                   # OPTIONAL D&D Beyond character import (public pages)
 ├── status/                # Public status page (React + Radix)

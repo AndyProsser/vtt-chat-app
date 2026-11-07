@@ -49,6 +49,10 @@ services:
       VALKEY_URL: redis://valkey:6379
       # Uploaded handouts and soundboard clips (type- and size-checked, served only to those allowed).
       MEDIA_DIR: /data/media
+      # Where the join page tells players to download the app (all optional; set in .env).
+      CLIENT_URL_WINDOWS: ${CLIENT_URL_WINDOWS:-}
+      CLIENT_URL_MACOS: ${CLIENT_URL_MACOS:-}
+      CLIENT_URL_LINUX: ${CLIENT_URL_LINUX:-}
       LIVEKIT_URL: wss://${SITE_ADDRESS:?run ./setup.sh first}/livekit
       LIVEKIT_API_KEY: ${LIVEKIT_API_KEY}
       LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET}

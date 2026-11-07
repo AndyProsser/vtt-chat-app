@@ -26,6 +26,8 @@ const CONFIG: BackendConfig = {
   recordingsDir: undefined,
   mediaDir: undefined,
   liveKitApiUrl: 'http://lk.test',
+  webDir: undefined,
+  clientDownloads: {},
 };
 
 const PNG = Buffer.concat([

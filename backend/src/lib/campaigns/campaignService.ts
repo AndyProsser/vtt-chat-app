@@ -88,6 +88,22 @@ export class CampaignService {
     await this.store.putInvite({ ...invite, revokedAt: this.clock.now() });
   }
 
+  /**
+   * What the public join page may show for a code: the campaign's name and the consent version the sign-up form must submit. A bad,
+   * expired or revoked code is the same `invite_invalid` as when joining, so this can't be used to
+   * tell the cases apart.
+   */
+  async previewInvite(code: string): Promise<{ campaignName: string; consentVersion: string }> {
+    const invite = await this.store.getInviteByHash(hashSecret(normaliseCode(code)));
+    if (!invite || invite.revokedAt !== null || invite.expiresAt <= this.clock.now()) {
+      throw new DomainError('invite_invalid');
+    }
+    const campaign = await this.store.getCampaign(invite.campaignId);
+    if (!campaign) throw new DomainError('invite_invalid');
+    const settings = await this.store.getSettings();
+    return { campaignName: campaign.name, consentVersion: settings.consentVersion };
+  }
+
   /** Joins as a player. Using the code again while already a member is harmless and not counted. */
   async joinWithInvite(user: User, code: string): Promise<Membership> {
     const invite = await this.store.getInviteByHash(hashSecret(normaliseCode(code)));

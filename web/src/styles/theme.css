@@ -1,0 +1,24 @@
+body {
+  margin: 0;
+}
+
+.join-shell {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  background: radial-gradient(circle at 20% 0%, var(--accent-3), transparent 55%), var(--color-background);
+}
+
+.join-card {
+  width: 100%;
+  max-width: 460px;
+}
+
+.join-steps {
+  margin: 0;
+  padding-left: 1.2em;
+  display: grid;
+  gap: 8px;
+}

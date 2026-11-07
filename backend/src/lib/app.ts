@@ -4,6 +4,7 @@ import express, { type Express } from 'express';
 import { AccountService } from './auth/accountService.js';
 import { CampaignService } from './campaigns/campaignService.js';
 import type { BackendConfig } from './config.js';
+import { inviteRoutes, webPages } from './http/joinRoutes.js';
 import { authRoutes } from './http/authRoutes.js';
 import { campaignRoutes } from './http/campaignRoutes.js';
 import { NoMailTransport, type MagicLinkSender } from './http/delivery.js';
@@ -108,6 +109,16 @@ export function createApp({
     res.status(200).json({ status: 'ok' });
   });
 
+  const inviteLimiter = new RateLimiter(20, 15 * MINUTE);
+  app.use(
+    '/api/invites',
+    inviteRoutes({ campaigns, downloads: config.clientDownloads, inviteLimiter }),
+  );
+  if (config.webDir) {
+    const pages = webPages(config.webDir);
+    if (pages) app.use(pages);
+  }
+
   app.use(
     '/api/auth',
     authRoutes({
@@ -129,7 +140,7 @@ export function createApp({
         apiKey: config.liveKitApiKey,
         apiSecret: config.liveKitApiSecret,
       },
-      inviteLimiter: new RateLimiter(20, 15 * MINUTE),
+      inviteLimiter,
       recording: recording ?? new RecordingState(),
       ...(realtime ? { onRosterChanged: (id: string) => realtime.announceRosterChanged(id) } : {}),
       ...(realtime
