@@ -133,6 +133,10 @@ depends on measured CPU headroom.
   text**. A changed text re-prompts on next sign-in. The per-recording **cue** still plays: sign-up
   consent is the standing agreement, the cue is the in-the-moment notice.
 
+### Capture as built (2026-11-07)
+
+`RecordingCapture` (backend) follows the server's recording flag. On **start** it writes a durable `recordings` row and a `started` bookmark. It records a player's track only **after that player's app has acknowledged the start cue** (the reconciler runs on start, on every acknowledgement, and every 5 s, so late and re-published tracks need no webhooks). **Pause stops every file; resume starts new ones**, so one speaker can have several tracks per recording, each with a start offset relative to the recording. On **stop** it registers every finished file as a `recording_tracks` row and queues one `process-recording` job. LiveKit/Egress trouble is logged and retried; it never changes the recording state clients see. Files are named `<recording>/<account-id>@<time>`; the account id is the speaker, the transcript shows the active character or display name.
+
 ### The consent loop as built (2026-11-05)
 
 The **server** owns the recording state (an id plus a status) and the per-player acknowledgements; each **client** plays its own local cue.
