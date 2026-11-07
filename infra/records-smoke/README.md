@@ -2,9 +2,11 @@
 
 Throwaway scripts that prove the server-side records chain on a real Linux box and **measure it** for the sizing numbers in [DEPLOYMENT-AND-TRANSPORT.md](../../docs/architecture/DEPLOYMENT-AND-TRANSPORT.md) and [RECORDING-AND-SUMMARIES.md](../../docs/architecture/RECORDING-AND-SUMMARIES.md). Nothing here is production code; Stage 5 replaces it with the job queue.
 
-**Status:** written but **not yet run** — it needs a Linux dev server, which the author did not have access to. The Egress config in particular is unverified. Record what actually happened in [AUDIO-SPIKE-RESULTS.md](../../docs/architecture/AUDIO-SPIKE-RESULTS.md).
+**Status:** run end to end on 2026-11-07 on a Linux dev PC — results and the design consequences are in [AUDIO-SPIKE-RESULTS.md](../../docs/architecture/AUDIO-SPIKE-RESULTS.md) (Finding 4). Docker is the easiest way to get the pieces: the Compose bundle's `records` profile runs Egress, and [whisper-docker.sh](whisper-docker.sh) stands in for a native `whisper-cli` (`--whisper-bin infra/records-smoke/whisper-docker.sh`).
 
-## What you need on the server (all native, no Docker)
+**GPU:** `whisper-cuda.Dockerfile` builds whisper.cpp for Pascal and newer cards (upstream's prebuilt CUDA image does not support GTX 10-series). Then `WHISPER_IMAGE=vtt-whisper-cuda WHISPER_GPU=1 node ai/dist/cli/records-smoke.js --whisper-bin infra/records-smoke/whisper-docker.sh …`. `records-smoke` segments each track into speech windows by default; `--whole-track` restores the old behaviour for comparison, and `--noise-db` tunes the silence threshold (default -40 dB).
+
+## What you need on the server (native; or use Docker as above)
 
 | Piece                           | Used for                        | Notes                                                        |
 | ------------------------------- | ------------------------------- | ------------------------------------------------------------ |

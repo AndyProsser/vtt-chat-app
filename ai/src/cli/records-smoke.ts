@@ -18,12 +18,14 @@ import path from 'node:path';
 import { parseArgs, promisify } from 'node:util';
 
 import { DEFAULT_OLLAMA_URL } from '../consts/index.js';
+import { detectSilences, extractWindowWav, probeDurationMs } from '../lib/ffmpeg.js';
 import { formatTranscript } from '../lib/format.js';
 import { mergeTranscripts } from '../lib/merge.js';
 import { createOllamaGenerate } from '../lib/ollama.js';
+import { speechWindows, transcribeWindows } from '../lib/speechWindows.js';
 import { summarise } from '../lib/summarise.js';
-import { parseWhisperJson } from '../lib/whisperJson.js';
-import type { SummaryKind, TrackTranscript } from '../types/index.js';
+import { transcribeWavWithWhisperCli } from '../lib/whisperCli.js';
+import type { Segment, SummaryKind, TrackTranscript } from '../types/index.js';
 
 const run = promisify(execFile);
 
@@ -81,11 +83,14 @@ async function main(): Promise<void> {
       model: { type: 'string' },
       'ollama-model': { type: 'string' },
       'ollama-url': { type: 'string', default: DEFAULT_OLLAMA_URL },
-      'whisper-bin': { type: 'string', default: 'whisper-cli' },
+      'whisper-bin': { type: 'string' },
       names: { type: 'string' },
       out: { type: 'string', default: 'records-smoke-out' },
       kind: { type: 'string', default: 'session' },
       threads: { type: 'string' },
+      language: { type: 'string' },
+      'noise-db': { type: 'string' },
+      'whole-track': { type: 'boolean', default: false },
     },
   });
 
@@ -116,18 +121,61 @@ async function main(): Promise<void> {
     const wav = path.join(out, `${parsed.speakerId}.16k.wav`);
     const jsonBase = path.join(out, parsed.speakerId);
 
-    const transcode = await seconds(() =>
-      run('ffmpeg', ['-y', '-v', 'error', '-i', source, '-ar', '16000', '-ac', '1', wav]),
-    );
-    const duration = await audioDurationSeconds(wav);
+    const whisper = {
+      ...(values['whisper-bin'] ? { bin: values['whisper-bin'] } : {}),
+      modelPath: values.model,
+      ...(values.threads ? { threads: Number(values.threads) } : {}),
+      ...(values.language ? { language: values.language } : {}),
+    };
 
-    const whisperArgs = ['-m', values.model, '-f', wav, '-oj', '-of', jsonBase];
-    if (values.threads) whisperArgs.push('-t', values.threads);
-    const transcribe = await seconds(() =>
-      run(values['whisper-bin'] ?? 'whisper-cli', whisperArgs),
-    );
+    let segments: Segment[];
+    let duration: number;
+    let transcodeSeconds = 0;
+    let transcribeSeconds: number;
+    let windowCount = 1;
+    let speechSeconds: number;
 
-    const segments = parseWhisperJson(JSON.parse(await readFile(`${jsonBase}.json`, 'utf8')));
+    if (values['whole-track']) {
+      // The old behaviour, kept for comparison: Whisper over the entire track.
+      const transcode = await seconds(() =>
+        run('ffmpeg', ['-y', '-v', 'error', '-i', source, '-ar', '16000', '-ac', '1', wav]),
+      );
+      transcodeSeconds = transcode.seconds;
+      duration = await audioDurationSeconds(wav);
+      speechSeconds = duration;
+      const transcribe = await seconds(() => transcribeWavWithWhisperCli(wav, jsonBase, whisper));
+      transcribeSeconds = transcribe.seconds;
+      segments = transcribe.value;
+    } else {
+      // Segment into speech windows, transcribe each, and put the timestamps back (speechWindows.ts).
+      const durationMs = await probeDurationMs(source);
+      duration = durationMs / 1000;
+      const silences = await detectSilences(source, durationMs, {
+        ...(values['noise-db'] ? { noiseDb: Number(values['noise-db']) } : {}),
+      });
+      const windows = speechWindows(silences, durationMs);
+      windowCount = windows.length;
+      speechSeconds = windows.reduce((sum, w) => sum + (w.endMs - w.startMs), 0) / 1000;
+      const windowDir = path.join(out, `${parsed.speakerId}-windows`);
+      await mkdir(windowDir, { recursive: true });
+      const transcribe = await seconds(() =>
+        transcribeWindows(windows, {
+          transcribeWindow: async (window, index) => {
+            const base = path.join(windowDir, String(index).padStart(4, '0'));
+            await extractWindowWav(source, window, `${base}.wav`);
+            return transcribeWavWithWhisperCli(`${base}.wav`, base, whisper);
+          },
+          onProgress: (done, total) => {
+            if (done === total || done % 25 === 0) {
+              console.log(`  ${parsed.speakerId}: window ${done}/${total}`);
+            }
+          },
+        }),
+      );
+      transcribeSeconds = transcribe.seconds;
+      segments = transcribe.value;
+    }
+
     tracks.push({
       speaker: { id: parsed.speakerId, name: names[parsed.speakerId] ?? parsed.speakerId },
       startOffsetMs: parsed.startOffsetMs,
@@ -136,16 +184,21 @@ async function main(): Promise<void> {
 
     timings.push({
       speaker: parsed.speakerId,
+      mode: values['whole-track'] ? 'whole-track' : 'speech-windows',
       audioSeconds: duration,
-      transcodeSeconds: transcode.seconds,
-      transcribeSeconds: transcribe.seconds,
-      // Below 1.0 = faster than real time. This is the number the server sizing needs.
-      whisperRealTimeFactor: transcribe.seconds / duration,
+      speechSeconds,
+      windows: windowCount,
+      transcodeSeconds,
+      transcribeSeconds,
+      // Below 1.0 = faster than real time. Against the whole track, and against speech only.
+      whisperRealTimeFactor: transcribeSeconds / duration,
+      whisperRealTimeFactorOnSpeech: transcribeSeconds / Math.max(speechSeconds, 1),
       segments: segments.length,
     });
     console.log(
-      `${parsed.speakerId}: ${duration.toFixed(0)} s audio, whisper ${transcribe.seconds.toFixed(1)} s ` +
-        `(RTF ${(transcribe.seconds / duration).toFixed(2)}), ${segments.length} segments`,
+      `${parsed.speakerId}: ${duration.toFixed(0)} s audio (${speechSeconds.toFixed(0)} s speech, ` +
+        `${windowCount} window(s)), whisper ${transcribeSeconds.toFixed(1)} s ` +
+        `(RTF ${(transcribeSeconds / duration).toFixed(2)}), ${segments.length} segments`,
     );
   }
 

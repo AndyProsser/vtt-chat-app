@@ -2,7 +2,7 @@
 
 The **records pipeline**: transcode → transcribe → diarize-by-track → summarise. **Core**, not optional — see [CLAUDE.md §8.4](../.claude/CLAUDE.md) and [docs/architecture/RECORDING-AND-SUMMARIES.md](../docs/architecture/RECORDING-AND-SUMMARIES.md).
 
-**Status:** the pure library exists and is unit-tested — whisper.cpp JSON parsing, per-speaker merge (private tracks dropped), chunking, map-reduce summaries, an Ollama client — plus `src/cli/records-smoke.ts`, a throwaway end-to-end runner for [ROADMAP Stage 2 Part B](../ROADMAP.md#stage-2--audio--records-spike) (runbook: [infra/records-smoke/](../infra/records-smoke/README.md); **not yet run** against real audio). The job queue, storage and provider registry are Stage 5.
+**Status:** the pure library exists and is unit-tested — speech-window segmentation (ffmpeg `silencedetect` → padded, merged windows → per-window Whisper → offsets restored; see AUDIO-SPIKE-RESULTS.md Finding 5), whisper.cpp JSON parsing, per-speaker merge (private tracks dropped), chunking, map-reduce summaries, an Ollama client — plus `src/cli/records-smoke.ts`, a throwaway end-to-end runner for [ROADMAP Stage 2 Part B](../ROADMAP.md#stage-2--audio--records-spike) (runbook: [infra/records-smoke/](../infra/records-smoke/README.md); **not yet run** against real audio). The job queue, storage and provider registry are Stage 5.
 
 ## Responsibilities
 

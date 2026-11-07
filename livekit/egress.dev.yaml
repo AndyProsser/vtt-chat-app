@@ -1,9 +1,8 @@
 # LiveKit Egress — DEVELOPMENT config for the Stage 2 smoke test.
 # Run:  egress --config egress.dev.yaml
 #
-# UNVERIFIED: written from LiveKit's documented keys without a server to test against. The Stage 2
-# smoke run is what confirms (or corrects) this file — record the outcome in
-# docs/architecture/AUDIO-SPIKE-RESULTS.md. Track egress writes files to the Egress host's local
+# Verified 2026-11-07 (Egress v1.15.0): these keys are enough for per-speaker track egress to a
+# local directory. The Compose bundle (infra/compose, profile "records") passes the same keys. Track egress writes files to the Egress host's local
 # disk when no cloud storage block is configured, which is exactly the self-host default.
 
 log_level: info
