@@ -27,3 +27,14 @@ export const DEFAULT_PAD_MS = 400;
 export const DEFAULT_MERGE_GAP_MS = 2_000;
 /** Whisper's native context is 30 s; 60 s keeps sentences intact without long-form drift. */
 export const DEFAULT_MAX_WINDOW_MS = 60_000;
+
+// --- Providers (lib/providers/) ------------------------------------------------------------------
+
+/** A single transcription or summary call may legitimately take minutes on CPU. */
+export const DEFAULT_PROVIDER_TIMEOUT_MS = 15 * 60_000;
+/** How long to wait between attempts while a remote backend is unreachable. */
+export const DEFAULT_RETRY_INTERVAL_MS = 30_000;
+/** How long a remote may stay unreachable before a job falls back to local (CLAUDE.md §5). */
+export const DEFAULT_FALLBACK_AFTER_MS = 10 * 60_000;
+/** A segment Whisper itself thinks is probably not speech, when the server reports it. */
+export const DEFAULT_MAX_NO_SPEECH_PROB = 0.8;

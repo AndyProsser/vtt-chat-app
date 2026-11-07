@@ -22,6 +22,8 @@ import { detectSilences, extractWindowWav, probeDurationMs } from '../lib/ffmpeg
 import { formatTranscript } from '../lib/format.js';
 import { mergeTranscripts } from '../lib/merge.js';
 import { createOllamaGenerate } from '../lib/ollama.js';
+import { createFailover } from '../lib/providers/failover.js';
+import { createOpenAiGenerate, createOpenAiTranscribe } from '../lib/providers/openaiCompat.js';
 import { speechWindows, transcribeWindows } from '../lib/speechWindows.js';
 import { summarise } from '../lib/summarise.js';
 import { transcribeWavWithWhisperCli } from '../lib/whisperCli.js';
@@ -90,13 +92,25 @@ async function main(): Promise<void> {
       threads: { type: 'string' },
       language: { type: 'string' },
       'noise-db': { type: 'string' },
+      // Remote/alternative backends (OpenAI-compatible). The local whisper.cpp stays the fallback.
+      'whisper-url': { type: 'string' },
+      'whisper-remote-model': { type: 'string', default: 'whisper-1' },
+      'fallback-after-sec': { type: 'string' },
+      'no-fallback': { type: 'boolean', default: false },
+      'llm-url': { type: 'string' },
+      'llm-model': { type: 'string' },
       'whole-track': { type: 'boolean', default: false },
     },
   });
 
-  if (!values.tracks || !values.model || !values['ollama-model']) {
-    throw new Error('required: --tracks <dir> --model <whisper ggml model> --ollama-model <name>');
+  if (!values.tracks || (!values.model && !values['whisper-url'])) {
+    throw new Error('required: --tracks <dir> and --model <ggml model> and/or --whisper-url <url>');
   }
+  if (!values['ollama-model'] && !values['llm-model']) {
+    throw new Error('required: --ollama-model <name> (or --llm-url with --llm-model)');
+  }
+  const apiKey = process.env.WHISPER_API_KEY || undefined;
+  const llmKey = process.env.LLM_API_KEY || undefined;
   const kind = values.kind as SummaryKind;
   if (!['session', 'dm-only', 'character'].includes(kind)) {
     throw new Error(`--kind must be session, dm-only or character (got "${values.kind}")`);
@@ -119,14 +133,43 @@ async function main(): Promise<void> {
   for (const { fileName, parsed } of files) {
     const source = path.join(values.tracks, fileName);
     const wav = path.join(out, `${parsed.speakerId}.16k.wav`);
-    const jsonBase = path.join(out, parsed.speakerId);
 
-    const whisper = {
-      ...(values['whisper-bin'] ? { bin: values['whisper-bin'] } : {}),
-      modelPath: values.model,
-      ...(values.threads ? { threads: Number(values.threads) } : {}),
-      ...(values.language ? { language: values.language } : {}),
-    };
+    const language = values.language ?? 'en';
+    const local = values.model
+      ? {
+          ...(values['whisper-bin'] ? { bin: values['whisper-bin'] } : {}),
+          modelPath: values.model,
+          ...(values.threads ? { threads: Number(values.threads) } : {}),
+          language,
+        }
+      : undefined;
+    const localTranscribe = local
+      ? (wav: string): Promise<Segment[]> =>
+          transcribeWavWithWhisperCli(wav, wav.replace(/\.wav$/, ''), local)
+      : undefined;
+    // One failover per track = one job: a remote that goes away mid-track falls back for the rest of it.
+    const failover = values['whisper-url']
+      ? createFailover(
+          createOpenAiTranscribe({
+            baseUrl: values['whisper-url'],
+            model: values['whisper-remote-model'] ?? 'whisper-1',
+            language,
+            ...(apiKey ? { apiKey } : {}),
+          }),
+          localTranscribe,
+          {
+            ...(values['no-fallback']
+              ? { fallbackAfterMs: undefined }
+              : values['fallback-after-sec']
+                ? { fallbackAfterMs: Number(values['fallback-after-sec']) * 1000 }
+                : {}),
+            onFallback: (reason) =>
+              console.warn(`  ${parsed.speakerId}: falling back to local — ${reason}`),
+          },
+        )
+      : undefined;
+    const transcribeWav = failover?.call ?? localTranscribe;
+    if (!transcribeWav) throw new Error('no transcription backend configured');
 
     let segments: Segment[];
     let duration: number;
@@ -143,7 +186,7 @@ async function main(): Promise<void> {
       transcodeSeconds = transcode.seconds;
       duration = await audioDurationSeconds(wav);
       speechSeconds = duration;
-      const transcribe = await seconds(() => transcribeWavWithWhisperCli(wav, jsonBase, whisper));
+      const transcribe = await seconds(() => transcribeWav(wav));
       transcribeSeconds = transcribe.seconds;
       segments = transcribe.value;
     } else {
@@ -163,7 +206,7 @@ async function main(): Promise<void> {
           transcribeWindow: async (window, index) => {
             const base = path.join(windowDir, String(index).padStart(4, '0'));
             await extractWindowWav(source, window, `${base}.wav`);
-            return transcribeWavWithWhisperCli(`${base}.wav`, base, whisper);
+            return transcribeWav(`${base}.wav`);
           },
           onProgress: (done, total) => {
             if (done === total || done % 25 === 0) {
@@ -197,7 +240,7 @@ async function main(): Promise<void> {
     });
     console.log(
       `${parsed.speakerId}: ${duration.toFixed(0)} s audio (${speechSeconds.toFixed(0)} s speech, ` +
-        `${windowCount} window(s)), whisper ${transcribeSeconds.toFixed(1)} s ` +
+        `${windowCount} window(s)), whisper ${transcribeSeconds.toFixed(1)} s on ${failover?.backend() ?? 'local'} ` +
         `(RTF ${(transcribeSeconds / duration).toFixed(2)}), ${segments.length} segments`,
     );
   }
@@ -205,11 +248,18 @@ async function main(): Promise<void> {
   const utterances = mergeTranscripts(tracks);
   await writeFile(path.join(out, 'transcript.txt'), `${formatTranscript(utterances).join('\n')}\n`);
 
-  const generate = createOllamaGenerate({
-    model: values['ollama-model'],
-    baseUrl: values['ollama-url'],
-    numCtx: 8192,
-  });
+  const generate =
+    values['llm-url'] && values['llm-model']
+      ? createOpenAiGenerate({
+          baseUrl: values['llm-url'],
+          model: values['llm-model'],
+          ...(llmKey ? { apiKey: llmKey } : {}),
+        })
+      : createOllamaGenerate({
+          model: values['ollama-model'] ?? '',
+          baseUrl: values['ollama-url'],
+          numCtx: 8192,
+        });
   const summary = await seconds(() => summarise(generate, utterances, { kind }));
   await writeFile(path.join(out, `summary-${kind}.md`), `${summary.value.text}\n`);
   timings.push({ summariseSeconds: summary.seconds, modelCalls: summary.value.modelCalls });

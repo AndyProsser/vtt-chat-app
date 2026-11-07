@@ -43,3 +43,9 @@ export interface SummaryContext {
 
 /** Sends a prompt to a language model and returns its text. Local (Ollama) by default. */
 export type GenerateText = (prompt: string) => Promise<string>;
+
+/**
+ * Transcribes one short WAV (a speech window) and returns segments with times relative to the
+ * start of that file. Local whisper.cpp and any OpenAI-compatible server both fit this shape.
+ */
+export type TranscribeWav = (wavPath: string) => Promise<Segment[]>;

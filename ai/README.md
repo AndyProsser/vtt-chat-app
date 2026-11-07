@@ -15,7 +15,7 @@ The **records pipeline**: transcode → transcribe → diarize-by-track → summ
 
 ## Providers are an interface
 
-Transcription and summarisation sit behind provider interfaces. The default implementations (`whisper-cpp`, `ollama`) are local. Cloud providers (OpenAI Whisper, a cloud LLM, Workers AI) are **optional adapters** that an operator must enable explicitly; the UI must say when session content is configured to leave the server. The default path must work with all of them absent.
+Transcription and summarisation sit behind provider interfaces (`lib/providers/`): `createOpenAiTranscribe` (`POST /v1/audio/transcriptions`, `verbose_json` segments required) and `createOpenAiGenerate` (`/v1/chat/completions`, which Ollama also serves) reach a GPU box, a container or a cloud API; `createFailover` waits and retries while the remote is unreachable, then switches to the local backend after a configurable timeout (or never, if the fallback is off), and stays there for the rest of the job. Only "unreachable" (network error, 408, 429, 5xx) triggers it; a 4xx is a configuration error and fails loudly. The default implementations (`whisper-cpp`, `ollama`) are local. Cloud providers (OpenAI Whisper, a cloud LLM, Workers AI) are **optional adapters** that an operator must enable explicitly; the UI must say when session content is configured to leave the server. The default path must work with all of them absent.
 
 ## Hard rules
 

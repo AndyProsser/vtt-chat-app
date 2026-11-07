@@ -4,6 +4,7 @@ export * from './format.js';
 export * from './merge.js';
 export * from './ollama.js';
 export * from './prompts.js';
+export * from './providers/index.js';
 export * from './speechWindows.js';
 export * from './summarise.js';
 export * from './whisperCli.js';

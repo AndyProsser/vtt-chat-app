@@ -6,6 +6,8 @@ Throwaway scripts that prove the server-side records chain on a real Linux box a
 
 **GPU:** `whisper-cuda.Dockerfile` builds whisper.cpp for Pascal and newer cards (upstream's prebuilt CUDA image does not support GTX 10-series). Then `WHISPER_IMAGE=vtt-whisper-cuda WHISPER_GPU=1 node ai/dist/cli/records-smoke.js --whisper-bin infra/records-smoke/whisper-docker.sh …`. `records-smoke` segments each track into speech windows by default; `--whole-track` restores the old behaviour for comparison, and `--noise-db` tunes the silence threshold (default -40 dB).
 
+**Remote or alternative backends:** `--whisper-url http://gpu-pc:8080` (an OpenAI-compatible `/v1/audio/transcriptions`; `WHISPER_API_KEY` if it needs one) and `--llm-url … --llm-model …` (`/v1/chat/completions`; `LLM_API_KEY`). With `--model` also given, the local whisper.cpp is the fallback after `--fallback-after-sec` (default 600) of the remote being unreachable; `--no-fallback` waits indefinitely instead. A whisper.cpp server speaks this API with `whisper-server --inference-path /v1/audio/transcriptions`.
+
 ## What you need on the server (native; or use Docker as above)
 
 | Piece                           | Used for                        | Notes                                                        |
