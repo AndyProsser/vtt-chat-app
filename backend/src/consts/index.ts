@@ -1,3 +1,5 @@
+import { DEFAULT_AI_SETTINGS } from '@vtt-chat-app/shared';
+
 import type { InstanceSettings } from '../types/index.js';
 
 export const DEFAULT_PORT = 4000;
@@ -17,6 +19,7 @@ export const DEFAULT_INSTANCE_SETTINGS: InstanceSettings = {
   offlineLimitDays: 30,
   inviteExpiryDays: 7,
   consentVersion: '1',
+  ai: DEFAULT_AI_SETTINGS,
 };
 
 export const MAGIC_LINK_TTL_MINUTES = 15;

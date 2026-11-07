@@ -49,6 +49,8 @@ export class MemoryStore implements Store {
   };
 
   countUsers = async (): Promise<number> => this.data.users.size;
+  listUsers = async (): Promise<User[]> =>
+    [...this.data.users.values()].sort((a, b) => a.createdAt - b.createdAt).map(copy);
   getUser = async (id: string): Promise<User | undefined> =>
     copyOrUndefined(this.data.users.get(id));
   getUserByEmail = async (email: string): Promise<User | undefined> =>

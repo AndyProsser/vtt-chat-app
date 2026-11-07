@@ -1,3 +1,4 @@
+import { normaliseAiSettings } from '@vtt-chat-app/shared';
 import pg from 'pg';
 
 import { DEFAULT_INSTANCE_SETTINGS } from '../../consts/index.js';
@@ -156,16 +157,23 @@ export class PostgresStore implements Store {
       offlineLimitDays: r.offline_limit_days as number,
       inviteExpiryDays: r.invite_expiry_days as number,
       consentVersion: r.consent_version as string,
+      ai: normaliseAiSettings(r.ai),
     };
   }
 
   async putSettings(s: InstanceSettings): Promise<void> {
     await this.db.query(
-      `INSERT INTO instance_settings (id, campaign_creation, offline_limit_days, invite_expiry_days, consent_version)
-       VALUES (1, $1, $2, $3, $4)
+      `INSERT INTO instance_settings (id, campaign_creation, offline_limit_days, invite_expiry_days, consent_version, ai)
+       VALUES (1, $1, $2, $3, $4, $5)
        ON CONFLICT (id) DO UPDATE SET campaign_creation = $1, offline_limit_days = $2,
-         invite_expiry_days = $3, consent_version = $4`,
-      [s.campaignCreation, s.offlineLimitDays, s.inviteExpiryDays, s.consentVersion],
+         invite_expiry_days = $3, consent_version = $4, ai = $5`,
+      [
+        s.campaignCreation,
+        s.offlineLimitDays,
+        s.inviteExpiryDays,
+        s.consentVersion,
+        JSON.stringify(s.ai),
+      ],
     );
   }
 
@@ -173,6 +181,9 @@ export class PostgresStore implements Store {
     const { rows } = await this.db.query<{ n: string }>('SELECT count(*) AS n FROM users');
     return Number(rows[0]?.n ?? 0);
   }
+
+  listUsers = (): Promise<User[]> =>
+    this.many(toUser, 'SELECT * FROM users ORDER BY created_at, id');
 
   getUser = (id: string): Promise<User | undefined> =>
     this.one(toUser, 'SELECT * FROM users WHERE id = $1', [id]);

@@ -64,6 +64,22 @@ describe(`Store contract (${backend.kind})`, () => {
     expect(await store.listMemberships('nope')).toEqual([]);
   });
 
+  it('round-trips AI settings, including the remote URL and the fallback policy', async () => {
+    const settings = await store.getSettings();
+    expect(settings.ai.transcription.kind).toBe('local');
+    await store.putSettings({
+      ...settings,
+      ai: {
+        ...settings.ai,
+        transcription: { ...settings.ai.transcription, kind: 'remote', url: 'http://gpu:8080' },
+        fallback: { enabled: false, afterSeconds: 90, retrySeconds: 5 },
+      },
+    });
+    const back = await store.getSettings();
+    expect(back.ai.transcription).toMatchObject({ kind: 'remote', url: 'http://gpu:8080' });
+    expect(back.ai.fallback).toEqual({ enabled: false, afterSeconds: 90, retrySeconds: 5 });
+  });
+
   it('returns the seeded default settings on a fresh store', async () => {
     expect(await store.getSettings()).toMatchObject({
       campaignCreation: 'closed',
@@ -165,7 +181,7 @@ describe.skipIf(TEST_DATABASE_URL === undefined)('migrate', () => {
     await admin.query(`CREATE SCHEMA ${schema}`);
     const pool = createPool(TEST_DATABASE_URL ?? '', { options: `-c search_path=${schema}` });
     try {
-      expect(await migrate(pool)).toEqual(['0001_init.sql']);
+      expect(await migrate(pool)).toEqual(['0001_init.sql', '0002_ai_settings.sql']);
       expect(await migrate(pool)).toEqual([]);
     } finally {
       await pool.end();

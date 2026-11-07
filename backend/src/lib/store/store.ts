@@ -19,6 +19,8 @@ export interface Store {
   putSettings(settings: InstanceSettings): Promise<void>;
 
   countUsers(): Promise<number>;
+  /** Every account, oldest first. For the Admin CLI; not used on a request path. */
+  listUsers(): Promise<User[]>;
   getUser(id: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   putUser(user: User): Promise<void>;

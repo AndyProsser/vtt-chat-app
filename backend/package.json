@@ -28,5 +28,8 @@
     "jose": "^6.0.0",
     "typescript": "^7.0.2",
     "vitest": "^5.1.0"
+  },
+  "bin": {
+    "vtt-admin": "dist/cli/main.js"
   }
 }

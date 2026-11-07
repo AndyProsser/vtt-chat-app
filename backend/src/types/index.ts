@@ -1,3 +1,5 @@
+import type { AiSettings } from '@vtt-chat-app/shared';
+
 /**
  * Domain types for accounts, campaigns and sessions. The shapes match
  * `backend/migrations/0001_init.sql`; the decisions behind them are in CLAUDE.md §11.
@@ -102,4 +104,6 @@ export interface InstanceSettings {
   inviteExpiryDays: number;
   /** The current "you may be recorded" text version; a change re-prompts at next sign-in. */
   consentVersion: string;
+  /** Where Whisper and the LLM run, and what happens when a remote is unreachable. */
+  ai: AiSettings;
 }
