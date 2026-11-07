@@ -1,5 +1,6 @@
 import type {
   Campaign,
+  ChatMessage,
   Character,
   Invite,
   InstanceSettings,
@@ -46,6 +47,20 @@ export interface Store {
 
   getInviteByHash(codeHash: string): Promise<Invite | undefined>;
   putInvite(invite: Invite): Promise<void>;
+
+  putChatMessage(message: ChatMessage): Promise<void>;
+  /**
+   * The newest `limit` messages **this viewer may see** (the table's, plus whispers they sent or
+   * received), oldest first, optionally only those before `before`. The viewer filter lives here so
+   * no caller can forget it.
+   */
+  listChat(
+    campaignId: string,
+    viewerId: string,
+    options: { before?: number; limit: number },
+  ): Promise<ChatMessage[]>;
+  /** Keeps only the newest `keep` messages of a campaign (bounded retention). Returns how many went. */
+  pruneChat(campaignId: string, keep: number): Promise<number>;
 
   /**
    * Runs `work` as one atomic unit: either every write inside it lands or none does. Used where

@@ -1,6 +1,7 @@
 import { DEFAULT_INSTANCE_SETTINGS } from '../../consts/index.js';
 import type {
   Campaign,
+  ChatMessage,
   Character,
   Invite,
   InstanceSettings,
@@ -21,6 +22,7 @@ interface Data {
   campaigns: Map<string, Campaign>;
   memberships: Map<string, Membership>;
   characters: Map<string, Character>;
+  chat: ChatMessage[];
   invites: Map<string, Invite>;
 }
 
@@ -33,6 +35,7 @@ function emptyData(): Data {
     campaigns: new Map(),
     memberships: new Map(),
     characters: new Map(),
+    chat: [],
     invites: new Map(),
   };
 }
@@ -106,6 +109,35 @@ export class MemoryStore implements Store {
     copyOrUndefined([...this.data.invites.values()].find((i) => i.codeHash === codeHash));
   putInvite = async (invite: Invite): Promise<void> => {
     this.data.invites.set(invite.id, copy(invite));
+  };
+
+  putChatMessage = async (m: ChatMessage): Promise<void> => {
+    this.data.chat.push(copy(m));
+  };
+
+  listChat = async (
+    campaignId: string,
+    viewerId: string,
+    options: { before?: number; limit: number },
+  ): Promise<ChatMessage[]> =>
+    this.data.chat
+      .filter(
+        (m) =>
+          m.campaignId === campaignId &&
+          (m.recipientId === null || m.recipientId === viewerId || m.senderId === viewerId) &&
+          (options.before === undefined || m.at < options.before),
+      )
+      .sort((a, b) => a.at - b.at)
+      .slice(-options.limit)
+      .map(copy);
+
+  pruneChat = async (campaignId: string, keep: number): Promise<number> => {
+    const mine = this.data.chat
+      .filter((m) => m.campaignId === campaignId)
+      .sort((a, b) => a.at - b.at);
+    const drop = new Set(mine.slice(0, Math.max(0, mine.length - keep)));
+    this.data.chat = this.data.chat.filter((m) => !drop.has(m));
+    return drop.size;
   };
 
   /** Snapshot-and-restore: if `work` throws, every write it made is rolled back. */

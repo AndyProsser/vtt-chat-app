@@ -33,7 +33,12 @@ export const clientData = {
     jitterMs: z.number().min(0).max(60_000),
     packetLossPct: z.number().min(0).max(100),
   }),
-  'chat.message': z.object({ campaignId, text: z.string().min(1).max(4000) }),
+  // `to` set = a whisper, private to the sender and that member; omitted = said to the whole table.
+  'chat.message': z.object({
+    campaignId,
+    text: z.string().min(1).max(4000),
+    to: z.string().min(1).max(64).optional(),
+  }),
   // "I have heard the recording-start cue for this recording" — sent after the cue finished playing.
   'recording.ack': z.object({ campaignId, recordingId: z.string().min(1).max(64) }),
 } as const;

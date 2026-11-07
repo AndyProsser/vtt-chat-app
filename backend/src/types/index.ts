@@ -93,6 +93,17 @@ export interface MagicLink {
   usedAt: number | null;
 }
 
+/** One line of table chat. `recipientId` set = a whisper, private to sender and recipient. */
+export interface ChatMessage {
+  id: string;
+  campaignId: string;
+  senderId: string | null;
+  senderName: string;
+  recipientId: string | null;
+  text: string;
+  at: number;
+}
+
 export type CampaignCreation = 'closed' | 'open';
 
 /** Instance-wide settings; the Admin and the CLI change them. */

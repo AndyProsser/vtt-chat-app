@@ -4,6 +4,7 @@ import pg from 'pg';
 import { DEFAULT_INSTANCE_SETTINGS } from '../../consts/index.js';
 import type {
   Campaign,
+  ChatMessage,
   Character,
   InstanceSettings,
   Invite,
@@ -96,6 +97,16 @@ const toCharacter = (r: Row): Character => ({
   level: nullable(r.level as number | null),
   avatarUrl: nullable(r.avatar_url as string | null),
   sourceUrl: nullable(r.source_url as string | null),
+});
+
+const toChat = (r: Row): ChatMessage => ({
+  id: r.id as string,
+  campaignId: r.campaign_id as string,
+  senderId: nullable(r.sender_id as string | null),
+  senderName: r.sender_name as string,
+  recipientId: nullable(r.recipient_id as string | null),
+  text: r.text as string,
+  at: r.at as number,
 });
 
 const toInvite = (r: Row): Invite => ({
@@ -323,6 +334,44 @@ export class PostgresStore implements Store {
          created_at = $5, expires_at = $6, uses = $7, revoked_at = $8`,
       [i.id, i.campaignId, i.codeHash, i.createdBy, i.createdAt, i.expiresAt, i.uses, i.revokedAt],
     );
+  }
+
+  async putChatMessage(m: ChatMessage): Promise<void> {
+    await this.db.query(
+      `INSERT INTO chat_messages (id, campaign_id, sender_id, sender_name, recipient_id, text, at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       ON CONFLICT (id) DO NOTHING`,
+      [m.id, m.campaignId, m.senderId, m.senderName, m.recipientId, m.text, m.at],
+    );
+  }
+
+  listChat(
+    campaignId: string,
+    viewerId: string,
+    options: { before?: number; limit: number },
+  ): Promise<ChatMessage[]> {
+    // Newest `limit` the viewer may see, returned oldest first. The visibility rule is the WHERE clause.
+    return this.many(
+      toChat,
+      `SELECT * FROM (
+         SELECT * FROM chat_messages
+          WHERE campaign_id = $1
+            AND (recipient_id IS NULL OR recipient_id = $2 OR sender_id = $2)
+            AND ($3::bigint IS NULL OR at < $3)
+          ORDER BY at DESC, id DESC
+          LIMIT $4) newest
+        ORDER BY at, id`,
+      [campaignId, viewerId, options.before ?? null, options.limit],
+    );
+  }
+
+  async pruneChat(campaignId: string, keep: number): Promise<number> {
+    const result = await this.db.query(
+      `DELETE FROM chat_messages WHERE campaign_id = $1 AND id NOT IN (
+         SELECT id FROM chat_messages WHERE campaign_id = $1 ORDER BY at DESC, id DESC LIMIT $2)`,
+      [campaignId, keep],
+    );
+    return result.rowCount ?? 0;
   }
 
   /**

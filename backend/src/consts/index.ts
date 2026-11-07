@@ -22,6 +22,9 @@ export const DEFAULT_INSTANCE_SETTINGS: InstanceSettings = {
   ai: DEFAULT_AI_SETTINGS,
 };
 
+/** Chat history kept per campaign (whispers included); older lines are pruned. Bounded retention. */
+export const CHAT_RETENTION_MESSAGES = 5000;
+
 export const MAGIC_LINK_TTL_MINUTES = 15;
 export const MIN_PASSWORD_LENGTH = 10;
 export const DAY_MS = 24 * 60 * 60 * 1000;

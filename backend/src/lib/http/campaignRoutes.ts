@@ -23,6 +23,10 @@ const characterBody = z.object({
 });
 const activeBody = z.object({ characterId: z.string().max(64) });
 const swapBody = z.object({ newDmUserId: z.string().max(64) });
+const chatQuery = z.object({
+  before: z.coerce.number().int().positive().optional(),
+  limit: z.coerce.number().int().min(1).max(100).default(50),
+});
 const recordingBody = z.object({ action: z.enum(['start', 'pause', 'resume', 'stop']) });
 
 export interface CampaignRouteDeps {
@@ -146,6 +150,23 @@ export function campaignRoutes(deps: CampaignRouteDeps): Router {
 
   // Start / pause / resume / stop recording: the DM only. The server owns the state; clients are
   // told and each plays its own local cue (never through the SFU, so it is not in the recording).
+  // Chat history, newest page first-to-last. The store filters by viewer, so a player gets the
+  // table's chat plus only the whispers they sent or received.
+  router.get('/:id/chat', async (req, res) => {
+    const { user } = authOf(res);
+    const campaignId = param(req.params.id);
+    if (!(await store.getMembership(campaignId, user.id))) {
+      throw new DomainError('forbidden', 'not a member of this campaign');
+    }
+    const query = chatQuery.safeParse(req.query);
+    if (!query.success) throw new DomainError('invalid_input', 'bad paging parameters');
+    const messages = await store.listChat(campaignId, user.id, {
+      limit: query.data.limit,
+      ...(query.data.before !== undefined ? { before: query.data.before } : {}),
+    });
+    res.json({ messages });
+  });
+
   router.post('/:id/recording', async (req, res) => {
     const body = recordingBody.parse(req.body);
     const { user } = authOf(res);

@@ -1,4 +1,7 @@
-import type { Session, User } from '../../types/index.js';
+import { randomUUID } from 'node:crypto';
+
+import { CHAT_RETENTION_MESSAGES } from '../../consts/index.js';
+import type { ChatMessage, Session, User } from '../../types/index.js';
 import type { AccountService } from '../auth/accountService.js';
 import { DomainError } from '../errors.js';
 import { RateLimiter } from '../http/rateLimit.js';
@@ -273,8 +276,17 @@ export class Hub {
         seq: await this.options.replay.latestSeq(campaignId),
         replayed: missed.length,
       });
+      // Whispers are not in the shared stream, so a replay cannot carry them; send this viewer's own.
+      this.send(state, 'chat.whispers', {
+        campaignId,
+        whispers: await this.recentWhispers(campaignId, auth.user.id),
+      });
     } else {
-      this.send(state, 'snapshot', await this.snapshot(campaignId, membership.role === 'dm'));
+      this.send(
+        state,
+        'snapshot',
+        await this.snapshot(campaignId, membership.role === 'dm', auth.user.id),
+      );
     }
 
     // Always follows the snapshot or the replay, so a client that rejoined mid-recording learns the
@@ -382,13 +394,114 @@ export class Hub {
       return;
     }
     const name = await this.displayName(data.campaignId, auth.user);
+    const id = randomUUID();
+    const at = this.now();
+    if (data.to !== undefined) {
+      await this.whisper(state, data.campaignId, data.to, { id, name, text: data.text, at });
+      return;
+    }
+    await this.options.store.putChatMessage({
+      id,
+      campaignId: data.campaignId,
+      senderId: auth.user.id,
+      senderName: name,
+      recipientId: null,
+      text: data.text,
+      at,
+    });
+    // `id` lets a client that sees the same line twice (replay + history) keep one copy.
     const event = await this.options.replay.append(data.campaignId, 'chat.message', {
+      id,
       campaignId: data.campaignId,
       from: { userId: auth.user.id, name },
       text: data.text,
-      at: this.now(),
+      at,
     });
     this.broadcast(data.campaignId, event.t, event.d, { seq: event.seq });
+    this.pruneChatSometimes(data.campaignId);
+  }
+
+  /**
+   * A whisper is private to its sender and recipient (decided 2026-11-07; the DM cannot read
+   * player-to-player whispers). It is persisted, but it deliberately does **not** go into the shared
+   * replay buffer — every resuming client would be replayed it — and it is sent only to the two
+   * people's own sockets. Missed whispers come back per viewer on resume (`recentWhispers`).
+   */
+  private async whisper(
+    state: ConnState,
+    campaignId: string,
+    toUserId: string,
+    line: { id: string; name: string; text: string; at: number },
+  ): Promise<void> {
+    const auth = state.auth;
+    if (!auth) return;
+    const recipient =
+      toUserId === auth.user.id ? undefined : await this.options.store.getUser(toUserId);
+    const membership = recipient
+      ? await this.options.store.getMembership(campaignId, recipient.id)
+      : undefined;
+    if (!recipient || !membership) {
+      // Same answer for "not a member" and "yourself", so this cannot be used to probe membership.
+      this.send(state, 'error', {
+        code: 'invalid_recipient',
+        message: 'cannot whisper to that person',
+      });
+      return;
+    }
+    await this.options.store.putChatMessage({
+      id: line.id,
+      campaignId,
+      senderId: auth.user.id,
+      senderName: line.name,
+      recipientId: recipient.id,
+      text: line.text,
+      at: line.at,
+    });
+    const payload = {
+      id: line.id,
+      campaignId,
+      from: { userId: auth.user.id, name: line.name },
+      to: { userId: recipient.id, name: await this.displayName(campaignId, recipient) },
+      text: line.text,
+      at: line.at,
+    };
+    this.broadcast(campaignId, 'chat.whisper', payload, {
+      only: (s) => s.auth?.user.id === auth.user.id || s.auth?.user.id === recipient.id,
+    });
+    this.pruneChatSometimes(campaignId);
+  }
+
+  private chatWrites = 0;
+  /** Bounded retention (STATE-AND-RESILIENCE.md): trim a campaign's history every so often, not on every line. */
+  private pruneChatSometimes(campaignId: string): void {
+    if (++this.chatWrites % 50 !== 0) return;
+    void this.options.store.pruneChat(campaignId, CHAT_RETENTION_MESSAGES).catch(() => undefined);
+  }
+
+  /** This viewer's recent whispers (sent or received), oldest first. Never anyone else's. */
+  private async recentWhispers(campaignId: string, viewerId: string) {
+    const lines = await this.options.store.listChat(campaignId, viewerId, { limit: 200 });
+    const names = new Map<string, string>();
+    const nameOf = async (userId: string | null): Promise<string> => {
+      if (userId === null) return 'unknown';
+      const cached = names.get(userId);
+      if (cached !== undefined) return cached;
+      const user = await this.options.store.getUser(userId);
+      const name = user ? await this.displayName(campaignId, user) : 'unknown';
+      names.set(userId, name);
+      return name;
+    };
+    const whispers: ChatMessage[] = lines.filter((m) => m.recipientId !== null).slice(-50);
+    return Promise.all(
+      whispers.map(async (m) => ({
+        id: m.id,
+        campaignId,
+        from: { userId: m.senderId, name: m.senderName },
+        to: { userId: m.recipientId, name: await nameOf(m.recipientId) },
+        text: m.text,
+        at: m.at,
+      })),
+    );
   }
 
   // ---- helpers ----
@@ -421,7 +534,7 @@ export class Hub {
     this.closed(state.conn.id);
   }
 
-  private async snapshot(campaignId: string, viewerIsDm: boolean) {
+  private async snapshot(campaignId: string, viewerIsDm: boolean, viewerId: string) {
     const { store, replay } = this.options;
     const memberships = await store.listMemberships(campaignId);
     const live = new Map(this.presence.snapshot(campaignId).map((p) => [p.userId, p]));
@@ -456,6 +569,8 @@ export class Hub {
       recentChat: recent
         .filter((event) => CHAT_KINDS.has(event.t))
         .map((event) => ({ seq: event.seq, ...(event.d as object) })),
+      // Only this viewer's own whispers; never part of the shared stream.
+      recentWhispers: await this.recentWhispers(campaignId, viewerId),
     };
   }
 

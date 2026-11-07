@@ -359,6 +359,56 @@ describe('campaigns over HTTP', () => {
   });
 });
 
+describe('chat history over HTTP', () => {
+  it('serves members the table’s chat plus only their own whispers, and nobody else anything', async () => {
+    const dm = await signUp('dm');
+    const alice = await signUp('alice');
+    const bob = await signUp('bob');
+    const outsider = await signUp('outsider');
+    const campaign = (
+      await api.call('POST', '/api/campaigns', { token: dm.token, body: { name: 'T' } })
+    ).body.campaign.id;
+    const { code } = (
+      await api.call('POST', `/api/campaigns/${campaign}/invites`, { token: dm.token, body: {} })
+    ).body;
+    for (const p of [alice, bob]) {
+      await api.call('POST', '/api/campaigns/join', { token: p.token, body: { code } });
+    }
+    const line = (to: string | null, text: string, at: number) =>
+      store.putChatMessage({
+        id: backend.newId(),
+        campaignId: campaign,
+        senderId: alice.id,
+        senderName: 'alice',
+        recipientId: to,
+        text,
+        at,
+      });
+    await line(null, 'for everyone', 1000);
+    await line(dm.id, 'for the DM', 2000);
+
+    const texts = async (token: string) =>
+      (await api.call('GET', `/api/campaigns/${campaign}/chat`, { token })).body.messages.map(
+        (m: { text: string }) => m.text,
+      );
+    expect(await texts(alice.token)).toEqual(['for everyone', 'for the DM']);
+    expect(await texts(dm.token)).toEqual(['for everyone', 'for the DM']);
+    expect(await texts(bob.token)).toEqual(['for everyone']);
+    expect(
+      (await api.call('GET', `/api/campaigns/${campaign}/chat`, { token: outsider.token })).status,
+    ).toBe(403);
+    expect((await api.call('GET', `/api/campaigns/${campaign}/chat`)).status).toBe(401);
+    const paged = await api.call('GET', `/api/campaigns/${campaign}/chat?before=2000&limit=5`, {
+      token: alice.token,
+    });
+    expect(paged.body.messages.map((m: { text: string }) => m.text)).toEqual(['for everyone']);
+    expect(
+      (await api.call('GET', `/api/campaigns/${campaign}/chat?limit=999`, { token: alice.token }))
+        .status,
+    ).toBe(400);
+  });
+});
+
 describe('RateLimiter', () => {
   it('allows up to the limit per window, then blocks, then recovers', () => {
     let now = 0;

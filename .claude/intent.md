@@ -28,9 +28,26 @@ Update this file as threads open, progress, or close — stale entries here are 
   - **Next (when the dev box is back):** the verification list in BUILD-STATUS.md (Postgres, Valkey,
     two-machine voice test, Part B on a Linux server). Then Stage 4 (tray shell wiring).
 
+- **Stage 6 table features — server first, then UI.** Decided 2026-11-07, in build order:
+  - **Whispers:** DM↔player and player↔player, **private to the two** (the DM cannot read player↔player).
+    Never in the shared replay stream; delivered only to sender and recipient; persisted; history is
+    viewer-filtered in the store itself.
+  - **Handouts/maps/images:** files on a server volume (type + size limited, served through an
+    authenticated API, per-handout visibility), metadata in Postgres. Text snippets are handouts with a body.
+  - **Party split:** one LiveKit room, the DM controls who hears whom (per-participant subscription
+    control); **all groups are recorded** as normal tracks; only private whispers are excluded. Isolation
+    is cooperative, not cryptographic (a tampered client could self-subscribe) — fine at table trust level.
+  - **Soundboard:** a mini version of [thaumaturgy.app](https://thaumaturgy.app/) with **the DM's own
+    library**: sounds (with several takes so a button doesn't repeat), boards of buttons (one-shot or
+    loop), scenes of up to 12 layers (looping or random), per-player volume. The DM's client decides
+    what plays; the server relays validated DM events and keeps the "now playing" state for late
+    joiners. Clients play locally (never through the SFU, so never in the recording).
+  - Remaining small ones (loot with atomic claim, session schedule + RSVP + stored notifications) use
+    plain defaults, listed in docs/architecture/TABLE-FEATURES.md when built.
+
 ## Design topics (1–4 are decided; 5–9 still open — ask Andy, don't resolve by writing code)
 
-1. **Identity & access model** — *decided 2026-11-05:* local accounts (email/password, magic
+1. **Identity & access model** — _decided 2026-11-05:_ local accounts (email/password, magic
    links, optional OIDC); per-campaign DM + players; many characters per player, one active; DM
    **swap** (old DM becomes player, character suspended while DM and restored on swap-back, must
    be one quick action); invites by magic link / side-channel code / QR; first account = Admin;
@@ -40,7 +57,7 @@ Update this file as threads open, progress, or close — stale entries here are 
    quick-access actions beyond the connection-status screen (suggested: invite create/revoke + QR,
    device/session list with revoke, pending summary confirmations, storage/pipeline health).
    (CLAUDE.md §11.)
-2. **Client ↔ server sync protocol** — *decided 2026-11-05:* revive archived "Plan B" (Rust-owned
+2. **Client ↔ server sync protocol** — _decided 2026-11-05:_ revive archived "Plan B" (Rust-owned
    WebSocket, bounded replay buffer, snapshot fallback). **WebSocket carries everything
    high-frequency or live:** events, presence, speaking, typing, audio-state changes, chat
    messages, recording status. **REST only for large, infrequent operations:** create user,
@@ -53,7 +70,7 @@ Update this file as threads open, progress, or close — stale entries here are 
    for name, class, race, level, avatar only. Cobalt-cookie is out for players; an optional DM
    browser extension is a **possible future add-on** (Andy: yes, optional, later). Not in scope now;
    CLAUDE.md §13/§15 "no browser extension" applies until it's picked up.
-3. **Records details** — *decided 2026-11-05* (see RECORDING-AND-SUMMARIES.md): continuous
+3. **Records details** — _decided 2026-11-05_ (see RECORDING-AND-SUMMARIES.md): continuous
    campaign, start/stop/pause bookmarks, rich metadata for speaker attribution, no opt-out, only
    raw audio deleted after DM-confirmed summary, stale audio purged by rules (next session / age /
    free storage); cues on every status change incl. resume; Whisper model chosen by CPU-only vs
@@ -64,7 +81,7 @@ Update this file as threads open, progress, or close — stale entries here are 
    behaviour; **Windows is the target, Linux and macOS are best-effort**. The Stage 2 spike still
    supplies the measurements (AEC/NS, device release on mute, unmute latency).
 5. **Mobile SPA scope** — messages/RSVP/handouts only, or basic listen/talk too?
-6. **Deployment tiers** — *decided 2026-11-07:* Docker Compose on a VM/server is the primary
+6. **Deployment tiers** — _decided 2026-11-07:_ Docker Compose on a VM/server is the primary
    path; native install is for advanced users; LXC is optional/at-your-own-risk. **AI backends
    (Whisper, LLM) may be local or a remote instance** (Andy's case: GPU in a gaming PC); a remote box
    being offline means jobs wait, then fall back to local CPU `small` (timeout + fallback both
@@ -95,7 +112,7 @@ Update this file as threads open, progress, or close — stale entries here are 
 
 - **WebKitGTK/NVIDIA homepage crash and blank-render investigation** (two bugs found and patched
   upstream-style; a third blank-render issue left unrooted) — moot with the embedded browser gone.
-  Archived in `docs/archive/`. Revisit only if a *local* panel ever blank-renders on Linux+NVIDIA.
+  Archived in `docs/archive/`. Revisit only if a _local_ panel ever blank-renders on Linux+NVIDIA.
 - **Stage 3a Plans A/B/C** (overlay compact view, WS layer, conditions) — superseded; Plan B kept
   as a reference for topic 2.
 - **Local player identity not exposed to the overlay** — moot; the overlay is gone.
