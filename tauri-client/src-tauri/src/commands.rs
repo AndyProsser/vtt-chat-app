@@ -31,12 +31,13 @@ struct SpeakersPayload {
 }
 
 #[tauri::command]
-pub async fn livekit_connect(
-    app: AppHandle,
-    state: State<'_, SharedClient>,
-    url: String,
-    token: String,
-) -> Result<(), String> {
+pub async fn livekit_connect(app: AppHandle, url: String, token: String) -> Result<(), String> {
+    connect_voice(&app, &url, &token).await
+}
+
+/// Joins the campaign's voice room. Called by the account flow right after sign-in, and by the
+/// command above; audio runs in Rust whether or not any panel exists.
+pub async fn connect_voice(app: &AppHandle, url: &str, token: &str) -> Result<(), String> {
     let emit_app = app.clone();
     let callback: rust_livekit::StateChangeCallback = Arc::new(move |connection_state| {
         let payload: LiveKitStatePayload = connection_state.into();
@@ -54,17 +55,17 @@ pub async fn livekit_connect(
             );
         });
 
-    let client = LiveKitClient::connect(&url, &token, callback, speakers_callback)
+    let client = LiveKitClient::connect(url, token, callback, speakers_callback)
         .await
         .map_err(|err| err.to_string())?;
 
-    *state.lock().unwrap() = Some(client);
+    *app.state::<SharedClient>().lock().unwrap() = Some(client);
     // A new room starts with the player's current mute and the consent gate applied, and the
     // server's roster learns they are in voice.
     let effective = app.state::<MicGate>().effective();
-    crate::hotkeys::push_mute_to_client(&app, effective);
-    crate::session::announce_voice_state(&app, Some(true));
-    crate::session::refresh_tray(&app);
+    crate::hotkeys::push_mute_to_client(app, effective);
+    crate::session::announce_voice_state(app, Some(true));
+    crate::session::refresh_tray(app);
     Ok(())
 }
 

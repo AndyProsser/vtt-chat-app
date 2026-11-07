@@ -1,3 +1,5 @@
+mod account;
+mod account_commands;
 mod commands;
 mod consts;
 mod hotkeys;
@@ -16,14 +18,17 @@ pub fn run() {
         .manage(rust_livekit::SharedClient::default())
         .manage(mic_gate::MicGate::default())
         .manage(session::SessionState::default())
+        .manage(account_commands::AccountState::default())
         .manage(std::sync::Mutex::new(session::TrayModel::default()))
         .invoke_handler(tauri::generate_handler![
             commands::livekit_connect,
             commands::livekit_disconnect,
             commands::hotkey_action,
             commands::set_microphone_muted,
-            session::session_sign_in,
-            session::session_sign_out
+            account_commands::account_status,
+            account_commands::account_sign_in,
+            account_commands::account_select_campaign,
+            account_commands::account_sign_out
         ])
         .setup(|app| {
             hotkeys::register_global_shortcuts(app.handle());
@@ -31,6 +36,7 @@ pub fn run() {
                 // No tray (e.g. GNOME without the AppIndicator extension): say so, keep running.
                 eprintln!("[src-tauri] could not create the tray icon: {err}");
             }
+            account_commands::resume(app.handle());
             Ok(())
         })
         .run(tauri::generate_context!())

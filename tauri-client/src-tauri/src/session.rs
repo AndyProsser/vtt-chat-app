@@ -125,6 +125,9 @@ impl Platform for TauriPlatform {
             SignedOut::IncompatibleServer => "incompatible-server",
         };
         let _ = self.app.emit(SESSION_SIGNED_OUT_EVENT, reason);
+        if matches!(reason, "revoked") {
+            crate::account_commands::on_revoked(&self.app);
+        }
     }
 }
 
@@ -153,17 +156,17 @@ pub fn websocket_url(api_base: &str) -> Result<String, String> {
     Ok(format!("{}{}/ws", rest.0, rest.1))
 }
 
-#[tauri::command]
-pub async fn session_sign_in(
+/// Starts the live session: WebSocket, consent flow, tray. Any previous session is replaced.
+pub async fn start_session(
     app: AppHandle,
-    state: tauri::State<'_, SessionState>,
+    state: &SessionState,
     api_base: String,
     session_token: String,
     campaign_id: String,
 ) -> Result<(), String> {
     let url = websocket_url(&api_base)?;
     // One session at a time: signing in again replaces the old one cleanly.
-    stop_active(&state).await;
+    stop_active(state).await;
 
     let slot: ClientSlot = Arc::new(Mutex::new(None));
     let platform = Arc::new(TauriPlatform {
@@ -204,12 +207,9 @@ pub async fn session_sign_in(
     Ok(())
 }
 
-#[tauri::command]
-pub async fn session_sign_out(
-    app: AppHandle,
-    state: tauri::State<'_, SessionState>,
-) -> Result<(), String> {
-    stop_active(&state).await;
+/// Ends the live session and returns the tray to "not connected".
+pub async fn end_session(app: AppHandle, state: &SessionState) -> Result<(), String> {
+    stop_active(state).await;
     app.state::<MicGate>().set_gate(false);
     {
         let model = app.state::<Mutex<TrayModel>>();

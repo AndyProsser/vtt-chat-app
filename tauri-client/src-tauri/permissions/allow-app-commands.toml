@@ -8,6 +8,8 @@ commands.allow = [
   "livekit_disconnect",
   "hotkey_action",
   "set_microphone_muted",
-  "session_sign_in",
-  "session_sign_out",
+  "account_status",
+  "account_sign_in",
+  "account_select_campaign",
+  "account_sign_out",
 ]
