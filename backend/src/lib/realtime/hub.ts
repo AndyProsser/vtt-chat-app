@@ -171,6 +171,27 @@ export class Hub {
     });
   }
 
+  /** A handout was just shown: tell exactly the people who may now see it (the DM's own sockets included). */
+  announceHandoutShown(
+    campaignId: string,
+    handout: { id: string; title: string; kind: string },
+    audience: { everyone: boolean; userIds: string[] },
+    dmIds: string[],
+  ): void {
+    const allowed = new Set([...audience.userIds, ...dmIds]);
+    this.broadcast(
+      campaignId,
+      'handout.shown',
+      { campaignId, handoutId: handout.id, title: handout.title, kind: handout.kind },
+      audience.everyone ? {} : { only: (s) => s.auth !== null && allowed.has(s.auth.user.id) },
+    );
+  }
+
+  /** A handout was hidden or deleted: every client drops it (an unknown id is ignored). */
+  announceHandoutRemoved(campaignId: string, handoutId: string): void {
+    this.broadcast(campaignId, 'handout.removed', { campaignId, handoutId });
+  }
+
   /** Tells a campaign's subscribers that roles/characters changed (e.g. after a DM swap). */
   announceRosterChanged(campaignId: string): void {
     this.broadcast(campaignId, 'roster.changed', { campaignId });

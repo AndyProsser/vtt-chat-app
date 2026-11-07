@@ -16,6 +16,8 @@ const STATUS: Record<ErrorCode, number> = {
   not_found: 404,
   invite_invalid: 400,
   conflict: 409,
+  too_large: 413,
+  unsupported_media: 415,
   dm_must_transfer: 409,
 };
 

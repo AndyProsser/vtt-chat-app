@@ -9,7 +9,11 @@ import { campaignRoutes } from './http/campaignRoutes.js';
 import { NoMailTransport, type MagicLinkSender } from './http/delivery.js';
 import { errorHandler } from './http/middleware.js';
 import { RateLimiter } from './http/rateLimit.js';
+import { handoutRoutes } from './http/handoutRoutes.js';
 import { recordsRoutes } from './http/recordsRoutes.js';
+import type { MediaStorage } from './media/mediaStorage.js';
+import { HandoutService } from './table/handoutService.js';
+import type { TableStore } from './table/tableStore.js';
 import { RecordingState } from './recording/recordingState.js';
 import type { RecordingChange } from './recording/recordingState.js';
 import type { Store } from './store/store.js';
@@ -24,11 +28,22 @@ export interface AppDeps {
     revokeSession(sessionId: string): void;
     announceRosterChanged(campaignId: string): void;
     announceRecording(change: RecordingChange): void;
+    announceHandoutShown?(
+      campaignId: string,
+      handout: { id: string; title: string; kind: string },
+      audience: { everyone: boolean; userIds: string[] },
+      dmIds: string[],
+    ): void;
+    announceHandoutRemoved?(campaignId: string, handoutId: string): void;
   };
   /** Shared with the realtime hub so REST changes and snapshots agree. Defaults to a fresh one. */
   recording?: RecordingState;
   /** A campaign's recorded history (transcripts, summaries, search). Omit to leave those routes off. */
   records?: RecordsStore;
+  /** Handouts, maps, images and snippets. Omit to leave those routes off. */
+  table?: TableStore;
+  /** Where uploaded file bytes live. Without it only text snippets work. */
+  media?: MediaStorage;
 }
 
 const MINUTE = 60_000;
@@ -45,6 +60,8 @@ export function createApp({
   realtime,
   recording,
   records,
+  table,
+  media,
 }: AppDeps): Express {
   const accounts = new AccountService({ store });
   const campaigns = new CampaignService({ store });
@@ -96,6 +113,37 @@ export function createApp({
 
   if (records) {
     app.use('/api/campaigns/:campaignId/recordings', recordsRoutes({ accounts, store, records }));
+  }
+
+  if (table) {
+    const handouts = new HandoutService({ store, table, media });
+    app.use(
+      '/api/campaigns/:campaignId/handouts',
+      handoutRoutes({
+        accounts,
+        handouts,
+        ...(realtime?.announceHandoutShown
+          ? {
+              onShown: (campaignId, handout, audience) => {
+                void store.listMemberships(campaignId).then((ms) =>
+                  realtime.announceHandoutShown?.(
+                    campaignId,
+                    handout,
+                    audience,
+                    ms.filter((m) => m.role === 'dm').map((m) => m.userId),
+                  ),
+                );
+              },
+            }
+          : {}),
+        ...(realtime?.announceHandoutRemoved
+          ? {
+              onRemoved: (campaignId, handoutId) =>
+                realtime.announceHandoutRemoved?.(campaignId, handoutId),
+            }
+          : {}),
+      }),
+    );
   }
 
   app.use(errorHandler);

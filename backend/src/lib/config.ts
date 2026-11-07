@@ -19,6 +19,8 @@ export interface BackendConfig {
    * worker). Setting it switches audio capture on; unset, recording is only a state flag.
    */
   recordingsDir: string | undefined;
+  /** Directory for uploaded files (handouts, soundboard clips). Unset: only text snippets work. */
+  mediaDir: string | undefined;
   /** LiveKit's HTTP API as the backend reaches it (room and Egress calls). */
   liveKitApiUrl: string;
 }
@@ -37,6 +39,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): BackendConfig 
     databaseUrl: env.DATABASE_URL || undefined,
     valkeyUrl: env.VALKEY_URL || undefined,
     recordingsDir: env.RECORDINGS_DIR || undefined,
+    mediaDir: env.MEDIA_DIR || undefined,
     liveKitApiUrl:
       env.LIVEKIT_API_URL ??
       env.LIVEKIT_HEALTH_URL ??

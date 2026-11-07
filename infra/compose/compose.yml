@@ -27,6 +27,12 @@ services:
       interval: 5s
       retries: 10
 
+  # One-shot: the backend image runs as uid 1000 and a fresh named volume is root-owned.
+  media-init:
+    image: busybox:stable
+    command: ['chown', '-R', '1000:1000', '/data/media']
+    volumes: [media:/data/media]
+
   backend:
     build:
       context: ../..
@@ -36,9 +42,13 @@ services:
     depends_on:
       postgres: { condition: service_healthy }
       valkey: { condition: service_healthy }
+      media-init: { condition: service_completed_successfully }
+    volumes: [media:/data/media]
     environment:
       DATABASE_URL: postgres://vtt:${POSTGRES_PASSWORD}@postgres:5432/vtt
       VALKEY_URL: redis://valkey:6379
+      # Uploaded handouts and soundboard clips (type- and size-checked, served only to those allowed).
+      MEDIA_DIR: /data/media
       LIVEKIT_URL: wss://${SITE_ADDRESS:?run ./setup.sh first}/livekit
       LIVEKIT_API_KEY: ${LIVEKIT_API_KEY}
       LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET}
@@ -189,6 +199,7 @@ services:
       - caddy-config:/config
 
 volumes:
+  media:
   recordings:
   whisper-models:
   ollama-data:

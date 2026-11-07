@@ -9,6 +9,8 @@ export type ErrorCode =
   | 'not_found'
   | 'invite_invalid'
   | 'conflict'
+  | 'too_large'
+  | 'unsupported_media'
   | 'dm_must_transfer';
 
 /** An expected, reportable failure (as opposed to a bug). The HTTP layer maps `code` to a status. */

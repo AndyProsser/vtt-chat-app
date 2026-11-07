@@ -26,6 +26,9 @@ import {
   MemoryAckStore,
   RecordingCapture,
   createLiveKitRecorder,
+  DiskMediaStorage,
+  MemoryTableStore,
+  PostgresTableStore,
 } from './lib/index.js';
 import {
   MemoryRecordsStore,
@@ -64,6 +67,8 @@ if (isEntryPoint) {
     replay = new MemoryReplayBuffer();
   }
   const records: RecordsStore = pool ? new PostgresRecordsStore(pool) : new MemoryRecordsStore();
+  const table = pool ? new PostgresTableStore(pool) : new MemoryTableStore();
+  const media = config.mediaDir ? new DiskMediaStorage(config.mediaDir) : undefined;
   // The acknowledgement store is shared: the hub records who heard the cue, and audio capture only
   // starts a player's track once they have.
   const acks = new MemoryAckStore();
@@ -107,7 +112,15 @@ if (isEntryPoint) {
     );
   }
   const server = createServer(
-    createApp({ config, store, realtime: hub, recording: hub.recording, records }),
+    createApp({
+      config,
+      store,
+      realtime: hub,
+      recording: hub.recording,
+      records,
+      table,
+      ...(media ? { media } : {}),
+    }),
   );
   attachWebSocketServer(server, hub);
 
