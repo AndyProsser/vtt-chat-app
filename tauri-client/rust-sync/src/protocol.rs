@@ -114,6 +114,13 @@ pub enum ServerEvent {
     RosterChanged {
         campaign_id: String,
     },
+    /// A table-feature frame (whispers, handouts, loot, soundboard, parties, notifications — see
+    /// [`is_table_frame`]). The panels render these as-is, so the payload stays JSON and the type
+    /// is the frame's own name; adding a field server-side needs no change here.
+    Table {
+        t: String,
+        data: Value,
+    },
     /// A type this client doesn't know. Ignored, not an error: newer servers may add frames.
     Unknown {
         t: String,
@@ -142,6 +149,56 @@ fn recording_status(d: &Value, status: RecordingChange) -> ServerEvent {
 
 fn number(value: &Value, key: &str) -> u64 {
     value.get(key).and_then(Value::as_u64).unwrap_or(0)
+}
+
+/// Server → client frames of the table features (docs/architecture/TABLE-FEATURES.md).
+pub fn is_table_frame(t: &str) -> bool {
+    matches!(
+        t,
+        "chat.whisper"
+            | "chat.whispers"
+            | "handout.shown"
+            | "handout.removed"
+            | "notification"
+            | "sound.play"
+            | "sound.stop"
+            | "sound.volume"
+            | "sound.state"
+            | "scene.started"
+            | "scene.stopped"
+            | "party.state"
+    ) || t.starts_with("loot.")
+}
+
+/// Client → server frames the DM and players send for the table features, relayed untouched from
+/// the panels. Only known commands pass, so a panel bug can't put arbitrary frames on the socket.
+pub fn is_table_command(t: &str) -> bool {
+    matches!(
+        t,
+        "sound.play"
+            | "sound.stop"
+            | "scene.start"
+            | "scene.stop"
+            | "sound.volume"
+            | "party.create"
+            | "party.rename"
+            | "party.delete"
+            | "party.move"
+            | "party.reset"
+    )
+}
+
+/// A table command, as a wire frame. `None` if `t` is not a known command.
+pub fn command_frame(t: &str, data: Value) -> Option<String> {
+    is_table_command(t).then(|| frame(t, data))
+}
+
+/// A whisper: a chat message addressed to one member.
+pub fn whisper_frame(campaign_id: &str, to: &str, text: &str) -> String {
+    frame(
+        "chat.message",
+        json!({ "campaignId": campaign_id, "text": text, "to": to }),
+    )
 }
 
 /// Decodes one text frame. Returns the event and the frame's `seq`, if it carried one.
@@ -232,6 +289,10 @@ pub fn parse_server_frame(raw: &str) -> Result<(ServerEvent, Option<u64>), Parse
         },
         "roster.changed" => ServerEvent::RosterChanged {
             campaign_id: campaign_id(),
+        },
+        other if is_table_frame(other) => ServerEvent::Table {
+            t: other.to_string(),
+            data: d.clone(),
         },
         other => ServerEvent::Unknown {
             t: other.to_string(),
@@ -379,6 +440,37 @@ mod tests {
                 speaking: true
             }
         );
+    }
+
+    #[test]
+    fn table_frames_keep_their_type_and_payload() {
+        for t in [
+            "chat.whisper",
+            "party.state",
+            "loot.dropped",
+            "notification",
+        ] {
+            let (e, _) = parse_server_frame(&server(t, json!({ "x": 1 }), None)).unwrap();
+            assert_eq!(
+                e,
+                ServerEvent::Table {
+                    t: t.into(),
+                    data: json!({ "x": 1 })
+                }
+            );
+        }
+        let (e, _) = parse_server_frame(&server("who.knows", json!({}), None)).unwrap();
+        assert!(matches!(e, ServerEvent::Unknown { .. }));
+    }
+
+    #[test]
+    fn only_known_table_commands_become_frames() {
+        let f = command_frame("party.move", json!({ "campaignId": "c" })).unwrap();
+        assert!(f.contains("\"t\":\"party.move\""));
+        assert!(command_frame("auth", json!({})).is_none());
+        assert!(command_frame("chat.message", json!({})).is_none());
+        let w = whisper_frame("c", "u2", "psst");
+        assert!(w.contains("\"to\":\"u2\""));
     }
 
     #[test]
