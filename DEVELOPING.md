@@ -1,6 +1,15 @@
 # Developer Setup Guide
 
-This project runs on **native services, not containers** — see [CLAUDE.md §5](.claude/CLAUDE.md). That applies to local development too: Postgres, Redis, LiveKit and Caddy run directly on your machine (or a dev VM), not in Docker.
+The app itself runs natively in development (`npm run dev`, `cargo run`), but the **backing services can come from Docker** — deployment is Docker Compose first, native for advanced users ([CLAUDE.md §5](.claude/CLAUDE.md)). For Postgres and Valkey, the quickest route is the throwaway dev bundle:
+
+```bash
+docker compose -f infra/dev/compose.yml up -d --wait
+export TEST_DATABASE_URL=postgres://postgres:scratch@127.0.0.1:55432/vtt
+export TEST_VALKEY_URL=redis://127.0.0.1:56379
+npm test   # the store and replay suites now also run against the real servers
+```
+
+Without those variables the same suites run against the in-memory stand-ins, so CI and a bare checkout need no services. To run the backend itself on them: `DATABASE_URL=… VALKEY_URL=… npm start -w @vtt-chat-app/backend` (migrations apply on start).
 
 **Status:** mid-pivot. The docs describe the new design (a self-hosted tray app + server with records and AI summaries); the **code is still the previous design** until [ROADMAP Stage 1](ROADMAP.md#stage-1--pivot-cleanup) removes it. Sections below are marked **(works today)** or **(planned)** so this guide doesn't pretend otherwise.
 
@@ -58,10 +67,10 @@ It connects two clients to one room under two identities against a real LiveKit 
 
 Findings from the previous design that still hold, because they are about the OS, not the overlay:
 
-| Binding | Windows / macOS / Linux X11 | Linux Wayland |
-| --- | --- | --- |
-| Push-to-talk (bare modifier, e.g. Left Ctrl) | app-focused only | app-focused only |
-| Mute / panel toggle (modified key) | global | app-focused only |
+| Binding                                      | Windows / macOS / Linux X11 | Linux Wayland    |
+| -------------------------------------------- | --------------------------- | ---------------- |
+| Push-to-talk (bare modifier, e.g. Left Ctrl) | app-focused only            | app-focused only |
+| Mute / panel toggle (modified key)           | global                      | app-focused only |
 
 - A bare modifier key can't be registered as an OS-global shortcut on any platform (`global-hotkey` has no scancode mapping for it), so global PTT needs a chord.
 - Global shortcuts silently no-op on Wayland (`tao`'s shortcut thread is X11-only); the XDG GlobalShortcuts portal is the only real route and is unreliable on GNOME. The app should log this at startup and say so in the UI.

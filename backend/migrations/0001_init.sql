@@ -2,10 +2,8 @@
 -- Mirrors backend/src/types/index.ts. Timestamps are epoch milliseconds (BIGINT) so the Postgres
 -- adapter and the in-memory store agree exactly and tests can drive a fake clock.
 --
--- UNTESTED: written without a Postgres instance to run it against (ROADMAP Stage 3). Apply it to
--- a scratch database and fix whatever it finds before relying on it.
-
-BEGIN;
+-- Applied against Postgres 17 (2026-11-07). The migration runner (src/lib/store/migrate.ts) wraps
+-- each file in its own transaction, so there is no BEGIN/COMMIT here.
 
 -- One row, id fixed at 1: the Admin and the CLI edit these.
 CREATE TABLE instance_settings (
@@ -100,4 +98,3 @@ CREATE TABLE invites (
   revoked_at   BIGINT
 );
 
-COMMIT;

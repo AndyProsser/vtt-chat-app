@@ -2,10 +2,11 @@ import type { AddressInfo } from 'node:net';
 import type { Server } from 'node:http';
 
 import { jwtVerify } from 'jose';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { createApp } from '../app.js';
-import { MemoryStore } from '../store/memoryStore.js';
+import type { Store } from '../store/store.js';
+import { openTestBackend } from '../store/testing.js';
 import type { MagicLinkMessage, MagicLinkSender } from './delivery.js';
 import { RateLimiter } from './rateLimit.js';
 
@@ -36,12 +37,14 @@ interface Api {
 }
 
 let server: Server;
-let store: MemoryStore;
+const backend = await openTestBackend();
+afterAll(() => backend.close());
+let store: Store;
 let sender: CapturingSender;
 let api: Api;
 
 beforeEach(async () => {
-  store = new MemoryStore();
+  store = await backend.reset();
   sender = new CapturingSender();
   const app = createApp({ config: CONFIG, store, sender });
   await new Promise<void>((resolve) => {

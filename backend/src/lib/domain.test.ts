@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { DAY_MS, MAGIC_LINK_TTL_MINUTES, MINUTE_MS } from '../consts/index.js';
 import type { User } from '../types/index.js';
@@ -13,6 +13,8 @@ import {
 import { CampaignService } from './campaigns/campaignService.js';
 import { DomainError } from './errors.js';
 import { MemoryStore } from './store/memoryStore.js';
+import type { Store } from './store/store.js';
+import { openTestBackend } from './store/testing.js';
 
 class FakeClock {
   constructor(public time = 1_700_000_000_000) {}
@@ -22,18 +24,19 @@ class FakeClock {
   }
 }
 
-let counter = 0;
-const newId = (): string => `id-${++counter}`;
+// Memory by default; the real Postgres store too when TEST_DATABASE_URL is set (see store/testing.ts).
+const backend = await openTestBackend();
+afterAll(() => backend.close());
+const newId = backend.newId;
 
 interface World {
-  store: MemoryStore;
+  store: Store;
   clock: FakeClock;
   accounts: AccountService;
   campaigns: CampaignService;
 }
 
-function world(): World {
-  const store = new MemoryStore();
+function world(store: Store): World {
   const clock = new FakeClock();
   return {
     store,
@@ -84,8 +87,8 @@ describe('crypto helpers', () => {
 
 describe('registration', () => {
   let w: World;
-  beforeEach(() => {
-    w = world();
+  beforeEach(async () => {
+    w = world(await backend.reset());
   });
 
   it('makes the first account Admin and nobody after', async () => {
@@ -147,7 +150,7 @@ describe('sign-in, sessions and revocation', () => {
   let w: World;
   let user: User;
   beforeEach(async () => {
-    w = world();
+    w = world(await backend.reset());
     user = await register(w, 'sam');
   });
 
@@ -239,7 +242,7 @@ describe('magic links', () => {
   let w: World;
   let user: User;
   beforeEach(async () => {
-    w = world();
+    w = world(await backend.reset());
     user = await register(w, 'mia');
   });
 
@@ -301,7 +304,7 @@ describe('campaigns', () => {
   let alice: User;
   let bob: User;
   beforeEach(async () => {
-    w = world();
+    w = world(await backend.reset());
     admin = await register(w, 'admin');
     alice = await register(w, 'alice');
     bob = await register(w, 'bob');

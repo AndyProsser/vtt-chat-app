@@ -6,6 +6,8 @@ export * from './config.js';
 export * from './errors.js';
 export * from './session/index.js';
 export * from './store/memoryStore.js';
+export * from './store/migrate.js';
+export * from './store/postgresStore.js';
 export * from './store/store.js';
 export * from './http/authRoutes.js';
 export * from './http/campaignRoutes.js';

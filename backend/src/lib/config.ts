@@ -10,6 +10,10 @@ export interface BackendConfig {
   liveKitUrl: string;
   liveKitApiKey: string;
   liveKitApiSecret: string;
+  /** Postgres connection string. Unset: in-memory state, lost on restart (dev only). */
+  databaseUrl: string | undefined;
+  /** Valkey/Redis URL for the replay buffer. Unset: in-memory, so a restart sends every client a snapshot. */
+  valkeyUrl: string | undefined;
 }
 
 /**
@@ -23,5 +27,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): BackendConfig 
     liveKitUrl: env.LIVEKIT_URL ?? DEV_LIVEKIT_URL,
     liveKitApiKey: env.LIVEKIT_API_KEY ?? DEV_LIVEKIT_API_KEY,
     liveKitApiSecret: env.LIVEKIT_API_SECRET ?? DEV_LIVEKIT_API_SECRET,
+    databaseUrl: env.DATABASE_URL || undefined,
+    valkeyUrl: env.VALKEY_URL || undefined,
   };
 }

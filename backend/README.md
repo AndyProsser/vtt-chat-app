@@ -2,11 +2,11 @@
 
 Node.js + Express + TypeScript API and WebSocket layer. The only server-side application component (aside from the LiveKit binaries and native infra services) — see [CLAUDE.md §8.3](../.claude/CLAUDE.md).
 
-**Status:** identity, campaigns, a REST layer and a **WebSocket hub** exist and are tested (146 tests, including real sockets), all against **in-memory** stores — state is lost on restart. Built from the decisions in [CLAUDE.md §11](../.claude/CLAUDE.md) and [SYNC-PROTOCOL.md](../docs/architecture/SYNC-PROTOCOL.md):
+**Status:** identity, campaigns, a REST layer and a **WebSocket hub** exist and are tested (169 tests, including real sockets), against in-memory stores **and** a real Postgres + Valkey (see below). With `DATABASE_URL` / `VALKEY_URL` set, state survives a restart; unset, it is in memory and lost. Built from the decisions in [CLAUDE.md §11](../.claude/CLAUDE.md) and [SYNC-PROTOCOL.md](../docs/architecture/SYNC-PROTOCOL.md):
 
 - `lib/auth/` — accounts (first account = Admin; recording consent captured at sign-up with its text version), scrypt passwords, magic links (sign-in and reset, single-use, expiring), long-lived **remotely revocable sessions** with a configurable offline limit (default 30 days) kept alive by client pings.
 - `lib/campaigns/` — campaigns (creation `closed` to the Admin or `open` to anyone), **multi-use expiring invites**, characters (one active per player), and the **DM swap** (old DM becomes a player, characters parked and restored).
-- `lib/store/` — a `Store` interface with an in-memory implementation. The Postgres adapter is **not written**; [migrations/0001_init.sql](migrations/0001_init.sql) is the schema, **untested** (no Postgres was available).
+- `lib/store/` — a `Store` interface with two implementations: `MemoryStore` (tests, no-database dev) and `PostgresStore` (`pg`). [migrations/](migrations/) is applied on start by `migrate.ts` (ordered `NNNN_name.sql` files, one transaction each, advisory-locked, tracked in `schema_migrations`; never edit a released migration — add a new file). Reads treat a malformed id as not-found, so a bogus token can't become a 500. The domain, HTTP and `Store` contract suites run on both stores; set `TEST_DATABASE_URL` for the Postgres run (`infra/dev/compose.yml` provides one).
 - `lib/session/liveKitToken.ts` — LiveKit token minting, not yet wired behind auth.
 
 - `lib/http/` — REST (`/api/auth`, `/api/campaigns`): sign-up, sign-in, magic links, sessions, invites, characters, DM swap, and member-only LiveKit voice tokens; rate limiting; safe error handling.
@@ -14,7 +14,7 @@ Node.js + Express + TypeScript API and WebSocket layer. The only server-side app
 
 - `lib/recording/` — `RecordingState` (the server-owned flag + id; start/pause/resume/stop with validated transitions) and `AckStore` (who has heard the start cue, with an expiry; in-memory, Valkey later). The DM controls it over `POST /api/campaigns/:id/recording`; the hub announces changes and tells joiners the current state. See [the consent loop](../docs/architecture/RECORDING-AND-SUMMARIES.md#the-consent-loop-as-built-2026-11-05).
 
-Still to build ([ROADMAP Stage 3](../ROADMAP.md#stage-3--server-core)): the Postgres adapter, **wiring `ValkeyReplayBuffer` to a real client** (it is written against a tiny `KeyValue` interface and tested only against a fake; the shared contract suite in `replayContract.ts` must be run against a real Valkey and fixed if the fake's idea of Redis semantics was wrong), per-recording cue acknowledgements, OIDC, the email sender (optional SMTP), recording status events, chat persistence, and the Admin CLI.
+Still to build ([ROADMAP Stage 3](../ROADMAP.md#stage-3--server-core)): the realtime and WebSocket suites still run on `MemoryStore` only, per-recording cue acknowledgements, OIDC, the email sender (optional SMTP), recording status events, chat persistence, and the Admin CLI.
 
 ## Responsibilities
 

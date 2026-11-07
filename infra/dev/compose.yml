@@ -1,0 +1,30 @@
+# Throwaway Postgres + Valkey for local development and for running the store-backed test suites
+# against the real thing. Not the deployment bundle (that is infra/compose/, Stage 3).
+#
+#   docker compose -f infra/dev/compose.yml up -d
+#   export TEST_DATABASE_URL=postgres://postgres:scratch@127.0.0.1:55432/vtt
+#   export TEST_VALKEY_URL=redis://127.0.0.1:56379
+#   npm test
+#
+# Ports are bound to localhost only; the password is a scratch value, never reuse it.
+name: vtt-dev
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_PASSWORD: scratch
+      POSTGRES_DB: vtt
+    ports: ['127.0.0.1:55432:5432']
+    tmpfs: [/var/lib/postgresql/data] # throwaway: nothing survives `down`
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 2s
+      retries: 15
+  valkey:
+    image: valkey/valkey:8-alpine
+    command: ['valkey-server', '--save', '', '--appendonly', 'no']
+    ports: ['127.0.0.1:56379:6379']
+    healthcheck:
+      test: ['CMD', 'valkey-cli', 'ping']
+      interval: 2s
+      retries: 15
