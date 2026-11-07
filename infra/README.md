@@ -8,7 +8,8 @@ Ubuntu Server deployment: install script, systemd units, config generation — s
 
 ## Responsibilities
 
-- `install.sh` — installs and configures, on a blank Ubuntu Server: Caddy, Postgres, Redis, Node.js, **LiveKit server + Egress**, ffmpeg, **Whisper.cpp**, **Ollama**. No Docker.
+- `install.sh` — installs and configures, on a blank Ubuntu Server: Caddy, Postgres, Redis, Node.js, **LiveKit server + Egress**, ffmpeg, **Whisper.cpp**, **Ollama** — the **native** (advanced-user) tier.
+- [`compose/`](compose/README.md) — the primary Docker Compose bundle for a VM/server (voice works; Egress/AI come with Stage 5). `dev/` — throwaway Postgres + Valkey for tests.
 - systemd unit files for `backend/`, the `ai/` worker, LiveKit, Egress, and the AI stack
 - Automatic generation of config and secrets (env files, Caddy config) — secrets generated to files, never echoed
 - Optional one-line `curl` installer
@@ -29,7 +30,7 @@ Voice is light; **transcription and summarisation are the heavy parts** and run 
 
 ## Explicitly Out of Scope
 
-- Containers (unless Andy reopens it — an optional container bundle for other self-hosters is an open question in [.claude/intent.md](../.claude/intent.md))
+- Kubernetes/Helm and other orchestrators (Compose is the container target)
 - Anything gameplay-related — that's DM-managed inside the app
 
 ## Depends On

@@ -64,8 +64,15 @@ Update this file as threads open, progress, or close — stale entries here are 
    behaviour; **Windows is the target, Linux and macOS are best-effort**. The Stage 2 spike still
    supplies the measurements (AEC/NS, device release on mute, unmute latency).
 5. **Mobile SPA scope** — messages/RSVP/handouts only, or basic listen/talk too?
-6. **Container bundle for other self-hosters** — optional Docker/compose alongside the native
-   install? CLAUDE.md says no Docker today.
+6. **Deployment tiers** — *decided 2026-11-07:* Docker Compose on a VM/server is the primary
+   path; native install is for advanced users; LXC is optional/at-your-own-risk. **AI backends
+   (Whisper, LLM) may be local or a remote instance** (Andy's case: GPU in a gaming PC); a remote box
+   being offline means jobs wait, then fall back to local CPU `small` (timeout + fallback both
+   configurable). Remote AI speaks the **OpenAI-compatible API**; local AI is always configured as
+   the fallback, uses a GPU if present (Admin told remote may be unnecessary). Docker first; native
+   tier follows once Compose works. **Open:** compose layout details (LiveKit on host networking
+   for UDP), Egress image/config.
+   See CLAUDE.md §5.
 7. **Server sizing** — minimum spec for voice + records; Whisper model default; what a GPU buys.
    Answered by the Stage 2 spike.
 8. **Admin CLI shape** — instance bootstrap and invite flow depend on topic 1. Andy deferred the

@@ -86,10 +86,9 @@ pattern and its reconciliation conventions.
 - **Windows build gotcha:** `rust-livekit`'s `libwebrtc_sys` is built against the static CRT, so
   `tauri-client/.cargo/config.toml` forces `+crt-static`. Don't remove it or you get `LNK2038`.
 
-- **Docker is still a "no" — but only because it hasn't been revisited.** Andy's global default is
-  "containerize everything"; this repo's CLAUDE.md says native services, no Docker. With the new
-  goal of *other people* deploying their own instance, an optional container bundle is an open
-  question. Don't add one, and don't assume the answer stays "no" forever.
+- **Docker is now the primary deployment path (decided 2026-11-07).** Compose on a VM/server first;
+  native install for advanced users; LXC optional. Whisper/LLM may be local or a remote instance
+  (Andy's GPU is in his gaming PC). See CLAUDE.md §5.
 
 ## Reconciliation log
 

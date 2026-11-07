@@ -158,24 +158,53 @@ Tauri IPC event payloads, WS contracts) live in `shared/`, not duplicated per-mo
 Never print secret plaintext into a tool call or chat. Generate to a file via script, encrypt or
 protect in place. Never commit real credentials.
 
-## **5. Deployment Model (Ubuntu Server)**
+## **5. Deployment Model (Docker Compose primary, native supported)**
 
-Claude must design the backend to run **natively** on Ubuntu Server (VM or host):
+Claude must design the backend to run on Ubuntu Server (VM or host), **both** in containers and natively:
 
-### **Required native services**
+### **Services (the same set in every deployment tier)**
 
 - **Caddy** (reverse proxy + TLS)
 - **Postgres** (persistent storage)
 - **Valkey** (ephemeral state + pub/sub; Redis-protocol, so plain Redis also works — decided 2026-11-05, see SYNC-PROTOCOL.md)
 - **NodeJS Express backend**
 - **LiveKit server** + **LiveKit Egress** (recording)
-- **Whisper.cpp** (local transcription) and **ffmpeg** (transcoding)
-- **Ollama** (local LLM for summaries)
+- **Whisper.cpp** (transcription) and **ffmpeg** (transcoding)
+- **Ollama** (LLM for summaries)
 
-### **No Docker required**
+### **Deployment tiers — decided 2026‑11‑07**
 
-The system must run without containers. (Whether to _also_ ship an optional container bundle for
-other self‑hosters is an open question — see `intent.md`. Until Andy decides, don't add one.)
+1. **Docker Compose on a VM or real server — the primary, documented path.** Anyone should be able
+   to stand up an instance this way. This is also the supported way to run LiveKit **Egress**,
+   which upstream ships as a container image.
+2. **Native install (bash script + systemd) — for advanced users.** Same services, no containers.
+   Supported and kept working, but not the path the quick start leads with.
+3. **LXC (e.g. Proxmox) — optional, for operators who know what they're doing.** Not a separate
+   artifact: it's the native install inside a container. Documented gotchas only (UDP buffer
+   sysctls live on the host; GPU passthrough is fiddly). Docker‑in‑LXC is not recommended.
+
+The application code must not care which tier it runs under — everything is configured by
+environment/config, and the container bundle and the install script produce the same config.
+
+### **AI backends: local or remote — decided 2026‑11‑07**
+
+Transcription (Whisper) and summarisation (LLM) sit behind provider interfaces and may each run:
+
+- **Locally on the server (default, always configured).** Whisper on CPU is acceptable (`small`/
+  quantised to start); no GPU is required. Sessions are ~weekly, so a slow 4–8 h CPU transcript is
+  acceptable. The local backend is always set up and is the fallback for a remote one. If the
+  server **has a usable GPU**, local uses it, and the Admin is told a remote backend may be
+  unnecessary.
+- **On a remote instance the operator controls** — e.g. a GPU in a gaming PC on the LAN — reached
+  by a configured URL, speaking the **OpenAI‑compatible API** (`/v1/audio/transcriptions` for
+  Whisper, the OpenAI‑style chat endpoint for the LLM; Ollama exposes one). A remote that is off or
+  asleep means jobs **wait, then fall back to local CPU `small`** after a configurable timeout;
+  the fallback can be disabled (wait forever instead). Never "the recording is lost".
+- **On a third‑party cloud** — an opt‑in adapter (principle 2), through the same OpenAI‑compatible
+  interface.
+
+Any non‑local backend means session content leaves the server, so it needs an explicit operator
+setting and is surfaced in the UI (§8.4). Private/whisper audio is never sent anywhere.
 
 ### **Deployment method**
 
@@ -445,7 +474,7 @@ Claude must **not** implement:
 
 - An embedded browser, page restriction, ad‑blocking, or any injection into third‑party pages
 - Browser extensions
-- Docker (unless Andy reopens it)
+- A **hard requirement** on Docker or any container runtime — the native install stays supported
 - Admin web UI
 - VTT features (maps, tokens, dice, initiative, character sheets) — this app stays separate from the VTT
 - Video
@@ -481,7 +510,8 @@ browser). It is a deliberate simplification each time. Do not reintroduce:
 - **No formal session state machine.** The prior system enforced `IDLE → ACTIVE → PAUSED → COOLDOWN
 → ENDED`, with every change touching four layers in order. Recording is a server‑owned flag
   with a timestamp record (§10).
-- **No Docker.**
+- **No Docker‑only deployment.** Docker Compose is now the primary path (2026‑11‑07), but the
+  application must keep running natively; the prior system's Docker coupling is what we avoid.
 - **No cloud lock‑in.** The first redesign sketch listed Cloudflare components as if they were part
   of the stack; they are optional adapters only.
 

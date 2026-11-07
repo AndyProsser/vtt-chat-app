@@ -95,10 +95,10 @@ The riskiest unknowns are all "does this actually work on real machines with ope
 - LiveKit token issuance per channel; room layout (General / Campaign / party splits)
 - Postgres schema (campaigns, memberships, channels, messages, recordings, transcripts, summaries); Redis for ephemeral state
 - WebSocket layer with a bounded replay buffer and snapshot fallback (per STATE-AND-RESILIENCE)
-- Caddy + systemd + `infra/install.sh` on a blank Ubuntu Server — voice only to start (records come in Stage 5)
+- **Docker Compose bundle** (primary) + Caddy + systemd + `infra/install.sh` (native, advanced) — voice only to start (records come in Stage 5). Both generate the same config; LiveKit on host networking in Compose
 - UDP port documentation and an operator checklist, tested by a **second person** deploying from the docs
 
-**Done when:** someone other than Andy can run the install script on a blank Ubuntu VM, bootstrap a campaign, and have two clients join its voice room.
+**Done when:** someone other than Andy can `docker compose up` on a blank Ubuntu VM (and, separately, run the native install script), bootstrap a campaign, and have two clients join its voice room.
 
 ---
 
@@ -213,7 +213,7 @@ Each item is independent, off by default, and must never be assumed by applicati
 - Cloudflare TURN (extra ICE server); Cloudflare Realtime SFU as an alternative to LiveKit (a large design of its own); Cloudflare Pages for static hosting
 - Cloud transcription / LLM providers beyond Stage 5's first adapters
 - OIDC/Authelia SSO, if the identity decision allows
-- Possibly an optional container bundle for other self-hosters (open question)
+- Remote AI backends (Whisper/LLM on another machine, e.g. a GPU PC) are a Stage 5 provider-interface concern, not Stage 10
 
 ---
 
@@ -240,7 +240,7 @@ Two other things that ended with the old design, deliberately recorded so they a
 
 ## Out of Scope
 
-Per [CLAUDE.md §13](.claude/CLAUDE.md) — not planned at any stage: an embedded browser or any page injection, browser extensions, Docker (unless reopened), an admin web UI, VTT features (maps, tokens, dice, sheets), video, Rust backend services, a hard dependency on any cloud service, a Spectator role, or a formal session state machine.
+Per [CLAUDE.md §13](.claude/CLAUDE.md) — not planned at any stage: an embedded browser or any page injection, browser extensions, a Docker-only deployment (native stays supported), an admin web UI, VTT features (maps, tokens, dice, sheets), video, Rust backend services, a hard dependency on any cloud service, a Spectator role, or a formal session state machine.
 
 ## See Also
 

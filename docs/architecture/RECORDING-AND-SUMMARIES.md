@@ -93,11 +93,11 @@ Recording people is a trust matter before it is a technical one. The design is:
 
 ## Sizing (rough, to be measured in the Stage 2 spike)
 
-| Item | Estimate | Note |
-| --- | --- | --- |
-| Raw audio, Opus per track | ~30–60 MB per speaker-hour | 5 players × 4 h ≈ 0.6–1.2 GB per session before transcode |
-| Whisper.cpp | CPU `medium`/`small` runs near or below real-time per track on a modest server; a GPU changes everything | The real constraint on old hardware — measure, don't assume |
-| LLM summary | Minutes per session on CPU with a small model | Run after the session, not live |
+| Item                      | Estimate                                                                                                                                                                   | Note                                                                                                                                                          |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Raw audio, Opus per track | ~30–60 MB per speaker-hour                                                                                                                                                 | 5 players × 4 h ≈ 0.6–1.2 GB per session before transcode                                                                                                     |
+| Whisper.cpp               | **Measured 2026-11-07 (8-core desktop, `small` q5_1):** RTF ~0.77 on continuous speech, ~0.13 on a sparse track once silence is skipped. `medium` and GPU not yet measured | Skip silence by segmenting each track ourselves — see [AUDIO-SPIKE-RESULTS.md](AUDIO-SPIKE-RESULTS.md) Finding 4. Per-speaker tracks multiply the audio-hours |
+| LLM summary               | Minutes per session on CPU with a small model                                                                                                                              | Run after the session, not live                                                                                                                               |
 
 Processing runs **after** the session by default; "live" summaries are a later enhancement that
 depends on measured CPU headroom.
@@ -107,7 +107,7 @@ depends on measured CPU headroom.
 ### Decided (Andy, 2026-11-05)
 
 - **A campaign is one continuous entity.** Recording **start / stop / pause** events define the
-  session bookmarks; no separate session object. (This supersedes DM markers as the *primary*
+  session bookmarks; no separate session object. (This supersedes DM markers as the _primary_
   anchors; DM-placed markers can still exist as extras.)
 - **Collect rich metadata with every recording**: speaking indicators, mute/unmute, join/leave,
   active character, and other client events, timestamped. Combined with per-speaker tracks, this
@@ -126,7 +126,8 @@ depends on measured CPU headroom.
 
 - **Whisper model default depends on hardware:** chosen at setup (GPU detected or not), overridable
   by an environment variable or the CLI. Proposed starting points, to be validated by the
-  Stage 2 spike: **CPU-only → `small` (quantised)**, **GPU → `large-v3-turbo`**.
+  Stage 2 spike: **CPU-only → `small` (quantised)**, **GPU → `large-v3-turbo`**. (`small` q5_1 on CPU is confirmed workable; the GPU choice is still unmeasured.)
+- **Transcribe speech windows, not whole tracks — built** (`ai/src/lib/speechWindows.ts`; measured in AUDIO-SPIKE-RESULTS.md Finding 5, where the problem proved hardware-independent). Segment each track with a silence detector (ffmpeg `silencedetect` gave exact windows in the spike), transcribe the windows, and add each window's start offset. whisper.cpp's own `--vad` produced timestamps that drift by tens of seconds, and whole-track transcription both wastes time on silence and hallucinates text on room noise.
 - **Standing consent is collected at account creation** ("you consent that you may be recorded…"),
   stored in Postgres against the user profile with a timestamp and the **version of the consent
   text**. A changed text re-prompts on next sign-in. The per-recording **cue** still plays: sign-up
@@ -139,12 +140,12 @@ The **server** owns the recording state (an id plus a status) and the per-player
 1. The DM starts, pauses, resumes or stops a recording (`POST /api/campaigns/:id/recording`, DM only).
 2. The server announces `recording.status` (`STARTED` / `PAUSED` / `RESUMED` / `STOPPED`) to everyone subscribed to the campaign.
 3. Each client plays the matching cue **locally**. For a start, the client first **closes its capture gate**, plays the cue, and only when it has finished sends `recording.ack` and opens the gate.
-4. After every snapshot *or replay*, the server sends `recording.state`: the current state (`IN-PROGRESS` or `PAUSED`) and whether **this viewer** has already acknowledged. A late joiner gets `acknowledged: false`, so they hear the start cue before being captured. A quick reconnect gets `acknowledged: true`, so nothing replays. A reconnect after the expiry gets `false` again.
+4. After every snapshot _or replay_, the server sends `recording.state`: the current state (`IN-PROGRESS` or `PAUSED`) and whether **this viewer** has already acknowledged. A late joiner gets `acknowledged: false`, so they hear the start cue before being captured. A quick reconnect gets `acknowledged: true`, so nothing replays. A reconnect after the expiry gets `false` again.
 5. The DM is told who has acknowledged (`recording.ack.update`, DM only).
 
 The acknowledgement lives on the **server** (in memory now; Valkey with a TTL is the plan), not in a file on the player's machine: nothing for a player to lose or fake, and it works across their devices. If a cue can't be played (no speakers), the gate opens anyway so the player isn't locked out of voice, but no acknowledgement is sent — the DM can see they haven't heard it.
 
-What is *not* built: the durable record of each recording (start/stop/pause timestamps as session bookmarks), the link to LiveKit Egress, and everything downstream of it (Stage 5). Today a recording is a flag and an id in memory.
+What is _not_ built: the durable record of each recording (start/stop/pause timestamps as session bookmarks), the link to LiveKit Egress, and everything downstream of it (Stage 5). Today a recording is a flag and an id in memory.
 
 ### Still open
 

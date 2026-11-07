@@ -36,7 +36,7 @@ flowchart LR
         Mobile["Mobile SPA (web/)\nmessages, RSVP, handouts"]
     end
 
-    subgraph Server["Your server: blank Ubuntu, native services, no Docker"]
+    subgraph Server["Your server: Docker Compose on a VM (or native, for advanced users)"]
         Caddy["Caddy\nTLS + reverse proxy"]
         API["backend\nExpress API + WebSocket"]
         PG[("Postgres")]
@@ -124,21 +124,21 @@ operator can switch on; the system must work with all of them off.
 
 ## Decided vs. open
 
-| Decided | Source |
-| --- | --- |
-| Audio only, tray app, Rust owns audio, no injected pages | 2026-10-29 direction |
-| Self-host first, zero cloud reliance; Cloudflare / cloud AI are optional advanced adapters | Andy, 2026-11-05 |
-| Recording is **server-side** (Egress, per-speaker tracks) | Andy, 2026-11-05 |
-| Records + AI summary are **core**, not a plugin | Andy, 2026-11-05 |
-| Operator opens UDP for voice traffic | Andy, 2026-11-05 |
-| Self-hosted LiveKit as the SFU | follows from the above |
-| Local-first Whisper.cpp + Ollama | follows from the above |
+| Decided                                                                                    | Source                 |
+| ------------------------------------------------------------------------------------------ | ---------------------- |
+| Audio only, tray app, Rust owns audio, no injected pages                                   | 2026-10-29 direction   |
+| Self-host first, zero cloud reliance; Cloudflare / cloud AI are optional advanced adapters | Andy, 2026-11-05       |
+| Recording is **server-side** (Egress, per-speaker tracks)                                  | Andy, 2026-11-05       |
+| Records + AI summary are **core**, not a plugin                                            | Andy, 2026-11-05       |
+| Operator opens UDP for voice traffic                                                       | Andy, 2026-11-05       |
+| Self-hosted LiveKit as the SFU                                                             | follows from the above |
+| Local-first Whisper.cpp + Ollama                                                           | follows from the above |
 
-| Open (tracked in [.claude/intent.md](../../.claude/intent.md)) | |
-| --- | --- |
-| Identity and access model without DDB | |
-| Whether DM markers stay in scope | |
-| Client ↔ server sync protocol (revive archived "Plan B"?) | |
-| Container bundle for other self-hosters? | |
-| Per-platform audio findings (AEC quality, device release on mute) | |
-| Mobile SPA scope: listen/talk, or messages only? | |
+| Open (tracked in [.claude/intent.md](../../.claude/intent.md))    |                                                                          |
+| ----------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| Identity and access model without DDB                             |                                                                          |
+| Whether DM markers stay in scope                                  |                                                                          |
+| Client ↔ server sync protocol (revive archived "Plan B"?)         |                                                                          |
+| ~~Container bundle for other self-hosters?~~                      | Decided 2026-11-07: Docker Compose is primary, native for advanced users |
+| Per-platform audio findings (AEC quality, device release on mute) |                                                                          |
+| Mobile SPA scope: listen/talk, or messages only?                  |                                                                          |

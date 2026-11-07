@@ -42,14 +42,14 @@ flowchart TB
 Only the operator opens anything; players configure nothing. **Opening UDP for voice is accepted**
 (decided 2026-11-05).
 
-| Port | Proto | Required | Purpose |
-| --- | --- | --- | --- |
-| `443` | TCP | yes | Caddy: HTTPS API, WebSocket, status page, SPA, client downloads |
-| `80` | TCP | yes (ACME) | Caddy certificate issuance / http→https redirect |
-| LiveKit media range (default `50000–60000`) | UDP | yes | WebRTC media. The range is configurable — narrow it for a small group |
-| `7881` | TCP | yes | LiveKit ICE-over-TCP fallback for clients that can't use UDP |
-| `7882` | UDP | optional | Single-port UDP mux, an alternative to the range |
-| `3478/udp`, `5349/tls` | | optional | LiveKit's **built-in** TURN, for restrictive networks |
+| Port                                        | Proto | Required   | Purpose                                                               |
+| ------------------------------------------- | ----- | ---------- | --------------------------------------------------------------------- |
+| `443`                                       | TCP   | yes        | Caddy: HTTPS API, WebSocket, status page, SPA, client downloads       |
+| `80`                                        | TCP   | yes (ACME) | Caddy certificate issuance / http→https redirect                      |
+| LiveKit media range (default `50000–60000`) | UDP   | yes        | WebRTC media. The range is configurable — narrow it for a small group |
+| `7881`                                      | TCP   | yes        | LiveKit ICE-over-TCP fallback for clients that can't use UDP          |
+| `7882`                                      | UDP   | optional   | Single-port UDP mux, an alternative to the range                      |
+| `3478/udp`, `5349/tls`                      |       | optional   | LiveKit's **built-in** TURN, for restrictive networks                 |
 
 Signalling (`7880`) sits behind Caddy and is not exposed directly.
 
@@ -81,24 +81,53 @@ ports directly, or fall back to option 3.
 All behind an explicit config switch, all absent from the default install, and none may be assumed
 by application code:
 
-| Adapter | What it replaces | Why someone would want it |
-| --- | --- | --- |
-| Cloudflare TURN | nothing (adds relays) | Can't open UDP; players on hostile networks |
-| Cloudflare Realtime SFU | self-hosted LiveKit | Don't want to run an SFU. Large change: it affects tokens, rooms, egress — treat as a separate, later design. LiveKit and Cloudflare SFU overlap (both SFU + TURN); the system targets LiveKit |
-| Cloudflare Pages / Workers | serving `web/` and `status/` from the box | Offload static hosting |
-| Workers AI, OpenAI, Claude, etc. | local Whisper.cpp / Ollama | Underpowered server, or better quality |
-| Authelia / OIDC | built-in identity | Operator already runs SSO (depends on the identity decision) |
+| Adapter                          | What it replaces                          | Why someone would want it                                                                                                                                                                      |
+| -------------------------------- | ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Cloudflare TURN                  | nothing (adds relays)                     | Can't open UDP; players on hostile networks                                                                                                                                                    |
+| Cloudflare Realtime SFU          | self-hosted LiveKit                       | Don't want to run an SFU. Large change: it affects tokens, rooms, egress — treat as a separate, later design. LiveKit and Cloudflare SFU overlap (both SFU + TURN); the system targets LiveKit |
+| Cloudflare Pages / Workers       | serving `web/` and `status/` from the box | Offload static hosting                                                                                                                                                                         |
+| Workers AI, OpenAI, Claude, etc. | local Whisper.cpp / Ollama                | Underpowered server, or better quality                                                                                                                                                         |
+| Authelia / OIDC                  | built-in identity                         | Operator already runs SSO (depends on the identity decision)                                                                                                                                   |
 
 Any adapter that sends session audio or transcripts off the server must be an explicit operator
 decision and must be visible to users (see [RECORDING-AND-SUMMARIES.md](RECORDING-AND-SUMMARIES.md) privacy rules).
 
 ## Install model
 
-- A **bash install script** on a blank Ubuntu Server installs and configures Caddy, Postgres,
-  Redis, Node.js, LiveKit server + Egress, ffmpeg, Whisper.cpp and Ollama, generates secrets and
-  config, and installs systemd units. Optional one-line `curl` installer.
-- **No Docker** at present. Offering an optional container bundle for other self-hosters is an
-  **open question** (tracked in `.claude/intent.md`); do not add one without Andy's say-so.
+Three tiers, decided 2026-11-07 (rationale: Docker is the lowest-friction way for _other people_
+to stand this up, and LiveKit Egress is only officially distributed as a container image):
+
+1. **Docker Compose on a VM or real server — primary.** One compose file for Caddy, Postgres,
+   Valkey, the backend, LiveKit, Egress and the `ai/` worker; Whisper.cpp/Ollama containers are
+   optional (see "AI backends"). **LiveKit runs with host networking**: a container-NATed UDP port
+   range is slow to start and breaks ICE candidates. A VM or bare host is the target.
+2. **Native — advanced users.** A **bash install script** on a blank Ubuntu Server installs and
+   configures the same services under systemd, generates secrets and config. Optional one-line
+   `curl` installer. Kept working; not the quick-start path.
+3. **LXC — optional, operator's risk.** The native install inside a container. Known gotchas:
+   `net.core.rmem_max`/`wmem_max` must be raised on the _host_; GPU passthrough needs matching
+   host/guest drivers; Docker-in-LXC needs `nesting=1,keyctl=1` and is not recommended.
+
+Both tiers must generate the same configuration; application code never branches on the tier.
+
+### AI backends: local or remote
+
+Decided 2026-11-07. Whisper and the LLM are provider interfaces, each independently **local**,
+a **remote instance the operator controls** (e.g. Ollama + a Whisper server on a GPU gaming PC), or
+a **cloud adapter**. All remote kinds speak the **OpenAI-compatible API**, so one client covers a
+home GPU box and a cloud provider.
+
+- **Local is always configured** and is the fallback. The Compose bundle includes the local
+  Whisper/Ollama containers by default (not an opt-in profile). On CPU, Whisper `small`
+  (quantised); sessions are ~weekly, so a 4-8 h CPU transcript is acceptable, not a failure.
+- **GPU detection:** if the server has a usable GPU, local uses it and the setup/Admin screen says
+  a remote backend is probably unnecessary.
+- **Remote unavailable** (gaming PC off): jobs wait in the queue, then fall back to local CPU after
+  a **configurable timeout**. The fallback itself is configurable (it can be switched off to wait
+  indefinitely instead). A recording is never lost either way.
+- Anything remote means audio/transcripts leave the server: explicit operator setting, visible in
+  the UI. Private/whisper audio is never sent.
+- Native tier: records support is best-effort until a native Egress is proven; Docker first.
 - `ufw` rules are an operator-time decision (LAN-only for a private group, or open for a public
   one) — the script asks, it doesn't hardcode.
 

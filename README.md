@@ -12,7 +12,7 @@ The usual way a group plays online: everyone joins one Discord channel and leave
 
 - **Open-mic voice that stays out of the way.** A system-tray app, hidden ~90% of the time, with near-zero idle CPU, auto-rejoin, autostart and a tray icon that always shows whether you're live, muted or being recorded.
 - **Session records are core.** The server records each speaker separately, transcribes with Whisper, and writes AI summaries — session, chapter, per-character and DM-only — with a visible, audible consent cue every time recording starts.
-- **Self-host first.** One blank Ubuntu Server, native services, **no Docker, no cloud account**. LiveKit, recording, Whisper and a local LLM all run on your box. Anyone can deploy their own instance.
+- **Self-host first.** One VM or server, **Docker Compose** (or a native install for advanced users), **no cloud account**. LiveKit, recording, Whisper and an LLM run on your box — or Whisper/the LLM can point at a GPU machine you own. Anyone can deploy their own instance.
 - **Cloud is optional.** Cloudflare (TURN, SFU, Workers AI, Pages) and cloud LLM/transcription are _advanced-user adapters_, off by default and never required.
 - **Minimal table tools.** DM/player whispers, handouts and images, loot drops, a DM soundboard, party splits, and session reminders with RSVP.
 - **Campaigns are private.** A designated DM and access control per campaign, plus a General channel.
@@ -28,7 +28,7 @@ The usual way a group plays online: everyone joins one Discord channel and leave
 - **Records pipeline** — ffmpeg, Whisper.cpp, Ollama (all local by default)
 - **Database / cache** — PostgreSQL, Redis
 - **Reverse proxy** — Caddy
-- **Deployment** — native Ubuntu Server services under systemd, no Docker
+- **Deployment** — Docker Compose on a VM/server (primary); native Ubuntu services under systemd for advanced users
 
 See [CLAUDE.md §4](.claude/CLAUDE.md) for code conventions.
 
@@ -68,7 +68,7 @@ Each module has its own `README.md` describing its purpose and current status.
 
 ## Self-Hosting at a Glance
 
-You will need a server you control (VM or host) running Ubuntu, a domain name for TLS, and the ability to open a **UDP port range** for voice. You do not need a Cloudflare account, a cloud LLM, or Docker. The install script and operator checklist arrive in [Stage 3](ROADMAP.md#stage-3--server-core); the planned topology and port table are in [DEPLOYMENT-AND-TRANSPORT.md](docs/architecture/DEPLOYMENT-AND-TRANSPORT.md).
+You will need a server you control (VM or host) running Ubuntu, a domain name for TLS, and the ability to open a **UDP port range** for voice. You do not need a Cloudflare account or a cloud LLM. Docker Compose is the recommended install; a native install is available for advanced users. The install script and operator checklist arrive in [Stage 3](ROADMAP.md#stage-3--server-core); the planned topology and port table are in [DEPLOYMENT-AND-TRANSPORT.md](docs/architecture/DEPLOYMENT-AND-TRANSPORT.md).
 
 ## Recording & Privacy
 
