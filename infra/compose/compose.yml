@@ -1,0 +1,108 @@
+# VTT Chat App — the primary deployment (Docker Compose on a VM or server).
+# Start with ./setup.sh (generates .env and livekit.yaml), then:  docker compose up -d --build
+# Design and rationale: docs/architecture/DEPLOYMENT-AND-TRANSPORT.md
+name: vtt
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: vtt
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?run ./setup.sh first}
+      POSTGRES_DB: vtt
+    volumes: [postgres-data:/var/lib/postgresql/data]
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U vtt -d vtt']
+      interval: 5s
+      retries: 10
+
+  valkey:
+    image: valkey/valkey:8-alpine
+    restart: unless-stopped
+    # LiveKit runs on the host network (below) and reaches Valkey through this loopback-only port.
+    ports: ['127.0.0.1:${VALKEY_HOST_PORT:-6379}:6379']
+    volumes: [valkey-data:/data]
+    healthcheck:
+      test: ['CMD', 'valkey-cli', 'ping']
+      interval: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ../..
+      dockerfile: infra/compose/backend.Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres: { condition: service_healthy }
+      valkey: { condition: service_healthy }
+    environment:
+      DATABASE_URL: postgres://vtt:${POSTGRES_PASSWORD}@postgres:5432/vtt
+      VALKEY_URL: redis://valkey:6379
+      LIVEKIT_URL: wss://${SITE_ADDRESS:?run ./setup.sh first}/livekit
+      LIVEKIT_API_KEY: ${LIVEKIT_API_KEY}
+      LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET}
+    ports: ['127.0.0.1:${BACKEND_PORT:-3000}:3000'] # loopback only: health checks and local probes
+
+  # Host networking is deliberate: a NATed UDP range of thousands of ports is slow to start and
+  # breaks ICE candidate addresses. Config (keys, ports, external-IP) is in the generated livekit.yaml.
+  livekit:
+    image: livekit/livekit-server:${LIVEKIT_VERSION:-v1.13.5}
+    restart: unless-stopped
+    network_mode: host
+    command: ['--config', '/etc/livekit.yaml']
+    volumes: ['./livekit.yaml:/etc/livekit.yaml:ro']
+    depends_on:
+      valkey: { condition: service_healthy }
+
+  # --- Records pipeline (profile "records": docker compose --profile records up -d) ---
+  # One-shot: the Egress image runs as uid 1001, a fresh named volume is root-owned.
+  recordings-init:
+    profiles: [records]
+    image: busybox:stable
+    command: ['chown', '-R', '1001:0', '/out']
+    volumes: [recordings:/out]
+
+  # Per-speaker track egress writes files into /out. Host network like LiveKit: it talks to LiveKit
+  # and Valkey on loopback. The image is large (~4 GB, it bundles Chrome for web egress we don't use).
+  egress:
+    profiles: [records]
+    image: livekit/egress:${EGRESS_VERSION:-v1.15.0}
+    restart: unless-stopped
+    network_mode: host
+    # Config comes from the environment, not a file: the container runs as uid 1001 and a
+    # mode-600 file written by setup.sh would be unreadable to it.
+    environment:
+      EGRESS_CONFIG_BODY: |
+        log_level: info
+        api_key: ${LIVEKIT_API_KEY}
+        api_secret: ${LIVEKIT_API_SECRET}
+        ws_url: ws://127.0.0.1:7880
+        redis:
+          address: 127.0.0.1:${VALKEY_HOST_PORT:-6379}
+        health_port: 8080
+    volumes:
+      - recordings:/out
+    depends_on:
+      recordings-init: { condition: service_completed_successfully }
+      livekit: { condition: service_started }
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on: [backend]
+    ports: ['80:80', '443:443', '443:443/udp']
+    # LiveKit is on the host network; reach it by the host-gateway alias.
+    extra_hosts: ['host.docker.internal:host-gateway']
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  recordings:
+  postgres-data:
+  valkey-data:
+  caddy-data:
+  caddy-config:

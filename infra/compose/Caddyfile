@@ -1,0 +1,15 @@
+# One hostname. A real domain gets a Let's Encrypt certificate automatically; `localhost` gets
+# Caddy's own internal CA (fine for a local test, not trusted by other machines).
+{$SITE_ADDRESS} {
+	encode zstd gzip
+
+	# Signalling for LiveKit: the SDK appends /rtc, so strip our prefix. Media (UDP) bypasses Caddy.
+	handle_path /livekit/* {
+		reverse_proxy host.docker.internal:7880
+	}
+
+	# REST and the WebSocket live channel; Caddy upgrades /ws transparently.
+	handle {
+		reverse_proxy backend:3000
+	}
+}

@@ -1,0 +1,10 @@
+**/node_modules
+**/dist
+**/*.tsbuildinfo
+tauri-client/target
+tauri-client/src-tauri/target
+.git
+.remember
+docs
+infra/compose/.env
+infra/compose/livekit.yaml
