@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- tests inspect loosely-typed JSON frames */
 import { afterAll, afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import type { User } from '../../types/index.js';
