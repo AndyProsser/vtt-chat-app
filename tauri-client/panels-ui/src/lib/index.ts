@@ -3,4 +3,6 @@ export * from './churnDiagnostics.js';
 export * from './microphoneStore.js';
 export * from './speakingStore.js';
 export * from './store.js';
+export * from './tableModel.js';
+export * from './tableStore.js';
 export * from './tauriBridge.js';

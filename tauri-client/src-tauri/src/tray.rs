@@ -94,16 +94,19 @@ const TRAY_ID: &str = "main";
 const MENU_TOGGLE_MUTE: &str = "toggle_mute";
 const MENU_QUIT: &str = "quit";
 
-/// Creates the tray icon (disconnected until the session says otherwise) with a two-item menu:
-/// mute/unmute, and quit. Muting from the tray works without any panel (usable without a mouse
+/// Creates the tray icon (disconnected until the session says otherwise) with a menu:
+/// mute/unmute, the panels, and quit. Muting from the tray works without any panel (usable without a mouse
 /// elsewhere: hotkeys; with a mouse: this).
 pub fn install(app: &tauri::AppHandle) -> tauri::Result<()> {
     use tauri::menu::{Menu, MenuItem};
     use tauri::tray::TrayIconBuilder;
 
     let toggle = MenuItem::with_id(app, MENU_TOGGLE_MUTE, "Mute / unmute", true, None::<&str>)?;
+    let roster = MenuItem::with_id(app, "open-roster", "Table", true, None::<&str>)?;
+    let chat = MenuItem::with_id(app, "open-chat", "Chat", true, None::<&str>)?;
+    let account = MenuItem::with_id(app, "open-account", "Account", true, None::<&str>)?;
     let quit = MenuItem::with_id(app, MENU_QUIT, "Quit", true, None::<&str>)?;
-    let menu = Menu::with_items(app, &[&toggle, &quit])?;
+    let menu = Menu::with_items(app, &[&toggle, &roster, &chat, &account, &quit])?;
     let state = TrayState::Disconnected;
     TrayIconBuilder::with_id(TRAY_ID)
         .icon(icon_image(state))
@@ -114,6 +117,9 @@ pub fn install(app: &tauri::AppHandle) -> tauri::Result<()> {
                 crate::hotkeys::dispatch(app, crate::hotkeys::HotkeyAction::ToggleMute)
             }
             MENU_QUIT => app.exit(0),
+            id if id.starts_with("open-") => {
+                let _ = crate::windows::open(app, &id["open-".len()..]);
+            }
             _ => {}
         })
         .build(app)?;

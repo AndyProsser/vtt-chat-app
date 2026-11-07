@@ -18,6 +18,9 @@ pub struct Saved {
     pub server: Option<String>,
     pub session_token: Option<String>,
     pub campaign_id: Option<String>,
+    /// Not secret: shown in the panel and used to tell "mine" from "theirs" in chat.
+    pub user_id: Option<String>,
+    pub display_name: Option<String>,
 }
 
 const FILE_NAME: &str = "account.json";
@@ -243,12 +246,13 @@ fn device_label() -> String {
 }
 
 /// The panel-facing summary: never includes the token.
-pub fn status_json(saved: &Saved, campaigns: &[CampaignItem], display_name: &str) -> Value {
+pub fn status_json(saved: &Saved, campaigns: &[CampaignItem]) -> Value {
     json!({
         "signedIn": saved.session_token.is_some(),
         "server": saved.server,
         "campaignId": saved.campaign_id,
-        "displayName": display_name,
+        "userId": saved.user_id,
+        "displayName": saved.display_name,
         "campaigns": campaigns,
     })
 }
@@ -285,6 +289,8 @@ mod tests {
             server: Some("https://h".into()),
             session_token: Some("tok".into()),
             campaign_id: Some("c1".into()),
+            user_id: Some("u1".into()),
+            display_name: Some("Ann".into()),
         };
         saved.save(dir.path()).unwrap();
         assert_eq!(Saved::load(dir.path()), saved);
@@ -311,8 +317,9 @@ mod tests {
             server: Some("https://h".into()),
             session_token: Some("SECRET".into()),
             campaign_id: None,
+            ..Saved::default()
         };
-        let text = status_json(&saved, &[], "Ann").to_string();
+        let text = status_json(&saved, &[]).to_string();
         assert!(!text.contains("SECRET"));
         assert!(text.contains("\"signedIn\":true"));
     }

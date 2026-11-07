@@ -103,3 +103,44 @@ pub fn set_microphone_muted(app: AppHandle, muted: bool) -> Result<(), String> {
     crate::hotkeys::apply_microphone_mute(&app, muted);
     Ok(())
 }
+
+/// A panel opening asks for the current snapshot and the events since it (see `bridge`).
+#[tauri::command]
+pub fn panel_hydrate(feed: State<'_, crate::bridge::PanelFeed>) -> serde_json::Value {
+    feed.hydrate()
+}
+
+/// A DM's soundboard or party command, relayed untouched. Only known command names are accepted
+/// (`rust_sync::is_table_command`); the server still checks the sender is the DM.
+#[tauri::command]
+pub fn sync_command(
+    state: State<'_, crate::session::SessionState>,
+    t: String,
+    data: serde_json::Value,
+) -> Result<(), String> {
+    crate::session::send_for_campaign(&state, |campaign_id| {
+        let mut data = data;
+        data.as_object_mut()?
+            .insert("campaignId".into(), campaign_id.into());
+        rust_sync::command_frame(&t, data)
+    })
+}
+
+/// Sends chat, or a whisper when `to` is given.
+#[tauri::command]
+pub fn chat_send(
+    state: State<'_, crate::session::SessionState>,
+    text: String,
+    to: Option<String>,
+) -> Result<(), String> {
+    let text = text.trim().to_string();
+    if text.is_empty() {
+        return Err("empty message".into());
+    }
+    crate::session::send_for_campaign(&state, |campaign_id| {
+        Some(match &to {
+            Some(to) => rust_sync::whisper_frame(campaign_id, to, &text),
+            None => rust_sync::chat_frame(campaign_id, &text),
+        })
+    })
+}

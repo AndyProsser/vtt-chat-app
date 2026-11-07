@@ -18,6 +18,7 @@ pub mod session;
 pub use backoff::Backoff;
 pub use client::{ConnectInfo, ConnectInfoFuture, ConnectInfoProvider, SyncClient, SyncConfig};
 pub use protocol::{
+    command_frame, is_table_command, whisper_frame,
     audio_state_frame, auth_frame, chat_frame, recording_ack_frame, resume_frame, speaking_frame,
     stats_frame, ParseError, RecordingChange, RecordingInfo, ServerEvent, PROTOCOL_VERSION,
 };

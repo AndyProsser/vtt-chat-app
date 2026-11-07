@@ -168,6 +168,7 @@ pub async fn start_session(
     // One session at a time: signing in again replaces the old one cleanly.
     stop_active(state).await;
 
+    app.state::<crate::bridge::PanelFeed>().clear();
     let slot: ClientSlot = Arc::new(Mutex::new(None));
     let platform = Arc::new(TauriPlatform {
         app: app.clone(),
@@ -191,8 +192,16 @@ pub async fn start_session(
 
     let events = tauri::async_runtime::spawn({
         let shell = Arc::clone(&shell);
+        let app = app.clone();
         async move {
             while let Some(event) = rx.recv().await {
+                if let SyncEvent::Server(server_event) = &event {
+                    if let Some((value, retain)) = crate::bridge::panel_event(server_event) {
+                        app.state::<crate::bridge::PanelFeed>()
+                            .record(&value, retain);
+                        let _ = app.emit(crate::bridge::SYNC_EVENT, value);
+                    }
+                }
                 shell.lock().await.handle(event, SystemTime::now()).await;
             }
         }
@@ -210,6 +219,7 @@ pub async fn start_session(
 /// Ends the live session and returns the tray to "not connected".
 pub async fn end_session(app: AppHandle, state: &SessionState) -> Result<(), String> {
     stop_active(state).await;
+    app.state::<crate::bridge::PanelFeed>().clear();
     app.state::<MicGate>().set_gate(false);
     {
         let model = app.state::<Mutex<TrayModel>>();
@@ -254,6 +264,20 @@ pub fn announce_voice_state(app: &AppHandle, in_voice: Option<bool>) {
     if let Some(client) = slot.as_ref() {
         client.send(frame);
     }
+}
+
+/// Sends a frame built for the active campaign. `build` gets the campaign id and may refuse by
+/// returning `None`.
+pub fn send_for_campaign(
+    state: &SessionState,
+    build: impl FnOnce(&str) -> Option<String>,
+) -> Result<(), String> {
+    let guard = state.0.lock().unwrap();
+    let active = guard.as_ref().ok_or("not signed in")?;
+    let frame = build(&active.campaign_id).ok_or("that is not something a panel may send")?;
+    let slot = active.slot.lock().unwrap();
+    slot.as_ref().ok_or("not connected")?.send(frame);
+    Ok(())
 }
 
 #[cfg(test)]

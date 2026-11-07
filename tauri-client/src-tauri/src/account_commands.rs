@@ -14,7 +14,6 @@ pub const ACCOUNT_ERROR_EVENT: &str = "account:error";
 #[derive(Default)]
 struct Inner {
     saved: Saved,
-    display_name: String,
     campaigns: Vec<CampaignItem>,
 }
 
@@ -71,11 +70,7 @@ async fn go_live(
 #[tauri::command]
 pub async fn account_status(state: State<'_, AccountState>) -> Result<Value, AccountError> {
     let inner = state.0.lock().await;
-    Ok(status_json(
-        &inner.saved,
-        &inner.campaigns,
-        &inner.display_name,
-    ))
+    Ok(status_json(&inner.saved, &inner.campaigns))
 }
 
 #[tauri::command]
@@ -93,10 +88,11 @@ pub async fn account_sign_in(
     let campaigns = client.campaigns(&login.session_token).await?;
 
     let mut inner = state.0.lock().await;
-    inner.display_name = login.display_name;
     inner.saved = Saved {
         server: Some(server.clone()),
         session_token: Some(login.session_token.clone()),
+        user_id: Some(login.user_id.clone()),
+        display_name: Some(login.display_name.clone()),
         // A single campaign needs no picker.
         campaign_id: (campaigns.len() == 1).then(|| campaigns[0].id.clone()),
     };
@@ -106,11 +102,7 @@ pub async fn account_sign_in(
     if let Some(campaign_id) = inner.saved.campaign_id.clone() {
         go_live(&app, &sessions, &server, &login.session_token, &campaign_id).await?;
     }
-    Ok(status_json(
-        &inner.saved,
-        &inner.campaigns,
-        &inner.display_name,
-    ))
+    Ok(status_json(&inner.saved, &inner.campaigns))
 }
 
 #[tauri::command]
@@ -133,11 +125,7 @@ pub async fn account_select_campaign(
     inner.saved.campaign_id = Some(campaign_id.clone());
     persist(&app, &inner.saved);
     go_live(&app, &sessions, &server, &token, &campaign_id).await?;
-    Ok(status_json(
-        &inner.saved,
-        &inner.campaigns,
-        &inner.display_name,
-    ))
+    Ok(status_json(&inner.saved, &inner.campaigns))
 }
 
 #[tauri::command]
@@ -157,17 +145,12 @@ pub async fn account_sign_out(
         ..Saved::default()
     };
     inner.campaigns.clear();
-    inner.display_name.clear();
     if let Some(dir) = data_dir(&app) {
         Saved::clear(&dir);
         // Keep the server address so the next sign-in only needs credentials.
         let _ = inner.saved.save(&dir);
     }
-    Ok(status_json(
-        &inner.saved,
-        &inner.campaigns,
-        &inner.display_name,
-    ))
+    Ok(status_json(&inner.saved, &inner.campaigns))
 }
 
 async fn teardown(app: &AppHandle, sessions: &SessionState) {

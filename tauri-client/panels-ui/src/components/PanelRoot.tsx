@@ -1,18 +1,21 @@
-import { Flex, Text } from '@radix-ui/themes';
+import type { PanelName } from '../consts/index.js';
+import { AccountPanel } from './AccountPanel.js';
+import { ChatPanel } from './ChatPanel.js';
+import { RosterPanel } from './RosterPanel.js';
 
-import { useConnected } from '../hooks/useConnected.js';
-import { usePanelBridge } from '../hooks/usePanelBridge.js';
-import { MuteIcon } from './MuteIcon.js';
+/** Which panel this window is: the URL hash set by `src-tauri/src/windows.rs` (`index.html#chat`). */
+export function panelFromHash(hash: string): PanelName {
+  const name = hash.replace(/^#/, '');
+  return name === 'chat' || name === 'roster' ? name : 'account';
+}
 
-/** Placeholder connection panel: proves the local page → Rust core wiring until Stage 4 builds the real panels. */
 export function PanelRoot() {
-  usePanelBridge();
-  const connected = useConnected();
-
-  return (
-    <Flex align="center" gap="3" p="3">
-      <MuteIcon />
-      <Text size="2">{connected ? 'Connected' : 'Not connected'}</Text>
-    </Flex>
-  );
+  switch (panelFromHash(window.location.hash)) {
+    case 'chat':
+      return <ChatPanel />;
+    case 'roster':
+      return <RosterPanel />;
+    default:
+      return <AccountPanel />;
+  }
 }
