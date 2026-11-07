@@ -33,5 +33,6 @@
   "[markdown]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode",
     "files.trimTrailingWhitespace": false
-  }
+  },
+  "python.terminal.useEnvFile": true
 }
