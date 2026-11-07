@@ -17,6 +17,8 @@ import {
 } from './protocol.js';
 import { MemoryAckStore, type AckStore } from '../recording/ackStore.js';
 import { SoundboardRuntime } from '../soundboard/runtime.js';
+import type { ScheduleStore } from '../schedule/scheduleStore.js';
+import { notificationView } from '../schedule/relay.js';
 import type { SoundStore } from '../soundboard/soundStore.js';
 import { RecordingState, type RecordingChange } from '../recording/recordingState.js';
 import type { BufferedEvent, ReplayBuffer } from './replayBuffer.js';
@@ -50,6 +52,8 @@ export interface HubOptions {
   onRecordingAck?: (campaignId: string, recordingId: string, userId: string) => void;
   /** The DM's sound library, to play from. Omit and the soundboard frames are refused. */
   sounds?: SoundStore;
+  /** Stored notifications, delivered in the snapshot on connect. */
+  schedule?: ScheduleStore;
   now?: () => number;
   /** Drop a connection that hasn't authenticated within this long. */
   authTimeoutMs?: number;
@@ -231,6 +235,13 @@ export class Hub {
   /** A handout was hidden or deleted: every client drops it (an unknown id is ignored). */
   announceHandoutRemoved(campaignId: string, handoutId: string): void {
     this.broadcast(campaignId, 'handout.removed', { campaignId, handoutId });
+  }
+
+  /** Sends one frame to every live socket of a person (all their devices), whatever campaign it is about. */
+  sendToUser(userId: string, type: string, data: unknown): void {
+    for (const state of this.connections.values()) {
+      if (state.auth?.user.id === userId) this.send(state, type, data);
+    }
   }
 
   /** Tells a campaign's subscribers that roles/characters changed (e.g. after a DM swap). */
@@ -705,6 +716,12 @@ export class Hub {
       recentChat: recent
         .filter((event) => CHAT_KINDS.has(event.t))
         .map((event) => ({ seq: event.seq, ...(event.d as object) })),
+      // Unread notifications, the viewer's own (missed while the app was closed).
+      notifications: this.options.schedule
+        ? (
+            await this.options.schedule.listNotifications(viewerId, { unreadOnly: true, limit: 50 })
+          ).map(notificationView)
+        : [],
       // Only this viewer's own whispers; never part of the shared stream.
       recentWhispers: await this.recentWhispers(campaignId, viewerId),
     };

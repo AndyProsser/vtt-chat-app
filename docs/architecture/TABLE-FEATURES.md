@@ -95,3 +95,24 @@ crossfades, hotkeys, and a public broadcast link (players hear it in the app).
 - State is in memory; a server restart ends the scene (the DM starts it again). When the last person
   leaves a table its timers stop.
 - **Not built:** the Rust side that fetches, caches and plays clips (Stage 4), and the board/scene editor UI.
+
+## Session schedule, RSVP and notifications (built)
+
+Defaults taken (not asked): reminders at **24 hours and 1 hour** before; times are stored in UTC and
+shown in each viewer's local time; the DM is told when a player RSVPs _can't_ or _late_ (not _yes_).
+
+- **Schedule** (`/api/campaigns/:id/sessions`, migration 0010): the DM schedules, reschedules and
+  cancels; every member lists the upcoming sessions and RSVPs **yes / late / no** (changeable), and sees
+  the tally and each member's answer. A past or absurdly distant time, or a blank title, is refused.
+- **Reminders:** a once-a-minute check sends each reminder **once** (claimed in the database, so a
+  restart cannot repeat it) to everyone who has not declined. A reminder whose moment passed more than
+  10 minutes ago is skipped rather than sent late; rescheduling makes the reminders apply afresh; a
+  cancelled session sends none.
+- **Notifications** are stored first and pushed after (`/api/notifications`): scheduled / updated /
+  cancelled sessions, reminders, a player's RSVP, and **"summary ready"** (written by the records worker
+  when a recording is processed). A relay pushes each stored notification to the owner's live sockets
+  exactly once; anyone offline finds their unread ones in the next snapshot (`notifications`). They are
+  private to their owner, can be marked read one at a time or all at once, and are the same whichever
+  process created them.
+- **Not built:** email nudges (need SMTP), "level-up guidance", loot notifications, per-user mute of
+  kinds, and pruning of old notifications.

@@ -29,6 +29,9 @@ export class MemoryRecordsStore implements RecordsStore {
   };
 
   events: RecordingEvent[] = [];
+  /** Recordings whose members were told the summary is ready. */
+  notified: string[] = [];
+  notifySummaryReady = async (recordingId: string) => void this.notified.push(recordingId);
   addRecordingEvent = async (e: RecordingEvent) => void this.events.push({ ...e });
   listRecordingEvents = async (recordingId: string) =>
     this.events.filter((e) => e.recordingId === recordingId).map((e) => ({ ...e }));

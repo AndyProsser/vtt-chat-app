@@ -11,9 +11,12 @@ import { errorHandler } from './http/middleware.js';
 import { RateLimiter } from './http/rateLimit.js';
 import { handoutRoutes } from './http/handoutRoutes.js';
 import { lootRoutes } from './http/lootRoutes.js';
+import { notificationRoutes, sessionRoutes } from './http/scheduleRoutes.js';
 import { soundLibraryRoutes, soundPlaybackRoutes } from './http/soundRoutes.js';
 import { recordsRoutes } from './http/recordsRoutes.js';
 import type { MediaStorage } from './media/mediaStorage.js';
+import { ScheduleService } from './schedule/scheduleService.js';
+import type { ScheduleStore } from './schedule/scheduleStore.js';
 import { SoundLibraryService } from './soundboard/soundLibraryService.js';
 import type { SoundStore } from './soundboard/soundStore.js';
 import { HandoutService } from './table/handoutService.js';
@@ -61,6 +64,10 @@ export interface AppDeps {
   media?: MediaStorage;
   /** The DM's sound library. Needs `table` and (for clips) `media`. */
   sounds?: SoundStore;
+  /** Session schedule, RSVPs and stored notifications. */
+  schedule?: ScheduleStore;
+  /** Called after notifications are stored, so live sockets can be told straight away. */
+  onNotified?: () => void;
 }
 
 const MINUTE = 60_000;
@@ -80,6 +87,8 @@ export function createApp({
   table,
   media,
   sounds,
+  schedule,
+  onNotified,
 }: AppDeps): Express {
   const accounts = new AccountService({ store });
   const campaigns = new CampaignService({ store });
@@ -181,6 +190,12 @@ export function createApp({
     const library = new SoundLibraryService({ store, sounds, table, media });
     app.use('/api/soundboard', soundLibraryRoutes({ accounts, library }));
     app.use('/api/campaigns/:campaignId/sounds', soundPlaybackRoutes({ accounts, library }));
+  }
+
+  if (schedule) {
+    const service = new ScheduleService({ store, schedule, ...(onNotified ? { onNotified } : {}) });
+    app.use('/api/campaigns/:campaignId/sessions', sessionRoutes({ accounts, schedule: service }));
+    app.use('/api/notifications', notificationRoutes({ accounts, schedule: service }));
   }
 
   app.use(errorHandler);

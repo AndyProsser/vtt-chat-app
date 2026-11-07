@@ -120,6 +120,11 @@ describe('process-recording handler', () => {
     expect((await records.getRecording(REC))?.status).toBe('processed');
   });
 
+  it('tells the table when the summary is ready', async () => {
+    await handler().run(job());
+    expect(records.notified).toEqual([REC]);
+  });
+
   it('does not rewrite a summary that already exists', async () => {
     await handler().run(job());
     const calls = prompts.length;

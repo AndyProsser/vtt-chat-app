@@ -43,6 +43,12 @@ export interface RecordsStore {
    */
   resetForReprocess(recordingId: string, options: { transcripts: boolean }): Promise<void>;
 
+  /**
+   * Tells the campaign's members that a recording's summary is ready: one stored notification each,
+   * delivered live if they are connected and in their next snapshot if not. Safe to call twice.
+   */
+  notifySummaryReady(recordingId: string, at: number): Promise<void>;
+
   // --- Reading history (the records API) ---
   /** A campaign's recordings, newest first. */
   listRecordingsForCampaign(campaignId: string): Promise<Recording[]>;

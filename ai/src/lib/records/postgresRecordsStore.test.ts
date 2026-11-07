@@ -132,3 +132,54 @@ describe.skipIf(TEST_DATABASE_URL === undefined)('PostgresRecordsStore', () => {
     expect(await store.campaignName(rec?.campaignId ?? '')).toBe('Strahd');
   });
 });
+
+describe.skipIf(TEST_DATABASE_URL === undefined)('notifySummaryReady on Postgres', () => {
+  it('stores one unread notification per member of the campaign, and none for other campaigns', async () => {
+    const d = await openTestDb();
+    try {
+      const store = new PostgresRecordsStore(d.pool);
+      const campaign = await d.campaign('Strahd');
+      const elsewhere = await d.campaign('Other');
+      const user = async (name: string, campaignId: string) => {
+        const id = randomUUID();
+        await d.pool.query(
+          `INSERT INTO users (id, email, display_name, consent_version, consent_at, created_at) VALUES ($1, $2, $3, '1', 1, 1)`,
+          [id, `${name}@x.test`, name],
+        );
+        await d.pool.query(
+          `INSERT INTO memberships (campaign_id, user_id, role, joined_at) VALUES ($1, $2, 'player', 1)`,
+          [campaignId, id],
+        );
+        return id;
+      };
+      const alice = await user('alice', campaign);
+      const bob = await user('bob', campaign);
+      const carol = await user('carol', elsewhere);
+      const recordingId = randomUUID();
+      await store.putRecording({
+        id: recordingId,
+        campaignId: campaign,
+        startedAt: 1,
+        stoppedAt: 2,
+        status: 'processed',
+      });
+      await store.notifySummaryReady(recordingId, 99);
+      const { rows } = await d.pool.query(
+        `SELECT user_id, kind, read_at, pushed_at, data->>'recordingId' AS rec FROM notifications ORDER BY user_id`,
+      );
+      expect(rows.map((r) => r.user_id).sort()).toEqual([alice, bob].sort());
+      expect(
+        rows.every(
+          (r) =>
+            r.kind === 'summary.ready' &&
+            r.read_at === null &&
+            r.pushed_at === null &&
+            r.rec === recordingId,
+        ),
+      ).toBe(true);
+      expect(rows.some((r) => r.user_id === carol)).toBe(false);
+    } finally {
+      await d.close();
+    }
+  });
+});

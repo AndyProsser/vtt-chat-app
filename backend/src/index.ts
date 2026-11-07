@@ -27,7 +27,11 @@ import {
   RecordingCapture,
   createLiveKitRecorder,
   DiskMediaStorage,
+  MemoryScheduleStore,
   MemorySoundStore,
+  NotificationRelay,
+  PostgresScheduleStore,
+  ScheduleService,
   MemoryTableStore,
   PostgresSoundStore,
   PostgresTableStore,
@@ -71,6 +75,7 @@ if (isEntryPoint) {
   const records: RecordsStore = pool ? new PostgresRecordsStore(pool) : new MemoryRecordsStore();
   const table = pool ? new PostgresTableStore(pool) : new MemoryTableStore();
   const sounds = pool ? new PostgresSoundStore(pool) : new MemorySoundStore();
+  const schedule = pool ? new PostgresScheduleStore(pool) : new MemoryScheduleStore();
   const media = config.mediaDir ? new DiskMediaStorage(config.mediaDir) : undefined;
   // The acknowledgement store is shared: the hub records who heard the cue, and audio capture only
   // starts a player's track once they have.
@@ -82,6 +87,7 @@ if (isEntryPoint) {
     replay,
     acks,
     sounds,
+    schedule,
     onRecordingChange: (change) => capture?.onRecordingChange(change),
     onRecordingAck: (campaignId) => capture?.onAck(campaignId),
   });
@@ -115,6 +121,19 @@ if (isEntryPoint) {
       '[backend] RECORDINGS_DIR not set (or no database): recording is a state flag only, no audio is captured',
     );
   }
+  // Notifications are stored first and pushed after; the records worker writes them too, so the relay
+  // also runs on a timer. Reminders are checked once a minute.
+  const relay = new NotificationRelay({
+    schedule,
+    sendToUser: (id, t, d) => hub.sendToUser(id, t, d),
+  });
+  relay.start();
+  const reminders = new ScheduleService({
+    store,
+    schedule,
+    onNotified: () => void relay.flush().catch(() => undefined),
+  });
+  setInterval(() => void reminders.sendDueReminders().catch(() => undefined), 60_000).unref();
   const server = createServer(
     createApp({
       config,
@@ -124,6 +143,8 @@ if (isEntryPoint) {
       records,
       table,
       sounds,
+      schedule,
+      onNotified: () => void relay.flush().catch(() => undefined),
       ...(media ? { media } : {}),
     }),
   );

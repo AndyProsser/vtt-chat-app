@@ -208,6 +208,17 @@ export class PostgresRecordsStore implements RecordsStore {
     }
   }
 
+  async notifySummaryReady(recordingId: string, at: number): Promise<void> {
+    await this.pool.query(
+      `INSERT INTO notifications (id, user_id, campaign_id, kind, title, body, data, created_at)
+       SELECT gen_random_uuid(), m.user_id, r.campaign_id, 'summary.ready', 'Your session summary is ready', '',
+              jsonb_build_object('recordingId', r.id::text), $2
+         FROM recordings r JOIN memberships m ON m.campaign_id = r.campaign_id
+        WHERE r.id = $1`,
+      [recordingId, at],
+    );
+  }
+
   async listRecordingsForCampaign(campaignId: string): Promise<Recording[]> {
     try {
       const { rows } = await this.pool.query<Row>(

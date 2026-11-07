@@ -107,6 +107,10 @@ export function createProcessRecordingHandler(deps: ProcessRecordingDeps): JobHa
       }
 
       await deps.records.setRecordingStatus(recording.id, 'processed');
+      // Tell the table. A failure here must not fail (and so re-run) a job that has just succeeded.
+      await deps.records.notifySummaryReady(recording.id, now()).catch((error: unknown) => {
+        log(`${recording.id}: could not store the "summary ready" notification: ${String(error)}`);
+      });
       log(`${recording.id}: processed (${formatTranscript(utterances).length} transcript lines)`);
     },
 
