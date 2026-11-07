@@ -5,6 +5,7 @@ import type {
   RecordingEvent,
   RecordingStatus,
   RecordingTrack,
+  SearchHit,
   Segment,
   StoredSummary,
   TrackTranscript,
@@ -41,6 +42,22 @@ export interface RecordsStore {
    * `transcripts` the transcripts too (every track becomes untranscribed). Raw audio is untouched.
    */
   resetForReprocess(recordingId: string, options: { transcripts: boolean }): Promise<void>;
+
+  // --- Reading history (the records API) ---
+  /** A campaign's recordings, newest first. */
+  listRecordingsForCampaign(campaignId: string): Promise<Recording[]>;
+  listSummaries(recordingId: string): Promise<StoredSummary[]>;
+  /** Removes a recording and everything derived from it (tracks, transcripts, summaries, jobs). */
+  deleteRecording(recordingId: string): Promise<void>;
+  /**
+   * Full-text search over one campaign's transcripts and summaries. Private tracks are never
+   * searched, and DM-only summaries only when `includeDmOnly` is set.
+   */
+  search(
+    campaignId: string,
+    query: string,
+    options: { includeDmOnly: boolean; limit: number },
+  ): Promise<SearchHit[]>;
 
   getSummary(
     recordingId: string,

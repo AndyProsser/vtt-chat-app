@@ -27,7 +27,12 @@ import {
   RecordingCapture,
   createLiveKitRecorder,
 } from './lib/index.js';
-import { PostgresJobQueue, PostgresRecordsStore } from '@vtt-chat-app/ai';
+import {
+  MemoryRecordsStore,
+  PostgresJobQueue,
+  PostgresRecordsStore,
+  type RecordsStore,
+} from '@vtt-chat-app/ai';
 import type pg from 'pg';
 
 const isEntryPoint =
@@ -58,6 +63,7 @@ if (isEntryPoint) {
     console.warn('[backend] VALKEY_URL not set: replay buffer is in-memory, lost on restart');
     replay = new MemoryReplayBuffer();
   }
+  const records: RecordsStore = pool ? new PostgresRecordsStore(pool) : new MemoryRecordsStore();
   // The acknowledgement store is shared: the hub records who heard the cue, and audio capture only
   // starts a player's track once they have.
   const acks = new MemoryAckStore();
@@ -77,7 +83,7 @@ if (isEntryPoint) {
         apiKey: config.liveKitApiKey,
         apiSecret: config.liveKitApiSecret,
       }),
-      records: new PostgresRecordsStore(pool),
+      records,
       jobs: new PostgresJobQueue(pool),
       acks,
       dir: config.recordingsDir,
@@ -101,7 +107,7 @@ if (isEntryPoint) {
     );
   }
   const server = createServer(
-    createApp({ config, store, realtime: hub, recording: hub.recording }),
+    createApp({ config, store, realtime: hub, recording: hub.recording, records }),
   );
   attachWebSocketServer(server, hub);
 

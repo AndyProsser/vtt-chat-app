@@ -46,6 +46,18 @@ export interface StoredSummary {
   createdAt: number;
 }
 
+export interface SearchHit {
+  recordingId: string;
+  source: 'transcript' | 'summary';
+  /** For a summary hit, which summary. */
+  kind?: SummaryKind;
+  speakerName?: string;
+  /** For a transcript hit: where in the recording the line was said. */
+  atMs?: number;
+  /** The matching text with the search terms marked `<mark>…</mark>`; already HTML-escaped around the marks. */
+  snippet: string;
+}
+
 export type JobState = 'queued' | 'running' | 'done' | 'failed';
 
 export interface Job {

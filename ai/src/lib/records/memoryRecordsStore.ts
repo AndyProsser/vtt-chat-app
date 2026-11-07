@@ -5,6 +5,7 @@ import type {
   RecordingEvent,
   RecordingStatus,
   RecordingTrack,
+  SearchHit,
   Segment,
   StoredSummary,
   TrackTranscript,
@@ -72,6 +73,72 @@ export class MemoryRecordsStore implements RecordsStore {
       this.segments.delete(t.id);
       t.transcribedAt = null;
     }
+  };
+
+  listRecordingsForCampaign = async (campaignId: string) =>
+    [...this.recordings.values()]
+      .filter((r) => r.campaignId === campaignId)
+      .sort((a, b) => b.startedAt - a.startedAt)
+      .map((r) => ({ ...r }));
+
+  listSummaries = async (recordingId: string) =>
+    [...this.summaries.values()]
+      .filter((s) => s.recordingId === recordingId)
+      .map((s) => ({ ...s }));
+
+  deleteRecording = async (recordingId: string) => {
+    this.recordings.delete(recordingId);
+    for (const [id, t] of [...this.tracks]) {
+      if (t.recordingId !== recordingId) continue;
+      this.tracks.delete(id);
+      this.segments.delete(id);
+    }
+    for (const key of [...this.summaries.keys()]) {
+      if (key.startsWith(`${recordingId}|`)) this.summaries.delete(key);
+    }
+    this.events = this.events.filter((e) => e.recordingId !== recordingId);
+  };
+
+  search = async (
+    campaignId: string,
+    query: string,
+    options: { includeDmOnly: boolean; limit: number },
+  ): Promise<SearchHit[]> => {
+    const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
+    const matches = (text: string): boolean => {
+      const lower = text.toLowerCase();
+      return terms.length > 0 && terms.every((t) => lower.includes(t));
+    };
+    const hits: SearchHit[] = [];
+    for (const r of this.recordings.values()) {
+      if (r.campaignId !== campaignId) continue;
+      for (const t of this.tracks.values()) {
+        if (t.recordingId !== r.id || t.private) continue;
+        for (const s of this.segments.get(t.id) ?? []) {
+          if (matches(s.text)) {
+            hits.push({
+              recordingId: r.id,
+              source: 'transcript',
+              speakerName: t.speakerName,
+              atMs: t.startOffsetMs + s.startMs,
+              snippet: s.text,
+            });
+          }
+        }
+      }
+      for (const s of this.summaries.values()) {
+        if (s.recordingId !== r.id || (s.visibility === 'dm' && !options.includeDmOnly)) continue;
+        if (matches(s.text)) {
+          hits.push({
+            recordingId: r.id,
+            source: 'summary',
+            kind: s.kind,
+            snippet: s.text.slice(0, 200),
+          });
+        }
+      }
+    }
+    return hits.slice(0, options.limit);
   };
 
   private key = (recordingId: string, kind: string, subject: string) =>

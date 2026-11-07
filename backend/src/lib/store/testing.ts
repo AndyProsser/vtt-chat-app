@@ -20,6 +20,8 @@ export interface TestBackend {
   readonly kind: 'memory' | 'postgres';
   /** The current store; replaced by {@link reset}. */
   store: Store;
+  /** The connection pool, for suites that need other tables (Postgres only). */
+  pool?: pg.Pool;
   /** Unique ids in the form the store needs (`UUID` columns reject arbitrary strings). */
   newId: () => string;
   /** A clean store: a fresh `MemoryStore`, or every table emptied. Returns it. */
@@ -57,6 +59,7 @@ export async function openTestBackend(): Promise<TestBackend> {
   const backend: TestBackend = {
     kind: 'postgres',
     store,
+    pool,
     newId: randomUUID,
     reset: async () => {
       // CASCADE clears the dependants; the settings row is re-seeded by hand below.

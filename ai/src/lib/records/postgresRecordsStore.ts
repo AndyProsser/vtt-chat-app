@@ -7,6 +7,7 @@ import type {
   RecordingEventName,
   RecordingStatus,
   RecordingTrack,
+  SearchHit,
   Segment,
   StoredSummary,
   SummaryKind,
@@ -52,8 +53,14 @@ export class PostgresRecordsStore implements RecordsStore {
   constructor(private readonly pool: pg.Pool) {}
 
   async getRecording(id: string): Promise<Recording | undefined> {
-    const { rows } = await this.pool.query<Row>('SELECT * FROM recordings WHERE id = $1', [id]);
-    return rows[0] ? toRecording(rows[0]) : undefined;
+    try {
+      const { rows } = await this.pool.query<Row>('SELECT * FROM recordings WHERE id = $1', [id]);
+      return rows[0] ? toRecording(rows[0]) : undefined;
+    } catch (error) {
+      // An id from a URL that is not a UUID cannot match a recording: not found, not a server error.
+      if ((error as { code?: string }).code === '22P02') return undefined;
+      throw error;
+    }
   }
 
   async putRecording(r: Recording): Promise<void> {
@@ -199,6 +206,91 @@ export class PostgresRecordsStore implements RecordsStore {
     } finally {
       client.release();
     }
+  }
+
+  async listRecordingsForCampaign(campaignId: string): Promise<Recording[]> {
+    try {
+      const { rows } = await this.pool.query<Row>(
+        'SELECT * FROM recordings WHERE campaign_id = $1 ORDER BY started_at DESC, id',
+        [campaignId],
+      );
+      return rows.map(toRecording);
+    } catch (error) {
+      if ((error as { code?: string }).code === '22P02') return []; // not a UUID: no such campaign
+      throw error;
+    }
+  }
+
+  async listSummaries(recordingId: string): Promise<StoredSummary[]> {
+    const { rows } = await this.pool.query<Row>(
+      'SELECT * FROM summaries WHERE recording_id = $1 ORDER BY created_at, kind',
+      [recordingId],
+    );
+    return rows.map((r) => ({
+      recordingId,
+      kind: r.kind as SummaryKind,
+      subject: r.subject as string,
+      visibility: r.visibility as StoredSummary['visibility'],
+      text: r.text as string,
+      modelCalls: r.model_calls as number,
+      createdAt: r.created_at as number,
+    }));
+  }
+
+  async deleteRecording(recordingId: string): Promise<void> {
+    // Tracks, segments, summaries, events and jobs go with it (ON DELETE CASCADE).
+    await this.pool.query('DELETE FROM recordings WHERE id = $1', [recordingId]);
+  }
+
+  async search(
+    campaignId: string,
+    query: string,
+    options: { includeDmOnly: boolean; limit: number },
+  ): Promise<SearchHit[]> {
+    const opts = "'StartSel=<mark>,StopSel=</mark>,MaxWords=30,MinWords=10,MaxFragments=1'";
+    const transcript = await this.pool.query<Row>(
+      `SELECT r.id AS recording_id, t.speaker_name, t.start_offset_ms + s.start_ms AS at_ms,
+              ts_headline('english', s.text, q, ${opts}) AS snippet, ts_rank(to_tsvector('english', s.text), q) AS rank
+         FROM transcript_segments s
+         JOIN recording_tracks t ON t.id = s.track_id
+         JOIN recordings r ON r.id = t.recording_id,
+              plainto_tsquery('english', $2) q
+        WHERE r.campaign_id = $1 AND NOT t.private AND to_tsvector('english', s.text) @@ q
+        ORDER BY rank DESC, r.started_at DESC LIMIT $3`,
+      [campaignId, query, options.limit],
+    );
+    const summaries = await this.pool.query<Row>(
+      `SELECT r.id AS recording_id, m.kind,
+              ts_headline('english', m.text, q, ${opts}) AS snippet, ts_rank(to_tsvector('english', m.text), q) AS rank
+         FROM summaries m
+         JOIN recordings r ON r.id = m.recording_id,
+              plainto_tsquery('english', $2) q
+        WHERE r.campaign_id = $1 AND to_tsvector('english', m.text) @@ q
+          AND ($4 OR m.visibility = 'members')
+        ORDER BY rank DESC, r.started_at DESC LIMIT $3`,
+      [campaignId, query, options.limit, options.includeDmOnly],
+    );
+    const hits: (SearchHit & { rank: number })[] = [
+      ...transcript.rows.map((r) => ({
+        recordingId: r.recording_id as string,
+        source: 'transcript' as const,
+        speakerName: r.speaker_name as string,
+        atMs: r.at_ms as number,
+        snippet: r.snippet as string,
+        rank: Number(r.rank),
+      })),
+      ...summaries.rows.map((r) => ({
+        recordingId: r.recording_id as string,
+        source: 'summary' as const,
+        kind: r.kind as SummaryKind,
+        snippet: r.snippet as string,
+        rank: Number(r.rank),
+      })),
+    ];
+    return hits
+      .sort((a, b) => b.rank - a.rank)
+      .slice(0, options.limit)
+      .map(({ rank: _rank, ...hit }) => hit);
   }
 
   async getSummary(

@@ -1,3 +1,4 @@
+import type { RecordsStore } from '@vtt-chat-app/ai';
 import express, { type Express } from 'express';
 
 import { AccountService } from './auth/accountService.js';
@@ -8,6 +9,7 @@ import { campaignRoutes } from './http/campaignRoutes.js';
 import { NoMailTransport, type MagicLinkSender } from './http/delivery.js';
 import { errorHandler } from './http/middleware.js';
 import { RateLimiter } from './http/rateLimit.js';
+import { recordsRoutes } from './http/recordsRoutes.js';
 import { RecordingState } from './recording/recordingState.js';
 import type { RecordingChange } from './recording/recordingState.js';
 import type { Store } from './store/store.js';
@@ -25,6 +27,8 @@ export interface AppDeps {
   };
   /** Shared with the realtime hub so REST changes and snapshots agree. Defaults to a fresh one. */
   recording?: RecordingState;
+  /** A campaign's recorded history (transcripts, summaries, search). Omit to leave those routes off. */
+  records?: RecordsStore;
 }
 
 const MINUTE = 60_000;
@@ -34,7 +38,14 @@ const MINUTE = 60_000;
  * campaigns, invites, voice tokens). Everything live and frequent goes over the WebSocket layer
  * instead (`realtime/`, docs/architecture/SYNC-PROTOCOL.md); the `realtime` hooks below connect the two.
  */
-export function createApp({ config, store, sender, realtime, recording }: AppDeps): Express {
+export function createApp({
+  config,
+  store,
+  sender,
+  realtime,
+  recording,
+  records,
+}: AppDeps): Express {
   const accounts = new AccountService({ store });
   const campaigns = new CampaignService({ store });
 
@@ -82,6 +93,10 @@ export function createApp({ config, store, sender, realtime, recording }: AppDep
         : {}),
     }),
   );
+
+  if (records) {
+    app.use('/api/campaigns/:campaignId/recordings', recordsRoutes({ accounts, store, records }));
+  }
 
   app.use(errorHandler);
   return app;

@@ -14,6 +14,10 @@ Node.js + Express + TypeScript API and WebSocket layer. The only server-side app
 
 - `lib/recording/` — `RecordingState` (the server-owned flag + id; start/pause/resume/stop with validated transitions) and `AckStore` (who has heard the start cue, with an expiry; in-memory, Valkey later). The DM controls it over `POST /api/campaigns/:id/recording`; the hub announces changes and tells joiners the current state. See [the consent loop](../docs/architecture/RECORDING-AND-SUMMARIES.md#the-consent-loop-as-built-2026-11-05).
 
+## Records API
+
+`/api/campaigns/:id/recordings` (members only): `GET /` list · `GET /search?q=` full-text search over transcripts and summaries · `GET /:rid` detail with session bookmarks and the summaries you may read · `GET /:rid/transcript` merged, speaker-attributed · `DELETE /:rid` (DM). **DM-only summaries are returned to the DM alone — in lists, detail and search** — and a recording is reachable only through its own campaign (another campaign's id is a 404). Private tracks never appear.
+
 ## Admin CLI (`vtt-admin`)
 
 System operations only — gameplay stays in the app (CLAUDE.md §7). It talks to the database directly, so it needs `DATABASE_URL` and no sign-in: whoever can run it already controls the server. In Compose: `infra/compose/vtt-admin <command>`; natively: `node backend/dist/cli/main.js <command>`.
