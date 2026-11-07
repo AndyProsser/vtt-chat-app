@@ -24,31 +24,109 @@ pub struct Saved {
 }
 
 const FILE_NAME: &str = "account.json";
+const KEYCHAIN_SERVICE: &str = "app.vttchat.desktop";
+const KEYCHAIN_USER: &str = "session-token";
+
+/// Where the session token lives. The OS keychain in production; a map in tests.
+pub trait SecretStore {
+    fn get(&self) -> Option<String>;
+    fn set(&self, secret: &str) -> Result<(), String>;
+    fn delete(&self);
+}
+
+/// Windows Credential Manager, macOS Keychain, or the Secret Service (GNOME Keyring / KWallet) on Linux.
+pub struct Keychain;
+
+impl Keychain {
+    fn entry() -> Result<keyring::Entry, keyring::Error> {
+        keyring::Entry::new(KEYCHAIN_SERVICE, KEYCHAIN_USER)
+    }
+}
+
+impl SecretStore for Keychain {
+    fn get(&self) -> Option<String> {
+        Self::entry().ok()?.get_password().ok()
+    }
+    fn set(&self, secret: &str) -> Result<(), String> {
+        Self::entry()
+            .and_then(|e| e.set_password(secret))
+            .map_err(|e| e.to_string())
+    }
+    fn delete(&self) {
+        if let Ok(entry) = Self::entry() {
+            let _ = entry.delete_credential();
+        }
+    }
+}
 
 impl Saved {
     pub fn load(dir: &Path) -> Self {
-        std::fs::read_to_string(dir.join(FILE_NAME))
-            .ok()
-            .and_then(|text| serde_json::from_str(&text).ok())
-            .unwrap_or_default()
+        Self::load_with(dir, &Keychain)
     }
 
-    /// Written atomically (temp + rename) with owner-only permissions where the OS has them.
     pub fn save(&self, dir: &Path) -> std::io::Result<()> {
-        std::fs::create_dir_all(dir)?;
-        let tmp = dir.join(format!("{FILE_NAME}.tmp"));
-        std::fs::write(&tmp, serde_json::to_vec_pretty(self)?)?;
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt;
-            std::fs::set_permissions(&tmp, std::fs::Permissions::from_mode(0o600))?;
-        }
-        std::fs::rename(tmp, dir.join(FILE_NAME))
+        self.save_with(dir, &Keychain)
     }
 
     pub fn clear(dir: &Path) {
+        Self::clear_with(dir, &Keychain)
+    }
+
+    /// The token comes from the keychain. A token still sitting in the file (written by an earlier
+    /// build, or because the keychain was unavailable when it was saved) is used, and moved into the
+    /// keychain the first time one is reachable.
+    pub fn load_with(dir: &Path, store: &dyn SecretStore) -> Self {
+        let mut saved: Self = std::fs::read_to_string(dir.join(FILE_NAME))
+            .ok()
+            .and_then(|text| serde_json::from_str(&text).ok())
+            .unwrap_or_default();
+        match store.get() {
+            Some(token) => saved.session_token = Some(token),
+            None if saved.session_token.is_some() => {
+                // Migrate: rewriting stores it in the keychain and strips it from the file.
+                let _ = saved.save_with(dir, store);
+            }
+            None => {}
+        }
+        saved
+    }
+
+    /// The token goes to the keychain, never the file. If there is no keychain (a headless Linux box
+    /// with no Secret Service), it stays in the 0600 file instead — signing in again after every
+    /// restart would be worse than a owner-only file — and the log says so.
+    pub fn save_with(&self, dir: &Path, store: &dyn SecretStore) -> std::io::Result<()> {
+        let mut on_disk = self.clone();
+        match &self.session_token {
+            Some(token) => match store.set(token) {
+                Ok(()) => on_disk.session_token = None,
+                Err(why) => {
+                    eprintln!("keychain unavailable ({why}); keeping the token in the 0600 file")
+                }
+            },
+            None => store.delete(),
+        }
+        write_private(&dir.join(FILE_NAME), &on_disk)
+    }
+
+    pub fn clear_with(dir: &Path, store: &dyn SecretStore) {
+        store.delete();
         let _ = std::fs::remove_file(dir.join(FILE_NAME));
     }
+}
+
+/// Written atomically (temp + rename) with owner-only permissions where the OS has them.
+fn write_private(path: &Path, saved: &Saved) -> std::io::Result<()> {
+    if let Some(dir) = path.parent() {
+        std::fs::create_dir_all(dir)?;
+    }
+    let tmp = path.with_extension("json.tmp");
+    std::fs::write(&tmp, serde_json::to_vec_pretty(saved)?)?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&tmp, std::fs::Permissions::from_mode(0o600))?;
+    }
+    std::fs::rename(tmp, path)
 }
 
 /// `play.example.com` → `https://play.example.com`; trailing slashes dropped. Plain `http://` is
@@ -281,19 +359,91 @@ mod tests {
         assert!(normalise_server("https://").is_err());
     }
 
-    #[test]
-    fn saved_state_round_trips_with_private_permissions() {
-        let dir = tempfile::tempdir().unwrap();
-        assert_eq!(Saved::load(dir.path()), Saved::default());
-        let saved = Saved {
+    use std::cell::RefCell;
+
+    /// A keychain stand-in; `broken` models a machine with no Secret Service.
+    #[derive(Default)]
+    struct MemStore {
+        secret: RefCell<Option<String>>,
+        broken: bool,
+    }
+    impl SecretStore for MemStore {
+        fn get(&self) -> Option<String> {
+            self.secret.borrow().clone().filter(|_| !self.broken)
+        }
+        fn set(&self, s: &str) -> Result<(), String> {
+            if self.broken {
+                return Err("no secret service".into());
+            }
+            *self.secret.borrow_mut() = Some(s.into());
+            Ok(())
+        }
+        fn delete(&self) {
+            *self.secret.borrow_mut() = None;
+        }
+    }
+
+    fn sample() -> Saved {
+        Saved {
             server: Some("https://h".into()),
             session_token: Some("tok".into()),
             campaign_id: Some("c1".into()),
             user_id: Some("u1".into()),
             display_name: Some("Ann".into()),
+        }
+    }
+
+    #[test]
+    fn the_token_lives_in_the_keychain_not_the_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let store = MemStore::default();
+        assert_eq!(Saved::load_with(dir.path(), &store), Saved::default());
+        sample().save_with(dir.path(), &store).unwrap();
+        let file = std::fs::read_to_string(dir.path().join("account.json")).unwrap();
+        assert!(!file.contains("tok"), "token must not be on disk: {file}");
+        assert_eq!(Saved::load_with(dir.path(), &store), sample());
+        Saved::clear_with(dir.path(), &store);
+        assert_eq!(Saved::load_with(dir.path(), &store), Saved::default());
+        assert!(store.get().is_none());
+    }
+
+    #[test]
+    fn signing_out_removes_the_token_from_the_keychain() {
+        let dir = tempfile::tempdir().unwrap();
+        let store = MemStore::default();
+        sample().save_with(dir.path(), &store).unwrap();
+        let signed_out = Saved {
+            session_token: None,
+            ..sample()
         };
-        saved.save(dir.path()).unwrap();
-        assert_eq!(Saved::load(dir.path()), saved);
+        signed_out.save_with(dir.path(), &store).unwrap();
+        assert!(store.get().is_none());
+    }
+
+    #[test]
+    fn an_old_file_token_moves_into_the_keychain() {
+        let dir = tempfile::tempdir().unwrap();
+        let none = MemStore {
+            broken: true,
+            ..MemStore::default()
+        };
+        sample().save_with(dir.path(), &none).unwrap(); // no keychain: stays in the file
+        let store = MemStore::default();
+        assert_eq!(Saved::load_with(dir.path(), &store), sample());
+        assert_eq!(store.get().as_deref(), Some("tok"));
+        let file = std::fs::read_to_string(dir.path().join("account.json")).unwrap();
+        assert!(!file.contains("tok"));
+    }
+
+    #[test]
+    fn without_a_keychain_the_private_file_still_resumes() {
+        let dir = tempfile::tempdir().unwrap();
+        let store = MemStore {
+            broken: true,
+            ..MemStore::default()
+        };
+        sample().save_with(dir.path(), &store).unwrap();
+        assert_eq!(Saved::load_with(dir.path(), &store), sample());
         #[cfg(unix)]
         {
             use std::os::unix::fs::PermissionsExt;
@@ -301,14 +451,8 @@ mod tests {
                 .unwrap()
                 .permissions()
                 .mode();
-            assert_eq!(
-                mode & 0o077,
-                0,
-                "token file must not be group/world readable"
-            );
+            assert_eq!(mode & 0o077, 0, "fallback file must be owner-only");
         }
-        Saved::clear(dir.path());
-        assert_eq!(Saved::load(dir.path()), Saved::default());
     }
 
     #[test]
