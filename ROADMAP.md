@@ -122,7 +122,7 @@ The riskiest unknowns are all "does this actually work on real machines with ope
 
 ## Stage 5 — Records & AI Summaries (Core)
 
-**Status:** 🟡 In Progress — the processing half is built and verified live (Egress files → durable job queue → worker → Whisper/LLM, local or remote with fallback → transcripts and summaries in Postgres; Admin CLI `jobs` / `recording`). **Not built:** the records API and history panel (read access, DM-only enforcement at the API), search, and the cloud-adapter extras. The recording loop itself — DM start/stop → per-speaker capture gated on the consent acknowledgement → processing — is closed and verified live. See [docs/BUILD-STATUS.md](docs/BUILD-STATUS.md)
+**Status:** 🟡 In Progress — the processing half is built and verified live (Egress files → durable job queue → worker → Whisper/LLM, local or remote with fallback → transcripts and summaries in Postgres; Admin CLI `jobs` / `recording`). **Records API built** (read, search, DM-only enforced at the API, DM delete). **Not built:** the history panel, "DM confirms → purge raw audio" and the purge rules, and the cloud-adapter extras. The recording loop itself — DM start/stop → per-speaker capture gated on the consent acknowledgement → processing — is closed and verified live. See [docs/BUILD-STATUS.md](docs/BUILD-STATUS.md)
 **Depends on:** Stage 3, Stage 4 (Stage 2 Part B already proved the pipeline shape)
 
 **Deliverables:**
