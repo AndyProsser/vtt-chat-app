@@ -2,6 +2,7 @@ import { DEFAULT_AI_SETTINGS, type AiSettings } from '@vtt-chat-app/shared';
 
 import type {
   Recording,
+  RecordingEvent,
   RecordingStatus,
   RecordingTrack,
   Segment,
@@ -25,6 +26,11 @@ export class MemoryRecordsStore implements RecordsStore {
     const r = this.recordings.get(id);
     if (r) r.status = status;
   };
+
+  events: RecordingEvent[] = [];
+  addRecordingEvent = async (e: RecordingEvent) => void this.events.push({ ...e });
+  listRecordingEvents = async (recordingId: string) =>
+    this.events.filter((e) => e.recordingId === recordingId).map((e) => ({ ...e }));
 
   listTracks = async (recordingId: string) =>
     [...this.tracks.values()].filter((t) => t.recordingId === recordingId);

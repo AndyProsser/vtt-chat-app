@@ -3,6 +3,8 @@ import pg from 'pg';
 
 import type {
   Recording,
+  RecordingEvent,
+  RecordingEventName,
   RecordingStatus,
   RecordingTrack,
   Segment,
@@ -65,6 +67,25 @@ export class PostgresRecordsStore implements RecordsStore {
 
   async setRecordingStatus(id: string, status: RecordingStatus): Promise<void> {
     await this.pool.query('UPDATE recordings SET status = $2 WHERE id = $1', [id, status]);
+  }
+
+  async addRecordingEvent(e: RecordingEvent): Promise<void> {
+    await this.pool.query(
+      'INSERT INTO recording_events (recording_id, at, event) VALUES ($1, $2, $3)',
+      [e.recordingId, e.at, e.event],
+    );
+  }
+
+  async listRecordingEvents(recordingId: string): Promise<RecordingEvent[]> {
+    const { rows } = await this.pool.query<Row>(
+      'SELECT at, event FROM recording_events WHERE recording_id = $1 ORDER BY at, id',
+      [recordingId],
+    );
+    return rows.map((r) => ({
+      recordingId,
+      at: r.at as number,
+      event: r.event as RecordingEventName,
+    }));
   }
 
   async listTracks(recordingId: string): Promise<RecordingTrack[]> {

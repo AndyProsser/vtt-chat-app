@@ -23,7 +23,12 @@ import {
   type RedisClientLike,
   type ReplayBuffer,
   type Store,
+  MemoryAckStore,
+  RecordingCapture,
+  createLiveKitRecorder,
 } from './lib/index.js';
+import { PostgresJobQueue, PostgresRecordsStore } from '@vtt-chat-app/ai';
+import type pg from 'pg';
 
 const isEntryPoint =
   process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href;
@@ -31,8 +36,9 @@ const isEntryPoint =
 if (isEntryPoint) {
   const config = loadConfig();
   let store: Store;
+  let pool: pg.Pool | undefined;
   if (config.databaseUrl !== undefined) {
-    const pool = createPool(config.databaseUrl);
+    pool = createPool(config.databaseUrl);
     const applied = await migrate(pool);
     if (applied.length > 0) console.log(`[backend] applied migrations: ${applied.join(', ')}`);
     store = new PostgresStore(pool);
@@ -52,11 +58,48 @@ if (isEntryPoint) {
     console.warn('[backend] VALKEY_URL not set: replay buffer is in-memory, lost on restart');
     replay = new MemoryReplayBuffer();
   }
+  // The acknowledgement store is shared: the hub records who heard the cue, and audio capture only
+  // starts a player's track once they have.
+  const acks = new MemoryAckStore();
+  let capture: RecordingCapture | undefined;
   const hub = new Hub({
     store,
     accounts: new AccountService({ store }),
     replay,
+    acks,
+    onRecordingChange: (change) => capture?.onRecordingChange(change),
+    onRecordingAck: (campaignId) => capture?.onAck(campaignId),
   });
+  if (config.recordingsDir !== undefined && pool !== undefined) {
+    capture = new RecordingCapture({
+      recorder: createLiveKitRecorder({
+        apiUrl: config.liveKitApiUrl,
+        apiKey: config.liveKitApiKey,
+        apiSecret: config.liveKitApiSecret,
+      }),
+      records: new PostgresRecordsStore(pool),
+      jobs: new PostgresJobQueue(pool),
+      acks,
+      dir: config.recordingsDir,
+      speakerName: async (campaignId, accountId) => {
+        const membership = await store.getMembership(campaignId, accountId);
+        const character = membership?.activeCharacterId
+          ? await store.getCharacter(membership.activeCharacterId)
+          : undefined;
+        return character?.name ?? (await store.getUser(accountId))?.displayName ?? accountId;
+      },
+      log: (line) => console.log(`[recording] ${line}`),
+    });
+    const interrupted = await capture.recoverInterrupted();
+    if (interrupted > 0)
+      console.warn(`[backend] ${interrupted} recording(s) were cut off by a restart`);
+    capture.startTicking();
+    console.log(`[backend] audio capture on: recordings go to ${config.recordingsDir}`);
+  } else {
+    console.warn(
+      '[backend] RECORDINGS_DIR not set (or no database): recording is a state flag only, no audio is captured',
+    );
+  }
   const server = createServer(
     createApp({ config, store, realtime: hub, recording: hub.recording }),
   );

@@ -2,6 +2,7 @@ import type { AiSettings } from '@vtt-chat-app/shared';
 
 import type {
   Recording,
+  RecordingEvent,
   RecordingStatus,
   RecordingTrack,
   Segment,
@@ -18,6 +19,10 @@ export interface RecordsStore {
   getRecording(id: string): Promise<Recording | undefined>;
   putRecording(recording: Recording): Promise<void>;
   setRecordingStatus(id: string, status: RecordingStatus): Promise<void>;
+
+  /** Session bookmarks: started / paused / resumed / stopped, in the order they happened. */
+  addRecordingEvent(event: RecordingEvent): Promise<void>;
+  listRecordingEvents(recordingId: string): Promise<RecordingEvent[]>;
 
   listTracks(recordingId: string): Promise<RecordingTrack[]>;
   putTrack(track: RecordingTrack): Promise<void>;

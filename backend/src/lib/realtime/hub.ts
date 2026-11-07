@@ -40,6 +40,9 @@ export interface HubOptions {
   recording?: RecordingState;
   /** Who has heard the recording-start cue. */
   acks?: AckStore;
+  /** Told after every recording change and every acknowledgement (the audio capture follows these). */
+  onRecordingChange?: (change: RecordingChange) => void;
+  onRecordingAck?: (campaignId: string, recordingId: string, userId: string) => void;
   now?: () => number;
   /** Drop a connection that hasn't authenticated within this long. */
   authTimeoutMs?: number;
@@ -157,6 +160,7 @@ export class Hub {
    * Every client plays its own local cue in response; the server never plays audio.
    */
   announceRecording(change: RecordingChange): void {
+    this.options.onRecordingChange?.(change);
     this.broadcast(change.campaignId, 'recording.status', {
       campaignId: change.campaignId,
       recordingId: change.recordingId,
@@ -360,6 +364,7 @@ export class Hub {
       return;
     }
     await this.acks.ack(data.campaignId, data.recordingId, auth.user.id);
+    this.options.onRecordingAck?.(data.campaignId, data.recordingId, auth.user.id);
     const dmIds = await this.dmUserIds(data.campaignId);
     this.broadcast(
       data.campaignId,

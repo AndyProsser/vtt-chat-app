@@ -25,6 +25,14 @@ export interface RecordingTrack {
   transcribedAt: number | null;
 }
 
+export type RecordingEventName = 'started' | 'paused' | 'resumed' | 'stopped' | 'interrupted';
+
+export interface RecordingEvent {
+  recordingId: string;
+  at: number;
+  event: RecordingEventName;
+}
+
 export type SummaryVisibility = 'members' | 'dm';
 
 export interface StoredSummary {

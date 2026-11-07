@@ -45,6 +45,8 @@ services:
       # Where `vtt-admin status` checks LiveKit from inside this container (the public URL above
       # points at Caddy, which a container cannot always reach through its own address).
       LIVEKIT_HEALTH_URL: http://host.docker.internal:7880
+      # Audio capture: Egress (records profile) writes per-speaker files here; the worker reads them.
+      RECORDINGS_DIR: /out
     extra_hosts: ['host.docker.internal:host-gateway']
     ports: ['127.0.0.1:${BACKEND_PORT:-3000}:3000'] # loopback only: health checks and local probes
 
@@ -100,7 +102,12 @@ services:
     user: root
     # Fetches the Whisper model once into a volume. WHISPER_MODEL_FILE is a ggml file name from
     # huggingface.co/ggerganov/whisper.cpp (small, quantised: ~190 MB, the measured CPU default).
-    entrypoint: ['sh', '-c', 'f=/models/${WHISPER_MODEL_FILE:-ggml-small-q5_1.bin}; [ -s "$$f" ] || curl -fL -o "$$f" https://huggingface.co/ggerganov/whisper.cpp/resolve/main/${WHISPER_MODEL_FILE:-ggml-small-q5_1.bin}']
+    entrypoint:
+      [
+        'sh',
+        '-c',
+        'f=/models/${WHISPER_MODEL_FILE:-ggml-small-q5_1.bin}; [ -s "$$f" ] || curl -fL -o "$$f" https://huggingface.co/ggerganov/whisper.cpp/resolve/main/${WHISPER_MODEL_FILE:-ggml-small-q5_1.bin}',
+      ]
     volumes: [whisper-models:/models]
 
   whisper:

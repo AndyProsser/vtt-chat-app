@@ -14,6 +14,13 @@ export interface BackendConfig {
   databaseUrl: string | undefined;
   /** Valkey/Redis URL for the replay buffer. Unset: in-memory, so a restart sends every client a snapshot. */
   valkeyUrl: string | undefined;
+  /**
+   * Directory LiveKit Egress writes recordings into, as Egress sees it (shared with the records
+   * worker). Setting it switches audio capture on; unset, recording is only a state flag.
+   */
+  recordingsDir: string | undefined;
+  /** LiveKit's HTTP API as the backend reaches it (room and Egress calls). */
+  liveKitApiUrl: string;
 }
 
 /**
@@ -29,5 +36,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): BackendConfig 
     liveKitApiSecret: env.LIVEKIT_API_SECRET ?? DEV_LIVEKIT_API_SECRET,
     databaseUrl: env.DATABASE_URL || undefined,
     valkeyUrl: env.VALKEY_URL || undefined,
+    recordingsDir: env.RECORDINGS_DIR || undefined,
+    liveKitApiUrl:
+      env.LIVEKIT_API_URL ??
+      env.LIVEKIT_HEALTH_URL ??
+      (env.LIVEKIT_URL ?? DEV_LIVEKIT_URL).replace(/^ws/, 'http'),
   };
 }
