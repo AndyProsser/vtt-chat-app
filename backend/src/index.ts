@@ -28,6 +28,8 @@ import {
   createLiveKitRecorder,
   DiskMediaStorage,
   MemoryScheduleStore,
+  PartyService,
+  createLiveKitAudioRouter,
   MemorySoundStore,
   NotificationRelay,
   PostgresScheduleStore,
@@ -81,6 +83,19 @@ if (isEntryPoint) {
   // starts a player's track once they have.
   const acks = new MemoryAckStore();
   let capture: RecordingCapture | undefined;
+  // Voice groups: enforced through LiveKit when it is reachable (the same server the recorder uses).
+  const hubRef: { current?: Hub } = {};
+  const parties = new PartyService({
+    store,
+    router: createLiveKitAudioRouter({
+      apiUrl: config.liveKitApiUrl,
+      apiKey: config.liveKitApiKey,
+      apiSecret: config.liveKitApiSecret,
+    }),
+    emit: (campaignId, type, data) => hubRef.current?.broadcastToCampaign(campaignId, type, data),
+    log: (line) => console.warn(`[parties] ${line}`),
+  });
+  parties.startTicking();
   const hub = new Hub({
     store,
     accounts: new AccountService({ store }),
@@ -88,9 +103,11 @@ if (isEntryPoint) {
     acks,
     sounds,
     schedule,
+    parties,
     onRecordingChange: (change) => capture?.onRecordingChange(change),
     onRecordingAck: (campaignId) => capture?.onAck(campaignId),
   });
+  hubRef.current = hub;
   if (config.recordingsDir !== undefined && pool !== undefined) {
     capture = new RecordingCapture({
       recorder: createLiveKitRecorder({

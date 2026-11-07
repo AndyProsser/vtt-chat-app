@@ -141,7 +141,7 @@ The riskiest unknowns are all "does this actually work on real machines with ope
 
 ## Stage 6 — Table Features
 
-**Status:** ⚪ Not Started
+**Status:** 🟡 Server side built and tested (2026-11-07): chat and private whispers, handouts/maps/images/text snippets, loot with atomic claims, the DM soundboard (a mini thaumaturgy.app), session schedule + RSVP + reminders + stored notifications, and party split — see [TABLE-FEATURES.md](docs/architecture/TABLE-FEATURES.md). **Not built:** every client/UI side (Stage 4), voice whispers, and the end-to-end "full session" test below.
 **Depends on:** Stage 5
 
 **Deliverables:**

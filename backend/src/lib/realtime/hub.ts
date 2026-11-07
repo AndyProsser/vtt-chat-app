@@ -17,6 +17,7 @@ import {
 } from './protocol.js';
 import { MemoryAckStore, type AckStore } from '../recording/ackStore.js';
 import { SoundboardRuntime } from '../soundboard/runtime.js';
+import type { PartyService } from '../parties/partyService.js';
 import type { ScheduleStore } from '../schedule/scheduleStore.js';
 import { notificationView } from '../schedule/relay.js';
 import type { SoundStore } from '../soundboard/soundStore.js';
@@ -54,6 +55,8 @@ export interface HubOptions {
   sounds?: SoundStore;
   /** Stored notifications, delivered in the snapshot on connect. */
   schedule?: ScheduleStore;
+  /** Voice groups. Omit and the party frames are refused. */
+  parties?: PartyService;
   now?: () => number;
   /** Drop a connection that hasn't authenticated within this long. */
   authTimeoutMs?: number;
@@ -237,6 +240,11 @@ export class Hub {
     this.broadcast(campaignId, 'handout.removed', { campaignId, handoutId });
   }
 
+  /** Sends a frame to everyone connected to a campaign (for services that live outside the hub). */
+  broadcastToCampaign(campaignId: string, type: string, data: unknown): void {
+    this.broadcast(campaignId, type, data);
+  }
+
   /** Sends one frame to every live socket of a person (all their devices), whatever campaign it is about. */
   sendToUser(userId: string, type: string, data: unknown): void {
     for (const state of this.connections.values()) {
@@ -311,6 +319,13 @@ export class Hub {
       case 'sound.volume':
         await this.soundFrame(state, frame.type, frame.data);
         return;
+      case 'party.create':
+      case 'party.rename':
+      case 'party.delete':
+      case 'party.move':
+      case 'party.reset':
+        await this.partyFrame(state, frame.type, frame.data);
+        return;
     }
   }
 
@@ -368,6 +383,11 @@ export class Hub {
         'snapshot',
         await this.snapshot(campaignId, membership.role === 'dm', auth.user.id),
       );
+    }
+
+    // Who is in which voice group, so a joiner or a reconnect shows the same table.
+    if (this.options.parties) {
+      this.send(state, 'party.state', { campaignId, ...this.options.parties.snapshot(campaignId) });
     }
 
     // What is playing now (loops, the scene, volumes), so a late joiner or a reconnect catches up.
@@ -647,6 +667,48 @@ export class Hub {
     }
   }
 
+  /** Voice-group controls: the campaign's DM only. Players are refused, not ignored. */
+  private async partyFrame(state: ConnState, type: string, raw: unknown): Promise<void> {
+    const auth = state.auth;
+    const data = raw as { campaignId: string };
+    if (!auth || !this.subscribed(state, data.campaignId)) return;
+    const refuse = (code: string, message: string) => this.send(state, 'error', { code, message });
+    const parties = this.options.parties;
+    if (!parties) return refuse('unavailable', 'voice groups are not enabled on this server');
+    const membership = await this.options.store.getMembership(data.campaignId, auth.user.id);
+    if (membership?.role !== 'dm')
+      return refuse('forbidden', 'only the DM can manage voice groups');
+    if (!this.soundLimiter.allow(`party:${state.conn.id}`))
+      return refuse('rate_limited', 'slow down');
+    const c = data.campaignId;
+    try {
+      switch (type) {
+        case 'party.create':
+          await parties.create(c, (raw as ClientData<'party.create'>).name);
+          return;
+        case 'party.rename': {
+          const d = raw as ClientData<'party.rename'>;
+          await parties.rename(c, d.partyId, d.name);
+          return;
+        }
+        case 'party.delete':
+          await parties.delete(c, (raw as ClientData<'party.delete'>).partyId);
+          return;
+        case 'party.move': {
+          const d = raw as ClientData<'party.move'>;
+          await parties.move(c, d.userId, d.partyId);
+          return;
+        }
+        case 'party.reset':
+          await parties.reset(c);
+          return;
+      }
+    } catch (error) {
+      if (error instanceof DomainError) return refuse(error.code, error.message);
+      throw error;
+    }
+  }
+
   // ---- helpers ----
 
   private subscribed(state: ConnState, campaignId: string): boolean {
@@ -665,6 +727,7 @@ export class Hub {
     // Nobody left at this table: stop its scene timers rather than let them run for no one.
     if (![...this.connections.values()].some((s) => s !== state && s.campaigns.has(campaignId))) {
       this.soundboard?.reset(campaignId);
+      this.options.parties?.forgetTable(campaignId);
     }
     if (this.presence.disconnect(campaignId, auth.user.id, state.conn.id)) {
       this.broadcast(campaignId, 'presence.update', {

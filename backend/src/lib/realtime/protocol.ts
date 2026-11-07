@@ -58,6 +58,20 @@ export const clientData = {
       .object({ userId: z.string().min(1).max(64), gain: z.number().min(0).max(2) })
       .optional(),
   }),
+  // Voice groups. DM-only; the server checks. The DM is in every group; players hear only their own.
+  'party.create': z.object({ campaignId, name: z.string().min(1).max(60) }),
+  'party.rename': z.object({
+    campaignId,
+    partyId: z.string().min(1).max(64),
+    name: z.string().min(1).max(60),
+  }),
+  'party.delete': z.object({ campaignId, partyId: z.string().min(1).max(64) }),
+  'party.move': z.object({
+    campaignId,
+    userId: z.string().min(1).max(64),
+    partyId: z.string().min(1).max(64).nullable(),
+  }),
+  'party.reset': z.object({ campaignId }),
   // "I have heard the recording-start cue for this recording" — sent after the cue finished playing.
   'recording.ack': z.object({ campaignId, recordingId: z.string().min(1).max(64) }),
 } as const;

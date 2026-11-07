@@ -116,3 +116,30 @@ shown in each viewer's local time; the DM is told when a player RSVPs _can't_ or
   process created them.
 - **Not built:** email nudges (need SMTP), "level-up guidance", loot notifications, per-user mute of
   kinds, and pruning of old notifications.
+
+## Party split (built)
+
+**Decided:** one LiveKit room; the **DM is in every group** and hears and is heard by all; **players hear
+only their own group**; **every group is still recorded** (Egress records what each person publishes,
+whoever is listening). Players not placed in a party are at the "main table" together.
+
+- **Controls** (DM-only WebSocket frames; a player's attempt is refused): `party.create`, `party.rename`,
+  `party.delete` (its players return to the main table), `party.move` (a player into a party, or `null`
+  for the main table; the DM cannot be moved), `party.reset` (everyone together). At most 8 parties.
+  Every change is broadcast as the full `party.state`, which also follows every snapshot and replay, so
+  a joiner or a reconnect shows the same table.
+- **Enforcement** goes through the LiveKit server API (`updateSubscriptions`): for each listener the
+  server unsubscribes them from the tracks of people they must not hear, applies only what changed, and
+  re-subscribes them when the split ends. While a table is split it re-checks every 2 seconds, because
+  LiveKit auto-subscribes a newly published track and that must be cut off again. Verified against a
+  real LiveKit 1.13.5: with the server in debug logging, the SFU closed alice's and bob's cross
+  subscriptions (and nobody's subscription to the DM), and re-created them when the split ended.
+- **This is cooperative isolation, not a security boundary.** A tampered client could subscribe itself to
+  anything, and a new track can be heard for up to ~2 seconds before it is cut. That fits friends at a
+  table; it is not a defence against a hostile participant. (Separate rooms per party would be a hard
+  boundary but need a reconnect to move; Andy chose the single room.)
+- State is in memory: a server restart returns everyone to the main table (the safe direction), and a
+  table that everyone has left is forgotten.
+- **Not built:** the Rust client side (it must keep LiveKit's default auto-subscribe, and show the groups),
+  drag-between-groups UI, voice whispers (private audio, which must be excluded from recording at the
+  routing layer), and per-party text chat.
