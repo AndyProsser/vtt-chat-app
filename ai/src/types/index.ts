@@ -49,3 +49,5 @@ export type GenerateText = (prompt: string) => Promise<string>;
  * start of that file. Local whisper.cpp and any OpenAI-compatible server both fit this shape.
  */
 export type TranscribeWav = (wavPath: string) => Promise<Segment[]>;
+
+export * from './records.js';

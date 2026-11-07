@@ -181,7 +181,11 @@ describe.skipIf(TEST_DATABASE_URL === undefined)('migrate', () => {
     await admin.query(`CREATE SCHEMA ${schema}`);
     const pool = createPool(TEST_DATABASE_URL ?? '', { options: `-c search_path=${schema}` });
     try {
-      expect(await migrate(pool)).toEqual(['0001_init.sql', '0002_ai_settings.sql']);
+      expect(await migrate(pool)).toEqual([
+        '0001_init.sql',
+        '0002_ai_settings.sql',
+        '0003_records.sql',
+      ]);
       expect(await migrate(pool)).toEqual([]);
     } finally {
       await pool.end();

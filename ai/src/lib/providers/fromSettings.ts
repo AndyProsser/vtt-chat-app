@@ -8,7 +8,8 @@ export interface ProviderDeps {
   /** Secrets come from the environment, never from the database. */
   env?: { WHISPER_API_KEY?: string | undefined; LLM_API_KEY?: string | undefined };
   /** The always-configured local backends: the default, and the fallback for a remote one. */
-  localTranscribe: TranscribeWav;
+  /** Builds the local transcriber for the operator's configured language. */
+  localTranscribe: (language: string) => TranscribeWav;
   localGenerate: GenerateText;
   /** Called when a job moves to the local backend because the remote was unreachable. */
   onFallback?: (what: 'transcription' | 'llm', reason: string) => void;
@@ -31,6 +32,8 @@ export function buildJobProviders(settings: AiSettings, deps: ProviderDeps): Job
   if (problems.length > 0) throw new Error(`AI settings are not usable: ${problems.join('; ')}`);
 
   const { fallback } = settings;
+  const language = settings.transcription.language;
+  const localTranscribe = deps.localTranscribe(language);
   const timing = {
     retryIntervalMs: fallback.retrySeconds * 1000,
     fallbackAfterMs: fallback.enabled ? fallback.afterSeconds * 1000 : undefined,
@@ -48,10 +51,10 @@ export function buildJobProviders(settings: AiSettings, deps: ProviderDeps): Job
             ...(deps.env?.WHISPER_API_KEY ? { apiKey: deps.env.WHISPER_API_KEY } : {}),
             ...common,
           }),
-          fallback.enabled ? deps.localTranscribe : undefined,
+          fallback.enabled ? localTranscribe : undefined,
           { ...timing, onFallback: (reason) => deps.onFallback?.('transcription', reason) },
         )
-      : createFailover(deps.localTranscribe, undefined, timing);
+      : createFailover(localTranscribe, undefined, timing);
 
   const generate =
     settings.llm.kind === 'remote' && settings.llm.url !== null

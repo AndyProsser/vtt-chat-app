@@ -3,7 +3,10 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { buildJobProviders } from './fromSettings.js';
 
-const localTranscribe = vi.fn(async () => [{ startMs: 0, endMs: 1, text: 'local' }]);
+const localTranscribe =
+  (): (() => Promise<{ startMs: number; endMs: number; text: string }[]>) => async () => [
+    { startMs: 0, endMs: 1, text: 'local' },
+  ];
 const localGenerate = vi.fn(async () => 'local summary');
 const base = { localTranscribe, localGenerate };
 

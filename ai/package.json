@@ -11,11 +11,13 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@vtt-chat-app/shared": "*"
+    "@vtt-chat-app/shared": "*",
+    "pg": "^8.23.1"
   },
   "devDependencies": {
+    "@types/node": "^26.0.0",
+    "@types/pg": "^8.23.1",
     "typescript": "^7.0.2",
-    "vitest": "^5.1.0",
-    "@types/node": "^26.0.0"
+    "vitest": "^5.1.0"
   }
 }
