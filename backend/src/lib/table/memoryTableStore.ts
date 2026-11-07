@@ -21,6 +21,11 @@ export class MemoryTableStore implements TableStore {
   };
   deleteMedia = async (id: string) => void this.media.delete(id);
 
+  ownerAudioBytes = async (ownerId: string) =>
+    [...this.media.values()]
+      .filter((m) => m.ownerId === ownerId && m.kind === 'audio')
+      .reduce((n, m) => n + m.bytes, 0);
+
   campaignHandoutBytes = async (campaignId: string) => {
     let total = 0;
     for (const h of this.handouts.values()) {

@@ -27,7 +27,9 @@ import {
   RecordingCapture,
   createLiveKitRecorder,
   DiskMediaStorage,
+  MemorySoundStore,
   MemoryTableStore,
+  PostgresSoundStore,
   PostgresTableStore,
 } from './lib/index.js';
 import {
@@ -68,6 +70,7 @@ if (isEntryPoint) {
   }
   const records: RecordsStore = pool ? new PostgresRecordsStore(pool) : new MemoryRecordsStore();
   const table = pool ? new PostgresTableStore(pool) : new MemoryTableStore();
+  const sounds = pool ? new PostgresSoundStore(pool) : new MemorySoundStore();
   const media = config.mediaDir ? new DiskMediaStorage(config.mediaDir) : undefined;
   // The acknowledgement store is shared: the hub records who heard the cue, and audio capture only
   // starts a player's track once they have.
@@ -78,6 +81,7 @@ if (isEntryPoint) {
     accounts: new AccountService({ store }),
     replay,
     acks,
+    sounds,
     onRecordingChange: (change) => capture?.onRecordingChange(change),
     onRecordingAck: (campaignId) => capture?.onAck(campaignId),
   });
@@ -119,6 +123,7 @@ if (isEntryPoint) {
       recording: hub.recording,
       records,
       table,
+      sounds,
       ...(media ? { media } : {}),
     }),
   );

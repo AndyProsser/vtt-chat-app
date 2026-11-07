@@ -39,6 +39,25 @@ export const clientData = {
     text: z.string().min(1).max(4000),
     to: z.string().min(1).max(64).optional(),
   }),
+  // The DM's soundboard (docs/architecture/TABLE-FEATURES.md). DM-only; the server checks.
+  'sound.play': z.object({
+    campaignId,
+    soundId: z.string().min(1).max(64),
+    takeId: z.string().min(1).max(64).optional(),
+    mode: z.enum(['oneshot', 'loop']).optional(),
+    volume: z.number().min(0).max(1).optional(),
+    to: z.array(z.string().min(1).max(64)).max(50).optional(),
+  }),
+  'sound.stop': z.object({ campaignId, playId: z.string().min(1).max(64).optional() }),
+  'scene.start': z.object({ campaignId, sceneId: z.string().min(1).max(64) }),
+  'scene.stop': z.object({ campaignId }),
+  'sound.volume': z.object({
+    campaignId,
+    master: z.number().min(0).max(1).optional(),
+    player: z
+      .object({ userId: z.string().min(1).max(64), gain: z.number().min(0).max(2) })
+      .optional(),
+  }),
   // "I have heard the recording-start cue for this recording" — sent after the cue finished playing.
   'recording.ack': z.object({ campaignId, recordingId: z.string().min(1).max(64) }),
 } as const;

@@ -82,6 +82,14 @@ export class PostgresTableStore implements TableStore {
     await this.pool.query('DELETE FROM media_files WHERE id = $1', [id]);
   }
 
+  async ownerAudioBytes(ownerId: string): Promise<number> {
+    const { rows } = await this.pool.query<{ n: string | null }>(
+      "SELECT COALESCE(SUM(bytes), 0)::bigint AS n FROM media_files WHERE owner_id = $1 AND kind = 'audio'",
+      [ownerId],
+    );
+    return Number(rows[0]?.n ?? 0);
+  }
+
   async campaignHandoutBytes(campaignId: string): Promise<number> {
     const { rows } = await this.pool.query<{ n: string | null }>(
       `SELECT COALESCE(SUM(m.bytes), 0)::bigint AS n FROM handouts h

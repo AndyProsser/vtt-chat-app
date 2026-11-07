@@ -11,8 +11,11 @@ import { errorHandler } from './http/middleware.js';
 import { RateLimiter } from './http/rateLimit.js';
 import { handoutRoutes } from './http/handoutRoutes.js';
 import { lootRoutes } from './http/lootRoutes.js';
+import { soundLibraryRoutes, soundPlaybackRoutes } from './http/soundRoutes.js';
 import { recordsRoutes } from './http/recordsRoutes.js';
 import type { MediaStorage } from './media/mediaStorage.js';
+import { SoundLibraryService } from './soundboard/soundLibraryService.js';
+import type { SoundStore } from './soundboard/soundStore.js';
 import { HandoutService } from './table/handoutService.js';
 import { LootService } from './table/lootService.js';
 import type { TableStore } from './table/tableStore.js';
@@ -56,6 +59,8 @@ export interface AppDeps {
   table?: TableStore;
   /** Where uploaded file bytes live. Without it only text snippets work. */
   media?: MediaStorage;
+  /** The DM's sound library. Needs `table` and (for clips) `media`. */
+  sounds?: SoundStore;
 }
 
 const MINUTE = 60_000;
@@ -74,6 +79,7 @@ export function createApp({
   records,
   table,
   media,
+  sounds,
 }: AppDeps): Express {
   const accounts = new AccountService({ store });
   const campaigns = new CampaignService({ store });
@@ -169,6 +175,12 @@ export function createApp({
           : {}),
       }),
     );
+  }
+
+  if (table && sounds) {
+    const library = new SoundLibraryService({ store, sounds, table, media });
+    app.use('/api/soundboard', soundLibraryRoutes({ accounts, library }));
+    app.use('/api/campaigns/:campaignId/sounds', soundPlaybackRoutes({ accounts, library }));
   }
 
   app.use(errorHandler);

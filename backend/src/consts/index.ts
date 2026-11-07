@@ -29,6 +29,12 @@ export const CHAT_RETENTION_MESSAGES = 5000;
 export const MAX_HANDOUT_BYTES = 10 * 1024 * 1024;
 /** A campaign's handout files together; a runaway upload loop cannot fill the media volume. */
 export const MAX_CAMPAIGN_HANDOUT_BYTES = 1024 * 1024 * 1024;
+/** One soundboard clip, and one account's whole sound library. */
+export const MAX_SOUND_BYTES = 5 * 1024 * 1024;
+export const MAX_LIBRARY_BYTES = 200 * 1024 * 1024;
+export const MAX_BOARD_BUTTONS = 60;
+export const MAX_SCENE_LAYERS = 12;
+
 export const MAX_TEXT_HANDOUT_CHARS = 20_000;
 
 export const MAGIC_LINK_TTL_MINUTES = 15;

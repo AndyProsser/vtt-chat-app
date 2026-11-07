@@ -30,3 +30,7 @@ export * from './table/lootService.js';
 export * from './table/memoryTableStore.js';
 export * from './table/postgresTableStore.js';
 export * from './table/tableStore.js';
+export * from './soundboard/memorySoundStore.js';
+export * from './soundboard/postgresSoundStore.js';
+export * from './soundboard/soundLibraryService.js';
+export * from './soundboard/soundStore.js';

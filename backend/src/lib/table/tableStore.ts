@@ -58,6 +58,8 @@ export interface TableStore {
   putMedia(file: MediaFile): Promise<void>;
   getMedia(id: string): Promise<MediaFile | undefined>;
   deleteMedia(id: string): Promise<void>;
+  /** Bytes of audio an account has uploaded to its sound library, for its quota. */
+  ownerAudioBytes(ownerId: string): Promise<number>;
   /** Bytes of files attached to a campaign's handouts, for its storage quota. */
   campaignHandoutBytes(campaignId: string): Promise<number>;
 

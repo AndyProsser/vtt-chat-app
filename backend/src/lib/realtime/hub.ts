@@ -16,6 +16,8 @@ import {
   type ClientType,
 } from './protocol.js';
 import { MemoryAckStore, type AckStore } from '../recording/ackStore.js';
+import { SoundboardRuntime } from '../soundboard/runtime.js';
+import type { SoundStore } from '../soundboard/soundStore.js';
 import { RecordingState, type RecordingChange } from '../recording/recordingState.js';
 import type { BufferedEvent, ReplayBuffer } from './replayBuffer.js';
 
@@ -46,6 +48,8 @@ export interface HubOptions {
   /** Told after every recording change and every acknowledgement (the audio capture follows these). */
   onRecordingChange?: (change: RecordingChange) => void;
   onRecordingAck?: (campaignId: string, recordingId: string, userId: string) => void;
+  /** The DM's sound library, to play from. Omit and the soundboard frames are refused. */
+  sounds?: SoundStore;
   now?: () => number;
   /** Drop a connection that hasn't authenticated within this long. */
   authTimeoutMs?: number;
@@ -78,6 +82,8 @@ export class Hub {
   readonly presence: PresenceTracker;
   readonly recording: RecordingState;
   private readonly acks: AckStore;
+  private readonly soundboard: SoundboardRuntime | undefined;
+  private readonly soundLimiter = new RateLimiter(30, 10_000);
   private readonly connections = new Map<string, ConnState>();
   private readonly now: () => number;
   private readonly authTimeoutMs: number;
@@ -87,6 +93,21 @@ export class Hub {
     this.presence = options.presence ?? new PresenceTracker();
     this.recording = options.recording ?? new RecordingState();
     this.acks = options.acks ?? new MemoryAckStore({ now: options.now ?? Date.now });
+    this.soundboard = options.sounds
+      ? new SoundboardRuntime({
+          sounds: options.sounds,
+          now: options.now ?? Date.now,
+          events: {
+            emit: (campaignId, type, data, only) =>
+              this.broadcast(
+                campaignId,
+                type,
+                data,
+                only ? { only: (s) => s.auth !== null && only.has(s.auth.user.id) } : {},
+              ),
+          },
+        })
+      : undefined;
     this.now = options.now ?? Date.now;
     this.authTimeoutMs = options.authTimeoutMs ?? 5_000;
     this.maxBadFrames = options.maxBadFrames ?? 20;
@@ -218,6 +239,7 @@ export class Hub {
   }
 
   close(): void {
+    this.soundboard?.close();
     for (const state of this.connections.values()) {
       if (state.authTimer) clearTimeout(state.authTimer);
     }
@@ -270,6 +292,13 @@ export class Hub {
         return;
       case 'recording.ack':
         await this.recordingAck(state, frame.data as ClientData<'recording.ack'>);
+        return;
+      case 'sound.play':
+      case 'sound.stop':
+      case 'scene.start':
+      case 'scene.stop':
+      case 'sound.volume':
+        await this.soundFrame(state, frame.type, frame.data);
         return;
     }
   }
@@ -328,6 +357,14 @@ export class Hub {
         'snapshot',
         await this.snapshot(campaignId, membership.role === 'dm', auth.user.id),
       );
+    }
+
+    // What is playing now (loops, the scene, volumes), so a late joiner or a reconnect catches up.
+    if (this.soundboard) {
+      this.send(state, 'sound.state', {
+        campaignId,
+        ...this.soundboard.snapshot(campaignId, auth.user.id),
+      });
     }
 
     // Always follows the snapshot or the replay, so a client that rejoined mid-recording learns the
@@ -545,6 +582,60 @@ export class Hub {
     );
   }
 
+  /**
+   * The DM's soundboard controls. Only the campaign's DM may send these, and only for sounds and
+   * scenes in their own library (the runtime checks); a player's attempt is refused, not ignored.
+   */
+  private async soundFrame(state: ConnState, type: string, raw: unknown): Promise<void> {
+    const auth = state.auth;
+    const data = raw as { campaignId: string };
+    if (!auth || !this.subscribed(state, data.campaignId)) return;
+    const refuse = (code: string, message: string) => this.send(state, 'error', { code, message });
+    if (!this.soundboard)
+      return refuse('unavailable', 'the soundboard is not enabled on this server');
+    const membership = await this.options.store.getMembership(data.campaignId, auth.user.id);
+    if (membership?.role !== 'dm') return refuse('forbidden', 'only the DM can use the soundboard');
+    if (!this.soundLimiter.allow(`${state.conn.id}`)) return refuse('rate_limited', 'slow down');
+    const c = data.campaignId;
+    try {
+      switch (type) {
+        case 'sound.play': {
+          const d = raw as ClientData<'sound.play'>;
+          await this.soundboard.play(c, auth.user.id, {
+            soundId: d.soundId,
+            ...(d.takeId !== undefined ? { takeId: d.takeId } : {}),
+            ...(d.mode !== undefined ? { mode: d.mode } : {}),
+            ...(d.volume !== undefined ? { volume: d.volume } : {}),
+            ...(d.to !== undefined ? { to: d.to } : {}),
+          });
+          return;
+        }
+        case 'sound.stop':
+          this.soundboard.stop(c, (raw as ClientData<'sound.stop'>).playId);
+          return;
+        case 'scene.start':
+          await this.soundboard.startScene(
+            c,
+            auth.user.id,
+            (raw as ClientData<'scene.start'>).sceneId,
+          );
+          return;
+        case 'scene.stop':
+          this.soundboard.stopScene(c);
+          return;
+        case 'sound.volume': {
+          const d = raw as ClientData<'sound.volume'>;
+          if (d.master !== undefined) this.soundboard.setMaster(c, d.master);
+          if (d.player) this.soundboard.setPlayerGain(c, d.player.userId, d.player.gain);
+          return;
+        }
+      }
+    } catch (error) {
+      if (error instanceof DomainError) return refuse(error.code, error.message);
+      throw error;
+    }
+  }
+
   // ---- helpers ----
 
   private subscribed(state: ConnState, campaignId: string): boolean {
@@ -560,6 +651,10 @@ export class Hub {
     const auth = state.auth;
     if (!auth) return;
     state.campaigns.delete(campaignId);
+    // Nobody left at this table: stop its scene timers rather than let them run for no one.
+    if (![...this.connections.values()].some((s) => s !== state && s.campaigns.has(campaignId))) {
+      this.soundboard?.reset(campaignId);
+    }
     if (this.presence.disconnect(campaignId, auth.user.id, state.conn.id)) {
       this.broadcast(campaignId, 'presence.update', {
         campaignId,
