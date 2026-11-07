@@ -6,6 +6,8 @@ import {
   validateAiSettings,
 } from '@vtt-chat-app/shared';
 
+import { PROCESS_RECORDING_JOB, type JobQueue, type RecordsStore } from '@vtt-chat-app/ai';
+
 import { MAGIC_LINK_TTL_MINUTES } from '../consts/index.js';
 import type { AccountService } from '../lib/auth/accountService.js';
 import type { Store } from '../lib/store/store.js';
@@ -20,6 +22,10 @@ export interface Probe {
 export interface AdminDeps {
   store: Store;
   accounts: AccountService;
+  /** The records pipeline's queue and store (the `ai/` worker consumes the queue). */
+  jobs: JobQueue;
+  records: RecordsStore;
+  now?: () => number;
   /** Health checks for `status`. Injected so tests need no live services. */
   probes?: Probe[];
   out: (line: string) => void;
@@ -44,6 +50,11 @@ const USAGE = `vtt-admin — system operations for this instance (gameplay is ma
   user admin <email> grant|revoke        give or take away Admin (the last Admin cannot be removed)
   user code <email> [signin|reset]       issue a one-time code to hand over on a side channel (${MAGIC_LINK_TTL_MINUTES} min)
   user revoke-sessions <email>           sign that account out on every device
+  jobs list [queued|running|done|failed] records-pipeline jobs, newest last
+  jobs retry <job-id>                    put a failed job back in the queue
+  recording list                         recent recordings and their status
+  recording reprocess <id> [--retranscribe]
+                                         redo the summaries (and with the flag, the transcripts) from the kept audio
 `;
 
 const isSimpleKey = (key: string): key is keyof typeof SIMPLE_SETTINGS => key in SIMPLE_SETTINGS;
@@ -117,6 +128,10 @@ export async function runAdmin(argv: string[], deps: AdminDeps): Promise<number>
         return await settings(deps, command, rest);
       case 'user':
         return await users(deps, command, rest);
+      case 'jobs':
+        return await jobs(deps, command, rest);
+      case 'recording':
+        return await recordings(deps, command, rest);
       case undefined:
       case 'help':
       case '--help':
@@ -251,6 +266,91 @@ async function users(
       deps.err(
         'usage: user list | admin <email> grant|revoke | code <email> [signin|reset] | revoke-sessions <email>',
       );
+      return 2;
+  }
+}
+
+const JOB_STATES = ['queued', 'running', 'done', 'failed'] as const;
+
+async function jobs(deps: AdminDeps, command: string | undefined, rest: string[]): Promise<number> {
+  const now = deps.now ?? Date.now;
+  switch (command) {
+    case 'list': {
+      const state = rest[0];
+      if (state !== undefined && !(JOB_STATES as readonly string[]).includes(state)) {
+        throw new SettingError(`state must be one of ${JOB_STATES.join(', ')}`);
+      }
+      const list = await deps.jobs.list(state ? [state as (typeof JOB_STATES)[number]] : undefined);
+      for (const j of list) {
+        const error = j.lastError ? `  ${j.lastError.slice(0, 80)}` : '';
+        deps.out(
+          `${j.id}  ${j.state.padEnd(7)} ${j.kind}  attempt ${j.attempts}/${j.maxAttempts}${error}`,
+        );
+      }
+      if (list.length === 0) deps.out('no jobs');
+      return 0;
+    }
+    case 'retry': {
+      const id = rest[0];
+      if (!id) {
+        deps.err('usage: jobs retry <job-id>');
+        return 2;
+      }
+      const job = await deps.jobs.retry(id, now());
+      if (!job) throw new SettingError('no failed job with that id');
+      if (job.recordingId) await deps.records.setRecordingStatus(job.recordingId, 'stopped');
+      deps.out(`job ${job.id} is queued again with a fresh set of attempts`);
+      return 0;
+    }
+    default:
+      deps.err('usage: jobs list [state] | retry <job-id>');
+      return 2;
+  }
+}
+
+async function recordings(
+  deps: AdminDeps,
+  command: string | undefined,
+  rest: string[],
+): Promise<number> {
+  switch (command) {
+    case 'list': {
+      const list = await deps.records.listRecordings(20);
+      for (const r of list) {
+        const when = new Date(r.startedAt).toISOString().slice(0, 16).replace('T', ' ');
+        const tracks = await deps.records.listTracks(r.id);
+        deps.out(`${r.id}  ${r.status.padEnd(10)} ${when}  ${tracks.length} track(s)`);
+      }
+      if (list.length === 0) deps.out('no recordings');
+      return 0;
+    }
+    case 'reprocess': {
+      const [id, ...flags] = rest;
+      if (!id) {
+        deps.err('usage: recording reprocess <recording-id> [--retranscribe]');
+        return 2;
+      }
+      const unknown = flags.filter((f) => f !== '--retranscribe');
+      if (unknown.length > 0) throw new SettingError(`unknown option ${unknown[0]}`);
+      const recording = await deps.records.getRecording(id);
+      if (!recording) throw new SettingError('no recording with that id');
+      if (recording.status === 'recording') {
+        throw new SettingError('that recording is still in progress; stop it first');
+      }
+      const transcripts = flags.includes('--retranscribe');
+      await deps.records.resetForReprocess(id, { transcripts });
+      await deps.records.setRecordingStatus(id, 'stopped');
+      const job = await deps.jobs.enqueue(
+        { kind: PROCESS_RECORDING_JOB, recordingId: id },
+        (deps.now ?? Date.now)(),
+      );
+      deps.out(
+        `queued ${job.id}: will redo the ${transcripts ? 'transcripts and ' : ''}summaries from the kept audio`,
+      );
+      return 0;
+    }
+    default:
+      deps.err('usage: recording list | reprocess <recording-id> [--retranscribe]');
       return 2;
   }
 }

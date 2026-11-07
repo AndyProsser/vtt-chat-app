@@ -1,3 +1,4 @@
+import { MemoryJobQueue, MemoryRecordsStore, PROCESS_RECORDING_JOB } from '@vtt-chat-app/ai';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { AccountService } from '../lib/auth/accountService.js';
@@ -7,6 +8,8 @@ import { runAdmin, type Probe } from './admin.js';
 
 let store: MemoryStore;
 let accounts: AccountService;
+let jobs: MemoryJobQueue;
+let records: MemoryRecordsStore;
 let out: string[];
 let err: string[];
 
@@ -14,6 +17,9 @@ async function run(args: string, probes: Probe[] = []): Promise<number> {
   return runAdmin(args.split(' ').filter(Boolean), {
     store,
     accounts,
+    jobs,
+    records,
+    now: () => 1_000,
     probes,
     out: (l) => out.push(l),
     err: (l) => err.push(l),
@@ -31,6 +37,8 @@ const register = (name: string) =>
 beforeEach(() => {
   store = new MemoryStore();
   accounts = new AccountService({ store });
+  jobs = new MemoryJobQueue();
+  records = new MemoryRecordsStore();
   out = [];
   err = [];
 });
@@ -193,5 +201,108 @@ describe('status', () => {
     expect(text).toContain('FAIL  valkey');
     expect(text).toContain('connection refused');
     expect(text).toContain('ok    livekit');
+  });
+});
+
+describe('jobs and recordings', () => {
+  const rec = (id: string, status: 'stopped' | 'recording' | 'failed' = 'stopped') =>
+    records.putRecording({
+      id,
+      campaignId: 'c',
+      startedAt: 1_700_000_000_000,
+      stoppedAt: 2,
+      status,
+    });
+
+  it('lists jobs, and filters by state', async () => {
+    await jobs.enqueue({ kind: PROCESS_RECORDING_JOB, recordingId: 'r1' }, 1);
+    await run('jobs list');
+    expect(out.join('\n')).toContain('process-recording');
+    out.length = 0;
+    await run('jobs list failed');
+    expect(out).toEqual(['no jobs']);
+    expect(await run('jobs list sideways')).toBe(1);
+  });
+
+  it('puts a failed job back in the queue and the recording back to stopped', async () => {
+    await rec('r1', 'failed');
+    const job = await jobs.enqueue(
+      { kind: PROCESS_RECORDING_JOB, recordingId: 'r1', maxAttempts: 1 },
+      1,
+    );
+    await jobs.claim(2, 1000);
+    await jobs.fail(job.id, 'whisper down', 3, 4);
+    expect(await run(`jobs retry ${job.id}`)).toBe(0);
+    expect((await jobs.get(job.id))?.state).toBe('queued');
+    expect((await records.getRecording('r1'))?.status).toBe('stopped');
+  });
+
+  it('refuses to retry a job that has not failed', async () => {
+    const job = await jobs.enqueue({ kind: 'k' }, 1);
+    expect(await run(`jobs retry ${job.id}`)).toBe(1);
+  });
+
+  it('lists recordings with their status and track count', async () => {
+    await rec('r1');
+    await run('recording list');
+    expect(out.join('\n')).toMatch(/r1\s+stopped\s+2023-11-14 \d\d:\d\d\s+0 track\(s\)/);
+  });
+
+  it('reprocess clears summaries only, by default, and queues one job', async () => {
+    await rec('r1', 'failed');
+    await records.putTrack({
+      id: 't',
+      recordingId: 'r1',
+      speakerId: 'a',
+      speakerName: 'A',
+      filePath: '/a.ogg',
+      startOffsetMs: 0,
+      private: false,
+      transcribedAt: 5,
+    });
+    await records.putSummary({
+      recordingId: 'r1',
+      kind: 'session',
+      subject: '',
+      visibility: 'members',
+      text: 'old',
+      modelCalls: 1,
+      createdAt: 1,
+    });
+    expect(await run('recording reprocess r1')).toBe(0);
+    expect(await records.getSummary('r1', 'session', '')).toBeUndefined();
+    expect((await records.listTracks('r1'))[0]?.transcribedAt).toBe(5); // transcript kept
+    expect(await jobs.list(['queued'])).toHaveLength(1);
+    expect((await records.getRecording('r1'))?.status).toBe('stopped');
+  });
+
+  it('reprocess --retranscribe also forgets the transcripts', async () => {
+    await rec('r1');
+    await records.putTrack({
+      id: 't',
+      recordingId: 'r1',
+      speakerId: 'a',
+      speakerName: 'A',
+      filePath: '/a.ogg',
+      startOffsetMs: 0,
+      private: false,
+      transcribedAt: 5,
+    });
+    await run('recording reprocess r1 --retranscribe');
+    expect((await records.listTracks('r1'))[0]?.transcribedAt).toBeNull();
+  });
+
+  it('will not reprocess a recording that is still being recorded, or one that does not exist', async () => {
+    await rec('live', 'recording');
+    expect(await run('recording reprocess live')).toBe(1);
+    expect(await run('recording reprocess ghost')).toBe(1);
+    expect(await jobs.list()).toHaveLength(0);
+  });
+
+  it('does not queue a second job when reprocess is run twice', async () => {
+    await rec('r1');
+    await run('recording reprocess r1');
+    await run('recording reprocess r1');
+    expect(await jobs.list()).toHaveLength(1);
   });
 });

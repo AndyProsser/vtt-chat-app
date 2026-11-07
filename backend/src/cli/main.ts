@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 import { Valkey } from 'iovalkey';
 
+import { PostgresJobQueue, PostgresRecordsStore } from '@vtt-chat-app/ai';
+
 import { AccountService } from '../lib/auth/accountService.js';
 import { loadConfig } from '../lib/config.js';
 import { migrate } from '../lib/store/migrate.js';
@@ -70,6 +72,8 @@ async function main(): Promise<number> {
     return await runAdmin(process.argv.slice(2), {
       store,
       accounts: new AccountService({ store }),
+      jobs: new PostgresJobQueue(pool),
+      records: new PostgresRecordsStore(pool),
       probes,
       out: (line) => console.log(line),
       err: (line) => console.error(line),

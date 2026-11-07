@@ -18,14 +18,16 @@ Node.js + Express + TypeScript API and WebSocket layer. The only server-side app
 
 System operations only — gameplay stays in the app (CLAUDE.md §7). It talks to the database directly, so it needs `DATABASE_URL` and no sign-in: whoever can run it already controls the server. In Compose: `infra/compose/vtt-admin <command>`; natively: `node backend/dist/cli/main.js <command>`.
 
-| Command                                        | What it does                                                                                     |
-| ---------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| `status`                                       | Database, Valkey and LiveKit health; exits 1 if anything is down                                 |
-| `settings show` / `keys` / `set <key> <value>` | Campaign creation, offline limit, invite expiry, consent version, and the **AI backend** (below) |
-| `user list`                                    | All accounts                                                                                     |
-| `user admin <email> grant\|revoke`             | Admin role; the last Admin cannot be removed                                                     |
-| `user code <email> [signin\|reset]`            | One-time code to hand over on a side channel (no SMTP needed)                                    |
-| `user revoke-sessions <email>`                 | Sign an account out on every device                                                              |
+| Command                                                        | What it does                                                                                     |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `status`                                                       | Database, Valkey and LiveKit health; exits 1 if anything is down                                 |
+| `settings show` / `keys` / `set <key> <value>`                 | Campaign creation, offline limit, invite expiry, consent version, and the **AI backend** (below) |
+| `user list`                                                    | All accounts                                                                                     |
+| `user admin <email> grant\|revoke`                             | Admin role; the last Admin cannot be removed                                                     |
+| `user code <email> [signin\|reset]`                            | One-time code to hand over on a side channel (no SMTP needed)                                    |
+| `user revoke-sessions <email>`                                 | Sign an account out on every device                                                              |
+| `jobs list [state]` / `jobs retry <id>`                        | Inspect the records-pipeline queue; put a failed job back                                        |
+| `recording list` / `recording reprocess <id> [--retranscribe]` | Redo summaries (and with the flag, transcripts) from the kept audio                              |
 
 **AI backend settings** (`ai.*`, stored in `instance_settings.ai`): each of transcription and the LLM is `local` or `remote` (an OpenAI-compatible server URL + model), plus `ai.fallback.enabled / after-seconds / retry-seconds`. API keys are **not** stored — they come from `WHISPER_API_KEY` / `LLM_API_KEY` in the environment. `ai/`'s `buildJobProviders` turns these settings into the providers for one job.
 

@@ -11,6 +11,9 @@
   "references": [
     {
       "path": "../shared"
+    },
+    {
+      "path": "../ai"
     }
   ],
   "exclude": ["src/**/*.test.ts"]
