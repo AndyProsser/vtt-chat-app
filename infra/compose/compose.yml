@@ -41,6 +41,10 @@ services:
       LIVEKIT_URL: wss://${SITE_ADDRESS:?run ./setup.sh first}/livekit
       LIVEKIT_API_KEY: ${LIVEKIT_API_KEY}
       LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET}
+      # Where `vtt-admin status` checks LiveKit from inside this container (the public URL above
+      # points at Caddy, which a container cannot always reach through its own address).
+      LIVEKIT_HEALTH_URL: http://host.docker.internal:7880
+    extra_hosts: ['host.docker.internal:host-gateway']
     ports: ['127.0.0.1:${BACKEND_PORT:-3000}:3000'] # loopback only: health checks and local probes
 
   # Host networking is deliberate: a NATed UDP range of thousands of ports is slow to start and

@@ -24,6 +24,10 @@ curl -k https://vtt.example.com/api/health
 
 **Records profile** (`docker compose --profile records up -d`): adds `egress` (LiveKit Egress, host-networked, ~3.8 GB image, files in the `recordings` volume) and a one-shot `recordings-init`. Not here yet: Whisper and Ollama containers and the `ai/` worker (Stage 5).
 
+## Admin
+
+`./vtt-admin status` (database, Valkey, LiveKit), `./vtt-admin settings …`, `./vtt-admin user …` — see [backend/README.md](../../backend/README.md#admin-cli-vtt-admin). The first account to register is the Admin.
+
 ## Ports to open
 
 `80/tcp`, `443/tcp+udp`, `7881/tcp` (ICE-over-TCP fallback), and the UDP range in `livekit.yaml` (default `50000-50200/udp`). Behind NAT, run `./setup.sh <site> <public-ip>` so LiveKit advertises the public address.

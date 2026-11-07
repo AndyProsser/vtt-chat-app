@@ -14,6 +14,21 @@ Node.js + Express + TypeScript API and WebSocket layer. The only server-side app
 
 - `lib/recording/` — `RecordingState` (the server-owned flag + id; start/pause/resume/stop with validated transitions) and `AckStore` (who has heard the start cue, with an expiry; in-memory, Valkey later). The DM controls it over `POST /api/campaigns/:id/recording`; the hub announces changes and tells joiners the current state. See [the consent loop](../docs/architecture/RECORDING-AND-SUMMARIES.md#the-consent-loop-as-built-2026-11-05).
 
+## Admin CLI (`vtt-admin`)
+
+System operations only — gameplay stays in the app (CLAUDE.md §7). It talks to the database directly, so it needs `DATABASE_URL` and no sign-in: whoever can run it already controls the server. In Compose: `infra/compose/vtt-admin <command>`; natively: `node backend/dist/cli/main.js <command>`.
+
+| Command                                        | What it does                                                                                     |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `status`                                       | Database, Valkey and LiveKit health; exits 1 if anything is down                                 |
+| `settings show` / `keys` / `set <key> <value>` | Campaign creation, offline limit, invite expiry, consent version, and the **AI backend** (below) |
+| `user list`                                    | All accounts                                                                                     |
+| `user admin <email> grant\|revoke`             | Admin role; the last Admin cannot be removed                                                     |
+| `user code <email> [signin\|reset]`            | One-time code to hand over on a side channel (no SMTP needed)                                    |
+| `user revoke-sessions <email>`                 | Sign an account out on every device                                                              |
+
+**AI backend settings** (`ai.*`, stored in `instance_settings.ai`): each of transcription and the LLM is `local` or `remote` (an OpenAI-compatible server URL + model), plus `ai.fallback.enabled / after-seconds / retry-seconds`. API keys are **not** stored — they come from `WHISPER_API_KEY` / `LLM_API_KEY` in the environment. `ai/`'s `buildJobProviders` turns these settings into the providers for one job.
+
 Still to build ([ROADMAP Stage 3](../ROADMAP.md#stage-3--server-core)): the realtime and WebSocket suites still run on `MemoryStore` only, per-recording cue acknowledgements, OIDC, the email sender (optional SMTP), recording status events, chat persistence, and the Admin CLI.
 
 ## Responsibilities

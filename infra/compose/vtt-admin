@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Runs the Admin CLI inside the backend container:  ./vtt-admin status | settings … | user …
+cd "$(dirname "$0")" || exit 1
+exec docker compose exec backend node backend/dist/cli/main.js "$@"
