@@ -104,7 +104,7 @@ The riskiest unknowns are all "does this actually work on real machines with ope
 
 ## Stage 4 — Tray Client
 
-**Status:** ⚪ Not Started
+**Status:** 🟡 In Progress — the Rust core is wired and verified: tray icon with live / muted / recording / paused / disconnected states, mic gate (player mute + consent gate), signed-in session over `rust-sync`, the consent flow (verified live against a real backend). **Not built:** panels (`panels-ui` is still a placeholder), sign-in UI, channel switcher, autostart, auto-update, the 4-hour soak. See [docs/BUILD-STATUS.md](docs/BUILD-STATUS.md)
 **Depends on:** Stage 2 (audio engine), Stage 3 (server to connect to)
 
 **Deliverables:**
