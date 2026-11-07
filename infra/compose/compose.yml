@@ -31,6 +31,7 @@ services:
     build:
       context: ../..
       dockerfile: infra/compose/backend.Dockerfile
+      target: backend
     restart: unless-stopped
     depends_on:
       postgres: { condition: service_healthy }
@@ -90,6 +91,82 @@ services:
       recordings-init: { condition: service_completed_successfully }
       livekit: { condition: service_started }
 
+  # --- Local AI: always configured, the default and the fallback for a remote backend ---
+  # Both speak the OpenAI-compatible API. Whisper runs on CPU here; for a GPU use a CUDA image
+  # (see infra/records-smoke/whisper-cuda.Dockerfile) and the compose.gpu.yml override.
+  models-init:
+    profiles: [records]
+    image: curlimages/curl:latest
+    user: root
+    # Fetches the Whisper model once into a volume. WHISPER_MODEL_FILE is a ggml file name from
+    # huggingface.co/ggerganov/whisper.cpp (small, quantised: ~190 MB, the measured CPU default).
+    entrypoint: ['sh', '-c', 'f=/models/${WHISPER_MODEL_FILE:-ggml-small-q5_1.bin}; [ -s "$$f" ] || curl -fL -o "$$f" https://huggingface.co/ggerganov/whisper.cpp/resolve/main/${WHISPER_MODEL_FILE:-ggml-small-q5_1.bin}']
+    volumes: [whisper-models:/models]
+
+  whisper:
+    profiles: [records]
+    image: ghcr.io/ggml-org/whisper.cpp:main
+    restart: unless-stopped
+    entrypoint: ['/app/build/bin/whisper-server']
+    command:
+      - -m
+      - /models/${WHISPER_MODEL_FILE:-ggml-small-q5_1.bin}
+      - --host
+      - 0.0.0.0
+      - --port
+      - '8080'
+      - --inference-path
+      - /v1/audio/transcriptions
+      - -l
+      - en
+    volumes: [whisper-models:/models:ro]
+    depends_on:
+      models-init: { condition: service_completed_successfully }
+
+  ollama:
+    profiles: [records]
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    volumes: [ollama-data:/root/.ollama]
+    healthcheck:
+      test: ['CMD', 'ollama', 'list']
+      interval: 10s
+      retries: 10
+
+  # One-shot: pulls the summary model into the volume (first run downloads ~2 GB).
+  ollama-pull:
+    profiles: [records]
+    image: ollama/ollama:latest
+    entrypoint: ['sh', '-c', 'ollama pull ${OLLAMA_MODEL:-llama3.2:3b}']
+    environment:
+      OLLAMA_HOST: ollama:11434
+    depends_on:
+      ollama: { condition: service_healthy }
+
+  # Claims process-recording jobs, cuts tracks into speech windows (ffmpeg) and calls Whisper/the LLM
+  # as the operator's AI settings say (vtt-admin settings), falling back to the local services above.
+  worker:
+    profiles: [records]
+    build:
+      context: ../..
+      dockerfile: infra/compose/backend.Dockerfile
+      target: worker
+    restart: unless-stopped
+    depends_on:
+      postgres: { condition: service_healthy }
+      whisper: { condition: service_started }
+      ollama-pull: { condition: service_completed_successfully }
+      recordings-init: { condition: service_completed_successfully }
+    environment:
+      DATABASE_URL: postgres://vtt:${POSTGRES_PASSWORD}@postgres:5432/vtt
+      WHISPER_LOCAL_URL: http://whisper:8080
+      OLLAMA_URL: http://ollama:11434
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.2:3b}
+      WHISPER_API_KEY: ${WHISPER_API_KEY:-}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+    volumes:
+      - recordings:/out:ro
+
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped
@@ -106,6 +183,8 @@ services:
 
 volumes:
   recordings:
+  whisper-models:
+  ollama-data:
   postgres-data:
   valkey-data:
   caddy-data:

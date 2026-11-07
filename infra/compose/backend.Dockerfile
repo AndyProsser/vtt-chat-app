@@ -1,38 +1,50 @@
-# Backend image. Build context is the repository root (see compose.yml).
-#   docker build -f infra/compose/backend.Dockerfile -t vtt-backend .
+# Backend and records-worker images. Build context is the repository root (see compose.yml).
+#   docker build -f infra/compose/backend.Dockerfile --target backend -t vtt-backend .
+#   docker build -f infra/compose/backend.Dockerfile --target worker  -t vtt-worker  .
 #
-# Three stages so the runtime image carries only production dependencies and compiled output.
-# Every workspace's package.json is copied because `npm ci` validates the lockfile against all of
-# them, even when installing only -w backend.
+# Stages: manifests → build (compile) / deps (production node_modules) → app (everything the two
+# images share) → backend | worker. Every workspace's package.json is copied because `npm ci`
+# validates the lockfile against all of them, even when installing only some.
 
 FROM node:26-alpine AS manifests
 WORKDIR /app
 COPY package.json package-lock.json tsconfig.base.json ./
 COPY shared/package.json shared/
 COPY backend/package.json backend/
-COPY ddb/package.json ddb/
 COPY ai/package.json ai/
+COPY ddb/package.json ddb/
 COPY status/package.json status/
 COPY tauri-client/panels-ui/package.json tauri-client/panels-ui/
 
 FROM manifests AS build
-RUN npm ci -w backend -w shared
+RUN npm ci -w backend -w ai -w shared
 COPY shared shared
+COPY ai ai
 COPY backend backend
-RUN npm run build -w shared -w backend
+RUN npm run build -w shared -w ai -w backend
 
 FROM manifests AS deps
-RUN npm ci --omit=dev -w backend -w shared && npm cache clean --force
+RUN npm ci --omit=dev -w backend -w ai -w shared && npm cache clean --force
 
-FROM node:26-alpine AS runtime
+FROM node:26-alpine AS app
 ENV NODE_ENV=production
 WORKDIR /app
 COPY --from=deps /app/node_modules node_modules
 COPY --from=build /app/shared/package.json shared/package.json
 COPY --from=build /app/shared/dist shared/dist
+COPY --from=build /app/ai/package.json ai/package.json
+COPY --from=build /app/ai/dist ai/dist
 COPY --from=build /app/backend/package.json backend/package.json
 COPY --from=build /app/backend/dist backend/dist
 COPY backend/migrations backend/migrations
+
+FROM app AS worker
+# ffmpeg/ffprobe cut each track into speech windows; Whisper and the LLM are separate services.
+RUN apk add --no-cache ffmpeg
+USER node
+CMD ["node", "ai/dist/cli/worker.js"]
+
+FROM app AS backend
 USER node
 EXPOSE 3000
 ENV PORT=3000

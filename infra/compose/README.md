@@ -22,7 +22,13 @@ curl -k https://vtt.example.com/api/health
 | `valkey`   | `valkey/valkey:8-alpine`        | Replay buffer; also LiveKit's Redis. Published on loopback only (`VALKEY_HOST_PORT`, default 6379) because LiveKit is host-networked |
 | `livekit`  | `livekit/livekit-server`        | **`network_mode: host`** on purpose: a NATed UDP port range is slow to start and advertises wrong ICE addresses                      |
 
-**Records profile** (`docker compose --profile records up -d`): adds `egress` (LiveKit Egress, host-networked, ~3.8 GB image, files in the `recordings` volume) and a one-shot `recordings-init`. Not here yet: Whisper and Ollama containers and the `ai/` worker (Stage 5).
+**Records profile** (`docker compose --profile records up -d`): adds
+
+- `egress` — LiveKit Egress, host-networked (~3.8 GB image); per-speaker files land in the `recordings` volume;
+- `whisper` (whisper.cpp server, OpenAI-compatible, CPU, model fetched once by `models-init`; `WHISPER_MODEL_FILE` picks it, default `ggml-small-q5_1.bin`) and `ollama` (model pulled by `ollama-pull`; `OLLAMA_MODEL`, default `llama3.2:3b`) — the **local AI that is always configured** and is the fallback for a remote backend;
+- `worker` — claims `process-recording` jobs, cuts tracks into speech windows, calls Whisper and the LLM as the operator's AI settings say.
+
+First start downloads ~190 MB (Whisper) and ~2 GB (the LLM). **Not yet linked:** nothing creates the `recordings`/`recording_tracks` rows when Egress finishes; today a recording is registered by hand (see Verified) and processed with `./vtt-admin recording reprocess <id>`.
 
 ## Admin
 
@@ -34,4 +40,4 @@ curl -k https://vtt.example.com/api/health
 
 ## Verified
 
-2026-11-07, dev PC (Docker 29): stack healthy; migrations applied; register → login → campaign → invite → join over the loopback port; Caddy served `/api/health` and `/livekit/` over its internal TLS; two `rust-livekit` clients joined one room on the containerised LiveKit and saw each other. **Not yet verified:** audio actually heard, the SDK's `wss://` signalling through Caddy, a public-domain Let's Encrypt certificate, and a fresh-VM install by someone other than Andy (the Stage 3 done-when).
+2026-11-07, dev PC (Docker 29): stack healthy; migrations applied; register → login → campaign → invite → join over the loopback port; Caddy served `/api/health` and `/livekit/` over its internal TLS; two `rust-livekit` clients joined one room on the containerised LiveKit and saw each other. **Records (2026-11-07):** LiveKit room → Egress per-speaker files → `vtt-admin recording reprocess` → the `worker` container → Whisper and Ollama containers → transcript segments (correct offsets, silence skipped) and the two summaries (`members` and `dm` visibility) in Postgres, `processed`. **Not yet verified:** audio actually heard, the SDK's `wss://` signalling through Caddy, a public-domain Let's Encrypt certificate, and a fresh-VM install by someone other than Andy (the Stage 3 done-when).
