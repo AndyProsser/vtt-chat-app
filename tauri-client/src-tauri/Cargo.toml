@@ -19,5 +19,6 @@ tauri-build = "2"
 rust-livekit = { path = "../rust-livekit" }
 rust-sync = { path = "../rust-sync" }
 serde = { version = "1", features = ["derive"] }
-tauri = "2"
+tauri = { version = "2", features = ["tray-icon"] }
+tokio = { version = "1", features = ["rt", "sync", "macros", "time"] }
 tauri-plugin-global-shortcut = "2"

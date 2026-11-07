@@ -2,7 +2,9 @@ use std::sync::Arc;
 
 use rust_livekit::{ConnectionState, LiveKitClient, SharedClient};
 use serde::Serialize;
-use tauri::{AppHandle, Emitter, State};
+use tauri::{AppHandle, Emitter, Manager, State};
+
+use crate::mic_gate::MicGate;
 
 #[derive(Debug, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -57,15 +59,25 @@ pub async fn livekit_connect(
         .map_err(|err| err.to_string())?;
 
     *state.lock().unwrap() = Some(client);
+    // A new room starts with the player's current mute and the consent gate applied, and the
+    // server's roster learns they are in voice.
+    let effective = app.state::<MicGate>().effective();
+    crate::hotkeys::push_mute_to_client(&app, effective);
+    crate::session::announce_voice_state(&app, Some(true));
+    crate::session::refresh_tray(&app);
     Ok(())
 }
 
 #[tauri::command]
-pub async fn livekit_disconnect(state: State<'_, SharedClient>) -> Result<(), String> {
+pub async fn livekit_disconnect(
+    app: AppHandle,
+    state: State<'_, SharedClient>,
+) -> Result<(), String> {
     let client = state.lock().unwrap().take();
     if let Some(client) = client {
         client.disconnect().await.map_err(|err| err.to_string())?;
     }
+    crate::session::announce_voice_state(&app, Some(false));
     Ok(())
 }
 

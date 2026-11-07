@@ -17,9 +17,6 @@
 //! - if the cue can't be played (no speakers), the gate still opens so the player isn't locked out
 //!   of voice, but no acknowledgement is sent, so the DM can see that they haven't heard it.
 
-// Wired into the tray shell in ROADMAP Stage 4; until then only the tests call it.
-#![allow(dead_code)]
-
 use std::collections::BTreeMap;
 use std::time::{Duration, SystemTime};
 

@@ -4,6 +4,7 @@ use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
 
 use crate::consts::{MICROPHONE_STATE_EVENT, PANEL_TOGGLE_EVENT};
+use crate::mic_gate::MicGate;
 
 /// The three bindings from the Stage 2 spec §1, decoupled from *how* the key was delivered.
 ///
@@ -51,15 +52,28 @@ pub fn mute_state_for(action: HotkeyAction, currently_muted: bool) -> Option<boo
 #[derive(Debug, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 struct MicrophoneStatePayload {
+    /// The player's own mute choice.
     muted: bool,
+    /// The consent gate is holding the mic closed regardless (a start cue is playing).
+    gated: bool,
 }
 
-/// Applies a mute state directly and emits `livekit:microphone`. The one place that touches the
-/// microphone gate — both the hotkey path (`dispatch`, below) and the UI mute button
-/// (`commands::set_microphone_muted`) call this, so a click and a keypress can't drift: without
-/// this, the emit is exactly the step that would get forgotten in one of the two paths, leaving
-/// a panel showing stale mic state.
+/// Records the player's mute choice, applies it to the microphone through the consent gate, and
+/// tells everyone who needs to know: the panels (`livekit:microphone`), the server (roster) and
+/// the tray. The one place that changes the player's mute — the hotkey path (`dispatch`, below)
+/// and the UI mute button (`commands::set_microphone_muted`) both call it, so a click and a
+/// keypress can't drift.
 pub fn apply_microphone_mute(app: &AppHandle, muted: bool) {
+    let gate = app.state::<MicGate>();
+    let effective = gate.set_user_muted(muted);
+    push_mute_to_client(app, effective);
+    crate::session::announce_voice_state(app, None);
+    crate::session::refresh_tray(app);
+}
+
+/// Sends the *effective* mute (player's choice OR consent gate) to the LiveKit client and emits
+/// the state the panels render. A no-op on the client when no room is joined.
+pub fn push_mute_to_client(app: &AppHandle, effective_muted: bool) {
     let state = app.state::<SharedClient>();
     let guard = match state.lock() {
         Ok(guard) => guard,
@@ -68,12 +82,17 @@ pub fn apply_microphone_mute(app: &AppHandle, muted: bool) {
             poisoned.into_inner()
         }
     };
-    let Some(client) = guard.as_ref() else {
-        return;
-    };
-
-    client.set_microphone_muted(muted);
-    let _ = app.emit(MICROPHONE_STATE_EVENT, MicrophoneStatePayload { muted });
+    if let Some(client) = guard.as_ref() {
+        client.set_microphone_muted(effective_muted);
+    }
+    let gate = app.state::<MicGate>();
+    let _ = app.emit(
+        MICROPHONE_STATE_EVENT,
+        MicrophoneStatePayload {
+            muted: gate.user_muted(),
+            gated: gate.gate_held(),
+        },
+    );
 }
 
 /// Applies an action. A no-op for microphone actions when not connected — hotkeys are live
@@ -93,10 +112,12 @@ pub fn dispatch(app: &AppHandle, action: HotkeyAction) {
                 poisoned.into_inner()
             }
         };
-        let Some(client) = guard.as_ref() else {
+        if guard.is_none() {
             return;
-        };
-        client.is_microphone_muted()
+        }
+        // The player's own choice, not the effective state: while the consent gate holds the mic
+        // closed, "toggle" must still flip what the *player* asked for.
+        app.state::<MicGate>().user_muted()
     };
 
     let Some(muted) = mute_state_for(action, currently_muted) else {
