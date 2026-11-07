@@ -122,7 +122,7 @@ The riskiest unknowns are all "does this actually work on real machines with ope
 
 ## Stage 5 — Records & AI Summaries (Core)
 
-**Status:** ⚪ Not Started
+**Status:** 🟡 In Progress — the processing half is built and verified live (Egress files → durable job queue → worker → Whisper/LLM, local or remote with fallback → transcripts and summaries in Postgres; Admin CLI `jobs` / `recording`). **Not built:** the link from a finished Egress recording to the database rows, the records API and history panel, search, and the cloud-adapter extras. See [docs/BUILD-STATUS.md](docs/BUILD-STATUS.md)
 **Depends on:** Stage 3, Stage 4 (Stage 2 Part B already proved the pipeline shape)
 
 **Deliverables:**
