@@ -187,6 +187,26 @@ export class Hub {
     );
   }
 
+  /** Loot changed on the table: everyone sees drops, claims (with who) and removals as they happen. */
+  announceLoot(
+    event: 'dropped' | 'claimed' | 'removed',
+    item: {
+      id: string;
+      campaignId: string;
+      name: string;
+      quantity: number;
+      claimedBy: string | null;
+    },
+  ): void {
+    this.broadcast(item.campaignId, `loot.${event}`, {
+      campaignId: item.campaignId,
+      itemId: item.id,
+      name: item.name,
+      quantity: item.quantity,
+      ...(event === 'claimed' ? { claimedBy: item.claimedBy } : {}),
+    });
+  }
+
   /** A handout was hidden or deleted: every client drops it (an unknown id is ignored). */
   announceHandoutRemoved(campaignId: string, handoutId: string): void {
     this.broadcast(campaignId, 'handout.removed', { campaignId, handoutId });

@@ -1,6 +1,7 @@
 import {
   canSeeHandout,
   type Handout,
+  type LootItem,
   type MediaFile,
   type TableStore,
   type Viewer,
@@ -11,6 +12,7 @@ const copy = <T>(v: T): T => structuredClone(v);
 export class MemoryTableStore implements TableStore {
   readonly media = new Map<string, MediaFile>();
   readonly handouts = new Map<string, Handout>();
+  readonly loot = new Map<string, LootItem>();
 
   putMedia = async (f: MediaFile) => void this.media.set(f.id, copy(f));
   getMedia = async (id: string) => {
@@ -38,4 +40,24 @@ export class MemoryTableStore implements TableStore {
       .sort((a, b) => a.createdAt - b.createdAt)
       .map(copy);
   deleteHandout = async (id: string) => void this.handouts.delete(id);
+
+  putLoot = async (item: LootItem) => void this.loot.set(item.id, copy(item));
+  getLoot = async (id: string) => {
+    const item = this.loot.get(id);
+    return item ? copy(item) : undefined;
+  };
+  listLoot = async (campaignId: string) =>
+    [...this.loot.values()]
+      .filter((i) => i.campaignId === campaignId)
+      .sort((a, b) => a.droppedAt - b.droppedAt)
+      .map(copy);
+  // No await between the check and the write, so this is atomic on the single JS thread.
+  claimLoot = async (id: string, userId: string, at: number) => {
+    const item = this.loot.get(id);
+    if (!item || item.claimedBy !== null) return undefined;
+    item.claimedBy = userId;
+    item.claimedAt = at;
+    return copy(item);
+  };
+  deleteLoot = async (id: string) => void this.loot.delete(id);
 }

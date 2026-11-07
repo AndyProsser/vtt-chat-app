@@ -10,9 +10,11 @@ import { NoMailTransport, type MagicLinkSender } from './http/delivery.js';
 import { errorHandler } from './http/middleware.js';
 import { RateLimiter } from './http/rateLimit.js';
 import { handoutRoutes } from './http/handoutRoutes.js';
+import { lootRoutes } from './http/lootRoutes.js';
 import { recordsRoutes } from './http/recordsRoutes.js';
 import type { MediaStorage } from './media/mediaStorage.js';
 import { HandoutService } from './table/handoutService.js';
+import { LootService } from './table/lootService.js';
 import type { TableStore } from './table/tableStore.js';
 import { RecordingState } from './recording/recordingState.js';
 import type { RecordingChange } from './recording/recordingState.js';
@@ -35,6 +37,16 @@ export interface AppDeps {
       dmIds: string[],
     ): void;
     announceHandoutRemoved?(campaignId: string, handoutId: string): void;
+    announceLoot?(
+      event: 'dropped' | 'claimed' | 'removed',
+      item: {
+        id: string;
+        campaignId: string;
+        name: string;
+        quantity: number;
+        claimedBy: string | null;
+      },
+    ): void;
   };
   /** Shared with the realtime hub so REST changes and snapshots agree. Defaults to a fresh one. */
   recording?: RecordingState;
@@ -141,6 +153,19 @@ export function createApp({
               onRemoved: (campaignId, handoutId) =>
                 realtime.announceHandoutRemoved?.(campaignId, handoutId),
             }
+          : {}),
+      }),
+    );
+  }
+
+  if (table) {
+    app.use(
+      '/api/campaigns/:campaignId/loot',
+      lootRoutes({
+        accounts,
+        loot: new LootService({ store, table }),
+        ...(realtime?.announceLoot
+          ? { onChange: (event, item) => realtime.announceLoot?.(event, item) }
           : {}),
       }),
     );

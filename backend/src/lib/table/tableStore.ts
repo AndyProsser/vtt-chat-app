@@ -37,6 +37,19 @@ export interface Viewer {
   isDm: boolean;
 }
 
+export interface LootItem {
+  id: string;
+  campaignId: string;
+  name: string;
+  description: string;
+  quantity: number;
+  droppedBy: string | null;
+  droppedAt: number;
+  /** Set when a player picks it up; `null` while it is still on the table. */
+  claimedBy: string | null;
+  claimedAt: number | null;
+}
+
 /**
  * Storage for the table features (Stage 6): uploaded files' metadata, handouts, and — as they are
  * built — loot and the soundboard. Postgres is the real one; the in-memory one backs tests.
@@ -53,6 +66,17 @@ export interface TableStore {
   /** The handouts this viewer may see: all of them for the DM, otherwise shared-with-everyone or shared-with-them. */
   listHandouts(campaignId: string, viewer: Viewer): Promise<Handout[]>;
   deleteHandout(id: string): Promise<void>;
+
+  putLoot(item: LootItem): Promise<void>;
+  getLoot(id: string): Promise<LootItem | undefined>;
+  /** Every item dropped in a campaign, oldest first, claimed or not. */
+  listLoot(campaignId: string): Promise<LootItem[]>;
+  /**
+   * Gives an unclaimed item to `userId`. **Atomic**: if two players claim at once, exactly one
+   * gets the item and the other gets `undefined`. Returns the item as claimed, or `undefined`.
+   */
+  claimLoot(id: string, userId: string, at: number): Promise<LootItem | undefined>;
+  deleteLoot(id: string): Promise<void>;
 }
 
 /** Whether a viewer may see a handout. The in-memory store uses it; the Postgres store mirrors it in SQL. */

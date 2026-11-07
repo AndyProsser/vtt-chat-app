@@ -55,3 +55,15 @@ nosniff` and `Content-Security-Policy: default-src 'none'; sandbox`.
   `handout.removed` goes to everyone when one is hidden or deleted. A reconnecting client re-reads
   `GET /api/campaigns/:id/handouts`.
 - **Not built:** sweeping media files when a whole campaign is deleted; thumbnails; image dimension limits.
+
+## Loot drops with pickers (built)
+
+Defaults taken (not asked): an item is claimed **whole** by one player (a stack has a quantity but is not
+split); the DM cannot claim; the DM can remove an item at any time, claimed or not.
+
+- The DM **drops** an item (name, description, quantity); every member sees it at once (`loot.dropped`).
+- A player **claims** it. The claim is one conditional `UPDATE ... WHERE claimed_by IS NULL`, so of any
+  number of simultaneous claims exactly one wins and the rest get `409`; who and when are kept
+  (`loot.claimed` names the winner). Verified with concurrent requests against real Postgres.
+- `loot_items` (migration 0008). Not built: splitting a stack, an audit trail of removals, or loot
+  visible to only some players.

@@ -26,6 +26,7 @@ export * from './recording/capture.js';
 export * from './recording/liveKitRecorder.js';
 export * from './recording/recordingState.js';
 export * from './table/handoutService.js';
+export * from './table/lootService.js';
 export * from './table/memoryTableStore.js';
 export * from './table/postgresTableStore.js';
 export * from './table/tableStore.js';

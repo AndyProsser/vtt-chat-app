@@ -5,6 +5,7 @@ import type {
   Handout,
   HandoutKind,
   HandoutVisibility,
+  LootItem,
   MediaFile,
   TableStore,
   Viewer,
@@ -37,6 +38,18 @@ const toHandout = (r: Row): Handout => ({
   recipients: (r.recipients as string[] | null) ?? [],
   createdBy: (r.created_by as string | null) ?? null,
   createdAt: r.created_at as number,
+});
+
+const toLoot = (r: Row): LootItem => ({
+  id: r.id as string,
+  campaignId: r.campaign_id as string,
+  name: r.name as string,
+  description: r.description as string,
+  quantity: r.quantity as number,
+  droppedBy: (r.dropped_by as string | null) ?? null,
+  droppedAt: r.dropped_at as number,
+  claimedBy: (r.claimed_by as string | null) ?? null,
+  claimedAt: (r.claimed_at as number | null) ?? null,
 });
 
 const HANDOUT_SELECT = `
@@ -143,5 +156,61 @@ export class PostgresTableStore implements TableStore {
 
   async deleteHandout(id: string): Promise<void> {
     await this.pool.query('DELETE FROM handouts WHERE id = $1', [id]);
+  }
+
+  async putLoot(i: LootItem): Promise<void> {
+    await this.pool.query(
+      `INSERT INTO loot_items (id, campaign_id, name, description, quantity, dropped_by, dropped_at, claimed_by, claimed_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+       ON CONFLICT (id) DO UPDATE SET name = $3, description = $4, quantity = $5`,
+      [
+        i.id,
+        i.campaignId,
+        i.name,
+        i.description,
+        i.quantity,
+        i.droppedBy,
+        i.droppedAt,
+        i.claimedBy,
+        i.claimedAt,
+      ],
+    );
+  }
+
+  async getLoot(id: string): Promise<LootItem | undefined> {
+    try {
+      const { rows } = await this.pool.query<Row>('SELECT * FROM loot_items WHERE id = $1', [id]);
+      return rows[0] ? toLoot(rows[0]) : undefined;
+    } catch (error) {
+      if ((error as { code?: string }).code === BAD_UUID) return undefined;
+      throw error;
+    }
+  }
+
+  async listLoot(campaignId: string): Promise<LootItem[]> {
+    const { rows } = await this.pool.query<Row>(
+      'SELECT * FROM loot_items WHERE campaign_id = $1 ORDER BY dropped_at, id',
+      [campaignId],
+    );
+    return rows.map(toLoot);
+  }
+
+  async claimLoot(id: string, userId: string, at: number): Promise<LootItem | undefined> {
+    // One conditional UPDATE: of any number of simultaneous claims, the database lets exactly one match.
+    try {
+      const { rows } = await this.pool.query<Row>(
+        `UPDATE loot_items SET claimed_by = $2, claimed_at = $3
+          WHERE id = $1 AND claimed_by IS NULL RETURNING *`,
+        [id, userId, at],
+      );
+      return rows[0] ? toLoot(rows[0]) : undefined;
+    } catch (error) {
+      if ((error as { code?: string }).code === BAD_UUID) return undefined;
+      throw error;
+    }
+  }
+
+  async deleteLoot(id: string): Promise<void> {
+    await this.pool.query('DELETE FROM loot_items WHERE id = $1', [id]);
   }
 }
