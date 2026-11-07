@@ -76,8 +76,12 @@ describe('enforcing a split in LiveKit', () => {
     // not hear them. (Moving people one at a time cuts and restores in between; only the end state matters.)
     const cutOff = (listener: string): Set<string> => {
       const cut = new Set<string>();
-      for (const c of callsFor(listener))
-        for (const sid of c.sids) c.subscribe ? cut.delete(sid) : cut.add(sid);
+      for (const c of callsFor(listener)) {
+        for (const sid of c.sids) {
+          if (c.subscribe) cut.delete(sid);
+          else cut.add(sid);
+        }
+      }
       return cut;
     };
     expect(cutOff('alice')).toEqual(new Set(['t-carol']));
