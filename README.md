@@ -68,7 +68,7 @@ Each module has its own `README.md` describing its purpose and current status.
 
 ## Self-Hosting at a Glance
 
-You will need a server you control (VM or host) running Ubuntu, a domain name for TLS, and the ability to open a **UDP port range** for voice. You do not need a Cloudflare account or a cloud LLM. Docker Compose is the recommended install; a native install is available for advanced users. The install script and operator checklist arrive in [Stage 3](ROADMAP.md#stage-3--server-core); the planned topology and port table are in [DEPLOYMENT-AND-TRANSPORT.md](docs/architecture/DEPLOYMENT-AND-TRANSPORT.md).
+You will need a server you control (VM or host) running Ubuntu, a domain name for TLS, and the ability to open a **UDP port range** for voice. You do not need a Cloudflare account or a cloud LLM. Docker Compose is the recommended install; a native install is available for advanced users. Both installs are in [infra/](infra/README.md) (Compose: [infra/compose](infra/compose/README.md); native: [infra/install.sh](infra/install.sh)); the topology and port table are in [DEPLOYMENT-AND-TRANSPORT.md](docs/architecture/DEPLOYMENT-AND-TRANSPORT.md).
 
 ## Recording & Privacy
 
