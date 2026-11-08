@@ -19,7 +19,7 @@ tauri-build = "2"
 rust-livekit = { path = "../rust-livekit" }
 rust-sync = { path = "../rust-sync" }
 serde = { version = "1", features = ["derive"] }
-tauri = { version = "2", features = ["tray-icon"] }
+tauri = { version = "2", features = ["tray-icon", "image-png"] }
 tokio = { version = "1", features = ["rt", "sync", "macros", "time"] }
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 serde_json = "1"

@@ -80,16 +80,20 @@ pub fn open(app: &AppHandle, name: &str) -> Result<(), String> {
         window.set_focus().map_err(|e| e.to_string())?;
         return Ok(());
     }
-    WebviewWindowBuilder::new(
+    let mut builder = WebviewWindowBuilder::new(
         app,
         &label,
         WebviewUrl::App(format!("index.html#{}", panel.name).into()),
     )
-    .title(panel.title)
-    .inner_size(panel.size.0, panel.size.1)
-    .min_inner_size(260.0, 200.0)
-    .build()
-    .map_err(|e| e.to_string())?;
+    .title(panel.title);
+    if let Some(icon) = app.default_window_icon() {
+        builder = builder.icon(icon.clone()).map_err(|e| e.to_string())?;
+    }
+    builder
+        .inner_size(panel.size.0, panel.size.1)
+        .min_inner_size(260.0, 200.0)
+        .build()
+        .map_err(|e| e.to_string())?;
     Ok(())
 }
 
