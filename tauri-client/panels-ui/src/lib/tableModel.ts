@@ -2,13 +2,20 @@ import { CHAT_LIMIT } from '../consts/index.js';
 import type {
   ChatLine,
   Member,
+  PartyView,
   RecordingAction,
   RecordingView,
   SyncEvent,
   TableState,
 } from '../types/index.js';
 
-export const emptyTable: TableState = { members: [], chat: [], recording: null };
+export const emptyParties: PartyView = { parties: [], assignments: {}, split: false };
+export const emptyTable: TableState = {
+  members: [],
+  chat: [],
+  recording: null,
+  parties: emptyParties,
+};
 
 type Obj = Record<string, unknown>;
 const asObj = (v: unknown): Obj => (typeof v === 'object' && v !== null ? (v as Obj) : {});
@@ -95,6 +102,18 @@ export function applyEvent(state: TableState, event: SyncEvent): TableState {
         inVoice: d.inVoice === true,
         muted: d.muted !== false,
       });
+    case 'party.state': {
+      const parties = (Array.isArray(d.parties) ? d.parties : [])
+        .map(asObj)
+        .filter((p) => typeof p.id === 'string')
+        .map((p) => ({ id: String(p.id), name: String(p.name ?? '') }));
+      const assignments: Record<string, string> = {};
+      for (const [user, party] of Object.entries(asObj(d.assignments))) {
+        if (typeof party === 'string') assignments[user] = party;
+      }
+      const next: PartyView = { parties, assignments, split: d.split === true };
+      return { ...state, parties: next };
+    }
     case 'recording.state': {
       const r = asObj(d.recording);
       const next: RecordingView | null =

@@ -1,6 +1,7 @@
 pub mod cue;
 mod error;
 mod reconnect;
+pub mod sound;
 
 pub use error::LiveKitError;
 pub use reconnect::{gap_indicates_resume, Backoff};

@@ -94,7 +94,16 @@ crossfades, hotkeys, and a public broadcast link (players hear it in the app).
   snapshot and every replay, so a late joiner or a reconnect hears the same table.
 - State is in memory; a server restart ends the scene (the DM starts it again). When the last person
   leaves a table its timers stop.
-- **Not built:** the Rust side that fetches, caches and plays clips (Stage 4), and the board/scene editor UI.
+- **Player side (built, Stage 4):** `src-tauri/src/soundboard.rs` turns each frame into actions (a pure,
+  tested `plan`), fetches the take (cached on disk by take id — takes never change), decodes it with
+  symphonia to mono at the output device's rate and mixes it in `rust-livekit/src/sound/`. The
+  effective gain is the play's volume × the take's level × the DM's table volume × the DM's gain for
+  _this_ player. `sound.state` after a (re)connect stops everything and rebuilds from the server's
+  truth; a stop that arrives while a clip is still downloading cancels that play. The output stream is
+  opened only while something plays and released ~3 s after the last sound, so an idle app holds no
+  audio device. The DM panel (boards, scenes, stop all, table volume) is in the tray menu.
+- **Not built:** the board/scene _editor_ UI (the library is edited through the API for now) and
+  uploading clips from the app.
 
 ## Session schedule, RSVP and notifications (built)
 

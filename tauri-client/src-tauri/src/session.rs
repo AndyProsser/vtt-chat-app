@@ -201,6 +201,9 @@ pub async fn start_session(
                             .record(&value, retain);
                         let _ = app.emit(crate::bridge::SYNC_EVENT, value);
                     }
+                    if let rust_sync::ServerEvent::Table { t, data } = server_event {
+                        crate::soundboard::on_table(&app, t, data).await;
+                    }
                 }
                 shell.lock().await.handle(event, SystemTime::now()).await;
             }
@@ -219,6 +222,7 @@ pub async fn start_session(
 /// Ends the live session and returns the tray to "not connected".
 pub async fn end_session(app: AppHandle, state: &SessionState) -> Result<(), String> {
     stop_active(state).await;
+    crate::soundboard::stop_all(&app);
     app.state::<crate::bridge::PanelFeed>().clear();
     app.state::<MicGate>().set_gate(false);
     {

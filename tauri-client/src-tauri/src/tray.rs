@@ -107,13 +107,25 @@ pub fn install(app: &tauri::AppHandle) -> tauri::Result<()> {
     let handouts = MenuItem::with_id(app, "open-handouts", "Handouts", true, None::<&str>)?;
     let loot = MenuItem::with_id(app, "open-loot", "Loot", true, None::<&str>)?;
     let schedule = MenuItem::with_id(app, "open-schedule", "Sessions", true, None::<&str>)?;
+    let soundboard = MenuItem::with_id(app, "open-soundboard", "Soundboard", true, None::<&str>)?;
+    let parties = MenuItem::with_id(app, "open-parties", "Voice groups", true, None::<&str>)?;
     let recording = MenuItem::with_id(app, "open-recording", "Recording", true, None::<&str>)?;
     let account = MenuItem::with_id(app, "open-account", "Account", true, None::<&str>)?;
     let quit = MenuItem::with_id(app, MENU_QUIT, "Quit", true, None::<&str>)?;
     let menu = Menu::with_items(
         app,
         &[
-            &toggle, &roster, &chat, &handouts, &loot, &schedule, &recording, &account, &quit,
+            &toggle,
+            &roster,
+            &chat,
+            &handouts,
+            &loot,
+            &schedule,
+            &soundboard,
+            &parties,
+            &recording,
+            &account,
+            &quit,
         ],
     )?;
     let state = TrayState::Disconnected;

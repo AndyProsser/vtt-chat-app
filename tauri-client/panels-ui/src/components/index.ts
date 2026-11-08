@@ -8,3 +8,5 @@ export * from './RecordingPanel.js';
 export * from './HandoutsPanel.js';
 export * from './LootPanel.js';
 export * from './SchedulePanel.js';
+export * from './SoundboardPanel.js';
+export * from './PartiesPanel.js';

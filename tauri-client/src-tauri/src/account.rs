@@ -590,6 +590,126 @@ mod tests {
         assert!(relay_path("c1/../x", "loot").is_err());
     }
 
+    /// Serves one canned response and returns `(base url, the raw request it received)`.
+    async fn one_shot_server(
+        status: &str,
+        content_type: &str,
+        body: Vec<u8>,
+    ) -> (String, tokio::task::JoinHandle<String>) {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let base = format!("http://{}", listener.local_addr().unwrap());
+        let head = format!(
+            "HTTP/1.1 {status}\r\nContent-Type: {content_type}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+            body.len()
+        );
+        let task = tokio::spawn(async move {
+            let (mut socket, _) = listener.accept().await.unwrap();
+            let mut received = Vec::new();
+            let mut buf = [0u8; 4096];
+            loop {
+                let n = socket.read(&mut buf).await.unwrap();
+                received.extend_from_slice(&buf[..n]);
+                let text = String::from_utf8_lossy(&received).to_string();
+                if let Some(split) = text.find("\r\n\r\n") {
+                    let length = text
+                        .lines()
+                        .find_map(|l| {
+                            l.to_ascii_lowercase()
+                                .strip_prefix("content-length: ")
+                                .map(|v| v.trim().parse::<usize>().unwrap())
+                        })
+                        .unwrap_or(0);
+                    if received.len() >= split + 4 + length {
+                        break;
+                    }
+                }
+                if n == 0 {
+                    break;
+                }
+            }
+            socket.write_all(head.as_bytes()).await.unwrap();
+            socket.write_all(&body).await.unwrap();
+            String::from_utf8_lossy(&received).to_string()
+        });
+        (base, task)
+    }
+
+    #[tokio::test]
+    async fn recording_actions_post_the_action_with_the_bearer_token() {
+        let (base, request) = one_shot_server(
+            "200 OK",
+            "application/json",
+            br#"{"recordingId":"r"}"#.to_vec(),
+        )
+        .await;
+        AccountClient::new(&base)
+            .recording_action("TOK", "c1", "pause")
+            .await
+            .unwrap();
+        let request = request.await.unwrap();
+        assert!(
+            request.starts_with("POST /api/campaigns/c1/recording "),
+            "{request}"
+        );
+        assert!(request.to_lowercase().contains("authorization: bearer tok"));
+        assert!(request.contains(r#"{"action":"pause"}"#));
+    }
+
+    #[tokio::test]
+    async fn the_relay_forwards_method_path_and_body_and_surfaces_server_errors() {
+        let (base, request) =
+            one_shot_server("200 OK", "application/json", br#"{"loot":[]}"#.to_vec()).await;
+        let out = AccountClient::new(&base)
+            .relay(
+                "TOK",
+                "POST",
+                "/api/campaigns/c1/loot",
+                Some(json!({"name":"Gem"})),
+            )
+            .await
+            .unwrap();
+        assert_eq!(out["loot"], json!([]));
+        let request = request.await.unwrap();
+        assert!(
+            request.starts_with("POST /api/campaigns/c1/loot "),
+            "{request}"
+        );
+        assert!(request.contains(r#"{"name":"Gem"}"#));
+
+        let (base, _) = one_shot_server(
+            "403 Forbidden",
+            "application/json",
+            br#"{"error":"forbidden","message":"only the DM"}"#.to_vec(),
+        )
+        .await;
+        let err = AccountClient::new(&base)
+            .relay("TOK", "DELETE", "/api/campaigns/c1/loot/x", None)
+            .await
+            .unwrap_err();
+        assert_eq!(
+            (err.code.as_str(), err.message.as_str()),
+            ("forbidden", "only the DM")
+        );
+    }
+
+    #[tokio::test]
+    async fn fetch_file_returns_mime_and_bytes_and_a_204_relay_is_null() {
+        let (base, _) = one_shot_server("200 OK", "image/png", vec![1, 2, 3]).await;
+        let (mime, bytes) = AccountClient::new(&base)
+            .fetch_file("TOK", "/api/campaigns/c1/handouts/h/file")
+            .await
+            .unwrap();
+        assert_eq!((mime.as_str(), bytes), ("image/png", vec![1, 2, 3]));
+
+        let (base, _) = one_shot_server("204 No Content", "application/json", Vec::new()).await;
+        let out = AccountClient::new(&base)
+            .relay("TOK", "DELETE", "/api/campaigns/c1/loot/x", None)
+            .await
+            .unwrap();
+        assert!(out.is_null());
+    }
+
     #[test]
     fn status_never_contains_the_token() {
         let saved = Saved {

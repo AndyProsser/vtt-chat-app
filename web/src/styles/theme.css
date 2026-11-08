@@ -8,7 +8,8 @@ body {
   align-items: center;
   justify-content: center;
   padding: 24px 16px;
-  background: radial-gradient(circle at 20% 0%, var(--accent-3), transparent 55%), var(--color-background);
+  background:
+    radial-gradient(circle at 20% 0%, var(--accent-3), transparent 55%), var(--color-background);
 }
 
 .join-card {

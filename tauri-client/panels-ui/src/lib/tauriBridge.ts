@@ -69,6 +69,10 @@ export const panelHydrate = () => invoke<Hydration>('panel_hydrate');
 
 export const chatSend = (text: string, to?: string) => invoke<void>('chat_send', { text, to });
 
+/** A DM soundboard or voice-group command (`sync_command`); the server checks the sender is the DM. */
+export const syncCommand = (t: string, data: Record<string, unknown>) =>
+  invoke<void>('sync_command', { t, data });
+
 export const recordingControl = (action: RecordingAction) =>
   invoke<void>('recording_control', { action });
 

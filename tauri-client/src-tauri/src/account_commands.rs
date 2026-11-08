@@ -260,6 +260,18 @@ pub async fn recording_control(
         .await
 }
 
+impl AccountState {
+    /// The signed-in `(server, token, campaign)`, or an error asking to sign in.
+    pub async fn credentials(&self) -> Result<(String, String, String), AccountError> {
+        credentials(self).await
+    }
+
+    /// This player's id, for frames that name a user.
+    pub async fn user_id(&self) -> Option<String> {
+        self.0.lock().await.saved.user_id.clone()
+    }
+}
+
 /// Reads the signed-in `(server, token, campaign)`, or says to sign in.
 async fn credentials(state: &AccountState) -> Result<(String, String, String), AccountError> {
     let inner = state.0.lock().await;

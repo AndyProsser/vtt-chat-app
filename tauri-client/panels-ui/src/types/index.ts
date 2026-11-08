@@ -52,10 +52,46 @@ export interface RecordingView {
 
 export type RecordingAction = 'start' | 'pause' | 'resume' | 'stop';
 
+export interface Party {
+  id: string;
+  name: string;
+}
+
+/** Voice groups as the server last told us (`party.state`). */
+export interface PartyView {
+  parties: Party[];
+  /** userId → party id; absent means "not in a group". */
+  assignments: Record<string, string>;
+  split: boolean;
+}
+
 export interface TableState {
   members: Member[];
   chat: ChatLine[];
   recording: RecordingView | null;
+  parties: PartyView;
+}
+
+export interface SoundButton {
+  id: string;
+  label: string;
+  soundId: string;
+  mode: 'oneshot' | 'loop';
+  volume: number;
+  note: string;
+}
+export interface SoundBoard {
+  id: string;
+  name: string;
+  buttons: SoundButton[];
+}
+export interface SoundScene {
+  id: string;
+  name: string;
+}
+export interface SoundLibrary {
+  boards: SoundBoard[];
+  scenes: SoundScene[];
 }
 
 export interface Handout {

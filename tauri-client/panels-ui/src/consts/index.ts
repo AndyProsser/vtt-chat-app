@@ -10,5 +10,7 @@ export const PANEL_NAMES = [
   'handouts',
   'loot',
   'schedule',
+  'soundboard',
+  'parties',
 ] as const;
 export type PanelName = (typeof PANEL_NAMES)[number];

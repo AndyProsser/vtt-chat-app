@@ -19,13 +19,23 @@ export const useTableStore = create<TableStore>((set) => ({
       const next = applyEvent(state, event);
       return next === state
         ? state
-        : { members: next.members, chat: next.chat, recording: next.recording };
+        : {
+            members: next.members,
+            chat: next.chat,
+            recording: next.recording,
+            parties: next.parties,
+          };
     }),
   hydrate: ({ snapshot, events }) =>
     set(() => {
       let state: TableState = emptyTable;
       if (snapshot) state = applyEvent(state, snapshot);
       for (const event of events) state = applyEvent(state, event);
-      return { members: state.members, chat: state.chat, recording: state.recording };
+      return {
+        members: state.members,
+        chat: state.chat,
+        recording: state.recording,
+        parties: state.parties,
+      };
     }),
 }));

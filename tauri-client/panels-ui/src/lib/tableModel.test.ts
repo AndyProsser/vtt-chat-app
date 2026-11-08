@@ -80,7 +80,7 @@ describe('tableModel', () => {
 
   it('ignores events it does not know', () => {
     const s = applyEvent(emptyTable, snapshot);
-    expect(applyEvent(s, { t: 'party.state', d: {} })).toBe(s);
+    expect(applyEvent(s, { t: 'something.else', d: {} })).toBe(s);
   });
 });
 
@@ -144,5 +144,23 @@ describe('recording state', () => {
     expect(isDm([...members], 'd')).toBe(true);
     expect(isDm([...members], 'p')).toBe(false);
     expect(isDm([...members], null)).toBe(false);
+  });
+});
+
+describe('party.state', () => {
+  it('replaces the voice groups wholesale and ignores junk', () => {
+    const s = applyEvent(emptyTable, {
+      t: 'party.state',
+      d: {
+        parties: [{ id: 'p1', name: 'North' }, { nope: 1 }],
+        assignments: { u1: 'p1', u2: 5 },
+        split: true,
+      },
+    });
+    expect(s.parties).toEqual({
+      parties: [{ id: 'p1', name: 'North' }],
+      assignments: { u1: 'p1' },
+      split: true,
+    });
   });
 });

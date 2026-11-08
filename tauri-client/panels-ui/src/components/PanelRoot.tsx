@@ -1,6 +1,8 @@
 import { PANEL_NAMES, type PanelName } from '../consts/index.js';
 import { AccountPanel } from './AccountPanel.js';
 import { ChatPanel } from './ChatPanel.js';
+import { PartiesPanel } from './PartiesPanel.js';
+import { SoundboardPanel } from './SoundboardPanel.js';
 import { HandoutsPanel } from './HandoutsPanel.js';
 import { LootPanel } from './LootPanel.js';
 import { SchedulePanel } from './SchedulePanel.js';
@@ -17,6 +19,10 @@ export function PanelRoot() {
   switch (panelFromHash(window.location.hash)) {
     case 'chat':
       return <ChatPanel />;
+    case 'soundboard':
+      return <SoundboardPanel />;
+    case 'parties':
+      return <PartiesPanel />;
     case 'handouts':
       return <HandoutsPanel />;
     case 'loot':

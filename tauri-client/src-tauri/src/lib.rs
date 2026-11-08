@@ -8,6 +8,7 @@ mod mic_gate;
 mod recording;
 mod session;
 mod shell;
+mod soundboard;
 mod tray;
 mod windows;
 
@@ -23,6 +24,7 @@ pub fn run() {
         .manage(session::SessionState::default())
         .manage(account_commands::AccountState::default())
         .manage(bridge::PanelFeed::default())
+        .manage(soundboard::Soundboard::default())
         .manage(std::sync::Mutex::new(session::TrayModel::default()))
         .invoke_handler(tauri::generate_handler![
             commands::livekit_connect,
