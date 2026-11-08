@@ -6,3 +6,13 @@
   --vtt-avatar-radius: 50%;
   --vtt-font-head: 'Cinzel', Georgia, serif;
 }
+
+/* Before a theme is applied (and behind everything): neutral, following the OS, so nothing flashes. */
+html {
+  background: #ececec;
+}
+@media (prefers-color-scheme: dark) {
+  html {
+    background: #141414;
+  }
+}
