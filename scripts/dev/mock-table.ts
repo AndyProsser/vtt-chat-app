@@ -1,6 +1,8 @@
-// Brings the seeded mock players to life so there is activity to look at: they come online, join
-// voice (real LiveKit participants publishing synthetic "speech"), take turns talking, chat, whisper
-// the DM now and then, and report link stats. Stop with Ctrl+C.
+// Brings the seeded mock players to life so there is activity to look at: they come online in every
+// campaign they belong to (so switching campaigns shows a populated table), join voice (real
+// LiveKit participants publishing synthetic "speech"), take turns talking, chat, whisper the DM now
+// and then, and report link stats. A seat that drops (backend restart, network) reconnects by
+// itself. The `dm` account is yours and is never mocked. Stop with Ctrl+C.
 //
 //   npm run dev:mock [-- --no-voice] [-- --quiet]
 //
@@ -16,7 +18,7 @@ import {
   TrackSource,
 } from '@livekit/rtc-node';
 
-import { API, call, loadState, signIn, sleep, type Session } from './lib.ts';
+import { API, call, loadState, signIn, sleep, type Person, type Session } from './lib.ts';
 
 const args = new Set(process.argv.slice(2));
 const VOICE = !args.has('--no-voice');
@@ -60,6 +62,7 @@ const WHISPERS = [
 interface Mock {
   session: Session;
   key: string;
+  campaignId: string;
   ws: WebSocket;
   room?: Room;
   source?: AudioSource;
@@ -152,66 +155,116 @@ async function talk(mock: Mock, campaignId: string): Promise<void> {
   send(mock, 'speaking.set', { campaignId, speaking: false });
 }
 
-async function live(mock: Mock, campaignId: string, dmId: string): Promise<void> {
+async function live(mock: Mock, dmId: string): Promise<void> {
+  const { campaignId } = mock;
   const stats = {
     rtt: rand(15, 70),
     jitter: rand(1, 12),
     loss: Math.random() < 0.2 ? rand(1, 6) : 0,
   };
-  const timers = [
-    setInterval(() => {
-      stats.rtt = Math.max(5, stats.rtt + rand(-8, 8));
-      stats.jitter = Math.max(0.5, stats.jitter + rand(-2, 2));
-      send(mock, 'stats.report', {
-        campaignId,
-        rttMs: stats.rtt,
-        jitterMs: stats.jitter,
-        packetLossPct: stats.loss,
-      });
-    }, 5000),
-  ];
-  send(mock, 'stats.report', {
-    campaignId,
-    rttMs: stats.rtt,
-    jitterMs: stats.jitter,
-    packetLossPct: stats.loss,
-  });
+  const report = () => {
+    stats.rtt = Math.max(5, stats.rtt + rand(-8, 8));
+    stats.jitter = Math.max(0.5, stats.jitter + rand(-2, 2));
+    send(mock, 'stats.report', {
+      campaignId,
+      rttMs: stats.rtt,
+      jitterMs: stats.jitter,
+      packetLossPct: stats.loss,
+    });
+  };
+  report();
+  const timer = setInterval(report, 5000);
   try {
-    for (;;) {
+    while (mock.ws.readyState === WebSocket.OPEN) {
       await sleep(rand(6, 20) * 1000);
+      if (mock.ws.readyState !== WebSocket.OPEN) break;
       const roll = Math.random();
-      if (VOICE && roll < 0.6) await talk(mock, campaignId);
+      if (VOICE && mock.source && roll < 0.6) await talk(mock, campaignId);
       else if (roll < 0.9)
         send(mock, 'chat.message', { campaignId, text: pick(LINES[mock.key] ?? ['…']) });
-      else send(mock, 'chat.message', { campaignId, text: pick(WHISPERS), to: dmId });
+      else if (dmId) send(mock, 'chat.message', { campaignId, text: pick(WHISPERS), to: dmId });
     }
   } finally {
-    for (const t of timers) clearInterval(t);
+    clearInterval(timer);
+  }
+}
+
+interface Seat {
+  person: Person;
+  campaignId: string;
+  name: string;
+  pitch: number;
+}
+
+/** One person at one table, for as long as the script runs: reconnects after any drop. */
+async function sit(seat: Seat, open: Mock[]): Promise<void> {
+  for (;;) {
+    let mock: Mock | undefined;
+    try {
+      const session = await signIn(seat.person);
+      const members = await call('GET', `/api/campaigns/${seat.campaignId}/members`, session.token);
+      const dmId =
+        (members.body.members ?? []).find((m: { role: string; userId: string }) => m.role === 'dm')
+          ?.userId ?? '';
+      const ws = await connectWs(session.token);
+      mock = {
+        session,
+        key: seat.person.key,
+        campaignId: seat.campaignId,
+        ws,
+        talking: false,
+        pitch: seat.pitch,
+      };
+      open.push(mock);
+      ws.send(JSON.stringify({ v: 1, t: 'resume', d: { campaignId: seat.campaignId } }));
+      if (VOICE)
+        await joinVoice(mock, seat.campaignId).catch((e) =>
+          log(`${seat.person.key}: no voice in ${seat.name} (${e.message})`),
+        );
+      log(`${seat.person.key} is at "${seat.name}"${mock.room ? ' (in voice)' : ''}`);
+      await live(mock, dmId);
+      log(`${seat.person.key} lost "${seat.name}"; reconnecting`);
+    } catch (e) {
+      log(`${seat.person.key} cannot sit at "${seat.name}" (${(e as Error).message}); retrying`);
+    } finally {
+      if (mock) {
+        open.splice(open.indexOf(mock), 1);
+        try {
+          await mock.room?.disconnect();
+        } catch {
+          /* already gone */
+        }
+        mock.ws.close();
+      }
+    }
+    await sleep(5000);
   }
 }
 
 async function main(): Promise<void> {
   const state = loadState();
-  if (!state.campaignId) throw new Error('no seeded campaign: run `npm run dev:seed` first');
-  const campaignId = state.campaignId;
-  const dm = await signIn(state.people.find((p) => p.role === 'dm')!);
-  const mocks: Mock[] = [];
+  const open: Mock[] = [];
+  const seats: Seat[] = [];
   for (const [i, person] of state.people.filter((p) => p.role === 'player').entries()) {
     const session = await signIn(person);
-    const ws = await connectWs(session.token);
-    const mock: Mock = { session, key: person.key, ws, talking: false, pitch: 110 + i * 37 };
-    ws.send(JSON.stringify({ v: 1, t: 'resume', d: { campaignId } }));
-    mocks.push(mock);
-    if (VOICE)
-      await joinVoice(mock, campaignId).catch((e) => log(`${person.key}: no voice (${e.message})`));
-    log(`${person.key} is at the table${mock.room ? ' (in voice)' : ''}`);
+    const mine = await call('GET', '/api/campaigns', session.token);
+    for (const c of mine.body.campaigns ?? [])
+      seats.push({
+        person,
+        campaignId: c.campaign.id,
+        name: c.campaign.name,
+        pitch: 110 + i * 37,
+      });
   }
+  if (seats.length === 0)
+    throw new Error('no campaigns for the mock players: run `npm run dev:seed`');
   console.log(
-    `\n${mocks.length} mock players are online${VOICE ? ' and in voice' : ''}. Ctrl+C to send them home.`,
+    `\n${seats.length} seats across ${new Set(seats.map((s) => s.campaignId)).size} campaigns` +
+      `${VOICE ? ' (with voice)' : ''}. Ctrl+C to send everyone home.`,
   );
 
   const stop = async () => {
-    for (const m of mocks) {
+    for (const m of [...open]) {
       try {
         await m.room?.disconnect();
       } catch {
@@ -223,7 +276,7 @@ async function main(): Promise<void> {
   };
   process.on('SIGINT', () => void stop());
   process.on('SIGTERM', () => void stop());
-  await Promise.all(mocks.map((m) => live(m, campaignId, dm.userId)));
+  await Promise.all(seats.map((seat) => sit(seat, open)));
 }
 
 main().catch((error: unknown) => {
