@@ -79,7 +79,11 @@ export interface TableCard {
   kind: 'loot' | 'handout';
   title: string;
   quantity?: number;
+  /** A pile of coin rather than an item (`title` is then the currency). */
+  coin?: boolean;
   claimedBy?: string | null;
+  claimedFor?: ClaimedFor | null;
+  split?: LootSplit | null;
   removed?: boolean;
   after: string | null;
 }
@@ -125,12 +129,21 @@ export interface Handout {
   visibility: 'dm' | 'all' | 'some';
 }
 
+export type ClaimedFor = 'self' | 'party' | 'split';
+export interface LootSplit {
+  shares: { userId: string; amount: number }[];
+  remainder: number;
+}
+
 export interface LootItem {
   id: string;
+  kind: 'item' | 'coin';
   name: string;
   description: string;
   quantity: number;
   claimedBy: string | null;
+  claimedFor: ClaimedFor | null;
+  split: LootSplit | null;
 }
 
 export type RsvpStatus = 'yes' | 'late' | 'no';

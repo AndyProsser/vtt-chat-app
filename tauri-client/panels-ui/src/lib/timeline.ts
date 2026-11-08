@@ -1,4 +1,4 @@
-import type { ChatLine, Member, TableCard, TimelineEntry } from '../types/index.js';
+import type { ChatLine, LootItem, Member, TableCard, TimelineEntry } from '../types/index.js';
 
 /**
  * Chat lines in order with each loot/handout card placed right after the line it followed. A card
@@ -21,8 +21,35 @@ export function timeline(chat: ChatLine[], cards: TableCard[]): TimelineEntry[] 
 /** The one-line text of a card. */
 export function cardLabel(card: TableCard, members: Member[]): string {
   if (card.kind === 'handout') return `Handout: ${card.title}`;
-  const qty = (card.quantity ?? 1) > 1 ? ` ×${card.quantity}` : '';
-  if (!card.claimedBy) return `${card.title}${qty} · available`;
+  const what = card.coin
+    ? `${card.quantity ?? 0} ${card.title}`
+    : `${card.title}${(card.quantity ?? 1) > 1 ? ` ×${card.quantity}` : ''}`;
+  if (!card.claimedBy) return `${what} · available`;
+  if (card.claimedFor === 'split' && card.split) {
+    const { shares, remainder } = card.split;
+    const each = shares[0]?.amount ?? 0;
+    const left = remainder > 0 ? ` (${remainder} left over)` : '';
+    return `${what} · split ${each} each among ${shares.length}${left}`;
+  }
   const taker = members.find((m) => m.userId === card.claimedBy);
-  return `${card.title}${qty} · taken by ${taker?.character?.name ?? taker?.displayName ?? 'someone'}`;
+  const name = taker?.character?.name ?? taker?.displayName ?? 'someone';
+  return `${what} · taken by ${name}${card.claimedFor === 'party' ? ' for the party' : ''}`;
+}
+
+/** The same wording for an item fetched from the server (the Party inventory window). */
+export function itemLabel(item: LootItem, members: Member[]): string {
+  return cardLabel(
+    {
+      id: item.id,
+      kind: 'loot',
+      title: item.name,
+      quantity: item.quantity,
+      ...(item.kind === 'coin' ? { coin: true } : {}),
+      claimedBy: item.claimedBy,
+      claimedFor: item.claimedFor,
+      split: item.split,
+      after: null,
+    },
+    members,
+  );
 }

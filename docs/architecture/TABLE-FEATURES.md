@@ -65,8 +65,26 @@ split); the DM cannot claim; the DM can remove an item at any time, claimed or n
 - A player **claims** it. The claim is one conditional `UPDATE ... WHERE claimed_by IS NULL`, so of any
   number of simultaneous claims exactly one wins and the rest get `409`; who and when are kept
   (`loot.claimed` names the winner). Verified with concurrent requests against real Postgres.
-- `loot_items` (migration 0008). Not built: splitting a stack, an audit trail of removals, or loot
-  visible to only some players.
+- `loot_items` (migration 0008). Not built: an audit trail of removals, or loot visible to only some
+  players.
+
+### Party inventory (decided and built 2026-11-08)
+
+The loot table is the **party inventory**: a shared pool, not a character sheet — players update their
+own sheets; the app only records who took what.
+
+- **Grab for yourself or the party:** `POST …/loot/:id/claim {for: 'self' | 'party'}` (default `self`).
+  Either way the item is marked with who grabbed it; `party` means they took it for the shared stash.
+- **Coin is a kind:** a drop has `kind: 'item' | 'coin'`; for coin `name` is the currency and `quantity`
+  the amount.
+- **Coin split:** `POST …/loot/:id/split {userIds?}`. The default recipients are **every player in the
+  campaign, online or not**; the caller may name a subset (players only — never the DM). Each gets
+  `floor(amount / n)`; what does not divide stays in the pool as `remainder`. The DM or any player may
+  split; it is one conditional `UPDATE`, so a pile is **claimed or split exactly once**
+  (`claimed_for = 'split'`, `split = {shares, remainder}`; migration 0011). Verified on memory and real
+  Postgres, including a simultaneous grab-and-split race.
+- `loot.claimed` carries `kind`, `claimedFor` and `split`, which is what the chat cards and the
+  "taken by …" wording are built from.
 
 ## DM soundboard (built)
 

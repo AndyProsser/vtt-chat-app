@@ -1,6 +1,6 @@
 # Main window — one compact window instead of nine panels
 
-**Status:** design agreed 2026-11-08; **steps 1–4 built** (see the plan's deferred list: Settings Audio tab, real level meter, drag-to-group, recording history); steps 5–6 (party-inventory model, DM voice effect) are not. Supersedes the "one panel per
+**Status:** design agreed 2026-11-08; **steps 1–5 built** (see the plan's deferred list: Settings Audio tab, real level meter, drag-to-group, recording history); step 6 (DM voice effect) is not. Supersedes the "one panel per
 feature" shape of Stage 4 (ROADMAP.md). Items marked **(my call)** were decided by Claude, not Andy.
 
 ## Why

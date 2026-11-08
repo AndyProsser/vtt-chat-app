@@ -251,3 +251,42 @@ describe('loot and handout cards', () => {
     expect(state.cards.at(-1)?.removed).toBe(true);
   });
 });
+
+describe('party inventory cards', () => {
+  it('keeps what a coin pile is, who took an item and for whom, and a split', () => {
+    let state = applyEvent(emptyTable, {
+      t: 'loot.dropped',
+      d: { itemId: 'c1', name: 'gp', quantity: 10, kind: 'coin' },
+    });
+    expect(state.cards[0]).toMatchObject({ coin: true, title: 'gp', quantity: 10 });
+    state = applyEvent(state, {
+      t: 'loot.claimed',
+      d: {
+        itemId: 'c1',
+        name: 'gp',
+        quantity: 10,
+        kind: 'coin',
+        claimedBy: 'u1',
+        claimedFor: 'split',
+        split: { shares: [{ userId: 'u2', amount: 5 }], remainder: 0 },
+      },
+    });
+    expect(state.cards[0]).toMatchObject({
+      claimedBy: 'u1',
+      claimedFor: 'split',
+      split: { shares: [{ userId: 'u2', amount: 5 }], remainder: 0 },
+    });
+    const party = applyEvent(emptyTable, {
+      t: 'loot.claimed',
+      d: {
+        itemId: 'i9',
+        name: 'Rope',
+        quantity: 1,
+        kind: 'item',
+        claimedBy: 'u1',
+        claimedFor: 'party',
+      },
+    });
+    expect(party.cards[0]).toMatchObject({ claimedFor: 'party', claimedBy: 'u1' });
+  });
+});

@@ -401,3 +401,32 @@ body,
   border-style: solid;
   border-color: var(--vtt-glow);
 }
+.vtt-inventory {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.vtt-loot {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--vtt-edge);
+  border-radius: var(--vtt-radius-bubble);
+  background: var(--vtt-bubble);
+}
+.vtt-loot-taken {
+  border-color: var(--vtt-glow);
+}
+.vtt-loot-text {
+  display: flex;
+  flex-direction: column;
+}
+.vtt-split {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border: 1px dashed var(--vtt-gold);
+  border-radius: var(--vtt-radius-control);
+  padding: 8px;
+}

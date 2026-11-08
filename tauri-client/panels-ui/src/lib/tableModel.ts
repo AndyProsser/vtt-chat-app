@@ -6,6 +6,8 @@ import type {
   RecordingAction,
   RecordingView,
   SyncEvent,
+  ClaimedFor,
+  LootSplit,
   TableCard,
   TableState,
 } from '../types/index.js';
@@ -200,28 +202,48 @@ function applyCard(state: TableState, type: string, d: Obj): TableState {
       : state;
   }
   if (type === 'loot.claimed') {
-    const claimedBy = typeof d.claimedBy === 'string' ? d.claimedBy : null;
+    const claim = {
+      claimedBy: typeof d.claimedBy === 'string' ? d.claimedBy : null,
+      claimedFor: asClaimedFor(d.claimedFor),
+      split: asSplit(d.split),
+    };
     if (existing) {
-      return existing.claimedBy === claimedBy
+      return existing.claimedBy === claim.claimedBy
         ? state
-        : { ...state, cards: patchCard(state.cards, id, { claimedBy }) };
+        : { ...state, cards: patchCard(state.cards, id, claim) };
     }
     // The drop was before this window's tail began: show the claim anyway.
-    return { ...state, cards: [...state.cards, newCard(state, id, kind, d, claimedBy)] };
+    return { ...state, cards: [...state.cards, { ...newCard(state, id, kind, d), ...claim }] };
   }
   if (existing) return state;
-  return { ...state, cards: [...state.cards, newCard(state, id, kind, d, null)] };
+  return { ...state, cards: [...state.cards, newCard(state, id, kind, d)] };
 }
 
-function newCard(
-  state: TableState,
-  id: string,
-  kind: TableCard['kind'],
-  d: Obj,
-  claimedBy: string | null,
-): TableCard {
+function newCard(state: TableState, id: string, kind: TableCard['kind'], d: Obj): TableCard {
   const title = String(kind === 'loot' ? (d.name ?? 'an item') : (d.title ?? 'a handout'));
   return kind === 'loot'
-    ? { id, kind, title, quantity: Number(d.quantity ?? 1), claimedBy, after: lastChatId(state) }
+    ? {
+        id,
+        kind,
+        title,
+        quantity: Number(d.quantity ?? 1),
+        ...(d.kind === 'coin' ? { coin: true } : {}),
+        claimedBy: null,
+        after: lastChatId(state),
+      }
     : { id, kind, title, after: lastChatId(state) };
+}
+
+const asClaimedFor = (v: unknown): ClaimedFor | null =>
+  v === 'self' || v === 'party' || v === 'split' ? v : null;
+
+function asSplit(v: unknown): LootSplit | null {
+  const o = asObj(v);
+  if (!Array.isArray(o.shares)) return null;
+  return {
+    shares: o.shares
+      .map(asObj)
+      .map((s) => ({ userId: String(s.userId), amount: Number(s.amount) })),
+    remainder: Number(o.remainder ?? 0),
+  };
 }
