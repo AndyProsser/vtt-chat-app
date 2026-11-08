@@ -91,6 +91,7 @@ pub fn run() {
             account_commands::account_sign_out,
             account_commands::recording_control,
             account_commands::campaign_api,
+            account_commands::handout_upload,
             account_commands::campaign_file
         ])
         .setup(|app| {

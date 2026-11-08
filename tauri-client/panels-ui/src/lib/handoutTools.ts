@@ -1,0 +1,58 @@
+import type { Handout } from '../types/index.js';
+
+/** Handouts whose title or text contains every word of `query` (case-insensitive); all of them for a blank query. */
+export function searchHandouts(handouts: Handout[], query: string): Handout[] {
+  const words = query.toLowerCase().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return handouts;
+  return handouts.filter((h) => {
+    const haystack = `${h.title}\n${h.body ?? ''}`.toLowerCase();
+    return words.every((w) => haystack.includes(w));
+  });
+}
+
+/** Has any player been shown it? (`dm` means only the DM can see it.) */
+export const isShared = (h: Handout): boolean => h.visibility !== 'dm';
+
+/** What to tell the DM before removing it, or `null` if nobody else has seen it. */
+export function removalWarning(h: Handout): string | null {
+  if (h.visibility === 'all')
+    return 'This was shown to the players. Removing it takes it away from them too.';
+  if (h.visibility === 'some')
+    return 'This was shown to some players. Removing it takes it away from them too.';
+  return null;
+}
+
+interface ClipboardLike {
+  kind: string;
+  type: string;
+  getAsFile(): File | null;
+}
+
+/** The first picture on the clipboard (a pasted screenshot or copied image), if any. */
+export function imageFromClipboard(items: ArrayLike<ClipboardLike>): File | undefined {
+  for (let i = 0; i < items.length; i += 1) {
+    const item = items[i]!;
+    if (item.kind === 'file' && item.type.startsWith('image/')) {
+      const file = item.getAsFile();
+      if (file) return file;
+    }
+  }
+  return undefined;
+}
+
+/** A title for a picture that arrived without one, from the time it was pasted. */
+export function pastedTitle(now: Date): string {
+  const day = now.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' });
+  const time = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  return `Picture ${day} ${time}`;
+}
+
+/** A file's bytes as base64, for the command that uploads it. */
+export function fileToBase64(file: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('could not read the picture'));
+    reader.onload = () => resolve(String(reader.result).split(',')[1] ?? '');
+    reader.readAsDataURL(file);
+  });
+}

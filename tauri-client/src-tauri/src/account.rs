@@ -171,6 +171,43 @@ pub fn relay_path(campaign_id: &str, relative: &str) -> Result<String, AccountEr
     }
 }
 
+/// The largest picture the app will send (the server's own limit is the real gate).
+pub const MAX_UPLOAD_BYTES: usize = 12 * 1024 * 1024;
+
+/// `/api/campaigns/<id>/handouts/upload?title=…&kind=…&name=…`, with every value percent-encoded.
+/// `kind` is one of `image`, `map`, `pdf`; the title must not be blank.
+pub fn handout_upload_path(
+    campaign_id: &str,
+    title: &str,
+    kind: &str,
+    name: &str,
+) -> Result<String, AccountError> {
+    let bad = |m: &str| AccountError::new("invalid_input", m);
+    if campaign_id.is_empty()
+        || !campaign_id
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+    {
+        return Err(bad("that request is not allowed"));
+    }
+    if !["image", "map", "pdf"].contains(&kind) {
+        return Err(bad("a handout file is an image, a map or a PDF"));
+    }
+    let title = title.trim();
+    if title.is_empty() || title.chars().count() > 200 {
+        return Err(bad("give the handout a title of up to 200 characters"));
+    }
+    let mut url = url::Url::parse("http://x").expect("a constant URL parses");
+    url.query_pairs_mut()
+        .append_pair("title", title)
+        .append_pair("kind", kind)
+        .append_pair("name", &name.chars().take(200).collect::<String>());
+    Ok(format!(
+        "/api/campaigns/{campaign_id}/handouts/upload?{}",
+        url.query().unwrap_or_default()
+    ))
+}
+
 /// `play.example.com` → `https://play.example.com`; trailing slashes dropped. Plain `http://` is
 /// accepted only because a LAN/dev server may not have a certificate; the caller shows what it got.
 pub fn normalise_server(input: &str) -> Result<String, String> {
@@ -427,6 +464,25 @@ impl AccountClient {
         Self::read(response).await
     }
 
+    /// Sends a picture or PDF to the server as a raw body (the server decides its type from the bytes).
+    pub async fn upload(
+        &self,
+        token: &str,
+        path: &str,
+        bytes: Vec<u8>,
+    ) -> Result<Value, AccountError> {
+        let response = self
+            .http
+            .post(format!("{}{path}", self.base))
+            .bearer_auth(token)
+            .header("content-type", "application/octet-stream")
+            .body(bytes)
+            .send()
+            .await
+            .map_err(Self::unreachable)?;
+        Self::read(response).await
+    }
+
     /// A file (handout image, sound clip) as `(mime, bytes)`, capped so a bad server can't fill memory.
     pub async fn fetch_file(
         &self,
@@ -622,6 +678,20 @@ mod tests {
                 .mode();
             assert_eq!(mode & 0o077, 0, "fallback file must be owner-only");
         }
+    }
+
+    #[test]
+    fn a_handout_upload_path_encodes_its_values_and_refuses_the_wrong_things() {
+        assert_eq!(
+            handout_upload_path("c1", " Map of the crypt & more ", "map", "crypt map.png").unwrap(),
+            "/api/campaigns/c1/handouts/upload?title=Map+of+the+crypt+%26+more&kind=map&name=crypt+map.png"
+        );
+        assert!(handout_upload_path("c1", "x", "video", "n").is_err());
+        assert!(handout_upload_path("c1", "   ", "image", "n").is_err());
+        assert!(handout_upload_path("c1/../x", "x", "image", "n").is_err());
+        assert!(handout_upload_path("", "x", "image", "n").is_err());
+        let long = "t".repeat(201);
+        assert!(handout_upload_path("c1", &long, "image", "n").is_err());
     }
 
     #[test]

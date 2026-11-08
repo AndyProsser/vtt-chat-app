@@ -29,4 +29,5 @@ commands.allow = [
   "recording_control",
   "campaign_api",
   "campaign_file",
+  "handout_upload",
 ]

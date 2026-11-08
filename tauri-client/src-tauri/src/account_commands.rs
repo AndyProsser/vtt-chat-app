@@ -411,6 +411,33 @@ pub async fn campaign_api(
         .await
 }
 
+/// Uploads a picture (a pasted screenshot, a map) as a new handout. `data` is the file, base64;
+/// the server checks what it really is and how big it may be.
+#[tauri::command]
+pub async fn handout_upload(
+    state: State<'_, AccountState>,
+    title: String,
+    kind: String,
+    name: String,
+    data: String,
+) -> Result<Value, AccountError> {
+    use base64::Engine;
+    let (server, token, campaign) = credentials(&state).await?;
+    let path = crate::account::handout_upload_path(&campaign, &title, &kind, &name)?;
+    let bytes = base64::engine::general_purpose::STANDARD
+        .decode(data.as_bytes())
+        .map_err(|_| error("invalid_input", "that picture could not be read"))?;
+    if bytes.is_empty() || bytes.len() > crate::account::MAX_UPLOAD_BYTES {
+        return Err(error(
+            "invalid_input",
+            "the picture is empty or too large (12 MB at most)",
+        ));
+    }
+    AccountClient::new(&server)
+        .upload(&token, &path, bytes)
+        .await
+}
+
 /// A file the server holds, as a `data:` URL the panel can show (its CSP allows `data:` images only).
 #[tauri::command]
 pub async fn campaign_file(

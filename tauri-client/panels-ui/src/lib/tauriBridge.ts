@@ -92,6 +92,10 @@ type Method = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 export const campaignApi = <T = unknown>(method: Method, path: string, body?: unknown) =>
   invoke<T>('campaign_api', { method, path, body });
 
+/** Uploads a picture as a new handout (`handout_upload`); `data` is the file as base64. */
+export const handoutUpload = (title: string, kind: 'image' | 'map', name: string, data: string) =>
+  invoke<{ handout: { id: string } }>('handout_upload', { title, kind, name, data });
+
 /** An image the server holds, as a `data:` URL (`campaign_file`). */
 export const campaignFile = (path: string) => invoke<string>('campaign_file', { path });
 
