@@ -14,6 +14,7 @@ mod shell;
 mod soundboard;
 pub mod supervisor;
 mod tray;
+mod updater;
 mod windows;
 
 /// Passed to the app when the OS starts it at login.
@@ -49,6 +50,7 @@ pub fn run() {
             let _ = windows::open_main(app);
         }))
         .plugin(tauri_plugin_deep_link::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             Some(vec![AUTOSTART_FLAG]),
@@ -61,6 +63,7 @@ pub fn run() {
         .manage(account_commands::AccountState::default())
         .manage(bridge::PanelFeed::default())
         .manage(deeplink::PendingServer::default())
+        .manage(updater::PendingUpdate::default())
         .manage(soundboard::Soundboard::default())
         .manage(std::sync::Mutex::new(session::TrayModel::default()))
         .invoke_handler(tauri::generate_handler![
@@ -75,6 +78,8 @@ pub fn run() {
             windows::panel_open,
             windows::window_ready,
             deeplink::take_pending_server,
+            updater::update_check,
+            updater::update_install,
             autostart::autostart_enabled,
             autostart::autostart_set,
             account_commands::account_status,

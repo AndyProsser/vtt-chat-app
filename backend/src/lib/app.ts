@@ -122,6 +122,20 @@ export function createApp({
     if (pages) app.use(pages);
   }
 
+  if (config.updatesDir) {
+    // Signed installers and `latest.json`, produced by the release script. The tray app checks
+    // `<server>/updates/latest.json`; the signature, not this endpoint, is what makes an update
+    // trustworthy, so this is plain static serving — but never cached, or a new release is invisible.
+    app.use(
+      '/updates',
+      express.static(config.updatesDir, {
+        index: false,
+        dotfiles: 'ignore',
+        setHeaders: (res) => res.setHeader('Cache-Control', 'no-cache'),
+      }),
+    );
+  }
+
   app.use(
     '/api/auth',
     authRoutes({

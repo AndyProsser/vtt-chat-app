@@ -74,6 +74,7 @@ async function main(): Promise<number> {
       accounts: new AccountService({ store }),
       jobs: new PostgresJobQueue(pool),
       records: new PostgresRecordsStore(pool),
+      ...(config.updatesDir ? { updatesDir: config.updatesDir } : {}),
       probes,
       out: (line) => console.log(line),
       err: (line) => console.error(line),

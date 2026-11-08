@@ -10,6 +10,7 @@ import { ChatView } from './ChatView.js';
 import { BottomBar } from './BottomBar.js';
 import { EffectsStrip } from './EffectsStrip.js';
 import { TopBar } from './TopBar.js';
+import { UpdateBanner } from './UpdateBanner.js';
 
 /** The one window used during play. Remaining slots are filled by the following tasks. */
 export function MainWindow() {
@@ -22,6 +23,7 @@ export function MainWindow() {
   return (
     <div className="vtt-main">
       <TopBar dm={dm} />
+      <UpdateBanner />
       <div className="vtt-body">
         <AvatarRail />
         <div className="vtt-chat-col">

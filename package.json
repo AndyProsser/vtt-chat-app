@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "license": "AGPL-3.0-only",
-  "description": "Self-hosted voice, chat and session records with AI summaries for tabletop groups \u2014 Tauri tray client, Rust audio + LiveKit, native Ubuntu backend.",
+  "description": "Self-hosted voice, chat and session records with AI summaries for tabletop groups — Tauri tray client, Rust audio + LiveKit, native Ubuntu backend.",
   "engines": {
     "node": ">=26.0.0"
   },
@@ -31,6 +31,7 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@livekit/rtc-node": "^1.2.1",
+    "@tauri-apps/cli": "^2.12.4",
     "@types/node": "^26.0.0",
     "eslint": "^10.0.0",
     "eslint-config-prettier": "^10.1.0",

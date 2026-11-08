@@ -22,6 +22,30 @@ const MAX_CRASHES: usize = 5;
 const WINDOW: Duration = Duration::from_secs(5 * 60);
 const MAX_DELAY: Duration = Duration::from_secs(30);
 
+/// Exit code meaning "I have installed an update — start me again", which the supervisor restarts
+/// at once and does not count as a crash. (`EX_TEMPFAIL` from sysexits.h.)
+pub const RESTART_EXIT_CODE: i32 = 75;
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum ExitKind {
+    /// Normal quit (the tray's Quit): stop supervising.
+    Clean,
+    /// An update was installed: restart immediately.
+    UpdateRestart,
+    /// Anything else, including being killed by a signal.
+    Crash,
+}
+
+pub fn classify_exit(success: bool, code: Option<i32>) -> ExitKind {
+    if success {
+        ExitKind::Clean
+    } else if code == Some(RESTART_EXIT_CODE) {
+        ExitKind::UpdateRestart
+    } else {
+        ExitKind::Crash
+    }
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub enum Next {
     Restart(Duration),
@@ -60,8 +84,14 @@ pub fn run_supervised() -> i32 {
     loop {
         let status = Command::new(&exe).args(&args).env(CHILD_ENV, "1").status();
         match status {
-            Ok(s) if s.success() => return 0,
-            Ok(s) => eprintln!("[supervisor] the app exited abnormally ({s})"),
+            Ok(s) => match classify_exit(s.success(), s.code()) {
+                ExitKind::Clean => return 0,
+                ExitKind::UpdateRestart => {
+                    eprintln!("[supervisor] restarting into the updated app");
+                    continue;
+                }
+                ExitKind::Crash => eprintln!("[supervisor] the app exited abnormally ({s})"),
+            },
             Err(err) => eprintln!("[supervisor] could not start the app: {err}"),
         }
         match next_step(&mut crashes, Instant::now()) {
@@ -80,6 +110,21 @@ pub fn run_supervised() -> i32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn tells_a_quit_an_update_restart_and_a_crash_apart() {
+        assert_eq!(classify_exit(true, Some(0)), ExitKind::Clean);
+        assert_eq!(
+            classify_exit(false, Some(RESTART_EXIT_CODE)),
+            ExitKind::UpdateRestart
+        );
+        assert_eq!(classify_exit(false, Some(1)), ExitKind::Crash);
+        assert_eq!(
+            classify_exit(false, None),
+            ExitKind::Crash,
+            "killed by a signal"
+        );
+    }
 
     #[test]
     fn backs_off_exponentially_then_caps() {

@@ -266,6 +266,11 @@ impl AccountState {
         credentials(self).await
     }
 
+    /// The server last signed in to (kept after sign-out), if any.
+    pub async fn server(&self) -> Option<String> {
+        self.0.lock().await.saved.server.clone()
+    }
+
     /// This player's id, for frames that name a user.
     pub async fn user_id(&self) -> Option<String> {
         self.0.lock().await.saved.user_id.clone()

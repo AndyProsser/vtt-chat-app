@@ -7,6 +7,7 @@ import type {
 } from '@vtt-chat-app/shared';
 
 import { ACCOUNT_ERROR_EVENT, SYNC_EVENT } from '../consts/index.js';
+import type { UpdateInfo } from './updateInfo.js';
 import type {
   AccountError,
   AccountStatus,
@@ -99,6 +100,11 @@ export const takePendingServer = () => invoke<string | null>('take_pending_serve
 export function onLinkedServer(handler: (server: string) => void): Promise<UnlistenFn> {
   return listen<string>('deeplink:server', (event) => handler(event.payload));
 }
+
+/** Asks the signed-in server for a newer client; `null` is up to date (`update_check`). */
+export const updateCheck = () => invoke<UpdateInfo | null>('update_check');
+/** Installs what `updateCheck` found, then the app restarts itself (`update_install`). */
+export const updateInstall = () => invoke<void>('update_install');
 
 export const autostartEnabled = () => invoke<boolean>('autostart_enabled');
 export const autostartSet = (enabled: boolean) => invoke<void>('autostart_set', { enabled });

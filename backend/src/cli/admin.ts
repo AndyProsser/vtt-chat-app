@@ -8,9 +8,13 @@ import {
 
 import { PROCESS_RECORDING_JOB, type JobQueue, type RecordsStore } from '@vtt-chat-app/ai';
 
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
+
 import { MAGIC_LINK_TTL_MINUTES } from '../consts/index.js';
 import type { AccountService } from '../lib/auth/accountService.js';
 import type { Store } from '../lib/store/store.js';
+import { publishUpdates } from '../lib/updates/publish.js';
 import type { CampaignCreation, InstanceSettings, User } from '../types/index.js';
 
 /** One line of `status`: a service, whether it answered, and a short detail. */
@@ -26,6 +30,8 @@ export interface AdminDeps {
   jobs: JobQueue;
   records: RecordsStore;
   now?: () => number;
+  /** `UPDATES_DIR`: where client updates are published (unset: the `updates` commands refuse). */
+  updatesDir?: string;
   /** Health checks for `status`. Injected so tests need no live services. */
   probes?: Probe[];
   out: (line: string) => void;
@@ -55,6 +61,9 @@ const USAGE = `vtt-admin — system operations for this instance (gameplay is ma
   recording list                         recent recordings and their status
   recording reprocess <id> [--retranscribe]
                                          redo the summaries (and with the flag, the transcripts) from the kept audio
+  updates publish <dir> --version <v> --base-url <url> [--notes <text>]
+                                         publish a signed client release (the bundler's output) to UPDATES_DIR
+  updates status                         the version players are currently offered
 `;
 
 const isSimpleKey = (key: string): key is keyof typeof SIMPLE_SETTINGS => key in SIMPLE_SETTINGS;
@@ -132,6 +141,8 @@ export async function runAdmin(argv: string[], deps: AdminDeps): Promise<number>
         return await jobs(deps, command, rest);
       case 'recording':
         return await recordings(deps, command, rest);
+      case 'updates':
+        return await updates(deps, command, rest);
       case undefined:
       case 'help':
       case '--help':
@@ -304,6 +315,77 @@ async function jobs(deps: AdminDeps, command: string | undefined, rest: string[]
     }
     default:
       deps.err('usage: jobs list [state] | retry <job-id>');
+      return 2;
+  }
+}
+
+function flag(args: string[], name: string): string | undefined {
+  const i = args.indexOf(name);
+  return i >= 0 ? args[i + 1] : undefined;
+}
+
+async function updates(
+  deps: AdminDeps,
+  command: string | undefined,
+  rest: string[],
+): Promise<number> {
+  const dir = deps.updatesDir;
+  switch (command) {
+    case 'publish': {
+      const from = rest[0];
+      const version = flag(rest, '--version');
+      const baseUrl = flag(rest, '--base-url');
+      if (!from || from.startsWith('--') || !version || !baseUrl) {
+        deps.err(
+          'usage: updates publish <dir> --version <v> --base-url <url> [--notes <text>]\n' +
+            '  <dir> is the bundler output (installers with .sig files); --base-url is where this server\n' +
+            '  serves /updates, e.g. https://play.example.com/updates',
+        );
+        return 2;
+      }
+      if (!dir) {
+        deps.err(
+          'error: UPDATES_DIR is not set; set it to the folder the backend serves at /updates',
+        );
+        return 1;
+      }
+      const notes = flag(rest, '--notes');
+      try {
+        const result = await publishUpdates({
+          from,
+          to: dir,
+          baseUrl,
+          version,
+          ...(notes ? { notes } : {}),
+        });
+        deps.out(`published ${version} for ${result.platforms.join(', ')} to ${dir}`);
+        return 0;
+      } catch (error) {
+        deps.err(`error: ${error instanceof Error ? error.message : String(error)}`);
+        return 1;
+      }
+    }
+    case 'status': {
+      if (!dir) {
+        deps.err('error: UPDATES_DIR is not set');
+        return 1;
+      }
+      try {
+        const latest = JSON.parse(await readFile(path.join(dir, 'latest.json'), 'utf8')) as {
+          version: string;
+          pub_date: string;
+          platforms: Record<string, unknown>;
+        };
+        deps.out(
+          `offering ${latest.version} (${latest.pub_date}) for ${Object.keys(latest.platforms).join(', ')}`,
+        );
+      } catch {
+        deps.out('no update published');
+      }
+      return 0;
+    }
+    default:
+      deps.err(`unknown updates command "${command ?? ''}"\n\n${USAGE}`);
       return 2;
   }
 }

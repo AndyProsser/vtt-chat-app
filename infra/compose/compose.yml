@@ -49,6 +49,8 @@ services:
       VALKEY_URL: redis://valkey:6379
       # Uploaded handouts and soundboard clips (type- and size-checked, served only to those allowed).
       MEDIA_DIR: /data/media
+      # Signed client updates (`vtt-admin updates publish`), served at /updates.
+      UPDATES_DIR: /data/media/updates
       # Where the join page tells players to download the app (all optional; set in .env).
       CLIENT_URL_WINDOWS: ${CLIENT_URL_WINDOWS:-}
       CLIENT_URL_MACOS: ${CLIENT_URL_MACOS:-}

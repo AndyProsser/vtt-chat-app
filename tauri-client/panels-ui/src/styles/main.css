@@ -446,3 +446,16 @@ body,
 .vtt-dot-poor {
   background: #e53935;
 }
+.vtt-update {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  background: color-mix(in srgb, var(--vtt-gold) 18%, var(--vtt-bar));
+  border-bottom: 1px solid var(--vtt-gold);
+}
+.vtt-update span {
+  flex: 1;
+}

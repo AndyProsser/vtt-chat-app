@@ -1,4 +1,8 @@
 import { MemoryJobQueue, MemoryRecordsStore, PROCESS_RECORDING_JOB } from '@vtt-chat-app/ai';
+import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { AccountService } from '../lib/auth/accountService.js';
@@ -12,6 +16,7 @@ let jobs: MemoryJobQueue;
 let records: MemoryRecordsStore;
 let out: string[];
 let err: string[];
+let updatesDir: string | undefined;
 
 async function run(args: string, probes: Probe[] = []): Promise<number> {
   return runAdmin(args.split(' ').filter(Boolean), {
@@ -20,6 +25,7 @@ async function run(args: string, probes: Probe[] = []): Promise<number> {
     jobs,
     records,
     now: () => 1_000,
+    ...(updatesDir ? { updatesDir } : {}),
     probes,
     out: (l) => out.push(l),
     err: (l) => err.push(l),
@@ -41,6 +47,7 @@ beforeEach(() => {
   records = new MemoryRecordsStore();
   out = [];
   err = [];
+  updatesDir = undefined;
 });
 
 describe('help and misuse', () => {
@@ -304,5 +311,38 @@ describe('jobs and recordings', () => {
     await run('recording reprocess r1');
     await run('recording reprocess r1');
     expect(await jobs.list()).toHaveLength(1);
+  });
+});
+
+describe('updates', () => {
+  function signedRelease(): string {
+    const from = mkdtempSync(path.join(tmpdir(), 'rel-'));
+    writeFileSync(path.join(from, 'App_0.3.0_amd64.AppImage'), 'bin');
+    writeFileSync(path.join(from, 'App_0.3.0_amd64.AppImage.sig'), 'SIG');
+    return from;
+  }
+
+  it('publishes a signed release into UPDATES_DIR and says which platforms', async () => {
+    updatesDir = mkdtempSync(path.join(tmpdir(), 'upd-'));
+    const code = await run(
+      `updates publish ${signedRelease()} --version 0.3.0 --base-url https://h.example/updates`,
+    );
+    expect(code).toBe(0);
+    expect(out.join('\n')).toContain('linux-x86_64');
+    const latest = JSON.parse(readFileSync(path.join(updatesDir, 'latest.json'), 'utf8'));
+    expect(latest.platforms['linux-x86_64'].url).toBe(
+      'https://h.example/updates/App_0.3.0_amd64.AppImage',
+    );
+  });
+
+  it('explains what is missing instead of guessing', async () => {
+    expect(await run('updates publish somewhere --version 1 --base-url https://h')).toBe(1);
+    expect(err.join('\n')).toContain('UPDATES_DIR');
+    updatesDir = mkdtempSync(path.join(tmpdir(), 'upd-'));
+    expect(await run('updates publish')).toBe(2);
+    expect(await run(`updates publish ${signedRelease()} --base-url https://h`)).toBe(2);
+    expect(err.join('\n')).toContain('--version');
+    expect(await run('updates status')).toBe(0);
+    expect(out.join('\n')).toContain('no update published');
   });
 });

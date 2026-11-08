@@ -1,4 +1,8 @@
+import { getVersion } from '@tauri-apps/api/app';
 import { useEffect, useState } from 'react';
+
+import { useUpdate } from '../../hooks/useUpdate.js';
+import { updateMessage } from '../../lib/updateInfo.js';
 
 import { accountErrorMessage, autostartEnabled, autostartSet } from '../../lib/tauriBridge.js';
 
@@ -6,6 +10,12 @@ import { accountErrorMessage, autostartEnabled, autostartSet } from '../../lib/t
 export function GeneralSection() {
   const [enabled, setEnabled] = useState<boolean>();
   const [error, setError] = useState<string>();
+  const update = useUpdate(false);
+  const [version, setVersion] = useState<string>();
+  const [checked, setChecked] = useState(false);
+  useEffect(() => {
+    void getVersion().then(setVersion, () => undefined);
+  }, []);
   useEffect(() => {
     void autostartEnabled().then(setEnabled, (e: unknown) => setError(accountErrorMessage(e)));
   }, []);
@@ -27,6 +37,31 @@ export function GeneralSection() {
         />
         Start VTT Chat when I log in (to the tray, window hidden)
       </label>
+      <div className="vtt-drawer-row">
+        <span className="vtt-muted">VTT Chat {version ?? ''}</span>
+        <button
+          type="button"
+          className="vtt-pill"
+          disabled={update.busy !== undefined}
+          onClick={() => void update.check(true).then(() => setChecked(true))}
+        >
+          {update.busy === 'checking' ? 'Checking…' : 'Check for updates'}
+        </button>
+        {update.available && (
+          <button type="button" className="vtt-pill" onClick={() => void update.install()}>
+            Restart to update
+          </button>
+        )}
+      </div>
+      {update.available && <span>{updateMessage(update.available)}</span>}
+      {checked && !update.available && !update.error && (
+        <span className="vtt-muted">You are up to date.</span>
+      )}
+      {update.error && (
+        <div className="vtt-composer-error" role="alert" style={{ position: 'static' }}>
+          {update.error}
+        </div>
+      )}
       {error && (
         <div className="vtt-composer-error" role="alert" style={{ position: 'static' }}>
           {error}

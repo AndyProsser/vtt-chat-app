@@ -3,7 +3,9 @@
   "productName": "VTT Chat App",
   "version": "0.2.0",
   "identifier": "app.vttchat.desktop",
-  "build": { "frontendDist": "../panels-ui/dist" },
+  "build": {
+    "frontendDist": "../panels-ui/dist"
+  },
   "app": {
     "windows": [],
     "security": {
@@ -11,9 +13,20 @@
     }
   },
   "plugins": {
-    "deep-link": { "desktop": { "schemes": ["vtt-chat"] } }
+    "deep-link": {
+      "desktop": {
+        "schemes": [
+          "vtt-chat"
+        ]
+      }
+    },
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDU1RTNGMDc0MjU0OTg1ODkKUldTSmhVa2xkUERqVmRWUXJhazNaQ2IvQjVYQTk0UmRZNnJhUWd0QUNKcDdNWWhacmZia3YrQmsK",
+      "dangerousInsecureTransportProtocol": true
+    }
   },
   "bundle": {
-    "active": false
+    "active": false,
+    "createUpdaterArtifacts": true
   }
 }
