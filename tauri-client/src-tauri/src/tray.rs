@@ -167,6 +167,7 @@ pub fn install(app: &tauri::AppHandle) -> tauri::Result<()> {
         .icon(icon_image(state))
         .tooltip(state.tooltip())
         .menu(&menu)
+        .show_menu_on_left_click(false)
         .on_menu_event(|app, event| match event.id.as_ref() {
             MENU_TOGGLE_MUTE => {
                 crate::hotkeys::dispatch(app, crate::hotkeys::HotkeyAction::ToggleMute)
