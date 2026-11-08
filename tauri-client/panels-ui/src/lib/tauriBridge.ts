@@ -122,6 +122,11 @@ export function onSyncEvent(handler: (event: SyncEvent) => void): Promise<Unlist
   return listen<SyncEvent>(SYNC_EVENT, (event) => handler(event.payload));
 }
 
+/** Sign-in, sign-out, campaign choice, or a session the server ended: re-read `accountStatus`. */
+export function onAccountChanged(handler: () => void): Promise<UnlistenFn> {
+  return listen('account:changed', () => handler());
+}
+
 export function onAccountError(handler: (error: AccountError) => void): Promise<UnlistenFn> {
   return listen<AccountError>(ACCOUNT_ERROR_EVENT, (event) => handler(event.payload));
 }

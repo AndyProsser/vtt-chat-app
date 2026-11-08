@@ -64,6 +64,10 @@ const READY_FALLBACK: std::time::Duration = std::time::Duration::from_millis(250
 /// frame, so nobody sees the blank webview that WebKit shows while it loads. The fallback timer
 /// guarantees a window always appears.
 fn show_when_ready(window: tauri::WebviewWindow) {
+    opened_at()
+        .lock()
+        .unwrap()
+        .insert(window.label().to_string(), std::time::Instant::now());
     tauri::async_runtime::spawn(async move {
         tokio::time::sleep(READY_FALLBACK).await;
         if !window.is_visible().unwrap_or(true) {
@@ -76,9 +80,24 @@ fn show_when_ready(window: tauri::WebviewWindow) {
     });
 }
 
+fn opened_at() -> &'static std::sync::Mutex<std::collections::HashMap<String, std::time::Instant>> {
+    static OPENED: std::sync::OnceLock<
+        std::sync::Mutex<std::collections::HashMap<String, std::time::Instant>>,
+    > = std::sync::OnceLock::new();
+    OPENED.get_or_init(Default::default)
+}
+
 /// Called by a page after its first paint: shows (and focuses) the calling window.
 #[tauri::command]
 pub fn window_ready(window: tauri::WebviewWindow) -> Result<(), String> {
+    if let Some(started) = opened_at().lock().unwrap().remove(window.label()) {
+        // How long a window takes from "create" to "first frame painted": the delay a player feels.
+        eprintln!(
+            "[windows] {} ready in {} ms",
+            window.label(),
+            started.elapsed().as_millis()
+        );
+    }
     window.show().map_err(|e| e.to_string())?;
     let _ = window.set_focus();
     Ok(())

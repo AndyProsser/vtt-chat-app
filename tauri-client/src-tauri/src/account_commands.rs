@@ -11,6 +11,12 @@ use crate::account::{
 use crate::session::{end_session, start_session, SessionState};
 
 pub const ACCOUNT_ERROR_EVENT: &str = "account:error";
+/// Sign-in, sign-out, campaign choice or a revoked/expired session: windows re-read `account_status`.
+pub const ACCOUNT_CHANGED_EVENT: &str = "account:changed";
+
+fn notify_changed(app: &AppHandle) {
+    let _ = app.emit(ACCOUNT_CHANGED_EVENT, ());
+}
 
 #[derive(Default)]
 struct Inner {
@@ -103,6 +109,7 @@ pub async fn account_sign_in(
     if let Some(campaign_id) = inner.saved.campaign_id.clone() {
         go_live(&app, &sessions, &server, &login.session_token, &campaign_id).await?;
     }
+    notify_changed(&app);
     Ok(status_json(&inner.saved, &inner.campaigns))
 }
 
@@ -126,6 +133,7 @@ pub async fn account_select_campaign(
     inner.saved.campaign_id = Some(campaign_id.clone());
     persist(&app, &inner.saved);
     go_live(&app, &sessions, &server, &token, &campaign_id).await?;
+    notify_changed(&app);
     Ok(status_json(&inner.saved, &inner.campaigns))
 }
 
@@ -151,6 +159,7 @@ pub async fn account_sign_out(
         // Keep the server address so the next sign-in only needs credentials.
         let _ = inner.saved.save(&dir);
     }
+    notify_changed(&app);
     Ok(status_json(&inner.saved, &inner.campaigns))
 }
 
@@ -178,6 +187,7 @@ pub fn on_revoked(app: &AppHandle) {
         persist(&app, &inner.saved);
         drop(inner);
         teardown(&app, &app.state::<SessionState>()).await;
+        notify_changed(&app);
     });
 }
 
@@ -229,6 +239,8 @@ pub fn resume(app: &AppHandle) {
                 persist(&app, &inner.saved);
             }
         }
+        drop(inner);
+        notify_changed(&app);
     });
 }
 

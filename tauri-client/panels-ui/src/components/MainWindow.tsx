@@ -3,22 +3,31 @@ import { useState } from 'react';
 import { useAccount } from '../hooks/useAccount.js';
 import { usePanelBridge } from '../hooks/usePanelBridge.js';
 import { useTableFeed } from '../hooks/useTableFeed.js';
+import { gateState } from '../lib/gate.js';
 import { isDm } from '../lib/tableModel.js';
 import { useTableStore } from '../lib/tableStore.js';
 import { AvatarRail } from './AvatarRail.js';
 import { ChatView } from './ChatView.js';
 import { BottomBar } from './BottomBar.js';
 import { EffectsStrip } from './EffectsStrip.js';
+import { SignInGate } from './SignInGate.js';
 import { TopBar } from './TopBar.js';
 import { UpdateBanner } from './UpdateBanner.js';
 
-/** The one window used during play. Remaining slots are filled by the following tasks. */
+/** The one window used during play. It is the sign-in screen until there is a table to show. */
 export function MainWindow() {
+  const { status } = useAccount();
+  const gate = gateState(status);
+  if (gate === 'loading') return <div className="vtt-main" aria-busy="true" />;
+  if (gate !== 'ready') return <SignInGate />;
+  return <Table selfId={status?.userId ?? null} />;
+}
+
+function Table({ selfId }: { selfId: string | null }) {
   usePanelBridge();
   useTableFeed();
-  const { status } = useAccount();
   const members = useTableStore((s) => s.members);
-  const dm = isDm(members, status?.userId ?? null);
+  const dm = isDm(members, selfId);
   const [drawer, setDrawer] = useState(false);
   return (
     <div className="vtt-main">
@@ -32,11 +41,11 @@ export function MainWindow() {
               <EffectsStrip />
             </aside>
           )}
-          <ChatView selfId={status?.userId ?? null} />
+          <ChatView selfId={selfId} />
         </div>
       </div>
       <BottomBar
-        selfId={status?.userId ?? null}
+        selfId={selfId}
         role={dm ? 'dm' : 'player'}
         drawerOpen={drawer}
         onToggleDrawer={() => setDrawer((d) => !d)}

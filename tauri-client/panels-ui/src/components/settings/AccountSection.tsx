@@ -88,7 +88,7 @@ export function AccountSection() {
         </Text>
         <TextField.Root
           aria-label="Server"
-          placeholder="Server (e.g. play.example.com)"
+          placeholder="Server (play.example.com, or http://localhost:3000)"
           value={address}
           onChange={(e) => setServer(e.target.value)}
         />

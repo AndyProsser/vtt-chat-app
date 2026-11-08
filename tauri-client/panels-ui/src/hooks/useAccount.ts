@@ -6,6 +6,7 @@ import {
   accountSignIn,
   accountSignOut,
   accountStatus,
+  onAccountChanged,
   onAccountError,
 } from '../lib/tauriBridge.js';
 import type { AccountStatus } from '../types/index.js';
@@ -28,10 +29,15 @@ export function useAccount(): AccountApi {
   useEffect(() => {
     let cancelled = false;
     void accountStatus().then((s) => !cancelled && setStatus(s));
-    const unlisten = onAccountError((e) => !cancelled && setError(e.message));
+    const unlistenError = onAccountError((e) => !cancelled && setError(e.message));
+    // Another window (or a revoked session) changed the account: follow it.
+    const unlistenChanged = onAccountChanged(() => {
+      void accountStatus().then((s) => !cancelled && setStatus(s));
+    });
     return () => {
       cancelled = true;
-      void unlisten.then((fn) => fn());
+      void unlistenError.then((fn) => fn());
+      void unlistenChanged.then((fn) => fn());
     };
   }, []);
 
