@@ -1,4 +1,3 @@
-export * from './AccountPanel.js';
 export * from './Avatar.js';
 export * from './ChatPanel.js';
 export * from './MuteIcon.js';
@@ -7,4 +6,4 @@ export * from './RosterPanel.js';
 export * from './RecordingPanel.js';
 export * from './HandoutsPanel.js';
 export * from './LootPanel.js';
-export * from './SchedulePanel.js';
+export * from './SettingsWindow.js';

@@ -10,13 +10,13 @@ import {
 } from '@radix-ui/themes';
 import { useState } from 'react';
 
-import { useAccount } from '../hooks/useAccount.js';
-import { useCampaignQuery } from '../hooks/useCampaignQuery.js';
-import { useTableFeed } from '../hooks/useTableFeed.js';
-import { isDm } from '../lib/tableModel.js';
-import { useTableStore } from '../lib/tableStore.js';
-import { accountErrorMessage, campaignApi } from '../lib/tauriBridge.js';
-import type { RsvpStatus, SessionView } from '../types/index.js';
+import { useAccount } from '../../hooks/useAccount.js';
+import { useCampaignQuery } from '../../hooks/useCampaignQuery.js';
+import { useTableFeed } from '../../hooks/useTableFeed.js';
+import { isDm } from '../../lib/tableModel.js';
+import { useTableStore } from '../../lib/tableStore.js';
+import { accountErrorMessage, campaignApi } from '../../lib/tauriBridge.js';
+import type { RsvpStatus, SessionView } from '../../types/index.js';
 
 const RSVP_LABELS: Record<RsvpStatus, string> = {
   yes: 'Can make it',
@@ -24,7 +24,7 @@ const RSVP_LABELS: Record<RsvpStatus, string> = {
   no: "Can't",
 };
 
-export function SchedulePanel() {
+export function SessionsSection() {
   useTableFeed();
   const { status } = useAccount();
   const members = useTableStore((s) => s.members);

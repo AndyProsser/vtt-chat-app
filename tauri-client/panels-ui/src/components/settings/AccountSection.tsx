@@ -1,13 +1,13 @@
 import { Badge, Button, Callout, Flex, Heading, Text, TextField } from '@radix-ui/themes';
 import { useState } from 'react';
 
-import { useAccount } from '../hooks/useAccount.js';
+import { useAccount } from '../../hooks/useAccount.js';
 
 /**
  * Sign-in only. Accounts are created on the browser join page from an invite
  * (docs/architecture/JOIN-FLOW.md); the app never needs a sign-up flow.
  */
-export function AccountPanel() {
+export function AccountSection() {
   const account = useAccount();
   const { status } = account;
   const [server, setServer] = useState<string>();
