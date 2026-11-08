@@ -18,7 +18,10 @@ const dropBody = z.object({
   name: z.string().max(200),
   description: z.string().max(2000).optional(),
   quantity: z.number().int().min(1).max(100_000).optional(),
+  kind: z.enum(['item', 'coin']).optional(),
 });
+const claimBody = z.object({ for: z.enum(['self', 'party']).optional() });
+const splitBody = z.object({ userIds: z.array(z.string().max(64)).optional() });
 
 function param(value: string | string[] | undefined): string {
   if (typeof value !== 'string' || value.length === 0) throw new DomainError('invalid_input');
@@ -45,7 +48,25 @@ export function lootRoutes(deps: LootRouteDeps): Router {
   });
 
   router.post('/:itemId/claim', async (req, res) => {
-    const item = await loot.claim(authOf(res).user, campaign(req), param(req.params.itemId));
+    const body = claimBody.parse(req.body ?? {});
+    const item = await loot.claim(
+      authOf(res).user,
+      campaign(req),
+      param(req.params.itemId),
+      body.for,
+    );
+    deps.onChange?.('claimed', item);
+    res.json({ item });
+  });
+
+  router.post('/:itemId/split', async (req, res) => {
+    const body = splitBody.parse(req.body ?? {});
+    const item = await loot.split(
+      authOf(res).user,
+      campaign(req),
+      param(req.params.itemId),
+      body.userIds,
+    );
     deps.onChange?.('claimed', item);
     res.json({ item });
   });

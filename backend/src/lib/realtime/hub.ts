@@ -225,6 +225,9 @@ export class Hub {
       name: string;
       quantity: number;
       claimedBy: string | null;
+      kind: 'item' | 'coin';
+      claimedFor: 'self' | 'party' | 'split' | null;
+      split: { shares: { userId: string; amount: number }[]; remainder: number } | null;
     },
   ): void {
     this.broadcast(item.campaignId, `loot.${event}`, {
@@ -232,7 +235,10 @@ export class Hub {
       itemId: item.id,
       name: item.name,
       quantity: item.quantity,
-      ...(event === 'claimed' ? { claimedBy: item.claimedBy } : {}),
+      kind: item.kind,
+      ...(event === 'claimed'
+        ? { claimedBy: item.claimedBy, claimedFor: item.claimedFor, split: item.split }
+        : {}),
     });
   }
 

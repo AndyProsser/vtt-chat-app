@@ -37,9 +37,19 @@ export interface Viewer {
   isDm: boolean;
 }
 
+export type LootKind = 'item' | 'coin';
+/** Where a grabbed item went: the player's own, the party's shared pool, or a split of coin. */
+export type ClaimedFor = 'self' | 'party' | 'split';
+export interface LootSplit {
+  shares: { userId: string; amount: number }[];
+  /** Coin that did not divide evenly; it stays in the pool. */
+  remainder: number;
+}
+
 export interface LootItem {
   id: string;
   campaignId: string;
+  kind: LootKind;
   name: string;
   description: string;
   quantity: number;
@@ -48,6 +58,9 @@ export interface LootItem {
   /** Set when a player picks it up; `null` while it is still on the table. */
   claimedBy: string | null;
   claimedAt: number | null;
+  claimedFor: ClaimedFor | null;
+  /** Set only when a coin pile was split. */
+  split: LootSplit | null;
 }
 
 /**
@@ -77,7 +90,13 @@ export interface TableStore {
    * Gives an unclaimed item to `userId`. **Atomic**: if two players claim at once, exactly one
    * gets the item and the other gets `undefined`. Returns the item as claimed, or `undefined`.
    */
-  claimLoot(id: string, userId: string, at: number): Promise<LootItem | undefined>;
+  claimLoot(
+    id: string,
+    userId: string,
+    at: number,
+    claimedFor: ClaimedFor,
+    split?: LootSplit,
+  ): Promise<LootItem | undefined>;
   deleteLoot(id: string): Promise<void>;
 }
 

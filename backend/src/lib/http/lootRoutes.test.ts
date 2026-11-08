@@ -29,7 +29,7 @@ const CONFIG: BackendConfig = {
 
 let server: Server;
 let base: string;
-let events: { event: string; id: string; claimedBy: string | null }[];
+let events: { event: string; id: string; claimedBy: string | null; item: any }[];
 let dm: { id: string; token: string };
 let alice: { id: string; token: string };
 let bob: { id: string; token: string };
@@ -78,7 +78,8 @@ beforeEach(async () => {
       revokeSession() {},
       announceRosterChanged() {},
       announceRecording() {},
-      announceLoot: (event, item) => events.push({ event, id: item.id, claimedBy: item.claimedBy }),
+      announceLoot: (event, item) =>
+        events.push({ event, id: item.id, claimedBy: item.claimedBy, item }),
     },
   });
   await new Promise<void>((resolve) => {
@@ -110,7 +111,7 @@ describe('dropping and claiming', () => {
       const list = (await call('GET', `/api/campaigns/${campaign}/loot`, p.token)).body.loot;
       expect(list.map((i: any) => i.name)).toEqual(['Ring of Warmth']);
     }
-    expect(events).toEqual([{ event: 'dropped', id: r.body.item.id, claimedBy: null }]);
+    expect(events).toMatchObject([{ event: 'dropped', id: r.body.item.id, claimedBy: null }]);
   });
 
   it('the first player to claim gets it, with who and when recorded; the next is told it is gone', async () => {
@@ -179,5 +180,105 @@ describe('who may do what', () => {
     expect((await drop(dm.token, { name: 'x', quantity: 0 })).status).toBe(400);
     expect((await drop(dm.token, { name: 'x', quantity: 1.5 })).status).toBe(400);
     expect((await drop(dm.token, { name: 'x'.repeat(201) })).status).toBe(400);
+  });
+});
+
+const grab = (token: string, id: string, forWhom?: unknown, c = campaign) =>
+  call(
+    'POST',
+    `/api/campaigns/${c}/loot/${id}/claim`,
+    token,
+    forWhom === undefined ? {} : { for: forWhom },
+  );
+const split = (token: string, id: string, body: unknown = {}, c = campaign) =>
+  call('POST', `/api/campaigns/${c}/loot/${id}/split`, token, body);
+const coins = (amount: number) => drop(dm.token, { name: 'gp', quantity: amount, kind: 'coin' });
+
+describe('grabbing for yourself or for the party', () => {
+  it('records who took it and whether it was for themselves or the party; self is the default', async () => {
+    const a = (await drop(dm.token, { name: 'Rope' })).body.item.id;
+    const b = (await drop(dm.token, { name: 'Lantern' })).body.item.id;
+    expect((await grab(alice.token, a)).body.item).toMatchObject({
+      claimedBy: alice.id,
+      claimedFor: 'self',
+    });
+    expect((await grab(bob.token, b, 'party')).body.item).toMatchObject({
+      claimedBy: bob.id,
+      claimedFor: 'party',
+    });
+    expect(events.at(-1)?.item.claimedFor).toBe('party');
+  });
+
+  it('refuses an unknown destination', async () => {
+    const id = (await drop(dm.token)).body.item.id;
+    expect((await grab(alice.token, id, 'everyone')).status).toBe(400);
+  });
+});
+
+describe('coin and the party split', () => {
+  it('drops coin as its own kind, and an item is an item by default', async () => {
+    const c = (await coins(10)).body.item;
+    expect(c).toMatchObject({ kind: 'coin', name: 'gp', quantity: 10 });
+    expect((await drop(dm.token)).body.item.kind).toBe('item');
+  });
+
+  it('splits among every player by default, DM excluded, and records each share', async () => {
+    const id = (await coins(10)).body.item.id;
+    const r = await split(alice.token, id);
+    expect(r.status).toBe(200);
+    expect(r.body.item).toMatchObject({ claimedBy: alice.id, claimedFor: 'split' });
+    expect(r.body.item.split.remainder).toBe(0);
+    const shares = r.body.item.split.shares;
+    expect(shares).toHaveLength(2);
+    expect(shares.map((s: any) => s.userId).sort()).toEqual([alice.id, bob.id].sort());
+    expect(shares.every((s: any) => s.amount === 5)).toBe(true);
+    expect(events.at(-1)?.item.split.shares).toHaveLength(2);
+  });
+
+  it('keeps the remainder in the pool when the amount does not divide evenly', async () => {
+    const id = (await coins(7)).body.item.id;
+    const r = await split(alice.token, id);
+    expect(r.body.item.split.shares.map((s: any) => s.amount)).toEqual([3, 3]);
+    expect(r.body.item.split.remainder).toBe(1);
+  });
+
+  it('splits among a chosen subset, and the DM may split too', async () => {
+    const id = (await coins(9)).body.item.id;
+    const r = await split(dm.token, id, { userIds: [bob.id] });
+    expect(r.status).toBe(200);
+    expect(r.body.item.split.shares).toEqual([{ userId: bob.id, amount: 9 }]);
+    expect(r.body.item.claimedBy).toBe(dm.id);
+  });
+
+  it('refuses a split of a non-coin item, the DM or a stranger as recipient, an empty list, and non-members', async () => {
+    const item = (await drop(dm.token)).body.item.id;
+    expect((await split(alice.token, item)).status).toBe(400);
+    const id = (await coins(10)).body.item.id;
+    expect((await split(alice.token, id, { userIds: [dm.id] })).status).toBe(400);
+    expect((await split(alice.token, id, { userIds: [outsider.id] })).status).toBe(400);
+    expect((await split(alice.token, id, { userIds: [] })).status).toBe(400);
+    expect((await split(outsider.token, id)).status).toBe(403);
+    expect((await split(alice.token, 'not-a-uuid')).status).toBe(404);
+  });
+
+  it('can only happen once, and never after someone grabbed the coin', async () => {
+    const id = (await coins(10)).body.item.id;
+    expect((await split(alice.token, id)).status).toBe(200);
+    expect((await split(bob.token, id)).status).toBe(409);
+    expect((await grab(bob.token, id)).status).toBe(409);
+    const other2 = (await coins(4)).body.item.id;
+    await grab(bob.token, other2, 'party');
+    expect((await split(alice.token, other2)).status).toBe(409);
+  });
+
+  it('under a simultaneous grab and split exactly one wins', async () => {
+    const id = (await coins(10)).body.item.id;
+    const results = await Promise.all([
+      grab(alice.token, id),
+      split(bob.token, id),
+      split(alice.token, id),
+      grab(bob.token, id, 'party'),
+    ]);
+    expect(results.filter((r) => r.status === 200)).toHaveLength(1);
   });
 });

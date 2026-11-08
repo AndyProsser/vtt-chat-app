@@ -5,7 +5,10 @@ import type {
   Handout,
   HandoutKind,
   HandoutVisibility,
+  ClaimedFor,
   LootItem,
+  LootKind,
+  LootSplit,
   MediaFile,
   TableStore,
   Viewer,
@@ -43,6 +46,7 @@ const toHandout = (r: Row): Handout => ({
 const toLoot = (r: Row): LootItem => ({
   id: r.id as string,
   campaignId: r.campaign_id as string,
+  kind: r.kind as LootKind,
   name: r.name as string,
   description: r.description as string,
   quantity: r.quantity as number,
@@ -50,6 +54,8 @@ const toLoot = (r: Row): LootItem => ({
   droppedAt: r.dropped_at as number,
   claimedBy: (r.claimed_by as string | null) ?? null,
   claimedAt: (r.claimed_at as number | null) ?? null,
+  claimedFor: (r.claimed_for as ClaimedFor | null) ?? null,
+  split: (r.split as LootSplit | null) ?? null,
 });
 
 const HANDOUT_SELECT = `
@@ -168,8 +174,8 @@ export class PostgresTableStore implements TableStore {
 
   async putLoot(i: LootItem): Promise<void> {
     await this.pool.query(
-      `INSERT INTO loot_items (id, campaign_id, name, description, quantity, dropped_by, dropped_at, claimed_by, claimed_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      `INSERT INTO loot_items (id, campaign_id, name, description, quantity, dropped_by, dropped_at, claimed_by, claimed_at, kind)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
        ON CONFLICT (id) DO UPDATE SET name = $3, description = $4, quantity = $5`,
       [
         i.id,
@@ -181,6 +187,7 @@ export class PostgresTableStore implements TableStore {
         i.droppedAt,
         i.claimedBy,
         i.claimedAt,
+        i.kind,
       ],
     );
   }
@@ -203,13 +210,19 @@ export class PostgresTableStore implements TableStore {
     return rows.map(toLoot);
   }
 
-  async claimLoot(id: string, userId: string, at: number): Promise<LootItem | undefined> {
+  async claimLoot(
+    id: string,
+    userId: string,
+    at: number,
+    claimedFor: ClaimedFor,
+    split?: LootSplit,
+  ): Promise<LootItem | undefined> {
     // One conditional UPDATE: of any number of simultaneous claims, the database lets exactly one match.
     try {
       const { rows } = await this.pool.query<Row>(
-        `UPDATE loot_items SET claimed_by = $2, claimed_at = $3
+        `UPDATE loot_items SET claimed_by = $2, claimed_at = $3, claimed_for = $4, split = $5
           WHERE id = $1 AND claimed_by IS NULL RETURNING *`,
-        [id, userId, at],
+        [id, userId, at, claimedFor, split ? JSON.stringify(split) : null],
       );
       return rows[0] ? toLoot(rows[0]) : undefined;
     } catch (error) {

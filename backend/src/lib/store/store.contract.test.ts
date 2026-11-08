@@ -192,6 +192,7 @@ describe.skipIf(TEST_DATABASE_URL === undefined)('migrate', () => {
         '0008_loot.sql',
         '0009_soundboard.sql',
         '0010_schedule.sql',
+        '0011_loot_party.sql',
       ]);
       expect(await migrate(pool)).toEqual([]);
     } finally {

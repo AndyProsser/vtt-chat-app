@@ -1,7 +1,9 @@
 import {
   canSeeHandout,
   type Handout,
+  type ClaimedFor,
   type LootItem,
+  type LootSplit,
   type MediaFile,
   type TableStore,
   type Viewer,
@@ -57,11 +59,19 @@ export class MemoryTableStore implements TableStore {
       .sort((a, b) => a.droppedAt - b.droppedAt)
       .map(copy);
   // No await between the check and the write, so this is atomic on the single JS thread.
-  claimLoot = async (id: string, userId: string, at: number) => {
+  claimLoot = async (
+    id: string,
+    userId: string,
+    at: number,
+    claimedFor: ClaimedFor,
+    split?: LootSplit,
+  ) => {
     const item = this.loot.get(id);
     if (!item || item.claimedBy !== null) return undefined;
     item.claimedBy = userId;
     item.claimedAt = at;
+    item.claimedFor = claimedFor;
+    item.split = split ? copy(split) : null;
     return copy(item);
   };
   deleteLoot = async (id: string) => void this.loot.delete(id);
