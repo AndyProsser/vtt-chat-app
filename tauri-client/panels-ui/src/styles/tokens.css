@@ -1,0 +1,8 @@
+/* Shape shared by every theme: rounded avatars, softened corners. Colours come from themes.ts. */
+:root {
+  --vtt-radius-control: 8px;
+  --vtt-radius-bubble: 12px;
+  --vtt-radius-pill-square: 2px;
+  --vtt-avatar-radius: 50%;
+  --vtt-font-head: 'Cinzel', Georgia, serif;
+}
