@@ -1,18 +1,12 @@
-import { Box, Text } from '@radix-ui/themes';
-
 import { useAccount } from '../hooks/useAccount.js';
 import { usePanelBridge } from '../hooks/usePanelBridge.js';
 import { useTableFeed } from '../hooks/useTableFeed.js';
 import { isDm } from '../lib/tableModel.js';
 import { useTableStore } from '../lib/tableStore.js';
 import { AvatarRail } from './AvatarRail.js';
+import { ChatView } from './ChatView.js';
+import { Composer } from './Composer.js';
 import { TopBar } from './TopBar.js';
-
-const slot = (label: string) => (
-  <Box p="2" style={{ border: '1px dashed var(--vtt-edge)' }}>
-    <Text size="1">{label}</Text>
-  </Box>
-);
 
 /** The one window used during play. Remaining slots are filled by the following tasks. */
 export function MainWindow() {
@@ -26,9 +20,11 @@ export function MainWindow() {
       <TopBar dm={dm} />
       <div className="vtt-body">
         <AvatarRail />
-        <Box flexGrow="1">{slot('chat')}</Box>
+        <ChatView selfId={status?.userId ?? null} />
       </div>
-      {slot('bottom bar')}
+      <footer className="vtt-bottom">
+        <Composer selfId={status?.userId ?? null} role={dm ? 'dm' : 'player'} />
+      </footer>
     </div>
   );
 }

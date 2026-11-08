@@ -164,3 +164,104 @@ body,
   border: 2px solid var(--vtt-rail);
   box-sizing: border-box;
 }
+.vtt-chat {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--vtt-chat);
+}
+.vtt-msg {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+.vtt-av-sm {
+  width: 24px;
+  height: 24px;
+  font-size: 10px;
+  flex: none;
+}
+.vtt-bubble {
+  min-width: 0;
+  padding: 4px 10px;
+  border-radius: var(--vtt-radius-bubble);
+  background: var(--vtt-bubble);
+  border: 1px solid var(--vtt-edge);
+  overflow-wrap: anywhere;
+}
+.vtt-bubble-whisper {
+  background: var(--vtt-whisper);
+  border-color: var(--vtt-whisper-edge);
+}
+.vtt-bubble-dm-private {
+  background: var(--vtt-dm-msg);
+  border-color: var(--vtt-gold);
+}
+.vtt-msg-meta {
+  font-size: 11px;
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+.vtt-msg-label {
+  font-style: italic;
+  opacity: 0.85;
+}
+.vtt-emote {
+  font-style: italic;
+}
+.vtt-composer {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+.vtt-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--vtt-edge);
+  background: var(--vtt-chat);
+  color: var(--vtt-ink);
+  font: inherit;
+}
+.vtt-input:focus {
+  outline: 2px solid var(--vtt-gold);
+  outline-offset: 1px;
+}
+.vtt-composer-error {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  margin-bottom: 4px;
+  font-size: 12px;
+  color: #ff8a80;
+  background: var(--vtt-bar);
+  padding: 2px 8px;
+  border-radius: var(--vtt-radius-control);
+}
+.vtt-palette {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  right: 0;
+  margin: 0 0 4px;
+  padding: 4px;
+  list-style: none;
+  background: var(--vtt-bar);
+  border: 1px solid var(--vtt-edge);
+  border-radius: var(--vtt-radius-control);
+  font-size: 12px;
+}
+.vtt-palette li {
+  padding: 3px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.vtt-palette-on {
+  background: color-mix(in srgb, var(--vtt-gold) 20%, transparent);
+}
