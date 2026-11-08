@@ -25,12 +25,23 @@ export interface RecordingTrack {
   transcribedAt: number | null;
 }
 
-export type RecordingEventName = 'started' | 'paused' | 'resumed' | 'stopped' | 'interrupted';
+export type RecordingEventName =
+  | 'started'
+  | 'paused'
+  | 'resumed'
+  | 'stopped'
+  | 'interrupted'
+  /** The DM played a sound effect (metadata only: the audio is never recorded). */
+  | 'sound'
+  /** A scene started or stopped. */
+  | 'scene';
 
 export interface RecordingEvent {
   recordingId: string;
   at: number;
   event: RecordingEventName;
+  /** For `sound` and `scene`: what was played (ids, mode, scene name). */
+  detail?: Record<string, unknown>;
 }
 
 export type SummaryVisibility = 'members' | 'dm';

@@ -25,3 +25,8 @@ this repository: it goes into the operator's own media storage.
 - **Kenney** has more CC0 packs (UI, digital, sci-fi) at <https://kenney.nl/assets>.
 
 Anything you load is your responsibility to have the right to use; CC0 means no attribution is needed.
+
+## Not part of recordings
+
+Sound effects are sent to the table on a separate `soundboard` track that the backend never records; a
+recording's timeline only notes *which* effect or scene was played and when (metadata), not its audio.

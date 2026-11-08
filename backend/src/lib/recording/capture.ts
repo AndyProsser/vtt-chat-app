@@ -106,6 +106,26 @@ export class RecordingCapture {
     });
   }
 
+  /**
+   * Call with every table frame the realtime layer sends. Sound effects and scenes are noted in the
+   * recording's timeline (so a transcript can say "…a door creaked here") — only while audio is being
+   * captured, and only as metadata: the effects themselves are never part of the recording.
+   */
+  onTableEvent(campaignId: string, type: string, data: unknown): void {
+    const detail = soundDetail(type, data);
+    if (!detail) return;
+    this.enqueue(campaignId, async () => {
+      const live = this.live.get(campaignId);
+      if (!live?.capturing) return;
+      await this.deps.records.addRecordingEvent({
+        recordingId: live.recordingId,
+        at: this.now(),
+        event: detail.event,
+        detail: detail.detail,
+      });
+    });
+  }
+
   /** Call when a player has acknowledged the start cue: their track may now be recorded. */
   onAck(campaignId: string): void {
     this.enqueue(campaignId, () => this.reconcile(campaignId));
@@ -280,5 +300,33 @@ export class RecordingCapture {
         transcribedAt: null,
       });
     }
+  }
+}
+
+/** The timeline entry for a soundboard frame, or `undefined` for any other frame. */
+function soundDetail(
+  type: string,
+  data: unknown,
+): { event: 'sound' | 'scene'; detail: Record<string, unknown> } | undefined {
+  const d = (typeof data === 'object' && data !== null ? data : {}) as Record<string, unknown>;
+  switch (type) {
+    case 'sound.play':
+      return {
+        event: 'sound',
+        detail: {
+          action: 'play',
+          soundId: d.soundId,
+          takeId: d.takeId,
+          mode: d.mode,
+          volume: d.volume,
+          ...(typeof d.layerId === 'string' ? { layerId: d.layerId } : {}),
+        },
+      };
+    case 'scene.started':
+      return { event: 'scene', detail: { action: 'start', sceneId: d.sceneId, name: d.name } };
+    case 'scene.stopped':
+      return { event: 'scene', detail: { action: 'stop', sceneId: d.sceneId } };
+    default:
+      return undefined;
   }
 }

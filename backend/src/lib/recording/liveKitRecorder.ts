@@ -8,6 +8,23 @@ import {
 
 import type { EgressResult, RecorderTrack, TrackRecorder } from './capture.js';
 
+/** The DM's sound-effects track (the tray app publishes it under this name); never recorded. */
+export const SOUNDBOARD_TRACK = 'soundboard';
+
+interface ParticipantLike {
+  identity: string;
+  tracks: { sid: string; name: string; type: TrackType; muted: boolean }[];
+}
+
+/** The audio tracks worth recording: voices, not muted, and never the soundboard. */
+export function recordableTracks(participants: ParticipantLike[]): RecorderTrack[] {
+  return participants.flatMap((p) =>
+    p.tracks
+      .filter((t) => t.type === TrackType.AUDIO && !t.muted && t.name !== SOUNDBOARD_TRACK)
+      .map((t) => ({ identity: p.identity, trackSid: t.sid })),
+  );
+}
+
 /**
  * The real {@link TrackRecorder}: LiveKit's room API to find who is publishing audio, and Egress's
  * **track egress** to write one file per speaker (never a mixed file). `apiUrl` is the LiveKit
@@ -29,11 +46,7 @@ export function createLiveKitRecorder(options: {
       } catch {
         return []; // the room does not exist until someone joins it
       }
-      return participants.flatMap((p) =>
-        p.tracks
-          .filter((t) => t.type === TrackType.AUDIO && !t.muted)
-          .map((t) => ({ identity: p.identity, trackSid: t.sid })),
-      );
+      return recordableTracks(participants);
     },
 
     async start(room, trackSid, filepath) {

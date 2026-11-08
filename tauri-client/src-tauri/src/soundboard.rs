@@ -8,9 +8,10 @@
 
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
-use rust_livekit::sound::{decode_to_mono, output_sample_rate, SoundEngine};
+use rust_livekit::sound::{decode_to_mono, SoundEngine, SAMPLE_RATE};
 use serde_json::Value;
 use tauri::{AppHandle, Manager};
 
@@ -103,6 +104,12 @@ const DECODED_KEEP_MAX: usize = 6_000_000;
 
 pub struct Soundboard {
     engine: SoundEngine,
+    /// Only the DM's app plays effects: it mixes them and sends them on the call, so the table hears
+    /// one copy (no echo from a second player on every machine). Everyone else ignores the frames.
+    is_dm: AtomicBool,
+    /// Whether the DM also hears them on their own speakers (turn off if you use speakers: the call
+    /// carries them to everyone else anyway).
+    monitor: AtomicBool,
     levels: Mutex<(f32, f32)>,
     /// Plays that should still start once their clip arrives (a stop removes them).
     wanted: Mutex<HashSet<String>>,
@@ -113,6 +120,8 @@ impl Default for Soundboard {
     fn default() -> Self {
         Self {
             engine: SoundEngine::spawn(),
+            is_dm: AtomicBool::new(false),
+            monitor: AtomicBool::new(true),
             levels: Mutex::new((1.0, 1.0)),
             wanted: Mutex::new(HashSet::new()),
             decoded: Mutex::new(HashMap::new()),
@@ -128,6 +137,35 @@ impl Soundboard {
     }
 }
 
+/// Whether `me` is the DM in a snapshot or roster update (`{ members: [{ userId, role }] }`).
+pub fn self_is_dm(roster: &Value, me: &str) -> bool {
+    roster
+        .get("members")
+        .and_then(Value::as_array)
+        .is_some_and(|members| {
+            members.iter().any(|m| {
+                m.get("userId").and_then(Value::as_str) == Some(me)
+                    && m.get("role").and_then(Value::as_str) == Some("dm")
+            })
+        })
+}
+
+/// Learns whether this player is the DM from the roster (a snapshot or a roster update). When the
+/// role changes (a DM swap) anything still playing stops.
+pub async fn note_roster(app: &AppHandle, roster: &Value) {
+    let me = app
+        .state::<AccountState>()
+        .user_id()
+        .await
+        .unwrap_or_default();
+    let dm = self_is_dm(roster, &me);
+    let board = app.state::<Soundboard>();
+    if board.is_dm.swap(dm, Ordering::Relaxed) && !dm {
+        board.wanted.lock().unwrap().clear();
+        board.engine.stop_all();
+    }
+}
+
 /// Handles a table frame; the cheap, synchronous actions happen here and clip loading is spawned.
 pub async fn on_table(app: &AppHandle, t: &str, data: &Value) {
     if !(t.starts_with("sound.") || t.starts_with("scene.")) {
@@ -139,6 +177,9 @@ pub async fn on_table(app: &AppHandle, t: &str, data: &Value) {
         .await
         .unwrap_or_default();
     let board = app.state::<Soundboard>();
+    if !board.is_dm.load(Ordering::Relaxed) {
+        return; // the DM's app plays for the whole table
+    }
     for action in plan(t, data, &me) {
         match action {
             Action::Master(v) => board.apply_levels(|l| l.0 = v.clamp(0.0, 1.0)),
@@ -158,6 +199,7 @@ pub async fn on_table(app: &AppHandle, t: &str, data: &Value) {
                 gain,
             } => {
                 board.wanted.lock().unwrap().insert(play_id.clone());
+                attach_call(app, &board).await;
                 let app = app.clone();
                 tauri::async_runtime::spawn(async move {
                     if let Err(err) = load_and_play(&app, &play_id, &take_id, looping, gain).await {
@@ -167,6 +209,36 @@ pub async fn on_table(app: &AppHandle, t: &str, data: &Value) {
             }
         }
     }
+}
+
+/// Sends the mix to the call (publishing the soundboard track the first time), or nowhere if the DM
+/// is not in voice (then only their own speakers hear it, if the monitor is on).
+async fn attach_call(app: &AppHandle, board: &Soundboard) {
+    let control = app
+        .state::<rust_livekit::SharedClient>()
+        .lock()
+        .unwrap()
+        .as_ref()
+        .map(|c| c.voice_control());
+    let sink = match control {
+        Some(control) => match control.sound_sink().await {
+            Ok(sink) => Some(sink),
+            Err(err) => {
+                eprintln!("[src-tauri] soundboard: could not publish the effects track: {err}");
+                None
+            }
+        },
+        None => None,
+    };
+    board.engine.set_sink(sink);
+}
+
+/// Whether the DM hears effects on their own speakers too.
+#[tauri::command]
+pub fn soundboard_monitor_set(app: AppHandle, on: bool) {
+    let board = app.state::<Soundboard>();
+    board.monitor.store(on, Ordering::Relaxed);
+    board.engine.set_monitor(on);
 }
 
 /// Everything stops when the session ends (sign-out, revoked, switching campaign).
@@ -196,11 +268,11 @@ async fn load_and_play(
         Some(clip) => clip,
         None => {
             let bytes = clip_bytes(app, take_id).await?;
-            let rate = output_sample_rate().ok_or("no audio output device")?;
-            let samples = tauri::async_runtime::spawn_blocking(move || decode_to_mono(bytes, rate))
-                .await
-                .map_err(|e| e.to_string())?
-                .map_err(|e| e.to_string())?;
+            let samples =
+                tauri::async_runtime::spawn_blocking(move || decode_to_mono(bytes, SAMPLE_RATE))
+                    .await
+                    .map_err(|e| e.to_string())?
+                    .map_err(|e| e.to_string())?;
             let clip = Arc::new(samples);
             if clip.len() <= DECODED_KEEP_MAX {
                 let mut cache = board.decoded.lock().unwrap();
@@ -320,6 +392,19 @@ mod tests {
     fn malformed_or_unrelated_frames_do_nothing() {
         assert!(plan("sound.play", &json!({"playId":"p"}), "me").is_empty());
         assert!(plan("chat.message", &json!({}), "me").is_empty());
+    }
+
+    #[test]
+    fn only_the_dm_in_the_roster_is_the_dm() {
+        let roster = json!({ "members": [
+            { "userId": "dm1", "role": "dm" },
+            { "userId": "p1", "role": "player" },
+        ]});
+        assert!(self_is_dm(&roster, "dm1"));
+        assert!(!self_is_dm(&roster, "p1"));
+        assert!(!self_is_dm(&roster, "stranger"));
+        assert!(!self_is_dm(&json!({}), "dm1"));
+        assert!(!self_is_dm(&json!({ "members": "no" }), "dm1"));
     }
 
     #[test]

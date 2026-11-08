@@ -96,6 +96,9 @@ export const campaignApi = <T = unknown>(method: Method, path: string, body?: un
 export const handoutUpload = (title: string, kind: 'image' | 'map', name: string, data: string) =>
   invoke<{ handout: { id: string } }>('handout_upload', { title, kind, name, data });
 
+/** Whether the DM also hears effects on their own speakers (`soundboard_monitor_set`). */
+export const soundboardMonitorSet = (on: boolean) => invoke<void>('soundboard_monitor_set', { on });
+
 /** The picture on the system clipboard as base64 PNG, or `null` if there is none (`clipboard_picture`). */
 export const clipboardPicture = () => invoke<string | null>('clipboard_picture');
 

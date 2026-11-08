@@ -106,6 +106,7 @@ if (isEntryPoint) {
     parties,
     onRecordingChange: (change) => capture?.onRecordingChange(change),
     onRecordingAck: (campaignId) => capture?.onAck(campaignId),
+    onTableEvent: (campaignId, type, data) => capture?.onTableEvent(campaignId, type, data),
   });
   hubRef.current = hub;
   if (config.recordingsDir !== undefined && pool !== undefined) {

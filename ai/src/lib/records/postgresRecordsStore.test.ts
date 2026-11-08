@@ -59,6 +59,32 @@ describe.skipIf(TEST_DATABASE_URL === undefined)('PostgresRecordsStore', () => {
     expect((await store.listTracks(recordingId))[0]?.transcribedAt).toBe(9000);
   });
 
+  it('keeps the timeline in order, with the detail of sound and scene events', async () => {
+    await store.addRecordingEvent({ recordingId, at: 10, event: 'started' });
+    await store.addRecordingEvent({
+      recordingId,
+      at: 20,
+      event: 'sound',
+      detail: { action: 'play', soundId: 's1', mode: 'oneshot' },
+    });
+    await store.addRecordingEvent({
+      recordingId,
+      at: 30,
+      event: 'scene',
+      detail: { action: 'start', name: 'Crypt' },
+    });
+    expect(await store.listRecordingEvents(recordingId)).toEqual([
+      { recordingId, at: 10, event: 'started' },
+      {
+        recordingId,
+        at: 20,
+        event: 'sound',
+        detail: { action: 'play', soundId: 's1', mode: 'oneshot' },
+      },
+      { recordingId, at: 30, event: 'scene', detail: { action: 'start', name: 'Crypt' } },
+    ]);
+  });
+
   it('replaces an earlier transcript rather than appending to it', async () => {
     const t = track();
     await store.putTrack(t);

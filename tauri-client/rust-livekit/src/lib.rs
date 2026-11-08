@@ -62,6 +62,8 @@ struct ActiveRoom {
     microphone_track: LocalAudioTrack,
     /// Published the first time a character voice is chosen; kept (muted) after that.
     fx_track: Option<LocalAudioTrack>,
+    /// The DM's sound effects, published the first time one plays (see `VoicePath`).
+    sound_track: Option<LocalAudioTrack>,
 }
 
 /// A voice session that keeps itself alive: if the network drops or the machine sleeps, it
@@ -240,6 +242,24 @@ impl VoiceControl {
             }
         }
         self.reapply().map_err(LiveKitError::Audio)
+    }
+
+    /// Makes sure the soundboard track is published, and returns where to send the effects mix. Only
+    /// the DM calls this. Works with no room (a DM who has not joined voice): the sink then goes nowhere
+    /// until the next join publishes the track.
+    pub async fn sound_sink(&self) -> Result<sound::SoundSink, LiveKitError> {
+        self.voice_path.want_sound();
+        let missing = lock(&self.active)
+            .as_ref()
+            .filter(|a| a.sound_track.is_none())
+            .map(|a| a.room.clone());
+        if let Some(room) = missing {
+            let track = publish_sound_track(&room, &self.voice_path).await?;
+            if let Some(active) = lock(&self.active).as_mut() {
+                active.sound_track = Some(track);
+            }
+        }
+        Ok(self.voice_path.sound_sink())
     }
 
     pub fn voice_effect(&self) -> Voice {
@@ -424,14 +444,42 @@ async fn join_once(
         eprintln!("[rust-livekit] {message}");
     }
 
+    let sound_track = if voice_path.sound_wanted() {
+        Some(publish_sound_track(&room, voice_path).await?)
+    } else {
+        None
+    };
+
     Ok((
         ActiveRoom {
             room,
             microphone_track,
             fx_track,
+            sound_track,
         },
         events,
     ))
+}
+
+/// The name of the DM's effects track; the backend never records a track with this name.
+pub const SOUNDBOARD_TRACK_NAME: &str = "soundboard";
+
+async fn publish_sound_track(
+    room: &Arc<Room>,
+    voice_path: &Arc<VoicePath>,
+) -> Result<LocalAudioTrack, LiveKitError> {
+    let track =
+        LocalAudioTrack::create_audio_track(SOUNDBOARD_TRACK_NAME, voice_path.sound_rtc_source());
+    room.local_participant()
+        .publish_track(
+            LocalTrack::Audio(track.clone()),
+            TrackPublishOptions {
+                source: TrackSource::Unknown,
+                ..Default::default()
+            },
+        )
+        .await?;
+    Ok(track)
 }
 
 async fn publish_fx_track(

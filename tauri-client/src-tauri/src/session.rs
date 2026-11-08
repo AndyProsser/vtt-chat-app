@@ -201,8 +201,17 @@ pub async fn start_session(
                             .record(&value, retain);
                         let _ = app.emit(crate::bridge::SYNC_EVENT, value);
                     }
-                    if let rust_sync::ServerEvent::Table { t, data } = server_event {
-                        crate::soundboard::on_table(&app, t, data).await;
+                    match server_event {
+                        rust_sync::ServerEvent::Snapshot { data, .. } => {
+                            crate::soundboard::note_roster(&app, data).await;
+                        }
+                        rust_sync::ServerEvent::Table { t, data } => {
+                            if t == "roster.update" {
+                                crate::soundboard::note_roster(&app, data).await;
+                            }
+                            crate::soundboard::on_table(&app, t, data).await;
+                        }
+                        _ => {}
                     }
                 }
                 shell.lock().await.handle(event, SystemTime::now()).await;

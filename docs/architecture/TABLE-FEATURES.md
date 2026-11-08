@@ -105,21 +105,34 @@ crossfades, hotkeys, and a public broadcast link (players hear it in the app).
 - **The server picks the take** and tells everyone which one, so all clients hear the same recording.
   **The server also runs random layers** on a timer (not the DM's client), so a scene keeps going if the
   DM's app sleeps, and every client gets identical events.
-- **Clients play locally** with their own cue player after fetching the take
-  (`GET /api/campaigns/:id/sounds/takes/:takeId/file`: only for members of a campaign whose DM owns that
-  sound). It never goes through the SFU, so it is never in a recording.
+- **The DM's app plays them, into the call** (changed 2026-11-08 to fix echo; see below). Only the DM's
+  client fetches the take (`GET /api/campaigns/:id/sounds/takes/:takeId/file`), mixes it in Rust and sends
+  the mix on its own published LiveKit track named `soundboard`, so every player hears effects through the
+  call. Other clients ignore `sound.*` frames. **They are never in a recording**: the backend skips the
+  `soundboard` track (`recordableTracks`), and the recording's timeline instead gets a **metadata entry**
+  (`sound` / `scene` events with ids, mode, scene name) while audio is being captured.
 - **Catching up:** `sound.state` (running loops you can hear, the scene, master volume, gains) follows every
   snapshot and every replay, so a late joiner or a reconnect hears the same table.
 - State is in memory; a server restart ends the scene (the DM starts it again). When the last person
   leaves a table its timers stop.
-- **Player side (built, Stage 4):** `src-tauri/src/soundboard.rs` turns each frame into actions (a pure,
-  tested `plan`), fetches the take (cached on disk by take id — takes never change), decodes it with
-  symphonia to mono at the output device's rate and mixes it in `rust-livekit/src/sound/`. The
-  effective gain is the play's volume × the take's level × the DM's table volume × the DM's gain for
-  _this_ player. `sound.state` after a (re)connect stops everything and rebuilds from the server's
-  truth; a stop that arrives while a clip is still downloading cancels that play. The output stream is
-  opened only while something plays and released ~3 s after the last sound, so an idle app holds no
-  audio device. The DM panel (boards, scenes, stop all, table volume) is in the tray menu.
+- **DM side (built):** `src-tauri/src/soundboard.rs` turns each frame into actions (a pure, tested `plan`),
+  learns "am I the DM" from the roster (`self_is_dm`), fetches the take (cached on disk by take id), decodes
+  it with symphonia to **48 kHz mono** and hands it to `rust-livekit/src/sound/`: a mixer on its own 10 ms
+  clock that feeds two places — the **sink** (the published `soundboard` track, via a `NativeAudioSource`)
+  and the **monitor** (the DM's own speakers, optional: Settings → General). The monitor output is opened
+  only while something plays and released ~3 s after the last sound. A stop that arrives while a clip is
+  still downloading cancels that play; `sound.state` after a reconnect rebuilds from the server's truth.
+- **Why this shape (the echo):** a player's own speaker-playback of effects was invisible to WebRTC's echo
+  cancellation, so a player on speakers with an open mic sent every effect back into the call and
+  everyone heard it twice. Sent *through* the call, effects arrive by the same path as voices, which
+  WebRTC cancels. **Trade-offs:** effects are heard only if the DM is in voice; per-player gains and
+  per-player targets (`to`) no longer apply (one track for everyone, and the DM's group routing still
+  decides who hears the DM); the DM on speakers with an open mic can still echo their own effects into
+  their own microphone, so the DM should use headphones or turn the monitor off.
+- **Verified:** an ignored integration test (`the_soundboard_track_reaches_other_participants`) publishes
+  the track against a real `livekit-server`, and a listener (`scripts/dev/listen-soundboard.ts`, a mock
+  player) received it at the right level for the right length. Whether it *sounds* right (pitch steadiness
+  after Opus and the jitter buffer, latency, the DM's monitor sync) needs ears.
 - **Not built:** the board/scene _editor_ UI (the library is edited through the API for now) and
   uploading clips from the app.
 

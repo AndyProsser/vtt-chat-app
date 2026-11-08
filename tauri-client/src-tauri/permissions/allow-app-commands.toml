@@ -31,4 +31,5 @@ commands.allow = [
   "campaign_file",
   "handout_upload",
   "clipboard_picture",
+  "soundboard_monitor_set",
 ]

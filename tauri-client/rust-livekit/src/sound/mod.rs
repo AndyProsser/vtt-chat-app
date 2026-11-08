@@ -7,4 +7,4 @@ mod engine;
 pub mod mixer;
 
 pub use decode::decode_to_mono;
-pub use engine::{output_sample_rate, SoundEngine};
+pub use engine::{due_blocks, MonitorRing, SoundEngine, SoundSink, BLOCK, SAMPLE_RATE};

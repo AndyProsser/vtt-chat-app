@@ -94,6 +94,7 @@ pub fn run() {
             account_commands::campaign_api,
             account_commands::handout_upload,
             clipboard::clipboard_picture,
+            soundboard::soundboard_monitor_set,
             account_commands::campaign_file
         ])
         .setup(|app| {

@@ -1,16 +1,23 @@
 import { getVersion } from '@tauri-apps/api/app';
 import { useEffect, useState } from 'react';
 
+import { readMonitorPref, writeMonitorPref } from '../../lib/monitorPref.js';
 import { useUpdate } from '../../hooks/useUpdate.js';
 import { updateMessage } from '../../lib/updateInfo.js';
 
-import { accountErrorMessage, autostartEnabled, autostartSet } from '../../lib/tauriBridge.js';
+import {
+  accountErrorMessage,
+  autostartEnabled,
+  autostartSet,
+  soundboardMonitorSet,
+} from '../../lib/tauriBridge.js';
 
 /** Start with the computer. Off until chosen; started at login it opens to the tray only. */
 export function GeneralSection() {
   const [enabled, setEnabled] = useState<boolean>();
   const [error, setError] = useState<string>();
   const update = useUpdate(false);
+  const [monitor, setMonitor] = useState(readMonitorPref);
   const [version, setVersion] = useState<string>();
   const [checked, setChecked] = useState(false);
   useEffect(() => {
@@ -36,6 +43,21 @@ export function GeneralSection() {
           }}
         />
         Start VTT Chat when I log in (to the tray, window hidden)
+      </label>
+      <label
+        className="vtt-volume"
+        title="DM only: everyone else already hears effects through the call"
+      >
+        <input
+          type="checkbox"
+          checked={monitor}
+          onChange={(e) => {
+            setMonitor(e.target.checked);
+            writeMonitorPref(e.target.checked);
+            void soundboardMonitorSet(e.target.checked).catch(() => undefined);
+          }}
+        />
+        DM: hear sound effects on my own speakers too (turn off if you use speakers)
       </label>
       <div className="vtt-drawer-row">
         <span className="vtt-muted">VTT Chat {version ?? ''}</span>

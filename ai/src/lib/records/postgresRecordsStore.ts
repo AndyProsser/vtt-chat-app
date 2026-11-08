@@ -78,20 +78,21 @@ export class PostgresRecordsStore implements RecordsStore {
 
   async addRecordingEvent(e: RecordingEvent): Promise<void> {
     await this.pool.query(
-      'INSERT INTO recording_events (recording_id, at, event) VALUES ($1, $2, $3)',
-      [e.recordingId, e.at, e.event],
+      'INSERT INTO recording_events (recording_id, at, event, detail) VALUES ($1, $2, $3, $4)',
+      [e.recordingId, e.at, e.event, e.detail ? JSON.stringify(e.detail) : null],
     );
   }
 
   async listRecordingEvents(recordingId: string): Promise<RecordingEvent[]> {
     const { rows } = await this.pool.query<Row>(
-      'SELECT at, event FROM recording_events WHERE recording_id = $1 ORDER BY at, id',
+      'SELECT at, event, detail FROM recording_events WHERE recording_id = $1 ORDER BY at, id',
       [recordingId],
     );
     return rows.map((r) => ({
       recordingId,
       at: r.at as number,
       event: r.event as RecordingEventName,
+      ...(r.detail ? { detail: r.detail as Record<string, unknown> } : {}),
     }));
   }
 

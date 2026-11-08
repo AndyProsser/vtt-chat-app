@@ -51,6 +51,8 @@ export interface HubOptions {
   /** Told after every recording change and every acknowledgement (the audio capture follows these). */
   onRecordingChange?: (change: RecordingChange) => void;
   onRecordingAck?: (campaignId: string, recordingId: string, userId: string) => void;
+  /** Told about every soundboard frame sent to a table, for the recording's timeline. */
+  onTableEvent?: (campaignId: string, type: string, data: unknown) => void;
   /** The DM's sound library, to play from. Omit and the soundboard frames are refused. */
   sounds?: SoundStore;
   /** Stored notifications, delivered in the snapshot on connect. */
@@ -105,13 +107,15 @@ export class Hub {
           sounds: options.sounds,
           now: options.now ?? Date.now,
           events: {
-            emit: (campaignId, type, data, only) =>
+            emit: (campaignId, type, data, only) => {
+              options.onTableEvent?.(campaignId, type, data);
               this.broadcast(
                 campaignId,
                 type,
                 data,
                 only ? { only: (s) => s.auth !== null && only.has(s.auth.user.id) } : {},
-              ),
+              );
+            },
           },
         })
       : undefined;

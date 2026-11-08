@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { useAccount } from '../hooks/useAccount.js';
 import { usePanelBridge } from '../hooks/usePanelBridge.js';
 import { useTableFeed } from '../hooks/useTableFeed.js';
 import { gateState } from '../lib/gate.js';
+import { readMonitorPref } from '../lib/monitorPref.js';
+import { soundboardMonitorSet } from '../lib/tauriBridge.js';
 import { isDm } from '../lib/tableModel.js';
 import { useTableStore } from '../lib/tableStore.js';
 import { AvatarRail } from './AvatarRail.js';
@@ -29,6 +31,10 @@ function Table({ selfId }: { selfId: string | null }) {
   const members = useTableStore((s) => s.members);
   const dm = isDm(members, selfId);
   const [drawer, setDrawer] = useState(false);
+  // Tell the sound engine whether this DM wants to hear effects locally (their saved choice).
+  useEffect(() => {
+    void soundboardMonitorSet(readMonitorPref()).catch(() => undefined);
+  }, []);
   return (
     <div className="vtt-main">
       <TopBar dm={dm} effectsOpen={drawer} onToggleEffects={() => setDrawer((d) => !d)} />

@@ -196,6 +196,7 @@ describe.skipIf(TEST_DATABASE_URL === undefined)('migrate', () => {
         '0012_session_duration.sql',
         '0013_loot_types.sql',
         '0014_loot_assigned.sql',
+        '0015_recording_event_detail.sql',
       ]);
       expect(await migrate(pool)).toEqual([]);
     } finally {

@@ -116,6 +116,42 @@ describe('RecordingCapture', () => {
     expect((await records.listRecordingEvents(REC)).map((e) => e.event)).toEqual(['started']);
   });
 
+  it('notes which effects and scenes were played in the recording\'s timeline, but not their audio', async () => {
+    capture.onRecordingChange(change('STARTED'));
+    await capture.idle();
+    time += 2_000;
+    capture.onTableEvent(CAMPAIGN, 'sound.play', {
+      playId: 'p1',
+      soundId: 's1',
+      takeId: 't1',
+      mode: 'oneshot',
+      volume: 0.8,
+      targets: undefined,
+    });
+    capture.onTableEvent(CAMPAIGN, 'scene.started', { sceneId: 'sc1', name: 'Crypt' });
+    capture.onTableEvent(CAMPAIGN, 'scene.stopped', { sceneId: 'sc1' });
+    capture.onTableEvent(CAMPAIGN, 'chat.message', { text: 'not a sound' });
+    await capture.idle();
+    const events = await records.listRecordingEvents(REC);
+    expect(events.map((e) => e.event)).toEqual(['started', 'sound', 'scene', 'scene']);
+    expect(events[1]).toMatchObject({
+      at: 1_002_000,
+      detail: { action: 'play', soundId: 's1', takeId: 't1', mode: 'oneshot', volume: 0.8 },
+    });
+    expect(events[2]?.detail).toEqual({ action: 'start', sceneId: 'sc1', name: 'Crypt' });
+    expect(events[3]?.detail).toMatchObject({ action: 'stop' });
+  });
+
+  it('does not log effects while nothing is recording or while the recording is paused', async () => {
+    capture.onTableEvent(CAMPAIGN, 'sound.play', { soundId: 's0' });
+    capture.onRecordingChange(change('STARTED'));
+    capture.onRecordingChange(change('PAUSED'));
+    await capture.idle();
+    capture.onTableEvent(CAMPAIGN, 'sound.play', { soundId: 's1' });
+    await capture.idle();
+    expect((await records.listRecordingEvents(REC)).map((e) => e.event)).toEqual(['started', 'paused']);
+  });
+
   it('does not record a player until they have acknowledged the start cue', async () => {
     publish('alice');
     capture.onRecordingChange(change('STARTED'));
