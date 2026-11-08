@@ -130,3 +130,12 @@ Each is one constant or setting; change freely.
 ## Tauri version
 
 On Tauri 2.12.5 (plugins: window-state 2.5, global-shortcut 2.4; `@tauri-apps/api` ^2.12). **Tauri 3 is alpha only** (`3.0.0-alpha.x` on crates.io and npm `next`), so we stay on 2.x until it has a stable release. The earlier "rustc ICE in json-patch" that blocked 2.12 was a corrupt `target/` cache, not the toolchain; a full `cargo clean` fixed it. If `rustc unexpectedly panicked` appears after a dependency bump, clean before concluding anything.
+
+## Stage 4 additions (2026-11-08)
+
+- **Idle cost, measured:** the debug build hidden in the tray (no window open) used **0.07% CPU over 30 s** and ~94 MB RSS. The release build and a 4-hour run are not measured — `tauri-client/scripts/soak.sh` records CPU/RSS per minute for that.
+- **Crash recovery:** `src-tauri/src/supervisor.rs`. Release builds (or `VTT_SUPERVISE=1`) run a supervisor that restarts the app after an abnormal exit; verified live by SIGKILLing the child (restarted in 1 s). `VTT_NO_SUPERVISE=1` opts out. A clean exit (tray Quit) ends both. Not verified: a real native crash (SIGSEGV from the shell was swallowed by the process's own handlers), or the Quit path through the tray.
+- **Links and autostart:** `vtt-chat://connect?server=…` registers on Linux at start (`~/.local/share/applications/vtt-chat-app-handler.desktop`); firing one at the running app kept a single instance. Installed builds on Windows/macOS register the scheme through the bundle (no installer is built yet). Autostart is a Settings toggle, off by default; verified only by compiling and the plugin's own behaviour, not by logging out and in.
+- **Hardened:** server addresses are now validated as `host[:port]` (`javascript:alert(1)` used to be accepted as a host).
+- **Connection screen:** `LinkProbe` reads WebRTC's remote-inbound report (RTT, jitter, loss); unit-tested on constructed stats, **not yet seen against a real LiveKit server** (none is installed on the dev box).
+- **Open decision — auto-update:** needs (1) a signing key pair (the private key must be kept secret and backed up) and (2) somewhere that serves `latest.json` plus the installers. For a self-hosted project the natural place is the operator's own backend (`CLIENT_URL_*`), but then the *server* decides which client binary players run. Not built until chosen.

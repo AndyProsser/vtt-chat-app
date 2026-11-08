@@ -12,6 +12,7 @@ mod recording;
 mod session;
 mod shell;
 mod soundboard;
+pub mod supervisor;
 mod tray;
 mod windows;
 
