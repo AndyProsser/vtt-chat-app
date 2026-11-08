@@ -31,6 +31,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::livekit_connect,
             commands::livekit_disconnect,
+            commands::voice_connect,
             commands::hotkey_action,
             commands::set_microphone_muted,
             commands::panel_hydrate,

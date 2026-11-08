@@ -45,6 +45,11 @@ export function connectLiveKit(url: string, token: string): Promise<void> {
   return invoke('livekit_connect', { url, token });
 }
 
+/** Joins voice with the signed-in account (`voice_connect`); chat does not need it. */
+export function voiceConnect(): Promise<void> {
+  return invoke('voice_connect');
+}
+
 export function disconnectLiveKit(): Promise<void> {
   return invoke('livekit_disconnect');
 }

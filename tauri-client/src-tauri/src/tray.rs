@@ -94,6 +94,7 @@ const TRAY_ID: &str = "main";
 const MENU_TOGGLE_MUTE: &str = "toggle_mute";
 const MENU_QUIT: &str = "quit";
 const MENU_SHOW: &str = "show";
+const MENU_TOGGLE_VOICE: &str = "toggle_voice";
 
 /// Creates the tray icon (disconnected until the session says otherwise) with a menu:
 /// show the window, mute/unmute, and quit. Muting from the tray works without any panel (usable without a mouse
@@ -104,8 +105,15 @@ pub fn install(app: &tauri::AppHandle) -> tauri::Result<()> {
 
     let show = MenuItem::with_id(app, MENU_SHOW, "Show VTT Chat", true, None::<&str>)?;
     let toggle = MenuItem::with_id(app, MENU_TOGGLE_MUTE, "Mute / unmute", true, None::<&str>)?;
+    let voice = MenuItem::with_id(
+        app,
+        MENU_TOGGLE_VOICE,
+        "Connect / disconnect voice",
+        true,
+        None::<&str>,
+    )?;
     let quit = MenuItem::with_id(app, MENU_QUIT, "Quit", true, None::<&str>)?;
-    let menu = Menu::with_items(app, &[&show, &toggle, &quit])?;
+    let menu = Menu::with_items(app, &[&show, &toggle, &voice, &quit])?;
     let state = TrayState::Disconnected;
     TrayIconBuilder::with_id(TRAY_ID)
         .icon(icon_image(state))
@@ -118,6 +126,7 @@ pub fn install(app: &tauri::AppHandle) -> tauri::Result<()> {
             MENU_SHOW => {
                 let _ = crate::windows::open_main(app);
             }
+            MENU_TOGGLE_VOICE => crate::commands::toggle_voice(app),
             MENU_QUIT => app.exit(0),
             _ => {}
         })

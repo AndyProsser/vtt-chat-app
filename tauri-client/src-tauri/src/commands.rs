@@ -14,6 +14,18 @@ struct LiveKitStatePayload {
     participant_identities: Vec<String>,
 }
 
+impl LiveKitStatePayload {
+    /// What panels see after the player leaves voice on purpose (the client is gone, so it cannot
+    /// report its own disconnect).
+    fn left_voice() -> Self {
+        Self {
+            connected: false,
+            room_name: None,
+            participant_identities: Vec::new(),
+        }
+    }
+}
+
 impl From<ConnectionState> for LiveKitStatePayload {
     fn from(state: ConnectionState) -> Self {
         Self {
@@ -79,7 +91,26 @@ pub async fn livekit_disconnect(
         client.disconnect().await.map_err(|err| err.to_string())?;
     }
     crate::session::announce_voice_state(&app, Some(false));
+    let _ = app.emit("livekit:state", LiveKitStatePayload::left_voice());
     Ok(())
+}
+
+/// Joins voice using the signed-in account (the Connect button and the tray item). Chat keeps
+/// working without it, so this is separate from sign-in. Already connected is not an error.
+#[tauri::command]
+pub async fn voice_connect(
+    app: AppHandle,
+    accounts: State<'_, crate::account_commands::AccountState>,
+) -> Result<(), String> {
+    if app.state::<SharedClient>().lock().unwrap().is_some() {
+        return Ok(());
+    }
+    let (server, token, campaign_id) = accounts.credentials().await.map_err(|e| e.message)?;
+    let (url, voice_token) = crate::account::AccountClient::new(&server)
+        .voice_token(&token, &campaign_id)
+        .await
+        .map_err(|e| e.message)?;
+    connect_voice(&app, &url, &voice_token).await
 }
 
 /// Delivery path 2 for hotkeys: a panel page's key handler calls this when it sees one of the
@@ -143,4 +174,34 @@ pub fn chat_send(
             None => rust_sync::chat_frame(campaign_id, &text),
         })
     })
+}
+
+/// The tray's "Connect / disconnect voice": joins if not in voice, leaves if in it. Runs on the async
+/// runtime because both directions are network calls.
+pub fn toggle_voice(app: &AppHandle) {
+    let app = app.clone();
+    tauri::async_runtime::spawn(async move {
+        let in_voice = app.state::<SharedClient>().lock().unwrap().is_some();
+        let result = if in_voice {
+            livekit_disconnect(app.clone(), app.state::<SharedClient>()).await
+        } else {
+            voice_connect(app.clone(), app.state()).await
+        };
+        if let Err(err) = result {
+            eprintln!("[src-tauri] voice toggle failed: {err}");
+        }
+    });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn leaving_voice_reports_a_disconnected_empty_room() {
+        let payload = LiveKitStatePayload::left_voice();
+        assert!(!payload.connected);
+        assert!(payload.room_name.is_none());
+        assert!(payload.participant_identities.is_empty());
+    }
 }

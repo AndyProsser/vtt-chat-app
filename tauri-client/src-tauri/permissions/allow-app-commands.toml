@@ -6,6 +6,7 @@ description = "Allows local panel pages to invoke this app's own custom commands
 commands.allow = [
   "livekit_connect",
   "livekit_disconnect",
+  "voice_connect",
   "hotkey_action",
   "set_microphone_muted",
   "panel_hydrate",
