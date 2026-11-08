@@ -27,7 +27,8 @@
     "dev": "node scripts/dev.ts",
     "dev:seed": "node scripts/dev/seed.ts",
     "dev:mock": "node scripts/dev/mock-table.ts",
-    "srd:build": "node scripts/srd/build.ts"
+    "srd:build": "node scripts/srd/build.ts",
+    "sounds:import": "node scripts/sounds/import.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
