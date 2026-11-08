@@ -1,9 +1,8 @@
-import { AudioLines, Settings, Volume2, VolumeX } from 'lucide-react';
+import { AudioLines, Backpack, FileText, Settings, Volume2, VolumeX } from 'lucide-react';
 
 import { useVoice } from '../hooks/useVoice.js';
 import { panelOpen } from '../lib/tauriBridge.js';
 import { CampaignSwitcher } from './CampaignSwitcher.js';
-import { ConnectionMenu } from './ConnectionMenu.js';
 import { GroupsMenu } from './GroupsMenu.js';
 import { RecordingIndicator } from './RecordingIndicator.js';
 import { ToolButton } from './ToolButton.js';
@@ -24,7 +23,6 @@ export function TopBar({ dm, effectsOpen, onToggleEffects }: Props) {
       <RecordingIndicator dm={dm} />
       <span className="vtt-spacer" />
       {dm && <GroupsMenu />}
-      {dm && <ConnectionMenu />}
       {dm && (
         <ToolButton
           label="Sound effects and voices"
@@ -34,6 +32,12 @@ export function TopBar({ dm, effectsOpen, onToggleEffects }: Props) {
           <AudioLines size={15} />
         </ToolButton>
       )}
+      <ToolButton label="Handouts" onClick={() => void panelOpen('handouts')}>
+        <FileText size={15} />
+      </ToolButton>
+      <ToolButton label="Party inventory" onClick={() => void panelOpen('inventory')}>
+        <Backpack size={15} />
+      </ToolButton>
       <ToolButton
         label={
           voice.error ??

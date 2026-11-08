@@ -27,6 +27,8 @@ export interface DropInput {
   itemType?: string;
   rarity?: string | null;
   srdId?: string;
+  /** Give it straight to this player (a player of the campaign) instead of leaving it in the pool. */
+  assignTo?: string;
 }
 
 export interface LootDeps {
@@ -138,11 +140,30 @@ export class LootService {
     return rerollDraft(draft, cr);
   }
 
+  /** Every recipient must be a player of this campaign; checked before anything is stored. */
+  private async requirePlayers(campaignId: string, ids: string[]): Promise<void> {
+    for (const id of new Set(ids)) {
+      const m = await this.deps.store.getMembership(campaignId, id);
+      if (!m || m.role !== 'player') {
+        throw new DomainError(
+          'invalid_input',
+          'an item can only be given to a player in this campaign',
+        );
+      }
+    }
+  }
+
+  private async store(item: LootItem, assignTo: string | undefined): Promise<LootItem> {
+    await this.deps.table.putLoot(item);
+    if (assignTo === undefined) return item;
+    return (await this.deps.table.claimLoot(item.id, assignTo, this.now(), 'assigned')) ?? item;
+  }
+
   async drop(user: User, campaignId: string, input: DropInput): Promise<LootItem> {
     await this.requireDm(user, campaignId);
     const item = this.build(user, campaignId, input);
-    await this.deps.table.putLoot(item);
-    return item;
+    if (input.assignTo !== undefined) await this.requirePlayers(campaignId, [input.assignTo]);
+    return this.store(item, input.assignTo);
   }
 
   /** Drops several at once: every entry is checked first, so a bad one means none are dropped. */
@@ -152,8 +173,14 @@ export class LootService {
       throw new DomainError('invalid_input', 'drop between 1 and 50 things at a time');
     }
     const items = inputs.map((input) => this.build(user, campaignId, input));
-    for (const item of items) await this.deps.table.putLoot(item);
-    return items;
+    await this.requirePlayers(
+      campaignId,
+      inputs.flatMap((i) => (i.assignTo === undefined ? [] : [i.assignTo])),
+    );
+    const stored: LootItem[] = [];
+    for (const [index, item] of items.entries())
+      stored.push(await this.store(item, inputs[index]!.assignTo));
+    return stored;
   }
 
   /**

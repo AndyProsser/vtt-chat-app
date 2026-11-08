@@ -23,6 +23,7 @@ const dropBody = z.object({
   itemType: z.string().max(40).optional(),
   rarity: z.string().max(40).nullable().optional(),
   srdId: z.string().max(100).optional(),
+  assignTo: z.string().min(1).max(64).optional(),
 });
 const batchBody = z.object({ items: z.array(dropBody).max(50) });
 // A POST (a read-only search) so the tray app's REST relay, which refuses query strings, can reach it.
@@ -101,7 +102,10 @@ export function lootRoutes(deps: LootRouteDeps): Router {
   router.post('/batch', async (req, res) => {
     const body = batchBody.parse(req.body);
     const items = await loot.dropMany(authOf(res).user, campaign(req), body.items);
-    for (const item of items) deps.onChange?.('dropped', item);
+    for (const item of items) {
+      deps.onChange?.('dropped', item);
+      if (item.claimedBy) deps.onChange?.('claimed', item);
+    }
     res.status(201).json({ items });
   });
 
@@ -109,6 +113,7 @@ export function lootRoutes(deps: LootRouteDeps): Router {
     const body = dropBody.parse(req.body);
     const item = await loot.drop(authOf(res).user, campaign(req), body);
     deps.onChange?.('dropped', item);
+    if (item.claimedBy) deps.onChange?.('claimed', item);
     res.status(201).json({ item });
   });
 

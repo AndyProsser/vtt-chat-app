@@ -40,6 +40,7 @@ export function batchBody(drafts: LootDraft[]): { items: Record<string, unknown>
       rarity: d.rarity,
       ...(d.description ? { description: d.description } : {}),
       ...(d.srdId ? { srdId: d.srdId } : {}),
+      ...(d.assignTo ? { assignTo: d.assignTo } : {}),
     })),
   };
 }
@@ -49,4 +50,12 @@ export function replaceAt<T>(list: T[], index: number, next: T | undefined): T[]
   return next === undefined
     ? list.filter((_, i) => i !== index)
     : list.map((x, i) => (i === index ? next : x));
+}
+
+/** The draft given to `userId`, or back to the pool when `userId` is blank. */
+export function withAssignee(draft: LootDraft, userId: string): LootDraft {
+  const next: LootDraft = { ...draft };
+  if (userId) next.assignTo = userId;
+  else delete next.assignTo;
+  return next;
 }

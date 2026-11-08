@@ -1,10 +1,21 @@
-import { Eye, EyeOff, FileText, ImagePlus, Plus, Search, Trash2, X } from 'lucide-react';
+import {
+  ClipboardPaste,
+  Eye,
+  EyeOff,
+  FileText,
+  ImagePlus,
+  Plus,
+  Search,
+  Trash2,
+  X,
+} from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { useAccount } from '../hooks/useAccount.js';
 import { useCampaignQuery } from '../hooks/useCampaignQuery.js';
 import { useTableFeed } from '../hooks/useTableFeed.js';
 import {
+  fileFromBase64,
   fileToBase64,
   imageFromClipboard,
   isShared,
@@ -18,6 +29,7 @@ import {
   accountErrorMessage,
   campaignApi,
   campaignFile,
+  clipboardPicture,
   handoutUpload,
 } from '../lib/tauriBridge.js';
 import type { Handout } from '../types/index.js';
@@ -130,6 +142,43 @@ function NewHandout({ onDone, onError }: { onDone: () => void; onError: (m: stri
     setTitle((t) => t || pastedTitle(new Date()));
   }
 
+  /** Reads the picture straight from the system clipboard (the webview's own paste is unreliable for images). */
+  async function pasteFromClipboard(quiet = false) {
+    try {
+      const png = await clipboardPicture();
+      if (png) take(fileFromBase64(png, 'image/png', 'pasted.png'));
+      else if (!quiet) onError('There is no picture on the clipboard.');
+    } catch (e) {
+      if (!quiet) onError(accountErrorMessage(e));
+    }
+  }
+
+  // Ctrl+V anywhere in the window: use the webview's paste if it carries a picture, else ask Rust.
+  useEffect(() => {
+    let handled = false;
+    const onPaste = (e: ClipboardEvent) => {
+      const file = imageFromClipboard(e.clipboardData?.items ?? [], e.clipboardData?.files);
+      if (file) {
+        handled = true;
+        take(file);
+      }
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== 'v') return;
+      handled = false;
+      window.setTimeout(() => {
+        if (!handled) void pasteFromClipboard(true);
+      }, 150);
+    };
+    document.addEventListener('paste', onPaste);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('paste', onPaste);
+      document.removeEventListener('keydown', onKey);
+    };
+    // `take` and `pasteFromClipboard` only set state; the listeners must not be rebuilt on every keystroke.
+  }, []);
+
   async function create() {
     setBusy(true);
     try {
@@ -160,7 +209,6 @@ function NewHandout({ onDone, onError }: { onDone: () => void; onError: (m: stri
     <section
       className="vtt-workbench"
       aria-label="New handout"
-      onPaste={(e) => take(imageFromClipboard(e.clipboardData.items))}
       onDragOver={(e) => e.preventDefault()}
       onDrop={(e) => {
         const file = [...e.dataTransfer.files].find((f) => f.type.startsWith('image/'));
@@ -212,9 +260,18 @@ function NewHandout({ onDone, onError }: { onDone: () => void; onError: (m: stri
             hidden
             onChange={(e) => take(e.target.files?.[0])}
           />
-          <ToolButton label="Choose a file" onClick={() => chooser.current?.click()}>
-            <ImagePlus size={14} />
-          </ToolButton>
+          <div className="vtt-form-row">
+            <ToolButton
+              label="Paste the picture from the clipboard"
+              text="Paste"
+              onClick={() => void pasteFromClipboard()}
+            >
+              <ClipboardPaste size={14} />
+            </ToolButton>
+            <ToolButton label="Choose a file" onClick={() => chooser.current?.click()}>
+              <ImagePlus size={14} />
+            </ToolButton>
+          </div>
         </div>
       )}
       <div className="vtt-form-row">

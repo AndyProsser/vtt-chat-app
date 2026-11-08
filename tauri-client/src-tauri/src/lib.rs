@@ -2,6 +2,7 @@ mod account;
 mod account_commands;
 mod autostart;
 mod bridge;
+mod clipboard;
 mod commands;
 mod consts;
 mod deeplink;
@@ -92,6 +93,7 @@ pub fn run() {
             account_commands::recording_control,
             account_commands::campaign_api,
             account_commands::handout_upload,
+            clipboard::clipboard_picture,
             account_commands::campaign_file
         ])
         .setup(|app| {

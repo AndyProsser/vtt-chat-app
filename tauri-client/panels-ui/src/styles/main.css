@@ -684,16 +684,17 @@ body,
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 0;
+}
+.vtt-lane-list > li + li {
+  border-top: 1px solid var(--vtt-edge);
 }
 .vtt-person {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 3px 6px;
-  border-radius: var(--vtt-radius-control);
-  background: var(--vtt-bubble);
-  border: 1px solid var(--vtt-edge);
+  padding: 5px 6px;
+  border-radius: 0;
   cursor: grab;
   user-select: none;
   touch-action: none;
@@ -820,4 +821,8 @@ body,
   border-radius: var(--vtt-radius-control);
   background: color-mix(in srgb, #ff8a80 12%, transparent);
   font-size: 12px;
+}
+.vtt-rail-foot {
+  margin-top: auto;
+  padding-top: 8px;
 }

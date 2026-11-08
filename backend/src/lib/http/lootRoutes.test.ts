@@ -419,3 +419,28 @@ describe('the DM assigns loot to a player', () => {
     expect((await assign(dm.token, id, bob.id)).status).toBe(409);
   });
 });
+
+describe('dropping straight to a player', () => {
+  it('drops an item already given to a player, one by one or in a batch, announcing it as given', async () => {
+    const one = await drop(dm.token, { name: 'Moonblade', assignTo: alice.id });
+    expect(one.status).toBe(201);
+    expect(one.body.item).toMatchObject({ claimedBy: alice.id, claimedFor: 'assigned' });
+    const batch = await call('POST', `/api/campaigns/${campaign}/loot/batch`, dm.token, {
+      items: [{ name: 'Rope' }, { name: 'Torch', assignTo: bob.id }],
+    });
+    expect(batch.body.items[0]).toMatchObject({ claimedBy: null });
+    expect(batch.body.items[1]).toMatchObject({ claimedBy: bob.id, claimedFor: 'assigned' });
+    expect(events.filter((e) => e.event === 'claimed')).toHaveLength(2);
+  });
+
+  it('refuses a recipient who is not a player here, and drops nothing in that case', async () => {
+    const before = (await call('GET', `/api/campaigns/${campaign}/loot`, dm.token)).body.loot.length;
+    expect((await drop(dm.token, { name: 'x', assignTo: dm.id })).status).toBe(400);
+    expect((await drop(dm.token, { name: 'x', assignTo: outsider.id })).status).toBe(400);
+    const batch = await call('POST', `/api/campaigns/${campaign}/loot/batch`, dm.token, {
+      items: [{ name: 'fine' }, { name: 'bad', assignTo: 'nobody' }],
+    });
+    expect(batch.status).toBe(400);
+    expect((await call('GET', `/api/campaigns/${campaign}/loot`, dm.token)).body.loot).toHaveLength(before);
+  });
+});

@@ -3,7 +3,6 @@ import { useEffect, useMemo, useRef } from 'react';
 import { timeline } from '../lib/timeline.js';
 import { useTableStore } from '../lib/tableStore.js';
 import { ChatCard } from './ChatCard.js';
-import { ChatChips } from './ChatChips.js';
 import { ChatMessage } from './ChatMessage.js';
 
 /** The conversation; fills the space between the top bar and the composer, scrolling inside itself. */
@@ -28,7 +27,6 @@ export function ChatView({ selfId }: { selfId: string | null }) {
         )}
         <div ref={end} />
       </section>
-      <ChatChips />
     </>
   );
 }

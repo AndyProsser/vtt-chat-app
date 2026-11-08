@@ -162,6 +162,8 @@ export interface LootDraft {
   itemType: ItemType;
   rarity: Rarity | null;
   srdId?: string;
+  /** Give it straight to this player when dropped (client-side choice; not part of a roll). */
+  assignTo?: string;
 }
 
 export interface SrdItem {

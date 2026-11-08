@@ -29,13 +29,20 @@ interface ClipboardLike {
 }
 
 /** The first picture on the clipboard (a pasted screenshot or copied image), if any. */
-export function imageFromClipboard(items: ArrayLike<ClipboardLike>): File | undefined {
+export function imageFromClipboard(
+  items: ArrayLike<ClipboardLike>,
+  files?: ArrayLike<File>,
+): File | undefined {
   for (let i = 0; i < items.length; i += 1) {
     const item = items[i]!;
     if (item.kind === 'file' && item.type.startsWith('image/')) {
       const file = item.getAsFile();
       if (file) return file;
     }
+  }
+  // Some webviews put a pasted picture in `files` rather than `items`.
+  for (let i = 0; files && i < files.length; i += 1) {
+    if (files[i]!.type.startsWith('image/')) return files[i];
   }
   return undefined;
 }
@@ -55,4 +62,12 @@ export function fileToBase64(file: Blob): Promise<string> {
     reader.onload = () => resolve(String(reader.result).split(',')[1] ?? '');
     reader.readAsDataURL(file);
   });
+}
+
+/** A base64 string as a file of the given type (for a picture Rust read from the clipboard). */
+export function fileFromBase64(base64: string, type: string, name: string): File {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+  return new File([bytes], name, { type });
 }

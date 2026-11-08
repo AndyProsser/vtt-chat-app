@@ -82,7 +82,7 @@ export function LootPanel() {
           {problem}
         </div>
       )}
-      {dm && <LootWorkbench onDropped={reload} />}
+      {dm && <LootWorkbench onDropped={reload} players={players} />}
       <div className="vtt-form-row" role="radiogroup" aria-label="Show">
         {filtersFor(dm).map((f) => {
           const Icon = FILTER_ICON[f];

@@ -30,4 +30,5 @@ commands.allow = [
   "campaign_api",
   "campaign_file",
   "handout_upload",
+  "clipboard_picture",
 ]

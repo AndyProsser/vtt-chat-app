@@ -34,7 +34,7 @@ function Table({ selfId }: { selfId: string | null }) {
       <TopBar dm={dm} effectsOpen={drawer} onToggleEffects={() => setDrawer((d) => !d)} />
       <UpdateBanner />
       <div className="vtt-body">
-        <AvatarRail />
+        <AvatarRail dm={dm} />
         <div className="vtt-chat-col">
           {dm && drawer && (
             <aside className="vtt-drawer" aria-label="Sound effects">

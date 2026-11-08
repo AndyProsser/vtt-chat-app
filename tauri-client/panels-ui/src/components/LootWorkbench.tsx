@@ -2,9 +2,15 @@ import { Coins, Dices, Gem, PackagePlus, RotateCw, Search, X } from 'lucide-reac
 import { useState } from 'react';
 
 import { ITEM_TYPES, RARITIES, rarityLabel, typeLabel } from '../lib/itemStyle.js';
-import { batchBody, customDraft, draftFromItem, replaceAt } from '../lib/lootDraft.js';
+import {
+  batchBody,
+  customDraft,
+  draftFromItem,
+  replaceAt,
+  withAssignee,
+} from '../lib/lootDraft.js';
 import { accountErrorMessage, campaignApi } from '../lib/tauriBridge.js';
-import type { ItemType, LootDraft, Rarity, SrdItem } from '../types/index.js';
+import type { ItemType, LootDraft, Member, Rarity, SrdItem } from '../types/index.js';
 import { ItemIcon } from './ItemIcon.js';
 import { ToolButton } from './ToolButton.js';
 
@@ -13,7 +19,13 @@ import { ToolButton } from './ToolButton.js';
  * custom items — and nothing reaches the table until "Drop all": roll again, re-roll or remove any
  * entry, add more, then drop. Random rolls use our own treasure generator (docs/architecture/LOOT.md).
  */
-export function LootWorkbench({ onDropped }: { onDropped: () => void }) {
+export function LootWorkbench({
+  onDropped,
+  players,
+}: {
+  onDropped: () => void;
+  players: Member[];
+}) {
   const [drafts, setDrafts] = useState<LootDraft[]>([]);
   const [cr, setCr] = useState(5);
   const [lastKind, setLastKind] = useState<'individual' | 'hoard'>('hoard');
@@ -125,6 +137,20 @@ export function LootWorkbench({ onDropped }: { onDropped: () => void }) {
                 {d.kind === 'item' && d.quantity > 1 ? ` ×${d.quantity}` : ''}
                 {d.rarity ? <span className="vtt-muted"> · {rarityLabel(d.rarity)}</span> : null}
               </span>
+              <select
+                className="vtt-select"
+                aria-label={`Give ${d.name} to`}
+                title="Give it straight to a player, or leave it in the pool"
+                value={d.assignTo ?? ''}
+                onChange={(e) => setDrafts((l) => replaceAt(l, i, withAssignee(d, e.target.value)))}
+              >
+                <option value="">Pool</option>
+                {players.map((p) => (
+                  <option key={p.userId} value={p.userId}>
+                    {p.character?.name ?? p.displayName}
+                  </option>
+                ))}
+              </select>
               <ToolButton
                 label="Re-roll this one"
                 disabled={busy}

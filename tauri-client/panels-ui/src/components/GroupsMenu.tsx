@@ -110,7 +110,16 @@ export function GroupsMenu() {
             >
               <header className="vtt-lane-head">
                 {lane.id === null ? (
-                  <b>{lane.name}</b>
+                  <>
+                    <b>{lane.name}</b>
+                    <ToolButton
+                      label="Bring everyone back to the Main Party"
+                      disabled={!view.split}
+                      onClick={() => void send('party.reset', {})}
+                    >
+                      <Users size={13} />
+                    </ToolButton>
+                  </>
                 ) : (
                   <GroupName
                     name={lane.name}
@@ -159,15 +168,6 @@ export function GroupsMenu() {
           >
             <span className="vtt-muted">Drop a player here to start a new group</span>
           </section>
-          <div className="vtt-form-row">
-            <ToolButton
-              label="Bring everyone back to the Main Party"
-              disabled={!view.split}
-              onClick={() => void send('party.reset', {})}
-            >
-              <Users size={14} />
-            </ToolButton>
-          </div>
         </div>
         {drag &&
           createPortal(

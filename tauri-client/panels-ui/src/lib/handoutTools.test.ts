@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { Handout } from '../types/index.js';
 import {
+  fileFromBase64,
   imageFromClipboard,
   isShared,
   pastedTitle,
@@ -62,6 +63,11 @@ describe('imageFromClipboard', () => {
       imageFromClipboard([item('string', 'text/plain', null), item('file', 'image/png', png)]),
     ).toBe(png);
   });
+  it('also finds a picture in the files list when the items list has none', () => {
+    const png = file('image/png');
+    expect(imageFromClipboard([], [png])).toBe(png);
+    expect(imageFromClipboard([], [file('text/plain')])).toBeUndefined();
+  });
   it('ignores text, other files and an empty clipboard', () => {
     expect(imageFromClipboard([item('string', 'text/plain', null)])).toBeUndefined();
     expect(
@@ -74,5 +80,14 @@ describe('imageFromClipboard', () => {
 describe('pastedTitle', () => {
   it('names a pasted picture by the time, so the title is never blank', () => {
     expect(pastedTitle(new Date(2026, 10, 8, 16, 5))).toBe('Picture 8 Nov 16:05');
+  });
+});
+
+describe('fileFromBase64', () => {
+  it('turns base64 back into a file of the given type and size', () => {
+    const f = fileFromBase64(btoa('abc'), 'image/png', 'clip.png');
+    expect(f.type).toBe('image/png');
+    expect(f.name).toBe('clip.png');
+    expect(f.size).toBe(3);
   });
 });

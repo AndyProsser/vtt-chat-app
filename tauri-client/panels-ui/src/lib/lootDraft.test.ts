@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { LootDraft, SrdItem } from '../types/index.js';
-import { batchBody, customDraft, draftFromItem, replaceAt } from './lootDraft.js';
+import { batchBody, customDraft, draftFromItem, replaceAt, withAssignee } from './lootDraft.js';
 
 const potion: SrdItem = {
   id: 'potion-of-healing',
@@ -74,8 +74,24 @@ describe('drafts', () => {
     });
   });
 
+  it('passes along who a draft is to be given to', () => {
+    const draft: LootDraft = { ...draftFromItem(potion), assignTo: 'alice' };
+    expect(batchBody([draft]).items[0]).toMatchObject({ assignTo: 'alice' });
+    expect(batchBody([draftFromItem(potion)]).items[0]).not.toHaveProperty('assignTo');
+  });
+
   it('replaces or removes one entry without touching the others', () => {
     expect(replaceAt(['a', 'b', 'c'], 1, 'x')).toEqual(['a', 'x', 'c']);
     expect(replaceAt(['a', 'b', 'c'], 1, undefined)).toEqual(['a', 'c']);
+  });
+});
+
+describe('withAssignee', () => {
+  it('gives a draft to a player and back to the pool, without touching the original', () => {
+    const draft = draftFromItem(potion);
+    const given = withAssignee(draft, 'alice');
+    expect(given.assignTo).toBe('alice');
+    expect(withAssignee(given, '')).not.toHaveProperty('assignTo');
+    expect(draft).not.toHaveProperty('assignTo');
   });
 });
