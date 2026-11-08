@@ -43,8 +43,7 @@ impl TrayState {
         }
     }
 
-    /// Fill colour (RGB). Distinct hues, plus a ring for the recording states so they stay
-    /// distinguishable without relying on colour alone.
+    /// Badge colour (RGB). Paused is also hollow, so it differs from recording by shape.
     fn colour(self) -> [u8; 3] {
         match self {
             Self::Disconnected => [0x8a, 0x8f, 0x98],
@@ -54,35 +53,84 @@ impl TrayState {
             Self::Paused => [0xe5, 0x39, 0x35],
         }
     }
-
-    fn ring(self) -> bool {
-        matches!(self, Self::Recording | Self::Paused)
-    }
 }
 
-pub const ICON_SIZE: u32 = 32;
+pub const ICON_SIZE: u32 = 64;
 
-/// A flat disc on a transparent background as RGBA. Recording is a solid red disc inside a ring;
-/// paused is the same ring with a hollow centre, so the two differ by shape as well as by state.
-pub fn render_icon(state: TrayState) -> Vec<u8> {
-    let size = ICON_SIZE as i32;
-    let centre = (size as f32 - 1.0) / 2.0;
-    let [r, g, b] = state.colour();
-    let mut pixels = vec![0u8; (ICON_SIZE * ICON_SIZE * 4) as usize];
-    for y in 0..size {
-        for x in 0..size {
-            let d = ((x as f32 - centre).powi(2) + (y as f32 - centre).powi(2)).sqrt();
-            let on = if state.ring() {
-                let ring = (13.0..=15.5).contains(&d);
-                let core = d <= 8.5 && state != TrayState::Paused;
-                ring || core
-            } else {
-                d <= 14.5
-            };
-            if on {
-                let i = ((y * size + x) * 4) as usize;
-                pixels[i..i + 4].copy_from_slice(&[r, g, b, 0xff]);
+/// Badge geometry: a disc in the bottom-right corner with a dark outline so it reads on any panel.
+const BADGE_RADIUS: f32 = 13.0;
+const BADGE_OUTLINE: f32 = 2.0;
+const OUTLINE_COLOUR: [u8; 3] = [0x20, 0x20, 0x20];
+
+/// Box-filter downscale of square RGBA `from`×`from` to `to`×`to` (`from` a multiple of `to`).
+/// Premultiplied while averaging so transparent pixels do not bleed their colour into the edge.
+fn downscale(rgba: &[u8], from: u32, to: u32) -> Vec<u8> {
+    let k = (from / to) as usize;
+    let (from, to) = (from as usize, to as usize);
+    let mut out = vec![0u8; to * to * 4];
+    for y in 0..to {
+        for x in 0..to {
+            let (mut r, mut g, mut b, mut a) = (0u32, 0u32, 0u32, 0u32);
+            for dy in 0..k {
+                for dx in 0..k {
+                    let i = ((y * k + dy) * from + x * k + dx) * 4;
+                    let alpha = rgba[i + 3] as u32;
+                    r += rgba[i] as u32 * alpha;
+                    g += rgba[i + 1] as u32 * alpha;
+                    b += rgba[i + 2] as u32 * alpha;
+                    a += alpha;
+                }
             }
+            let o = (y * to + x) * 4;
+            if let (Some(r), Some(g), Some(b)) =
+                (r.checked_div(a), g.checked_div(a), b.checked_div(a))
+            {
+                out[o] = r as u8;
+                out[o + 1] = g as u8;
+                out[o + 2] = b as u8;
+            }
+            out[o + 3] = (a / (k * k) as u32) as u8;
+        }
+    }
+    out
+}
+
+/// The app logo at tray size, decoded once.
+fn logo() -> &'static [u8] {
+    static LOGO: std::sync::OnceLock<Vec<u8>> = std::sync::OnceLock::new();
+    LOGO.get_or_init(|| {
+        let image = tauri::image::Image::from_bytes(include_bytes!("../icons/icon-256.png"))
+            .expect("the bundled tray logo is a valid PNG");
+        downscale(image.rgba(), image.width(), ICON_SIZE)
+    })
+}
+
+/// The logo with a status badge bottom-right (like a file-sync client's tray icon): green live,
+/// amber muted, red recording, red ring paused, grey badge on a greyed logo when disconnected.
+pub fn render_icon(state: TrayState) -> Vec<u8> {
+    let mut pixels = logo().to_vec();
+    if state == TrayState::Disconnected {
+        for p in pixels.chunks_exact_mut(4) {
+            let grey = (p[0] as u32 * 30 + p[1] as u32 * 59 + p[2] as u32 * 11) / 100;
+            p[..3].fill(grey as u8);
+        }
+    }
+    let [r, g, b] = state.colour();
+    let centre = (ICON_SIZE - 14) as f32;
+    for y in 0..ICON_SIZE {
+        for x in 0..ICON_SIZE {
+            let d = ((x as f32 - centre).powi(2) + (y as f32 - centre).powi(2)).sqrt();
+            if d > BADGE_RADIUS {
+                continue;
+            }
+            let hollow = state == TrayState::Paused && d <= 5.0;
+            let colour = if d > BADGE_RADIUS - BADGE_OUTLINE || hollow {
+                OUTLINE_COLOUR
+            } else {
+                [r, g, b]
+            };
+            let i = ((y * ICON_SIZE + x) * 4) as usize;
+            pixels[i..i + 4].copy_from_slice(&[colour[0], colour[1], colour[2], 0xff]);
         }
     }
     pixels
@@ -215,18 +263,71 @@ mod tests {
         );
     }
 
+    fn pixel(icon: &[u8], x: u32, y: u32) -> [u8; 4] {
+        let i = ((y * ICON_SIZE + x) * 4) as usize;
+        [icon[i], icon[i + 1], icon[i + 2], icon[i + 3]]
+    }
+
+    /// The badge sits bottom-right; its centre is where the status colour shows.
+    const BADGE: (u32, u32) = (ICON_SIZE - 14, ICON_SIZE - 14);
+
     #[test]
-    fn recording_and_paused_differ_by_shape_not_only_by_state() {
-        let centre = ((ICON_SIZE / 2) * ICON_SIZE + ICON_SIZE / 2) as usize * 4;
+    fn the_badge_shows_each_states_colour() {
+        for (state, [r, g, b]) in [
+            (TrayState::Live, [0x2e, 0xb8, 0x6c]),
+            (TrayState::Muted, [0xe0, 0xa1, 0x2b]),
+            (TrayState::Recording, [0xe5, 0x39, 0x35]),
+            (TrayState::Disconnected, [0x8a, 0x8f, 0x98]),
+        ] {
+            assert_eq!(
+                pixel(&render_icon(state), BADGE.0, BADGE.1),
+                [r, g, b, 0xff],
+                "{state:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn a_paused_badge_is_hollow_where_recording_is_solid() {
+        let paused = pixel(&render_icon(TrayState::Paused), BADGE.0, BADGE.1);
+        let recording = pixel(&render_icon(TrayState::Recording), BADGE.0, BADGE.1);
+        assert_ne!(paused, recording);
         assert_eq!(
-            render_icon(TrayState::Recording)[centre + 3],
-            0xff,
-            "solid core"
+            paused,
+            [0x20, 0x20, 0x20, 0xff],
+            "hollow shows the outline colour"
         );
-        assert_eq!(
-            render_icon(TrayState::Paused)[centre + 3],
-            0x00,
-            "hollow core"
+    }
+
+    #[test]
+    fn a_disconnected_logo_is_grey() {
+        let icon = render_icon(TrayState::Disconnected);
+        let mut checked = 0;
+        for y in 0..ICON_SIZE {
+            for x in 0..ICON_SIZE {
+                let (dx, dy) = (x as f32 - BADGE.0 as f32, y as f32 - BADGE.1 as f32);
+                if (dx * dx + dy * dy).sqrt() < 16.0 {
+                    continue; // the badge and its outline
+                }
+                let [r, g, b, a] = pixel(&icon, x, y);
+                if a == 0xff {
+                    assert!(r == g && g == b, "({x},{y}) is coloured: {r},{g},{b}");
+                    checked += 1;
+                }
+            }
+        }
+        assert!(checked > 100, "the logo should cover plenty of pixels");
+    }
+
+    #[test]
+    fn a_live_logo_keeps_its_colour() {
+        let icon = render_icon(TrayState::Live);
+        let coloured = icon
+            .chunks(4)
+            .any(|p| p[3] == 0xff && !(p[0] == p[1] && p[1] == p[2]) && p[0] > 150 && p[1] < 80);
+        assert!(
+            coloured,
+            "the dragon's red/orange should survive downscaling"
         );
     }
 }
