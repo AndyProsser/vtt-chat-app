@@ -93,41 +93,19 @@ pub fn render_icon(state: TrayState) -> Vec<u8> {
 const TRAY_ID: &str = "main";
 const MENU_TOGGLE_MUTE: &str = "toggle_mute";
 const MENU_QUIT: &str = "quit";
+const MENU_SHOW: &str = "show";
 
 /// Creates the tray icon (disconnected until the session says otherwise) with a menu:
-/// mute/unmute, the panels, and quit. Muting from the tray works without any panel (usable without a mouse
+/// show the window, mute/unmute, and quit. Muting from the tray works without any panel (usable without a mouse
 /// elsewhere: hotkeys; with a mouse: this).
 pub fn install(app: &tauri::AppHandle) -> tauri::Result<()> {
     use tauri::menu::{Menu, MenuItem};
     use tauri::tray::TrayIconBuilder;
 
+    let show = MenuItem::with_id(app, MENU_SHOW, "Show VTT Chat", true, None::<&str>)?;
     let toggle = MenuItem::with_id(app, MENU_TOGGLE_MUTE, "Mute / unmute", true, None::<&str>)?;
-    let roster = MenuItem::with_id(app, "open-roster", "Table", true, None::<&str>)?;
-    let chat = MenuItem::with_id(app, "open-chat", "Chat", true, None::<&str>)?;
-    let handouts = MenuItem::with_id(app, "open-handouts", "Handouts", true, None::<&str>)?;
-    let loot = MenuItem::with_id(app, "open-loot", "Loot", true, None::<&str>)?;
-    let schedule = MenuItem::with_id(app, "open-schedule", "Sessions", true, None::<&str>)?;
-    let soundboard = MenuItem::with_id(app, "open-soundboard", "Soundboard", true, None::<&str>)?;
-    let parties = MenuItem::with_id(app, "open-parties", "Voice groups", true, None::<&str>)?;
-    let recording = MenuItem::with_id(app, "open-recording", "Recording", true, None::<&str>)?;
-    let account = MenuItem::with_id(app, "open-account", "Account", true, None::<&str>)?;
     let quit = MenuItem::with_id(app, MENU_QUIT, "Quit", true, None::<&str>)?;
-    let menu = Menu::with_items(
-        app,
-        &[
-            &toggle,
-            &roster,
-            &chat,
-            &handouts,
-            &loot,
-            &schedule,
-            &soundboard,
-            &parties,
-            &recording,
-            &account,
-            &quit,
-        ],
-    )?;
+    let menu = Menu::with_items(app, &[&show, &toggle, &quit])?;
     let state = TrayState::Disconnected;
     TrayIconBuilder::with_id(TRAY_ID)
         .icon(icon_image(state))
@@ -137,11 +115,22 @@ pub fn install(app: &tauri::AppHandle) -> tauri::Result<()> {
             MENU_TOGGLE_MUTE => {
                 crate::hotkeys::dispatch(app, crate::hotkeys::HotkeyAction::ToggleMute)
             }
-            MENU_QUIT => app.exit(0),
-            id if id.starts_with("open-") => {
-                let _ = crate::windows::open(app, &id["open-".len()..]);
+            MENU_SHOW => {
+                let _ = crate::windows::open_main(app);
             }
+            MENU_QUIT => app.exit(0),
             _ => {}
+        })
+        .on_tray_icon_event(|tray, event| {
+            use tauri::tray::{MouseButton, MouseButtonState, TrayIconEvent};
+            if let TrayIconEvent::Click {
+                button: MouseButton::Left,
+                button_state: MouseButtonState::Up,
+                ..
+            } = event
+            {
+                let _ = crate::windows::open_main(tray.app_handle());
+            }
         })
         .build(app)?;
     Ok(())

@@ -1,39 +1,18 @@
-import { PANEL_NAMES, type PanelName } from '../consts/index.js';
+import { panelFromHash } from '../lib/panelName.js';
 import { AccountPanel } from './AccountPanel.js';
-import { ChatPanel } from './ChatPanel.js';
-import { PartiesPanel } from './PartiesPanel.js';
-import { SoundboardPanel } from './SoundboardPanel.js';
 import { HandoutsPanel } from './HandoutsPanel.js';
 import { LootPanel } from './LootPanel.js';
-import { SchedulePanel } from './SchedulePanel.js';
-import { RecordingPanel } from './RecordingPanel.js';
-import { RosterPanel } from './RosterPanel.js';
-
-/** Which panel this window is: the URL hash set by `src-tauri/src/windows.rs` (`index.html#chat`). */
-export function panelFromHash(hash: string): PanelName {
-  const name = hash.replace(/^#/, '');
-  return (PANEL_NAMES as readonly string[]).includes(name) ? (name as PanelName) : 'account';
-}
+import { MainWindow } from './MainWindow.js';
 
 export function PanelRoot() {
   switch (panelFromHash(window.location.hash)) {
-    case 'chat':
-      return <ChatPanel />;
-    case 'soundboard':
-      return <SoundboardPanel />;
-    case 'parties':
-      return <PartiesPanel />;
+    case 'settings':
+      return <AccountPanel />;
     case 'handouts':
       return <HandoutsPanel />;
-    case 'loot':
+    case 'inventory':
       return <LootPanel />;
-    case 'schedule':
-      return <SchedulePanel />;
-    case 'recording':
-      return <RecordingPanel />;
-    case 'roster':
-      return <RosterPanel />;
     default:
-      return <AccountPanel />;
+      return <MainWindow />;
   }
 }

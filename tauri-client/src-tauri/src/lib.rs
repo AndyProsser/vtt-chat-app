@@ -52,6 +52,9 @@ pub fn run() {
                 eprintln!("[src-tauri] could not create the tray icon: {err}");
             }
             account_commands::resume(app.handle());
+            if let Err(err) = windows::open_main(app.handle()) {
+                eprintln!("[src-tauri] could not open the main window: {err}");
+            }
             Ok(())
         })
         .build(tauri::generate_context!())

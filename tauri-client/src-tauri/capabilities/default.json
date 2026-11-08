@@ -2,6 +2,6 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
   "description": "Permissions for this app's own local panel windows. There are deliberately no remote origins.",
-  "windows": ["panel-*"],
+  "windows": ["main", "panel-*"],
   "permissions": ["core:default", "core:event:default", "allow-app-commands"]
 }

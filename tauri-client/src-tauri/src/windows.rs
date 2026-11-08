@@ -16,51 +16,43 @@ pub struct Panel {
 
 pub const PANELS: &[Panel] = &[
     Panel {
-        name: "account",
-        title: "Sign in — VTT Chat",
-        size: (380.0, 460.0),
-    },
-    Panel {
-        name: "roster",
-        title: "Table — VTT Chat",
-        size: (320.0, 480.0),
+        name: "settings",
+        title: "Settings — VTT Chat",
+        size: (440.0, 580.0),
     },
     Panel {
         name: "handouts",
         title: "Handouts — VTT Chat",
+        size: (420.0, 540.0),
+    },
+    Panel {
+        name: "inventory",
+        title: "Party inventory — VTT Chat",
         size: (400.0, 520.0),
     },
-    Panel {
-        name: "loot",
-        title: "Loot — VTT Chat",
-        size: (340.0, 460.0),
-    },
-    Panel {
-        name: "schedule",
-        title: "Sessions — VTT Chat",
-        size: (360.0, 520.0),
-    },
-    Panel {
-        name: "soundboard",
-        title: "Soundboard — VTT Chat",
-        size: (380.0, 520.0),
-    },
-    Panel {
-        name: "parties",
-        title: "Voice groups — VTT Chat",
-        size: (340.0, 460.0),
-    },
-    Panel {
-        name: "recording",
-        title: "Recording — VTT Chat",
-        size: (320.0, 300.0),
-    },
-    Panel {
-        name: "chat",
-        title: "Chat — VTT Chat",
-        size: (380.0, 520.0),
-    },
 ];
+
+pub const MAIN_LABEL: &str = "main";
+
+/// Shows the one main window, creating it if needed. It holds everything used during play (rail,
+/// chat, mute, record state); the panels above are for occasional tasks only.
+pub fn open_main(app: &AppHandle) -> Result<(), String> {
+    if let Some(window) = app.get_webview_window(MAIN_LABEL) {
+        window.show().map_err(|e| e.to_string())?;
+        window.set_focus().map_err(|e| e.to_string())?;
+        return Ok(());
+    }
+    let mut builder =
+        WebviewWindowBuilder::new(app, MAIN_LABEL, WebviewUrl::App("index.html#main".into()))
+            .title("VTT Chat")
+            .inner_size(460.0, 640.0)
+            .min_inner_size(380.0, 420.0);
+    if let Some(icon) = app.default_window_icon() {
+        builder = builder.icon(icon.clone()).map_err(|e| e.to_string())?;
+    }
+    builder.build().map_err(|e| e.to_string())?;
+    Ok(())
+}
 
 pub fn panel(name: &str) -> Option<&'static Panel> {
     PANELS.iter().find(|p| p.name == name)
@@ -107,8 +99,11 @@ mod tests {
     use super::*;
 
     #[test]
-    fn only_known_panels_open_and_names_are_unique() {
-        assert!(panel("chat").is_some());
+    fn secondary_panels_are_exactly_the_closed_set() {
+        let names: Vec<_> = PANELS.iter().map(|p| p.name).collect();
+        assert_eq!(names, ["settings", "handouts", "inventory"]);
+        assert!(panel("chat").is_none());
+        assert!(panel("main").is_none(), "main has its own opener");
         assert!(panel("../etc").is_none());
         for (i, a) in PANELS.iter().enumerate() {
             assert!(PANELS[i + 1..].iter().all(|b| b.name != a.name));
