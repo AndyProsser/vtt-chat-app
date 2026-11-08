@@ -94,7 +94,43 @@ pub async fn livekit_disconnect(
     }
     crate::session::announce_voice_state(&app, Some(false));
     let _ = app.emit("livekit:state", LiveKitStatePayload::left_voice());
+    let _ = app.emit(VOICE_EFFECT_EVENT, "normal"); // the next session starts with the normal voice
     Ok(())
+}
+
+/// Event carrying the current character voice's name (`"normal"` when none).
+pub const VOICE_EFFECT_EVENT: &str = "voice:effect";
+
+/// Picks the DM's character voice (`normal`, `giant`, `imp`, `robot`, `demon`). It only changes this
+/// player's own outgoing voice, so there is nothing for the server to authorise; the app shows the
+/// control to the DM alone. Anything but `normal` uses our own microphone capture without echo
+/// cancellation (headphones advised) — docs/architecture/DM-VOICE-EFFECT.md.
+#[tauri::command]
+pub async fn voice_effect_set(app: AppHandle, name: String) -> Result<(), String> {
+    let voice = rust_livekit::Voice::from_name(&name)
+        .ok_or_else(|| format!("unknown voice “{}”", name.trim()))?;
+    let control = app
+        .state::<SharedClient>()
+        .lock()
+        .unwrap()
+        .as_ref()
+        .map(|c| c.voice_control())
+        .ok_or("join voice first: a character voice changes what the table hears")?;
+    let result = control.set_voice_effect(voice).await;
+    // Report what is actually in use (a failed effect falls back to the normal voice).
+    let _ = app.emit(VOICE_EFFECT_EVENT, control.voice_effect().name());
+    result.map_err(|e| e.to_string())
+}
+
+/// The character voice in use right now.
+#[tauri::command]
+pub fn voice_effect_get(app: AppHandle) -> String {
+    app.state::<SharedClient>()
+        .lock()
+        .unwrap()
+        .as_ref()
+        .map_or("normal", |c| c.voice_control().voice_effect().name())
+        .to_string()
 }
 
 /// Joins voice using the signed-in account (the Connect button and the tray item). Chat keeps

@@ -1,8 +1,10 @@
 //! The DM's character voices (docs/architecture/DM-VOICE-EFFECT.md). Pure signal processing on mono
 //! 48 kHz blocks, with no audio devices and no LiveKit in it, so it is unit-tested on synthetic tones.
 
+pub mod capture;
 mod effects;
 mod pitch;
+pub mod plan;
 
 pub use effects::{Voice, VoiceFx};
 pub use pitch::PitchShifter;

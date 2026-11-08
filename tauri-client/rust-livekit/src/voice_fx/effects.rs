@@ -20,7 +20,13 @@ pub enum Voice {
 }
 
 impl Voice {
-    pub const ALL: [Voice; 5] = [Voice::Normal, Voice::Giant, Voice::Imp, Voice::Robot, Voice::Demon];
+    pub const ALL: [Voice; 5] = [
+        Voice::Normal,
+        Voice::Giant,
+        Voice::Imp,
+        Voice::Robot,
+        Voice::Demon,
+    ];
 
     pub fn name(self) -> &'static str {
         match self {
@@ -33,7 +39,9 @@ impl Voice {
     }
 
     pub fn from_name(name: &str) -> Option<Voice> {
-        Voice::ALL.into_iter().find(|v| v.name().eq_ignore_ascii_case(name.trim()))
+        Voice::ALL
+            .into_iter()
+            .find(|v| v.name().eq_ignore_ascii_case(name.trim()))
     }
 }
 
@@ -58,7 +66,11 @@ impl VoiceFx {
             Voice::Demon => Some(PitchShifter::new(0.6, 2048)),
             Voice::Normal | Voice::Robot => None,
         };
-        Self { voice, shifter, phase: 0.0 }
+        Self {
+            voice,
+            shifter,
+            phase: 0.0,
+        }
     }
 
     pub fn voice(&self) -> Voice {
@@ -67,9 +79,9 @@ impl VoiceFx {
 
     /// Extra delay this voice adds, in milliseconds.
     pub fn latency_ms(&self) -> f32 {
-        self.shifter
-            .as_ref()
-            .map_or(0.0, |s| s.latency_samples() as f32 * 1000.0 / SAMPLE_RATE as f32)
+        self.shifter.as_ref().map_or(0.0, |s| {
+            s.latency_samples() as f32 * 1000.0 / SAMPLE_RATE as f32
+        })
     }
 
     pub fn process(&mut self, input: &[f32], output: &mut [f32]) {
@@ -156,7 +168,10 @@ mod tests {
         let low = strength(steady, 440.0 - ROBOT_HZ);
         let high = strength(steady, 440.0 + ROBOT_HZ);
         assert!(low > 0.1 && high > 0.1, "sidebands {low} {high}");
-        assert!(carrier < 0.2, "the plain voice should be mostly gone: {carrier}");
+        assert!(
+            carrier < 0.2,
+            "the plain voice should be mostly gone: {carrier}"
+        );
     }
 
     #[test]
@@ -165,14 +180,20 @@ mod tests {
         let out = run(Voice::Demon, &input);
         assert!(out.iter().all(|s| s.abs() <= 1.0));
         assert!((estimate_freq(&out) - 120.0).abs() < 12.0);
-        assert!(out.iter().cloned().fold(0.0f32, f32::max) > 0.3, "not silent");
+        assert!(
+            out.iter().cloned().fold(0.0f32, f32::max) > 0.3,
+            "not silent"
+        );
     }
 
     #[test]
     fn every_voice_keeps_silence_silent_and_reports_a_sane_latency() {
         for v in Voice::ALL {
             assert!(run(v, &vec![0.0; 4_800]).iter().all(|s| *s == 0.0), "{v:?}");
-            assert!(VoiceFx::new(v).latency_ms() < 50.0, "{v:?} adds too much delay");
+            assert!(
+                VoiceFx::new(v).latency_ms() < 50.0,
+                "{v:?} adds too much delay"
+            );
         }
     }
 }

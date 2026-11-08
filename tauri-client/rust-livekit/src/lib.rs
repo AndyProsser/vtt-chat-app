@@ -4,9 +4,11 @@ pub mod link_stats;
 mod reconnect;
 pub mod sound;
 pub mod voice_fx;
+mod voice_path;
 
 pub use error::LiveKitError;
 pub use reconnect::{gap_indicates_resume, Backoff};
+pub use voice_fx::Voice;
 
 use std::future::Future;
 use std::pin::Pin;
@@ -19,6 +21,8 @@ use livekit::prelude::*;
 use livekit::track::{LocalAudioTrack, LocalTrack};
 use livekit::{AudioProcessingOptions, PlatformAudio};
 use tokio::sync::{mpsc::UnboundedReceiver, Notify};
+
+use crate::voice_path::VoicePath;
 
 /// Mirrors `shared`'s `LiveKitConnectionState` IPC type — kept dependency-free here since
 /// this crate must not depend on anything else in the mono-repo (see README).
@@ -56,6 +60,8 @@ const RESUME_THRESHOLD: Duration = Duration::from_secs(10);
 struct ActiveRoom {
     room: Arc<Room>,
     microphone_track: LocalAudioTrack,
+    /// Published the first time a character voice is chosen; kept (muted) after that.
+    fx_track: Option<LocalAudioTrack>,
 }
 
 /// A voice session that keeps itself alive: if the network drops or the machine sleeps, it
@@ -68,6 +74,7 @@ pub struct LiveKitClient {
     audio: PlatformAudio,
     /// Source of truth for "should audio leave this machine". Survives rejoins.
     microphone_muted: Arc<AtomicBool>,
+    voice_path: Arc<VoicePath>,
     active: Arc<Mutex<Option<ActiveRoom>>>,
     stop: Arc<Notify>,
     stopping: Arc<AtomicBool>,
@@ -119,13 +126,15 @@ impl LiveKitClient {
         let stop = Arc::new(Notify::new());
         let stopping = Arc::new(AtomicBool::new(false));
 
-        let first = join_once(&provider, &audio, &microphone_muted).await?;
+        let voice_path = VoicePath::new(tokio::runtime::Handle::current());
+        let first = join_once(&provider, &audio, &microphone_muted, &voice_path).await?;
         emit_state(&first.0.room, &on_state_change);
 
         let session = Session {
             provider,
             audio: audio.clone(),
             microphone_muted: microphone_muted.clone(),
+            voice_path: voice_path.clone(),
             active: active.clone(),
             stop: stop.clone(),
             stopping: stopping.clone(),
@@ -137,6 +146,7 @@ impl LiveKitClient {
         Ok(Self {
             audio,
             microphone_muted,
+            voice_path,
             active,
             stop,
             stopping,
@@ -149,12 +159,20 @@ impl LiveKitClient {
     /// happens mid-call comes back in the right state.
     pub fn set_microphone_muted(&self, muted: bool) {
         self.microphone_muted.store(muted, Ordering::Relaxed);
-        let guard = lock(&self.active);
-        apply_mute(
-            &self.audio,
-            guard.as_ref().map(|a| &a.microphone_track),
-            muted,
-        );
+        if let Err(message) = self.voice_control().reapply() {
+            eprintln!("[rust-livekit] {message}");
+        }
+    }
+
+    /// A handle for changing the character voice from another task (the client sits behind a lock
+    /// that must not be held across an `await`).
+    pub fn voice_control(&self) -> VoiceControl {
+        VoiceControl {
+            audio: self.audio.clone(),
+            microphone_muted: self.microphone_muted.clone(),
+            voice_path: self.voice_path.clone(),
+            active: self.active.clone(),
+        }
     }
 
     pub fn is_microphone_muted(&self) -> bool {
@@ -183,6 +201,52 @@ impl LiveKitClient {
     }
 }
 
+/// Changes the DM's character voice; see [`LiveKitClient::voice_control`].
+#[derive(Clone)]
+pub struct VoiceControl {
+    audio: PlatformAudio,
+    microphone_muted: Arc<AtomicBool>,
+    voice_path: Arc<VoicePath>,
+    active: Arc<Mutex<Option<ActiveRoom>>>,
+}
+
+impl VoiceControl {
+    /// Makes the microphone paths match the mute flag and the chosen voice.
+    fn reapply(&self) -> Result<(), String> {
+        let guard = lock(&self.active);
+        self.voice_path.apply(
+            &self.audio,
+            guard.as_ref().map(|a| &a.microphone_track),
+            guard.as_ref().and_then(|a| a.fx_track.as_ref()),
+            self.microphone_muted.load(Ordering::Relaxed),
+        )
+    }
+
+    /// The DM's character voice. Anything but `Voice::Normal` switches this player to our own
+    /// microphone capture (no echo cancellation; headphones advised) until `Normal` is chosen again.
+    /// An error means the effect could not start and the normal voice is in use.
+    pub async fn set_voice_effect(&self, voice: Voice) -> Result<(), LiveKitError> {
+        self.voice_path.set_voice(voice);
+        if voice != Voice::Normal {
+            let missing = lock(&self.active)
+                .as_ref()
+                .filter(|a| a.fx_track.is_none())
+                .map(|a| a.room.clone());
+            if let Some(room) = missing {
+                let track = publish_fx_track(&room, &self.voice_path).await?;
+                if let Some(active) = lock(&self.active).as_mut() {
+                    active.fx_track = Some(track);
+                }
+            }
+        }
+        self.reapply().map_err(LiveKitError::Audio)
+    }
+
+    pub fn voice_effect(&self) -> Voice {
+        self.voice_path.voice()
+    }
+}
+
 /// Measures the current link quality; see [`LiveKitClient::link_probe`].
 #[derive(Clone)]
 pub struct LinkProbe {
@@ -203,6 +267,7 @@ struct Session {
     provider: ConnectInfoProvider,
     audio: PlatformAudio,
     microphone_muted: Arc<AtomicBool>,
+    voice_path: Arc<VoicePath>,
     active: Arc<Mutex<Option<ActiveRoom>>>,
     stop: Arc<Notify>,
     stopping: Arc<AtomicBool>,
@@ -254,7 +319,14 @@ impl Session {
             if self.stopping.load(Ordering::Relaxed) {
                 return;
             }
-            match join_once(&self.provider, &self.audio, &self.microphone_muted).await {
+            match join_once(
+                &self.provider,
+                &self.audio,
+                &self.microphone_muted,
+                &self.voice_path,
+            )
+            .await
+            {
                 Ok(next) => {
                     emit_state(&next.0.room, &self.on_state_change);
                     joined = Some(next);
@@ -318,6 +390,7 @@ async fn join_once(
     provider: &ConnectInfoProvider,
     audio: &PlatformAudio,
     microphone_muted: &Arc<AtomicBool>,
+    voice_path: &Arc<VoicePath>,
 ) -> Result<Joined, LiveKitError> {
     let info = provider().await.map_err(LiveKitError::Provider)?;
     let (room, events) = Room::connect(&info.url, &info.token, RoomOptions::default()).await?;
@@ -334,38 +407,48 @@ async fn join_once(
         )
         .await?;
 
+    // A rejoin keeps a chosen character voice: publish its track again before applying the state.
+    let fx_track = if voice_path.voice() != Voice::Normal {
+        Some(publish_fx_track(&room, voice_path).await?)
+    } else {
+        None
+    };
+
     // Re-apply the mute state: a fresh track and a fresh device session must not undo it.
-    apply_mute(
+    if let Err(message) = voice_path.apply(
         audio,
         Some(&microphone_track),
+        fx_track.as_ref(),
         microphone_muted.load(Ordering::Relaxed),
-    );
+    ) {
+        eprintln!("[rust-livekit] {message}");
+    }
 
     Ok((
         ActiveRoom {
             room,
             microphone_track,
+            fx_track,
         },
         events,
     ))
 }
 
-fn apply_mute(audio: &PlatformAudio, track: Option<&LocalAudioTrack>, muted: bool) {
-    if muted {
-        if let Some(track) = track {
-            track.mute();
-        }
-        if let Err(err) = audio.stop_recording() {
-            eprintln!("[rust-livekit] could not release the capture device: {err}");
-        }
-    } else {
-        if let Err(err) = audio.start_recording() {
-            eprintln!("[rust-livekit] could not start the capture device: {err}");
-        }
-        if let Some(track) = track {
-            track.unmute();
-        }
-    }
+async fn publish_fx_track(
+    room: &Arc<Room>,
+    voice_path: &Arc<VoicePath>,
+) -> Result<LocalAudioTrack, LiveKitError> {
+    let track = LocalAudioTrack::create_audio_track("voice-fx", voice_path.rtc_source());
+    room.local_participant()
+        .publish_track(
+            LocalTrack::Audio(track.clone()),
+            TrackPublishOptions {
+                source: TrackSource::Unknown,
+                ..Default::default()
+            },
+        )
+        .await?;
+    Ok(track)
 }
 
 fn emit_state(room: &Room, on_state_change: &StateChangeCallback) {

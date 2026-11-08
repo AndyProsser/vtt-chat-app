@@ -1,5 +1,6 @@
 import { useState } from 'react';
 
+import { VoiceStrip } from './VoiceStrip.js';
 import { useCampaignQuery } from '../hooks/useCampaignQuery.js';
 import { accountErrorMessage, syncCommand } from '../lib/tauriBridge.js';
 import type { SoundLibrary } from '../types/index.js';
@@ -25,6 +26,7 @@ export function EffectsStrip() {
   const problem = error ?? actionError;
   return (
     <div className="vtt-drawer-body">
+      <VoiceStrip />
       <div className="vtt-drawer-row">
         <button
           type="button"

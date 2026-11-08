@@ -459,3 +459,7 @@ body,
 .vtt-update span {
   flex: 1;
 }
+.vtt-pill-on {
+  background: color-mix(in srgb, var(--vtt-gold) 28%, transparent);
+  font-weight: 600;
+}

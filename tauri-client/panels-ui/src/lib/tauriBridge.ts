@@ -106,6 +106,13 @@ export const updateCheck = () => invoke<UpdateInfo | null>('update_check');
 /** Installs what `updateCheck` found, then the app restarts itself (`update_install`). */
 export const updateInstall = () => invoke<void>('update_install');
 
+/** The DM's character voice (`voice_effect_set`); `normal` turns the effect off. Rejects if not in voice. */
+export const voiceEffectSet = (name: string) => invoke<void>('voice_effect_set', { name });
+export const voiceEffectGet = () => invoke<string>('voice_effect_get');
+export function onVoiceEffect(handler: (name: string) => void): Promise<UnlistenFn> {
+  return listen<string>('voice:effect', (event) => handler(event.payload));
+}
+
 export const autostartEnabled = () => invoke<boolean>('autostart_enabled');
 export const autostartSet = (enabled: boolean) => invoke<void>('autostart_set', { enabled });
 

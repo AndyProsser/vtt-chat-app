@@ -5,6 +5,7 @@ export type Role = 'dm' | 'player';
 export type Parsed =
   | { kind: 'say'; text: string }
   | { kind: 'whisper'; toUserId: string; text: string }
+  | { kind: 'voice'; name: string }
   | { kind: 'open'; target: 'inventory' }
   | { kind: 'error'; message: string };
 
@@ -22,7 +23,10 @@ export interface CommandInfo {
   roles: Role[];
 }
 
-/** The slash commands offered in the palette. `/voice` arrives with the DM voice effect. */
+/** The DM's character voices, as `rust_livekit::Voice` names them. */
+export const VOICES = ['normal', 'giant', 'imp', 'robot', 'demon'] as const;
+
+/** The slash commands offered in the palette. */
 export const COMMANDS: readonly CommandInfo[] = [
   { name: '/w', usage: '/w <name> <text>', help: 'Whisper to one person', roles: ['dm', 'player'] },
   { name: '/dm', usage: '/dm <text>', help: 'Message only the DM', roles: ['player'] },
@@ -31,6 +35,12 @@ export const COMMANDS: readonly CommandInfo[] = [
     usage: '/me <text>',
     help: 'An emote: * you do something',
     roles: ['dm', 'player'],
+  },
+  {
+    name: '/voice',
+    usage: '/voice <name>',
+    help: `Change your voice: ${VOICES.join(', ')}`,
+    roles: ['dm'],
   },
   { name: '/loot', usage: '/loot', help: 'Open the party inventory', roles: ['dm', 'player'] },
   {
@@ -89,8 +99,15 @@ export function parseCommand(input: string, ctx: CommandContext): Parsed {
     case '/loot':
     case '/take':
       return { kind: 'open', target: 'inventory' };
-    case '/voice':
-      return err('DM voice effects are not available yet.');
+    case '/voice': {
+      if (ctx.role !== 'dm') return err('Only the DM can change voices.');
+      const name = rest[0]?.toLowerCase();
+      if (!name) return err(`Which voice? ${VOICES.join(', ')}`);
+      if (!(VOICES as readonly string[]).includes(name)) {
+        return err(`No voice called “${name}”. Try: ${VOICES.join(', ')}`);
+      }
+      return { kind: 'voice', name };
+    }
     default:
       return err(
         command === '/' ? 'Type a command after the slash, e.g. /w' : `Unknown command ${command}.`,

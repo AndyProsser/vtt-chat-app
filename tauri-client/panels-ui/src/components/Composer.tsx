@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 
 import { commandPalette, parseCommand, type Role } from '../lib/commands.js';
-import { accountErrorMessage, chatSend, panelOpen } from '../lib/tauriBridge.js';
+import { accountErrorMessage, chatSend, panelOpen, voiceEffectSet } from '../lib/tauriBridge.js';
 import { useTableStore } from '../lib/tableStore.js';
 
 /** The message box, with a `/` command palette. Parse errors show here and send nothing. */
@@ -22,6 +22,7 @@ export function Composer({ selfId, role }: { selfId: string | null; role: Role }
     try {
       if (parsed.kind === 'error') return setError(parsed.message);
       if (parsed.kind === 'open') await panelOpen(parsed.target);
+      else if (parsed.kind === 'voice') await voiceEffectSet(parsed.name);
       else if (parsed.kind === 'whisper') await chatSend(parsed.text, parsed.toUserId);
       else await chatSend(parsed.text);
       setText('');

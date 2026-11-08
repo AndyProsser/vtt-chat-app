@@ -66,8 +66,17 @@ describe('parseCommand', () => {
     expect(parseCommand('/take', player)).toEqual({ kind: 'open', target: 'inventory' });
   });
 
-  it('errors on /voice (not built), an unknown command, and a lone slash', () => {
-    expect(parseCommand('/voice giant', dm)).toMatchObject({ kind: 'error' });
+  it('lets the DM pick a voice by name, refuses players and unknown voices, and lists the choices', () => {
+    expect(parseCommand('/voice giant', dm)).toEqual({ kind: 'voice', name: 'giant' });
+    expect(parseCommand('/voice  Robot ', dm)).toEqual({ kind: 'voice', name: 'robot' });
+    expect(parseCommand('/voice normal', dm)).toEqual({ kind: 'voice', name: 'normal' });
+    expect(parseCommand('/voice giant', player)).toMatchObject({ kind: 'error' });
+    const unknown = parseCommand('/voice chipmunk', dm) as { message: string };
+    expect(unknown.message).toContain('giant');
+    expect(parseCommand('/voice', dm)).toMatchObject({ kind: 'error' });
+  });
+
+  it('errors on an unknown command and a lone slash', () => {
     expect(parseCommand('/unknown x', player)).toMatchObject({ kind: 'error' });
     expect(parseCommand('/', player)).toMatchObject({ kind: 'error' });
   });
@@ -77,6 +86,7 @@ describe('commandPalette', () => {
   it('lists commands matching what was typed, for this role', () => {
     expect(commandPalette('/w', 'player').map((c) => c.name)).toEqual(['/w']);
     expect(commandPalette('/', 'player').map((c) => c.name)).not.toContain('/voice');
+    expect(commandPalette('/v', 'dm').map((c) => c.name)).toEqual(['/voice']);
     expect(commandPalette('/', 'player').map((c) => c.name)).toContain('/dm');
     expect(commandPalette('/', 'dm').map((c) => c.name)).not.toContain('/dm');
     expect(commandPalette('hello', 'player')).toEqual([]);

@@ -1,7 +1,8 @@
 # DM voice effect — design note (open, needs a decision)
 
-**Status:** not built. Findings from reading the code and the `livekit` 0.8.2 / `libwebrtc` 0.3.44
-sources on 2026-11-08; nothing here has been run.
+**Status:** built 2026-11-08 as **option 1** (Andy: yes, accepted the echo-cancellation trade-off, will test).
+The DSP is unit-tested; the capture path starts and releases the real microphone on the dev box; **nobody
+has listened to it yet, and latency/CPU on a live call are unmeasured.** See "As built" at the end.
 
 ## What is wanted
 
@@ -53,3 +54,21 @@ Pure-Rust DSP module with unit tests on synthetic tones (pitch ratio, no clippin
 silence out) → own-capture path behind the effect selection → latency/CPU measurement on a real
 device → then the picker (`/voice` and the drawer button) is enabled. The UI stays hidden until it
 works.
+
+## As built
+
+- **Voices:** normal, giant (×0.72), imp (×1.4), robot (70 Hz ring modulator), demon (×0.6 into soft clipping).
+  Pure DSP in `rust-livekit/src/voice_fx/` (dual-tap pitch shifter; algorithmic delay 16–21 ms, i.e. half the
+  window), tested on synthetic tones for pitch, sidebands, range and silence.
+- **Two paths, never both open** (`voice_fx/plan.rs`, tested): the normal voice keeps WebRTC's capture and
+  its echo cancellation; a character voice stops that capture, starts ours (cpal → 48 kHz mono → effect →
+  `NativeAudioSource`) and unmutes a second published track, `voice-fx`. Mute stops both and releases the
+  device. A rejoin republishes the track and keeps the voice. If our microphone cannot start the app falls
+  back to the normal voice rather than leaving the DM silent.
+- **Recordings** capture whatever each track carried: the DM's `voice-fx` track holds the **processed** voice
+  while an effect is on (the silent `microphone` track is recorded too). Raw-vs-processed is therefore not
+  yet a choice; keeping the raw voice would mean publishing it as a third (private) track. Decide after listening.
+- **UI:** the DM's Effects drawer has a Voice row; `/voice <name>`; resets to normal when voice is left.
+- **To test (needs a person):** is it intelligible and not robotic-glitchy at speaking pace; does the table
+  hear it (run `npm run dev:mock`, join as the DM, and listen on a second client); latency feel; CPU while
+  talking; echo with speakers vs headphones; switching voices mid-sentence.

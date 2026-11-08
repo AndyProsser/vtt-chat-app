@@ -70,6 +70,8 @@ pub fn run() {
             commands::livekit_connect,
             commands::livekit_disconnect,
             commands::voice_connect,
+            commands::voice_effect_set,
+            commands::voice_effect_get,
             commands::hotkey_action,
             commands::set_microphone_muted,
             commands::panel_hydrate,

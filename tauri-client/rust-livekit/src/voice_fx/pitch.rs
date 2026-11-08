@@ -71,7 +71,10 @@ pub(crate) mod tests {
     /// Dominant frequency from rising zero crossings over the second half (steady state).
     pub fn estimate_freq(samples: &[f32]) -> f32 {
         let tail = &samples[samples.len() / 2..];
-        let crossings = tail.windows(2).filter(|w| w[0] <= 0.0 && w[1] > 0.0).count();
+        let crossings = tail
+            .windows(2)
+            .filter(|w| w[0] <= 0.0 && w[1] > 0.0)
+            .count();
         crossings as f32 / (tail.len() as f32 / 48_000.0)
     }
 
@@ -108,7 +111,10 @@ pub(crate) mod tests {
         let silent = run(&mut PitchShifter::new(0.7, 1536), &vec![0.0; 9_600]);
         assert!(silent.iter().all(|s| *s == 0.0));
         let loud = run(&mut PitchShifter::new(0.7, 1536), &sine(200.0, 1.0, 0.95));
-        assert!(loud.iter().all(|s| s.abs() <= 1.0), "output must stay in range");
+        assert!(
+            loud.iter().all(|s| s.abs() <= 1.0),
+            "output must stay in range"
+        );
     }
 
     #[test]
