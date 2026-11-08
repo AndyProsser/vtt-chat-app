@@ -9,9 +9,17 @@ export function PanelRoot() {
     case 'settings':
       return <SettingsWindow />;
     case 'handouts':
-      return <HandoutsPanel />;
+      return (
+        <div className="vtt-settings">
+          <HandoutsPanel />
+        </div>
+      );
     case 'inventory':
-      return <LootPanel />;
+      return (
+        <div className="vtt-settings">
+          <LootPanel />
+        </div>
+      );
     default:
       return <MainWindow />;
   }

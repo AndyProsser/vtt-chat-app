@@ -6,6 +6,7 @@ import type {
   RecordingAction,
   RecordingView,
   SyncEvent,
+  TableCard,
   TableState,
 } from '../types/index.js';
 
@@ -13,6 +14,7 @@ export const emptyParties: PartyView = { parties: [], assignments: {}, split: fa
 export const emptyTable: TableState = {
   members: [],
   chat: [],
+  cards: [],
   recording: null,
   parties: emptyParties,
 };
@@ -95,6 +97,12 @@ export function applyEvent(state: TableState, event: SyncEvent): TableState {
         .filter((l): l is ChatLine => l !== undefined);
       return lines.length ? { ...state, chat: mergeChat(state.chat, lines) } : state;
     }
+    case 'loot.dropped':
+    case 'loot.claimed':
+    case 'loot.removed':
+    case 'handout.shown':
+    case 'handout.removed':
+      return applyCard(state, event.t, d);
     case 'presence.update':
       return patchMember(state, String(d.userId), { online: d.online === true });
     case 'audio.update':
@@ -171,4 +179,49 @@ export function recordingActions(recording: RecordingView | null): RecordingActi
 /** The people one can whisper: everyone but oneself. */
 export function whisperTargets(members: Member[], selfId: string | null): Member[] {
   return members.filter((m) => m.userId !== selfId);
+}
+
+const lastChatId = (state: TableState): string | null => state.chat.at(-1)?.id ?? null;
+
+function patchCard(cards: TableCard[], id: string, patch: Partial<TableCard>): TableCard[] {
+  return cards.map((c) => (c.id === id ? { ...c, ...patch } : c));
+}
+
+/** Loot and handout notices. Idempotent: replaying the same events never duplicates or un-claims. */
+function applyCard(state: TableState, type: string, d: Obj): TableState {
+  const kind = type.startsWith('loot') ? 'loot' : 'handout';
+  const rawId = String(kind === 'loot' ? d.itemId : d.handoutId);
+  const id = `${kind}:${rawId}`;
+  const existing = state.cards.find((c) => c.id === id);
+  const removed = type.endsWith('.removed');
+  if (removed) {
+    return existing && !existing.removed
+      ? { ...state, cards: patchCard(state.cards, id, { removed: true }) }
+      : state;
+  }
+  if (type === 'loot.claimed') {
+    const claimedBy = typeof d.claimedBy === 'string' ? d.claimedBy : null;
+    if (existing) {
+      return existing.claimedBy === claimedBy
+        ? state
+        : { ...state, cards: patchCard(state.cards, id, { claimedBy }) };
+    }
+    // The drop was before this window's tail began: show the claim anyway.
+    return { ...state, cards: [...state.cards, newCard(state, id, kind, d, claimedBy)] };
+  }
+  if (existing) return state;
+  return { ...state, cards: [...state.cards, newCard(state, id, kind, d, null)] };
+}
+
+function newCard(
+  state: TableState,
+  id: string,
+  kind: TableCard['kind'],
+  d: Obj,
+  claimedBy: string | null,
+): TableCard {
+  const title = String(kind === 'loot' ? (d.name ?? 'an item') : (d.title ?? 'a handout'));
+  return kind === 'loot'
+    ? { id, kind, title, quantity: Number(d.quantity ?? 1), claimedBy, after: lastChatId(state) }
+    : { id, kind, title, after: lastChatId(state) };
 }

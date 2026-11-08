@@ -375,3 +375,29 @@ body,
 .vtt-swatches i:last-child {
   border-radius: 0 8px 8px 0;
 }
+.vtt-chips {
+  flex: none;
+  display: flex;
+  gap: 6px;
+  padding: 6px 10px;
+  background: var(--vtt-chat);
+  border-top: 1px solid var(--vtt-edge);
+}
+.vtt-card {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border: 1px dashed var(--vtt-gold);
+  border-radius: var(--vtt-radius-bubble);
+  background: var(--vtt-bubble);
+  color: var(--vtt-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.vtt-card-taken {
+  border-style: solid;
+  border-color: var(--vtt-glow);
+}

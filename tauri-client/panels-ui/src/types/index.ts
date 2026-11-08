@@ -73,9 +73,23 @@ export interface PartyView {
   split: boolean;
 }
 
+/** A loot or handout notice shown inline in chat; `after` is the chat line it follows. */
+export interface TableCard {
+  id: string;
+  kind: 'loot' | 'handout';
+  title: string;
+  quantity?: number;
+  claimedBy?: string | null;
+  removed?: boolean;
+  after: string | null;
+}
+
+export type TimelineEntry = { type: 'line'; line: ChatLine } | { type: 'card'; card: TableCard };
+
 export interface TableState {
   members: Member[];
   chat: ChatLine[];
+  cards: TableCard[];
   recording: RecordingView | null;
   parties: PartyView;
 }

@@ -31,7 +31,7 @@ export function LootPanel() {
 
   return (
     <Flex direction="column" gap="2" p="3">
-      <Text weight="bold">Loot</Text>
+      <Text weight="bold">Party inventory</Text>
       {(error ?? actionError) && (
         <Callout.Root color="red" size="1">
           <Callout.Text>{error ?? actionError}</Callout.Text>

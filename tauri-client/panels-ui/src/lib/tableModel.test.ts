@@ -202,3 +202,52 @@ describe('recording start time', () => {
     expect(unknown.recording?.startedAt).toBeNull();
   });
 });
+
+describe('loot and handout cards', () => {
+  const dropped = { t: 'loot.dropped', d: { itemId: 'i1', name: 'Potion', quantity: 2 } };
+  const claimed = {
+    t: 'loot.claimed',
+    d: { itemId: 'i1', name: 'Potion', quantity: 2, claimedBy: 'u1' },
+  };
+  const chatLine = {
+    t: 'chat.message',
+    d: { id: 'm1', text: 'hi', from: { userId: 'u', name: 'U' }, at: 5 },
+  };
+
+  it('adds a card after the last chat line, then marks who took it', () => {
+    let state = applyEvent(emptyTable, chatLine);
+    state = applyEvent(state, dropped);
+    expect(state.cards).toEqual([
+      { id: 'loot:i1', kind: 'loot', title: 'Potion', quantity: 2, claimedBy: null, after: 'm1' },
+    ]);
+    state = applyEvent(state, claimed);
+    expect(state.cards[0]?.claimedBy).toBe('u1');
+  });
+
+  it('does not duplicate or un-claim when the same events are replayed', () => {
+    let state = emptyTable;
+    for (const e of [dropped, claimed, dropped, claimed]) state = applyEvent(state, e);
+    expect(state.cards).toHaveLength(1);
+    expect(state.cards[0]?.claimedBy).toBe('u1');
+  });
+
+  it('marks removed loot and handouts, and adds handout cards', () => {
+    let state = applyEvent(emptyTable, dropped);
+    state = applyEvent(state, {
+      t: 'loot.removed',
+      d: { itemId: 'i1', name: 'Potion', quantity: 2 },
+    });
+    expect(state.cards[0]?.removed).toBe(true);
+    state = applyEvent(state, {
+      t: 'handout.shown',
+      d: { handoutId: 'h1', title: 'Crypt map', kind: 'map' },
+    });
+    expect(state.cards.at(-1)).toMatchObject({
+      id: 'handout:h1',
+      kind: 'handout',
+      title: 'Crypt map',
+    });
+    state = applyEvent(state, { t: 'handout.removed', d: { handoutId: 'h1' } });
+    expect(state.cards.at(-1)?.removed).toBe(true);
+  });
+});

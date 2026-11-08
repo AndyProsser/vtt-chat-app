@@ -22,6 +22,7 @@ export const useTableStore = create<TableStore>((set) => ({
         : {
             members: next.members,
             chat: next.chat,
+            cards: next.cards,
             recording: next.recording,
             parties: next.parties,
           };
@@ -34,6 +35,7 @@ export const useTableStore = create<TableStore>((set) => ({
       return {
         members: state.members,
         chat: state.chat,
+        cards: state.cards,
         recording: state.recording,
         parties: state.parties,
       };
