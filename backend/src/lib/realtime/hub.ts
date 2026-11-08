@@ -196,6 +196,7 @@ export class Hub {
       campaignId: change.campaignId,
       recordingId: change.recordingId,
       status: change.event,
+      startedAt: change.startedAt,
     });
   }
 
@@ -801,6 +802,7 @@ export class Hub {
     return {
       recordingId: current.recordingId,
       status: current.status,
+      startedAt: current.startedAt,
       acknowledged: await this.acks.hasAcked(campaignId, current.recordingId, viewerId),
     };
   }

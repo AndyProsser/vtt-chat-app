@@ -12,11 +12,14 @@ export interface RecordingChange {
   campaignId: string;
   recordingId: string;
   event: RecordingEvent;
+  /** Epoch ms (server clock) when the recording started; the same for every change of one recording. */
+  startedAt: number;
 }
 
 interface Active {
   id: string;
   paused: boolean;
+  startedAt: number;
 }
 
 /**
@@ -30,42 +33,67 @@ interface Active {
 export class RecordingState {
   private readonly active = new Map<string, Active>();
 
-  constructor(private readonly newId: () => string = randomUUID) {}
+  constructor(
+    private readonly newId: () => string = randomUUID,
+    private readonly now: () => number = Date.now,
+  ) {}
 
   start(campaignId: string): RecordingChange {
     if (this.active.has(campaignId)) {
       throw new DomainError('conflict', 'this campaign is already being recorded');
     }
     const recordingId = this.newId();
-    this.active.set(campaignId, { id: recordingId, paused: false });
-    return { campaignId, recordingId, event: 'STARTED' };
+    const startedAt = this.now();
+    this.active.set(campaignId, { id: recordingId, paused: false, startedAt });
+    return { campaignId, recordingId, event: 'STARTED', startedAt };
   }
 
   pause(campaignId: string): RecordingChange {
     const recording = this.require(campaignId);
     if (recording.paused) throw new DomainError('conflict', 'the recording is already paused');
     recording.paused = true;
-    return { campaignId, recordingId: recording.id, event: 'PAUSED' };
+    return {
+      campaignId,
+      recordingId: recording.id,
+      event: 'PAUSED',
+      startedAt: recording.startedAt,
+    };
   }
 
   resume(campaignId: string): RecordingChange {
     const recording = this.require(campaignId);
     if (!recording.paused) throw new DomainError('conflict', 'the recording is not paused');
     recording.paused = false;
-    return { campaignId, recordingId: recording.id, event: 'RESUMED' };
+    return {
+      campaignId,
+      recordingId: recording.id,
+      event: 'RESUMED',
+      startedAt: recording.startedAt,
+    };
   }
 
   stop(campaignId: string): RecordingChange {
     const recording = this.require(campaignId);
     this.active.delete(campaignId);
-    return { campaignId, recordingId: recording.id, event: 'STOPPED' };
+    return {
+      campaignId,
+      recordingId: recording.id,
+      event: 'STOPPED',
+      startedAt: recording.startedAt,
+    };
   }
 
   /** The current recording, or `null` if the campaign isn't being recorded. */
-  current(campaignId: string): { recordingId: string; status: RecordingCurrent } | null {
+  current(
+    campaignId: string,
+  ): { recordingId: string; status: RecordingCurrent; startedAt: number } | null {
     const recording = this.active.get(campaignId);
     if (!recording) return null;
-    return { recordingId: recording.id, status: recording.paused ? 'PAUSED' : 'IN-PROGRESS' };
+    return {
+      recordingId: recording.id,
+      status: recording.paused ? 'PAUSED' : 'IN-PROGRESS',
+      startedAt: recording.startedAt,
+    };
   }
 
   /** True only while audio is actually being captured (started or resumed, not paused). */

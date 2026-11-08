@@ -92,7 +92,7 @@ describe('recording state', () => {
       emptyTable,
       ev('recording.status', { recordingId: 'r1', status: 'STARTED' }),
     );
-    expect(s.recording).toEqual({ recordingId: 'r1', capturing: true });
+    expect(s.recording).toEqual({ recordingId: 'r1', capturing: true, startedAt: null });
     s = applyEvent(s, ev('recording.status', { recordingId: 'r1', status: 'PAUSED' }));
     expect(s.recording?.capturing).toBe(false);
     s = applyEvent(s, ev('recording.status', { recordingId: 'r1', status: 'RESUMED' }));
@@ -104,7 +104,7 @@ describe('recording state', () => {
   it('learns an in-progress recording from recording.state, and is idempotent', () => {
     const e = ev('recording.state', { recording: { recordingId: 'r2', capturing: false } });
     const once = applyEvent(emptyTable, e);
-    expect(once.recording).toEqual({ recordingId: 'r2', capturing: false });
+    expect(once.recording).toEqual({ recordingId: 'r2', capturing: false, startedAt: null });
     expect(applyEvent(once, e)).toBe(once);
     expect(applyEvent(once, ev('recording.state', { recording: null })).recording).toBeNull();
   });
@@ -119,8 +119,14 @@ describe('recording state', () => {
 
   it('offers the right buttons, and only the DM gets them', () => {
     expect(recordingActions(null)).toEqual(['start']);
-    expect(recordingActions({ recordingId: 'r', capturing: true })).toEqual(['pause', 'stop']);
-    expect(recordingActions({ recordingId: 'r', capturing: false })).toEqual(['resume', 'stop']);
+    expect(recordingActions({ recordingId: 'r', capturing: true, startedAt: null })).toEqual([
+      'pause',
+      'stop',
+    ]);
+    expect(recordingActions({ recordingId: 'r', capturing: false, startedAt: null })).toEqual([
+      'resume',
+      'stop',
+    ]);
     const members = [
       {
         userId: 'd',
@@ -162,5 +168,37 @@ describe('party.state', () => {
       assignments: { u1: 'p1' },
       split: true,
     });
+  });
+});
+
+describe('recording start time', () => {
+  it('keeps startedAt from recording.state and recording.status', () => {
+    const state = applyEvent(emptyTable, {
+      t: 'recording.state',
+      d: { recording: { recordingId: 'r1', capturing: true, startedAt: 1000 } },
+    });
+    expect(state.recording).toEqual({ recordingId: 'r1', capturing: true, startedAt: 1000 });
+    const paused = applyEvent(state, {
+      t: 'recording.status',
+      d: { recordingId: 'r1', status: 'PAUSED', startedAt: 1000 },
+    });
+    expect(paused.recording).toEqual({ recordingId: 'r1', capturing: false, startedAt: 1000 });
+  });
+
+  it('keeps the earlier start time when an event lacks one, and is null when never known', () => {
+    const known = applyEvent(emptyTable, {
+      t: 'recording.status',
+      d: { recordingId: 'r1', status: 'STARTED', startedAt: 500 },
+    });
+    const resumed = applyEvent(known, {
+      t: 'recording.status',
+      d: { recordingId: 'r1', status: 'RESUMED' },
+    });
+    expect(resumed.recording?.startedAt).toBe(500);
+    const unknown = applyEvent(emptyTable, {
+      t: 'recording.status',
+      d: { recordingId: 'r2', status: 'STARTED' },
+    });
+    expect(unknown.recording?.startedAt).toBeNull();
   });
 });

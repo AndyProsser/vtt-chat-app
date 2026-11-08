@@ -48,6 +48,8 @@ export interface Hydration {
 export interface RecordingView {
   recordingId: string;
   capturing: boolean;
+  /** Epoch ms on the server's clock; `null` if the server did not say. */
+  startedAt: number | null;
 }
 
 export type RecordingAction = 'start' | 'pause' | 'resume' | 'stop';

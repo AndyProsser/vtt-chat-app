@@ -620,8 +620,13 @@ describe('RecordingState', () => {
       campaignId: 'c',
       recordingId: 'rec-1',
       event: 'STARTED',
+      startedAt: expect.any(Number),
     });
-    expect(recording.current('c')).toEqual({ recordingId: 'rec-1', status: 'IN-PROGRESS' });
+    expect(recording.current('c')).toEqual({
+      recordingId: 'rec-1',
+      status: 'IN-PROGRESS',
+      startedAt: expect.any(Number),
+    });
     expect(recording.isCapturing('c')).toBe(true);
 
     expect(recording.pause('c').event).toBe('PAUSED');
@@ -728,7 +733,12 @@ describe('Hub: recording consent flow', () => {
     const late = await connect(t, 'p2', 'player');
     expect(late.last('recording.state')?.d).toEqual({
       campaignId: t.campaignId,
-      recording: { recordingId: 'rec-1', status: 'IN-PROGRESS', acknowledged: false },
+      recording: {
+        recordingId: 'rec-1',
+        status: 'IN-PROGRESS',
+        acknowledged: false,
+        startedAt: expect.any(Number),
+      },
     });
   });
 

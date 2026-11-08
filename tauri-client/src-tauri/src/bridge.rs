@@ -64,12 +64,14 @@ pub fn panel_event(server_event: &ServerEvent) -> Option<(Value, bool)> {
         ServerEvent::RecordingStatus {
             recording_id,
             status,
+            started_at,
             ..
         } => (
             event(
                 "recording.status",
                 json!({
                     "recordingId": recording_id,
+                    "startedAt": started_at,
                     "status": match status {
                         RecordingChange::Started => "STARTED",
                         RecordingChange::Paused => "PAUSED",
@@ -87,6 +89,7 @@ pub fn panel_event(server_event: &ServerEvent) -> Option<(Value, bool)> {
                     "recording": recording.as_ref().map(|r| json!({
                         "recordingId": r.recording_id,
                         "capturing": r.capturing,
+                        "startedAt": r.started_at,
                     })),
                 }),
             ),
@@ -163,10 +166,12 @@ mod tests {
             campaign_id: "c".into(),
             recording_id: "r1".into(),
             status: RecordingChange::Paused,
+            started_at: Some(1000),
         };
         let (value, retain) = panel_event(&status).unwrap();
         assert_eq!(value["t"], "recording.status");
         assert_eq!(value["d"]["status"], "PAUSED");
+        assert_eq!(value["d"]["startedAt"], 1000);
         assert!(retain, "a panel opened mid-recording must learn the state");
 
         let none = ServerEvent::RecordingState {
@@ -174,6 +179,20 @@ mod tests {
             recording: None,
         };
         assert!(panel_event(&none).unwrap().0["d"]["recording"].is_null());
+
+        let running = ServerEvent::RecordingState {
+            campaign_id: "c".into(),
+            recording: Some(rust_sync::RecordingInfo {
+                recording_id: "r1".into(),
+                capturing: true,
+                acknowledged: false,
+                started_at: Some(2000),
+            }),
+        };
+        assert_eq!(
+            panel_event(&running).unwrap().0["d"]["recording"]["startedAt"],
+            2000
+        );
     }
 
     #[test]

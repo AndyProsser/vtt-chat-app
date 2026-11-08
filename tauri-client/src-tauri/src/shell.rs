@@ -199,6 +199,7 @@ mod tests {
             campaign_id: "c".into(),
             recording_id: "r1".into(),
             status: change,
+            started_at: None,
         })
     }
 
@@ -209,6 +210,7 @@ mod tests {
                 recording_id: "r1".into(),
                 capturing,
                 acknowledged,
+                started_at: None,
             }),
         })
     }

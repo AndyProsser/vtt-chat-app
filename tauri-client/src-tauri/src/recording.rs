@@ -92,6 +92,7 @@ impl Coordinator {
                 campaign_id,
                 recording_id,
                 status,
+                ..
             } => self.on_status(campaign_id, recording_id, *status, now),
             ServerEvent::RecordingState {
                 campaign_id,
@@ -289,6 +290,7 @@ mod tests {
             campaign_id: "c".into(),
             recording_id: "r1".into(),
             status: change,
+            started_at: None,
         }
     }
 
@@ -299,6 +301,7 @@ mod tests {
                 recording_id: "r1".into(),
                 capturing,
                 acknowledged,
+                started_at: None,
             }),
         }
     }
@@ -444,6 +447,7 @@ mod tests {
             campaign_id: "other".into(),
             recording_id: "r9".into(),
             status: RecordingChange::Stopped,
+            started_at: None,
         };
         c.on_server_event(&other, now());
         assert!(!c.capture_allowed());

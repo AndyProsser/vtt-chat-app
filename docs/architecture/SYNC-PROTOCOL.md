@@ -65,8 +65,8 @@ Reconnect uses exponential backoff with jitter, capped at 30 s.
 
 | Frame | Direction | Meaning |
 | --- | --- | --- |
-| `recording.status` `{campaignId, recordingId, status}` | server → all in campaign | A transition just happened: `STARTED`, `PAUSED`, `RESUMED` or `STOPPED`. Not buffered for replay. |
-| `recording.state` `{campaignId, recording}` | server → one client | Sent after every `snapshot` **and** `resumed`: `null`, or `{recordingId, status: IN-PROGRESS|PAUSED, acknowledged}` for that viewer. |
+| `recording.status` `{campaignId, recordingId, status, startedAt}` | server → all in campaign | A transition just happened: `STARTED`, `PAUSED`, `RESUMED` or `STOPPED`. Not buffered for replay. `startedAt` is epoch ms on the server's clock (drives the REC timer). |
+| `recording.state` `{campaignId, recording}` | server → one client | Sent after every `snapshot` **and** `resumed`: `null`, or `{recordingId, status: IN-PROGRESS|PAUSED, acknowledged, startedAt}` for that viewer. |
 | `recording.ack` `{campaignId, recordingId}` | client → server | "I heard the start cue." Stale ids are refused (`stale_recording`). |
 | `recording.ack.update` `{campaignId, recordingId, userId}` | server → DMs | Who has heard it. |
 

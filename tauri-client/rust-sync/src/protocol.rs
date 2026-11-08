@@ -42,6 +42,8 @@ pub struct RecordingInfo {
     pub capturing: bool,
     /// This viewer has already heard the start cue for this recording (and it hasn't expired).
     pub acknowledged: bool,
+    /// Epoch milliseconds (server clock) when the recording started, if the server said.
+    pub started_at: Option<u64>,
 }
 
 /// A decoded server → client frame. Campaign data the UI renders as-is (`Snapshot`, stats) stays
@@ -104,6 +106,7 @@ pub enum ServerEvent {
         campaign_id: String,
         recording_id: String,
         status: RecordingChange,
+        started_at: Option<u64>,
     },
     /// The *current* recording state, sent after every snapshot or replay (so a client that joined
     /// or rejoined mid-recording learns it). `None` means not recording.
@@ -144,6 +147,7 @@ fn recording_status(d: &Value, status: RecordingChange) -> ServerEvent {
         campaign_id: text(d, "campaignId"),
         recording_id: text(d, "recordingId"),
         status,
+        started_at: d.get("startedAt").and_then(Value::as_u64),
     }
 }
 
@@ -285,6 +289,7 @@ pub fn parse_server_frame(raw: &str) -> Result<(ServerEvent, Option<u64>), Parse
                         .get("acknowledged")
                         .and_then(Value::as_bool)
                         .unwrap_or(false),
+                    started_at: r.get("startedAt").and_then(Value::as_u64),
                 }),
         },
         "roster.changed" => ServerEvent::RosterChanged {
@@ -540,7 +545,8 @@ mod tests {
                 ServerEvent::RecordingStatus {
                     campaign_id: "c".into(),
                     recording_id: "r1".into(),
-                    status: expected
+                    status: expected,
+                    started_at: None,
                 }
             );
         }
@@ -559,7 +565,8 @@ mod tests {
                 recording: Some(RecordingInfo {
                     recording_id: "r1".into(),
                     capturing: true,
-                    acknowledged: true
+                    acknowledged: true,
+                    started_at: None,
                 })
             }
         );
@@ -596,6 +603,40 @@ mod tests {
                 recording: None
             }
         );
+    }
+
+    #[test]
+    fn the_recording_start_time_is_decoded_when_present() {
+        let (status, _) = parse_server_frame(&server(
+            "recording.status",
+            json!({ "campaignId": "c", "recordingId": "r", "status": "PAUSED", "startedAt": 1000 }),
+            None,
+        ))
+        .unwrap();
+        assert!(matches!(
+            status,
+            ServerEvent::RecordingStatus {
+                started_at: Some(1000),
+                ..
+            }
+        ));
+        let (state, _) = parse_server_frame(&server(
+            "recording.state",
+            json!({ "campaignId": "c", "recording": {
+                "recordingId": "r", "status": "IN-PROGRESS", "acknowledged": false, "startedAt": 2000 } }),
+            None,
+        ))
+        .unwrap();
+        assert!(matches!(
+            state,
+            ServerEvent::RecordingState {
+                recording: Some(RecordingInfo {
+                    started_at: Some(2000),
+                    ..
+                }),
+                ..
+            }
+        ));
     }
 
     #[test]

@@ -118,14 +118,25 @@ export function applyEvent(state: TableState, event: SyncEvent): TableState {
       const r = asObj(d.recording);
       const next: RecordingView | null =
         typeof r.recordingId === 'string'
-          ? { recordingId: r.recordingId, capturing: r.capturing !== false }
+          ? {
+              recordingId: r.recordingId,
+              capturing: r.capturing !== false,
+              startedAt: asStart(r.startedAt),
+            }
           : null;
       return sameRecording(state.recording, next) ? state : { ...state, recording: next };
     }
     case 'recording.status': {
       const id = String(d.recordingId ?? '');
+      const sameRun = state.recording?.recordingId === id;
       const next: RecordingView | null =
-        d.status === 'STOPPED' ? null : { recordingId: id, capturing: d.status !== 'PAUSED' };
+        d.status === 'STOPPED'
+          ? null
+          : {
+              recordingId: id,
+              capturing: d.status !== 'PAUSED',
+              startedAt: asStart(d.startedAt) ?? (sameRun ? state.recording!.startedAt : null),
+            };
       return sameRecording(state.recording, next) ? state : { ...state, recording: next };
     }
     default:
@@ -133,10 +144,16 @@ export function applyEvent(state: TableState, event: SyncEvent): TableState {
   }
 }
 
+const asStart = (v: unknown): number | null => (typeof v === 'number' && v > 0 ? v : null);
+
 function sameRecording(a: RecordingView | null, b: RecordingView | null): boolean {
   return (
     a === b ||
-    (a !== null && b !== null && a.recordingId === b.recordingId && a.capturing === b.capturing)
+    (a !== null &&
+      b !== null &&
+      a.recordingId === b.recordingId &&
+      a.capturing === b.capturing &&
+      a.startedAt === b.startedAt)
   );
 }
 
