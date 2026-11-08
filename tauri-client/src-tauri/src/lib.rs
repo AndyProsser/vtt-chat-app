@@ -1,8 +1,10 @@
 mod account;
 mod account_commands;
+mod autostart;
 mod bridge;
 mod commands;
 mod consts;
+mod deeplink;
 mod hotkeys;
 mod mic_gate;
 mod platform;
@@ -13,12 +15,43 @@ mod soundboard;
 mod tray;
 mod windows;
 
+/// Passed to the app when the OS starts it at login.
+const AUTOSTART_FLAG: &str = "--hidden";
+
+/// Registers the `vtt-chat://` scheme and listens for links (also one that launched us).
+fn register_links(app: &mut tauri::App) {
+    use tauri_plugin_deep_link::DeepLinkExt;
+    let handle = app.handle().clone();
+    app.deep_link().on_open_url(move |event| {
+        deeplink::handle(&handle, event.urls().iter().map(|u| u.to_string()));
+    });
+    // Installed builds register the scheme with their package; on Linux and in dev it is done here.
+    #[cfg(any(target_os = "linux", all(debug_assertions, windows)))]
+    if let Err(err) = app.deep_link().register_all() {
+        eprintln!("[src-tauri] could not register the vtt-chat:// link: {err}");
+    }
+    if let Ok(Some(urls)) = app.deep_link().get_current() {
+        deeplink::handle(app.handle(), urls.iter().map(|u| u.to_string()));
+    }
+}
+
 /// The tray shell: no windows and no remote content. It holds the audio client and the signed-in
 /// session as app-level state, registers the global shortcuts and installs the tray icon. Local
 /// panel windows arrive next (ROADMAP Stage 4); audio and the consent flow never depend on them.
 pub fn run() {
     platform::apply_platform_fixes();
     tauri::Builder::default()
+        // Must be first: a second launch (a click on a `vtt-chat://` link, or autostart racing a
+        // manual start) hands its arguments to the running instance and exits.
+        .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
+            deeplink::handle(app, args);
+            let _ = windows::open_main(app);
+        }))
+        .plugin(tauri_plugin_deep_link::init())
+        .plugin(tauri_plugin_autostart::init(
+            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+            Some(vec![AUTOSTART_FLAG]),
+        ))
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .manage(rust_livekit::SharedClient::default())
@@ -26,6 +59,7 @@ pub fn run() {
         .manage(session::SessionState::default())
         .manage(account_commands::AccountState::default())
         .manage(bridge::PanelFeed::default())
+        .manage(deeplink::PendingServer::default())
         .manage(soundboard::Soundboard::default())
         .manage(std::sync::Mutex::new(session::TrayModel::default()))
         .invoke_handler(tauri::generate_handler![
@@ -39,6 +73,9 @@ pub fn run() {
             commands::chat_send,
             windows::panel_open,
             windows::window_ready,
+            deeplink::take_pending_server,
+            autostart::autostart_enabled,
+            autostart::autostart_set,
             account_commands::account_status,
             account_commands::account_sign_in,
             account_commands::account_select_campaign,
@@ -54,8 +91,12 @@ pub fn run() {
                 eprintln!("[src-tauri] could not create the tray icon: {err}");
             }
             account_commands::resume(app.handle());
-            if let Err(err) = windows::open_main(app.handle()) {
-                eprintln!("[src-tauri] could not open the main window: {err}");
+            register_links(app);
+            // Autostart launches with `--hidden`: just the tray, no window in the user's face.
+            if !std::env::args().any(|a| a == AUTOSTART_FLAG) {
+                if let Err(err) = windows::open_main(app.handle()) {
+                    eprintln!("[src-tauri] could not open the main window: {err}");
+                }
             }
             Ok(())
         })

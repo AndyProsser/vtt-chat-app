@@ -175,7 +175,40 @@ pub fn normalise_server(input: &str) -> Result<String, String> {
     if host.is_empty() {
         return Err("the server address has no host".into());
     }
+    let authority = host.split('/').next().unwrap_or("");
+    if !is_host_and_port(authority) {
+        return Err("that does not look like a server address".into());
+    }
     Ok(format!("{scheme}://{host}"))
+}
+
+/// `name`, `name:port`, an IPv4 address, or `[v6]` / `[v6]:port` — and nothing else.
+fn is_host_and_port(authority: &str) -> bool {
+    let (host, port) = match authority.strip_prefix('[') {
+        Some(rest) => match rest.split_once(']') {
+            Some((v6, tail)) => (
+                if v6.is_empty() || !v6.chars().all(|c| c.is_ascii_hexdigit() || c == ':') {
+                    return false;
+                } else {
+                    "v6"
+                },
+                tail.strip_prefix(':'),
+            ),
+            None => return false,
+        },
+        None => match authority.rsplit_once(':') {
+            Some((h, p)) => (h, Some(p)),
+            None => (authority, None),
+        },
+    };
+    let host_ok = host == "v6"
+        || (!host.is_empty()
+            && host
+                .chars()
+                .all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '-'));
+    let port_ok =
+        port.is_none_or(|p| !p.is_empty() && p.len() <= 5 && p.chars().all(|c| c.is_ascii_digit()));
+    host_ok && port_ok
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -467,6 +500,21 @@ mod tests {
         assert!(normalise_server("").is_err());
         assert!(normalise_server("ftp://x").is_err());
         assert!(normalise_server("https://").is_err());
+        // Not a host:port at all (a link must not smuggle in anything else).
+        for bad in [
+            "javascript:alert(1)",
+            "a b",
+            "user@host",
+            "ho!st",
+            "http://:80",
+            "x:notaport",
+        ] {
+            assert!(normalise_server(bad).is_err(), "{bad}");
+        }
+        assert_eq!(
+            normalise_server("[::1]:3000").unwrap(),
+            "https://[::1]:3000"
+        );
     }
 
     use std::cell::RefCell;

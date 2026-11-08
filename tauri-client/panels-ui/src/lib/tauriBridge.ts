@@ -93,6 +93,16 @@ export const campaignFile = (path: string) => invoke<string>('campaign_file', { 
 /** Tells Rust this window has painted, so it can be shown (windows start hidden to avoid a blank flash). */
 export const windowReady = () => invoke<void>('window_ready');
 
+/** The server a `vtt-chat://connect?server=…` link supplied, once (`take_pending_server`). */
+export const takePendingServer = () => invoke<string | null>('take_pending_server');
+
+export function onLinkedServer(handler: (server: string) => void): Promise<UnlistenFn> {
+  return listen<string>('deeplink:server', (event) => handler(event.payload));
+}
+
+export const autostartEnabled = () => invoke<boolean>('autostart_enabled');
+export const autostartSet = (enabled: boolean) => invoke<void>('autostart_set', { enabled });
+
 export const panelOpen = (name: string) => invoke<void>('panel_open', { name });
 
 export function onSyncEvent(handler: (event: SyncEvent) => void): Promise<UnlistenFn> {

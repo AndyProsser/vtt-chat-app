@@ -2,6 +2,7 @@ import { Tabs } from '@radix-ui/themes';
 
 import { AccountSection } from './settings/AccountSection.js';
 import { AppearanceSection } from './settings/AppearanceSection.js';
+import { GeneralSection } from './settings/GeneralSection.js';
 import { SessionsSection } from './settings/SessionsSection.js';
 
 /** Everything done occasionally, in one window: account, the session schedule, and the look. */
@@ -13,6 +14,7 @@ export function SettingsWindow() {
           <Tabs.Trigger value="account">Account</Tabs.Trigger>
           <Tabs.Trigger value="sessions">Sessions</Tabs.Trigger>
           <Tabs.Trigger value="appearance">Appearance</Tabs.Trigger>
+          <Tabs.Trigger value="general">General</Tabs.Trigger>
         </Tabs.List>
         <Tabs.Content value="account">
           <AccountSection />
@@ -22,6 +24,9 @@ export function SettingsWindow() {
         </Tabs.Content>
         <Tabs.Content value="appearance">
           <AppearanceSection />
+        </Tabs.Content>
+        <Tabs.Content value="general">
+          <GeneralSection />
         </Tabs.Content>
       </Tabs.Root>
     </div>

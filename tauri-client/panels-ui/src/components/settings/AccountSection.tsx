@@ -1,7 +1,8 @@
 import { Badge, Button, Callout, Flex, Heading, Text, TextField } from '@radix-ui/themes';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { useAccount } from '../../hooks/useAccount.js';
+import { useLinkedServer } from '../../hooks/useLinkedServer.js';
 
 /**
  * Sign-in only. Accounts are created on the browser join page from an invite
@@ -11,6 +12,10 @@ export function AccountSection() {
   const account = useAccount();
   const { status } = account;
   const [server, setServer] = useState<string>();
+  const linked = useLinkedServer();
+  useEffect(() => {
+    if (linked) setServer(linked);
+  }, [linked]);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
