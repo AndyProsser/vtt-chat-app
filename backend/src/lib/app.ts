@@ -53,6 +53,8 @@ export interface AppDeps {
         quantity: number;
         claimedBy: string | null;
         kind: 'item' | 'coin';
+        itemType: string;
+        rarity: string | null;
         claimedFor: 'self' | 'party' | 'split' | null;
         split: { shares: { userId: string; amount: number }[]; remainder: number } | null;
       },

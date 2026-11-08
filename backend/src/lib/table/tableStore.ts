@@ -1,3 +1,5 @@
+import type { ItemType, Rarity } from '@vtt-chat-app/shared';
+
 import type { MediaKind } from '../media/mediaStorage.js';
 
 export interface MediaFile {
@@ -50,6 +52,12 @@ export interface LootItem {
   id: string;
   campaignId: string;
   kind: LootKind;
+  /** What it is, for the icon (`coin` for coin). */
+  itemType: ItemType;
+  /** SRD rarity for a magic item; `null` for mundane and custom-mundane items. */
+  rarity: Rarity | null;
+  /** The SRD item this was made from; `null` for a custom item. */
+  srdId: string | null;
   name: string;
   description: string;
   quantity: number;

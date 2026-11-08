@@ -1,3 +1,4 @@
+import type { ItemType, Rarity } from '@vtt-chat-app/shared';
 import type pg from 'pg';
 
 import type { MediaKind } from '../media/mediaStorage.js';
@@ -47,6 +48,9 @@ const toLoot = (r: Row): LootItem => ({
   id: r.id as string,
   campaignId: r.campaign_id as string,
   kind: r.kind as LootKind,
+  itemType: r.item_type as ItemType,
+  rarity: (r.rarity as Rarity | null) ?? null,
+  srdId: (r.srd_id as string | null) ?? null,
   name: r.name as string,
   description: r.description as string,
   quantity: r.quantity as number,
@@ -174,8 +178,8 @@ export class PostgresTableStore implements TableStore {
 
   async putLoot(i: LootItem): Promise<void> {
     await this.pool.query(
-      `INSERT INTO loot_items (id, campaign_id, name, description, quantity, dropped_by, dropped_at, claimed_by, claimed_at, kind)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      `INSERT INTO loot_items (id, campaign_id, name, description, quantity, dropped_by, dropped_at, claimed_by, claimed_at, kind, item_type, rarity, srd_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
        ON CONFLICT (id) DO UPDATE SET name = $3, description = $4, quantity = $5`,
       [
         i.id,
@@ -188,6 +192,9 @@ export class PostgresTableStore implements TableStore {
         i.claimedBy,
         i.claimedAt,
         i.kind,
+        i.itemType,
+        i.rarity,
+        i.srdId,
       ],
     );
   }

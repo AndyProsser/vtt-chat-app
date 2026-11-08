@@ -226,6 +226,8 @@ export class Hub {
       quantity: number;
       claimedBy: string | null;
       kind: 'item' | 'coin';
+      itemType: string;
+      rarity: string | null;
       claimedFor: 'self' | 'party' | 'split' | null;
       split: { shares: { userId: string; amount: number }[]; remainder: number } | null;
     },
@@ -236,6 +238,8 @@ export class Hub {
       name: item.name,
       quantity: item.quantity,
       kind: item.kind,
+      itemType: item.itemType,
+      rarity: item.rarity,
       ...(event === 'claimed'
         ? { claimedBy: item.claimedBy, claimedFor: item.claimedFor, split: item.split }
         : {}),

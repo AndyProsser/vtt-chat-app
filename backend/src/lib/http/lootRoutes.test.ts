@@ -282,3 +282,98 @@ describe('coin and the party split', () => {
     expect(results.filter((r) => r.status === 200)).toHaveLength(1);
   });
 });
+
+describe('item types, rarity and the SRD catalog', () => {
+  it('fills the type and rarity from an SRD item, and lets the DM drop a custom one with its own', async () => {
+    const srd = (await drop(dm.token, { srdId: 'potion-of-healing', quantity: 2 })).body.item;
+    expect(srd).toMatchObject({
+      name: 'Potion of Healing',
+      itemType: 'potion',
+      rarity: 'common',
+      srdId: 'potion-of-healing',
+      quantity: 2,
+    });
+    const custom = (
+      await drop(dm.token, { name: "Grandfather's blade", itemType: 'weapon', rarity: 'rare' })
+    ).body.item;
+    expect(custom).toMatchObject({ itemType: 'weapon', rarity: 'rare', srdId: null });
+    const plain = (await drop(dm.token, { name: 'Rope' })).body.item;
+    expect(plain).toMatchObject({ itemType: 'other', rarity: null });
+    const coin = (await drop(dm.token, { name: 'gp', kind: 'coin', quantity: 5 })).body.item;
+    expect(coin.itemType).toBe('coin');
+    expect(events.at(-1)?.item).toMatchObject({ itemType: 'coin' });
+  });
+
+  it('refuses an unknown type, rarity or SRD item, and a drop with neither a name nor an SRD item', async () => {
+    expect((await drop(dm.token, { name: 'x', itemType: 'spoon' })).status).toBe(400);
+    expect((await drop(dm.token, { name: 'x', rarity: 'mythic' })).status).toBe(400);
+    expect((await drop(dm.token, { srdId: 'not-a-real-item' })).status).toBe(400);
+    expect((await drop(dm.token, { quantity: 2 })).status).toBe(400);
+  });
+
+  it('drops a batch all at once, or not at all if any entry is bad', async () => {
+    const url = `/api/campaigns/${campaign}/loot/batch`;
+    const ok = await call('POST', url, dm.token, {
+      items: [{ srdId: 'ring-of-protection' }, { name: 'gp', kind: 'coin', quantity: 30 }],
+    });
+    expect(ok.status).toBe(201);
+    expect(ok.body.items).toHaveLength(2);
+    expect(events.filter((e) => e.event === 'dropped')).toHaveLength(2);
+    const before = (await call('GET', `/api/campaigns/${campaign}/loot`, dm.token)).body.loot.length;
+    const bad = await call('POST', url, dm.token, { items: [{ name: 'fine' }, { srdId: 'nope' }] });
+    expect(bad.status).toBe(400);
+    expect((await call('GET', `/api/campaigns/${campaign}/loot`, dm.token)).body.loot).toHaveLength(before);
+    expect((await call('POST', url, alice.token, { items: [{ name: 'x' }] })).status).toBe(403);
+    expect((await call('POST', url, dm.token, { items: [] })).status).toBe(400);
+  });
+
+  it('searches the catalog for any member, with filters', async () => {
+    const find = (q: string) => call('GET', `/api/campaigns/${campaign}/loot/catalog?${q}`, alice.token);
+    const r = await find('q=healing&type=potion');
+    expect(r.status).toBe(200);
+    expect(r.body.items.length).toBeGreaterThan(0);
+    expect(r.body.items.every((i: any) => i.type === 'potion')).toBe(true);
+    expect((await find('rarity=legendary&limit=5')).body.items).toHaveLength(5);
+    expect((await find('type=spoon')).status).toBe(400);
+    expect((await call('GET', `/api/campaigns/${campaign}/loot/catalog`, outsider.token)).status).toBe(403);
+  });
+});
+
+describe('random loot', () => {
+  const roll = (token: string, body: unknown) =>
+    call('POST', `/api/campaigns/${campaign}/loot/roll`, token, body);
+
+  it('previews a roll for the DM without dropping anything', async () => {
+    const individual = await roll(dm.token, { cr: 3, kind: 'individual' });
+    expect(individual.status).toBe(200);
+    expect(individual.body.drafts.length).toBeGreaterThan(0);
+    expect(individual.body.drafts.every((d: any) => d.kind === 'coin')).toBe(true);
+    const hoard = await roll(dm.token, { cr: 12, kind: 'hoard' });
+    expect(hoard.body.drafts.some((d: any) => d.kind === 'coin')).toBe(true);
+    expect((await call('GET', `/api/campaigns/${campaign}/loot`, dm.token)).body.loot).toEqual([]);
+    expect(events).toEqual([]);
+  });
+
+  it('is the DM\'s alone, and checks the challenge rating and kind', async () => {
+    expect((await roll(alice.token, { cr: 3, kind: 'hoard' })).status).toBe(403);
+    expect((await roll(dm.token, { cr: -1, kind: 'hoard' })).status).toBe(400);
+    expect((await roll(dm.token, { cr: 31, kind: 'hoard' })).status).toBe(400);
+    expect((await roll(dm.token, { cr: 'big', kind: 'hoard' })).status).toBe(400);
+    expect((await roll(dm.token, { cr: 3, kind: 'pile' })).status).toBe(400);
+  });
+
+  it('rerolls one entry as another of the same kind', async () => {
+    const draft = (await roll(dm.token, { cr: 14, kind: 'hoard' })).body.drafts.find((d: any) => d.rarity);
+    expect(draft).toBeDefined();
+    const again = await call('POST', `/api/campaigns/${campaign}/loot/roll/reroll`, dm.token, {
+      cr: 14,
+      draft,
+    });
+    expect(again.status).toBe(200);
+    expect(again.body.draft.rarity).toBe(draft.rarity);
+    expect(again.body.draft.srdId).not.toBe(draft.srdId);
+    expect(
+      (await call('POST', `/api/campaigns/${campaign}/loot/roll/reroll`, alice.token, { cr: 14, draft })).status,
+    ).toBe(403);
+  });
+});

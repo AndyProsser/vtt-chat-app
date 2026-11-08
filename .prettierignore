@@ -5,3 +5,4 @@ target
 package-lock.json
 tauri-client/src-tauri/gen
 .remember
+shared/src/srd/data.generated.ts

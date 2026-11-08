@@ -1,9 +1,33 @@
 import { randomUUID } from 'node:crypto';
 
+import {
+  findItem,
+  isItemType,
+  isRarity,
+  searchItems,
+  type ItemQuery,
+  type ItemType,
+  type Rarity,
+  type SrdItem,
+} from '@vtt-chat-app/shared';
+
+import { rerollDraft, rollHoard, rollIndividual, type Draft } from '../loot/generator.js';
+
 import type { User } from '../../types/index.js';
 import { DomainError } from '../errors.js';
 import type { Store } from '../store/store.js';
 import type { ClaimedFor, LootItem, LootKind, TableStore } from './tableStore.js';
+
+/** What the DM sends to drop something. Give an SRD `srdId`, or a `name` for a custom item. */
+export interface DropInput {
+  name?: string;
+  description?: string;
+  quantity?: number;
+  kind?: LootKind;
+  itemType?: string;
+  rarity?: string | null;
+  srdId?: string;
+}
 
 export interface LootDeps {
   store: Store;
@@ -37,27 +61,44 @@ export class LootService {
     return this.deps.table.listLoot(campaignId);
   }
 
-  async drop(
-    user: User,
-    campaignId: string,
-    input: { name: string; description?: string; quantity?: number; kind?: LootKind },
-  ): Promise<LootItem> {
-    if ((await this.role(user, campaignId)) !== 'dm')
-      throw new DomainError('forbidden', 'only the DM can drop loot');
-    const name = input.name.trim();
+  /** Checks one drop and turns it into an item (not yet stored). */
+  private build(user: User, campaignId: string, input: DropInput): LootItem {
+    const srd = input.srdId === undefined ? undefined : findItem(input.srdId);
+    if (input.srdId !== undefined && !srd) {
+      throw new DomainError('invalid_input', 'that is not an item in the SRD');
+    }
+    const name = (input.name ?? srd?.name ?? '').trim();
     if (name.length < 1 || name.length > 200)
       throw new DomainError('invalid_input', 'name must be 1–200 characters');
     const quantity = input.quantity ?? 1;
     if (!Number.isInteger(quantity) || quantity < 1 || quantity > 100_000) {
       throw new DomainError('invalid_input', 'quantity must be a whole number from 1 to 100000');
     }
-    const description = (input.description ?? '').trim();
+    const description = (input.description ?? srd?.blurb ?? '').trim();
     if (description.length > 2000)
       throw new DomainError('invalid_input', 'description is too long');
-    const item: LootItem = {
+    const kind = input.kind ?? 'item';
+    if (input.itemType !== undefined && !isItemType(input.itemType)) {
+      throw new DomainError('invalid_input', 'unknown item type');
+    }
+    if (input.rarity != null && !isRarity(input.rarity)) {
+      throw new DomainError('invalid_input', 'unknown rarity');
+    }
+    const itemType: ItemType =
+      kind === 'coin' ? 'coin' : ((input.itemType as ItemType | undefined) ?? srd?.type ?? 'other');
+    const rarity: Rarity | null =
+      kind === 'coin'
+        ? null
+        : input.rarity !== undefined
+          ? (input.rarity as Rarity | null)
+          : (srd?.rarity ?? null);
+    return {
       id: this.newId(),
       campaignId,
-      kind: input.kind ?? 'item',
+      kind,
+      itemType,
+      rarity,
+      srdId: srd?.id ?? null,
       name,
       description,
       quantity,
@@ -68,8 +109,51 @@ export class LootService {
       claimedFor: null,
       split: null,
     };
+  }
+
+  private async requireDm(user: User, campaignId: string): Promise<void> {
+    if ((await this.role(user, campaignId)) !== 'dm')
+      throw new DomainError('forbidden', 'only the DM can drop loot');
+  }
+
+  /** The SRD item catalog, for picking something to drop. Any member of the campaign may look. */
+  async catalog(user: User, campaignId: string, query: ItemQuery): Promise<SrdItem[]> {
+    await this.role(user, campaignId);
+    return searchItems(query);
+  }
+
+  /** A random treasure roll for the DM to look over. Nothing is stored until it is dropped. */
+  async roll(
+    user: User,
+    campaignId: string,
+    input: { cr: number; kind: 'individual' | 'hoard' },
+  ): Promise<Draft[]> {
+    await this.requireDm(user, campaignId);
+    return input.kind === 'hoard' ? rollHoard(input.cr) : rollIndividual(input.cr);
+  }
+
+  /** Swaps one entry of a preview for another of the same kind. */
+  async rerollEntry(user: User, campaignId: string, cr: number, draft: Draft): Promise<Draft> {
+    await this.requireDm(user, campaignId);
+    return rerollDraft(draft, cr);
+  }
+
+  async drop(user: User, campaignId: string, input: DropInput): Promise<LootItem> {
+    await this.requireDm(user, campaignId);
+    const item = this.build(user, campaignId, input);
     await this.deps.table.putLoot(item);
     return item;
+  }
+
+  /** Drops several at once: every entry is checked first, so a bad one means none are dropped. */
+  async dropMany(user: User, campaignId: string, inputs: DropInput[]): Promise<LootItem[]> {
+    await this.requireDm(user, campaignId);
+    if (inputs.length < 1 || inputs.length > 50) {
+      throw new DomainError('invalid_input', 'drop between 1 and 50 things at a time');
+    }
+    const items = inputs.map((input) => this.build(user, campaignId, input));
+    for (const item of items) await this.deps.table.putLoot(item);
+    return items;
   }
 
   /**

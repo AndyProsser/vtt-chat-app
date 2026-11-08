@@ -139,12 +139,21 @@ export function CampaignSection() {
               </ToolButton>
             </span>
           ) : (
-            <ToolButton label="Leave this campaign…" danger onClick={() => setConfirm('leave')}>
+            <ToolButton
+              label={dm ? 'Hand over the DM role before you can leave' : 'Leave this campaign…'}
+              danger
+              disabled={dm}
+              onClick={() => setConfirm('leave')}
+            >
               <LogOut size={14} />
             </ToolButton>
           )}
         </div>
-        <span className="vtt-muted">Your characters and history here stay with the campaign.</span>
+        <span className="vtt-muted">
+          {dm
+            ? 'The DM cannot leave until another player has been made the DM (above): a campaign always has one.'
+            : 'Your characters and history here stay with the campaign.'}
+        </span>
       </section>
     </div>
   );
