@@ -93,8 +93,29 @@ async function main(): Promise<void> {
     });
   }
 
+  // A second campaign where Aria is the DM and the test DM is just a player: roles are per campaign,
+  // so this is what switching campaigns (and a different DM) looks like.
+  const aria = sessions.find((x) => x.person.key === 'aria')!;
+  const second = 'Embers of Valdris';
+  const ariaCampaigns = await call('GET', '/api/campaigns', aria.token);
+  let secondId: string | undefined = ariaCampaigns.body.campaigns?.find(
+    (c: any) => c.campaign.name === second,
+  )?.campaign.id;
+  if (!secondId) {
+    const made = await call('POST', '/api/campaigns', aria.token, { name: second });
+    if (made.status === 201) {
+      secondId = made.body.campaign.id as string;
+      const code = (await call('POST', `/api/campaigns/${secondId}/invites`, aria.token, {})).body
+        .code;
+      await call('POST', '/api/campaigns/join', dm.token, { code });
+      console.log(`created campaign "${second}" (Aria is its DM)`);
+    }
+  }
+
   console.log(`\nSeeded "${CAMPAIGN}" (${campaignId}).`);
-  console.log('Sign in to the app as the DM:   dm@vtt.test');
+  console.log(
+    'Sign in to the app as the DM:   dm@vtt.test   (a player in "Embers of Valdris", where Aria is DM)',
+  );
   console.log('Players (mock table-mates):     aria@  bram@  cass@  dorn@ vtt.test');
   console.log('Passwords: .dev/accounts.json   (generated; never printed)');
   console.log('Next: npm run dev:mock  to bring the players online with chat and voice.');

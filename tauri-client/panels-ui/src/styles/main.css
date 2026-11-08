@@ -603,3 +603,31 @@ body,
   font-size: 10px;
   font-family: var(--vtt-font-head);
 }
+.vtt-campaign {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: var(--vtt-radius-control);
+  border: 1px solid var(--vtt-edge);
+  background: var(--vtt-bubble);
+  color: var(--vtt-ink);
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+.vtt-campaign[disabled] {
+  border-color: var(--vtt-gold);
+  cursor: default;
+}
+.vtt-code {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 11px;
+  padding: 3px 6px;
+  border: 1px solid var(--vtt-edge);
+  border-radius: var(--vtt-radius-control);
+  background: var(--vtt-chat);
+}

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import {
+  accountAddCampaign,
   accountErrorMessage,
   accountSelectCampaign,
   accountSignIn,
@@ -17,6 +18,7 @@ export interface AccountApi {
   error: string | undefined;
   signIn: (server: string, email: string, password: string) => Promise<void>;
   selectCampaign: (id: string) => Promise<void>;
+  addCampaign: (action: 'join' | 'create' | 'refresh', value: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -59,6 +61,7 @@ export function useAccount(): AccountApi {
     error,
     signIn: (server, email, password) => run(() => accountSignIn(server, email, password)),
     selectCampaign: (id) => run(() => accountSelectCampaign(id)),
+    addCampaign: (action, value) => run(() => accountAddCampaign(action, value)),
     signOut: () => run(accountSignOut),
   };
 }

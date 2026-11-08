@@ -72,6 +72,8 @@ docker compose -f infra/dev/compose.yml up -d --wait          # Postgres + Valke
 livekit-server --dev                                           # LiveKit on ws://127.0.0.1:7880 (key devkey / secret)
 DATABASE_URL=postgres://postgres:scratch@127.0.0.1:55432/vtt VALKEY_URL=redis://127.0.0.1:56379 \
   node backend/dist/index.js                                   # the backend on :3000 (npm run build -w @vtt-chat-app/backend first)
+# once: let players create campaigns too (the seed makes a second one with Aria as its DM)
+node backend/dist/cli/main.js settings set campaign-creation open
 npm run dev:seed                                               # a DM account, four players with characters, loot, a handout, a session
 npm run dev:mock                                               # the four players come online, join voice, talk and chat (Ctrl+C to stop)
 ```

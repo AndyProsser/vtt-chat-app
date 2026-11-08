@@ -24,6 +24,7 @@ commands.allow = [
   "account_status",
   "account_sign_in",
   "account_select_campaign",
+  "account_add_campaign",
   "account_sign_out",
   "recording_control",
   "campaign_api",

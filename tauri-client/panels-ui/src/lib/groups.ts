@@ -30,6 +30,7 @@ export function moveCommand(
   laneId: string | null,
 ): { userId: string; partyId: string | null } | undefined {
   const assigned = view.assignments[userId];
-  const current = assigned !== undefined && view.parties.some((p) => p.id === assigned) ? assigned : null;
+  const current =
+    assigned !== undefined && view.parties.some((p) => p.id === assigned) ? assigned : null;
   return current === laneId ? undefined : { userId, partyId: laneId };
 }

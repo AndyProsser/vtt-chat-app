@@ -20,7 +20,7 @@ export function MainWindow() {
   const gate = gateState(status);
   if (gate === 'loading') return <div className="vtt-main" aria-busy="true" />;
   if (gate !== 'ready') return <SignInGate />;
-  return <Table selfId={status?.userId ?? null} />;
+  return <Table key={status?.campaignId ?? ''} selfId={status?.userId ?? null} />;
 }
 
 function Table({ selfId }: { selfId: string | null }) {

@@ -2,6 +2,7 @@ import { Activity, AudioLines, Settings, Volume2, VolumeX } from 'lucide-react';
 
 import { useVoice } from '../hooks/useVoice.js';
 import { panelOpen } from '../lib/tauriBridge.js';
+import { CampaignSwitcher } from './CampaignSwitcher.js';
 import { ConnectionMenu } from './ConnectionMenu.js';
 import { GroupsMenu } from './GroupsMenu.js';
 import { RecordingIndicator } from './RecordingIndicator.js';
@@ -19,6 +20,7 @@ export function TopBar({ dm, effectsOpen, onToggleEffects }: Props) {
   const voice = useVoice();
   return (
     <header className="vtt-top">
+      <CampaignSwitcher />
       <RecordingIndicator dm={dm} />
       <span className="vtt-spacer" />
       {dm && <GroupsMenu />}

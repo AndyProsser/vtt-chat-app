@@ -113,14 +113,14 @@ pub async fn account_sign_in(
     Ok(status_json(&inner.saved, &inner.campaigns))
 }
 
-#[tauri::command]
-pub async fn account_select_campaign(
-    app: AppHandle,
-    state: State<'_, AccountState>,
-    sessions: State<'_, SessionState>,
-    campaign_id: String,
-) -> Result<Value, AccountError> {
-    let mut inner = state.0.lock().await;
+/// Makes `campaign_id` the live campaign: leaves the current one (chat link and voice room) first, so
+/// switching never leaves a second voice connection behind, then joins the new one.
+async fn switch_to(
+    app: &AppHandle,
+    sessions: &SessionState,
+    inner: &mut Inner,
+    campaign_id: &str,
+) -> Result<(), AccountError> {
     let (Some(server), Some(token)) = (
         inner.saved.server.clone(),
         inner.saved.session_token.clone(),
@@ -130,10 +130,100 @@ pub async fn account_select_campaign(
     if !inner.campaigns.iter().any(|c| c.id == campaign_id) {
         return Err(error("unknown_campaign", "you are not in that campaign"));
     }
-    inner.saved.campaign_id = Some(campaign_id.clone());
-    persist(&app, &inner.saved);
-    go_live(&app, &sessions, &server, &token, &campaign_id).await?;
-    notify_changed(&app);
+    teardown(app, sessions).await;
+    inner.saved.campaign_id = Some(campaign_id.to_string());
+    persist(app, &inner.saved);
+    go_live(app, sessions, &server, &token, campaign_id).await?;
+    notify_changed(app);
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn account_select_campaign(
+    app: AppHandle,
+    state: State<'_, AccountState>,
+    sessions: State<'_, SessionState>,
+    campaign_id: String,
+) -> Result<Value, AccountError> {
+    let mut inner = state.0.lock().await;
+    switch_to(&app, &sessions, &mut inner, &campaign_id).await?;
+    Ok(status_json(&inner.saved, &inner.campaigns))
+}
+
+/// Joins a campaign with an invite code, or creates one (the server decides who may create), then
+/// switches to it. `action` is `join` (value = the code), `create` (value = the name) or `refresh`
+/// (re-read the list after leaving a campaign or a DM swap; if the current campaign is gone, move to
+/// another or to none).
+#[tauri::command]
+pub async fn account_add_campaign(
+    app: AppHandle,
+    state: State<'_, AccountState>,
+    sessions: State<'_, SessionState>,
+    action: String,
+    value: String,
+) -> Result<Value, AccountError> {
+    if action == "refresh" {
+        let mut inner = state.0.lock().await;
+        let (Some(server), Some(token)) = (
+            inner.saved.server.clone(),
+            inner.saved.session_token.clone(),
+        ) else {
+            return Err(error("signed_out", "sign in first"));
+        };
+        inner.campaigns = AccountClient::new(&server).campaigns(&token).await?;
+        let current = inner.saved.campaign_id.clone();
+        let still_there = current
+            .as_ref()
+            .is_some_and(|id| inner.campaigns.iter().any(|c| &c.id == id));
+        if !still_there && current.is_some() {
+            match inner.campaigns.first().map(|c| c.id.clone()) {
+                Some(next) => switch_to(&app, &sessions, &mut inner, &next).await?,
+                None => {
+                    teardown(&app, &sessions).await;
+                    inner.saved.campaign_id = None;
+                    persist(&app, &inner.saved);
+                    notify_changed(&app);
+                }
+            }
+        } else {
+            notify_changed(&app);
+        }
+        return Ok(status_json(&inner.saved, &inner.campaigns));
+    }
+    let (path, body, id_at) = match action.as_str() {
+        "join" => (
+            "/api/campaigns/join",
+            serde_json::json!({ "code": value.trim() }),
+            "/membership/campaignId",
+        ),
+        "create" => (
+            "/api/campaigns",
+            serde_json::json!({ "name": value.trim() }),
+            "/campaign/id",
+        ),
+        _ => return Err(error("bad_action", "unknown campaign action")),
+    };
+    if value.trim().is_empty() {
+        return Err(error("invalid_input", "that is empty"));
+    }
+    let mut inner = state.0.lock().await;
+    let (Some(server), Some(token)) = (
+        inner.saved.server.clone(),
+        inner.saved.session_token.clone(),
+    ) else {
+        return Err(error("signed_out", "sign in first"));
+    };
+    let client = AccountClient::new(&server);
+    let response = client.relay(&token, "POST", path, Some(body)).await?;
+    inner.campaigns = client.campaigns(&token).await?;
+    let id = response
+        .pointer(id_at)
+        .and_then(Value::as_str)
+        .map(str::to_string);
+    match id {
+        Some(id) => switch_to(&app, &sessions, &mut inner, &id).await?,
+        None => notify_changed(&app),
+    }
     Ok(status_json(&inner.saved, &inner.campaigns))
 }
 
