@@ -152,3 +152,24 @@ whoever is listening). Players not placed in a party are at the "main table" tog
 - **Not built:** the Rust client side (it must keep LiveKit's default auto-subscribe, and show the groups),
   drag-between-groups UI, voice whispers (private audio, which must be excluded from recording at the
   routing layer), and per-party text chat.
+
+## Client UI: one main window (built 2026-11-08)
+
+The tray client shows these features through **one main window**, not one panel each; occasional tasks
+(account, schedule, theme, handouts, party inventory) open as separate windows. Design rationale:
+[2026-11-08-main-window-design.md](../superpowers/specs/2026-11-08-main-window-design.md).
+
+```mermaid
+flowchart LR
+  WS[rust-sync WebSocket] --> Core[src-tauri core: bridge, soundboard, tray]
+  Core -- sync:event + hydrate --> Main[Main window]
+  Core -- livekit:state, speakers, mic --> Main
+  Main -- chat_send, sync_command, recording_control, voice_connect --> Core
+  Main -- panel_open --> Win[Settings / Handouts / Party inventory]
+  Win -- campaign_api relay --> Core
+```
+
+Loot and handout events become inline **cards** in chat (`loot.dropped/claimed/removed`,
+`handout.shown/removed`), each placed after the chat line it followed; the "taken by" text is the
+grabbed indicator. Cards are live notices (retained in the bounded event tail, lost across a full
+re-snapshot); the Party inventory window is the source of truth.
