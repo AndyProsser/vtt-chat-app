@@ -175,7 +175,7 @@ export interface SrdItem {
   blurb?: string;
 }
 
-export type ClaimedFor = 'self' | 'party' | 'split';
+export type ClaimedFor = 'self' | 'party' | 'split' | 'assigned';
 export interface LootSplit {
   shares: { userId: string; amount: number }[];
   remainder: number;

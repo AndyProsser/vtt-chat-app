@@ -124,6 +124,18 @@ export function lootRoutes(deps: LootRouteDeps): Router {
     res.json({ item });
   });
 
+  router.post('/:itemId/assign', async (req, res) => {
+    const body = z.object({ userId: z.string().min(1).max(64) }).parse(req.body);
+    const item = await loot.assign(
+      authOf(res).user,
+      campaign(req),
+      param(req.params.itemId),
+      body.userId,
+    );
+    deps.onChange?.('claimed', item);
+    res.json({ item });
+  });
+
   router.post('/:itemId/split', async (req, res) => {
     const body = splitBody.parse(req.body ?? {});
     const item = await loot.split(

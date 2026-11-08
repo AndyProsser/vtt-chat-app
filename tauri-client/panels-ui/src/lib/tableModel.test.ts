@@ -298,3 +298,43 @@ describe('party inventory cards', () => {
     expect(party.cards[0]).toMatchObject({ claimedFor: 'party', claimedBy: 'u1' });
   });
 });
+
+describe('roster.update', () => {
+  it('replaces the members (a changed character shows without a reconnect) and keeps the chat', () => {
+    let state = applyEvent(emptyTable, {
+      t: 'snapshot',
+      d: {
+        members: [
+          { userId: 'a', displayName: 'Amy', role: 'player', character: null, online: true },
+        ],
+        recentChat: [],
+      },
+    });
+    state = applyEvent(state, {
+      t: 'chat.message',
+      d: { id: 'm1', text: 'hi', from: { userId: 'a', name: 'Amy' }, at: 1 },
+    });
+    const next = applyEvent(state, {
+      t: 'roster.update',
+      d: {
+        members: [
+          {
+            userId: 'a',
+            displayName: 'Amy',
+            role: 'player',
+            character: { name: 'Aria', className: 'Ranger', level: 5, avatarUrl: 'emblem:bow' },
+            online: true,
+            inVoice: false,
+            muted: true,
+          },
+        ],
+      },
+    });
+    expect(next.members[0]?.character).toMatchObject({
+      name: 'Aria',
+      className: 'Ranger',
+      avatarUrl: 'emblem:bow',
+    });
+    expect(next.chat).toHaveLength(1);
+  });
+});

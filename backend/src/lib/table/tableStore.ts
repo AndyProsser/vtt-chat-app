@@ -41,7 +41,7 @@ export interface Viewer {
 
 export type LootKind = 'item' | 'coin';
 /** Where a grabbed item went: the player's own, the party's shared pool, or a split of coin. */
-export type ClaimedFor = 'self' | 'party' | 'split';
+export type ClaimedFor = 'self' | 'party' | 'split' | 'assigned';
 export interface LootSplit {
   shares: { userId: string; amount: number }[];
   /** Coin that did not divide evenly; it stays in the pool. */

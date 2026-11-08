@@ -228,7 +228,7 @@ export class Hub {
       kind: 'item' | 'coin';
       itemType: string;
       rarity: string | null;
-      claimedFor: 'self' | 'party' | 'split' | null;
+      claimedFor: 'self' | 'party' | 'split' | 'assigned' | null;
       split: { shares: { userId: string; amount: number }[]; remainder: number } | null;
     },
   ): void {
@@ -264,8 +264,21 @@ export class Hub {
   }
 
   /** Tells a campaign's subscribers that roles/characters changed (e.g. after a DM swap). */
-  announceRosterChanged(campaignId: string): void {
+  async announceRosterChanged(campaignId: string): Promise<void> {
     this.broadcast(campaignId, 'roster.changed', { campaignId });
+    // And the roster itself, so a changed character or role shows up without a reconnect. Each
+    // viewer gets their own view (link stats are the DM's alone).
+    const dmIds = await this.dmUserIds(campaignId);
+    const forDm = await this.rosterMembers(campaignId, true);
+    const forPlayers = await this.rosterMembers(campaignId, false);
+    for (const state of this.connections.values()) {
+      if (!state.auth || !state.campaigns.has(campaignId)) continue;
+      const isDm = dmIds.has(state.auth.user.id);
+      this.send(state, 'roster.update', {
+        campaignId,
+        members: isDm ? forDm : forPlayers,
+      });
+    }
   }
 
   close(): void {
@@ -695,7 +708,10 @@ export class Hub {
     try {
       switch (type) {
         case 'party.create':
-          await parties.create(c, (raw as ClientData<'party.create'>).name);
+          {
+            const d = raw as ClientData<'party.create'>;
+            await parties.create(c, d.name, d.members);
+          }
           return;
         case 'party.rename': {
           const d = raw as ClientData<'party.rename'>;
@@ -755,11 +771,11 @@ export class Hub {
     this.closed(state.conn.id);
   }
 
-  private async snapshot(campaignId: string, viewerIsDm: boolean, viewerId: string) {
-    const { store, replay } = this.options;
+  /** Everyone in the campaign as a client lists them: account, active character, presence, and (for the DM) link stats. */
+  private async rosterMembers(campaignId: string, viewerIsDm: boolean) {
+    const { store } = this.options;
     const memberships = await store.listMemberships(campaignId);
     const live = new Map(this.presence.snapshot(campaignId).map((p) => [p.userId, p]));
-
     const members = [];
     for (const membership of memberships) {
       const user = await store.getUser(membership.userId);
@@ -788,6 +804,12 @@ export class Hub {
         ...(viewerIsDm ? { stats: presence?.stats ?? null } : {}),
       });
     }
+    return members;
+  }
+
+  private async snapshot(campaignId: string, viewerIsDm: boolean, viewerId: string) {
+    const { store, replay } = this.options;
+    const members = await this.rosterMembers(campaignId, viewerIsDm);
 
     const recent = await replay.recent(campaignId, 50);
     return {

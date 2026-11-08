@@ -66,6 +66,11 @@ describe('cardLabel', () => {
       'Potion · taken by Aria for the party',
     );
   });
+  it('says when the DM gave an item to someone', () => {
+    expect(cardLabel(card('l', null, { claimedBy: 'u2', claimedFor: 'assigned' }), members)).toBe(
+      'Potion · given to Bob',
+    );
+  });
   it('words coin as an amount, and a split with each share and what is left over', () => {
     const coin = { kind: 'loot' as const, coin: true, title: 'gp', quantity: 10 };
     expect(cardLabel(card('c', null, coin), members)).toBe('10 gp · available');

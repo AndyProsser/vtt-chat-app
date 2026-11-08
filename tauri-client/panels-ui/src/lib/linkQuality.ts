@@ -45,7 +45,7 @@ export function applyStatsEvent(
   event: SyncEvent,
 ): ReadonlyMap<string, LinkStatsView> {
   const d = asObj(event.d);
-  if (event.t === 'snapshot') {
+  if (event.t === 'snapshot' || event.t === 'roster.update') {
     const next = new Map<string, LinkStatsView>();
     for (const m of Array.isArray(d.members) ? d.members : []) {
       const member = asObj(m);

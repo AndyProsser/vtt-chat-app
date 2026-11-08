@@ -165,7 +165,7 @@ export class LootService {
     user: User,
     campaignId: string,
     itemId: string,
-    forWhom: Exclude<ClaimedFor, 'split'> = 'self',
+    forWhom: Extract<ClaimedFor, 'self' | 'party'> = 'self',
   ): Promise<LootItem> {
     if ((await this.role(user, campaignId)) === 'dm') {
       throw new DomainError('forbidden', 'the DM hands loot out and cannot claim it');
@@ -174,6 +174,28 @@ export class LootService {
     if (!existing || existing.campaignId !== campaignId) throw new DomainError('not_found');
     const claimed = await this.deps.table.claimLoot(itemId, user.id, this.now(), forWhom);
     if (!claimed) throw new DomainError('conflict', 'someone already picked that up');
+    return claimed;
+  }
+
+  /** The DM hands an unclaimed item straight to one player of this campaign. */
+  async assign(
+    user: User,
+    campaignId: string,
+    itemId: string,
+    playerId: string,
+  ): Promise<LootItem> {
+    await this.requireDm(user, campaignId);
+    const existing = await this.deps.table.getLoot(itemId);
+    if (!existing || existing.campaignId !== campaignId) throw new DomainError('not_found');
+    const target = await this.deps.store.getMembership(campaignId, playerId);
+    if (!target || target.role !== 'player') {
+      throw new DomainError(
+        'invalid_input',
+        'an item can only be given to a player in this campaign',
+      );
+    }
+    const claimed = await this.deps.table.claimLoot(itemId, playerId, this.now(), 'assigned');
+    if (!claimed) throw new DomainError('conflict', 'that was already taken, split or given out');
     return claimed;
   }
 

@@ -35,7 +35,7 @@ export interface AppDeps {
   /** Realtime hooks, so REST changes reach live sockets. Optional: REST works without a hub. */
   realtime?: {
     revokeSession(sessionId: string): void;
-    announceRosterChanged(campaignId: string): void;
+    announceRosterChanged(campaignId: string): void | Promise<void>;
     announceRecording(change: RecordingChange): void;
     announceHandoutShown?(
       campaignId: string,
@@ -55,7 +55,7 @@ export interface AppDeps {
         kind: 'item' | 'coin';
         itemType: string;
         rarity: string | null;
-        claimedFor: 'self' | 'party' | 'split' | null;
+        claimedFor: 'self' | 'party' | 'split' | 'assigned' | null;
         split: { shares: { userId: string; amount: number }[]; remainder: number } | null;
       },
     ): void;
@@ -161,7 +161,15 @@ export function createApp({
       },
       inviteLimiter,
       recording: recording ?? new RecordingState(),
-      ...(realtime ? { onRosterChanged: (id: string) => realtime.announceRosterChanged(id) } : {}),
+      ...(realtime
+        ? {
+            onRosterChanged: (id: string) => {
+              void Promise.resolve(realtime.announceRosterChanged(id)).catch((error: unknown) =>
+                console.error('[backend] could not announce the roster', error),
+              );
+            },
+          }
+        : {}),
       ...(realtime
         ? { onRecordingChanged: (change: RecordingChange) => realtime.announceRecording(change) }
         : {}),

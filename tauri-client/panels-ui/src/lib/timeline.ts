@@ -33,6 +33,7 @@ export function cardLabel(card: TableCard, members: Member[]): string {
   }
   const taker = members.find((m) => m.userId === card.claimedBy);
   const name = taker?.character?.name ?? taker?.displayName ?? 'someone';
+  if (card.claimedFor === 'assigned') return `${what} · given to ${name}`;
   return `${what} · taken by ${name}${card.claimedFor === 'party' ? ' for the party' : ''}`;
 }
 

@@ -1,4 +1,4 @@
-import { Activity, AudioLines, Settings, Volume2, VolumeX } from 'lucide-react';
+import { AudioLines, Settings, Volume2, VolumeX } from 'lucide-react';
 
 import { useVoice } from '../hooks/useVoice.js';
 import { panelOpen } from '../lib/tauriBridge.js';

@@ -59,7 +59,12 @@ export const clientData = {
       .optional(),
   }),
   // Voice groups. DM-only; the server checks. The DM is in every group; players hear only their own.
-  'party.create': z.object({ campaignId, name: z.string().min(1).max(60) }),
+  'party.create': z.object({
+    campaignId,
+    name: z.string().min(1).max(60),
+    // Players to put in it straight away (dropping someone on "new group").
+    members: z.array(z.string().min(1).max(64)).max(50).optional(),
+  }),
   'party.rename': z.object({
     campaignId,
     partyId: z.string().min(1).max(64),

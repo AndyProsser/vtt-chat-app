@@ -388,3 +388,34 @@ describe('random loot', () => {
     ).toBe(403);
   });
 });
+
+describe('the DM assigns loot to a player', () => {
+  const assign = (token: string, id: string, userId: string, c = campaign) =>
+    call('POST', `/api/campaigns/${c}/loot/${id}/assign`, token, { userId });
+
+  it('gives an item straight to one player, recorded as assigned, and tells the table', async () => {
+    const id = (await drop(dm.token, { name: 'Ring of Warmth' })).body.item.id;
+    const r = await assign(dm.token, id, alice.id);
+    expect(r.status).toBe(200);
+    expect(r.body.item).toMatchObject({ claimedBy: alice.id, claimedFor: 'assigned' });
+    expect(events.at(-1)).toMatchObject({ event: 'claimed', claimedBy: alice.id });
+    expect(events.at(-1)?.item.claimedFor).toBe('assigned');
+    expect((await grab(bob.token, id)).status).toBe(409);
+  });
+
+  it('is the DM\'s alone, only to a player of this campaign, and only for something still unclaimed', async () => {
+    const id = (await drop(dm.token)).body.item.id;
+    expect((await assign(alice.token, id, alice.id)).status).toBe(403);
+    expect((await assign(dm.token, id, dm.id)).status).toBe(400);
+    expect((await assign(dm.token, id, outsider.id)).status).toBe(400);
+    expect((await assign(dm.token, 'not-a-uuid', alice.id)).status).toBe(404);
+    expect((await assign(dm.token, id, alice.id)).status).toBe(200);
+    expect((await assign(dm.token, id, bob.id)).status).toBe(409);
+  });
+
+  it('cannot hand out a pile of coin that was already split', async () => {
+    const id = (await coins(10)).body.item.id;
+    await split(alice.token, id);
+    expect((await assign(dm.token, id, bob.id)).status).toBe(409);
+  });
+});

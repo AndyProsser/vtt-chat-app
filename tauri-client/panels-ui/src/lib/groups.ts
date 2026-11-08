@@ -1,5 +1,8 @@
 import type { Member, PartyView } from '../types/index.js';
 
+/** The group everyone starts in. It has no party id and cannot be renamed or removed. */
+export const MAIN_PARTY = 'Main Party';
+
 export interface Lane {
   /** The party id, or `null` for the main table. */
   id: string | null;
@@ -18,7 +21,7 @@ export function lanes(members: Member[], view: PartyView): Lane[] {
       return lane === id;
     });
   return [
-    { id: null, name: 'Main table', members: inLane(null) },
+    { id: null, name: MAIN_PARTY, members: inLane(null) },
     ...view.parties.map((p) => ({ id: p.id, name: p.name, members: inLane(p.id) })),
   ];
 }
@@ -33,4 +36,25 @@ export function moveCommand(
   const current =
     assigned !== undefined && view.parties.some((p) => p.id === assigned) ? assigned : null;
   return current === laneId ? undefined : { userId, partyId: laneId };
+}
+
+export type GroupDrop =
+  | { kind: 'move'; move: { userId: string; partyId: string | null } }
+  | { kind: 'create'; userId: string; name: string };
+
+/**
+ * What dropping `userId` on `lane` (`main`, a party id, `new`, or nothing) should do. Dropping on the
+ * new-group zone makes a group named `makeName()` with them in it; anywhere else it moves them, or
+ * does nothing if they are already there or it was dropped on nothing.
+ */
+export function groupDrop(
+  view: PartyView,
+  userId: string,
+  lane: string | undefined,
+  makeName: () => string,
+): GroupDrop | undefined {
+  if (lane === undefined) return undefined;
+  if (lane === 'new') return { kind: 'create', userId, name: makeName() };
+  const move = moveCommand(view, userId, lane === 'main' ? null : lane);
+  return move ? { kind: 'move', move } : undefined;
 }

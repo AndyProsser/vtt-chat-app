@@ -1,9 +1,21 @@
-import { Backpack, Hand, Split, Trash2, Users } from 'lucide-react';
+import {
+  Backpack,
+  Hand,
+  Inbox,
+  List,
+  Split,
+  Trash2,
+  User,
+  UserCheck,
+  UserPlus,
+  Users,
+} from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 import { useAccount } from '../hooks/useAccount.js';
 import { useCampaignQuery } from '../hooks/useCampaignQuery.js';
 import { useTableFeed } from '../hooks/useTableFeed.js';
+import { filterLoot, filtersFor, type LootFilter } from '../lib/lootFilter.js';
 import { isDm } from '../lib/tableModel.js';
 import { useTableStore } from '../lib/tableStore.js';
 import { itemLabel } from '../lib/timeline.js';
@@ -12,6 +24,14 @@ import type { LootItem } from '../types/index.js';
 import { ItemIcon } from './ItemIcon.js';
 import { LootWorkbench } from './LootWorkbench.js';
 import { ToolButton } from './ToolButton.js';
+
+const FILTER_ICON = { all: List, unassigned: Inbox, assigned: UserCheck, mine: User } as const;
+const FILTER_LABEL: Record<LootFilter, string> = {
+  all: 'Everything',
+  unassigned: 'Still in the pool',
+  assigned: 'Taken or given out',
+  mine: 'Mine',
+};
 
 /**
  * The party inventory: a shared pool. The DM drops items and coin (a roll, the SRD catalog or
@@ -26,6 +46,8 @@ export function LootPanel() {
   const dm = isDm(members, status?.userId ?? null);
   const players = useMemo(() => members.filter((m) => m.role === 'player'), [members]);
   const { data, error, reload } = useCampaignQuery<{ loot: LootItem[] }>('loot', ['loot.']);
+  const [filter, setFilter] = useState<LootFilter>('all');
+  const [giving, setGiving] = useState<string>();
   const [splitting, setSplitting] = useState<string>();
   const [chosen, setChosen] = useState<string[]>([]);
   const [actionError, setActionError] = useState<string>();
@@ -44,6 +66,11 @@ export function LootPanel() {
     setChosen(players.map((p) => p.userId)); // default: every player, offline included
   };
   const problem = error ?? actionError;
+  const shown = filterLoot(
+    data?.loot ?? [],
+    dm && filter === 'mine' ? 'all' : filter,
+    status?.userId ?? null,
+  );
 
   return (
     <div className="vtt-inventory">
@@ -55,8 +82,28 @@ export function LootPanel() {
           {problem}
         </div>
       )}
-      {data?.loot.length === 0 && <p className="vtt-muted">Nothing in the pool yet.</p>}
-      {data?.loot.map((item) => {
+      {dm && <LootWorkbench onDropped={reload} />}
+      <div className="vtt-form-row" role="radiogroup" aria-label="Show">
+        {filtersFor(dm).map((f) => {
+          const Icon = FILTER_ICON[f];
+          return (
+            <ToolButton
+              key={f}
+              label={FILTER_LABEL[f]}
+              pressed={filter === f}
+              onClick={() => setFilter(f)}
+            >
+              <Icon size={14} />
+            </ToolButton>
+          );
+        })}
+      </div>
+      {data && shown.length === 0 && (
+        <p className="vtt-muted">
+          {data.loot.length === 0 ? 'Nothing in the pool yet.' : 'Nothing matches this filter.'}
+        </p>
+      )}
+      {shown.map((item) => {
         const open = !item.claimedBy;
         return (
           <div key={item.id} className={open ? 'vtt-loot' : 'vtt-loot vtt-loot-taken'}>
@@ -107,6 +154,25 @@ export function LootPanel() {
                 )}
               </div>
             </div>
+            {giving === item.id && (
+              <div className="vtt-form-row" role="group" aria-label="Give to">
+                {players.map((p) => (
+                  <ToolButton
+                    key={p.userId}
+                    label={`Give it to ${p.character?.name ?? p.displayName}`}
+                    text={p.character?.name ?? p.displayName}
+                    onClick={() =>
+                      void run(() =>
+                        campaignApi('POST', `loot/${item.id}/assign`, { userId: p.userId }),
+                      ).then(() => setGiving(undefined))
+                    }
+                  >
+                    <UserPlus size={13} />
+                  </ToolButton>
+                ))}
+                {players.length === 0 && <span className="vtt-muted">No players yet.</span>}
+              </div>
+            )}
             {splitting === item.id && (
               <fieldset className="vtt-split">
                 <legend>
@@ -149,7 +215,6 @@ export function LootPanel() {
           </div>
         );
       })}
-      {dm && <LootWorkbench onDropped={reload} />}
       <p className="vtt-attribution">
         Item names and rules text: System Reference Document 5.1 © Wizards of the Coast LLC,
         CC-BY-4.0.

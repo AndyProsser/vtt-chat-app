@@ -183,6 +183,22 @@ describe('who can be moved', () => {
     await expect(service.move(C, 'alice', 'no-such-party')).rejects.toThrow(/no such party/);
   });
 
+  it('creates a group with its first players already in it, announced as one change', async () => {
+    const g = await service.create(C, 'Plan B', ['alice', 'bob']);
+    expect(service.snapshot(C).assignments).toEqual({ alice: g.id, bob: g.id });
+    expect(events.map((e) => e.type)).toEqual(['party.state']);
+    expect(events[0]?.data).toMatchObject({ split: true, parties: [{ name: 'Plan B' }] });
+  });
+
+  it('creates nothing if any of those players cannot be moved', async () => {
+    await expect(service.create(C, 'Oops', ['alice', 'dm'])).rejects.toThrow(
+      /DM is in every group/,
+    );
+    await expect(service.create(C, 'Oops', ['stranger'])).rejects.toThrow(/not in this campaign/);
+    expect(service.snapshot(C).parties).toEqual([]);
+    expect(events).toEqual([]);
+  });
+
   it('a player who leaves the campaign is taken out of their party', async () => {
     const a = await service.create(C, 'A');
     await service.move(C, 'alice', a.id);

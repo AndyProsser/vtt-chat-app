@@ -467,9 +467,39 @@ describe('Hub: live events', () => {
     expect(dm.of('chat.message').map((f) => f.d.text)).toEqual(['m1', 'm2', 'm3', 'm4', 'm5']);
   });
 
-  it('announces roster changes', () => {
-    t.hub.announceRosterChanged(t.campaignId);
+  it('announces roster changes', async () => {
+    await t.hub.announceRosterChanged(t.campaignId);
     expect(dm.last('roster.changed')?.d).toEqual({ campaignId: t.campaignId });
+  });
+
+  it('sends everyone the new roster when it changes, so a character edit shows without a reconnect', async () => {
+    const made = await t.campaigns.addCharacter(t.player, t.campaignId, {
+      name: 'Aria',
+      className: 'Ranger',
+      race: 'Wood elf',
+      level: 5,
+      avatarUrl: 'emblem:bow',
+      sourceUrl: null,
+    });
+    await t.hub.announceRosterChanged(t.campaignId);
+    for (const conn of [dm, player]) {
+      const members = conn.last('roster.update')?.d.members;
+      const aria = members.find((m: any) => m.userId === t.player.id);
+      expect(aria.character).toMatchObject({
+        name: 'Aria',
+        className: 'Ranger',
+        level: 5,
+        avatarUrl: 'emblem:bow',
+      });
+    }
+    // Link stats are for the DM's eyes only, here as in the snapshot.
+    const asPlayer = player
+      .last('roster.update')
+      ?.d.members.find((m: any) => m.userId === t.player.id);
+    const asDm = dm.last('roster.update')?.d.members.find((m: any) => m.userId === t.player.id);
+    expect('stats' in asPlayer).toBe(false);
+    expect('stats' in asDm).toBe(true);
+    expect(made.id).toBeTruthy();
   });
 });
 

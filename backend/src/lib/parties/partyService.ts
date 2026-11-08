@@ -56,12 +56,22 @@ export class PartyService {
     await this.reconcile(campaignId);
   }
 
-  async create(campaignId: string, name: string): Promise<Party> {
+  /** Makes a group, optionally with its first players already in it (one change, one announcement). */
+  async create(campaignId: string, name: string, members: string[] = []): Promise<Party> {
+    await Promise.all([...new Set(members)].map((id) => this.requireMovable(campaignId, id)));
     let party: Party | undefined;
     await this.changed(campaignId, (s) => {
       party = s.create(name);
+      for (const id of new Set(members)) s.move(id, party.id);
     });
     return party as unknown as Party;
+  }
+
+  private async requireMovable(campaignId: string, userId: string): Promise<void> {
+    const m = await this.deps.store.getMembership(campaignId, userId);
+    if (!m) throw new DomainError('invalid_input', 'that person is not in this campaign');
+    if (m.role === 'dm')
+      throw new DomainError('invalid_input', 'the DM is in every group and cannot be moved');
   }
   rename(campaignId: string, partyId: string, name: string) {
     return this.changed(campaignId, (s) => void s.rename(partyId, name));
@@ -75,10 +85,7 @@ export class PartyService {
 
   /** Puts a player in a party (or back at the main table). Only players can be moved: the DM is in every group. */
   async move(campaignId: string, userId: string, partyId: string | null): Promise<void> {
-    const m = await this.deps.store.getMembership(campaignId, userId);
-    if (!m) throw new DomainError('invalid_input', 'that person is not in this campaign');
-    if (m.role === 'dm')
-      throw new DomainError('invalid_input', 'the DM is in every group and cannot be moved');
+    await this.requireMovable(campaignId, userId);
     await this.changed(campaignId, (s) => s.move(userId, partyId));
   }
 

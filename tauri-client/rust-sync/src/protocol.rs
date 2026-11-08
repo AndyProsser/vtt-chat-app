@@ -171,6 +171,7 @@ pub fn is_table_frame(t: &str) -> bool {
             | "scene.started"
             | "scene.stopped"
             | "party.state"
+            | "roster.update"
     ) || t.starts_with("loot.")
 }
 

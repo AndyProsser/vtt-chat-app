@@ -44,6 +44,21 @@ function toLine(raw: unknown): ChatLine | undefined {
   };
 }
 
+function toMembers(raw: unknown): Member[] {
+  return (Array.isArray(raw) ? raw : []).map((m) => {
+    const o = asObj(m);
+    return {
+      userId: String(o.userId),
+      displayName: String(o.displayName ?? ''),
+      role: o.role === 'dm' ? 'dm' : 'player',
+      character: o.character ? (o.character as Member['character']) : null,
+      online: o.online === true,
+      inVoice: o.inVoice === true,
+      muted: o.muted !== false,
+    } satisfies Member;
+  });
+}
+
 /** Adds lines, keeping one copy per id (a replay and a history fetch can overlap), oldest first. */
 export function mergeChat(existing: ChatLine[], incoming: ChatLine[]): ChatLine[] {
   const byId = new Map(existing.map((l) => [l.id, l]));
@@ -70,19 +85,10 @@ function patchMember(state: TableState, userId: string, patch: Partial<Member>):
 export function applyEvent(state: TableState, event: SyncEvent): TableState {
   const d = asObj(event.d);
   switch (event.t) {
+    case 'roster.update':
+      return { ...state, members: toMembers(d.members) };
     case 'snapshot': {
-      const members = (Array.isArray(d.members) ? d.members : []).map((m) => {
-        const o = asObj(m);
-        return {
-          userId: String(o.userId),
-          displayName: String(o.displayName ?? ''),
-          role: o.role === 'dm' ? 'dm' : 'player',
-          character: o.character ? (o.character as Member['character']) : null,
-          online: o.online === true,
-          inVoice: o.inVoice === true,
-          muted: o.muted !== false,
-        } satisfies Member;
-      });
+      const members = toMembers(d.members);
       const recent = (Array.isArray(d.recentChat) ? d.recentChat : [])
         .map(toLine)
         .filter((l): l is ChatLine => l !== undefined);
@@ -239,7 +245,7 @@ function newCard(state: TableState, id: string, kind: TableCard['kind'], d: Obj)
 }
 
 const asClaimedFor = (v: unknown): ClaimedFor | null =>
-  v === 'self' || v === 'party' || v === 'split' ? v : null;
+  v === 'self' || v === 'party' || v === 'split' || v === 'assigned' ? v : null;
 
 function asSplit(v: unknown): LootSplit | null {
   const o = asObj(v);
