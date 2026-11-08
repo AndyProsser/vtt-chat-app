@@ -1,0 +1,241 @@
+import { Check, Plus, Save, UserRound } from 'lucide-react';
+import { useEffect, useState } from 'react';
+
+import { useAccount } from '../../hooks/useAccount.js';
+import { useCampaignQuery } from '../../hooks/useCampaignQuery.js';
+import { useTableFeed } from '../../hooks/useTableFeed.js';
+import { EMBLEMS, emblemOf, emblemValue } from '../../lib/avatars.js';
+import {
+  blankDraft,
+  characterPatch,
+  draftOf,
+  type CharacterDraft,
+  type CharacterRecord,
+} from '../../lib/characters.js';
+import { isDm } from '../../lib/tableModel.js';
+import { useTableStore } from '../../lib/tableStore.js';
+import { accountErrorMessage, campaignApi } from '../../lib/tauriBridge.js';
+import { EmblemIcon } from '../Portrait.js';
+import { ToolButton } from '../ToolButton.js';
+
+/**
+ * Your character in THIS campaign. Every campaign keeps its own profile (name, race, class, level,
+ * emblem), so being Aria in one table and Corwin in another is just two profiles. The table sees the
+ * one marked as playing.
+ */
+export function CharacterSection() {
+  useTableFeed();
+  const { status } = useAccount();
+  const members = useTableStore((s) => s.members);
+  const dm = isDm(members, status?.userId ?? null);
+  const me = members.find((m) => m.userId === status?.userId);
+  const { data, error, reload } = useCampaignQuery<{ characters: CharacterRecord[] }>(
+    'characters',
+    [],
+  );
+  const [actionError, setActionError] = useState<string>();
+  const [adding, setAdding] = useState(false);
+
+  async function run(call: () => Promise<unknown>) {
+    try {
+      setActionError(undefined);
+      await call();
+      reload();
+    } catch (e) {
+      setActionError(accountErrorMessage(e));
+    }
+  }
+
+  const campaign = status?.campaigns.find((c) => c.id === status.campaignId);
+  if (!campaign) return <span className="vtt-muted">Choose a campaign first.</span>;
+  const characters = data?.characters ?? [];
+  const activeName = me?.character?.name;
+
+  return (
+    <div className="vtt-sessions">
+      <span className="vtt-muted">
+        Your character in <b>{campaign.name}</b>. Other campaigns have their own.
+        {dm && ' As the DM you do not play a character here; yours are kept for if you swap back.'}
+      </span>
+      {(error ?? actionError) && (
+        <div className="vtt-composer-error" role="alert" style={{ position: 'static' }}>
+          {error ?? actionError}
+        </div>
+      )}
+      {data && characters.length === 0 && !adding && (
+        <span className="vtt-muted">No character yet.</span>
+      )}
+      {characters.map((c) => (
+        <CharacterCard
+          key={c.id}
+          record={c}
+          playing={!dm && c.name === activeName}
+          canPlay={!dm}
+          onSave={(patch) => run(() => campaignApi('PATCH', `characters/${c.id}`, patch))}
+          onPlay={() => run(() => campaignApi('PUT', 'active-character', { characterId: c.id }))}
+        />
+      ))}
+      {adding ? (
+        <NewCharacter
+          onCreate={(draft) =>
+            run(async () => {
+              await campaignApi('POST', 'characters', {
+                name: draft.name.trim(),
+                className: draft.className.trim() || null,
+                race: draft.race.trim() || null,
+                level: /^\d+$/.test(draft.level) ? Number(draft.level) : null,
+                avatarUrl: draft.avatarUrl,
+              });
+              setAdding(false);
+            })
+          }
+          onCancel={() => setAdding(false)}
+        />
+      ) : (
+        <div>
+          <ToolButton label="Add a character" text="New" onClick={() => setAdding(true)}>
+            <Plus size={14} />
+          </ToolButton>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Fields({
+  draft,
+  onChange,
+}: {
+  draft: CharacterDraft;
+  onChange: (d: CharacterDraft) => void;
+}) {
+  const set = (patch: Partial<CharacterDraft>) => onChange({ ...draft, ...patch });
+  const picked = emblemOf(draft.avatarUrl);
+  return (
+    <>
+      <div className="vtt-form-row">
+        <input
+          className="vtt-input"
+          style={{ flex: 1, minWidth: 120 }}
+          aria-label="Name"
+          placeholder="Name"
+          value={draft.name}
+          onChange={(e) => set({ name: e.target.value })}
+        />
+        <input
+          className="vtt-input"
+          style={{ width: 60 }}
+          aria-label="Level"
+          placeholder="Lvl"
+          inputMode="numeric"
+          value={draft.level}
+          onChange={(e) => set({ level: e.target.value })}
+        />
+      </div>
+      <div className="vtt-form-row">
+        <input
+          className="vtt-input"
+          style={{ flex: 1, minWidth: 90 }}
+          aria-label="Race"
+          placeholder="Race"
+          value={draft.race}
+          onChange={(e) => set({ race: e.target.value })}
+        />
+        <input
+          className="vtt-input"
+          style={{ flex: 1, minWidth: 90 }}
+          aria-label="Class"
+          placeholder="Class"
+          value={draft.className}
+          onChange={(e) => set({ className: e.target.value })}
+        />
+      </div>
+      <div className="vtt-form-row" role="radiogroup" aria-label="Emblem">
+        {EMBLEMS.map((name) => {
+          const Icon = EmblemIcon[name];
+          return (
+            <ToolButton
+              key={name}
+              label={name}
+              square
+              pressed={picked === name}
+              onClick={() => set({ avatarUrl: picked === name ? null : emblemValue(name) })}
+            >
+              <Icon size={14} />
+            </ToolButton>
+          );
+        })}
+      </div>
+    </>
+  );
+}
+
+function CharacterCard({
+  record,
+  playing,
+  canPlay,
+  onSave,
+  onPlay,
+}: {
+  record: CharacterRecord;
+  playing: boolean;
+  canPlay: boolean;
+  onSave: (patch: Record<string, unknown>) => Promise<void>;
+  onPlay: () => Promise<void>;
+}) {
+  const [draft, setDraft] = useState(draftOf(record));
+  useEffect(() => setDraft(draftOf(record)), [record]);
+  const patch = characterPatch(record, draft);
+  const dirty = Object.keys(patch).length > 0;
+  return (
+    <section className={playing ? 'vtt-session vtt-loot-taken' : 'vtt-session'}>
+      <Fields draft={draft} onChange={setDraft} />
+      <div className="vtt-form-row">
+        <ToolButton
+          label="Save changes"
+          disabled={!dirty || draft.name.trim() === ''}
+          onClick={() => void onSave(patch)}
+        >
+          <Save size={14} />
+        </ToolButton>
+        {canPlay && (
+          <ToolButton
+            label={playing ? 'You are playing this character' : 'Play this character at the table'}
+            pressed={playing}
+            disabled={playing}
+            onClick={() => void onPlay()}
+          >
+            {playing ? <Check size={14} /> : <UserRound size={14} />}
+          </ToolButton>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function NewCharacter({
+  onCreate,
+  onCancel,
+}: {
+  onCreate: (d: CharacterDraft) => Promise<void>;
+  onCancel: () => void;
+}) {
+  const [draft, setDraft] = useState(blankDraft());
+  return (
+    <section className="vtt-session">
+      <Fields draft={draft} onChange={setDraft} />
+      <div className="vtt-form-row">
+        <ToolButton
+          label="Create the character"
+          disabled={draft.name.trim() === ''}
+          onClick={() => void onCreate(draft)}
+        >
+          <Check size={14} />
+        </ToolButton>
+        <ToolButton label="Cancel" onClick={onCancel}>
+          ×
+        </ToolButton>
+      </div>
+    </section>
+  );
+}

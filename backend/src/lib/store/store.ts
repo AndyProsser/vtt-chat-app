@@ -43,6 +43,8 @@ export interface Store {
   removeMembership(campaignId: string, userId: string): Promise<void>;
 
   getCharacter(id: string): Promise<Character | undefined>;
+  /** One person's characters in one campaign, by name. */
+  listCharacters(userId: string, campaignId: string): Promise<Character[]>;
   putCharacter(character: Character): Promise<void>;
 
   getInviteByHash(codeHash: string): Promise<Invite | undefined>;

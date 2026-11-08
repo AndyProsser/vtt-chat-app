@@ -132,8 +132,17 @@ fn write_private(path: &Path, saved: &Saved) -> std::io::Result<()> {
 /// The parts of the REST API a panel may reach, all under the signed-in campaign (or the DM's own
 /// sound library). The server still checks who is allowed to do what; this only stops a panel — which
 /// loads nothing but our own pages — from being turned into a general-purpose HTTP client.
-const RELAY_CAMPAIGN_AREAS: [&str; 8] = [
-    "handouts", "loot", "sessions", "sounds", "members", "invites", "dm-swap", "leave",
+const RELAY_CAMPAIGN_AREAS: [&str; 10] = [
+    "handouts",
+    "loot",
+    "sessions",
+    "sounds",
+    "members",
+    "invites",
+    "dm-swap",
+    "leave",
+    "characters",
+    "active-character",
 ];
 
 /// `handouts/abc/show` → `/api/campaigns/<id>/handouts/abc/show`; `soundboard/library` →
@@ -625,8 +634,19 @@ mod tests {
             relay_path("c1", "soundboard/library").unwrap(),
             "/api/soundboard/library"
         );
+        assert_eq!(
+            relay_path("c1", "characters/ch-1").unwrap(),
+            "/api/campaigns/c1/characters/ch-1"
+        );
         // The DM's campaign tools: who is here, invite codes, handing over the DM role, leaving.
-        for area in ["members", "invites", "dm-swap", "leave"] {
+        for area in [
+            "members",
+            "invites",
+            "dm-swap",
+            "leave",
+            "characters",
+            "active-character",
+        ] {
             assert_eq!(
                 relay_path("c1", area).unwrap(),
                 format!("/api/campaigns/c1/{area}")
@@ -641,7 +661,6 @@ mod tests {
             "/handouts",
             "https://evil.example/handouts",
             "campaigns/c2/loot",
-            "characters",
             "recording",
         ] {
             assert!(relay_path("c1", bad).is_err(), "{bad:?} must be refused");

@@ -1,0 +1,34 @@
+/**
+ * Built-in character emblems. The app never loads images from the open web (its CSP forbids it), so
+ * a character's avatar is one of these, stored as `emblem:<name>`; an uploaded portrait can come later.
+ */
+export const EMBLEMS = [
+  'sword',
+  'shield',
+  'axe',
+  'bow',
+  'wand',
+  'staff',
+  'scroll',
+  'potion',
+  'crown',
+  'skull',
+  'ghost',
+  'flame',
+  'leaf',
+  'moon',
+  'sun',
+  'star',
+  'gem',
+  'dragon',
+] as const;
+
+export type Emblem = (typeof EMBLEMS)[number];
+
+export const emblemValue = (name: Emblem): string => `emblem:${name}`;
+
+/** The emblem named by an avatar value, if it is one we ship. */
+export function emblemOf(avatarUrl: string | null | undefined): Emblem | undefined {
+  const name = avatarUrl?.startsWith('emblem:') ? avatarUrl.slice('emblem:'.length) : undefined;
+  return (EMBLEMS as readonly string[]).includes(name ?? '') ? (name as Emblem) : undefined;
+}

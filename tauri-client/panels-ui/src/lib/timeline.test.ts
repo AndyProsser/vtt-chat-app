@@ -117,6 +117,9 @@ describe('itemLabel', () => {
     const item = {
       id: 'i',
       kind: 'item' as const,
+      itemType: 'gear' as const,
+      rarity: null,
+      srdId: null,
       name: 'Rope',
       description: '',
       quantity: 2,
@@ -127,7 +130,15 @@ describe('itemLabel', () => {
     expect(itemLabel(item, members)).toBe('Rope ×2 · taken by Aria for the party');
     expect(
       itemLabel(
-        { ...item, kind: 'coin', name: 'gp', quantity: 5, claimedBy: null, claimedFor: null },
+        {
+          ...item,
+          kind: 'coin',
+          itemType: 'coin',
+          name: 'gp',
+          quantity: 5,
+          claimedBy: null,
+          claimedFor: null,
+        },
         members,
       ),
     ).toBe('5 gp · available');

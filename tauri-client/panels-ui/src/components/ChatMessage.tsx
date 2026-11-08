@@ -1,6 +1,7 @@
 import { memo } from 'react';
 
 import { lineKind } from '../lib/commands.js';
+import { Portrait } from './Portrait.js';
 import { initials } from '../lib/rail.js';
 import type { ChatLine, Member } from '../types/index.js';
 
@@ -30,7 +31,11 @@ export const ChatMessage = memo(function ChatMessage({ line, members, selfId }: 
   return (
     <div className="vtt-msg">
       <span className={sender?.role === 'dm' ? 'vtt-av vtt-av-sm vtt-av-dm' : 'vtt-av vtt-av-sm'}>
-        {initials(line.from.name)}
+        <Portrait
+          avatarUrl={sender?.character?.avatarUrl}
+          fallback={initials(line.from.name)}
+          size={13}
+        />
       </span>
       <div className={`vtt-bubble vtt-bubble-${kind}`}>
         <div className="vtt-msg-meta">

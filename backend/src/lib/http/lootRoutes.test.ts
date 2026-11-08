@@ -319,23 +319,27 @@ describe('item types, rarity and the SRD catalog', () => {
     expect(ok.status).toBe(201);
     expect(ok.body.items).toHaveLength(2);
     expect(events.filter((e) => e.event === 'dropped')).toHaveLength(2);
-    const before = (await call('GET', `/api/campaigns/${campaign}/loot`, dm.token)).body.loot.length;
+    const before = (await call('GET', `/api/campaigns/${campaign}/loot`, dm.token)).body.loot
+      .length;
     const bad = await call('POST', url, dm.token, { items: [{ name: 'fine' }, { srdId: 'nope' }] });
     expect(bad.status).toBe(400);
-    expect((await call('GET', `/api/campaigns/${campaign}/loot`, dm.token)).body.loot).toHaveLength(before);
+    expect((await call('GET', `/api/campaigns/${campaign}/loot`, dm.token)).body.loot).toHaveLength(
+      before,
+    );
     expect((await call('POST', url, alice.token, { items: [{ name: 'x' }] })).status).toBe(403);
     expect((await call('POST', url, dm.token, { items: [] })).status).toBe(400);
   });
 
   it('searches the catalog for any member, with filters', async () => {
-    const find = (q: string) => call('GET', `/api/campaigns/${campaign}/loot/catalog?${q}`, alice.token);
-    const r = await find('q=healing&type=potion');
+    const find = (body: object, token = alice.token) =>
+      call('POST', `/api/campaigns/${campaign}/loot/catalog`, token, body);
+    const r = await find({ q: 'healing', type: 'potion' });
     expect(r.status).toBe(200);
     expect(r.body.items.length).toBeGreaterThan(0);
     expect(r.body.items.every((i: any) => i.type === 'potion')).toBe(true);
-    expect((await find('rarity=legendary&limit=5')).body.items).toHaveLength(5);
-    expect((await find('type=spoon')).status).toBe(400);
-    expect((await call('GET', `/api/campaigns/${campaign}/loot/catalog`, outsider.token)).status).toBe(403);
+    expect((await find({ rarity: 'legendary', limit: 5 })).body.items).toHaveLength(5);
+    expect((await find({ type: 'spoon' })).status).toBe(400);
+    expect((await find({}, outsider.token)).status).toBe(403);
   });
 });
 
@@ -354,7 +358,7 @@ describe('random loot', () => {
     expect(events).toEqual([]);
   });
 
-  it('is the DM\'s alone, and checks the challenge rating and kind', async () => {
+  it("is the DM's alone, and checks the challenge rating and kind", async () => {
     expect((await roll(alice.token, { cr: 3, kind: 'hoard' })).status).toBe(403);
     expect((await roll(dm.token, { cr: -1, kind: 'hoard' })).status).toBe(400);
     expect((await roll(dm.token, { cr: 31, kind: 'hoard' })).status).toBe(400);
@@ -363,7 +367,9 @@ describe('random loot', () => {
   });
 
   it('rerolls one entry as another of the same kind', async () => {
-    const draft = (await roll(dm.token, { cr: 14, kind: 'hoard' })).body.drafts.find((d: any) => d.rarity);
+    const draft = (await roll(dm.token, { cr: 14, kind: 'hoard' })).body.drafts.find(
+      (d: any) => d.rarity,
+    );
     expect(draft).toBeDefined();
     const again = await call('POST', `/api/campaigns/${campaign}/loot/roll/reroll`, dm.token, {
       cr: 14,
@@ -373,7 +379,12 @@ describe('random loot', () => {
     expect(again.body.draft.rarity).toBe(draft.rarity);
     expect(again.body.draft.srdId).not.toBe(draft.srdId);
     expect(
-      (await call('POST', `/api/campaigns/${campaign}/loot/roll/reroll`, alice.token, { cr: 14, draft })).status,
+      (
+        await call('POST', `/api/campaigns/${campaign}/loot/roll/reroll`, alice.token, {
+          cr: 14,
+          draft,
+        })
+      ).status,
     ).toBe(403);
   });
 });

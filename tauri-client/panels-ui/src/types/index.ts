@@ -81,6 +81,8 @@ export interface TableCard {
   quantity?: number;
   /** A pile of coin rather than an item (`title` is then the currency). */
   coin?: boolean;
+  itemType?: ItemType;
+  rarity?: Rarity | null;
   claimedBy?: string | null;
   claimedFor?: ClaimedFor | null;
   split?: LootSplit | null;
@@ -129,6 +131,50 @@ export interface Handout {
   visibility: 'dm' | 'all' | 'some';
 }
 
+export type ItemType =
+  | 'weapon'
+  | 'ammunition'
+  | 'armor'
+  | 'shield'
+  | 'potion'
+  | 'scroll'
+  | 'ring'
+  | 'rod'
+  | 'staff'
+  | 'wand'
+  | 'wondrous'
+  | 'gear'
+  | 'tool'
+  | 'mount'
+  | 'trade'
+  | 'gem'
+  | 'art'
+  | 'coin'
+  | 'other';
+export type Rarity = 'common' | 'uncommon' | 'rare' | 'very rare' | 'legendary' | 'artifact';
+
+/** One thing in a random roll or a custom drop, before the DM drops it. */
+export interface LootDraft {
+  name: string;
+  kind: 'item' | 'coin';
+  quantity: number;
+  description?: string;
+  itemType: ItemType;
+  rarity: Rarity | null;
+  srdId?: string;
+}
+
+export interface SrdItem {
+  id: string;
+  name: string;
+  type: ItemType;
+  magic: boolean;
+  rarity: Rarity | null;
+  attunement?: boolean;
+  valueGp?: number;
+  blurb?: string;
+}
+
 export type ClaimedFor = 'self' | 'party' | 'split';
 export interface LootSplit {
   shares: { userId: string; amount: number }[];
@@ -138,6 +184,9 @@ export interface LootSplit {
 export interface LootItem {
   id: string;
   kind: 'item' | 'coin';
+  itemType: ItemType;
+  rarity: Rarity | null;
+  srdId: string | null;
   name: string;
   description: string;
   quantity: number;

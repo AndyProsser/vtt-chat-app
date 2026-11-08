@@ -631,3 +631,66 @@ body,
   border-radius: var(--vtt-radius-control);
   background: var(--vtt-chat);
 }
+/* Magic items glow in their rarity's colour; the glow is stronger for rarer items (itemStyle.glowLevel). */
+.vtt-item-icon {
+  --glow-colour: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+.vtt-item-icon[data-rarity='common'] { --glow-colour: #c9ced6; }
+.vtt-item-icon[data-rarity='uncommon'] { --glow-colour: #4ad66d; }
+.vtt-item-icon[data-rarity='rare'] { --glow-colour: #4aa3ff; }
+.vtt-item-icon[data-rarity='very rare'] { --glow-colour: #b36bff; }
+.vtt-item-icon[data-rarity='legendary'] { --glow-colour: #ff9d2e; }
+.vtt-item-icon[data-rarity='artifact'] { --glow-colour: #ff5a4a; }
+.vtt-item-icon[data-glow='1'] svg { filter: drop-shadow(0 0 1px var(--glow-colour)); }
+.vtt-item-icon[data-glow='2'] svg { filter: drop-shadow(0 0 2px var(--glow-colour)); }
+.vtt-item-icon[data-glow='3'] svg { filter: drop-shadow(0 0 3px var(--glow-colour)) drop-shadow(0 0 1px var(--glow-colour)); }
+.vtt-item-icon[data-glow='4'] svg { filter: drop-shadow(0 0 4px var(--glow-colour)) drop-shadow(0 0 2px var(--glow-colour)); }
+.vtt-item-icon[data-glow='5'] svg { filter: drop-shadow(0 0 6px var(--glow-colour)) drop-shadow(0 0 3px var(--glow-colour)); }
+.vtt-item-icon[data-glow='6'] svg { filter: drop-shadow(0 0 8px var(--glow-colour)) drop-shadow(0 0 4px var(--glow-colour)) drop-shadow(0 0 1px var(--glow-colour)); }
+.vtt-item-icon:not([data-glow='0']) { color: var(--glow-colour); }
+.vtt-loot-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.vtt-results {
+  max-height: 160px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.vtt-result {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 8px;
+  border-radius: var(--vtt-radius-control);
+  border: 1px solid var(--vtt-edge);
+  background: var(--vtt-chat);
+  color: var(--vtt-ink);
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+.vtt-result:hover {
+  border-color: var(--vtt-gold);
+}
+.vtt-workbench {
+  border: 1px dashed var(--vtt-gold);
+  border-radius: var(--vtt-radius-bubble);
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.vtt-attribution {
+  font-size: 10px;
+  opacity: 0.65;
+  margin-top: 8px;
+}

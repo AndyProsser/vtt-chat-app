@@ -5,6 +5,7 @@ import { useIsSpeaking } from '../hooks/useIsSpeaking.js';
 import { avatarColor } from '../lib/avatarColor.js';
 import { initials, memberCard } from '../lib/rail.js';
 import type { Member } from '../types/index.js';
+import { Portrait } from './Portrait.js';
 
 /**
  * One person on the rail. Memoised; it reads only its own speaking flag (LiveKit identity is the
@@ -30,7 +31,7 @@ export const RailAvatar = memo(function RailAvatar({
     <HoverCard.Root openDelay={250}>
       <HoverCard.Trigger>
         <span className={classes} aria-label={card.title} role="img">
-          {initials(card.title)}
+          <Portrait avatarUrl={member.character?.avatarUrl} fallback={initials(card.title)} />
           {muted && <span className="vtt-av-badge" aria-label="muted" />}
           {partyId && (
             <span className="vtt-av-pip" style={{ background: avatarColor(partyId) }} aria-hidden />

@@ -1,5 +1,6 @@
-import { BackpackIcon, FileTextIcon } from '@radix-ui/react-icons';
+import { FileText } from 'lucide-react';
 
+import { ItemIcon } from './ItemIcon.js';
 import { cardLabel } from '../lib/timeline.js';
 import { panelOpen } from '../lib/tauriBridge.js';
 import type { Member, TableCard } from '../types/index.js';
@@ -13,7 +14,14 @@ export function ChatCard({ card, members }: { card: TableCard; members: Member[]
       className={taken ? 'vtt-card vtt-card-taken' : 'vtt-card'}
       onClick={() => void panelOpen(card.kind === 'loot' ? 'inventory' : 'handouts')}
     >
-      {card.kind === 'loot' ? <BackpackIcon /> : <FileTextIcon />}
+      {card.kind === 'loot' ? (
+        <ItemIcon
+          type={card.itemType ?? (card.coin ? 'coin' : 'other')}
+          rarity={card.rarity ?? null}
+        />
+      ) : (
+        <FileText size={16} />
+      )}
       <span>{cardLabel(card, members)}</span>
     </button>
   );

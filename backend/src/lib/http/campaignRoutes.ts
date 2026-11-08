@@ -21,6 +21,13 @@ const characterBody = z.object({
   avatarUrl: z.string().url().max(2048).nullable().default(null),
   sourceUrl: z.string().url().max(2048).nullable().default(null),
 });
+const characterPatch = z.object({
+  name: z.string().max(200).optional(),
+  className: z.string().max(80).nullable().optional(),
+  race: z.string().max(80).nullable().optional(),
+  level: z.number().nullable().optional(),
+  avatarUrl: z.string().max(2048).nullable().optional(),
+});
 const activeBody = z.object({ characterId: z.string().max(64) });
 const swapBody = z.object({ newDmUserId: z.string().max(64) });
 const chatQuery = z.object({
@@ -112,6 +119,30 @@ export function campaignRoutes(deps: CampaignRouteDeps): Router {
   router.delete('/:id/invites/:code', async (req, res) => {
     await campaigns.revokeInvite(authOf(res).user, param(req.params.id), param(req.params.code));
     res.status(204).end();
+  });
+
+  router.get('/:id/characters', async (req, res) => {
+    const characters = await campaigns.listMyCharacters(authOf(res).user, param(req.params.id));
+    res.json({ characters });
+  });
+
+  router.patch('/:id/characters/:characterId', async (req, res) => {
+    const campaignId = param(req.params.id);
+    const patch = characterPatch.parse(req.body);
+    const character = await campaigns.updateCharacter(
+      authOf(res).user,
+      campaignId,
+      param(req.params.characterId),
+      {
+        ...(patch.name !== undefined ? { name: patch.name } : {}),
+        ...(patch.className !== undefined ? { className: patch.className } : {}),
+        ...(patch.race !== undefined ? { race: patch.race } : {}),
+        ...(patch.level !== undefined ? { level: patch.level } : {}),
+        ...(patch.avatarUrl !== undefined ? { avatarUrl: patch.avatarUrl } : {}),
+      },
+    );
+    onRosterChanged?.(campaignId);
+    res.json({ character });
   });
 
   router.post('/:id/characters', async (req, res) => {

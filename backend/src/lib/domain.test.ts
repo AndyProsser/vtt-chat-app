@@ -404,6 +404,83 @@ describe('campaigns', () => {
       await rejects(w.campaigns.setActiveCharacter(alice, campaignId, theirs.id), 'not_found');
     });
 
+    it('lists only my characters in this campaign: each campaign has its own profile', async () => {
+      const first = await table();
+      const other = await w.campaigns.createCampaign(admin, 'Another table');
+      const { code } = await w.campaigns.createInvite(admin, other.id);
+      await w.campaigns.joinWithInvite(alice, code);
+      const here = await w.campaigns.addCharacter(alice, first.campaignId, sheet);
+      const there = await w.campaigns.addCharacter(alice, other.id, {
+        ...sheet,
+        name: 'Corwin',
+        className: 'Bard',
+      });
+      await w.campaigns.addCharacter(bob, first.campaignId, { ...sheet, name: 'Bobbin' });
+      expect(
+        (await w.campaigns.listMyCharacters(alice, first.campaignId)).map((c) => c.id),
+      ).toEqual([here.id]);
+      expect((await w.campaigns.listMyCharacters(alice, other.id)).map((c) => c.id)).toEqual([
+        there.id,
+      ]);
+      await rejects(w.campaigns.listMyCharacters(bob, other.id), 'forbidden');
+    });
+
+    it('lets a player edit their own character, and nobody else’s', async () => {
+      const { campaignId } = await table();
+      const mine = await w.campaigns.addCharacter(alice, campaignId, sheet);
+      const edited = await w.campaigns.updateCharacter(alice, campaignId, mine.id, {
+        name: '  Aria Windfoot ',
+        level: 4,
+        className: 'Ranger',
+        avatarUrl: 'https://example.com/a.png',
+      });
+      expect(edited).toMatchObject({
+        name: 'Aria Windfoot',
+        level: 4,
+        className: 'Ranger',
+        race: 'Elf',
+        avatarUrl: 'https://example.com/a.png',
+      });
+      expect(await w.store.getCharacter(mine.id)).toMatchObject({ level: 4 });
+      const theirs = await w.campaigns.addCharacter(bob, campaignId, sheet);
+      await rejects(
+        w.campaigns.updateCharacter(alice, campaignId, theirs.id, { level: 9 }),
+        'not_found',
+      );
+    });
+
+    it('refuses a blank name, a silly level, or an avatar that is not a web address', async () => {
+      const { campaignId } = await table();
+      const mine = await w.campaigns.addCharacter(alice, campaignId, sheet);
+      await rejects(
+        w.campaigns.updateCharacter(alice, campaignId, mine.id, { name: '   ' }),
+        'invalid_input',
+      );
+      await rejects(
+        w.campaigns.updateCharacter(alice, campaignId, mine.id, { level: 0 }),
+        'invalid_input',
+      );
+      await rejects(
+        w.campaigns.updateCharacter(alice, campaignId, mine.id, { level: 31 }),
+        'invalid_input',
+      );
+      await rejects(
+        w.campaigns.updateCharacter(alice, campaignId, mine.id, {
+          avatarUrl: 'javascript:alert(1)',
+        }),
+        'invalid_input',
+      );
+      expect(await w.store.getCharacter(mine.id)).toMatchObject({ name: 'Aria', level: 3 });
+      const emblem = await w.campaigns.updateCharacter(alice, campaignId, mine.id, {
+        avatarUrl: 'emblem:sword',
+      });
+      expect(emblem.avatarUrl).toBe('emblem:sword');
+      await rejects(
+        w.campaigns.updateCharacter(alice, campaignId, mine.id, { avatarUrl: 'emblem:Not Valid!' }),
+        'invalid_input',
+      );
+    });
+
     it('swaps the DM role, parking the new DM’s character and restoring the old DM’s', async () => {
       const { campaignId } = await table();
       const aliceChar = await w.campaigns.addCharacter(alice, campaignId, sheet);

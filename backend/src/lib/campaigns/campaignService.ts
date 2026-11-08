@@ -143,6 +143,64 @@ export class CampaignService {
     return character;
   }
 
+  /** The signed-in member's own characters in this campaign (each campaign keeps its own). */
+  async listMyCharacters(user: User, campaignId: string): Promise<Character[]> {
+    await this.requireMember(user.id, campaignId);
+    return this.store.listCharacters(user.id, campaignId);
+  }
+
+  /** Edits one of the member's own characters; only the fields given change. */
+  async updateCharacter(
+    user: User,
+    campaignId: string,
+    characterId: string,
+    patch: Partial<Pick<Character, 'name' | 'className' | 'race' | 'level' | 'avatarUrl'>>,
+  ): Promise<Character> {
+    await this.requireMember(user.id, campaignId);
+    const existing = await this.store.getCharacter(characterId);
+    if (!existing || existing.userId !== user.id || existing.campaignId !== campaignId) {
+      throw new DomainError('not_found');
+    }
+    const next: Character = { ...existing };
+    if (patch.name !== undefined) {
+      const name = patch.name.trim();
+      if (name.length === 0 || name.length > 120) {
+        throw new DomainError('invalid_input', 'character name must be 1–120 characters');
+      }
+      next.name = name;
+    }
+    if (patch.level !== undefined) {
+      const level = patch.level;
+      if (level !== null && (!Number.isInteger(level) || level < 1 || level > 30)) {
+        throw new DomainError('invalid_input', 'level must be a whole number from 1 to 30');
+      }
+      next.level = level;
+    }
+    for (const key of ['className', 'race'] as const) {
+      const value = patch[key];
+      if (value === undefined) continue;
+      if (value !== null && value.length > 80)
+        throw new DomainError('invalid_input', `${key} is too long`);
+      next[key] = value === null || value.trim() === '' ? null : value.trim();
+    }
+    if (patch.avatarUrl !== undefined) {
+      const url = patch.avatarUrl;
+      if (
+        url !== null &&
+        url !== '' &&
+        !/^(https?:\/\/\S{1,2040}|emblem:[a-z0-9-]{1,30})$/i.test(url)
+      ) {
+        throw new DomainError(
+          'invalid_input',
+          'the avatar must be a web address or one of the built-in emblems',
+        );
+      }
+      next.avatarUrl = url === null || url === '' ? null : url;
+    }
+    await this.store.putCharacter(next);
+    return next;
+  }
+
   /** Switches the active character (a character died or left; a new one joins). Players only. */
   async setActiveCharacter(
     user: User,

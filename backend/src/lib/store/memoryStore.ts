@@ -101,6 +101,11 @@ export class MemoryStore implements Store {
 
   getCharacter = async (id: string): Promise<Character | undefined> =>
     copyOrUndefined(this.data.characters.get(id));
+  listCharacters = async (userId: string, campaignId: string): Promise<Character[]> =>
+    [...this.data.characters.values()]
+      .filter((c) => c.userId === userId && c.campaignId === campaignId)
+      .map(copy)
+      .sort((a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id));
   putCharacter = async (character: Character): Promise<void> => {
     this.data.characters.set(character.id, copy(character));
   };

@@ -303,6 +303,14 @@ export class PostgresStore implements Store {
   getCharacter = (id: string): Promise<Character | undefined> =>
     this.one(toCharacter, 'SELECT * FROM characters WHERE id = $1', [id]);
 
+  async listCharacters(userId: string, campaignId: string): Promise<Character[]> {
+    const { rows } = await this.db.query<Row>(
+      'SELECT * FROM characters WHERE user_id = $1 AND campaign_id = $2 ORDER BY name, id',
+      [userId, campaignId],
+    );
+    return rows.map(toCharacter);
+  }
+
   async putCharacter(c: Character): Promise<void> {
     await this.db.query(
       `INSERT INTO characters (id, user_id, campaign_id, name, class_name, race, level, avatar_url, source_url)

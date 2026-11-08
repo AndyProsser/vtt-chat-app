@@ -1,3 +1,4 @@
+import { Backpack, Hand, Split, Trash2, Users } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 import { useAccount } from '../hooks/useAccount.js';
@@ -8,11 +9,15 @@ import { useTableStore } from '../lib/tableStore.js';
 import { itemLabel } from '../lib/timeline.js';
 import { accountErrorMessage, campaignApi } from '../lib/tauriBridge.js';
 import type { LootItem } from '../types/index.js';
+import { ItemIcon } from './ItemIcon.js';
+import { LootWorkbench } from './LootWorkbench.js';
+import { ToolButton } from './ToolButton.js';
 
 /**
- * The party inventory: a shared pool. The DM drops items and coin; a player grabs an item for
- * themselves or for the party, and every grab shows who took it. Coin can be split equally (by
- * default among every player, online or not). It does not touch anyone's character sheet.
+ * The party inventory: a shared pool. The DM drops items and coin (a roll, the SRD catalog or
+ * custom); a player grabs an item for themselves or for the party, and every grab shows who took
+ * it. Coin can be split equally (by default among every player, online or not). It does not touch
+ * anyone's character sheet.
  */
 export function LootPanel() {
   useTableFeed();
@@ -21,9 +26,6 @@ export function LootPanel() {
   const dm = isDm(members, status?.userId ?? null);
   const players = useMemo(() => members.filter((m) => m.role === 'player'), [members]);
   const { data, error, reload } = useCampaignQuery<{ loot: LootItem[] }>('loot', ['loot.']);
-  const [name, setName] = useState('');
-  const [quantity, setQuantity] = useState(1);
-  const [coin, setCoin] = useState(false);
   const [splitting, setSplitting] = useState<string>();
   const [chosen, setChosen] = useState<string[]>([]);
   const [actionError, setActionError] = useState<string>();
@@ -45,7 +47,9 @@ export function LootPanel() {
 
   return (
     <div className="vtt-inventory">
-      <h2 className="vtt-head">Party inventory</h2>
+      <h2 className="vtt-head">
+        <Backpack size={18} style={{ verticalAlign: '-3px' }} /> Party inventory
+      </h2>
       {problem && (
         <div className="vtt-composer-error" role="alert" style={{ position: 'static' }}>
           {problem}
@@ -56,47 +60,52 @@ export function LootPanel() {
         const open = !item.claimedBy;
         return (
           <div key={item.id} className={open ? 'vtt-loot' : 'vtt-loot vtt-loot-taken'}>
-            <div className="vtt-loot-text">
-              <b>{itemLabel(item, members)}</b>
-              {item.description && <span className="vtt-muted">{item.description}</span>}
-            </div>
-            <div className="vtt-drawer-row">
-              {open && !dm && (
-                <>
-                  <button
-                    type="button"
-                    className="vtt-pill"
-                    onClick={() =>
-                      void run(() => campaignApi('POST', `loot/${item.id}/claim`, { for: 'self' }))
-                    }
+            <div className="vtt-loot-row">
+              <ItemIcon type={item.itemType} rarity={item.rarity} size={22} />
+              <div className="vtt-loot-text" style={{ flex: 1 }}>
+                <b>{itemLabel(item, members)}</b>
+                {item.description && <span className="vtt-muted">{item.description}</span>}
+              </div>
+              <div className="vtt-drawer-row">
+                {open && !dm && (
+                  <>
+                    <ToolButton
+                      label="Take it for yourself"
+                      onClick={() =>
+                        void run(() =>
+                          campaignApi('POST', `loot/${item.id}/claim`, { for: 'self' }),
+                        )
+                      }
+                    >
+                      <Hand size={14} />
+                    </ToolButton>
+                    <ToolButton
+                      label="Take it for the party"
+                      onClick={() =>
+                        void run(() =>
+                          campaignApi('POST', `loot/${item.id}/claim`, { for: 'party' }),
+                        )
+                      }
+                    >
+                      <Users size={14} />
+                    </ToolButton>
+                  </>
+                )}
+                {open && item.kind === 'coin' && (
+                  <ToolButton label="Split the coin equally…" onClick={() => startSplit(item.id)}>
+                    <Split size={14} />
+                  </ToolButton>
+                )}
+                {dm && (
+                  <ToolButton
+                    label="Remove it"
+                    danger
+                    onClick={() => void run(() => campaignApi('DELETE', `loot/${item.id}`))}
                   >
-                    Take for me
-                  </button>
-                  <button
-                    type="button"
-                    className="vtt-pill"
-                    onClick={() =>
-                      void run(() => campaignApi('POST', `loot/${item.id}/claim`, { for: 'party' }))
-                    }
-                  >
-                    For the party
-                  </button>
-                </>
-              )}
-              {open && item.kind === 'coin' && (
-                <button type="button" className="vtt-pill" onClick={() => startSplit(item.id)}>
-                  Split…
-                </button>
-              )}
-              {dm && (
-                <button
-                  type="button"
-                  className="vtt-pill"
-                  onClick={() => void run(() => campaignApi('DELETE', `loot/${item.id}`))}
-                >
-                  Remove
-                </button>
-              )}
+                    <Trash2 size={14} />
+                  </ToolButton>
+                )}
+              </div>
             </div>
             {splitting === item.id && (
               <fieldset className="vtt-split">
@@ -119,69 +128,32 @@ export function LootPanel() {
                   </label>
                 ))}
                 <div className="vtt-drawer-row">
-                  <button
-                    type="button"
-                    className="vtt-pill"
+                  <ToolButton
+                    label={`Split among ${chosen.length}`}
                     disabled={chosen.length === 0}
+                    text={`Split among ${chosen.length}`}
                     onClick={() =>
                       void run(() =>
                         campaignApi('POST', `loot/${item.id}/split`, { userIds: chosen }),
                       ).then(() => setSplitting(undefined))
                     }
                   >
-                    Split among {chosen.length}
-                  </button>
-                  <button
-                    type="button"
-                    className="vtt-pill"
-                    onClick={() => setSplitting(undefined)}
-                  >
-                    Cancel
-                  </button>
+                    <Split size={14} />
+                  </ToolButton>
+                  <ToolButton label="Cancel" onClick={() => setSplitting(undefined)}>
+                    ×
+                  </ToolButton>
                 </div>
               </fieldset>
             )}
           </div>
         );
       })}
-      {dm && (
-        <form
-          className="vtt-drawer-row"
-          onSubmit={(e) => {
-            e.preventDefault();
-            const n = name.trim();
-            if (!n) return;
-            void run(() =>
-              campaignApi('POST', 'loot', { name: n, quantity, kind: coin ? 'coin' : 'item' }),
-            ).then(() => setName(''));
-          }}
-        >
-          <input
-            className="vtt-input"
-            style={{ flex: 1, minWidth: 120 }}
-            aria-label={coin ? 'Currency' : 'Item'}
-            placeholder={coin ? 'Currency (gp, sp…)' : 'Drop an item…'}
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-          <input
-            className="vtt-input"
-            style={{ width: 80 }}
-            type="number"
-            min={1}
-            aria-label={coin ? 'Amount' : 'Quantity'}
-            value={quantity}
-            onChange={(e) => setQuantity(Math.max(1, Math.floor(Number(e.target.value) || 1)))}
-          />
-          <label className="vtt-volume">
-            <input type="checkbox" checked={coin} onChange={(e) => setCoin(e.target.checked)} />
-            Coin
-          </label>
-          <button type="submit" className="vtt-pill">
-            Drop
-          </button>
-        </form>
-      )}
+      {dm && <LootWorkbench onDropped={reload} />}
+      <p className="vtt-attribution">
+        Item names and rules text: System Reference Document 5.1 © Wizards of the Coast LLC,
+        CC-BY-4.0.
+      </p>
     </div>
   );
 }

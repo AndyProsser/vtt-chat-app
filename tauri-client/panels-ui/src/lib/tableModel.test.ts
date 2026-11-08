@@ -218,7 +218,15 @@ describe('loot and handout cards', () => {
     let state = applyEvent(emptyTable, chatLine);
     state = applyEvent(state, dropped);
     expect(state.cards).toEqual([
-      { id: 'loot:i1', kind: 'loot', title: 'Potion', quantity: 2, claimedBy: null, after: 'm1' },
+      {
+        id: 'loot:i1',
+        kind: 'loot',
+        title: 'Potion',
+        quantity: 2,
+        rarity: null,
+        claimedBy: null,
+        after: 'm1',
+      },
     ]);
     state = applyEvent(state, claimed);
     expect(state.cards[0]?.claimedBy).toBe('u1');

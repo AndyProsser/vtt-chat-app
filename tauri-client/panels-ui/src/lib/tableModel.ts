@@ -7,7 +7,9 @@ import type {
   RecordingView,
   SyncEvent,
   ClaimedFor,
+  ItemType,
   LootSplit,
+  Rarity,
   TableCard,
   TableState,
 } from '../types/index.js';
@@ -228,6 +230,8 @@ function newCard(state: TableState, id: string, kind: TableCard['kind'], d: Obj)
         title,
         quantity: Number(d.quantity ?? 1),
         ...(d.kind === 'coin' ? { coin: true } : {}),
+        ...(typeof d.itemType === 'string' ? { itemType: d.itemType as ItemType } : {}),
+        rarity: typeof d.rarity === 'string' ? (d.rarity as Rarity) : null,
         claimedBy: null,
         after: lastChatId(state),
       }

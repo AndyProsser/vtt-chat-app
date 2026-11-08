@@ -25,12 +25,13 @@ const dropBody = z.object({
   srdId: z.string().max(100).optional(),
 });
 const batchBody = z.object({ items: z.array(dropBody).max(50) });
+// A POST (a read-only search) so the tray app's REST relay, which refuses query strings, can reach it.
 const catalogQuery = z.object({
   q: z.string().max(100).optional(),
   type: z.string().max(40).optional(),
   rarity: z.string().max(40).optional(),
-  magic: z.enum(['true', 'false']).optional(),
-  limit: z.coerce.number().int().min(1).max(200).default(50),
+  magic: z.boolean().optional(),
+  limit: z.number().int().min(1).max(200).default(50),
 });
 const rollBody = z.object({
   cr: z.number().min(0).max(30),
@@ -66,8 +67,8 @@ export function lootRoutes(deps: LootRouteDeps): Router {
     res.json({ loot: await loot.list(authOf(res).user, campaign(req)) });
   });
 
-  router.get('/catalog', async (req, res) => {
-    const q = catalogQuery.parse(req.query);
+  router.post('/catalog', async (req, res) => {
+    const q = catalogQuery.parse(req.body ?? {});
     if (q.type !== undefined && !isItemType(q.type))
       throw new DomainError('invalid_input', 'unknown item type');
     if (q.rarity !== undefined && !isRarity(q.rarity))
@@ -76,7 +77,7 @@ export function lootRoutes(deps: LootRouteDeps): Router {
       ...(q.q !== undefined ? { query: q.q } : {}),
       ...(q.type !== undefined ? { type: q.type as ItemType } : {}),
       ...(q.rarity !== undefined ? { rarity: q.rarity as Rarity } : {}),
-      ...(q.magic !== undefined ? { magic: q.magic === 'true' } : {}),
+      ...(q.magic !== undefined ? { magic: q.magic } : {}),
       limit: q.limit,
     });
     res.json({ items });
