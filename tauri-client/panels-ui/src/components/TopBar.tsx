@@ -2,6 +2,7 @@ import { GearIcon, SpeakerLoudIcon, SpeakerOffIcon } from '@radix-ui/react-icons
 
 import { useVoice } from '../hooks/useVoice.js';
 import { panelOpen } from '../lib/tauriBridge.js';
+import { GroupsMenu } from './GroupsMenu.js';
 import { RecordingIndicator } from './RecordingIndicator.js';
 
 /** Record state and timer, the voice Connect/Disconnect toggle, and the settings cog. */
@@ -11,6 +12,7 @@ export function TopBar({ dm }: { dm: boolean }) {
     <header className="vtt-top">
       <RecordingIndicator dm={dm} />
       <span className="vtt-spacer" />
+      {dm && <GroupsMenu />}
       <button
         type="button"
         className="vtt-pill"
