@@ -230,3 +230,31 @@ pub fn resume(app: &AppHandle) {
         }
     });
 }
+
+/// The actions the server's recording endpoint accepts.
+const RECORDING_ACTIONS: [&str; 4] = ["start", "pause", "resume", "stop"];
+
+/// DM-only on the server (a player gets `forbidden`); the panel only offers it to the DM.
+#[tauri::command]
+pub async fn recording_control(
+    state: State<'_, AccountState>,
+    action: String,
+) -> Result<(), AccountError> {
+    if !RECORDING_ACTIONS.contains(&action.as_str()) {
+        return Err(error("bad_action", "unknown recording action"));
+    }
+    let (server, token, campaign) = {
+        let inner = state.0.lock().await;
+        (
+            inner.saved.server.clone(),
+            inner.saved.session_token.clone(),
+            inner.saved.campaign_id.clone(),
+        )
+    };
+    let (Some(server), Some(token), Some(campaign)) = (server, token, campaign) else {
+        return Err(error("signed_out", "sign in and pick a campaign first"));
+    };
+    AccountClient::new(&server)
+        .recording_action(&token, &campaign, &action)
+        .await
+}

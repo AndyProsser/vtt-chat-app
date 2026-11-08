@@ -7,7 +7,13 @@ import type {
 } from '@vtt-chat-app/shared';
 
 import { ACCOUNT_ERROR_EVENT, SYNC_EVENT } from '../consts/index.js';
-import type { AccountError, AccountStatus, Hydration, SyncEvent } from '../types/index.js';
+import type {
+  AccountError,
+  AccountStatus,
+  Hydration,
+  RecordingAction,
+  SyncEvent,
+} from '../types/index.js';
 import {
   LIVEKIT_MICROPHONE_EVENT,
   LIVEKIT_SPEAKERS_EVENT,
@@ -62,6 +68,9 @@ export const accountSignOut = () => invoke<AccountStatus>('account_sign_out');
 export const panelHydrate = () => invoke<Hydration>('panel_hydrate');
 
 export const chatSend = (text: string, to?: string) => invoke<void>('chat_send', { text, to });
+
+export const recordingControl = (action: RecordingAction) =>
+  invoke<void>('recording_control', { action });
 
 export const panelOpen = (name: string) => invoke<void>('panel_open', { name });
 

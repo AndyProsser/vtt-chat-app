@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { SyncEvent } from '../types/index.js';
-import { applyEvent, emptyTable, mergeChat } from './tableModel.js';
+import { applyEvent, emptyTable, isDm, mergeChat, recordingActions } from './tableModel.js';
 
 const snapshot: SyncEvent = {
   t: 'snapshot',
@@ -81,5 +81,68 @@ describe('tableModel', () => {
   it('ignores events it does not know', () => {
     const s = applyEvent(emptyTable, snapshot);
     expect(applyEvent(s, { t: 'party.state', d: {} })).toBe(s);
+  });
+});
+
+describe('recording state', () => {
+  const ev = (t: string, d: unknown): SyncEvent => ({ t, d });
+
+  it('follows the server through start, pause, resume and stop', () => {
+    let s = applyEvent(
+      emptyTable,
+      ev('recording.status', { recordingId: 'r1', status: 'STARTED' }),
+    );
+    expect(s.recording).toEqual({ recordingId: 'r1', capturing: true });
+    s = applyEvent(s, ev('recording.status', { recordingId: 'r1', status: 'PAUSED' }));
+    expect(s.recording?.capturing).toBe(false);
+    s = applyEvent(s, ev('recording.status', { recordingId: 'r1', status: 'RESUMED' }));
+    expect(s.recording?.capturing).toBe(true);
+    s = applyEvent(s, ev('recording.status', { recordingId: 'r1', status: 'STOPPED' }));
+    expect(s.recording).toBeNull();
+  });
+
+  it('learns an in-progress recording from recording.state, and is idempotent', () => {
+    const e = ev('recording.state', { recording: { recordingId: 'r2', capturing: false } });
+    const once = applyEvent(emptyTable, e);
+    expect(once.recording).toEqual({ recordingId: 'r2', capturing: false });
+    expect(applyEvent(once, e)).toBe(once);
+    expect(applyEvent(once, ev('recording.state', { recording: null })).recording).toBeNull();
+  });
+
+  it('a snapshot keeps the recording state', () => {
+    const rec = applyEvent(
+      emptyTable,
+      ev('recording.state', { recording: { recordingId: 'r', capturing: true } }),
+    );
+    expect(applyEvent(rec, ev('snapshot', { members: [] })).recording).not.toBeNull();
+  });
+
+  it('offers the right buttons, and only the DM gets them', () => {
+    expect(recordingActions(null)).toEqual(['start']);
+    expect(recordingActions({ recordingId: 'r', capturing: true })).toEqual(['pause', 'stop']);
+    expect(recordingActions({ recordingId: 'r', capturing: false })).toEqual(['resume', 'stop']);
+    const members = [
+      {
+        userId: 'd',
+        displayName: 'D',
+        role: 'dm',
+        character: null,
+        online: true,
+        inVoice: false,
+        muted: true,
+      },
+      {
+        userId: 'p',
+        displayName: 'P',
+        role: 'player',
+        character: null,
+        online: true,
+        inVoice: false,
+        muted: true,
+      },
+    ] as const;
+    expect(isDm([...members], 'd')).toBe(true);
+    expect(isDm([...members], 'p')).toBe(false);
+    expect(isDm([...members], null)).toBe(false);
   });
 });

@@ -44,7 +44,16 @@ export interface Hydration {
   events: SyncEvent[];
 }
 
+/** The campaign's recording as the server last told us; `null` when nothing is recording. */
+export interface RecordingView {
+  recordingId: string;
+  capturing: boolean;
+}
+
+export type RecordingAction = 'start' | 'pause' | 'resume' | 'stop';
+
 export interface TableState {
   members: Member[];
   chat: ChatLine[];
+  recording: RecordingView | null;
 }

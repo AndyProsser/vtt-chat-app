@@ -16,4 +16,5 @@ commands.allow = [
   "account_sign_in",
   "account_select_campaign",
   "account_sign_out",
+  "recording_control",
 ]

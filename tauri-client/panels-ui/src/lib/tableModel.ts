@@ -1,7 +1,14 @@
 import { CHAT_LIMIT } from '../consts/index.js';
-import type { ChatLine, Member, SyncEvent, TableState } from '../types/index.js';
+import type {
+  ChatLine,
+  Member,
+  RecordingAction,
+  RecordingView,
+  SyncEvent,
+  TableState,
+} from '../types/index.js';
 
-export const emptyTable: TableState = { members: [], chat: [] };
+export const emptyTable: TableState = { members: [], chat: [], recording: null };
 
 type Obj = Record<string, unknown>;
 const asObj = (v: unknown): Obj => (typeof v === 'object' && v !== null ? (v as Obj) : {});
@@ -68,7 +75,7 @@ export function applyEvent(state: TableState, event: SyncEvent): TableState {
         .filter((l): l is ChatLine => l !== undefined);
       // A snapshot is the whole truth about the table; whispers (not in it) are kept.
       const whispers = state.chat.filter((l) => l.to !== undefined);
-      return { members, chat: mergeChat(whispers, recent) };
+      return { ...state, members, chat: mergeChat(whispers, recent) };
     }
     case 'chat.message':
     case 'chat.whisper': {
@@ -88,9 +95,41 @@ export function applyEvent(state: TableState, event: SyncEvent): TableState {
         inVoice: d.inVoice === true,
         muted: d.muted !== false,
       });
+    case 'recording.state': {
+      const r = asObj(d.recording);
+      const next: RecordingView | null =
+        typeof r.recordingId === 'string'
+          ? { recordingId: r.recordingId, capturing: r.capturing !== false }
+          : null;
+      return sameRecording(state.recording, next) ? state : { ...state, recording: next };
+    }
+    case 'recording.status': {
+      const id = String(d.recordingId ?? '');
+      const next: RecordingView | null =
+        d.status === 'STOPPED' ? null : { recordingId: id, capturing: d.status !== 'PAUSED' };
+      return sameRecording(state.recording, next) ? state : { ...state, recording: next };
+    }
     default:
       return state;
   }
+}
+
+function sameRecording(a: RecordingView | null, b: RecordingView | null): boolean {
+  return (
+    a === b ||
+    (a !== null && b !== null && a.recordingId === b.recordingId && a.capturing === b.capturing)
+  );
+}
+
+/** Whether `selfId` is the DM at this table. The server enforces it; this only hides controls. */
+export function isDm(members: Member[], selfId: string | null): boolean {
+  return selfId !== null && members.some((m) => m.userId === selfId && m.role === 'dm');
+}
+
+/** The buttons that make sense for the current recording state. */
+export function recordingActions(recording: RecordingView | null): RecordingAction[] {
+  if (!recording) return ['start'];
+  return recording.capturing ? ['pause', 'stop'] : ['resume', 'stop'];
 }
 
 /** The people one can whisper: everyone but oneself. */

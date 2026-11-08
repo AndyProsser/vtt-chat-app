@@ -309,6 +309,28 @@ impl AccountClient {
         }
     }
 
+    /// Start, pause, resume or stop the campaign's recording. The server checks the caller is the DM
+    /// and tells every client, which plays its own local cue — so nothing else is needed here.
+    pub async fn recording_action(
+        &self,
+        token: &str,
+        campaign_id: &str,
+        action: &str,
+    ) -> Result<(), AccountError> {
+        let response = self
+            .http
+            .post(format!(
+                "{}/api/campaigns/{campaign_id}/recording",
+                self.base
+            ))
+            .bearer_auth(token)
+            .json(&json!({ "action": action }))
+            .send()
+            .await
+            .map_err(Self::unreachable)?;
+        Self::read(response).await.map(|_| ())
+    }
+
     pub async fn logout(&self, token: &str) {
         let _ = self
             .http

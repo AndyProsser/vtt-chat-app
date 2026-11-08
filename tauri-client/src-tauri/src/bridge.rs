@@ -9,7 +9,7 @@
 use std::collections::VecDeque;
 use std::sync::Mutex;
 
-use rust_sync::ServerEvent;
+use rust_sync::{RecordingChange, ServerEvent};
 use serde_json::{json, Value};
 
 pub const SYNC_EVENT: &str = "sync:event";
@@ -61,6 +61,37 @@ pub fn panel_event(server_event: &ServerEvent) -> Option<(Value, bool)> {
         ServerEvent::ChatMessage { seq, data, .. } => {
             (json!({ "t": "chat.message", "d": data, "seq": seq }), true)
         }
+        ServerEvent::RecordingStatus {
+            recording_id,
+            status,
+            ..
+        } => (
+            event(
+                "recording.status",
+                json!({
+                    "recordingId": recording_id,
+                    "status": match status {
+                        RecordingChange::Started => "STARTED",
+                        RecordingChange::Paused => "PAUSED",
+                        RecordingChange::Resumed => "RESUMED",
+                        RecordingChange::Stopped => "STOPPED",
+                    },
+                }),
+            ),
+            true,
+        ),
+        ServerEvent::RecordingState { recording, .. } => (
+            event(
+                "recording.state",
+                json!({
+                    "recording": recording.as_ref().map(|r| json!({
+                        "recordingId": r.recording_id,
+                        "capturing": r.capturing,
+                    })),
+                }),
+            ),
+            true,
+        ),
         ServerEvent::RosterChanged { .. } => (event("roster.changed", Value::Null), true),
         ServerEvent::Table { t, data } => (event(t, data.clone()), true),
         _ => return None,
@@ -124,6 +155,25 @@ mod tests {
         let (value, retain) = panel_event(&table).unwrap();
         assert_eq!(value["t"], "party.state");
         assert!(retain);
+    }
+
+    #[test]
+    fn recording_frames_reach_panels() {
+        let status = ServerEvent::RecordingStatus {
+            campaign_id: "c".into(),
+            recording_id: "r1".into(),
+            status: RecordingChange::Paused,
+        };
+        let (value, retain) = panel_event(&status).unwrap();
+        assert_eq!(value["t"], "recording.status");
+        assert_eq!(value["d"]["status"], "PAUSED");
+        assert!(retain, "a panel opened mid-recording must learn the state");
+
+        let none = ServerEvent::RecordingState {
+            campaign_id: "c".into(),
+            recording: None,
+        };
+        assert!(panel_event(&none).unwrap().0["d"]["recording"].is_null());
     }
 
     #[test]
