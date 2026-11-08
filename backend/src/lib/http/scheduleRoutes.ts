@@ -14,11 +14,13 @@ export interface ScheduleRouteDeps {
 
 const createBody = z.object({
   startsAt: z.number().int().positive(),
+  durationMinutes: z.number().optional(),
   title: z.string().max(200),
   notes: z.string().max(2000).optional(),
 });
 const patchBody = z.object({
   startsAt: z.number().int().positive().optional(),
+  durationMinutes: z.number().optional(),
   title: z.string().max(200).optional(),
   notes: z.string().max(2000).optional(),
 });
@@ -56,6 +58,7 @@ export function sessionRoutes(deps: ScheduleRouteDeps): Router {
     const body = patchBody.parse(req.body);
     const patch = {
       ...(body.startsAt !== undefined ? { startsAt: body.startsAt } : {}),
+      ...(body.durationMinutes !== undefined ? { durationMinutes: body.durationMinutes } : {}),
       ...(body.title !== undefined ? { title: body.title } : {}),
       ...(body.notes !== undefined ? { notes: body.notes } : {}),
     };

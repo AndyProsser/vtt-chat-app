@@ -152,6 +152,8 @@ export interface SessionView {
   session: {
     id: string;
     startsAt: number;
+    /** Minutes the session is expected to run. */
+    durationMinutes: number;
     title: string;
     notes: string;
     cancelledAt: number | null;

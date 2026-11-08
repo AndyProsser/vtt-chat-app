@@ -1,13 +1,21 @@
-import { GearIcon, SpeakerLoudIcon, SpeakerOffIcon } from '@radix-ui/react-icons';
+import { Activity, AudioLines, Settings, Volume2, VolumeX } from 'lucide-react';
 
 import { useVoice } from '../hooks/useVoice.js';
 import { panelOpen } from '../lib/tauriBridge.js';
 import { ConnectionMenu } from './ConnectionMenu.js';
 import { GroupsMenu } from './GroupsMenu.js';
 import { RecordingIndicator } from './RecordingIndicator.js';
+import { ToolButton } from './ToolButton.js';
 
-/** Record state and timer, the voice Connect/Disconnect toggle, and the settings cog. */
-export function TopBar({ dm }: { dm: boolean }) {
+interface Props {
+  dm: boolean;
+  /** The DM's effects drawer. */
+  effectsOpen: boolean;
+  onToggleEffects: () => void;
+}
+
+/** Record state and timer on the left; on the right, icon buttons (with tip text) for the rest. */
+export function TopBar({ dm, effectsOpen, onToggleEffects }: Props) {
   const voice = useVoice();
   return (
     <header className="vtt-top">
@@ -15,24 +23,31 @@ export function TopBar({ dm }: { dm: boolean }) {
       <span className="vtt-spacer" />
       {dm && <GroupsMenu />}
       {dm && <ConnectionMenu />}
-      <button
-        type="button"
-        className="vtt-pill"
+      {dm && (
+        <ToolButton
+          label="Sound effects and voices"
+          pressed={effectsOpen}
+          onClick={onToggleEffects}
+        >
+          <AudioLines size={15} />
+        </ToolButton>
+      )}
+      <ToolButton
+        label={
+          voice.error ??
+          (voice.connected
+            ? 'In voice: click to leave (chat stays on)'
+            : 'Voice is off: click to join')
+        }
+        pressed={voice.connected}
         disabled={voice.busy}
-        title={voice.error ?? (voice.connected ? 'Leave voice (chat stays on)' : 'Join voice')}
         onClick={() => void voice.toggle()}
       >
-        {voice.connected ? <SpeakerLoudIcon /> : <SpeakerOffIcon />}
-        {voice.connected ? 'Connected' : voice.busy ? 'Connecting…' : 'Voice off'}
-      </button>
-      <button
-        type="button"
-        className="vtt-pill"
-        aria-label="Settings"
-        onClick={() => void panelOpen('settings')}
-      >
-        <GearIcon />
-      </button>
+        {voice.connected ? <Volume2 size={15} /> : <VolumeX size={15} />}
+      </ToolButton>
+      <ToolButton label="Settings" onClick={() => void panelOpen('settings')}>
+        <Settings size={15} />
+      </ToolButton>
     </header>
   );
 }

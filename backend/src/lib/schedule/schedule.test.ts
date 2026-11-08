@@ -114,6 +114,28 @@ describe('scheduling', () => {
     expect(await inbox(dm)).toEqual([]); // the DM made it; no need to tell them
   });
 
+  it('keeps how long a session runs: three hours unless told otherwise, changeable, and sane', async () => {
+    const plain = (await schedule_(dm.token, { startsAt: soon(), title: 'a' })).body.session;
+    expect(plain.durationMinutes).toBe(180);
+    const long = await schedule_(dm.token, { startsAt: soon(), title: 'b', durationMinutes: 240 });
+    expect(long.body.session.durationMinutes).toBe(240);
+    const patched = await call(
+      'PATCH',
+      `/api/campaigns/${campaign}/sessions/${long.body.session.id}`,
+      dm.token,
+      { durationMinutes: 90 },
+    );
+    expect(patched.body.session.durationMinutes).toBe(90);
+    for (const bad of [0, 14, 721, 90.5, -60]) {
+      expect(
+        (await schedule_(dm.token, { startsAt: soon(), title: 'c', durationMinutes: bad })).status,
+        String(bad),
+      ).toBe(400);
+    }
+    const listed = (await sessions(alice.token)).body.sessions;
+    expect(listed.every((v: any) => typeof v.session.durationMinutes === 'number')).toBe(true);
+  });
+
   it('only the DM schedules, reschedules or cancels; outsiders are shut out', async () => {
     expect((await schedule_(alice.token, { startsAt: soon(), title: 'x' })).status).toBe(403);
     const id = (await schedule_(dm.token, { startsAt: soon(), title: 'x' })).body.session.id;

@@ -3,6 +3,8 @@ export interface ScheduledSession {
   campaignId: string;
   /** UTC epoch milliseconds. */
   startsAt: number;
+  /** How long it is expected to run, in minutes (15–720). */
+  durationMinutes: number;
   title: string;
   notes: string;
   createdBy: string | null;

@@ -1,29 +1,34 @@
-import {
-  Badge,
-  Button,
-  Callout,
-  Card,
-  Flex,
-  SegmentedControl,
-  Text,
-  TextField,
-} from '@radix-ui/themes';
+import { CalendarClock, Check, Clock, Plus, Trash2, X } from 'lucide-react';
 import { useState } from 'react';
 
 import { useAccount } from '../../hooks/useAccount.js';
 import { useCampaignQuery } from '../../hooks/useCampaignQuery.js';
 import { useTableFeed } from '../../hooks/useTableFeed.js';
+import {
+  DEFAULT_DURATION,
+  DURATION_OPTIONS,
+  TIME_OPTIONS,
+  defaultSlot,
+  formatRange,
+  nextSessionTitle,
+  startsAtOf,
+} from '../../lib/schedule.js';
 import { isDm } from '../../lib/tableModel.js';
 import { useTableStore } from '../../lib/tableStore.js';
 import { accountErrorMessage, campaignApi } from '../../lib/tauriBridge.js';
 import type { RsvpStatus, SessionView } from '../../types/index.js';
+import { ToolButton } from '../ToolButton.js';
 
-const RSVP_LABELS: Record<RsvpStatus, string> = {
-  yes: 'Can make it',
-  late: 'Running late',
-  no: "Can't",
-};
+const RSVP: { status: RsvpStatus; label: string; icon: typeof Check }[] = [
+  { status: 'yes', label: 'Can make it', icon: Check },
+  { status: 'late', label: 'Running late', icon: Clock },
+  { status: 'no', label: "Can't make it", icon: X },
+];
 
+const durationLabel = (m: number) =>
+  m % 60 === 0 ? `${m / 60} h` : m < 60 ? `${m} min` : `${Math.floor(m / 60)} h 30`;
+
+/** Upcoming sessions with one-tap RSVPs; the DM schedules the next one in a single compact row. */
 export function SessionsSection() {
   useTableFeed();
   const { status } = useAccount();
@@ -33,8 +38,12 @@ export function SessionsSection() {
     'notification',
     'session.',
   ]);
-  const [title, setTitle] = useState('');
-  const [when, setWhen] = useState('');
+  const slot = defaultSlot(new Date());
+  const [adding, setAdding] = useState(false);
+  const [title, setTitle] = useState<string>();
+  const [date, setDate] = useState(slot.date);
+  const [time, setTime] = useState(slot.time);
+  const [duration, setDuration] = useState(DEFAULT_DURATION);
   const [actionError, setActionError] = useState<string>();
 
   async function run(call: () => Promise<unknown>) {
@@ -47,103 +56,132 @@ export function SessionsSection() {
     }
   }
 
-  const upcoming = data?.sessions.filter((s) => s.session.cancelledAt === null) ?? [];
+  const all = data?.sessions ?? [];
+  const upcoming = all.filter((s) => s.session.cancelledAt === null);
+  const suggested = nextSessionTitle(all.map((s) => s.session.title));
+  const startsAt = startsAtOf(date, time);
 
   return (
-    <Flex direction="column" gap="2" p="3">
-      <Text weight="bold">Sessions</Text>
+    <div className="vtt-sessions">
       {(error ?? actionError) && (
-        <Callout.Root color="red" size="1">
-          <Callout.Text>{error ?? actionError}</Callout.Text>
-        </Callout.Root>
+        <div className="vtt-composer-error" role="alert" style={{ position: 'static' }}>
+          {error ?? actionError}
+        </div>
       )}
-      {data && upcoming.length === 0 && (
-        <Text size="2" color="gray">
-          No session is scheduled.
-        </Text>
-      )}
+      {data && upcoming.length === 0 && <span className="vtt-muted">No session is scheduled.</span>}
       {upcoming.map((v) => (
-        <Card key={v.session.id}>
-          <Flex direction="column" gap="2">
-            <Flex justify="between" align="center">
-              <Text weight="bold" size="2">
-                {v.session.title}
-              </Text>
-              {dm && (
-                <Button
-                  size="1"
-                  color="red"
-                  variant="soft"
-                  onClick={() => void run(() => campaignApi('DELETE', `sessions/${v.session.id}`))}
-                >
-                  Cancel
-                </Button>
-              )}
-            </Flex>
-            <Text size="2">
-              {new Date(v.session.startsAt).toLocaleString([], {
-                dateStyle: 'full',
-                timeStyle: 'short',
-              })}
-            </Text>
-            {v.session.notes && (
-              <Text size="1" color="gray">
-                {v.session.notes}
-              </Text>
+        <div key={v.session.id} className="vtt-session">
+          <div className="vtt-session-head">
+            <b>{v.session.title}</b>
+            {dm && (
+              <ToolButton
+                label="Cancel this session"
+                danger
+                onClick={() => void run(() => campaignApi('DELETE', `sessions/${v.session.id}`))}
+              >
+                <Trash2 size={14} />
+              </ToolButton>
             )}
-            <SegmentedControl.Root
-              size="1"
-              value={v.mine ?? ''}
-              onValueChange={(s) =>
-                void run(() => campaignApi('PUT', `sessions/${v.session.id}/rsvp`, { status: s }))
-              }
-            >
-              {(['yes', 'late', 'no'] as const).map((s) => (
-                <SegmentedControl.Item key={s} value={s}>
-                  {RSVP_LABELS[s]}
-                </SegmentedControl.Item>
-              ))}
-            </SegmentedControl.Root>
-            <Flex gap="1">
-              <Badge color="green">{v.counts.yes} yes</Badge>
-              <Badge color="amber">{v.counts.late} late</Badge>
-              <Badge color="gray">{v.counts.no} no</Badge>
-            </Flex>
-          </Flex>
-        </Card>
+          </div>
+          <span className="vtt-muted">
+            <CalendarClock size={13} style={{ verticalAlign: '-2px' }} />{' '}
+            {formatRange(v.session.startsAt, v.session.durationMinutes)}
+          </span>
+          {v.session.notes && <span className="vtt-muted">{v.session.notes}</span>}
+          <div className="vtt-rsvp">
+            {RSVP.map(({ status: s, label, icon: Icon }) => (
+              <ToolButton
+                key={s}
+                label={label}
+                pressed={v.mine === s}
+                text={String(v.counts[s])}
+                onClick={() =>
+                  void run(() => campaignApi('PUT', `sessions/${v.session.id}/rsvp`, { status: s }))
+                }
+              >
+                <Icon size={14} />
+              </ToolButton>
+            ))}
+          </div>
+        </div>
       ))}
-      {dm && (
+      {dm && !adding && (
+        <div>
+          <ToolButton label="Schedule a session" onClick={() => setAdding(true)} text="Schedule">
+            <Plus size={14} />
+          </ToolButton>
+        </div>
+      )}
+      {dm && adding && (
         <form
+          className="vtt-session"
           onSubmit={(e) => {
             e.preventDefault();
-            const startsAt = new Date(when).getTime();
-            if (!title.trim() || Number.isNaN(startsAt)) return;
-            void run(() => campaignApi('POST', 'sessions', { title: title.trim(), startsAt })).then(
-              () => {
-                setTitle('');
-                setWhen('');
-              },
-            );
+            if (startsAt === undefined) return;
+            void run(() =>
+              campaignApi('POST', 'sessions', {
+                title: (title ?? suggested).trim(),
+                startsAt,
+                durationMinutes: duration,
+              }),
+            ).then(() => {
+              setAdding(false);
+              setTitle(undefined);
+            });
           }}
         >
-          <Flex direction="column" gap="2">
-            <Text size="2" weight="bold">
-              Schedule a session
-            </Text>
-            <TextField.Root
-              placeholder="Title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
+          <input
+            className="vtt-input"
+            aria-label="Title"
+            value={title ?? suggested}
+            onChange={(e) => setTitle(e.target.value)}
+          />
+          <div className="vtt-form-row">
+            <input
+              className="vtt-date"
+              type="date"
+              aria-label="Date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
             />
-            <TextField.Root
-              type="datetime-local"
-              value={when}
-              onChange={(e) => setWhen(e.target.value)}
-            />
-            <Button type="submit">Schedule</Button>
-          </Flex>
+            <select
+              className="vtt-select"
+              aria-label="Start time"
+              value={time}
+              onChange={(e) => setTime(e.target.value)}
+            >
+              {TIME_OPTIONS.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </select>
+            <select
+              className="vtt-select"
+              aria-label="Duration"
+              value={duration}
+              onChange={(e) => setDuration(Number(e.target.value))}
+            >
+              {DURATION_OPTIONS.map((d) => (
+                <option key={d} value={d}>
+                  {durationLabel(d)}
+                </option>
+              ))}
+            </select>
+          </div>
+          {startsAt !== undefined && (
+            <span className="vtt-muted">{formatRange(startsAt, duration)}</span>
+          )}
+          <div className="vtt-form-row">
+            <ToolButton label="Schedule it" submit text="Schedule">
+              <Check size={14} />
+            </ToolButton>
+            <ToolButton label="Cancel" onClick={() => setAdding(false)}>
+              <X size={14} />
+            </ToolButton>
+          </div>
         </form>
       )}
-    </Flex>
+    </div>
   );
 }

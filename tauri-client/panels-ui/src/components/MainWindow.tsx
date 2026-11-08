@@ -31,7 +31,7 @@ function Table({ selfId }: { selfId: string | null }) {
   const [drawer, setDrawer] = useState(false);
   return (
     <div className="vtt-main">
-      <TopBar dm={dm} />
+      <TopBar dm={dm} effectsOpen={drawer} onToggleEffects={() => setDrawer((d) => !d)} />
       <UpdateBanner />
       <div className="vtt-body">
         <AvatarRail />
@@ -44,12 +44,7 @@ function Table({ selfId }: { selfId: string | null }) {
           <ChatView selfId={selfId} />
         </div>
       </div>
-      <BottomBar
-        selfId={selfId}
-        role={dm ? 'dm' : 'player'}
-        drawerOpen={drawer}
-        onToggleDrawer={() => setDrawer((d) => !d)}
-      />
+      <BottomBar selfId={selfId} role={dm ? 'dm' : 'player'} />
     </div>
   );
 }

@@ -14,6 +14,7 @@ const toSession = (r: Row): ScheduledSession => ({
   id: r.id as string,
   campaignId: r.campaign_id as string,
   startsAt: r.starts_at as number,
+  durationMinutes: r.duration_minutes as number,
   title: r.title as string,
   notes: r.notes as string,
   createdBy: (r.created_by as string | null) ?? null,
@@ -39,10 +40,20 @@ export class PostgresScheduleStore implements ScheduleStore {
 
   async putSession(s: ScheduledSession): Promise<void> {
     await this.pool.query(
-      `INSERT INTO scheduled_sessions (id, campaign_id, starts_at, title, notes, created_by, created_at, cancelled_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-       ON CONFLICT (id) DO UPDATE SET starts_at = $3, title = $4, notes = $5, cancelled_at = $8`,
-      [s.id, s.campaignId, s.startsAt, s.title, s.notes, s.createdBy, s.createdAt, s.cancelledAt],
+      `INSERT INTO scheduled_sessions (id, campaign_id, starts_at, title, notes, created_by, created_at, cancelled_at, duration_minutes)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+       ON CONFLICT (id) DO UPDATE SET starts_at = $3, title = $4, notes = $5, cancelled_at = $8, duration_minutes = $9`,
+      [
+        s.id,
+        s.campaignId,
+        s.startsAt,
+        s.title,
+        s.notes,
+        s.createdBy,
+        s.createdAt,
+        s.cancelledAt,
+        s.durationMinutes,
+      ],
     );
   }
 

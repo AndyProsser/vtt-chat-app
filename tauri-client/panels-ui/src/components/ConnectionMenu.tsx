@@ -1,9 +1,10 @@
-import { ActivityLogIcon } from '@radix-ui/react-icons';
 import { Popover } from '@radix-ui/themes';
+import { Activity } from 'lucide-react';
 
 import { describeLink, linkQuality } from '../lib/linkQuality.js';
 import { useStatsStore } from '../lib/statsStore.js';
 import { useTableStore } from '../lib/tableStore.js';
+import { ToolButton } from './ToolButton.js';
 
 /** DM-only: how each player's voice link is doing (latency, jitter, loss), refreshed every ~5 s. */
 export function ConnectionMenu() {
@@ -13,9 +14,9 @@ export function ConnectionMenu() {
   return (
     <Popover.Root>
       <Popover.Trigger>
-        <button type="button" className="vtt-pill" aria-label="Connection quality">
-          <ActivityLogIcon />
-        </button>
+        <ToolButton label="Connection quality of each player">
+          <Activity size={15} />
+        </ToolButton>
       </Popover.Trigger>
       <Popover.Content size="1" width="320px" align="end">
         <div className="vtt-groups">

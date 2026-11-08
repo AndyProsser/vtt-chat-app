@@ -40,6 +40,9 @@ export interface SessionView {
  * cancels; every member can RSVP (can make it / late / can't) and sees how the table answered.
  * Times are UTC epoch milliseconds; clients show them in the viewer's local time.
  */
+/** A session is assumed to run three hours unless the DM says otherwise. */
+export const DEFAULT_DURATION_MINUTES = 180;
+
 export class ScheduleService {
   private readonly now: () => number;
   private readonly newId: () => string;
@@ -96,9 +99,13 @@ export class ScheduleService {
   }
 
   private check(
-    input: { startsAt?: number; title?: string; notes?: string },
+    input: { startsAt?: number; durationMinutes?: number; title?: string; notes?: string },
     creating: boolean,
   ): void {
+    const d = input.durationMinutes;
+    if (d !== undefined && (!Number.isInteger(d) || d < 15 || d > 720)) {
+      throw new DomainError('invalid_input', 'a session runs from 15 minutes to 12 hours');
+    }
     if (creating || input.startsAt !== undefined) {
       const t = input.startsAt;
       if (typeof t !== 'number' || !Number.isFinite(t))
@@ -118,7 +125,7 @@ export class ScheduleService {
   async create(
     user: User,
     campaignId: string,
-    input: { startsAt: number; title: string; notes?: string },
+    input: { startsAt: number; title: string; notes?: string; durationMinutes?: number },
   ): Promise<ScheduledSession> {
     await this.requireDm(user, campaignId);
     this.check(input, true);
@@ -126,6 +133,7 @@ export class ScheduleService {
       id: this.newId(),
       campaignId,
       startsAt: input.startsAt,
+      durationMinutes: input.durationMinutes ?? DEFAULT_DURATION_MINUTES,
       title: input.title.trim(),
       notes: input.notes ?? '',
       createdBy: user.id,
@@ -146,7 +154,7 @@ export class ScheduleService {
     user: User,
     campaignId: string,
     sessionId: string,
-    patch: { startsAt?: number; title?: string; notes?: string },
+    patch: { startsAt?: number; durationMinutes?: number; title?: string; notes?: string },
   ): Promise<ScheduledSession> {
     await this.requireDm(user, campaignId);
     const session = await this.own(campaignId, sessionId);
@@ -157,6 +165,7 @@ export class ScheduleService {
     const next: ScheduledSession = {
       ...session,
       ...(patch.startsAt !== undefined ? { startsAt: patch.startsAt } : {}),
+      ...(patch.durationMinutes !== undefined ? { durationMinutes: patch.durationMinutes } : {}),
       ...(patch.title !== undefined ? { title: patch.title.trim() } : {}),
       ...(patch.notes !== undefined ? { notes: patch.notes } : {}),
     };

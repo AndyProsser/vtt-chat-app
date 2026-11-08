@@ -1,5 +1,7 @@
+import { Clapperboard, Repeat, Square, Volume2 } from 'lucide-react';
 import { useState } from 'react';
 
+import { ToolButton } from './ToolButton.js';
 import { VoiceStrip } from './VoiceStrip.js';
 import { useCampaignQuery } from '../hooks/useCampaignQuery.js';
 import { accountErrorMessage, syncCommand } from '../lib/tauriBridge.js';
@@ -28,17 +30,19 @@ export function EffectsStrip() {
     <div className="vtt-drawer-body">
       <VoiceStrip />
       <div className="vtt-drawer-row">
-        <button
-          type="button"
-          className="vtt-pill vtt-pill-square"
+        <ToolButton
+          square
+          danger
+          label="Stop every sound"
           onClick={() => void send('sound.stop', {})}
         >
-          ■ Stop all
-        </button>
-        <label className="vtt-volume">
-          Volume
+          <Square size={14} />
+        </ToolButton>
+        <label className="vtt-volume" title="Table volume">
+          <Volume2 size={15} aria-hidden />
           <input
             type="range"
+            aria-label="Table volume"
             min={0}
             max={100}
             value={master}
@@ -55,36 +59,31 @@ export function EffectsStrip() {
       )}
       {data?.scenes.length ? (
         <div className="vtt-drawer-row">
-          <b>Scenes</b>
-          {data.scenes.map((s) => (
-            <span key={s.id} className="vtt-pill-group">
-              <button
-                type="button"
-                className="vtt-pill vtt-pill-square"
-                onClick={() => void send('scene.start', { sceneId: s.id })}
-              >
-                {s.name}
-              </button>
-            </span>
+          <Clapperboard size={15} aria-label="Scenes" />
+          {data.scenes.map((sc) => (
+            <ToolButton
+              key={sc.id}
+              square
+              label={`Start scene: ${sc.name}`}
+              text={sc.name}
+              onClick={() => void send('scene.start', { sceneId: sc.id })}
+            >
+              <Clapperboard size={13} />
+            </ToolButton>
           ))}
-          <button
-            type="button"
-            className="vtt-pill vtt-pill-square"
-            onClick={() => void send('scene.stop', {})}
-          >
-            End scene
-          </button>
+          <ToolButton square label="End the scene" onClick={() => void send('scene.stop', {})}>
+            <Square size={13} />
+          </ToolButton>
         </div>
       ) : null}
       {data?.boards.map((b) => (
-        <div key={b.id} className="vtt-drawer-row">
-          <b>{b.name}</b>
+        <div key={b.id} className="vtt-drawer-row" aria-label={b.name}>
           {b.buttons.map((btn) => (
-            <button
+            <ToolButton
               key={btn.id}
-              type="button"
-              className="vtt-pill vtt-pill-square"
-              title={btn.note || undefined}
+              square
+              label={`${btn.label}${btn.note ? ` — ${btn.note}` : ''}${btn.mode === 'loop' ? ' (loops)' : ''}`}
+              text={btn.label}
               onClick={() =>
                 void send('sound.play', {
                   soundId: btn.soundId,
@@ -93,9 +92,8 @@ export function EffectsStrip() {
                 })
               }
             >
-              {btn.mode === 'loop' ? '↻ ' : ''}
-              {btn.label}
-            </button>
+              {btn.mode === 'loop' ? <Repeat size={13} /> : <Volume2 size={13} />}
+            </ToolButton>
           ))}
         </div>
       ))}

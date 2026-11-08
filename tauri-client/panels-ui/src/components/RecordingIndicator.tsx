@@ -1,16 +1,17 @@
-import { PauseIcon, PlayIcon, DotFilledIcon, StopIcon } from '@radix-ui/react-icons';
+import { Circle, Pause, Play, Square } from 'lucide-react';
 
 import { useNow } from '../hooks/useNow.js';
 import { recordingBar } from '../lib/recordingBar.js';
 import { recordingControl } from '../lib/tauriBridge.js';
 import { useTableStore } from '../lib/tableStore.js';
 import type { RecordingAction } from '../types/index.js';
+import { ToolButton } from './ToolButton.js';
 
-const ICON: Record<RecordingAction, typeof PauseIcon> = {
-  start: DotFilledIcon,
-  pause: PauseIcon,
-  resume: PlayIcon,
-  stop: StopIcon,
+const CONTROL: Record<RecordingAction, { label: string; icon: typeof Pause }> = {
+  start: { label: 'Start recording', icon: Circle },
+  pause: { label: 'Pause recording', icon: Pause },
+  resume: { label: 'Resume recording', icon: Play },
+  stop: { label: 'Stop recording', icon: Square },
 };
 
 /** REC state and timer for everyone; the DM also gets the controls. The timer ticks only while recording. */
@@ -27,17 +28,16 @@ export function RecordingIndicator({ dm }: { dm: boolean }) {
         </span>
       )}
       {bar.actions.map((action) => {
-        const Icon = ICON[action];
+        const { label, icon: Icon } = CONTROL[action];
         return (
-          <button
+          <ToolButton
             key={action}
-            type="button"
-            className="vtt-pill"
-            aria-label={`${action} recording`}
+            label={label}
+            danger={action === 'start'}
             onClick={() => void recordingControl(action).catch(console.error)}
           >
-            <Icon /> {action === 'start' ? 'Record' : ''}
-          </button>
+            <Icon size={14} />
+          </ToolButton>
         );
       })}
     </>
