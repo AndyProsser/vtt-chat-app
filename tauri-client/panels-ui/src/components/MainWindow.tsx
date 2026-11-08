@@ -5,6 +5,7 @@ import { usePanelBridge } from '../hooks/usePanelBridge.js';
 import { useTableFeed } from '../hooks/useTableFeed.js';
 import { isDm } from '../lib/tableModel.js';
 import { useTableStore } from '../lib/tableStore.js';
+import { AvatarRail } from './AvatarRail.js';
 import { TopBar } from './TopBar.js';
 
 const slot = (label: string) => (
@@ -24,7 +25,7 @@ export function MainWindow() {
     <div className="vtt-main">
       <TopBar dm={dm} />
       <div className="vtt-body">
-        <Box style={{ width: 56 }}>{slot('rail')}</Box>
+        <AvatarRail />
         <Box flexGrow="1">{slot('chat')}</Box>
       </div>
       {slot('bottom bar')}

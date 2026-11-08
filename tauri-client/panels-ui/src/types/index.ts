@@ -17,7 +17,13 @@ export interface Member {
   userId: string;
   displayName: string;
   role: 'dm' | 'player';
-  character: { name: string; avatarUrl?: string | null } | null;
+  character: {
+    name: string;
+    avatarUrl?: string | null;
+    race?: string | null;
+    className?: string | null;
+    level?: number | null;
+  } | null;
   online: boolean;
   inVoice: boolean;
   muted: boolean;
