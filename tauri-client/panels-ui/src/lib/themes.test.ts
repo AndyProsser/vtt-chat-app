@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { contrastRatio } from './contrast.js';
 import { DEFAULT_THEME, resolveTheme, THEMES, themeCss } from './themes.js';
-import { useThemeStore } from './themeStore.js';
+import { followThemeChangesFromOtherWindows, useThemeStore } from './themeStore.js';
 
 describe('themes', () => {
   it('ships the five launch themes, Dragonfire first', () => {
@@ -57,5 +57,19 @@ describe('theme store', () => {
     });
     expect(() => useThemeStore.getState().setTheme('verdant')).not.toThrow();
     expect(document.documentElement.dataset.theme).toBe('verdant');
+  });
+});
+
+describe('theme sync between windows', () => {
+  it('applies a theme another window saved, and ignores unrelated keys', () => {
+    const stop = followThemeChangesFromOtherWindows();
+    window.dispatchEvent(new StorageEvent('storage', { key: 'vtt.theme', newValue: 'frostbound' }));
+    expect(document.documentElement.dataset.theme).toBe('frostbound');
+    expect(useThemeStore.getState().themeId).toBe('frostbound');
+    window.dispatchEvent(new StorageEvent('storage', { key: 'other', newValue: 'arcane' }));
+    expect(document.documentElement.dataset.theme).toBe('frostbound');
+    window.dispatchEvent(new StorageEvent('storage', { key: 'vtt.theme', newValue: 'garbage' }));
+    expect(document.documentElement.dataset.theme).toBe('dragonfire');
+    stop();
   });
 });

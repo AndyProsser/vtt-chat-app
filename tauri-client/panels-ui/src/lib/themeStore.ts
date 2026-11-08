@@ -40,3 +40,18 @@ export const useThemeStore = create<ThemeStore>((set) => ({
 export function applyStoredTheme(): void {
   apply(useThemeStore.getState().themeId);
 }
+
+/**
+ * Every window is its own webview but they share storage, so a theme picked in Settings reaches the
+ * main window (and any other open window) through the `storage` event, with no reload.
+ */
+export function followThemeChangesFromOtherWindows(): () => void {
+  const on = (e: StorageEvent) => {
+    if (e.key !== KEY) return;
+    const themeId = resolveTheme(e.newValue);
+    apply(themeId);
+    useThemeStore.setState({ themeId });
+  };
+  window.addEventListener('storage', on);
+  return () => window.removeEventListener('storage', on);
+}
