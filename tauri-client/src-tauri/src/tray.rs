@@ -104,10 +104,18 @@ pub fn install(app: &tauri::AppHandle) -> tauri::Result<()> {
     let toggle = MenuItem::with_id(app, MENU_TOGGLE_MUTE, "Mute / unmute", true, None::<&str>)?;
     let roster = MenuItem::with_id(app, "open-roster", "Table", true, None::<&str>)?;
     let chat = MenuItem::with_id(app, "open-chat", "Chat", true, None::<&str>)?;
+    let handouts = MenuItem::with_id(app, "open-handouts", "Handouts", true, None::<&str>)?;
+    let loot = MenuItem::with_id(app, "open-loot", "Loot", true, None::<&str>)?;
+    let schedule = MenuItem::with_id(app, "open-schedule", "Sessions", true, None::<&str>)?;
     let recording = MenuItem::with_id(app, "open-recording", "Recording", true, None::<&str>)?;
     let account = MenuItem::with_id(app, "open-account", "Account", true, None::<&str>)?;
     let quit = MenuItem::with_id(app, MENU_QUIT, "Quit", true, None::<&str>)?;
-    let menu = Menu::with_items(app, &[&toggle, &roster, &chat, &recording, &account, &quit])?;
+    let menu = Menu::with_items(
+        app,
+        &[
+            &toggle, &roster, &chat, &handouts, &loot, &schedule, &recording, &account, &quit,
+        ],
+    )?;
     let state = TrayState::Disconnected;
     TrayIconBuilder::with_id(TRAY_ID)
         .icon(icon_image(state))

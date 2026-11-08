@@ -57,3 +57,35 @@ export interface TableState {
   chat: ChatLine[];
   recording: RecordingView | null;
 }
+
+export interface Handout {
+  id: string;
+  title: string;
+  kind: 'image' | 'map' | 'pdf' | 'text';
+  body: string | null;
+  hasFile: boolean;
+  visibility: 'dm' | 'all' | 'some';
+}
+
+export interface LootItem {
+  id: string;
+  name: string;
+  description: string;
+  quantity: number;
+  claimedBy: string | null;
+}
+
+export type RsvpStatus = 'yes' | 'late' | 'no';
+
+export interface SessionView {
+  session: {
+    id: string;
+    startsAt: number;
+    title: string;
+    notes: string;
+    cancelledAt: number | null;
+  };
+  rsvps: { userId: string; status: RsvpStatus }[];
+  counts: Record<RsvpStatus, number>;
+  mine: RsvpStatus | null;
+}

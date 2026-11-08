@@ -26,6 +26,21 @@ pub const PANELS: &[Panel] = &[
         size: (320.0, 480.0),
     },
     Panel {
+        name: "handouts",
+        title: "Handouts — VTT Chat",
+        size: (400.0, 520.0),
+    },
+    Panel {
+        name: "loot",
+        title: "Loot — VTT Chat",
+        size: (340.0, 460.0),
+    },
+    Panel {
+        name: "schedule",
+        title: "Sessions — VTT Chat",
+        size: (360.0, 520.0),
+    },
+    Panel {
         name: "recording",
         title: "Recording — VTT Chat",
         size: (320.0, 300.0),

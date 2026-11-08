@@ -72,6 +72,15 @@ export const chatSend = (text: string, to?: string) => invoke<void>('chat_send',
 export const recordingControl = (action: RecordingAction) =>
   invoke<void>('recording_control', { action });
 
+type Method = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+
+/** A REST call relayed by Rust (`campaign_api`); `path` is relative to the campaign, e.g. `loot`. */
+export const campaignApi = <T = unknown>(method: Method, path: string, body?: unknown) =>
+  invoke<T>('campaign_api', { method, path, body });
+
+/** An image the server holds, as a `data:` URL (`campaign_file`). */
+export const campaignFile = (path: string) => invoke<string>('campaign_file', { path });
+
 export const panelOpen = (name: string) => invoke<void>('panel_open', { name });
 
 export function onSyncEvent(handler: (event: SyncEvent) => void): Promise<UnlistenFn> {

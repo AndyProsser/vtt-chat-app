@@ -5,7 +5,8 @@ use serde_json::Value;
 use tauri::{AppHandle, Emitter, Manager, State};
 
 use crate::account::{
-    data_dir, normalise_server, status_json, AccountClient, AccountError, CampaignItem, Saved,
+    data_dir, normalise_server, relay_path, status_json, AccountClient, AccountError, CampaignItem,
+    Saved,
 };
 use crate::session::{end_session, start_session, SessionState};
 
@@ -257,4 +258,57 @@ pub async fn recording_control(
     AccountClient::new(&server)
         .recording_action(&token, &campaign, &action)
         .await
+}
+
+/// Reads the signed-in `(server, token, campaign)`, or says to sign in.
+async fn credentials(state: &AccountState) -> Result<(String, String, String), AccountError> {
+    let inner = state.0.lock().await;
+    match (
+        &inner.saved.server,
+        &inner.saved.session_token,
+        &inner.saved.campaign_id,
+    ) {
+        (Some(s), Some(t), Some(c)) => Ok((s.clone(), t.clone(), c.clone())),
+        _ => Err(error("signed_out", "sign in and pick a campaign first")),
+    }
+}
+
+/// A panel's REST call (handouts, loot, schedule, the DM's sound library), made by Rust because the
+/// webview may not reach the network. See [`crate::account::relay_path`] for what is allowed.
+#[tauri::command]
+pub async fn campaign_api(
+    state: State<'_, AccountState>,
+    method: String,
+    path: String,
+    body: Option<Value>,
+) -> Result<Value, AccountError> {
+    if !["GET", "POST", "PUT", "PATCH", "DELETE"].contains(&method.as_str()) {
+        return Err(error("bad_method", "unsupported method"));
+    }
+    let (server, token, campaign) = credentials(&state).await?;
+    let full = relay_path(&campaign, &path)?;
+    AccountClient::new(&server)
+        .relay(&token, &method, &full, body)
+        .await
+}
+
+/// A file the server holds, as a `data:` URL the panel can show (its CSP allows `data:` images only).
+#[tauri::command]
+pub async fn campaign_file(
+    state: State<'_, AccountState>,
+    path: String,
+) -> Result<String, AccountError> {
+    use base64::Engine;
+    let (server, token, campaign) = credentials(&state).await?;
+    let full = relay_path(&campaign, &path)?;
+    let (mime, bytes) = AccountClient::new(&server)
+        .fetch_file(&token, &full)
+        .await?;
+    if !mime.starts_with("image/") {
+        return Err(error("not_an_image", "that file is not an image"));
+    }
+    Ok(format!(
+        "data:{mime};base64,{}",
+        base64::engine::general_purpose::STANDARD.encode(bytes)
+    ))
 }

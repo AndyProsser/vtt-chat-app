@@ -129,6 +129,37 @@ fn write_private(path: &Path, saved: &Saved) -> std::io::Result<()> {
     std::fs::rename(tmp, path)
 }
 
+/// The parts of the REST API a panel may reach, all under the signed-in campaign (or the DM's own
+/// sound library). The server still checks who is allowed to do what; this only stops a panel — which
+/// loads nothing but our own pages — from being turned into a general-purpose HTTP client.
+const RELAY_CAMPAIGN_AREAS: [&str; 4] = ["handouts", "loot", "sessions", "sounds"];
+
+/// `handouts/abc/show` → `/api/campaigns/<id>/handouts/abc/show`; `soundboard/library` →
+/// `/api/soundboard/library`. Only plain path segments (letters, digits, `-`, `_`) are accepted: no
+/// `..`, no query, no scheme, no empty segment.
+pub fn relay_path(campaign_id: &str, relative: &str) -> Result<String, AccountError> {
+    let bad = || AccountError::new("bad_path", "that request is not allowed");
+    let segments: Vec<&str> = relative.split('/').collect();
+    let plain = |s: &str| {
+        !s.is_empty()
+            && s.chars()
+                .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+    };
+    if !segments.iter().all(|s| plain(s)) {
+        return Err(bad());
+    }
+    match segments[0] {
+        "soundboard" => Ok(format!("/api/{relative}")),
+        area if RELAY_CAMPAIGN_AREAS.contains(&area) => {
+            if !plain(campaign_id) {
+                return Err(bad());
+            }
+            Ok(format!("/api/campaigns/{campaign_id}/{relative}"))
+        }
+        _ => Err(bad()),
+    }
+}
+
 /// `play.example.com` → `https://play.example.com`; trailing slashes dropped. Plain `http://` is
 /// accepted only because a LAN/dev server may not have a certificate; the caller shows what it got.
 pub fn normalise_server(input: &str) -> Result<String, String> {
@@ -331,6 +362,63 @@ impl AccountClient {
         Self::read(response).await.map(|_| ())
     }
 
+    /// A relayed call for a panel (see [`relay_path`]). 204 and empty bodies come back as `null`.
+    pub async fn relay(
+        &self,
+        token: &str,
+        method: &str,
+        path: &str,
+        body: Option<Value>,
+    ) -> Result<Value, AccountError> {
+        let method = reqwest::Method::from_bytes(method.as_bytes())
+            .map_err(|_| AccountError::new("bad_method", "unsupported method"))?;
+        let mut request = self
+            .http
+            .request(method, format!("{}{path}", self.base))
+            .bearer_auth(token);
+        if let Some(body) = body {
+            request = request.json(&body);
+        }
+        let response = request.send().await.map_err(Self::unreachable)?;
+        Self::read(response).await
+    }
+
+    /// A file (handout image, sound clip) as `(mime, bytes)`, capped so a bad server can't fill memory.
+    pub async fn fetch_file(
+        &self,
+        token: &str,
+        path: &str,
+    ) -> Result<(String, Vec<u8>), AccountError> {
+        const MAX: u64 = 12 * 1024 * 1024;
+        let response = self
+            .http
+            .get(format!("{}{path}", self.base))
+            .bearer_auth(token)
+            .send()
+            .await
+            .map_err(Self::unreachable)?;
+        if !response.status().is_success() {
+            return Err(Self::read(response)
+                .await
+                .err()
+                .unwrap_or_else(|| AccountError::new("error", "the server refused the request")));
+        }
+        if response.content_length().is_some_and(|n| n > MAX) {
+            return Err(AccountError::new("too_large", "that file is too large"));
+        }
+        let mime = response
+            .headers()
+            .get(reqwest::header::CONTENT_TYPE)
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or("application/octet-stream")
+            .to_string();
+        let bytes = response.bytes().await.map_err(Self::unreachable)?;
+        if bytes.len() as u64 > MAX {
+            return Err(AccountError::new("too_large", "that file is too large"));
+        }
+        Ok((mime, bytes.to_vec()))
+    }
+
     pub async fn logout(&self, token: &str) {
         let _ = self
             .http
@@ -475,6 +563,31 @@ mod tests {
                 .mode();
             assert_eq!(mode & 0o077, 0, "fallback file must be owner-only");
         }
+    }
+
+    #[test]
+    fn the_relay_only_reaches_allowed_areas() {
+        assert_eq!(
+            relay_path("c1", "handouts/h-1/show").unwrap(),
+            "/api/campaigns/c1/handouts/h-1/show"
+        );
+        assert_eq!(
+            relay_path("c1", "soundboard/library").unwrap(),
+            "/api/soundboard/library"
+        );
+        for bad in [
+            "",
+            "auth/logout",
+            "handouts/../auth/logout",
+            "handouts//x",
+            "handouts?x=1",
+            "/handouts",
+            "https://evil.example/handouts",
+            "campaigns/c2/loot",
+        ] {
+            assert!(relay_path("c1", bad).is_err(), "{bad:?} must be refused");
+        }
+        assert!(relay_path("c1/../x", "loot").is_err());
     }
 
     #[test]

@@ -5,3 +5,6 @@ export * from './MuteIcon.js';
 export * from './PanelRoot.js';
 export * from './RosterPanel.js';
 export * from './RecordingPanel.js';
+export * from './HandoutsPanel.js';
+export * from './LootPanel.js';
+export * from './SchedulePanel.js';

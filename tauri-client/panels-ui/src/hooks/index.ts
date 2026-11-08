@@ -6,3 +6,4 @@ export * from './useMicrophoneMuted.js';
 export * from './useParticipantIdentities.js';
 export * from './usePanelBridge.js';
 export * from './useTableFeed.js';
+export * from './useCampaignQuery.js';
