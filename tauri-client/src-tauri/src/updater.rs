@@ -52,10 +52,18 @@ pub async fn update_check(
         .server()
         .await
         .ok_or("sign in to a server first: updates come from it")?;
-    let update = build_updater(&app, &server)?
-        .check()
-        .await
-        .map_err(|e| e.to_string())?;
+    eprintln!("[updater] checking {}", update_endpoint(&server));
+    let update = build_updater(&app, &server)?.check().await.map_err(|e| {
+        eprintln!("[updater] check failed: {e}");
+        e.to_string()
+    })?;
+    match &update {
+        Some(u) => eprintln!(
+            "[updater] {} is available (running {})",
+            u.version, u.current_version
+        ),
+        None => eprintln!("[updater] up to date"),
+    }
     let info = update.as_ref().map(|u| UpdateInfo {
         version: u.version.clone(),
         notes: u.body.clone(),
