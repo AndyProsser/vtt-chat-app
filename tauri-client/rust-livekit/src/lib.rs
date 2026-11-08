@@ -1,5 +1,6 @@
 pub mod cue;
 mod error;
+pub mod link_stats;
 mod reconnect;
 pub mod sound;
 
@@ -159,6 +160,14 @@ impl LiveKitClient {
         self.microphone_muted.load(Ordering::Relaxed)
     }
 
+    /// A cheap handle for measuring link quality from another task (the client itself sits behind
+    /// a lock that must not be held across an `await`).
+    pub fn link_probe(&self) -> LinkProbe {
+        LinkProbe {
+            active: self.active.clone(),
+        }
+    }
+
     /// Leaves for good and stops the rejoin supervisor.
     pub async fn disconnect(self) -> Result<(), LiveKitError> {
         self.stopping.store(true, Ordering::Relaxed);
@@ -170,6 +179,21 @@ impl LiveKitClient {
         let _ = self.audio.stop_recording();
         self.supervisor.abort();
         Ok(())
+    }
+}
+
+/// Measures the current link quality; see [`LiveKitClient::link_probe`].
+#[derive(Clone)]
+pub struct LinkProbe {
+    active: Arc<Mutex<Option<ActiveRoom>>>,
+}
+
+impl LinkProbe {
+    /// `None` when not in a room (or between rejoins) or nothing has been measured yet.
+    pub async fn read(&self) -> Option<link_stats::LinkStats> {
+        let room = lock(&self.active).as_ref().map(|a| a.room.clone())?;
+        let stats = room.get_stats().await.ok()?;
+        link_stats::summarise(&stats.publisher_stats)
     }
 }
 

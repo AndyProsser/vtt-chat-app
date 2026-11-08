@@ -2,6 +2,7 @@ import { GearIcon, SpeakerLoudIcon, SpeakerOffIcon } from '@radix-ui/react-icons
 
 import { useVoice } from '../hooks/useVoice.js';
 import { panelOpen } from '../lib/tauriBridge.js';
+import { ConnectionMenu } from './ConnectionMenu.js';
 import { GroupsMenu } from './GroupsMenu.js';
 import { RecordingIndicator } from './RecordingIndicator.js';
 
@@ -13,6 +14,7 @@ export function TopBar({ dm }: { dm: boolean }) {
       <RecordingIndicator dm={dm} />
       <span className="vtt-spacer" />
       {dm && <GroupsMenu />}
+      {dm && <ConnectionMenu />}
       <button
         type="button"
         className="vtt-pill"

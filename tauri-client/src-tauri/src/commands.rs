@@ -71,7 +71,9 @@ pub async fn connect_voice(app: &AppHandle, url: &str, token: &str) -> Result<()
         .await
         .map_err(|err| err.to_string())?;
 
+    let probe = client.link_probe();
     *app.state::<SharedClient>().lock().unwrap() = Some(client);
+    start_stats_reporter(app, probe);
     // A new room starts with the player's current mute and the consent gate applied, and the
     // server's roster learns they are in voice.
     let effective = app.state::<MicGate>().effective();
@@ -174,6 +176,35 @@ pub fn chat_send(
             None => rust_sync::chat_frame(campaign_id, &text),
         })
     })
+}
+
+/// How often a player's link quality is reported to the server (SYNC-PROTOCOL.md, stats tier).
+const STATS_INTERVAL: std::time::Duration = std::time::Duration::from_secs(5);
+
+/// Which reporter task is current; a newer one makes an older one stop.
+static STATS_GENERATION: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+
+/// Reports link quality every [`STATS_INTERVAL`] while this voice session lasts. It exists only in
+/// voice (nothing runs when disconnected), and ends when the client goes away or a newer reporter
+/// starts after a reconnect.
+fn start_stats_reporter(app: &AppHandle, probe: rust_livekit::LinkProbe) {
+    use std::sync::atomic::Ordering;
+    let generation = STATS_GENERATION.fetch_add(1, Ordering::SeqCst) + 1;
+    let app = app.clone();
+    tauri::async_runtime::spawn(async move {
+        let mut tick = tokio::time::interval(STATS_INTERVAL);
+        loop {
+            tick.tick().await;
+            if STATS_GENERATION.load(Ordering::SeqCst) != generation
+                || app.state::<SharedClient>().lock().unwrap().is_none()
+            {
+                return;
+            }
+            if let Some(stats) = probe.read().await {
+                crate::session::send_link_stats(&app, stats);
+            }
+        }
+    });
 }
 
 /// The tray's "Connect / disconnect voice": joins if not in voice, leaves if in it. Runs on the async

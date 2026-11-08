@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 
+import { useStatsStore } from '../lib/statsStore.js';
 import { useTableStore } from '../lib/tableStore.js';
 import { onSyncEvent, panelHydrate } from '../lib/tauriBridge.js';
 
@@ -13,11 +14,18 @@ export function useTableFeed(): void {
   const hydrate = useTableStore((s) => s.hydrate);
   useEffect(() => {
     let cancelled = false;
+    const stats = useStatsStore.getState();
     const unlisten = onSyncEvent((event) => {
-      if (!cancelled) apply(event);
+      if (cancelled) return;
+      apply(event);
+      stats.apply(event);
     });
     void panelHydrate().then(
-      (h) => !cancelled && hydrate(h),
+      (h) => {
+        if (cancelled) return;
+        hydrate(h);
+        stats.hydrate(h);
+      },
       (e: unknown) => console.error('[panels-ui] hydrate failed', e),
     );
     return () => {

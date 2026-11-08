@@ -248,6 +248,26 @@ async fn stop_active(state: &SessionState) {
 
 /// Tells the server whether this player is in voice and muted (their own mute, not the gate), so
 /// the roster is right. A no-op when signed out.
+/// Sends this player's link quality to the server (the DM's connection screen reads it). A no-op
+/// when no session is live.
+pub fn send_link_stats(app: &AppHandle, stats: rust_livekit::link_stats::LinkStats) {
+    let state = app.state::<SessionState>();
+    let guard = state.0.lock().unwrap();
+    let Some(active) = guard.as_ref() else {
+        return;
+    };
+    let frame = rust_sync::stats_frame(
+        &active.campaign_id,
+        stats.rtt_ms,
+        stats.jitter_ms,
+        stats.packet_loss_pct,
+    );
+    let slot = active.slot.lock().unwrap();
+    if let Some(client) = slot.as_ref() {
+        client.send(frame);
+    }
+}
+
 pub fn announce_voice_state(app: &AppHandle, in_voice: Option<bool>) {
     let state = app.state::<SessionState>();
     let guard = state.0.lock().unwrap();

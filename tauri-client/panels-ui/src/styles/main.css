@@ -430,3 +430,19 @@ body,
   border-radius: var(--vtt-radius-control);
   padding: 8px;
 }
+.vtt-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--vtt-edge);
+}
+.vtt-dot-good {
+  background: #2eb86c;
+}
+.vtt-dot-fair {
+  background: #e0a12b;
+}
+.vtt-dot-poor {
+  background: #e53935;
+}
