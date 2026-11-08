@@ -8,6 +8,7 @@ import { createRoot } from 'react-dom/client';
 
 import { AppRoot } from './components/AppRoot.js';
 import { applyStoredTheme } from './lib/themeStore.js';
+import { windowReady } from './lib/tauriBridge.js';
 import { themeCss } from './lib/themes.js';
 
 const container = document.getElementById('root');
@@ -19,3 +20,10 @@ document.head.append(style);
 applyStoredTheme();
 
 createRoot(container).render(<AppRoot />);
+
+// Windows start hidden; show this one after the first frame has actually been painted.
+requestAnimationFrame(() => {
+  requestAnimationFrame(() => {
+    void windowReady().catch((e: unknown) => console.error('[panels-ui] window_ready failed', e));
+  });
+});

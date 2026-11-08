@@ -223,7 +223,7 @@ body,
   width: 100%;
   box-sizing: border-box;
   padding: 6px 12px;
-  border-radius: 999px;
+  border-radius: var(--vtt-radius-control);
   border: 1px solid var(--vtt-edge);
   background: var(--vtt-chat);
   color: var(--vtt-ink);

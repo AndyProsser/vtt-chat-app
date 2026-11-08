@@ -13,6 +13,7 @@ commands.allow = [
   "sync_command",
   "chat_send",
   "panel_open",
+  "window_ready",
   "account_status",
   "account_sign_in",
   "account_select_campaign",

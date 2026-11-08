@@ -90,6 +90,9 @@ export const campaignApi = <T = unknown>(method: Method, path: string, body?: un
 /** An image the server holds, as a `data:` URL (`campaign_file`). */
 export const campaignFile = (path: string) => invoke<string>('campaign_file', { path });
 
+/** Tells Rust this window has painted, so it can be shown (windows start hidden to avoid a blank flash). */
+export const windowReady = () => invoke<void>('window_ready');
+
 export const panelOpen = (name: string) => invoke<void>('panel_open', { name });
 
 export function onSyncEvent(handler: (event: SyncEvent) => void): Promise<UnlistenFn> {

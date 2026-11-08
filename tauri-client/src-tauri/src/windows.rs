@@ -45,12 +45,42 @@ pub fn open_main(app: &AppHandle) -> Result<(), String> {
     let mut builder =
         WebviewWindowBuilder::new(app, MAIN_LABEL, WebviewUrl::App("index.html#main".into()))
             .title("VTT Chat")
+            .visible(false)
             .inner_size(460.0, 640.0)
             .min_inner_size(380.0, 420.0);
     if let Some(icon) = app.default_window_icon() {
         builder = builder.icon(icon.clone()).map_err(|e| e.to_string())?;
     }
-    builder.build().map_err(|e| e.to_string())?;
+    let window = builder.build().map_err(|e| e.to_string())?;
+    show_when_ready(window);
+    Ok(())
+}
+
+/// How long a new window may stay hidden waiting for its page to say it has painted. If the page
+/// never reports (a script error), the window appears anyway rather than staying invisible.
+const READY_FALLBACK: std::time::Duration = std::time::Duration::from_millis(2500);
+
+/// Windows are created hidden and shown by [`window_ready`] once the page has painted its first
+/// frame, so nobody sees the blank webview that WebKit shows while it loads. The fallback timer
+/// guarantees a window always appears.
+fn show_when_ready(window: tauri::WebviewWindow) {
+    tauri::async_runtime::spawn(async move {
+        tokio::time::sleep(READY_FALLBACK).await;
+        if !window.is_visible().unwrap_or(true) {
+            eprintln!(
+                "[src-tauri] {} did not report ready in time; showing it anyway",
+                window.label()
+            );
+            let _ = window.show();
+        }
+    });
+}
+
+/// Called by a page after its first paint: shows (and focuses) the calling window.
+#[tauri::command]
+pub fn window_ready(window: tauri::WebviewWindow) -> Result<(), String> {
+    window.show().map_err(|e| e.to_string())?;
+    let _ = window.set_focus();
     Ok(())
 }
 
@@ -81,11 +111,13 @@ pub fn open(app: &AppHandle, name: &str) -> Result<(), String> {
     if let Some(icon) = app.default_window_icon() {
         builder = builder.icon(icon.clone()).map_err(|e| e.to_string())?;
     }
-    builder
+    let window = builder
+        .visible(false)
         .inner_size(panel.size.0, panel.size.1)
         .min_inner_size(260.0, 200.0)
         .build()
         .map_err(|e| e.to_string())?;
+    show_when_ready(window);
     Ok(())
 }
 
