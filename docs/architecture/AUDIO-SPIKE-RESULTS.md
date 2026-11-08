@@ -66,6 +66,20 @@ Hardware: 8-core desktop CPU, 31 GB RAM, GTX 1080 (not used for Whisper in these
 - **Windows work.** Segments land within the 0.4 s of padding of the true start (`[0:00:04]`, `[0:01:04]` … for speech at 5, 65, … s), the text is right every time, and no text is invented.
 - **Not yet judged:** `small` vs `large-v3-turbo` _accuracy_ (the only speech available is one repeated 11 s sample, which both get right), and `medium`. Needs a real multi-speaker recording with a reference transcript.
 
+## Finding 6 — a real microphone level meter (2026-11-08, main-window plan Task 10)
+
+`livekit` 0.8.2 does expose `LocalParticipant::audio_level()`, but the value is the **server's** figure,
+refreshed only when the server sends an active-speaker update (about twice a second, and only while
+someone is speaking). It is no smoother than the speaking flag we already have. A true local level
+needs a tap on the capture stream, and capture goes through LiveKit's platform audio device module,
+which gives no access to samples.
+
+**Decision:** the main window's vertical meter shows 0 or full, driven by the local participant's
+speaking flag (and dimmed when muted). It is honest about what we know. A real meter is future work:
+either our own cpal capture tap (a second open of the device, which conflicts with "mute releases the
+device"), or a LiveKit API that exposes local levels. `levelToBars` already takes a 0..1 level so the
+UI will not change.
+
 ## Open
 
 1. **Per-player gain and the cue mixer vs. the ADM.** Options: (a) accept ADM playout and do gain by other means; (b) take over playout ourselves (`NativeAudioStream` per remote → own mixer → one output stream) and feed WebRTC's audio-processing module the mixed signal as the echo reference (`libwebrtc::native::apm`, which exists). (b) keeps full control but is the harder path and is only worth it if acoustic tests show (a) can't meet the gain requirement.

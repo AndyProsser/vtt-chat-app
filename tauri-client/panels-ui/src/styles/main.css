@@ -265,3 +265,22 @@ body,
 .vtt-palette-on {
   background: color-mix(in srgb, var(--vtt-gold) 20%, transparent);
 }
+.vtt-meter {
+  display: inline-flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 2px;
+  width: 6px;
+  height: 28px;
+}
+.vtt-meter i {
+  flex: 1;
+  border-radius: 2px;
+  background: var(--vtt-edge);
+}
+.vtt-meter .vtt-meter-on {
+  background: var(--vtt-glow);
+}
+.vtt-meter[data-dim='true'] {
+  opacity: 0.4;
+}

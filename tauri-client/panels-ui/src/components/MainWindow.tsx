@@ -5,7 +5,7 @@ import { isDm } from '../lib/tableModel.js';
 import { useTableStore } from '../lib/tableStore.js';
 import { AvatarRail } from './AvatarRail.js';
 import { ChatView } from './ChatView.js';
-import { Composer } from './Composer.js';
+import { BottomBar } from './BottomBar.js';
 import { TopBar } from './TopBar.js';
 
 /** The one window used during play. Remaining slots are filled by the following tasks. */
@@ -22,9 +22,7 @@ export function MainWindow() {
         <AvatarRail />
         <ChatView selfId={status?.userId ?? null} />
       </div>
-      <footer className="vtt-bottom">
-        <Composer selfId={status?.userId ?? null} role={dm ? 'dm' : 'player'} />
-      </footer>
+      <BottomBar selfId={status?.userId ?? null} role={dm ? 'dm' : 'player'} />
     </div>
   );
 }
