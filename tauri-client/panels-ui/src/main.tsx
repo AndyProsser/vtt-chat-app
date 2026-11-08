@@ -2,6 +2,7 @@ import '@radix-ui/themes/styles.css';
 import '@fontsource/cinzel/600.css';
 import './styles/tokens.css';
 import './styles/theme.css';
+import './styles/main.css';
 
 import { createRoot } from 'react-dom/client';
 

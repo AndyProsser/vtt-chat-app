@@ -1,0 +1,79 @@
+/* The main window. Colours come from the active theme (`--vtt-*`, see lib/themes.ts); shape from tokens.css. */
+.vtt-main {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: var(--vtt-bg);
+  color: var(--vtt-ink);
+}
+.vtt-top,
+.vtt-bottom {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: var(--vtt-bar);
+  border-color: var(--vtt-edge);
+  border-style: solid;
+  border-width: 0;
+}
+.vtt-top {
+  border-bottom-width: 2px;
+}
+.vtt-bottom {
+  border-top-width: 2px;
+}
+.vtt-spacer {
+  flex: 1;
+}
+.vtt-head {
+  font-family: var(--vtt-font-head);
+  letter-spacing: 0.04em;
+  color: var(--vtt-gold);
+}
+.vtt-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 10px;
+  border: 1px solid var(--vtt-gold);
+  border-radius: var(--vtt-radius-control);
+  background: transparent;
+  color: var(--vtt-gold);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.vtt-pill:hover {
+  background: color-mix(in srgb, var(--vtt-gold) 15%, transparent);
+}
+.vtt-pill[disabled] {
+  opacity: 0.5;
+  cursor: default;
+}
+.vtt-pill-square {
+  border-radius: var(--vtt-radius-pill-square);
+}
+.vtt-rec {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+.vtt-rec-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #e53935;
+}
+.vtt-rec-paused .vtt-rec-dot {
+  background: transparent;
+  border: 2px solid #e53935;
+  box-sizing: border-box;
+}
+.vtt-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
