@@ -1,8 +1,18 @@
 /* The main window. Colours come from the active theme (`--vtt-*`, see lib/themes.ts); shape from tokens.css. */
+/* The window never scrolls as a page: the bars stay put and only the chat/rail scroll inside. */
+html,
+body,
+#root,
+.radix-themes {
+  height: 100%;
+  margin: 0;
+  min-height: 0;
+  overflow: hidden;
+}
 .vtt-main {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: 100%;
   background: var(--vtt-bg);
   color: var(--vtt-ink);
 }
@@ -76,4 +86,9 @@
   display: flex;
   flex: 1;
   min-height: 0;
+  overflow: hidden;
+}
+.vtt-top,
+.vtt-bottom {
+  flex: none;
 }

@@ -328,15 +328,20 @@ describe('Hub: subscriptions, presence and the snapshot', () => {
   it('shows the active character, not just the account name', async () => {
     await t.campaigns.addCharacter(t.player, t.campaignId, {
       name: 'Aria',
-      className: null,
-      race: null,
-      level: null,
+      className: 'Ranger',
+      race: 'Wood elf',
+      level: 5,
       avatarUrl: null,
       sourceUrl: null,
     });
     const dm = await connect(t, 'd1', 'dm');
     const member = dm.last('snapshot')?.d.members.find((m: any) => m.userId === t.player.id);
-    expect(member.character).toMatchObject({ name: 'Aria' });
+    expect(member.character).toMatchObject({
+      name: 'Aria',
+      className: 'Ranger',
+      race: 'Wood elf',
+      level: 5,
+    });
   });
 });
 

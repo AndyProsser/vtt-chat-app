@@ -762,7 +762,15 @@ export class Hub {
         userId: user.id,
         displayName: user.displayName,
         role: membership.role,
-        character: character ? { name: character.name, avatarUrl: character.avatarUrl } : null,
+        character: character
+          ? {
+              name: character.name,
+              avatarUrl: character.avatarUrl,
+              className: character.className,
+              race: character.race,
+              level: character.level,
+            }
+          : null,
         online: presence?.online ?? false,
         inVoice: presence?.inVoice ?? false,
         muted: presence?.muted ?? true,
