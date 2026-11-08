@@ -76,6 +76,10 @@ Findings from the previous design that still hold, because they are about the OS
 - Global shortcuts silently no-op on Wayland (`tao`'s shortcut thread is X11-only); the XDG GlobalShortcuts portal is the only real route and is unreliable on GNOME. The app should log this at startup and say so in the UI.
 - GNOME needs an AppIndicator extension to show a tray icon at all; the tray client must degrade gracefully and explain itself.
 
+## Known Issues
+
+- **Linux, NVIDIA GPU, Wayland: the app dies on the first window** with `Gdk-Message: Error 71 (Protocol error) dispatching to Wayland display`. This is WebKitGTK's dmabuf renderer. The client sets `WEBKIT_DISABLE_DMABUF_RENDERER=1` itself at startup (`src-tauri/src/platform.rs`) unless you already set it. If a window still crashes on your machine, try `GDK_BACKEND=x11`.
+
 ## Code Style
 
 - TypeScript: ESLint + Prettier + EditorConfig (`npm run lint`, `npm run format` at the root). LF line endings. `npm test` runs Vitest for any workspace that has tests.

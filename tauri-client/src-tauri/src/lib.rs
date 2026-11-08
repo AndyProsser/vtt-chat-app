@@ -5,6 +5,7 @@ mod commands;
 mod consts;
 mod hotkeys;
 mod mic_gate;
+mod platform;
 mod recording;
 mod session;
 mod shell;
@@ -16,6 +17,7 @@ mod windows;
 /// session as app-level state, registers the global shortcuts and installs the tray icon. Local
 /// panel windows arrive next (ROADMAP Stage 4); audio and the consent flow never depend on them.
 pub fn run() {
+    platform::apply_platform_fixes();
     tauri::Builder::default()
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_window_state::Builder::default().build())
