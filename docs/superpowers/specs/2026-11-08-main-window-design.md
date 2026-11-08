@@ -79,7 +79,7 @@ done _occasionally_ opens a separate screen from the settings cog or a chat chip
   adding one token block plus a contrast check, no component changes. Everything else — shape,
   spacing, the bundled fantasy heading font, d20/scroll icons in place of emoji, subtle textures —
   is shared, which is what keeps 3–5 themes cheap. **(my call: fonts and textures are not per-theme.)**
-- **Launch set (decided: 3–5, Dragonfire default):** **Dragonfire** (charcoal + ember + gold, matches
+- **Launch set (decided: 3–5, Dragonfire default):** **Dragonfire** (charcoal-black + red, matches
   the logo; light variant parchment), **Arcane night** (indigo + gold), **Dungeon stone** (muted
   grey-green), plus two **(my call)**: **Verdant** (forest/druid green) and **Frostbound** (cold
   blue-silver). More can follow.
