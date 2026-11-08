@@ -39,3 +39,6 @@ core.[0-9]*
 # Rust
 Cargo.lock
 !tauri-client/**/Cargo.lock
+
+# Dev seed accounts and generated passwords (never commit)
+.dev/

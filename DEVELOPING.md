@@ -63,6 +63,23 @@ It connects two clients to one room under two identities against a real LiveKit 
 
 `npm run dev` will be rewritten to orchestrate this in Stage 1/3.
 
+## A test table: LiveKit, a seeded campaign and mock players
+
+To see the app with other people at the table (roster, speaking glow, chat, loot, the DM connection screen) without gathering anyone:
+
+```bash
+docker compose -f infra/dev/compose.yml up -d --wait          # Postgres + Valkey (throwaway)
+livekit-server --dev                                           # LiveKit on ws://127.0.0.1:7880 (key devkey / secret)
+DATABASE_URL=postgres://postgres:scratch@127.0.0.1:55432/vtt VALKEY_URL=redis://127.0.0.1:56379 \
+  node backend/dist/index.js                                   # the backend on :3000 (npm run build -w @vtt-chat-app/backend first)
+npm run dev:seed                                               # a DM account, four players with characters, loot, a handout, a session
+npm run dev:mock                                               # the four players come online, join voice, talk and chat (Ctrl+C to stop)
+```
+
+Then run the app (`cd tauri-client && cargo run -p src-tauri`) and sign in to `http://localhost:3000` as **`dm@vtt.test`**. Every account's password is generated into `.dev/accounts.json` (git-ignored, mode 0600) and never printed. `livekit-server` is a static binary: put it in `~/.local/bin` (releases at github.com/livekit/livekit). Resetting the database (`docker compose … down`) is fine: `dev:seed` signs in or re-creates everything with the same passwords.
+
+The mock players are real LiveKit participants publishing synthetic "speech", so the speaking glow and the link-quality screen are driven by the real paths. They do not exercise Egress/recording (no Egress server in this setup).
+
 ## Shell Behaviour: Hotkeys **(carried over)**
 
 Findings from the previous design that still hold, because they are about the OS, not the overlay:
