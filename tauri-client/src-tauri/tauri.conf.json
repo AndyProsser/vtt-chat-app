@@ -26,7 +26,12 @@
     }
   },
   "bundle": {
-    "active": false,
-    "createUpdaterArtifacts": true
+    "active": true,
+    "createUpdaterArtifacts": true,
+    "icon": [
+      "icons/icon-256.png",
+      "icons/icon.ico"
+    ],
+    "targets": "all"
   }
 }

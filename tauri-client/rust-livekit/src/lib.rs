@@ -3,6 +3,7 @@ mod error;
 pub mod link_stats;
 mod reconnect;
 pub mod sound;
+pub mod voice_fx;
 
 pub use error::LiveKitError;
 pub use reconnect::{gap_indicates_resume, Backoff};
