@@ -1,5 +1,5 @@
 import { Select, Slider } from '@radix-ui/themes';
-import { Check, Plus, X } from 'lucide-react';
+import { Check, Plus, Repeat, Shuffle, X } from 'lucide-react';
 import { useState } from 'react';
 
 import {
@@ -10,6 +10,7 @@ import {
   validateScene,
   type SceneDraft,
 } from '../../lib/sceneDraft.js';
+import { soundsFor } from '../../lib/sceneSounds.js';
 import { accountErrorMessage, campaignApi } from '../../lib/tauriBridge.js';
 import type { SoundScene } from '../../types/index.js';
 import { ToolButton } from '../ToolButton.js';
@@ -27,9 +28,14 @@ export function SceneEditor({
   scene: SoundScene | undefined;
   onDone: (saved: boolean) => void;
 }) {
-  const first = sounds[0]?.id ?? '';
+  const firstEffect = soundsFor('random', sounds)[0]?.id ?? '';
+  const firstLoop = soundsFor('loop', sounds)[0]?.id ?? '';
   const [draft, setDraft] = useState<SceneDraft>(() =>
-    scene ? draftOf(scene) : blankScene(first),
+    scene
+      ? draftOf(scene)
+      : firstLoop
+        ? blankScene(firstLoop)
+        : { name: '', layers: [newLayer(firstEffect)] },
   );
   const [error, setError] = useState<string>();
   const [busy, setBusy] = useState(false);
@@ -39,6 +45,24 @@ export function SceneEditor({
       ...d,
       layers: d.layers.map((l, j) => (j === i ? { ...l, ...change } : l)),
     }));
+
+  /** Switching a layer's mode changes which sounds fit: keep the sound if it still fits, else take the first that does. */
+  function switchMode(i: number, mode: 'loop' | 'random') {
+    const layer = draft.layers[i];
+    if (!layer) return;
+    const fits = soundsFor(mode, sounds);
+    const soundId = fits.some((s) => s.id === layer.soundId) ? layer.soundId : (fits[0]?.id ?? '');
+    setLayer(
+      i,
+      mode === 'loop'
+        ? { mode, soundId }
+        : {
+            mode,
+            soundId,
+            ...(layer.minIntervalSec === null ? { minIntervalSec: 8, maxIntervalSec: 20 } : {}),
+          },
+    );
+  }
 
   async function save() {
     const problem = validateScene(draft);
@@ -69,6 +93,12 @@ export function SceneEditor({
         onChange={(e) => setDraft({ ...draft, name: e.target.value })}
       />
       <span className="vtt-set-sub">Layers</span>
+      {firstLoop === '' && sounds.length > 0 && (
+        <span className="vtt-muted">
+          You have no ambience or music sounds, so loops are not available yet. Random layers use
+          your effects.
+        </span>
+      )}
       {sounds.length === 0 && (
         <span className="vtt-muted">Your library has no sounds yet. Import some first.</span>
       )}
@@ -76,32 +106,30 @@ export function SceneEditor({
         <div key={l.id ?? i} className="vtt-layer">
           <div className="vtt-layer-top">
             <Select.Root value={l.soundId} onValueChange={(v) => setLayer(i, { soundId: v })}>
-              <Select.Trigger aria-label="Sound" style={{ flex: 1, minWidth: 0 }} />
+              <Select.Trigger
+                aria-label="Sound"
+                placeholder={l.mode === 'loop' ? 'Pick ambience or music' : 'Pick an effect'}
+                style={{ flex: 1, minWidth: 0 }}
+              />
               <Select.Content>
-                {sounds.map((s) => (
+                {soundsFor(l.mode, sounds).map((s) => (
                   <Select.Item key={s.id} value={s.id}>
                     {s.name}
                   </Select.Item>
                 ))}
               </Select.Content>
             </Select.Root>
-            <Select.Root
-              value={l.mode}
-              onValueChange={(v) =>
-                setLayer(
-                  i,
-                  v === 'loop'
-                    ? { mode: 'loop' }
-                    : { mode: 'random', ...(l.minIntervalSec === null ? newLayer(l.soundId) : {}) },
-                )
+            <ToolButton
+              label={
+                l.mode === 'loop'
+                  ? 'Plays all the time. Click for random.'
+                  : 'Plays now and then. Click for a loop.'
               }
+              pressed={l.mode === 'loop'}
+              onClick={() => switchMode(i, l.mode === 'loop' ? 'random' : 'loop')}
             >
-              <Select.Trigger aria-label="How it plays" />
-              <Select.Content>
-                <Select.Item value="loop">Loops</Select.Item>
-                <Select.Item value="random">Random</Select.Item>
-              </Select.Content>
-            </Select.Root>
+              {l.mode === 'loop' ? <Repeat size={14} /> : <Shuffle size={14} />}
+            </ToolButton>
             <ToolButton
               label="Remove this layer"
               danger
@@ -149,7 +177,7 @@ export function SceneEditor({
           label="Add a layer"
           text="Layer"
           disabled={sounds.length === 0}
-          onClick={() => setDraft({ ...draft, layers: [...draft.layers, newLayer(first)] })}
+          onClick={() => setDraft({ ...draft, layers: [...draft.layers, newLayer(firstEffect)] })}
         >
           <Plus size={14} />
         </ToolButton>

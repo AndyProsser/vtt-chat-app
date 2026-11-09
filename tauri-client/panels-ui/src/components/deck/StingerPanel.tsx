@@ -22,7 +22,7 @@ export function StingerPanel({
   return (
     <div className="vtt-deck-chips">
       {pinned.map((s) => {
-        const Icon = soundIcon(s.label);
+        const Icon = soundIcon(s.label, s.board);
         return (
           <ToolButton
             key={s.soundId}

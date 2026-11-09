@@ -90,7 +90,7 @@ function Favourites({ sounds, pins, onTogglePin }: Props) {
     .filter((s) => !pins.includes(s.soundId))
     .slice(0, 5);
   const row = (s: FlatSound, add: boolean) => {
-    const Icon = soundIcon(s.label);
+    const Icon = soundIcon(s.label, s.board);
     return (
       <div key={s.soundId} className="vtt-set-item">
         <span className="vtt-set-ic">

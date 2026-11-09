@@ -71,7 +71,9 @@ export function SoundDrawer() {
             >
               <Icon size={15} />
             </ToolButton>
-            {count !== undefined && count > 0 && <span className="vtt-count">{count}</span>}
+            {!panels[name] && count !== undefined && count > 0 && (
+              <span className="vtt-count">{count}</span>
+            )}
           </span>
         ))}
         <span className="vtt-deck-sep" aria-hidden />

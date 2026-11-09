@@ -119,6 +119,7 @@ export interface SoundBoard {
 export interface SoundRecord {
   id: string;
   name: string;
+  category?: string;
 }
 export type SoundScene = import('../lib/sceneDraft.js').SceneRecord;
 export interface SoundLibrary {

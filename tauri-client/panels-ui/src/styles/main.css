@@ -1311,3 +1311,7 @@ body,
   align-items: center;
   gap: 6px;
 }
+
+.vtt-hover-card > :first-child {
+  padding-right: 22px;
+}

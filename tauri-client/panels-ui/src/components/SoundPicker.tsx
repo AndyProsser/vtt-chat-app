@@ -49,7 +49,7 @@ export function SoundPicker({
           <ul className="vtt-picker-list">
             {hits.length === 0 && <li className="vtt-muted">Nothing matches.</li>}
             {hits.map((s) => {
-              const Icon = soundIcon(s.label);
+              const Icon = soundIcon(s.label, s.board);
               const isPinned = pinned.includes(s.soundId);
               return (
                 <li key={s.soundId} className="vtt-picker-row">
