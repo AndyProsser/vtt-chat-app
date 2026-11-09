@@ -42,7 +42,7 @@ export const RailAvatar = memo(function RailAvatar({
           )}
         </span>
       </HoverCard.Trigger>
-      <HoverCard.Content size="1" side="right" maxWidth="220px" className="vtt-card">
+      <HoverCard.Content size="1" side="right" maxWidth="220px" className="vtt-hover-card">
         <Text as="div" weight="bold" size="2" className="vtt-head">
           {card.title}
         </Text>
