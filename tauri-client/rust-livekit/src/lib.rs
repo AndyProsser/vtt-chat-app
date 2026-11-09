@@ -1,5 +1,6 @@
 pub mod cue;
 pub mod devices;
+pub mod engine;
 mod error;
 pub mod link_stats;
 mod reconnect;
