@@ -2,7 +2,6 @@ import { Copy, Crown, LogOut, UserPlus } from 'lucide-react';
 import { useState } from 'react';
 
 import { useAccount } from '../../hooks/useAccount.js';
-import { useTableFeed } from '../../hooks/useTableFeed.js';
 import { inviteLink, otherPlayers } from '../../lib/invites.js';
 import { isDm } from '../../lib/tableModel.js';
 import { useTableStore } from '../../lib/tableStore.js';
@@ -15,7 +14,6 @@ import { ToolButton } from '../ToolButton.js';
  * System-wide administration is not here: that is the `vtt-admin` command line.
  */
 export function CampaignSection() {
-  useTableFeed();
   const account = useAccount();
   const { status } = account;
   const members = useTableStore((s) => s.members);

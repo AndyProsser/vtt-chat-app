@@ -1,5 +1,11 @@
 import { getVersion } from '@tauri-apps/api/app';
+import { Button, Callout, Flex, Switch, Text } from '@radix-ui/themes';
 import { useEffect, useState } from 'react';
+
+import { useAccount } from '../../hooks/useAccount.js';
+import { isDm } from '../../lib/tableModel.js';
+import { useTableStore } from '../../lib/tableStore.js';
+import { SettingRow } from './SettingRow.js';
 
 import { readMonitorPref, writeMonitorPref } from '../../lib/monitorPref.js';
 import { useUpdate } from '../../hooks/useUpdate.js';
@@ -19,6 +25,9 @@ export function GeneralSection() {
   const update = useUpdate(false);
   const [monitor, setMonitor] = useState(readMonitorPref);
   const [version, setVersion] = useState<string>();
+  const { status } = useAccount();
+  const members = useTableStore((st) => st.members);
+  const dm = isDm(members, status?.userId ?? null);
   const [checked, setChecked] = useState(false);
   useEffect(() => {
     void getVersion().then(setVersion, () => undefined);
@@ -27,14 +36,13 @@ export function GeneralSection() {
     void autostartEnabled().then(setEnabled, (e: unknown) => setError(accountErrorMessage(e)));
   }, []);
   return (
-    <div className="vtt-inventory" style={{ paddingTop: 12 }}>
-      <label className="vtt-volume">
-        <input
-          type="checkbox"
+    <Flex direction="column" px="4" pb="4">
+      <SettingRow label="Start with my computer" hint="Opens to the tray, window hidden">
+        <Switch
+          aria-label="Start with my computer"
           disabled={enabled === undefined}
           checked={enabled ?? false}
-          onChange={(e) => {
-            const next = e.target.checked;
+          onCheckedChange={(next) => {
             setError(undefined);
             autostartSet(next).then(
               () => setEnabled(next),
@@ -42,53 +50,51 @@ export function GeneralSection() {
             );
           }}
         />
-        Start VTT Chat when I log in (to the tray, window hidden)
-      </label>
-      <label
-        className="vtt-volume"
-        title="DM only: everyone else already hears effects through the call"
-      >
-        <input
-          type="checkbox"
-          checked={monitor}
-          onChange={(e) => {
-            setMonitor(e.target.checked);
-            writeMonitorPref(e.target.checked);
-            void soundboardMonitorSet(e.target.checked).catch(() => undefined);
-          }}
-        />
-        DM: hear sound effects on my own speakers too (turn off if you use speakers)
-      </label>
-      <div className="vtt-drawer-row">
-        <span className="vtt-muted">VTT Chat {version ?? ''}</span>
-        <button
-          type="button"
-          className="vtt-pill"
-          disabled={update.busy !== undefined}
-          onClick={() => void update.check(true).then(() => setChecked(true))}
+      </SettingRow>
+      {dm && (
+        <SettingRow
+          label="Hear sound effects myself"
+          hint="Everyone else hears them through the call. Turn off if you use speakers."
         >
-          {update.busy === 'checking' ? 'Checking…' : 'Check for updates'}
-        </button>
-        {update.available && (
-          <button type="button" className="vtt-pill" onClick={() => void update.install()}>
-            Restart to update
-          </button>
-        )}
-      </div>
-      {update.available && <span>{updateMessage(update.available)}</span>}
+          <Switch
+            aria-label="Hear sound effects on my own speakers"
+            checked={monitor}
+            onCheckedChange={(next) => {
+              setMonitor(next);
+              writeMonitorPref(next);
+              void soundboardMonitorSet(next).catch(() => undefined);
+            }}
+          />
+        </SettingRow>
+      )}
+      <SettingRow label={`VTT Chat ${version ?? ''}`.trim()}>
+        <Flex gap="2">
+          <Button
+            size="1"
+            variant="soft"
+            disabled={update.busy !== undefined}
+            onClick={() => void update.check(true).then(() => setChecked(true))}
+          >
+            {update.busy === 'checking' ? 'Checking…' : 'Check for updates'}
+          </Button>
+          {update.available && (
+            <Button size="1" onClick={() => void update.install()}>
+              Restart to update
+            </Button>
+          )}
+        </Flex>
+      </SettingRow>
+      {update.available && <Text size="2">{updateMessage(update.available)}</Text>}
       {checked && !update.available && !update.error && (
-        <span className="vtt-muted">You are up to date.</span>
+        <Text size="1" color="gray">
+          You are up to date.
+        </Text>
       )}
-      {update.error && (
-        <div className="vtt-composer-error" role="alert" style={{ position: 'static' }}>
-          {update.error}
-        </div>
+      {(update.error ?? error) && (
+        <Callout.Root color="red" size="1" role="alert">
+          <Callout.Text>{update.error ?? error}</Callout.Text>
+        </Callout.Root>
       )}
-      {error && (
-        <div className="vtt-composer-error" role="alert" style={{ position: 'static' }}>
-          {error}
-        </div>
-      )}
-    </div>
+    </Flex>
   );
 }

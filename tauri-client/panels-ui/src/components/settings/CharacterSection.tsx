@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react';
 
 import { useAccount } from '../../hooks/useAccount.js';
 import { useCampaignQuery } from '../../hooks/useCampaignQuery.js';
-import { useTableFeed } from '../../hooks/useTableFeed.js';
 import { EMBLEMS, avatarValue, emblemOf, emblemValue } from '../../lib/avatars.js';
 import { shrinkToSquare } from '../../lib/avatarImages.js';
 import {
@@ -25,7 +24,6 @@ import { ToolButton } from '../ToolButton.js';
  * one marked as playing.
  */
 export function CharacterSection() {
-  useTableFeed();
   const { status } = useAccount();
   const members = useTableStore((s) => s.members);
   const dm = isDm(members, status?.userId ?? null);

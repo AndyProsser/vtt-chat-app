@@ -1,3 +1,4 @@
+import { Popover } from '@radix-ui/themes';
 import { AudioLines, Backpack, FileText, Settings, Volume2, VolumeX } from 'lucide-react';
 
 import { useVoice } from '../hooks/useVoice.js';
@@ -5,6 +6,7 @@ import { panelOpen } from '../lib/tauriBridge.js';
 import { CampaignSwitcher } from './CampaignSwitcher.js';
 import { GroupsMenu } from './GroupsMenu.js';
 import { RecordingIndicator } from './RecordingIndicator.js';
+import { SettingsContent } from './SettingsWindow.js';
 import { ToolButton } from './ToolButton.js';
 
 interface Props {
@@ -51,9 +53,16 @@ export function TopBar({ dm, effectsOpen, onToggleEffects }: Props) {
       >
         {voice.connected ? <Volume2 size={15} /> : <VolumeX size={15} />}
       </ToolButton>
-      <ToolButton label="Settings" onClick={() => void panelOpen('settings')}>
-        <Settings size={15} />
-      </ToolButton>
+      <Popover.Root>
+        <Popover.Trigger>
+          <ToolButton label="Settings">
+            <Settings size={15} />
+          </ToolButton>
+        </Popover.Trigger>
+        <Popover.Content size="1" align="end" className="vtt-settings-pop">
+          <SettingsContent />
+        </Popover.Content>
+      </Popover.Root>
     </header>
   );
 }

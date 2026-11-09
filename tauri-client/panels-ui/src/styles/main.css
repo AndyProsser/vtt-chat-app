@@ -1053,3 +1053,16 @@ body,
 .vtt-card-dot-offline {
   background: #7d7d85;
 }
+
+.vtt-settings-pop {
+  width: min(440px, calc(100vw - 16px));
+  max-height: min(620px, calc(100vh - 70px));
+  padding: 0;
+  overflow-y: auto;
+}
+.vtt-settings-pop .vtt-settings {
+  height: auto;
+  overflow: visible;
+  padding: 8px 4px;
+  background: transparent;
+}

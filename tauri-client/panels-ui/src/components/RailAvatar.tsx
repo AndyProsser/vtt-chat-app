@@ -81,5 +81,12 @@ function StatusDot({ member }: { member: Member }) {
     poor: 'In voice, poor connection',
     unknown: 'In voice',
   }[state];
-  return <i className={`vtt-card-dot vtt-card-dot-${state}`} role="img" aria-label={label} title={label} />;
+  return (
+    <i
+      className={`vtt-card-dot vtt-card-dot-${state}`}
+      role="img"
+      aria-label={label}
+      title={label}
+    />
+  );
 }

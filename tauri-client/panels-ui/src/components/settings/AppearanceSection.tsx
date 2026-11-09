@@ -1,8 +1,9 @@
+import { DropdownMenu, Flex } from '@radix-ui/themes';
 import { Check, ChevronDown } from 'lucide-react';
-import { DropdownMenu } from '@radix-ui/themes';
 
 import { useThemeStore } from '../../lib/themeStore.js';
 import { THEMES } from '../../lib/themes.js';
+import { SettingRow } from './SettingRow.js';
 
 /** Theme picker, a dropdown with a colour preview per theme. Light/dark is the OS's call; applies at once. */
 export function AppearanceSection() {
@@ -17,29 +18,29 @@ export function AppearanceSection() {
     </span>
   );
   return (
-    <div className="vtt-theme-pick">
-      <span className="vtt-muted">Theme</span>
-      <DropdownMenu.Root>
-        <DropdownMenu.Trigger>
-          <button type="button" className="vtt-theme-trigger" aria-label="Theme">
-            {swatches(current)}
-            {current.name}
-            <ChevronDown size={14} aria-hidden />
-          </button>
-        </DropdownMenu.Trigger>
-        <DropdownMenu.Content>
-          {THEMES.map((t) => (
-            <DropdownMenu.Item key={t.id} onSelect={() => setTheme(t.id)}>
-              <span className="vtt-theme-item">
-                {swatches(t)}
-                {t.name}
-                {t.id === themeId && <Check size={14} aria-hidden />}
-              </span>
-            </DropdownMenu.Item>
-          ))}
-        </DropdownMenu.Content>
-      </DropdownMenu.Root>
-      <span className="vtt-muted">Light or dark follows your system setting.</span>
-    </div>
+    <Flex direction="column" px="4" pt="3">
+      <SettingRow label="Theme" hint="Light or dark follows your system setting">
+        <DropdownMenu.Root>
+          <DropdownMenu.Trigger>
+            <button type="button" className="vtt-theme-trigger" aria-label="Theme">
+              {swatches(current)}
+              {current.name}
+              <ChevronDown size={14} aria-hidden />
+            </button>
+          </DropdownMenu.Trigger>
+          <DropdownMenu.Content>
+            {THEMES.map((t) => (
+              <DropdownMenu.Item key={t.id} onSelect={() => setTheme(t.id)}>
+                <span className="vtt-theme-item">
+                  {swatches(t)}
+                  {t.name}
+                  {t.id === themeId && <Check size={14} aria-hidden />}
+                </span>
+              </DropdownMenu.Item>
+            ))}
+          </DropdownMenu.Content>
+        </DropdownMenu.Root>
+      </SettingRow>
+    </Flex>
   );
 }

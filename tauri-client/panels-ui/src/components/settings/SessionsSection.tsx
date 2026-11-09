@@ -3,7 +3,6 @@ import { useState } from 'react';
 
 import { useAccount } from '../../hooks/useAccount.js';
 import { useCampaignQuery } from '../../hooks/useCampaignQuery.js';
-import { useTableFeed } from '../../hooks/useTableFeed.js';
 import {
   DEFAULT_DURATION,
   DURATION_OPTIONS,
@@ -33,7 +32,6 @@ const durationLabel = (m: number) =>
 
 /** Upcoming sessions with one-tap RSVPs; the DM schedules the next one in a single compact row. */
 export function SessionsSection() {
-  useTableFeed();
   const { status } = useAccount();
   const members = useTableStore((s) => s.members);
   const dm = isDm(members, status?.userId ?? null);

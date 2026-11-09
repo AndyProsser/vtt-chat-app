@@ -1,5 +1,4 @@
 import { useAccount } from '../../hooks/useAccount.js';
-import { useTableFeed } from '../../hooks/useTableFeed.js';
 import { isDm } from '../../lib/tableModel.js';
 import { useTableStore } from '../../lib/tableStore.js';
 import { CampaignSection } from './CampaignSection.js';
@@ -10,7 +9,6 @@ import { CharacterSection } from './CharacterSection.js';
  * the campaign tools; the character panel appears when they swap to being a player.
  */
 export function CampaignTab() {
-  useTableFeed();
   const { status } = useAccount();
   const members = useTableStore((s) => s.members);
   const dm = isDm(members, status?.userId ?? null);
