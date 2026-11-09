@@ -983,3 +983,25 @@ body,
   cursor: grab;
   touch-action: none;
 }
+
+.vtt-audio {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 16px 0;
+}
+.vtt-audio-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.vtt-audio-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  opacity: 0.8;
+}
+.vtt-audio .vtt-select {
+  max-width: 100%;
+}

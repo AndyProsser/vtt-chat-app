@@ -1,6 +1,7 @@
 import { Tabs } from '@radix-ui/themes';
 
 import { AccountSection } from './settings/AccountSection.js';
+import { AudioSection } from './settings/AudioSection.js';
 import { AppearanceSection } from './settings/AppearanceSection.js';
 import { CampaignTab } from './settings/CampaignTab.js';
 import { GeneralSection } from './settings/GeneralSection.js';
@@ -30,6 +31,7 @@ export function SettingsWindow() {
         </Tabs.Content>
         <Tabs.Content value="general">
           <AppearanceSection />
+          <AudioSection />
           <GeneralSection />
         </Tabs.Content>
       </Tabs.Root>

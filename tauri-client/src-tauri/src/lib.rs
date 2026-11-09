@@ -1,3 +1,4 @@
+mod audio_prefs;
 mod account;
 mod account_commands;
 mod autostart;
@@ -97,6 +98,8 @@ pub fn run() {
             account_commands::account_select_campaign,
             account_commands::account_add_campaign,
             account_commands::account_rename,
+            commands::audio_devices,
+            commands::audio_device_choose,
             account_commands::account_sign_out,
             account_commands::recording_control,
             account_commands::campaign_api,

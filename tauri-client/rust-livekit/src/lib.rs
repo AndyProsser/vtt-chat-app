@@ -1,4 +1,5 @@
 pub mod cue;
+pub mod devices;
 mod error;
 pub mod link_stats;
 mod reconnect;
@@ -83,6 +84,12 @@ pub struct LiveKitClient {
     supervisor: tokio::task::JoinHandle<()>,
 }
 
+/// The devices the system offers, without a call (for the settings screen when not in voice).
+pub fn list_audio_devices() -> Result<devices::DeviceList, LiveKitError> {
+    let audio = PlatformAudio::new().map_err(|err| LiveKitError::Audio(err.to_string()))?;
+    Ok(devices::list(&audio))
+}
+
 impl LiveKitClient {
     /// Joins with a fixed `url`/`token`. Rejoins reuse the same token, so this suits short
     /// sessions and tests; real use passes a provider via [`Self::connect_with_provider`].
@@ -164,6 +171,16 @@ impl LiveKitClient {
         if let Err(message) = self.voice_control().reapply() {
             eprintln!("[rust-livekit] {message}");
         }
+    }
+
+    /// The microphones and speakers the system offers.
+    pub fn audio_devices(&self) -> devices::DeviceList {
+        devices::list(&self.audio)
+    }
+
+    /// Switches to the chosen microphone and speaker (by id, from [`Self::audio_devices`]); works mid-call.
+    pub fn use_devices(&self, input: Option<&str>, output: Option<&str>) -> Result<(), String> {
+        devices::apply(&self.audio, input, output)
     }
 
     /// A handle for changing the character voice from another task (the client sits behind a lock

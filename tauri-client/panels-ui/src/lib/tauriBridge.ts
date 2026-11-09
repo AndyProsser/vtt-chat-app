@@ -155,3 +155,17 @@ export function accountErrorMessage(error: unknown): string {
   }
   return typeof error === 'string' ? error : 'Something went wrong.';
 }
+
+export interface AudioDeviceList {
+  inputs: { id: string; name: string }[];
+  outputs: { id: string; name: string }[];
+  chosenInput: string | null;
+  chosenOutput: string | null;
+}
+
+/** The microphones and speakers the system offers, and which ones are chosen. */
+export const audioDevices = () => invoke<AudioDeviceList>('audio_devices');
+
+/** Picks the microphone (`input`) or speaker (`output`); `null` is the system default. */
+export const audioDeviceChoose = (kind: 'input' | 'output', id: string | null) =>
+  invoke<void>('audio_device_choose', { kind, id });

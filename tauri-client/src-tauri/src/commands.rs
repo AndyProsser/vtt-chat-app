@@ -71,6 +71,13 @@ pub async fn connect_voice(app: &AppHandle, url: &str, token: &str) -> Result<()
         .await
         .map_err(|err| err.to_string())?;
 
+    // The microphone and speaker the player chose last time (a missing device keeps the default).
+    if let Some(dir) = crate::account::data_dir(app) {
+        let prefs = crate::audio_prefs::AudioPrefs::load(&dir);
+        if let Err(message) = client.use_devices(prefs.input.as_deref(), prefs.output.as_deref()) {
+            eprintln!("[src-tauri] {message}");
+        }
+    }
     let probe = client.link_probe();
     *app.state::<SharedClient>().lock().unwrap() = Some(client);
     start_stats_reporter(app, probe);
@@ -80,6 +87,54 @@ pub async fn connect_voice(app: &AppHandle, url: &str, token: &str) -> Result<()
     crate::hotkeys::push_mute_to_client(app, effective);
     crate::session::announce_voice_state(app, Some(true));
     crate::session::refresh_tray(app);
+    Ok(())
+}
+
+/// The microphones and speakers the system offers, and which are chosen. Works with or without a call.
+#[tauri::command]
+pub fn audio_devices(
+    app: AppHandle,
+    state: State<'_, SharedClient>,
+) -> Result<serde_json::Value, String> {
+    let list = match state.lock().unwrap().as_ref() {
+        Some(client) => client.audio_devices(),
+        None => rust_livekit::list_audio_devices().map_err(|e| e.to_string())?,
+    };
+    let prefs = crate::account::data_dir(&app)
+        .map(|dir| crate::audio_prefs::AudioPrefs::load(&dir))
+        .unwrap_or_default();
+    let entries = |v: &[rust_livekit::devices::DeviceEntry]| -> Vec<serde_json::Value> {
+        v.iter()
+            .map(|d| serde_json::json!({ "id": d.id, "name": d.name }))
+            .collect()
+    };
+    Ok(serde_json::json!({
+        "inputs": entries(&list.inputs),
+        "outputs": entries(&list.outputs),
+        "chosenInput": prefs.input,
+        "chosenOutput": prefs.output,
+    }))
+}
+
+/// Chooses the microphone (`input`) or speaker (`output`); `id` null goes back to the system default
+/// (on the next call). Saved, and applied now if a call is running.
+#[tauri::command]
+pub fn audio_device_choose(
+    app: AppHandle,
+    state: State<'_, SharedClient>,
+    kind: String,
+    id: Option<String>,
+) -> Result<(), String> {
+    let dir = crate::account::data_dir(&app).ok_or("no place to save the choice")?;
+    let prefs = crate::audio_prefs::AudioPrefs::load(&dir).with(&kind, id.clone())?;
+    prefs.save(&dir).map_err(|e| e.to_string())?;
+    if let Some(client) = state.lock().unwrap().as_ref() {
+        let (input, output) = match kind.as_str() {
+            "input" => (id.as_deref(), None),
+            _ => (None, id.as_deref()),
+        };
+        client.use_devices(input, output)?;
+    }
     Ok(())
 }
 
