@@ -34,17 +34,18 @@ flowchart LR
 - **D&D Beyond character sync** ([DDB-SYNC.md](docs/architecture/DDB-SYNC.md)): link on the Campaign → Character screen, "Sync now", hourly refresh of name, race, class, level and portrait. Off unless `DDB_SYNC=1`. **Never run against the live service**; the parser is the one place to adjust.
 - **Session history window**: recordings, summaries (DM-only ones only for the DM), transcript, search, DM delete.
 - **Public status page** at `/status` and `/api/status`, built and served in both install tiers.
+- **Polish:** four new DM voices (Dragon, God, Drunk, Authoritative: **tuned by tests on synthetic tones, not by ear**), a keyboard way to move people between groups (Enter on a focused person in the rail), `--category` and `ambience/` or `music/` folders in the sound importer, and a daily sweep of portraits nobody uses.
 - **Emailed sign-in codes** (`SMTP_URL`), **single sign-on** (OIDC) and a **code sign-in** in the app ([SIGN-IN-OPTIONS.md](docs/architecture/SIGN-IN-OPTIONS.md)). SSO was tested against a fake provider only.
 
 **Next steps, in order:**
 
 1. **On the dev PC:** run the app and try everything listed above plus unmute, rail drag, portrait upload, device switching and the scene editor. Link a real public D&D Beyond sheet and read what comes back. Point SMTP and an Authelia at the backend once.
-2. **UI/UX fine-tuning** from what step 1 turns up. Known gaps: the new character voices (Dragon, God, Drunk, Authoritative: Rust DSP plus listening tests), ambience and music categories in the sound library (the importer has no category option, so loops are empty), a real mic level meter, a keyboard alternative to drag-to-group, orphan portrait cleanup.
+2. **UI/UX fine-tuning** from what step 1 turns up, starting with **listening to the four new voices** and the importer's ambience and music loops (run `npm run sounds:import -- --from <dir> --category ambience`).
 3. **Purge rules for raw audio** after the DM confirms a summary (Stage 5), and the recorded 4-hour soak, then a server restart mid-recording (Stage 9).
 4. **Second-person deploy test** from the docs on a blank VM (Stage 3).
 5. **Mobile SPA** (Stage 7): reuses the records API that now exists.
 6. **D&D Beyond, later:** stats, AC, passive perception and max HP on the character screen.
-7. **Per-player volume and mic gain:** blocked on the LiveKit SDK (0.10.1 exposes neither); revisit at the next upgrade.
+7. **Blocked on the LiveKit SDK (checked against 0.10.1's source):** per-player volume, a microphone gain slider and a real mic level meter. The platform audio path exposes no playout volume, no capture gain and no level; doing them means taking over capture and playback in our own mixer (a large change). Revisit at the next SDK upgrade, or decide the mixer is worth it.
 
 ---
 

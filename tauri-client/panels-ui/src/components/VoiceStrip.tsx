@@ -1,4 +1,4 @@
-import { Bot, Flame, Mountain, Skull, User } from 'lucide-react';
+import { Bot, Bug, Crown, Flame, Landmark, Martini, Mountain, Skull, User } from 'lucide-react';
 
 import { useVoiceEffect } from '../hooks/useVoiceEffect.js';
 import { VOICES } from '../lib/commands.js';
@@ -7,9 +7,13 @@ import { ToolButton } from './ToolButton.js';
 const VOICE_ICON: Record<(typeof VOICES)[number], typeof User> = {
   normal: User,
   giant: Mountain,
-  imp: Flame,
+  imp: Bug,
   robot: Bot,
   demon: Skull,
+  dragon: Flame,
+  god: Crown,
+  drunk: Martini,
+  authoritative: Landmark,
 };
 
 const TIP: Record<(typeof VOICES)[number], string> = {
@@ -18,6 +22,10 @@ const TIP: Record<(typeof VOICES)[number], string> = {
   imp: 'Imp: small and shrill',
   robot: 'Robot: metallic',
   demon: 'Demon: low and growling',
+  dragon: 'Dragon: vast, rumbling, echoing',
+  god: 'God: booming and layered, in a great hall',
+  drunk: 'Drunk: swaying and slurred',
+  authoritative: 'Authoritative: firm, lower, with a touch of room',
 };
 
 /** The DM's character voices, as icons. Anything but your own voice turns echo cancellation off. */

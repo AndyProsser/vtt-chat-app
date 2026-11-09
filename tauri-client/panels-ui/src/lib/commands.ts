@@ -24,7 +24,17 @@ export interface CommandInfo {
 }
 
 /** The DM's character voices, as `rust_livekit::Voice` names them. */
-export const VOICES = ['normal', 'giant', 'imp', 'robot', 'demon'] as const;
+export const VOICES = [
+  'normal',
+  'giant',
+  'imp',
+  'robot',
+  'demon',
+  'dragon',
+  'god',
+  'drunk',
+  'authoritative',
+] as const;
 
 /** The slash commands offered in the palette. */
 export const COMMANDS: readonly CommandInfo[] = [

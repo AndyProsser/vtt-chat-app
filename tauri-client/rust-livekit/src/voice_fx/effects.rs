@@ -2,6 +2,7 @@
 
 use std::f32::consts::PI;
 
+use super::dsp::{Echo, LowPass, Wobble};
 use super::pitch::PitchShifter;
 use super::SAMPLE_RATE;
 
@@ -17,15 +18,27 @@ pub enum Voice {
     Robot,
     /// Very deep and growling: a low pitch driven into soft clipping.
     Demon,
+    /// Huge and cavernous: an octave down with a rough growl and a long echo.
+    Dragon,
+    /// Booming and layered: the voice lowered, an octave-down voice under it, in a big hall.
+    God,
+    /// Slow, swaying pitch and a dulled, slurred tone.
+    Drunk,
+    /// Commanding: a little lower, firmly compressed, with a touch of room.
+    Authoritative,
 }
 
 impl Voice {
-    pub const ALL: [Voice; 5] = [
+    pub const ALL: [Voice; 9] = [
         Voice::Normal,
         Voice::Giant,
         Voice::Imp,
         Voice::Robot,
         Voice::Demon,
+        Voice::Dragon,
+        Voice::God,
+        Voice::Drunk,
+        Voice::Authoritative,
     ];
 
     pub fn name(self) -> &'static str {
@@ -35,6 +48,10 @@ impl Voice {
             Voice::Imp => "imp",
             Voice::Robot => "robot",
             Voice::Demon => "demon",
+            Voice::Dragon => "dragon",
+            Voice::God => "god",
+            Voice::Drunk => "drunk",
+            Voice::Authoritative => "authoritative",
         }
     }
 
@@ -48,13 +65,24 @@ impl Voice {
 const ROBOT_HZ: f32 = 70.0;
 const ROBOT_DRY: f32 = 0.3;
 const DEMON_DRIVE: f32 = 2.5;
+/// Dragon: a rough growl is the voice multiplied by a slow rumble.
+const GROWL_HZ: f32 = 28.0;
+const GROWL_DEPTH: f32 = 0.35;
+const DRAGON_DRIVE: f32 = 2.0;
+/// Authoritative: how hard the voice is pushed into the soft limiter.
+const AUTHORITY_DRIVE: f32 = 1.6;
 
 /// Turns blocks of the DM's microphone into the chosen voice. Create one per voice; switching voice
 /// means a new `VoiceFx` (the shifters carry a little state that must not leak between voices).
 pub struct VoiceFx {
     voice: Voice,
     shifter: Option<PitchShifter>,
-    /// Ring-modulator phase in cycles.
+    /// The second, lower voice layered under the first (God).
+    sub: Option<PitchShifter>,
+    echo: Option<Echo>,
+    wobble: Option<Wobble>,
+    tone: Option<LowPass>,
+    /// Ring-modulator / growl phase in cycles.
     phase: f32,
 }
 
@@ -64,11 +92,27 @@ impl VoiceFx {
             Voice::Giant => Some(PitchShifter::new(0.72, 1920)),
             Voice::Imp => Some(PitchShifter::new(1.4, 1024)),
             Voice::Demon => Some(PitchShifter::new(0.6, 2048)),
-            Voice::Normal | Voice::Robot => None,
+            Voice::Dragon => Some(PitchShifter::new(0.5, 2048)),
+            Voice::God => Some(PitchShifter::new(0.8, 1920)),
+            Voice::Authoritative => Some(PitchShifter::new(0.9, 1920)),
+            Voice::Normal | Voice::Robot | Voice::Drunk => None,
         };
+        let sub = (voice == Voice::God).then(|| PitchShifter::new(0.5, 2048));
+        let echo = match voice {
+            Voice::Dragon => Some(Echo::new(70.0, 0.4, 0.35)),
+            Voice::God => Some(Echo::new(95.0, 0.5, 0.3)),
+            Voice::Authoritative => Some(Echo::new(32.0, 0.2, 0.18)),
+            _ => None,
+        };
+        let wobble = (voice == Voice::Drunk).then(|| Wobble::new(0.9, 14.0, 9.0));
+        let tone = (voice == Voice::Drunk).then(|| LowPass::new(3200.0));
         Self {
             voice,
             shifter,
+            sub,
+            echo,
+            wobble,
+            tone,
             phase: 0.0,
         }
     }
@@ -79,9 +123,16 @@ impl VoiceFx {
 
     /// Extra delay this voice adds, in milliseconds.
     pub fn latency_ms(&self) -> f32 {
-        self.shifter.as_ref().map_or(0.0, |s| {
-            s.latency_samples() as f32 * 1000.0 / SAMPLE_RATE as f32
-        })
+        let samples = [
+            self.shifter.as_ref().map(PitchShifter::latency_samples),
+            self.sub.as_ref().map(PitchShifter::latency_samples),
+            self.wobble.as_ref().map(Wobble::latency_samples),
+        ]
+        .into_iter()
+        .flatten()
+        .max()
+        .unwrap_or(0);
+        samples as f32 * 1000.0 / SAMPLE_RATE as f32
     }
 
     pub fn process(&mut self, input: &[f32], output: &mut [f32]) {
@@ -96,6 +147,44 @@ impl VoiceFx {
                     *s = (*s * DEMON_DRIVE).tanh() / norm;
                 }
             }
+            Voice::Dragon => {
+                self.shifter.as_mut().unwrap().process(input, output);
+                let step = GROWL_HZ / SAMPLE_RATE as f32;
+                let norm = DRAGON_DRIVE.tanh();
+                let echo = self.echo.as_mut().unwrap();
+                for y in output.iter_mut() {
+                    let rumble = 1.0 - GROWL_DEPTH * (0.5 + 0.5 * (2.0 * PI * self.phase).sin());
+                    self.phase = (self.phase + step) % 1.0;
+                    let growled = (*y * rumble * DRAGON_DRIVE).tanh() / norm;
+                    *y = soft_ceiling(echo.process(growled));
+                }
+            }
+            Voice::God => {
+                let mut low = vec![0.0; input.len()];
+                self.shifter.as_mut().unwrap().process(input, output);
+                self.sub.as_mut().unwrap().process(input, &mut low);
+                let echo = self.echo.as_mut().unwrap();
+                for (y, l) in output.iter_mut().zip(&low) {
+                    *y = soft_ceiling(echo.process(*y * 0.65 + l * 0.45));
+                }
+            }
+            Voice::Drunk => {
+                let wobble = self.wobble.as_mut().unwrap();
+                let tone = self.tone.as_mut().unwrap();
+                for (x, y) in input.iter().zip(output.iter_mut()) {
+                    *y = tone.process(wobble.process(*x));
+                }
+            }
+            Voice::Authoritative => {
+                self.shifter.as_mut().unwrap().process(input, output);
+                let norm = AUTHORITY_DRIVE.tanh();
+                let echo = self.echo.as_mut().unwrap();
+                for y in output.iter_mut() {
+                    // Pushed into a soft limiter, so quiet and loud speech come out nearer in level.
+                    let squeezed = (*y * AUTHORITY_DRIVE).tanh() / norm;
+                    *y = soft_ceiling(echo.process(squeezed));
+                }
+            }
             Voice::Robot => {
                 let step = ROBOT_HZ / SAMPLE_RATE as f32;
                 for (x, y) in input.iter().zip(output.iter_mut()) {
@@ -106,6 +195,11 @@ impl VoiceFx {
             }
         }
     }
+}
+
+/// A gentle ceiling so layered or echoed voices can never pass full scale.
+fn soft_ceiling(x: f32) -> f32 {
+    x.tanh()
 }
 
 #[cfg(test)]
@@ -184,6 +278,55 @@ mod tests {
             out.iter().cloned().fold(0.0f32, f32::max) > 0.3,
             "not silent"
         );
+    }
+
+    fn peak(x: &[f32]) -> f32 {
+        x.iter().fold(0.0f32, |m, s| m.max(s.abs()))
+    }
+
+    #[test]
+    fn dragon_is_deeper_than_the_demon_and_stays_in_range() {
+        let input = sine(200.0, 1.5, 0.8);
+        let out = run(Voice::Dragon, &input);
+        assert!(peak(&out) <= 1.0);
+        assert!(peak(&out) > 0.2, "not silent");
+        let dragon = estimate_freq(&out[out.len() / 3..]);
+        assert!((dragon - 100.0).abs() < 15.0, "dragon {dragon}");
+    }
+
+    #[test]
+    fn god_layers_a_lowered_voice_over_a_much_lower_one() {
+        let out = run(Voice::God, &sine(300.0, 1.5, 0.5));
+        let steady = &out[out.len() / 2..];
+        assert!(strength(steady, 240.0) > 0.08, "main voice missing");
+        // The octave-down voice lands a little above 150 Hz (the shifter is not exact at this ratio).
+        let sub = (145..=175)
+            .step_by(5)
+            .map(|f| strength(steady, f as f32))
+            .fold(0.0f32, f32::max);
+        assert!(sub > 0.05, "sub voice missing: {sub}");
+        assert!(peak(&out) <= 1.0);
+    }
+
+    #[test]
+    fn drunk_wobbles_in_pitch_but_stays_near_the_speaker() {
+        let input = sine(300.0, 3.0, 0.5);
+        let out = run(Voice::Drunk, &input);
+        let slice = |i: usize| estimate_freq(&out[i * 4_800 + 24_000..(i + 1) * 4_800 + 24_000]);
+        let freqs: Vec<f32> = (0..10).map(slice).collect();
+        let (lo, hi) = freqs
+            .iter()
+            .fold((f32::MAX, f32::MIN), |(l, h), f| (l.min(*f), h.max(*f)));
+        assert!(hi - lo > 6.0, "pitch should drift: {lo}..{hi}");
+        assert!(lo > 255.0 && hi < 345.0, "but stay near 300 Hz: {lo}..{hi}");
+    }
+
+    #[test]
+    fn authoritative_is_a_little_lower_and_never_clips() {
+        let out = run(Voice::Authoritative, &sine(300.0, 1.0, 0.9));
+        assert!(peak(&out) <= 1.0);
+        let f = estimate_freq(&out[out.len() / 3..]);
+        assert!((f - 270.0).abs() < 15.0, "authoritative {f}");
     }
 
     #[test]

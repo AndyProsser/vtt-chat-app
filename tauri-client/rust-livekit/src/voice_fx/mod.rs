@@ -2,6 +2,7 @@
 //! 48 kHz blocks, with no audio devices and no LiveKit in it, so it is unit-tested on synthetic tones.
 
 pub mod capture;
+mod dsp;
 mod effects;
 mod pitch;
 pub mod plan;
