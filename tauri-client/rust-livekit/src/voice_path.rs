@@ -114,6 +114,9 @@ impl VoicePath {
         fx: Option<&LocalAudioTrack>,
         muted: bool,
     ) -> Result<(), String> {
+        // Muting a track spawns a LiveKit task, which needs a Tokio context. The UI's mute button is a
+        // synchronous Tauri command on the main thread, which has none: without this, unmuting aborted the app.
+        let _in_runtime = self.runtime.enter();
         let wanted = plan(muted, self.voice());
         let mut error = None;
         let mut fx_on = wanted.fx_mic;

@@ -532,3 +532,36 @@ fn jitter() -> f64 {
 /// Kept for callers that want to hold a shared, swappable client handle (e.g. Tauri's
 /// managed state, which needs `Mutex<Option<LiveKitClient>>` across command invocations).
 pub type SharedClient = Arc<Mutex<Option<LiveKitClient>>>;
+
+#[cfg(test)]
+mod live_tests {
+    use std::sync::Arc;
+
+    /// Regression: the UI's mute button is a synchronous Tauri command, which runs on the main thread
+    /// with no Tokio context. Unmuting once panicked there ("there is no reactor running") and, being
+    /// inside a C callback, aborted the whole app. Run against a dev server:
+    /// `VTT_TEST_URL=ws://127.0.0.1:7880 VTT_TEST_TOKEN=<voice token> cargo test -p rust-livekit -- --ignored mute_from_a_plain_thread`
+    #[tokio::test(flavor = "multi_thread")]
+    #[ignore = "needs a LiveKit server and a voice token"]
+    async fn mute_from_a_plain_thread() {
+        let url = std::env::var("VTT_TEST_URL").expect("VTT_TEST_URL");
+        let token = std::env::var("VTT_TEST_TOKEN").expect("VTT_TEST_TOKEN");
+        let client = Arc::new(
+            crate::LiveKitClient::connect(&url, &token, Arc::new(|_| {}), Arc::new(|_| {}))
+                .await
+                .expect("connect"),
+        );
+        let c = Arc::clone(&client);
+        std::thread::spawn(move || {
+            c.set_microphone_muted(true);
+            c.set_microphone_muted(false);
+        })
+        .join()
+        .expect("muting and unmuting from a plain thread must not panic");
+        Arc::into_inner(client)
+            .expect("the thread has finished")
+            .disconnect()
+            .await
+            .ok();
+    }
+}
