@@ -63,6 +63,17 @@ flowchart LR
 
 Order inside the microphone path is gain, level, **cleaning, then the character voice**. The reverse would pitch-shift the echo and the canceller could no longer recognise it.
 
+## Sound card library: cpal 0.18
+
+Decided 2026-11-09 after comparing cpal with cubeb-rs (no evidence favoured cubeb; LiveKit's own
+`local_audio` example also uses cpal, with a simpler shape than ours: one mutex-guarded sample queue
+as the "mixer", a fixed 50 ms echo delay guess, and the reference signal sent over a channel).
+We moved from 0.15 to 0.18.2 for the Windows fixes (USB headset mics, default-device recovery) and
+stable device ids. The PipeWire, PulseAudio and JACK backends are opt-in cargo features and are
+**not** enabled yet (to play with later, on the dev PC): Linux goes through ALSA (which PipeWire serves). Enabling them means adding `features = ["pipewire"]` (or `pulseaudio`, `jack`) to cpal in `rust-livekit/Cargo.toml`, installing the matching dev libraries in the Docker image and CI, and choosing the host at startup instead of `default_host()`. The device list is cached for
+5 seconds because repeated enumeration leaks on some Windows backends (cpal#802). Device ids are
+still device names, so saved choices keep working.
+
 ## Not verified (needs the dev PC)
 
 Everything past the unit tests: real device behaviour on Windows and Linux (including USB headsets and Bluetooth), measured latency, drift over an hour, CPU, and what it sounds like. `docs/BUILD-STATUS.md` tracks it.

@@ -159,7 +159,7 @@ fn open_input(sink: Arc<Mutex<Vec<f32>>>) -> Result<cpal::Stream, String> {
         .default_input_device()
         .ok_or("no microphone found")?;
     let config = device.default_input_config().map_err(|e| e.to_string())?;
-    let (channels, rate) = (config.channels() as usize, config.sample_rate().0);
+    let (channels, rate) = (config.channels() as usize, config.sample_rate());
     let on_error = |err| eprintln!("[voice-fx] input stream error: {err}");
     let push = move |mono: Vec<f32>| {
         let mut sink = sink.lock().unwrap();
@@ -170,13 +170,13 @@ fn open_input(sink: Arc<Mutex<Vec<f32>>>) -> Result<cpal::Stream, String> {
     };
     let stream = match config.sample_format() {
         cpal::SampleFormat::F32 => device.build_input_stream(
-            &config.into(),
+            config.into(),
             move |data: &[f32], _| push(to_mono_48k(data, channels, rate)),
             on_error,
             None,
         ),
         cpal::SampleFormat::I16 => device.build_input_stream(
-            &config.into(),
+            config.into(),
             move |data: &[i16], _| {
                 let f: Vec<f32> = data.iter().map(|s| *s as f32 / i16::MAX as f32).collect();
                 push(to_mono_48k(&f, channels, rate))
@@ -185,7 +185,7 @@ fn open_input(sink: Arc<Mutex<Vec<f32>>>) -> Result<cpal::Stream, String> {
             None,
         ),
         cpal::SampleFormat::U16 => device.build_input_stream(
-            &config.into(),
+            config.into(),
             move |data: &[u16], _| {
                 let f: Vec<f32> = data
                     .iter()

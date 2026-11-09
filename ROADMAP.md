@@ -47,6 +47,7 @@ flowchart LR
 5. **Mobile SPA** (Stage 7): reuses the records API that now exists.
 6. **D&D Beyond, later:** stats, AC, passive perception and max HP on the character screen.
 7. **Decide the audio engine default** after trying the mixer on the dev PC (latency, CPU, echo with real speakers, Bluetooth and USB headsets, hour-long drift). Flip the default only when it has been better than the platform path for a few real sessions.
+8. **Try the optional sound-card backends and RNNoise** once the mixer is validated: cpal 0.18's `pipewire`, `pulseaudio` and `jack` cargo features (off today; Linux uses ALSA, which PipeWire serves; they need the PipeWire/PulseAudio dev libraries in the Docker image and CI), and RNNoise as a noise-suppression stage after WebRTC's cleaning. cpal is now 0.18.2 (decided 2026-11-09); see [AUDIO-MIXER.md](docs/architecture/AUDIO-MIXER.md).
 
 ---
 

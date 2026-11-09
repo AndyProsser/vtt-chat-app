@@ -30,7 +30,7 @@ pub fn play_cue_blocking(cue: Cue) -> Result<(), LiveKitError> {
     let supported = device
         .default_output_config()
         .map_err(|err| LiveKitError::Audio(err.to_string()))?;
-    let sample_rate = supported.sample_rate().0;
+    let sample_rate = supported.sample_rate();
     let channels = supported.channels() as usize;
     let format = supported.sample_format();
     let config: cpal::StreamConfig = supported.into();
@@ -82,7 +82,7 @@ where
     let mut finished = false;
     device
         .build_output_stream(
-            config,
+            *config,
             move |data: &mut [T], _| {
                 for frame in data.chunks_mut(channels) {
                     let sample = samples.get(position).copied().unwrap_or(0.0);

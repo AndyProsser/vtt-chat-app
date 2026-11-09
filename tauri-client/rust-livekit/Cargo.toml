@@ -9,7 +9,7 @@ name = "rust_livekit"
 path = "src/lib.rs"
 
 [dependencies]
-cpal = "0.15"
+cpal = "0.18.2"
 symphonia = { version = "0.5", default-features = false, features = ["ogg", "vorbis", "mp3", "flac", "wav", "pcm"] }
 livekit = "0.10"
 futures-util = "0.3"

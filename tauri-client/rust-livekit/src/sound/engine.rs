@@ -262,7 +262,7 @@ fn open(ring: Arc<Mutex<MonitorRing>>) -> Result<cpal::Stream, LiveKitError> {
         .default_output_config()
         .map_err(|e| LiveKitError::Audio(e.to_string()))?;
     let channels = supported.channels() as usize;
-    let rate = supported.sample_rate().0;
+    let rate = supported.sample_rate();
     let format = supported.sample_format();
     let config: cpal::StreamConfig = supported.into();
     let stream = match format {
@@ -292,7 +292,7 @@ where
     let mut scratch: Vec<f32> = Vec::new();
     device
         .build_output_stream(
-            config,
+            *config,
             move |data: &mut [T], _| {
                 let frames = data.len() / channels;
                 scratch.resize(frames, 0.0);

@@ -4,9 +4,9 @@
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 
@@ -40,13 +40,31 @@ impl Drop for Running {
 
 /// The input and output devices the system offers. cpal identifies devices by name, so the name is the
 /// id (which is also how the app remembers a choice on Linux, where the platform ids are empty).
+///
+/// The list is cached for a few seconds: enumerating devices over and over leaks memory in some cpal
+/// backends on Windows (RustAudio/cpal#802), and the Settings screen asks every time it opens.
 pub fn list_devices() -> DeviceList {
+    static CACHE: Mutex<Option<(Instant, DeviceList)>> = Mutex::new(None);
+    let mut cache = CACHE.lock().unwrap();
+    if let Some((at, list)) = cache.as_ref() {
+        if at.elapsed() < DEVICE_LIST_TTL {
+            return list.clone();
+        }
+    }
+    let list = scan_devices();
+    *cache = Some((Instant::now(), list.clone()));
+    list
+}
+
+const DEVICE_LIST_TTL: Duration = Duration::from_secs(5);
+
+fn scan_devices() -> DeviceList {
     let host = cpal::default_host();
     let entries = |devices: Option<Vec<cpal::Device>>| -> Vec<DeviceEntry> {
         devices
             .unwrap_or_default()
             .iter()
-            .filter_map(|d| d.name().ok())
+            .filter_map(|d| d.description().ok().map(|x| x.name().to_string()))
             .map(|name| DeviceEntry {
                 id: name.clone(),
                 name,
@@ -62,7 +80,7 @@ pub fn list_devices() -> DeviceList {
 fn find(devices: impl Iterator<Item = cpal::Device>, name: &str) -> Option<cpal::Device> {
     devices
         .into_iter()
-        .find(|d| d.name().is_ok_and(|n| n == name))
+        .find(|d| d.description().is_ok_and(|x| x.name() == name))
 }
 
 /// Starts the microphone (`device` by name, or the system default) feeding `duplex.on_input`.
@@ -137,13 +155,13 @@ fn build_input(device: Option<String>, duplex: Arc<Duplex>) -> Result<cpal::Stre
         None => host.default_input_device().ok_or("no microphone found")?,
     };
     let config = device.default_input_config().map_err(|e| e.to_string())?;
-    let (channels, rate) = (config.channels() as usize, config.sample_rate().0);
+    let (channels, rate) = (config.channels() as usize, config.sample_rate());
     let on_error = |err| eprintln!("[engine] input stream error: {err}");
     let stream = match config.sample_format() {
         cpal::SampleFormat::F32 => {
             let mut told = false;
             device.build_input_stream(
-                &config.into(),
+                config.into(),
                 move |data: &[f32], _| {
                     if !told {
                         told = true;
@@ -156,7 +174,7 @@ fn build_input(device: Option<String>, duplex: Arc<Duplex>) -> Result<cpal::Stre
             )
         }
         cpal::SampleFormat::I16 => device.build_input_stream(
-            &config.into(),
+            config.into(),
             move |data: &[i16], _| {
                 let f: Vec<f32> = data.iter().map(|s| *s as f32 / i16::MAX as f32).collect();
                 duplex.on_input(&f, channels, rate)
@@ -165,7 +183,7 @@ fn build_input(device: Option<String>, duplex: Arc<Duplex>) -> Result<cpal::Stre
             None,
         ),
         cpal::SampleFormat::U16 => device.build_input_stream(
-            &config.into(),
+            config.into(),
             move |data: &[u16], _| {
                 let f: Vec<f32> = data
                     .iter()
@@ -191,13 +209,13 @@ fn build_output(device: Option<String>, duplex: Arc<Duplex>) -> Result<cpal::Str
         None => host.default_output_device().ok_or("no speakers found")?,
     };
     let config = device.default_output_config().map_err(|e| e.to_string())?;
-    let (channels, rate) = (config.channels() as usize, config.sample_rate().0);
+    let (channels, rate) = (config.channels() as usize, config.sample_rate());
     let on_error = |err| eprintln!("[engine] output stream error: {err}");
     let stream = match config.sample_format() {
         cpal::SampleFormat::F32 => {
             let mut told = false;
             device.build_output_stream(
-                &config.into(),
+                config.into(),
                 move |data: &mut [f32], _| {
                     if !told {
                         told = true;
@@ -212,7 +230,7 @@ fn build_output(device: Option<String>, duplex: Arc<Duplex>) -> Result<cpal::Str
         cpal::SampleFormat::I16 => {
             let mut scratch = Vec::new();
             device.build_output_stream(
-                &config.into(),
+                config.into(),
                 move |data: &mut [i16], _| {
                     scratch.resize(data.len(), 0.0);
                     duplex.on_output(&mut scratch, channels, rate);
@@ -227,7 +245,7 @@ fn build_output(device: Option<String>, duplex: Arc<Duplex>) -> Result<cpal::Str
         cpal::SampleFormat::U16 => {
             let mut scratch = Vec::new();
             device.build_output_stream(
-                &config.into(),
+                config.into(),
                 move |data: &mut [u16], _| {
                     scratch.resize(data.len(), 0.0);
                     duplex.on_output(&mut scratch, channels, rate);
@@ -279,5 +297,13 @@ mod tests {
     #[test]
     fn listing_devices_does_not_fail_without_a_sound_card() {
         let _ = list_devices();
+    }
+
+    #[test]
+    fn a_second_listing_within_the_window_is_served_from_the_cache() {
+        let first = list_devices();
+        let second = list_devices();
+        assert_eq!(first.inputs.len(), second.inputs.len());
+        assert_eq!(first.outputs.len(), second.outputs.len());
     }
 }
