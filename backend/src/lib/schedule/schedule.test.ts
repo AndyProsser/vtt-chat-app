@@ -336,6 +336,26 @@ describe('attendance after the session', () => {
     expect((await rsvp(await past(5))).status).toBe(409);
   });
 
+  it('cannot be cancelled once it has started, but a future one can', async () => {
+    const started = await past(1, 'Started');
+    const del = (id: string) =>
+      call('DELETE', `/api/campaigns/${campaign}/sessions/${id}`, dm.token);
+    expect((await del(started)).status).toBe(409);
+    const future = (await schedule_(dm.token, { startsAt: soon(), title: 'Later' })).body.session
+      .id;
+    expect((await del(future)).status).toBe(204);
+  });
+
+  it('lets the DM rename and move a session after the fact', async () => {
+    const id = await past(1, 'Typo');
+    const res = await call('PATCH', `/api/campaigns/${campaign}/sessions/${id}`, dm.token, {
+      title: 'Fixed',
+      notes: 'Recap',
+    });
+    expect(res.status).toBe(200);
+    expect(res.body.session).toMatchObject({ title: 'Fixed', notes: 'Recap' });
+  });
+
   it('lists only recent sessions by default, and older ones when asked', async () => {
     await past(50, 'Long ago');
     const recent = await schedule_(dm.token, { startsAt: soon(), title: 'Next' });

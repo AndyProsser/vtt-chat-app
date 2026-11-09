@@ -187,6 +187,8 @@ export class ScheduleService {
     await this.requireDm(user, campaignId);
     const session = await this.own(campaignId, sessionId);
     if (session.cancelledAt !== null) return;
+    if (session.startsAt <= this.now())
+      throw new DomainError('conflict', 'a session that has started cannot be cancelled');
     await this.deps.schedule.putSession({ ...session, cancelledAt: this.now() });
     await this.notify(await this.memberIds(campaignId, user.id), {
       campaignId,

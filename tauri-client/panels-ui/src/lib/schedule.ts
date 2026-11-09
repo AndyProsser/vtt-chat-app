@@ -58,3 +58,12 @@ export const ATTENDANCE_WINDOW_MS = 4 * 60 * 60_000;
 export function attendanceOpen(startsAt: number, now: number): boolean {
   return now <= startsAt + ATTENDANCE_WINDOW_MS;
 }
+
+/** The local date and time (`YYYY-MM-DD`, `HH:MM`) of an instant, for editing a session. */
+export function slotOf(startsAt: number): { date: string; time: string } {
+  const d = new Date(startsAt);
+  return { date: dateString(d), time: `${pad(d.getHours())}:${pad(d.getMinutes())}` };
+}
+
+/** Only a session that has not started can be deleted (the server enforces it too). */
+export const canDelete = (startsAt: number, now: number): boolean => startsAt > now;

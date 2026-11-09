@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import {
   attendanceOpen,
+  canDelete,
+  slotOf,
   DURATION_OPTIONS,
   TIME_OPTIONS,
   defaultSlot,
@@ -74,5 +76,17 @@ describe('attendance window', () => {
     expect(attendanceOpen(1_000_000, 1_000_000 - HOUR)).toBe(true);
     expect(attendanceOpen(1_000_000, 1_000_000 + 4 * HOUR)).toBe(true);
     expect(attendanceOpen(1_000_000, 1_000_000 + 4 * HOUR + 1)).toBe(false);
+  });
+});
+
+describe('slotOf and canDelete', () => {
+  it('turns an instant back into the local date and time the pickers show', () => {
+    const at = startsAtOf('2026-11-15', '13:30')!;
+    expect(slotOf(at)).toEqual({ date: '2026-11-15', time: '13:30' });
+  });
+  it('lets only a session that has not started be deleted', () => {
+    expect(canDelete(2_000, 1_000)).toBe(true);
+    expect(canDelete(1_000, 1_000)).toBe(false);
+    expect(canDelete(500, 1_000)).toBe(false);
   });
 });

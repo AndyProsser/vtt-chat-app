@@ -1066,3 +1066,9 @@ body,
   padding: 8px 4px;
   background: transparent;
 }
+
+.vtt-session-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
