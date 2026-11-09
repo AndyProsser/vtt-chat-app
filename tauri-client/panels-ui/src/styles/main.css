@@ -112,9 +112,9 @@ body,
   gap: 8px;
 }
 .vtt-rail-sep {
-  width: 24px;
+  width: 30px;
   border: 0;
-  border-top: 1px solid var(--vtt-edge);
+  border-top: 2px solid var(--vtt-edge);
   margin: 0;
 }
 .vtt-av {
@@ -891,6 +891,10 @@ body,
 .vtt-rail-foot {
   margin-top: auto;
   padding-top: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
 }
 
 .vtt-char-head {
@@ -938,4 +942,44 @@ body,
   color: var(--vtt-ink);
   font: inherit;
   cursor: pointer;
+}
+
+.vtt-rail-lane {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 4px 0;
+  border-radius: var(--vtt-radius-control);
+}
+.vtt-rail-lane-over {
+  background: color-mix(in srgb, var(--vtt-gold) 18%, transparent);
+  outline: 1px dashed var(--vtt-gold);
+}
+.vtt-rail-empty {
+  width: 30px;
+  height: 30px;
+  border: 1px dashed var(--vtt-edge);
+  border-radius: 50%;
+}
+.vtt-rail-lifted {
+  opacity: 0.35;
+}
+.vtt-rail-new {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 1px dashed var(--vtt-gold);
+  border-radius: 50%;
+  color: var(--vtt-gold);
+}
+.vtt-rail-new-over {
+  background: color-mix(in srgb, var(--vtt-gold) 25%, transparent);
+}
+.vtt-rail-lane[data-lane] .vtt-rail-item {
+  cursor: grab;
+  touch-action: none;
 }

@@ -1,4 +1,5 @@
 import type { Member, PartyView } from '../types/index.js';
+import { railOrder } from './rail.js';
 
 /** The group everyone starts in. It has no party id and cannot be renamed or removed. */
 export const MAIN_PARTY = 'Main Party';
@@ -57,4 +58,27 @@ export function groupDrop(
   if (lane === 'new') return { kind: 'create', userId, name: makeName() };
   const move = moveCommand(view, userId, lane === 'main' ? null : lane);
   return move ? { kind: 'move', move } : undefined;
+}
+
+export interface RailSection {
+  /** `main` for the main table, otherwise the party id (what `data-lane` and `groupDrop` use). */
+  id: string;
+  name: string;
+  members: Member[];
+}
+
+/** The rail's groups: the main table first, then each party, people in rail order. The DM is shown above them all. */
+export function railSections(members: Member[], view: PartyView): RailSection[] {
+  return lanes(members, view).map((lane) => ({
+    id: lane.id ?? 'main',
+    name: lane.name,
+    members: railOrder(lane.members),
+  }));
+}
+
+/** The name of the group `userId` is in, for the hover card; nothing while the table is not split. */
+export function groupNameOf(view: PartyView, userId: string): string | undefined {
+  if (!view.split) return undefined;
+  const assigned = view.assignments[userId];
+  return view.parties.find((p) => p.id === assigned)?.name ?? MAIN_PARTY;
 }

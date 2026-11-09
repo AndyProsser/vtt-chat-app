@@ -1,25 +1,16 @@
 import { Popover } from '@radix-ui/themes';
 import { Trash2, Users } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import { avatarColor } from '../lib/avatarColor.js';
-import { groupDrop, lanes } from '../lib/groups.js';
-import { pickGroupName } from '../lib/groupNames.js';
-import { laneAt } from '../lib/laneAt.js';
+import { useGroupDrag } from '../hooks/useGroupDrag.js';
+import { lanes } from '../lib/groups.js';
 import { initials } from '../lib/rail.js';
 import { useTableStore } from '../lib/tableStore.js';
-import { accountErrorMessage, syncCommand } from '../lib/tauriBridge.js';
 import type { Member } from '../types/index.js';
 import { Portrait } from './Portrait.js';
 import { ToolButton } from './ToolButton.js';
-
-interface Drag {
-  member: Member;
-  x: number;
-  y: number;
-  over: string | undefined;
-}
 
 const labelOf = (m: Member) => m.character?.name ?? m.displayName;
 
@@ -34,58 +25,8 @@ const labelOf = (m: Member) => m.character?.name ?? m.displayName;
 export function GroupsMenu() {
   const members = useTableStore((s) => s.members);
   const view = useTableStore((s) => s.parties);
-  const [error, setError] = useState<string>();
-  const [drag, setDrag] = useState<Drag>();
-  const dragRef = useRef<Drag | undefined>(undefined);
-  dragRef.current = drag;
+  const { drag, error, send, begin } = useGroupDrag();
   const columns = useMemo(() => lanes(members, view), [members, view]);
-
-  async function send(t: string, d: Record<string, unknown>) {
-    try {
-      setError(undefined);
-      await syncCommand(t, d);
-    } catch (e) {
-      setError(accountErrorMessage(e));
-    }
-  }
-
-  useEffect(() => {
-    if (!drag) return;
-    const move = (e: PointerEvent) =>
-      setDrag(
-        (d) =>
-          d && {
-            ...d,
-            x: e.clientX,
-            y: e.clientY,
-            over: laneAt(document.elementsFromPoint(e.clientX, e.clientY)),
-          },
-      );
-    const up = (e: PointerEvent) => {
-      const current = dragRef.current;
-      setDrag(undefined);
-      if (!current) return;
-      const drop = groupDrop(
-        view,
-        current.member.userId,
-        laneAt(document.elementsFromPoint(e.clientX, e.clientY)),
-        () => pickGroupName(view.parties.map((p) => p.name)),
-      );
-      if (drop?.kind === 'move') void send('party.move', drop.move);
-      if (drop?.kind === 'create')
-        void send('party.create', { name: drop.name, members: [drop.userId] });
-    };
-    const cancel = () => setDrag(undefined);
-    window.addEventListener('pointermove', move);
-    window.addEventListener('pointerup', up);
-    window.addEventListener('pointercancel', cancel);
-    return () => {
-      window.removeEventListener('pointermove', move);
-      window.removeEventListener('pointerup', up);
-      window.removeEventListener('pointercancel', cancel);
-    };
-    // `view` only matters at the moment of dropping.
-  }, [drag !== undefined, view]);
 
   return (
     <Popover.Root>
@@ -146,11 +87,7 @@ export function GroupsMenu() {
                         ? 'vtt-person vtt-person-lifted'
                         : 'vtt-person'
                     }
-                    onPointerDown={(e) => {
-                      if (e.button !== 0) return;
-                      e.preventDefault();
-                      setDrag({ member: m, x: e.clientX, y: e.clientY, over: undefined });
-                    }}
+                    onPointerDown={(e) => begin(m, e)}
                   >
                     <Avatar member={m} />
                     <span>{labelOf(m)}</span>

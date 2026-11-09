@@ -14,9 +14,11 @@ import { Portrait } from './Portrait.js';
 export const RailAvatar = memo(function RailAvatar({
   member,
   partyId,
+  groupName,
 }: {
   member: Member;
   partyId: string | undefined;
+  groupName: string | undefined;
 }) {
   const speaking = useIsSpeaking(member.userId);
   const card = memberCard(member);
@@ -47,6 +49,11 @@ export const RailAvatar = memo(function RailAvatar({
             {line}
           </Text>
         ))}
+        {groupName && (
+          <Text as="div" size="1">
+            Group: {groupName}
+          </Text>
+        )}
         <Text as="div" size="1" color="gray">
           {member.online ? (member.inVoice ? 'In voice' : 'Online') : 'Offline'}
         </Text>

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { Member, PartyView } from '../types/index.js';
-import { groupDrop, lanes, moveCommand } from './groups.js';
+import { groupDrop, groupNameOf, lanes, moveCommand, railSections } from './groups.js';
 
 const m = (userId: string, name: string, role: Member['role'] = 'player'): Member => ({
   userId,
@@ -71,5 +71,41 @@ describe('groupDrop', () => {
     expect(groupDrop(view({ a: 'p1' }), 'a', 'p1', name)).toBeUndefined();
     expect(groupDrop(view({}), 'a', 'main', name)).toBeUndefined();
     expect(groupDrop(view({}), 'a', undefined, name)).toBeUndefined();
+  });
+});
+
+describe('rail sections', () => {
+  const mk = (userId: string, role: 'dm' | 'player', name: string, online = true) =>
+    ({
+      userId,
+      role,
+      displayName: name,
+      online,
+      inVoice: false,
+      muted: false,
+    }) as unknown as Member;
+  const members = [
+    mk('dm', 'dm', 'Test DM'),
+    mk('b', 'player', 'Bram'),
+    mk('a', 'player', 'Aria'),
+    mk('c', 'player', 'Cass', false),
+  ];
+  const view: PartyView = {
+    split: true,
+    parties: [{ id: 'p1', name: 'Scouts' }],
+    assignments: { a: 'p1' },
+  } as unknown as PartyView;
+
+  it('lists the main table first and then each group, people in rail order', () => {
+    expect(railSections(members, view).map((s) => [s.id, s.members.map((x) => x.userId)])).toEqual([
+      ['main', ['b', 'c']],
+      ['p1', ['a']],
+    ]);
+  });
+
+  it('names the group a person is in only while the table is split', () => {
+    expect(groupNameOf(view, 'a')).toBe('Scouts');
+    expect(groupNameOf(view, 'b')).toBe('Main Party');
+    expect(groupNameOf({ ...view, split: false }, 'a')).toBeUndefined();
   });
 });
