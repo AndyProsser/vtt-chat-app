@@ -1,23 +1,45 @@
-import { Clapperboard, Repeat, Square, Volume2 } from 'lucide-react';
-import { useState } from 'react';
+import { Popover } from '@radix-ui/themes';
+import {
+  AudioLines,
+  Clapperboard,
+  CloudRain,
+  PawPrint,
+  Repeat,
+  Square,
+  Volume2,
+  Wind,
+} from 'lucide-react';
+import { useMemo, useState } from 'react';
 
 import { ToolButton } from './ToolButton.js';
 import { VoiceStrip } from './VoiceStrip.js';
 import { useCampaignQuery } from '../hooks/useCampaignQuery.js';
+import { categoriesOf, type SoundCategory } from '../lib/soundCategories.js';
 import { boardIcon, soundIcon } from '../lib/soundIcons.js';
 import { accountErrorMessage, syncCommand } from '../lib/tauriBridge.js';
 import type { SoundLibrary } from '../types/index.js';
 
-/**
- * The DM's sound effects. The buttons only *ask*; the server picks the take and tells every client
- * (this one included), and each plays it locally in Rust — nothing goes through the voice channel.
- */
-const SCENES_TAB = '__scenes__';
+const SCENES_TAB = 'scenes';
+type Tab = 'voice' | SoundCategory | typeof SCENES_TAB;
 
+const CATEGORIES: { tab: Tab; label: string; icon: typeof Wind }[] = [
+  { tab: 'voice', label: 'Voice: character voices', icon: AudioLines },
+  { tab: 'environment', label: 'Environment: one-shot sounds', icon: Wind },
+  { tab: 'background', label: 'Background: loops (fire, rain, tavern)', icon: CloudRain },
+  { tab: 'creatures', label: 'Creatures and animals', icon: PawPrint },
+];
+
+/**
+ * The DM's drawer. The buttons only *ask*; the server picks the take and tells every client, and the
+ * DM's app sends the sound through the call (so it is never echoed back). Voice, Environment,
+ * Background and Creatures are the top-level tabs; inside a category the boards are a second row of
+ * icons, and the sounds below are rounded icon buttons (the name is the tooltip).
+ */
 export function EffectsStrip() {
   const { data, error } = useCampaignQuery<SoundLibrary>('soundboard/library', []);
   const [master, setMaster] = useState(100);
-  const [tab, setTab] = useState<string>();
+  const [tab, setTab] = useState<Tab>('environment');
+  const [boardId, setBoardId] = useState<string>();
   const [actionError, setActionError] = useState<string>();
 
   async function send(t: string, d: Record<string, unknown>) {
@@ -30,56 +52,56 @@ export function EffectsStrip() {
   }
 
   const problem = error ?? actionError;
-  const boards = data?.boards ?? [];
   const scenes = data?.scenes ?? [];
-  const showingScenes = tab === SCENES_TAB;
-  const board = showingScenes ? undefined : (boards.find((b) => b.id === tab) ?? boards[0]);
+  const byCategory = useMemo(() => categoriesOf(data?.boards ?? []), [data]);
+  const boards = tab === 'voice' || tab === SCENES_TAB ? [] : byCategory[tab];
+  const board = boards.find((b) => b.id === boardId) ?? boards[0];
+  const tabs =
+    scenes.length > 0
+      ? [...CATEGORIES, { tab: SCENES_TAB as Tab, label: 'Scenes', icon: Clapperboard }]
+      : CATEGORIES;
   return (
     <div className="vtt-drawer-body">
-      <VoiceStrip />
       <div className="vtt-drawer-row">
+        {tabs.map(({ tab: t, label, icon: Icon }) => (
+          <ToolButton key={t} label={label} pressed={tab === t} onClick={() => setTab(t)}>
+            <Icon size={15} />
+          </ToolButton>
+        ))}
+        <span className="vtt-drawer-divider" aria-hidden />
         <ToolButton danger label="Stop every sound" onClick={() => void send('sound.stop', {})}>
           <Square size={14} />
         </ToolButton>
-        <label className="vtt-volume" title="Table volume">
-          <Volume2 size={15} aria-hidden />
-          <input
-            type="range"
-            aria-label="Table volume"
-            min={0}
-            max={100}
-            value={master}
-            onChange={(e) => setMaster(Number(e.target.value))}
-            onPointerUp={() => void send('sound.volume', { master: master / 100 })}
-            onKeyUp={() => void send('sound.volume', { master: master / 100 })}
-          />
-        </label>
-        <span className="vtt-drawer-divider" aria-hidden />
-        {boards.map((b) => {
-          const Icon = boardIcon(b.name);
-          return (
-            <ToolButton
-              key={b.id}
-              label={b.name}
-              pressed={board?.id === b.id}
-              onClick={() => setTab(b.id)}
-            >
-              <Icon size={15} />
+        <Popover.Root>
+          <Popover.Trigger>
+            <ToolButton label="Table volume">
+              <Volume2 size={15} />
             </ToolButton>
-          );
-        })}
-        {scenes.length > 0 && (
-          <ToolButton label="Scenes" pressed={showingScenes} onClick={() => setTab(SCENES_TAB)}>
-            <Clapperboard size={15} />
-          </ToolButton>
-        )}
+          </Popover.Trigger>
+          <Popover.Content size="1" width="200px">
+            <label className="vtt-volume">
+              <Volume2 size={15} aria-hidden />
+              <input
+                type="range"
+                aria-label="Table volume"
+                min={0}
+                max={100}
+                value={master}
+                onChange={(e) => setMaster(Number(e.target.value))}
+                onPointerUp={() => void send('sound.volume', { master: master / 100 })}
+                onKeyUp={() => void send('sound.volume', { master: master / 100 })}
+              />
+            </label>
+          </Popover.Content>
+        </Popover.Root>
       </div>
       {problem && (
         <div className="vtt-composer-error" role="alert" style={{ position: 'static' }}>
           {problem}
         </div>
       )}
-      {showingScenes && (
+      {tab === 'voice' && <VoiceStrip />}
+      {tab === SCENES_TAB && (
         <div className="vtt-sound-grid">
           {scenes.map((sc) => (
             <ToolButton
@@ -94,6 +116,23 @@ export function EffectsStrip() {
           <ToolButton label="End the scene" onClick={() => void send('scene.stop', {})}>
             <Square size={13} />
           </ToolButton>
+        </div>
+      )}
+      {boards.length > 1 && (
+        <div className="vtt-drawer-row">
+          {boards.map((b) => {
+            const Icon = boardIcon(b.name);
+            return (
+              <ToolButton
+                key={b.id}
+                label={b.name}
+                pressed={board?.id === b.id}
+                onClick={() => setBoardId(b.id)}
+              >
+                <Icon size={15} />
+              </ToolButton>
+            );
+          })}
         </div>
       )}
       {board && (
@@ -119,8 +158,8 @@ export function EffectsStrip() {
           })}
         </div>
       )}
-      {data && boards.length === 0 && scenes.length === 0 && (
-        <span className="vtt-muted">Your library has no boards or scenes yet.</span>
+      {data && tab !== 'voice' && tab !== SCENES_TAB && boards.length === 0 && (
+        <span className="vtt-muted">Nothing in this category yet.</span>
       )}
     </div>
   );
