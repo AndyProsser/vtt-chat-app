@@ -32,3 +32,13 @@ export function emblemOf(avatarUrl: string | null | undefined): Emblem | undefin
   const name = avatarUrl?.startsWith('emblem:') ? avatarUrl.slice('emblem:'.length) : undefined;
   return (EMBLEMS as readonly string[]).includes(name ?? '') ? (name as Emblem) : undefined;
 }
+
+const UPLOADED = /^avatar:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i;
+
+/** The avatar value for a picture the player uploaded. */
+export const avatarValue = (id: string): string => `avatar:${id}`;
+
+/** The picture id behind an avatar value, if it is an uploaded portrait. */
+export function uploadedAvatarId(avatarUrl: string | null | undefined): string | undefined {
+  return avatarUrl ? UPLOADED.exec(avatarUrl)?.[1] : undefined;
+}

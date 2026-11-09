@@ -169,3 +169,9 @@ export const audioDevices = () => invoke<AudioDeviceList>('audio_devices');
 /** Picks the microphone (`input`) or speaker (`output`); `null` is the system default. */
 export const audioDeviceChoose = (kind: 'input' | 'output', id: string | null) =>
   invoke<void>('audio_device_choose', { kind, id });
+
+/** Uploads a shrunken portrait (base64) and returns its id. */
+export const avatarUpload = (data: string) => invoke<{ id: string }>('avatar_upload', { data });
+
+/** A portrait as a `data:` URL (the window may not fetch from the network). */
+export const avatarImage = (id: string) => invoke<string>('avatar_image', { id });

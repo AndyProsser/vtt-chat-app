@@ -26,6 +26,8 @@ commands.allow = [
   "account_select_campaign",
   "account_add_campaign",
   "account_rename",
+  "avatar_upload",
+  "avatar_image",
   "audio_devices",
   "audio_device_choose",
   "account_sign_out",

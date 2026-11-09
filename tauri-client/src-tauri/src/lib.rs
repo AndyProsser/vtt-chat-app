@@ -98,6 +98,8 @@ pub fn run() {
             account_commands::account_select_campaign,
             account_commands::account_add_campaign,
             account_commands::account_rename,
+            account_commands::avatar_upload,
+            account_commands::avatar_image,
             commands::audio_devices,
             commands::audio_device_choose,
             account_commands::account_sign_out,

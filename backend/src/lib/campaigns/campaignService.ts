@@ -188,11 +188,11 @@ export class CampaignService {
       if (
         url !== null &&
         url !== '' &&
-        !/^(https?:\/\/\S{1,2040}|emblem:[a-z0-9-]{1,30})$/i.test(url)
+        !/^(https?:\/\/\S{1,2040}|emblem:[a-z0-9-]{1,30}|avatar:[0-9a-f-]{36})$/i.test(url)
       ) {
         throw new DomainError(
           'invalid_input',
-          'the avatar must be a web address or one of the built-in emblems',
+          'the avatar must be a web address, an uploaded picture or one of the built-in emblems',
         );
       }
       next.avatarUrl = url === null || url === '' ? null : url;

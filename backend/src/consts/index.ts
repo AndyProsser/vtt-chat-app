@@ -26,6 +26,8 @@ export const DEFAULT_INSTANCE_SETTINGS: InstanceSettings = {
 export const CHAT_RETENTION_MESSAGES = 5000;
 
 /** One uploaded handout image/PDF. */
+/** A portrait, after the app has shrunk it (a 256-pixel square is a few kilobytes). */
+export const MAX_AVATAR_BYTES = 256 * 1024;
 export const MAX_HANDOUT_BYTES = 10 * 1024 * 1024;
 /** A campaign's handout files together; a runaway upload loop cannot fill the media volume. */
 export const MAX_CAMPAIGN_HANDOUT_BYTES = 1024 * 1024 * 1024;

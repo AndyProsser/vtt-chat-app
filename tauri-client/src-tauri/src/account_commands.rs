@@ -489,3 +489,77 @@ pub async fn campaign_file(
         base64::engine::general_purpose::STANDARD.encode(bytes)
     ))
 }
+
+/// An avatar id is a UUID; anything else never reaches the server as a path.
+fn is_avatar_id(id: &str) -> bool {
+    id.len() == 36
+        && id
+            .chars()
+            .all(|c| c.is_ascii_hexdigit() || c == '-')
+}
+
+/// The server and session token, for calls that are not about a campaign.
+async fn server_credentials(state: &AccountState) -> Result<(String, String), AccountError> {
+    let inner = state.0.lock().await;
+    match (&inner.saved.server, &inner.saved.session_token) {
+        (Some(s), Some(t)) => Ok((s.clone(), t.clone())),
+        _ => Err(error("signed_out", "sign in first")),
+    }
+}
+
+/// Uploads a portrait (already shrunk by the panel; base64) and returns `{ id }`. The server checks
+/// it really is a small picture.
+#[tauri::command]
+pub async fn avatar_upload(
+    state: State<'_, AccountState>,
+    data: String,
+) -> Result<Value, AccountError> {
+    use base64::Engine;
+    let (server, token) = server_credentials(&state).await?;
+    let bytes = base64::engine::general_purpose::STANDARD
+        .decode(data.as_bytes())
+        .map_err(|_| error("invalid_input", "that picture could not be read"))?;
+    if bytes.is_empty() || bytes.len() > 256 * 1024 {
+        return Err(error("invalid_input", "the picture is empty or too large"));
+    }
+    AccountClient::new(&server)
+        .upload(&token, "/api/avatars/upload", bytes)
+        .await
+}
+
+/// A portrait as a `data:` URL, because the webview may not fetch from the network (its CSP allows
+/// images from `data:` only).
+#[tauri::command]
+pub async fn avatar_image(
+    state: State<'_, AccountState>,
+    id: String,
+) -> Result<String, AccountError> {
+    use base64::Engine;
+    if !is_avatar_id(&id) {
+        return Err(error("bad_path", "that is not a picture id"));
+    }
+    let (server, token) = server_credentials(&state).await?;
+    let (mime, bytes) = AccountClient::new(&server)
+        .fetch_file(&token, &format!("/api/avatars/{id}"))
+        .await?;
+    if !mime.starts_with("image/") {
+        return Err(error("not_an_image", "that is not a picture"));
+    }
+    Ok(format!(
+        "data:{mime};base64,{}",
+        base64::engine::general_purpose::STANDARD.encode(bytes)
+    ))
+}
+
+#[cfg(test)]
+mod avatar_tests {
+    use super::is_avatar_id;
+
+    #[test]
+    fn only_uuid_shaped_ids_are_fetched() {
+        assert!(is_avatar_id("0b1f3a52-6c1e-4d57-9a64-0c2f7d3e8a11"));
+        assert!(!is_avatar_id("../../etc/passwd"));
+        assert!(!is_avatar_id("0b1f3a52-6c1e-4d57-9a64-0c2f7d3e8a1/"));
+        assert!(!is_avatar_id(""));
+    }
+}

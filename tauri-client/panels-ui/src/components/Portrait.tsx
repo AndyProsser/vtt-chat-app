@@ -20,7 +20,10 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 
-import { emblemOf, type Emblem } from '../lib/avatars.js';
+import { useEffect, useState } from 'react';
+
+import { emblemOf, uploadedAvatarId, type Emblem } from '../lib/avatars.js';
+import { loadAvatar } from '../lib/avatarImages.js';
 
 const ICON: Record<Emblem, LucideIcon> = {
   sword: Sword,
@@ -55,8 +58,28 @@ export function Portrait({
   fallback: string;
   size?: number;
 }) {
+  const picture = useUploadedPicture(uploadedAvatarId(avatarUrl));
+  if (picture) return <img className="vtt-portrait-img" src={picture} alt="" draggable={false} />;
   const emblem = emblemOf(avatarUrl);
   if (!emblem) return <>{fallback}</>;
   const Icon = ICON[emblem];
   return <Icon size={size} aria-label={emblem} />;
+}
+
+/** The `data:` URL of an uploaded portrait once it has loaded (initials show meanwhile or if it fails). */
+function useUploadedPicture(id: string | undefined): string | undefined {
+  const [url, setUrl] = useState<string>();
+  useEffect(() => {
+    setUrl(undefined);
+    if (!id) return;
+    let live = true;
+    loadAvatar(id).then(
+      (u) => live && setUrl(u),
+      () => undefined,
+    );
+    return () => {
+      live = false;
+    };
+  }, [id]);
+  return url;
 }

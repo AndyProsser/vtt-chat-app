@@ -5,6 +5,7 @@ import { AccountService } from './auth/accountService.js';
 import { CampaignService } from './campaigns/campaignService.js';
 import type { BackendConfig } from './config.js';
 import { inviteRoutes, webPages } from './http/joinRoutes.js';
+import { avatarRoutes } from './http/avatarRoutes.js';
 import { authRoutes } from './http/authRoutes.js';
 import { campaignRoutes } from './http/campaignRoutes.js';
 import { NoMailTransport, type MagicLinkSender } from './http/delivery.js';
@@ -193,6 +194,8 @@ export function createApp({
   if (records) {
     app.use('/api/campaigns/:campaignId/recordings', recordsRoutes({ accounts, store, records }));
   }
+
+  if (media) app.use('/api/avatars', avatarRoutes({ accounts, media }));
 
   if (table) {
     const handouts = new HandoutService({ store, table, media });
