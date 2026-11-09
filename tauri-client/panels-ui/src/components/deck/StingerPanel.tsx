@@ -20,7 +20,7 @@ export function StingerPanel({
   const byId = useMemo(() => new Map(sounds.map((s) => [s.soundId, s])), [sounds]);
   const pinned = pins.map((id) => byId.get(id)).filter((s): s is FlatSound => s !== undefined);
   return (
-    <div className="vtt-chips">
+    <div className="vtt-deck-chips">
       {pinned.map((s) => {
         const Icon = soundIcon(s.label);
         return (
