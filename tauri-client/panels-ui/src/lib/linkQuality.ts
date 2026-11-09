@@ -6,7 +6,12 @@ export interface LinkStatsView {
   jitterMs: number;
   packetLossPct: number;
   at: number;
+  /** Recent round-trip samples, oldest first, for the sparkline. */
+  history?: readonly number[];
 }
+
+/** About two minutes of samples at the 5-second report rate. */
+export const HISTORY_LENGTH = 24;
 
 export type Quality = 'good' | 'fair' | 'poor' | 'unknown';
 
@@ -39,6 +44,14 @@ function asStats(v: unknown): LinkStatsView | undefined {
   };
 }
 
+/** Appends this sample to the previous history, unless it is the same report seen again. */
+function withHistory(stats: LinkStatsView, previous: LinkStatsView | undefined): LinkStatsView {
+  const before = previous?.history ?? [];
+  const repeat = previous !== undefined && previous.at === stats.at && stats.at !== 0;
+  const history = repeat ? before : [...before, stats.rttMs].slice(-HISTORY_LENGTH);
+  return { ...stats, history };
+}
+
 /** Folds one feed event into the per-player stats map; returns the same map when nothing changed. */
 export function applyStatsEvent(
   map: ReadonlyMap<string, LinkStatsView>,
@@ -50,14 +63,15 @@ export function applyStatsEvent(
     for (const m of Array.isArray(d.members) ? d.members : []) {
       const member = asObj(m);
       const stats = asStats(member.stats);
-      if (stats && typeof member.userId === 'string') next.set(member.userId, stats);
+      if (stats && typeof member.userId === 'string')
+        next.set(member.userId, withHistory(stats, map.get(member.userId)));
     }
     return next;
   }
   if (event.t === 'stats.update') {
     const stats = asStats(d.stats);
     if (!stats || typeof d.userId !== 'string') return map;
-    return new Map(map).set(d.userId, stats);
+    return new Map(map).set(d.userId, withHistory(stats, map.get(d.userId)));
   }
   return map;
 }

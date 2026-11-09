@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { applyStatsEvent, describeLink, linkQuality, type LinkStatsView } from './linkQuality.js';
+import {
+  applyStatsEvent,
+  describeLink,
+  HISTORY_LENGTH,
+  linkQuality,
+  type LinkStatsView,
+} from './linkQuality.js';
 
 const s = (rttMs: number, jitterMs: number, packetLossPct: number): LinkStatsView => ({
   rttMs,
@@ -55,5 +61,38 @@ describe('applyStatsEvent', () => {
     expect(
       applyStatsEvent(map, { t: 'stats.update', d: { userId: 'a', stats: { rttMs: 'x' } } }),
     ).toBe(map);
+  });
+});
+
+describe('link history for the sparkline', () => {
+  const update = (map: ReadonlyMap<string, LinkStatsView>, rtt: number, at: number) =>
+    applyStatsEvent(map, {
+      t: 'stats.update',
+      d: { userId: 'a', stats: { rttMs: rtt, jitterMs: 1, packetLossPct: 0, at } },
+    });
+
+  it('keeps each latency sample, oldest first', () => {
+    let map: ReadonlyMap<string, LinkStatsView> = new Map();
+    for (const [i, rtt] of [30, 40, 50].entries()) map = update(map, rtt, i + 1);
+    expect(map.get('a')?.history).toEqual([30, 40, 50]);
+  });
+
+  it('keeps only the most recent samples', () => {
+    let map: ReadonlyMap<string, LinkStatsView> = new Map();
+    for (let i = 0; i < HISTORY_LENGTH + 10; i += 1) map = update(map, i, i + 1);
+    const history = map.get('a')?.history ?? [];
+    expect(history).toHaveLength(HISTORY_LENGTH);
+    expect(history.at(-1)).toBe(HISTORY_LENGTH + 9);
+  });
+
+  it('does not double-count a roster snapshot repeating the last sample', () => {
+    const map = update(new Map(), 30, 5);
+    const again = applyStatsEvent(map, {
+      t: 'roster.update',
+      d: {
+        members: [{ userId: 'a', stats: { rttMs: 30, jitterMs: 1, packetLossPct: 0, at: 5 } }],
+      },
+    });
+    expect(again.get('a')?.history).toEqual([30]);
   });
 });

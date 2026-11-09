@@ -28,13 +28,7 @@ export function VoiceStrip() {
       {VOICES.map((v) => {
         const Icon = VOICE_ICON[v];
         return (
-          <ToolButton
-            key={v}
-            square
-            label={TIP[v]}
-            pressed={v === current}
-            onClick={() => void choose(v)}
-          >
+          <ToolButton key={v} label={TIP[v]} pressed={v === current} onClick={() => void choose(v)}>
             <Icon size={15} />
           </ToolButton>
         );
