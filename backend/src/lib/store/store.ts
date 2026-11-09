@@ -49,6 +49,12 @@ export interface Store {
   /** Characters linked to a D&D Beyond sheet, least recently synced first. */
   listLinkedCharacters(): Promise<Character[]>;
 
+  /** Notes that `userId` uploaded the portrait stored under `id` (see `listUnusedAvatarFiles`). */
+  recordAvatarFile(id: string, userId: string, at: number): Promise<void>;
+  /** Uploaded portraits older than `olderThan` that no account or character uses (`avatar:<id>`). */
+  listUnusedAvatarFiles(olderThan: number): Promise<string[]>;
+  deleteAvatarFile(id: string): Promise<void>;
+
   getInviteByHash(codeHash: string): Promise<Invite | undefined>;
   putInvite(invite: Invite): Promise<void>;
 

@@ -74,10 +74,21 @@ export function useGroupDrag() {
     // `view` only matters at the moment of dropping.
   }, [drag !== undefined, view]);
 
+  /** The same move a drop makes, chosen from a menu: for the keyboard, where there is no pointer. */
+  function moveTo(member: Member, lane: string) {
+    const drop = groupDrop(view, member.userId, lane, () =>
+      pickGroupName(view.parties.map((p) => p.name)),
+    );
+    if (drop?.kind === 'move') void send('party.move', drop.move);
+    if (drop?.kind === 'create')
+      void send('party.create', { name: drop.name, members: [drop.userId] });
+  }
+
   return {
     drag,
     error,
     send,
+    moveTo,
     begin: (
       member: Member,
       e: { button: number; clientX: number; clientY: number; preventDefault: () => void },

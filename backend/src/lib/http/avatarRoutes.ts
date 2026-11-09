@@ -6,11 +6,14 @@ import { MAX_AVATAR_BYTES } from '../../consts/index.js';
 import type { AccountService } from '../auth/accountService.js';
 import { DomainError } from '../errors.js';
 import { detectMedia, type MediaStorage } from '../media/mediaStorage.js';
+import type { Store } from '../store/store.js';
 import { authOf, requireAuth } from './middleware.js';
 
 export interface AvatarRouteDeps {
   accounts: AccountService;
   media: MediaStorage;
+  store: Store;
+  now?: () => number;
 }
 
 const SAFE_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -20,7 +23,7 @@ const SAFE_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
  * an unguessable id and readable by anyone signed in, so a character's portrait shows to the table. They
  * are not tied to a campaign, which keeps this to two routes; an unused picture is just a few kilobytes.
  */
-export function avatarRoutes({ accounts, media }: AvatarRouteDeps): Router {
+export function avatarRoutes({ accounts, media, store, now = Date.now }: AvatarRouteDeps): Router {
   const router = Router();
   router.use(requireAuth(accounts));
 
@@ -29,7 +32,7 @@ export function avatarRoutes({ accounts, media }: AvatarRouteDeps): Router {
     '/upload',
     express.raw({ type: () => true, limit: MAX_AVATAR_BYTES + 1024 }),
     async (req, res) => {
-      authOf(res);
+      const { user } = authOf(res);
       const bytes = Buffer.isBuffer(req.body) ? req.body : Buffer.alloc(0);
       if (bytes.length === 0) throw new DomainError('invalid_input', 'the picture is empty');
       if (bytes.length > MAX_AVATAR_BYTES)
@@ -38,6 +41,7 @@ export function avatarRoutes({ accounts, media }: AvatarRouteDeps): Router {
         throw new DomainError('unsupported_media', 'that is not a PNG, JPEG, GIF or WebP picture');
       const id = randomUUID();
       await media.put(id, bytes);
+      await store.recordAvatarFile(id, user.id, now());
       res.status(201).json({ id });
     },
   );

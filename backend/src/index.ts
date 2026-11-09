@@ -35,6 +35,7 @@ import {
   PostgresScheduleStore,
   ScheduleService,
   StatusService,
+  AvatarSweeper,
   createSmtpMailTransport,
   type StatusProbe,
   CampaignService,
@@ -157,6 +158,17 @@ if (isEntryPoint) {
     onNotified: () => void relay.flush().catch(() => undefined),
   });
   setInterval(() => void reminders.sendDueReminders().catch(() => undefined), 60_000).unref();
+  // Pictures nobody uses any more (replaced portraits, uploads never saved) are removed daily.
+  if (media) {
+    const sweeper = new AvatarSweeper(store, media);
+    const sweep = () =>
+      void sweeper
+        .sweep()
+        .then((n) => n > 0 && console.log(`[backend] removed ${n} unused portrait(s)`))
+        .catch(() => undefined);
+    setTimeout(sweep, 60_000).unref();
+    setInterval(sweep, 24 * 3_600_000).unref();
+  }
   // Optional D&D Beyond character sync: off unless the operator turns it on; refreshed hourly.
   const ddb = new DdbSyncService({
     store,

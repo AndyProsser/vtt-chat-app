@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { Member, PartyView } from '../types/index.js';
-import { groupDrop, groupNameOf, lanes, moveCommand, railSections } from './groups.js';
+import { groupDrop, groupNameOf, lanes, moveCommand, moveTargets, railSections } from './groups.js';
 
 const m = (userId: string, name: string, role: Member['role'] = 'player'): Member => ({
   userId,
@@ -107,5 +107,21 @@ describe('rail sections', () => {
     expect(groupNameOf(view, 'a')).toBe('Scouts');
     expect(groupNameOf(view, 'b')).toBe('Main Party');
     expect(groupNameOf({ ...view, split: false }, 'a')).toBeUndefined();
+  });
+});
+
+describe('moveTargets (the keyboard way to move someone)', () => {
+  it('offers every other group, then a new one, never the one they are in', () => {
+    const sections = railSections(members, view({ b: 'p1' }));
+    expect(moveTargets(sections, 'a').map((t) => t.id)).toEqual(['p1', 'p2', 'new']);
+    expect(moveTargets(sections, 'b').map((t) => t.id)).toEqual(['main', 'p2', 'new']);
+  });
+  it('labels them with the group names', () => {
+    const sections = railSections(members, view({}));
+    expect(moveTargets(sections, 'a').map((t) => t.label)).toEqual([
+      'Scouts',
+      'Guards',
+      'New group',
+    ]);
   });
 });

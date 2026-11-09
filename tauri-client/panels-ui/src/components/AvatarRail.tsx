@@ -1,10 +1,11 @@
+import { DropdownMenu } from '@radix-ui/themes';
 import { Merge, UsersRound } from 'lucide-react';
-import { Fragment, useMemo } from 'react';
+import { Fragment, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import { useGroupDrag } from '../hooks/useGroupDrag.js';
 import { avatarColor } from '../lib/avatarColor.js';
-import { groupNameOf, railSections } from '../lib/groups.js';
+import { groupNameOf, moveTargets, railSections } from '../lib/groups.js';
 import { initials, memberAvatar } from '../lib/rail.js';
 import { useTableStore } from '../lib/tableStore.js';
 import { ConnectionMenu } from './ConnectionMenu.js';
@@ -22,7 +23,9 @@ export function AvatarRail({ dm }: { dm: boolean }) {
   const view = useTableStore((s) => s.parties);
   const sections = useMemo(() => railSections(members, view), [members, view]);
   const host = members.find((m) => m.role === 'dm');
-  const { drag, error, send, begin } = useGroupDrag();
+  const { drag, error, send, begin, moveTo } = useGroupDrag();
+  // Keyboard: Enter or Space on a focused person opens a menu of groups to move them to.
+  const [menuFor, setMenuFor] = useState<string>();
   return (
     <nav className="vtt-rail" aria-label="People at the table">
       {host && (
@@ -50,12 +53,43 @@ export function AvatarRail({ dm }: { dm: boolean }) {
                     : 'vtt-rail-item'
                 }
                 onPointerDown={dm ? (e) => begin(m, e) : undefined}
+                {...(dm
+                  ? {
+                      tabIndex: 0,
+                      onKeyDown: (e: React.KeyboardEvent) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          setMenuFor(m.userId);
+                        }
+                      },
+                    }
+                  : {})}
               >
                 <RailAvatar
                   member={m}
                   partyId={section.id === 'main' ? undefined : section.id}
                   groupName={groupNameOf(view, m.userId)}
                 />
+                {dm && (
+                  <DropdownMenu.Root
+                    open={menuFor === m.userId}
+                    onOpenChange={(o) => !o && setMenuFor(undefined)}
+                  >
+                    <DropdownMenu.Trigger>
+                      <span className="vtt-menu-anchor" aria-hidden />
+                    </DropdownMenu.Trigger>
+                    <DropdownMenu.Content size="1" side="right">
+                      <DropdownMenu.Label>
+                        Move {m.character?.name ?? m.displayName} to
+                      </DropdownMenu.Label>
+                      {moveTargets(sections, m.userId).map((t) => (
+                        <DropdownMenu.Item key={t.id} onSelect={() => moveTo(m, t.id)}>
+                          {t.label}
+                        </DropdownMenu.Item>
+                      ))}
+                    </DropdownMenu.Content>
+                  </DropdownMenu.Root>
+                )}
               </div>
             ))}
           </div>

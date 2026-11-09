@@ -22,6 +22,7 @@ interface Data {
   campaigns: Map<string, Campaign>;
   memberships: Map<string, Membership>;
   characters: Map<string, Character>;
+  avatarFiles: Map<string, { userId: string; createdAt: number }>;
   chat: ChatMessage[];
   invites: Map<string, Invite>;
 }
@@ -35,6 +36,7 @@ function emptyData(): Data {
     campaigns: new Map(),
     memberships: new Map(),
     characters: new Map(),
+    avatarFiles: new Map(),
     chat: [],
     invites: new Map(),
   };
@@ -113,6 +115,24 @@ export class MemoryStore implements Store {
       .sort((a, b) => (a.syncedAt ?? 0) - (b.syncedAt ?? 0) || a.id.localeCompare(b.id));
   putCharacter = async (character: Character): Promise<void> => {
     this.data.characters.set(character.id, copy(character));
+  };
+
+  recordAvatarFile = async (id: string, userId: string, at: number): Promise<void> => {
+    this.data.avatarFiles.set(id, { userId, createdAt: at });
+  };
+  listUnusedAvatarFiles = async (olderThan: number): Promise<string[]> => {
+    const used = new Set<string>();
+    const note = (value: string | null | undefined) => {
+      if (value?.startsWith('avatar:')) used.add(value.slice('avatar:'.length));
+    };
+    for (const u of this.data.users.values()) note(u.avatarUrl);
+    for (const c of this.data.characters.values()) note(c.avatarUrl);
+    return [...this.data.avatarFiles]
+      .filter(([id, f]) => f.createdAt < olderThan && !used.has(id))
+      .map(([id]) => id);
+  };
+  deleteAvatarFile = async (id: string): Promise<void> => {
+    this.data.avatarFiles.delete(id);
   };
 
   getInviteByHash = async (codeHash: string): Promise<Invite | undefined> =>

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { planBoards, planSounds, soundNameOf } from './importPlan.js';
+import { categoryOf, planBoards, planSounds, soundNameOf } from './importPlan.js';
 
 describe('soundNameOf', () => {
   it('turns a file name into a readable sound name, dropping the take number', () => {
@@ -56,5 +56,17 @@ describe('planBoards', () => {
     const impact = boards.filter((b) => b.name.startsWith('Impact'));
     expect(impact.map((b) => b.buttons.length)).toEqual([60, 60, 10]);
     expect(impact.map((b) => b.name)).toEqual(['Impact', 'Impact 2', 'Impact 3']);
+  });
+});
+
+describe('categoryOf', () => {
+  it('reads ambience and music from a folder name, case-insensitively', () => {
+    expect(categoryOf('/packs/Ambience/rain 1.ogg')).toBe('ambience');
+    expect(categoryOf('C:\\packs\\music\\theme.ogg')).toBe('music');
+    expect(categoryOf('/packs/impact/hit.ogg')).toBe('effect');
+  });
+  it('uses the fallback when no folder says, and ignores the file name itself', () => {
+    expect(categoryOf('/packs/forest.ogg', 'ambience')).toBe('ambience');
+    expect(categoryOf('/packs/music.ogg')).toBe('effect');
   });
 });

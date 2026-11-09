@@ -217,7 +217,7 @@ export function createApp({
     app.use('/api/campaigns/:campaignId/recordings', recordsRoutes({ accounts, store, records }));
   }
 
-  if (media) app.use('/api/avatars', avatarRoutes({ accounts, media }));
+  if (media) app.use('/api/avatars', avatarRoutes({ accounts, media, store }));
   app.use('/api/ddb', ddbRoutes({ accounts, ...(ddb ? { ddb } : {}) }));
 
   if (table) {

@@ -40,6 +40,27 @@ describe(`Store contract (${backend.kind})`, () => {
     expect(await store.getCampaign(c.id)).toBeUndefined();
   });
 
+  it('lists uploaded portraits nobody uses any more, and only old enough ones', async () => {
+    const owner = backend.newId();
+    await store.putUser({
+      id: owner,
+      email: 'p@x.test',
+      displayName: 'P',
+      passwordHash: null,
+      isAdmin: false,
+      consentVersion: '1',
+      consentAt: 1,
+      createdAt: 1,
+      avatarUrl: 'avatar:used-by-account',
+    });
+    await store.recordAvatarFile('used-by-account', owner, 10);
+    await store.recordAvatarFile('replaced', owner, 10);
+    await store.recordAvatarFile('fresh', owner, 500);
+    expect((await store.listUnusedAvatarFiles(100)).sort()).toEqual(['replaced']);
+    await store.deleteAvatarFile('replaced');
+    expect(await store.listUnusedAvatarFiles(100)).toEqual([]);
+  });
+
   it('commits a successful transaction and returns its value', async () => {
     const c = campaign();
     const result = await store.transaction(async (tx) => {
@@ -201,6 +222,7 @@ describe.skipIf(TEST_DATABASE_URL === undefined)('migrate', () => {
         '0015_recording_event_detail.sql',
         '0016_user_avatar.sql',
         '0017_character_sync.sql',
+        '0018_avatar_files.sql',
       ]);
       expect(await migrate(pool)).toEqual([]);
     } finally {

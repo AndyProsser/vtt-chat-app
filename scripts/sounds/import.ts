@@ -3,6 +3,7 @@
 // one sound) and boards of buttons grouped by name. Run it as the DM account that will use them.
 //
 //   node scripts/sounds/import.ts --from ./my-sounds
+//   node scripts/sounds/import.ts --from ./loops --category ambience   (or put files in folders named ambience / music)
 //   node scripts/sounds/import.ts --kenney            # Kenney's CC0 "RPG Audio" and "Impact Sounds" packs
 //   (add --dev to sign in as the seeded dev DM; otherwise set VTT_SERVER, VTT_EMAIL and VTT_PASSWORD)
 //
@@ -14,7 +15,12 @@ import { mkdtempSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-import { planBoards, planSounds } from '../../shared/src/sounds/importPlan.ts';
+import {
+  categoryOf,
+  planBoards,
+  planSounds,
+  type ImportCategory,
+} from '../../shared/src/sounds/importPlan.ts';
 import { loadState } from '../dev/lib.ts';
 
 const MAX_BYTES = 5 * 1024 * 1024;
@@ -100,6 +106,10 @@ async function api(
   return text ? JSON.parse(text) : undefined;
 }
 
+const fallbackCategory = (value('--category') ?? 'effect') as ImportCategory;
+if (!['effect', 'ambience', 'music'].includes(fallbackCategory))
+  throw new Error('--category must be effect, ambience or music');
+
 async function main(): Promise<void> {
   const folders = flag('--kenney')
     ? await fetchKenney()
@@ -137,7 +147,7 @@ async function main(): Promise<void> {
         const created = await api(
           session,
           'POST',
-          `/api/soundboard/sounds/upload?name=${encodeURIComponent(sound.name)}&category=effect&filename=${filename}`,
+          `/api/soundboard/sounds/upload?name=${encodeURIComponent(sound.name)}&category=${categoryOf(file, fallbackCategory)}&filename=${filename}`,
           undefined,
           bytes,
         );

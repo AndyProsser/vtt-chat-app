@@ -110,6 +110,7 @@ body,
   flex-direction: column;
   align-items: center;
   gap: 8px;
+  position: relative;
 }
 .vtt-rail-sep {
   width: 30px;
@@ -1363,4 +1364,11 @@ body,
 }
 .vtt-transcript p {
   margin: 0;
+}
+
+/* Invisible anchor for the keyboard "move to a group" menu; pointers never reach it. */
+.vtt-menu-anchor {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
 }

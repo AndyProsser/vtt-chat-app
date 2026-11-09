@@ -315,6 +315,28 @@ export class PostgresStore implements Store {
     return rows.map(toCharacter);
   }
 
+  async recordAvatarFile(id: string, userId: string, at: number): Promise<void> {
+    await this.db.query(
+      'INSERT INTO avatar_files (id, user_id, created_at) VALUES ($1, $2, $3) ON CONFLICT (id) DO NOTHING',
+      [id, userId, at],
+    );
+  }
+
+  async listUnusedAvatarFiles(olderThan: number): Promise<string[]> {
+    const { rows } = await this.db.query(
+      `SELECT f.id FROM avatar_files f
+       WHERE f.created_at < $1
+         AND NOT EXISTS (SELECT 1 FROM users u WHERE u.avatar_url = 'avatar:' || f.id)
+         AND NOT EXISTS (SELECT 1 FROM characters c WHERE c.avatar_url = 'avatar:' || f.id)`,
+      [olderThan],
+    );
+    return rows.map((r) => r.id as string);
+  }
+
+  async deleteAvatarFile(id: string): Promise<void> {
+    await this.db.query('DELETE FROM avatar_files WHERE id = $1', [id]);
+  }
+
   async listLinkedCharacters(): Promise<Character[]> {
     const { rows } = await this.db.query(
       'SELECT * FROM characters WHERE source_url IS NOT NULL ORDER BY synced_at NULLS FIRST, id',

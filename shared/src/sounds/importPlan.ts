@@ -17,6 +17,22 @@ export function soundNameOf(file: string): string {
   return words.charAt(0).toUpperCase() + words.slice(1);
 }
 
+export type ImportCategory = 'effect' | 'ambience' | 'music';
+
+/**
+ * The library category for a file: a folder named `ambience` or `music` anywhere in its path decides
+ * it (so one `--from` folder can hold all three); otherwise the `fallback` the run was given.
+ */
+export function categoryOf(file: string, fallback: ImportCategory = 'effect'): ImportCategory {
+  const folders = file
+    .split(/[\\/]/)
+    .slice(0, -1)
+    .map((f) => f.toLowerCase());
+  if (folders.includes('ambience') || folders.includes('ambient')) return 'ambience';
+  if (folders.includes('music')) return 'music';
+  return fallback;
+}
+
 export interface PlannedSound {
   name: string;
   /** The takes, in file-name order. */

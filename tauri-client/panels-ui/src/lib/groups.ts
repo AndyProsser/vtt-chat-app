@@ -76,6 +76,21 @@ export function railSections(members: Member[], view: PartyView): RailSection[] 
   }));
 }
 
+export interface MoveTarget {
+  /** A lane id for `groupDrop`: `main`, a party id, or `new`. */
+  id: string;
+  label: string;
+}
+
+/** Where `userId` can be moved to without dragging: every other group, then a new one. */
+export function moveTargets(sections: RailSection[], userId: string): MoveTarget[] {
+  const current = sections.find((s) => s.members.some((m) => m.userId === userId))?.id;
+  return [
+    ...sections.filter((s) => s.id !== current).map((s) => ({ id: s.id, label: s.name })),
+    { id: 'new', label: 'New group' },
+  ];
+}
+
 /** The name of the group `userId` is in, for the hover card; nothing while the table is not split. */
 export function groupNameOf(view: PartyView, userId: string): string | undefined {
   if (!view.split) return undefined;
