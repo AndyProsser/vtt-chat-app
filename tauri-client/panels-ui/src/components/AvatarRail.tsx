@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom';
 import { useGroupDrag } from '../hooks/useGroupDrag.js';
 import { avatarColor } from '../lib/avatarColor.js';
 import { groupNameOf, railSections } from '../lib/groups.js';
-import { initials } from '../lib/rail.js';
+import { initials, memberAvatar } from '../lib/rail.js';
 import { useTableStore } from '../lib/tableStore.js';
 import { ConnectionMenu } from './ConnectionMenu.js';
 import { Portrait } from './Portrait.js';
@@ -97,7 +97,7 @@ export function AvatarRail({ dm }: { dm: boolean }) {
           <div className="vtt-ghost" style={{ left: drag.x, top: drag.y }} aria-hidden>
             <i className="vtt-chip-av" style={{ background: avatarColor(drag.member.userId) }}>
               <Portrait
-                avatarUrl={drag.member.character?.avatarUrl}
+                avatarUrl={memberAvatar(drag.member)}
                 fallback={initials(drag.member.character?.name ?? drag.member.displayName)}
                 size={12}
               />

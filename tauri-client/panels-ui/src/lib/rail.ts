@@ -42,3 +42,8 @@ export function initials(name: string): string {
     .map((w) => w[0]!.toUpperCase());
   return letters.length ? letters.join('') : '?';
 }
+
+/** The portrait to show for someone: their character's if it has one, else their own, else none (initials). */
+export function memberAvatar(m: Member): string | undefined {
+  return m.character?.avatarUrl || m.avatarUrl || undefined;
+}

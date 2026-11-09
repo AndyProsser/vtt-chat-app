@@ -72,6 +72,10 @@ export const accountSelectCampaign = (campaignId: string) =>
 /** Changes the player's own name (the server validates it). */
 export const accountRename = (name: string) => invoke<AccountStatus>('account_rename', { name });
 
+/** Sets (or with `null` clears) your own portrait: `avatar:<id>` from an upload, or an emblem. */
+export const accountSetAvatar = (avatar: string | null) =>
+  invoke<AccountStatus>('account_set_avatar', { avatar });
+
 /** Joins a campaign by invite code, or creates one, then switches to it (`account_add_campaign`). */
 export const accountAddCampaign = (action: 'join' | 'create' | 'refresh', value: string) =>
   invoke<AccountStatus>('account_add_campaign', { action, value });

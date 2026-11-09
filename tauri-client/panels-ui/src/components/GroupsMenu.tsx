@@ -6,7 +6,7 @@ import { createPortal } from 'react-dom';
 import { avatarColor } from '../lib/avatarColor.js';
 import { useGroupDrag } from '../hooks/useGroupDrag.js';
 import { lanes } from '../lib/groups.js';
-import { initials } from '../lib/rail.js';
+import { initials, memberAvatar } from '../lib/rail.js';
 import { useTableStore } from '../lib/tableStore.js';
 import type { Member } from '../types/index.js';
 import { Portrait } from './Portrait.js';
@@ -122,11 +122,7 @@ export function GroupsMenu() {
 function Avatar({ member }: { member: Member }) {
   return (
     <i className="vtt-chip-av" style={{ background: avatarColor(member.userId) }}>
-      <Portrait
-        avatarUrl={member.character?.avatarUrl}
-        fallback={initials(labelOf(member))}
-        size={12}
-      />
+      <Portrait avatarUrl={memberAvatar(member)} fallback={initials(labelOf(member))} size={12} />
     </i>
   );
 }

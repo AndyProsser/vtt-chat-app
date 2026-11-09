@@ -1,10 +1,9 @@
-import { Check, ChevronDown, ChevronRight, ImagePlus, Plus, Save, UserRound } from 'lucide-react';
+import { Check, ChevronDown, ChevronRight, Plus, Save, UserRound } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { useAccount } from '../../hooks/useAccount.js';
 import { useCampaignQuery } from '../../hooks/useCampaignQuery.js';
 import { EMBLEMS, avatarValue, emblemOf, emblemValue } from '../../lib/avatars.js';
-import { shrinkToSquare } from '../../lib/avatarImages.js';
 import {
   blankDraft,
   characterPatch,
@@ -14,7 +13,8 @@ import {
 } from '../../lib/characters.js';
 import { isDm } from '../../lib/tableModel.js';
 import { useTableStore } from '../../lib/tableStore.js';
-import { accountErrorMessage, avatarUpload, campaignApi } from '../../lib/tauriBridge.js';
+import { accountErrorMessage, campaignApi } from '../../lib/tauriBridge.js';
+import { PictureButton } from '../PictureButton.js';
 import { EmblemIcon, Portrait } from '../Portrait.js';
 import { ToolButton } from '../ToolButton.js';
 
@@ -266,47 +266,5 @@ function NewCharacter({
         </ToolButton>
       </div>
     </section>
-  );
-}
-
-/** Pick a picture; it is shrunk to a 256-pixel square here, uploaded, and its id handed back. */
-function PictureButton({ onPicked }: { onPicked: (id: string) => void }) {
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string>();
-  async function pick(file: File | undefined) {
-    if (!file) return;
-    try {
-      setBusy(true);
-      setError(undefined);
-      const { id } = await avatarUpload(await shrinkToSquare(file));
-      onPicked(id);
-    } catch (e) {
-      setError(accountErrorMessage(e));
-    } finally {
-      setBusy(false);
-    }
-  }
-  return (
-    <>
-      <label className="vtt-tool" title="Upload a picture">
-        <ImagePlus size={14} aria-hidden />
-        <span>{busy ? 'Uploading…' : 'Picture'}</span>
-        <input
-          type="file"
-          accept="image/png,image/jpeg,image/webp,image/gif"
-          hidden
-          disabled={busy}
-          onChange={(e) => {
-            void pick(e.target.files?.[0]);
-            e.target.value = '';
-          }}
-        />
-      </label>
-      {error && (
-        <span className="vtt-composer-error" role="alert" style={{ position: 'static' }}>
-          {error}
-        </span>
-      )}
-    </>
   );
 }

@@ -2,7 +2,7 @@ import { memo } from 'react';
 
 import { lineKind } from '../lib/commands.js';
 import { Portrait } from './Portrait.js';
-import { initials } from '../lib/rail.js';
+import { initials, memberAvatar } from '../lib/rail.js';
 import type { ChatLine, Member } from '../types/index.js';
 
 interface Props {
@@ -32,7 +32,7 @@ export const ChatMessage = memo(function ChatMessage({ line, members, selfId }: 
     <div className="vtt-msg">
       <span className={sender?.role === 'dm' ? 'vtt-av vtt-av-sm vtt-av-dm' : 'vtt-av vtt-av-sm'}>
         <Portrait
-          avatarUrl={sender?.character?.avatarUrl}
+          avatarUrl={sender ? memberAvatar(sender) : undefined}
           fallback={initials(line.from.name)}
           size={13}
         />

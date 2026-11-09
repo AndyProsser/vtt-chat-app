@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { Member } from '../types/index.js';
-import { initials, memberCard, railOrder, speakingMembers } from './rail.js';
+import { initials, memberAvatar, memberCard, railOrder, speakingMembers } from './rail.js';
 
 const m = (userId: string, over: Partial<Member> = {}): Member => ({
   userId,
@@ -69,5 +69,36 @@ describe('initials', () => {
     expect(initials('mira')).toBe('M');
     expect(initials('  ')).toBe('?');
     expect(initials('')).toBe('?');
+  });
+});
+
+describe('memberAvatar', () => {
+  const base = {
+    userId: 'u',
+    displayName: 'U',
+    role: 'player',
+    online: true,
+    inVoice: false,
+    muted: false,
+  };
+  it('prefers the character portrait, then the person own, else nothing', () => {
+    expect(
+      memberAvatar({
+        ...base,
+        avatarUrl: 'emblem:crown',
+        character: { name: 'C', avatarUrl: 'emblem:bow' },
+      } as never),
+    ).toBe('emblem:bow');
+    expect(
+      memberAvatar({
+        ...base,
+        avatarUrl: 'emblem:crown',
+        character: { name: 'C', avatarUrl: null },
+      } as never),
+    ).toBe('emblem:crown');
+    expect(memberAvatar({ ...base, avatarUrl: 'emblem:crown', character: null } as never)).toBe(
+      'emblem:crown',
+    );
+    expect(memberAvatar({ ...base, character: null } as never)).toBeUndefined();
   });
 });

@@ -21,6 +21,9 @@ pub struct Saved {
     /// Not secret: shown in the panel and used to tell "mine" from "theirs" in chat.
     pub user_id: Option<String>,
     pub display_name: Option<String>,
+    /// The player's own portrait (`avatar:<id>` or `emblem:<name>`), shown in Profile.
+    #[serde(default)]
+    pub avatar_url: Option<String>,
 }
 
 const FILE_NAME: &str = "account.json";
@@ -272,6 +275,7 @@ pub struct CampaignItem {
 pub struct LoginOutcome {
     pub session_token: String,
     pub display_name: String,
+    pub avatar_url: Option<String>,
     pub user_id: String,
 }
 
@@ -359,6 +363,10 @@ impl AccountClient {
                 .and_then(Value::as_str)
                 .unwrap_or_default()
                 .to_string(),
+            avatar_url: user
+                .get("avatarUrl")
+                .and_then(Value::as_str)
+                .map(str::to_string),
             user_id: user
                 .get("id")
                 .and_then(Value::as_str)
@@ -541,6 +549,7 @@ pub fn status_json(saved: &Saved, campaigns: &[CampaignItem]) -> Value {
         "campaignId": saved.campaign_id,
         "userId": saved.user_id,
         "displayName": saved.display_name,
+        "avatarUrl": saved.avatar_url,
         "campaigns": campaigns,
     })
 }
@@ -615,6 +624,7 @@ mod tests {
             campaign_id: Some("c1".into()),
             user_id: Some("u1".into()),
             display_name: Some("Ann".into()),
+            avatar_url: None,
         }
     }
 

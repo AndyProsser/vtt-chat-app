@@ -5,6 +5,7 @@ export interface AccountStatus {
   campaignId: string | null;
   userId: string | null;
   displayName: string | null;
+  avatarUrl?: string | null;
   campaigns: { id: string; name: string; role: string }[];
 }
 
@@ -16,6 +17,8 @@ export interface AccountError {
 export interface Member {
   userId: string;
   displayName: string;
+  /** The person's own portrait, used when their character has none. */
+  avatarUrl?: string | null;
   role: 'dm' | 'player';
   character: {
     name: string;

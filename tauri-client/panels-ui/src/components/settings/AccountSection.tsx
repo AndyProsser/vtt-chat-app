@@ -4,7 +4,11 @@ import { useEffect, useState } from 'react';
 
 import { useAccount } from '../../hooks/useAccount.js';
 import { useLinkedServer } from '../../hooks/useLinkedServer.js';
-import { accountErrorMessage, accountRename } from '../../lib/tauriBridge.js';
+import { avatarValue } from '../../lib/avatars.js';
+import { initials } from '../../lib/rail.js';
+import { accountErrorMessage, accountRename, accountSetAvatar } from '../../lib/tauriBridge.js';
+import { PictureButton } from '../PictureButton.js';
+import { Portrait } from '../Portrait.js';
 import { ToolButton } from '../ToolButton.js';
 
 /**
@@ -54,7 +58,27 @@ export function AccountSection() {
     const campaign = status.campaigns.find((c) => c.id === status.campaignId);
     return (
       <Flex direction="column" gap="3" p="4">
-        <PlayerName name={status.displayName ?? 'Signed in'} />
+        <Flex align="center" gap="3">
+          <span className="vtt-av vtt-char-av">
+            <Portrait avatarUrl={status.avatarUrl} fallback={initials(status.displayName ?? '?')} />
+          </span>
+          <Flex direction="column" gap="2">
+            <PlayerName name={status.displayName ?? 'Signed in'} />
+            <Flex align="center" gap="2">
+              <PictureButton
+                onPicked={(id) => void accountSetAvatar(avatarValue(id)).catch(console.error)}
+              />
+              {status.avatarUrl && (
+                <ToolButton
+                  label="Remove your picture"
+                  onClick={() => void accountSetAvatar(null).catch(console.error)}
+                >
+                  <X size={14} />
+                </ToolButton>
+              )}
+            </Flex>
+          </Flex>
+        </Flex>
         <Text color="gray" size="2">
           {campaign
             ? `In ${campaign.name}`

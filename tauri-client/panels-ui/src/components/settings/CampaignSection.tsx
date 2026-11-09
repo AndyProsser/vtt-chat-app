@@ -6,6 +6,7 @@ import { inviteLink, otherPlayers } from '../../lib/invites.js';
 import { isDm } from '../../lib/tableModel.js';
 import { useTableStore } from '../../lib/tableStore.js';
 import { accountErrorMessage, campaignApi } from '../../lib/tauriBridge.js';
+import { MemberAvatar } from '../MemberAvatar.js';
 import { ToolButton } from '../ToolButton.js';
 
 /**
@@ -85,7 +86,10 @@ export function CampaignSection() {
             const label = m.character?.name ?? m.displayName;
             return (
               <div key={m.userId} className="vtt-groups-row">
-                <span>{label}</span>
+                <span className="vtt-member-line">
+                  <MemberAvatar member={m} />
+                  {label}
+                </span>
                 {confirm === m.userId ? (
                   <span className="vtt-form-row">
                     <ToolButton

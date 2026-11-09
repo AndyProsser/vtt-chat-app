@@ -3,7 +3,7 @@ import { memo } from 'react';
 
 import { useIsSpeaking } from '../hooks/useIsSpeaking.js';
 import { avatarColor } from '../lib/avatarColor.js';
-import { initials, memberCard } from '../lib/rail.js';
+import { initials, memberAvatar, memberCard } from '../lib/rail.js';
 import type { Member } from '../types/index.js';
 import { linkQuality } from '../lib/linkQuality.js';
 import { useStatsStore } from '../lib/statsStore.js';
@@ -35,7 +35,7 @@ export const RailAvatar = memo(function RailAvatar({
     <HoverCard.Root openDelay={250}>
       <HoverCard.Trigger>
         <span className={classes} aria-label={card.title} role="img">
-          <Portrait avatarUrl={member.character?.avatarUrl} fallback={initials(card.title)} />
+          <Portrait avatarUrl={memberAvatar(member)} fallback={initials(card.title)} />
           {muted && <span className="vtt-av-badge" aria-label="muted" />}
           {partyId && (
             <span className="vtt-av-pip" style={{ background: avatarColor(partyId) }} aria-hidden />

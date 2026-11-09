@@ -100,6 +100,7 @@ pub async fn account_sign_in(
         session_token: Some(login.session_token.clone()),
         user_id: Some(login.user_id.clone()),
         display_name: Some(login.display_name.clone()),
+        avatar_url: login.avatar_url.clone(),
         // A single campaign needs no picker.
         campaign_id: (campaigns.len() == 1).then(|| campaigns[0].id.clone()),
     };
@@ -254,6 +255,38 @@ pub async fn account_rename(
         inner.saved.display_name = Some(new_name.to_string());
         persist(&app, &inner.saved);
     }
+    notify_changed(&app);
+    Ok(status_json(&inner.saved, &inner.campaigns))
+}
+
+/// Sets (or, with `None`, clears) the player's own portrait: an uploaded picture's `avatar:<id>` or an
+/// `emblem:<name>`. The server validates the value.
+#[tauri::command]
+pub async fn account_set_avatar(
+    app: AppHandle,
+    state: State<'_, AccountState>,
+    avatar: Option<String>,
+) -> Result<Value, AccountError> {
+    let mut inner = state.0.lock().await;
+    let (Some(server), Some(token)) = (
+        inner.saved.server.clone(),
+        inner.saved.session_token.clone(),
+    ) else {
+        return Err(error("signed_out", "sign in first"));
+    };
+    let response = AccountClient::new(&server)
+        .relay(
+            &token,
+            "PATCH",
+            "/api/auth/me",
+            Some(serde_json::json!({ "avatarUrl": avatar })),
+        )
+        .await?;
+    inner.saved.avatar_url = response
+        .pointer("/user/avatarUrl")
+        .and_then(Value::as_str)
+        .map(str::to_string);
+    persist(&app, &inner.saved);
     notify_changed(&app);
     Ok(status_json(&inner.saved, &inner.campaigns))
 }
