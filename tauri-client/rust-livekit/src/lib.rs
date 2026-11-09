@@ -136,8 +136,13 @@ impl LiveKitClient {
         let stopping = Arc::new(AtomicBool::new(false));
 
         let voice_path = VoicePath::new(tokio::runtime::Handle::current());
-        let first = join_once(&provider, &audio, &microphone_muted, &voice_path).await?;
-        emit_state(&first.0.room, &on_state_change);
+        let (first_room, first_events) =
+            join_once(&provider, &audio, &microphone_muted, &voice_path).await?;
+        emit_state(&first_room.room, &on_state_change);
+        // Visible at once, not whenever the supervisor task first runs: whoever joined may ask for the
+        // state or the mute right away.
+        let room = first_room.room.clone();
+        *lock(&active) = Some(first_room);
 
         let session = Session {
             provider,
@@ -150,7 +155,7 @@ impl LiveKitClient {
             on_state_change,
             on_speakers_change,
         };
-        let supervisor = tokio::spawn(session.supervise(first));
+        let supervisor = tokio::spawn(session.supervise(room, first_events));
 
         Ok(Self {
             audio,
@@ -346,15 +351,18 @@ enum SessionEnd {
 }
 
 impl Session {
-    async fn supervise(self, first: Joined) {
+    /// `first` is the room already stored in `active` by `connect`; later rejoins store theirs here.
+    async fn supervise(self, first_room: Arc<Room>, first_events: UnboundedReceiver<RoomEvent>) {
         let mut backoff = Backoff::default();
-        let mut joined = Some(first);
+        let mut joined: Option<(Option<ActiveRoom>, Arc<Room>, UnboundedReceiver<RoomEvent>)> =
+            Some((None, first_room, first_events));
 
         loop {
-            if let Some((active_room, events)) = joined.take() {
+            if let Some((stored, room, events)) = joined.take() {
                 backoff.reset();
-                let room = active_room.room.clone();
-                *lock(&self.active) = Some(active_room);
+                if let Some(active_room) = stored {
+                    *lock(&self.active) = Some(active_room);
+                }
                 let end = self.run_until_lost(&room, events).await;
 
                 // The room is gone either way; make that visible before doing anything slow.
@@ -386,9 +394,10 @@ impl Session {
             )
             .await
             {
-                Ok(next) => {
-                    emit_state(&next.0.room, &self.on_state_change);
-                    joined = Some(next);
+                Ok((next, events)) => {
+                    emit_state(&next.room, &self.on_state_change);
+                    let room = next.room.clone();
+                    joined = Some((Some(next), room, events));
                 }
                 Err(err) => eprintln!("[rust-livekit] rejoin attempt failed: {err}"),
             }
