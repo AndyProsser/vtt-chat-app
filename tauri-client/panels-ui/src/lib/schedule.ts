@@ -51,3 +51,10 @@ export function formatRange(startsAt: number, durationMinutes: number, locale?: 
   const sameDay = dateString(start) === dateString(end);
   return `${day(start)}, ${clock(start)} – ${sameDay ? '' : `${day(end)}, `}${clock(end)}`;
 }
+
+/** People may still change their answer until this long after a session starts (the server enforces it). */
+export const ATTENDANCE_WINDOW_MS = 4 * 60 * 60_000;
+
+export function attendanceOpen(startsAt: number, now: number): boolean {
+  return now <= startsAt + ATTENDANCE_WINDOW_MS;
+}

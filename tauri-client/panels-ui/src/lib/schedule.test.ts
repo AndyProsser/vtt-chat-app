@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  attendanceOpen,
   DURATION_OPTIONS,
   TIME_OPTIONS,
   defaultSlot,
@@ -64,5 +65,14 @@ describe('formatRange', () => {
     expect(formatRange(start, 180, 'en-AU')).toMatch(/7:00.*10:00/);
     expect(formatRange(start, 300, 'en-AU')).toMatch(/12:00/);
     expect(formatRange(start, 300, 'en-AU')).toMatch(/Thu/);
+  });
+});
+
+describe('attendance window', () => {
+  const HOUR = 3_600_000;
+  it('stays open until four hours after the start', () => {
+    expect(attendanceOpen(1_000_000, 1_000_000 - HOUR)).toBe(true);
+    expect(attendanceOpen(1_000_000, 1_000_000 + 4 * HOUR)).toBe(true);
+    expect(attendanceOpen(1_000_000, 1_000_000 + 4 * HOUR + 1)).toBe(false);
   });
 });

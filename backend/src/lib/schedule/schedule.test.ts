@@ -308,3 +308,41 @@ describe('notifications', () => {
     expect(await inbox(alice)).toHaveLength(1); // and still stored for the next snapshot
   });
 });
+
+describe('attendance after the session', () => {
+  const past = async (hoursAgo: number, title = 'Old night') => {
+    const id = `old-${title}-${hoursAgo}`;
+    await schedule.putSession({
+      id,
+      campaignId: campaign,
+      startsAt: Date.now() - hoursAgo * HOUR,
+      durationMinutes: 180,
+      title,
+      notes: '',
+      createdBy: dm.id,
+      createdAt: Date.now() - 100 * HOUR,
+      cancelledAt: null,
+    });
+    return id;
+  };
+  const rsvp = (id: string, status = 'late') =>
+    call('PUT', `/api/campaigns/${campaign}/sessions/${id}/rsvp`, alice.token, { status });
+
+  it('can still be corrected within four hours of the start', async () => {
+    expect((await rsvp(await past(3))).status).toBe(200);
+  });
+
+  it('is locked once the session started more than four hours ago', async () => {
+    expect((await rsvp(await past(5))).status).toBe(409);
+  });
+
+  it('lists only recent sessions by default, and older ones when asked', async () => {
+    await past(50, 'Long ago');
+    const recent = await schedule_(dm.token, { startsAt: soon(), title: 'Next' });
+    expect(recent.status).toBe(201);
+    const titles = (r: any) => r.body.sessions.map((s: any) => s.session.title);
+    expect(titles(await sessions(alice.token))).toEqual(['Next']);
+    const all = await call('GET', `/api/campaigns/${campaign}/sessions/past`, alice.token);
+    expect(titles(all)).toEqual(['Long ago', 'Next']);
+  });
+});

@@ -43,6 +43,9 @@ export interface SessionView {
 /** A session is assumed to run three hours unless the DM says otherwise. */
 export const DEFAULT_DURATION_MINUTES = 180;
 
+/** How long after a session starts people may still change their answer. */
+const RSVP_WINDOW_AFTER_START_MS = 4 * 60 * MINUTE;
+
 export class ScheduleService {
   private readonly now: () => number;
   private readonly newId: () => string;
@@ -193,13 +196,16 @@ export class ScheduleService {
     });
   }
 
-  async list(user: User, campaignId: string): Promise<SessionView[]> {
+  async list(
+    user: User,
+    campaignId: string,
+    options: { includePast?: boolean } = {},
+  ): Promise<SessionView[]> {
     await this.role(user, campaignId);
-    // Anything that has not ended long ago: a session in progress should still be listed.
-    const sessions = await this.deps.schedule.listSessions(
-      campaignId,
-      this.now() - 6 * 60 * MINUTE,
-    );
+    // By default, anything that has not ended long ago (a session in progress is still listed);
+    // `includePast` is the "show previous sessions" view.
+    const from = options.includePast ? 0 : this.now() - 6 * 60 * MINUTE;
+    const sessions = await this.deps.schedule.listSessions(campaignId, from);
     const out: SessionView[] = [];
     for (const session of sessions) out.push(await this.view(session, user.id));
     return out;
@@ -217,6 +223,13 @@ export class ScheduleService {
       throw new DomainError('conflict', 'that session was cancelled');
     if (!['yes', 'late', 'no'].includes(status))
       throw new DomainError('invalid_input', 'status must be yes, late or no');
+    // Answers can be corrected afterwards (late, or couldn't make it), but not forever: the record of who
+    // attended should settle once the session is over.
+    if (this.now() > session.startsAt + RSVP_WINDOW_AFTER_START_MS)
+      throw new DomainError(
+        'conflict',
+        'attendance can no longer be changed: the session started more than 4 hours ago',
+      );
     await this.deps.schedule.putRsvp({ sessionId, userId: user.id, status, updatedAt: this.now() });
     if (role === 'player' && status !== 'yes') {
       const dms = (await this.deps.store.listMemberships(campaignId))

@@ -46,6 +46,13 @@ export function sessionRoutes(deps: ScheduleRouteDeps): Router {
   router.get('/', async (req, res) => {
     res.json({ sessions: await schedule.list(authOf(res).user, campaign(req)) });
   });
+  // Every session, however old: the "show previous sessions" view. A path rather than a query string
+  // because the desktop app's relay only forwards plain path segments.
+  router.get('/past', async (req, res) => {
+    res.json({
+      sessions: await schedule.list(authOf(res).user, campaign(req), { includePast: true }),
+    });
+  });
   router.post('/', async (req, res) => {
     const session = await schedule.create(
       authOf(res).user,
