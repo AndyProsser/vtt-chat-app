@@ -40,7 +40,12 @@ export function ConnectionMenu() {
           <Activity size={15} />
         </ToolButton>
       </Popover.Trigger>
-      <Popover.Content size="1" width="400px" align="end">
+      <Popover.Content
+        size="1"
+        width="300px"
+        align="end"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
         <div className="vtt-groups">
           <div className="vtt-groups-row">
             <span className="vtt-muted">Latency, last two minutes</span>

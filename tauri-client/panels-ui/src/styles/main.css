@@ -1012,7 +1012,6 @@ body,
   border-radius: inherit;
   object-fit: cover;
 }
-.vtt-av,
 .vtt-chip-av,
 .vtt-char-av {
   overflow: hidden;
@@ -1314,4 +1313,21 @@ body,
 
 .vtt-hover-card > :first-child {
   padding-right: 22px;
+}
+
+.vtt-av-mute {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--vtt-rail);
+  background: #e53935;
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  pointer-events: none;
 }

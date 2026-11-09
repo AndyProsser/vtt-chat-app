@@ -22,6 +22,15 @@ describe('tableModel', () => {
     expect(s.chat).toHaveLength(1);
   });
 
+  it("keeps a person's own portrait from the roster", () => {
+    const withPortrait: SyncEvent = {
+      t: 'roster.update',
+      d: { members: [{ userId: 'dm', displayName: 'Dee', role: 'dm', avatarUrl: 'emblem:crown' }] },
+    };
+    expect(applyEvent(emptyTable, withPortrait).members[0]?.avatarUrl).toBe('emblem:crown');
+    expect(applyEvent(emptyTable, snapshot).members[0]?.avatarUrl).toBeNull();
+  });
+
   it('updates presence and audio, and returns the same object when nothing changed', () => {
     const s = applyEvent(emptyTable, snapshot);
     const online = applyEvent(s, { t: 'presence.update', d: { userId: 'p1', online: true } });

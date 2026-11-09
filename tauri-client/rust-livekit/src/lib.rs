@@ -581,4 +581,53 @@ mod live_tests {
             .await
             .ok();
     }
+
+    /// Regression: listing devices for the settings screen (no call yet) must not stop a later join.
+    #[tokio::test(flavor = "multi_thread")]
+    #[ignore = "needs a LiveKit server and a voice token"]
+    async fn listing_devices_before_joining_does_not_break_the_join() {
+        let url = std::env::var("VTT_TEST_URL").expect("VTT_TEST_URL");
+        let token = std::env::var("VTT_TEST_TOKEN").expect("VTT_TEST_TOKEN");
+        let _ = crate::list_audio_devices().expect("list the devices");
+        let client =
+            crate::LiveKitClient::connect(&url, &token, Arc::new(|_| {}), Arc::new(|_| {}))
+                .await
+                .expect("join after listing devices");
+        client.disconnect().await.ok();
+    }
+
+    /// Choosing the first listed devices right after a join (what a saved choice does) must not hang or fail.
+    #[tokio::test(flavor = "multi_thread")]
+    #[ignore = "needs a LiveKit server and a voice token"]
+    async fn choosing_devices_after_joining_works() {
+        let url = std::env::var("VTT_TEST_URL").expect("VTT_TEST_URL");
+        let token = std::env::var("VTT_TEST_TOKEN").expect("VTT_TEST_TOKEN");
+        let client =
+            crate::LiveKitClient::connect(&url, &token, Arc::new(|_| {}), Arc::new(|_| {}))
+                .await
+                .expect("join");
+        let list = client.audio_devices();
+        eprintln!("inputs: {:?}", list.inputs);
+        eprintln!("outputs: {:?}", list.outputs);
+        let input = list.inputs.first().map(|d| d.id.clone());
+        let output = list.outputs.first().map(|d| d.id.clone());
+        client
+            .use_devices(input.as_deref(), output.as_deref())
+            .expect("switch to the first devices");
+        client.disconnect().await.ok();
+    }
+
+    /// Leaving voice and joining again in the same run (the Connect button) must work.
+    #[tokio::test(flavor = "multi_thread")]
+    #[ignore = "needs a LiveKit server and a voice token"]
+    async fn leaving_and_rejoining_works() {
+        let url = std::env::var("VTT_TEST_URL").expect("VTT_TEST_URL");
+        let token = std::env::var("VTT_TEST_TOKEN").expect("VTT_TEST_TOKEN");
+        let join = || crate::LiveKitClient::connect(&url, &token, Arc::new(|_| {}), Arc::new(|_| {}));
+        join().await.expect("first join").disconnect().await.ok();
+        tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+        let again = join().await.expect("the second join");
+        again.set_microphone_muted(false);
+        again.disconnect().await.ok();
+    }
 }

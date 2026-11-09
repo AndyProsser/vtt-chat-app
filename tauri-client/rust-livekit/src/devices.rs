@@ -21,19 +21,29 @@ pub fn find<'a>(list: &'a [DeviceEntry], wanted: &str) -> Option<&'a DeviceEntry
     list.iter().find(|d| d.id == wanted)
 }
 
+/// What identifies a device in a saved choice: its id, or its name when the platform gives none (the
+/// Linux audio servers report an empty id for every device, so the name is all there is).
+pub fn key_of(id: &str, name: &str) -> String {
+    if id.is_empty() {
+        name.to_string()
+    } else {
+        id.to_string()
+    }
+}
+
 pub(crate) fn list(audio: &PlatformAudio) -> DeviceList {
     DeviceList {
         inputs: audio
             .recording_devices()
             .map(|d| DeviceEntry {
-                id: d.id.as_str().to_string(),
+                id: key_of(d.id.as_str(), &d.name),
                 name: d.name,
             })
             .collect(),
         outputs: audio
             .playout_devices()
             .map(|d| DeviceEntry {
-                id: d.id.as_str().to_string(),
+                id: key_of(d.id.as_str(), &d.name),
                 name: d.name,
             })
             .collect(),
@@ -48,14 +58,18 @@ pub(crate) fn apply(
     output: Option<&str>,
 ) -> Result<(), String> {
     if let Some(wanted) = input {
-        if let Some(device) = audio.recording_devices().find(|d| d.id.as_str() == wanted) {
+        if let Some(device) = audio
+            .recording_devices()
+            .find(|d| key_of(d.id.as_str(), &d.name) == wanted) {
             audio
                 .switch_recording_device(&device.id)
                 .map_err(|e| format!("could not switch the microphone: {e}"))?;
         }
     }
     if let Some(wanted) = output {
-        if let Some(device) = audio.playout_devices().find(|d| d.id.as_str() == wanted) {
+        if let Some(device) = audio
+            .playout_devices()
+            .find(|d| key_of(d.id.as_str(), &d.name) == wanted) {
             audio
                 .switch_playout_device(&device.id)
                 .map_err(|e| format!("could not switch the speaker: {e}"))?;
@@ -73,6 +87,12 @@ mod tests {
             id: id.into(),
             name: id.to_uppercase(),
         }
+    }
+
+    #[test]
+    fn a_device_without_an_id_is_known_by_its_name() {
+        assert_eq!(key_of("", "Built-in Audio"), "Built-in Audio");
+        assert_eq!(key_of("{guid}", "Built-in Audio"), "{guid}");
     }
 
     #[test]

@@ -1,5 +1,5 @@
 import { Popover, Slider, Tabs } from '@radix-ui/themes';
-import { Plus, Settings, Trash2, Pencil, X } from 'lucide-react';
+import { Plus, SlidersHorizontal, Trash2, Pencil, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 import { soundIcon } from '../../lib/soundIcons.js';
@@ -26,11 +26,16 @@ export function SoundSettings(props: Props) {
   return (
     <Popover.Root>
       <Popover.Trigger>
-        <ToolButton label="Sound settings">
-          <Settings size={15} />
+        <ToolButton label="Audio mixer: levels, favourites and scenes">
+          <SlidersHorizontal size={15} />
         </ToolButton>
       </Popover.Trigger>
-      <Popover.Content size="1" align="end" className="vtt-deck-settings">
+      <Popover.Content
+        size="1"
+        align="end"
+        className="vtt-deck-settings"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
         <Tabs.Root defaultValue="levels">
           <Tabs.List size="1">
             <Tabs.Trigger value="levels">Levels</Tabs.Trigger>

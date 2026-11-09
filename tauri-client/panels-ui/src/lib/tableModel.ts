@@ -50,6 +50,7 @@ function toMembers(raw: unknown): Member[] {
     return {
       userId: String(o.userId),
       displayName: String(o.displayName ?? ''),
+      avatarUrl: typeof o.avatarUrl === 'string' ? o.avatarUrl : null,
       role: o.role === 'dm' ? 'dm' : 'player',
       character: o.character ? (o.character as Member['character']) : null,
       online: o.online === true,

@@ -1,4 +1,5 @@
 import { HoverCard, Text } from '@radix-ui/themes';
+import { MicOff } from 'lucide-react';
 import { memo } from 'react';
 
 import { useIsSpeaking } from '../hooks/useIsSpeaking.js';
@@ -36,7 +37,11 @@ export const RailAvatar = memo(function RailAvatar({
       <HoverCard.Trigger>
         <span className={classes} aria-label={card.title} role="img">
           <Portrait avatarUrl={memberAvatar(member)} fallback={initials(card.title)} />
-          {muted && <span className="vtt-av-badge" aria-label="muted" />}
+          {muted && (
+            <span className="vtt-av-mute" role="img" aria-label="Muted" title="Muted">
+              <MicOff size={11} aria-hidden />
+            </span>
+          )}
           {partyId && (
             <span className="vtt-av-pip" style={{ background: avatarColor(partyId) }} aria-hidden />
           )}
