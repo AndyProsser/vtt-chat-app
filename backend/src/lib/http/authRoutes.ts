@@ -27,6 +27,7 @@ const magicRedeemBody = z.object({
   newPassword: z.string().max(512).optional(),
   deviceLabel: z.string().max(80).optional(),
 });
+const profileBody = z.object({ displayName: z.string().max(200) });
 const consentBody = z.object({ version: z.string() });
 
 export interface AuthRouteDeps {
@@ -38,6 +39,8 @@ export interface AuthRouteDeps {
   linkLimiter: RateLimiter;
   /** Called after a session is revoked, so a live socket on it can be dropped at once. */
   onSessionRevoked?: (sessionId: string) => void;
+  /** Called after someone changes their name, so live rosters can show it at once. */
+  onProfileChanged?: (userId: string) => void;
 }
 
 export function authRoutes({
@@ -46,6 +49,7 @@ export function authRoutes({
   loginLimiter,
   linkLimiter,
   onSessionRevoked,
+  onProfileChanged,
 }: AuthRouteDeps): Router {
   const router = Router();
   const auth = requireAuth(accounts);
@@ -124,6 +128,13 @@ export function authRoutes({
   // The client calls this periodically; the ping inside `requireAuth` is what keeps it signed in.
   router.get('/me', (_req, res) => {
     res.json({ user: publicUser(authOf(res).user) });
+  });
+
+  router.patch('/me', async (req, res) => {
+    const body = profileBody.parse(req.body);
+    const user = await accounts.updateDisplayName(authOf(res).user.id, body.displayName);
+    onProfileChanged?.(user.id);
+    res.json({ user: publicUser(user) });
   });
 
   router.post('/consent', async (req, res) => {

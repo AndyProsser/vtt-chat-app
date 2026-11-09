@@ -103,6 +103,18 @@ export class AccountService {
     return user;
   }
 
+  /** Changes the name other people see. Same rules as registration: not blank, at most 80 characters. */
+  async updateDisplayName(userId: string, displayName: string): Promise<User> {
+    const name = displayName.trim();
+    if (name.length === 0 || name.length > 80) {
+      throw new DomainError('invalid_input', 'a name is required (at most 80 characters)');
+    }
+    const user = await this.requireUser(userId);
+    const updated = { ...user, displayName: name };
+    await this.store.putUser(updated);
+    return updated;
+  }
+
   /** Records that an existing user accepted the current consent text (after the text changed). */
   async acceptConsent(userId: string, version: string): Promise<User> {
     const settings = await this.store.getSettings();

@@ -17,7 +17,9 @@ function seeded(seed: number): () => number {
 
 const COIN_GP: Record<string, number> = { cp: 0.01, sp: 0.1, gp: 1, pp: 10 };
 const coinValue = (drafts: Draft[]) =>
-  drafts.filter((d) => d.kind === 'coin').reduce((n, d) => n + d.quantity * (COIN_GP[d.name] ?? 0), 0);
+  drafts
+    .filter((d) => d.kind === 'coin')
+    .reduce((n, d) => n + d.quantity * (COIN_GP[d.name] ?? 0), 0);
 const mean = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
 
 describe('bandOf', () => {
@@ -54,7 +56,8 @@ describe('individual treasure', () => {
 });
 
 describe('treasure hoards', () => {
-  const hoards = (cr: number, n = 300) => Array.from({ length: n }, (_, i) => rollHoard(cr, seeded(i + 1)));
+  const hoards = (cr: number, n = 300) =>
+    Array.from({ length: n }, (_, i) => rollHoard(cr, seeded(i + 1)));
   const magic = (list: Draft[][]) => list.flat().filter((d) => d.rarity !== null);
 
   it('holds coin and often gems, art and magic items, all with a type for the icon', () => {

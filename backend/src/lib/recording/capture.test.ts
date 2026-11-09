@@ -116,7 +116,7 @@ describe('RecordingCapture', () => {
     expect((await records.listRecordingEvents(REC)).map((e) => e.event)).toEqual(['started']);
   });
 
-  it('notes which effects and scenes were played in the recording\'s timeline, but not their audio', async () => {
+  it("notes which effects and scenes were played in the recording's timeline, but not their audio", async () => {
     capture.onRecordingChange(change('STARTED'));
     await capture.idle();
     time += 2_000;
@@ -149,7 +149,10 @@ describe('RecordingCapture', () => {
     await capture.idle();
     capture.onTableEvent(CAMPAIGN, 'sound.play', { soundId: 's1' });
     await capture.idle();
-    expect((await records.listRecordingEvents(REC)).map((e) => e.event)).toEqual(['started', 'paused']);
+    expect((await records.listRecordingEvents(REC)).map((e) => e.event)).toEqual([
+      'started',
+      'paused',
+    ]);
   });
 
   it('does not record a player until they have acknowledged the start cue', async () => {

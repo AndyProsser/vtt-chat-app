@@ -30,7 +30,7 @@ interface Item {
 async function fetchText(file: string): Promise<string> {
   const response = await fetch(`${RAW}/${encodeURIComponent(file)}`);
   if (!response.ok) throw new Error(`${file}: ${response.status}`);
-  return (await response.text()).replace(/\r\n/g, "\n");
+  return (await response.text()).replace(/\r\n/g, '\n');
 }
 
 const slug = (name: string) =>
@@ -66,7 +66,8 @@ function magicType(category: string): ItemType {
   if (c.startsWith('wondrous')) return 'wondrous';
   if (c.startsWith('weapon')) return c.includes('ammunition') ? 'ammunition' : 'weapon';
   if (c.startsWith('armor')) return /\(shield\)/.test(c) ? 'shield' : 'armor';
-  for (const t of ['potion', 'ring', 'rod', 'scroll', 'staff', 'wand']) if (c.startsWith(t)) return t;
+  for (const t of ['potion', 'ring', 'rod', 'scroll', 'staff', 'wand'])
+    if (c.startsWith(t)) return t;
   return 'other';
 }
 
@@ -80,7 +81,11 @@ function parseMagic(md: string): Item[] {
     const found = earliestRarity(lower);
     const rarity = RARITY_OVERRIDES[name] ?? found;
     if (!rarity) throw new Error(`no rarity for ${name}: ${category}`);
-    const sentence = body.replace(/\s+/g, ' ').trim().split(/(?<=[.!?])\s/)[0] ?? '';
+    const sentence =
+      body
+        .replace(/\s+/g, ' ')
+        .trim()
+        .split(/(?<=[.!?])\s/)[0] ?? '';
     items.push({
       id: slug(name),
       name,
@@ -88,7 +93,9 @@ function parseMagic(md: string): Item[] {
       magic: true,
       rarity,
       ...(lower.includes('requires attunement') ? { attunement: true } : {}),
-      ...(sentence ? { blurb: sentence.length > 200 ? `${sentence.slice(0, 197)}…` : sentence } : {}),
+      ...(sentence
+        ? { blurb: sentence.length > 200 ? `${sentence.slice(0, 197)}…` : sentence }
+        : {}),
     });
   }
   return items;
@@ -131,7 +138,10 @@ function parseMundane(md: string): Item[] {
       continue;
     }
     if (!type || !line.startsWith('|') || /^\|[-\s|]+\|?$/.test(line)) continue;
-    const cells = line.split('|').slice(1, -1).map((c) => c.trim());
+    const cells = line
+      .split('|')
+      .slice(1, -1)
+      .map((c) => c.trim());
     if (/^(armor|item|name|weapon)$/i.test(cells[0] ?? '')) {
       costColumn = 1;
       nameColumn = 0;
@@ -174,7 +184,9 @@ import type { SrdItem } from './types.js';
   const body = `export const SRD_ITEMS: readonly SrdItem[] = ${JSON.stringify(items, null, 2)} as SrdItem[];\n`;
   const out = path.join(ROOT, 'shared', 'src', 'srd', 'data.generated.ts');
   writeFileSync(out, header + body);
-  console.log(`${magic.length} magic items, ${mundane.length} mundane items → ${path.relative(ROOT, out)}`);
+  console.log(
+    `${magic.length} magic items, ${mundane.length} mundane items → ${path.relative(ROOT, out)}`,
+  );
 }
 
 main().catch((error: unknown) => {

@@ -143,6 +143,28 @@ describe('accounts over HTTP', () => {
     expect(me.body.user.displayName).toBe('Ann');
   });
 
+  it('lets someone change their own display name, and only to a sensible one', async () => {
+    const ann = await signUp('ann');
+    const renamed = await api.call('PATCH', '/api/auth/me', {
+      token: ann.token,
+      body: { displayName: '  Annie  ' },
+    });
+    expect(renamed.status).toBe(200);
+    expect(renamed.body.user.displayName).toBe('Annie');
+    const me = await api.call('GET', '/api/auth/me', { token: ann.token });
+    expect(me.body.user.displayName).toBe('Annie');
+    for (const bad of ['', '   ', 'x'.repeat(81)]) {
+      const res = await api.call('PATCH', '/api/auth/me', {
+        token: ann.token,
+        body: { displayName: bad },
+      });
+      expect(res.status).toBe(400);
+    }
+    expect(
+      (await api.call('PATCH', '/api/auth/me', { body: { displayName: 'Nobody' } })).status,
+    ).toBe(401);
+  });
+
   it('refuses registration without the current consent text', async () => {
     const res = await api.call('POST', '/api/auth/register', {
       body: { email: 'a@b.co', displayName: 'A', acceptedConsentVersion: 'old' },

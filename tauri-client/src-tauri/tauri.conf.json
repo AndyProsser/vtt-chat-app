@@ -15,9 +15,7 @@
   "plugins": {
     "deep-link": {
       "desktop": {
-        "schemes": [
-          "vtt-chat"
-        ]
+        "schemes": ["vtt-chat"]
       }
     },
     "updater": {
@@ -28,10 +26,7 @@
   "bundle": {
     "active": true,
     "createUpdaterArtifacts": true,
-    "icon": [
-      "icons/icon-256.png",
-      "icons/icon.ico"
-    ],
+    "icon": ["icons/icon-256.png", "icons/icon.ico"],
     "targets": "all"
   }
 }

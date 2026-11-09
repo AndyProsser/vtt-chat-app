@@ -69,6 +69,9 @@ export const accountSignIn = (server: string, email: string, password: string) =
 export const accountSelectCampaign = (campaignId: string) =>
   invoke<AccountStatus>('account_select_campaign', { campaignId });
 
+/** Changes the player's own name (the server validates it). */
+export const accountRename = (name: string) => invoke<AccountStatus>('account_rename', { name });
+
 /** Joins a campaign by invite code, or creates one, then switches to it (`account_add_campaign`). */
 export const accountAddCampaign = (action: 'join' | 'create' | 'refresh', value: string) =>
   invoke<AccountStatus>('account_add_campaign', { action, value });

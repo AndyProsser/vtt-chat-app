@@ -146,6 +146,20 @@ export function createApp({
       loginLimiter: new RateLimiter(10, 15 * MINUTE),
       linkLimiter: new RateLimiter(10, 15 * MINUTE),
       ...(realtime ? { onSessionRevoked: (id: string) => realtime.revokeSession(id) } : {}),
+      ...(realtime
+        ? {
+            onProfileChanged: (userId: string) => {
+              void store
+                .listMembershipsForUser(userId)
+                .then((list) =>
+                  Promise.all(list.map((m) => realtime.announceRosterChanged(m.campaignId))),
+                )
+                .catch((error: unknown) =>
+                  console.error('[backend] could not announce the new name', error),
+                );
+            },
+          }
+        : {}),
     }),
   );
   app.use(

@@ -403,7 +403,7 @@ describe('the DM assigns loot to a player', () => {
     expect((await grab(bob.token, id)).status).toBe(409);
   });
 
-  it('is the DM\'s alone, only to a player of this campaign, and only for something still unclaimed', async () => {
+  it("is the DM's alone, only to a player of this campaign, and only for something still unclaimed", async () => {
     const id = (await drop(dm.token)).body.item.id;
     expect((await assign(alice.token, id, alice.id)).status).toBe(403);
     expect((await assign(dm.token, id, dm.id)).status).toBe(400);
@@ -434,13 +434,16 @@ describe('dropping straight to a player', () => {
   });
 
   it('refuses a recipient who is not a player here, and drops nothing in that case', async () => {
-    const before = (await call('GET', `/api/campaigns/${campaign}/loot`, dm.token)).body.loot.length;
+    const before = (await call('GET', `/api/campaigns/${campaign}/loot`, dm.token)).body.loot
+      .length;
     expect((await drop(dm.token, { name: 'x', assignTo: dm.id })).status).toBe(400);
     expect((await drop(dm.token, { name: 'x', assignTo: outsider.id })).status).toBe(400);
     const batch = await call('POST', `/api/campaigns/${campaign}/loot/batch`, dm.token, {
       items: [{ name: 'fine' }, { name: 'bad', assignTo: 'nobody' }],
     });
     expect(batch.status).toBe(400);
-    expect((await call('GET', `/api/campaigns/${campaign}/loot`, dm.token)).body.loot).toHaveLength(before);
+    expect((await call('GET', `/api/campaigns/${campaign}/loot`, dm.token)).body.loot).toHaveLength(
+      before,
+    );
   });
 });

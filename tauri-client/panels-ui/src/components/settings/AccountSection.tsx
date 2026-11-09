@@ -1,8 +1,11 @@
 import { Badge, Button, Callout, Flex, Heading, Text, TextField } from '@radix-ui/themes';
+import { Check, Pencil, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { useAccount } from '../../hooks/useAccount.js';
 import { useLinkedServer } from '../../hooks/useLinkedServer.js';
+import { accountErrorMessage, accountRename } from '../../lib/tauriBridge.js';
+import { ToolButton } from '../ToolButton.js';
 
 /**
  * Sign-in only. Accounts are created on the browser join page from an invite
@@ -51,7 +54,7 @@ export function AccountSection() {
     const campaign = status.campaigns.find((c) => c.id === status.campaignId);
     return (
       <Flex direction="column" gap="3" p="4">
-        <Heading size="4">{status.displayName ?? 'Signed in'}</Heading>
+        <PlayerName name={status.displayName ?? 'Signed in'} />
         <Text color="gray" size="2">
           {campaign
             ? `In ${campaign.name}`
@@ -119,5 +122,64 @@ export function AccountSection() {
         </Button>
       </Flex>
     </form>
+  );
+}
+
+/** Your player name, as the table sees it. Click the pencil to change it; Enter saves, Escape cancels. */
+function PlayerName({ name }: { name: string }) {
+  const [editing, setEditing] = useState(false);
+  const [text, setText] = useState(name);
+  const [error, setError] = useState<string>();
+  useEffect(() => setText(name), [name]);
+  async function save() {
+    try {
+      setError(undefined);
+      await accountRename(text.trim());
+      setEditing(false);
+    } catch (e) {
+      setError(accountErrorMessage(e));
+    }
+  }
+  if (!editing) {
+    return (
+      <Flex align="center" gap="2">
+        <Heading size="4">{name}</Heading>
+        <ToolButton label="Change your player name" onClick={() => setEditing(true)}>
+          <Pencil size={14} />
+        </ToolButton>
+      </Flex>
+    );
+  }
+  return (
+    <Flex direction="column" gap="2">
+      <Flex align="center" gap="2">
+        <input
+          className="vtt-input"
+          aria-label="Player name"
+          autoFocus
+          maxLength={80}
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') void save();
+            if (e.key === 'Escape') {
+              setText(name);
+              setEditing(false);
+            }
+          }}
+        />
+        <ToolButton label="Save the name" disabled={text.trim() === ''} onClick={() => void save()}>
+          <Check size={14} />
+        </ToolButton>
+        <ToolButton label="Cancel" onClick={() => setEditing(false)}>
+          <X size={14} />
+        </ToolButton>
+      </Flex>
+      {error && (
+        <Text size="1" color="red" role="alert">
+          {error}
+        </Text>
+      )}
+    </Flex>
   );
 }

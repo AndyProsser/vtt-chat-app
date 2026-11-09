@@ -96,6 +96,7 @@ pub fn run() {
             account_commands::account_sign_in,
             account_commands::account_select_campaign,
             account_commands::account_add_campaign,
+            account_commands::account_rename,
             account_commands::account_sign_out,
             account_commands::recording_control,
             account_commands::campaign_api,

@@ -227,6 +227,37 @@ pub async fn account_add_campaign(
     Ok(status_json(&inner.saved, &inner.campaigns))
 }
 
+/// Changes the player's name (`PATCH /api/auth/me`) and updates what the app shows. The server does
+/// the validation (not blank, at most 80 characters) and tells live tables the new name.
+#[tauri::command]
+pub async fn account_rename(
+    app: AppHandle,
+    state: State<'_, AccountState>,
+    name: String,
+) -> Result<Value, AccountError> {
+    let mut inner = state.0.lock().await;
+    let (Some(server), Some(token)) = (
+        inner.saved.server.clone(),
+        inner.saved.session_token.clone(),
+    ) else {
+        return Err(error("signed_out", "sign in first"));
+    };
+    let response = AccountClient::new(&server)
+        .relay(
+            &token,
+            "PATCH",
+            "/api/auth/me",
+            Some(serde_json::json!({ "displayName": name })),
+        )
+        .await?;
+    if let Some(new_name) = response.pointer("/user/displayName").and_then(Value::as_str) {
+        inner.saved.display_name = Some(new_name.to_string());
+        persist(&app, &inner.saved);
+    }
+    notify_changed(&app);
+    Ok(status_json(&inner.saved, &inner.campaigns))
+}
+
 #[tauri::command]
 pub async fn account_sign_out(
     app: AppHandle,
