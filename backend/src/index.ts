@@ -34,6 +34,8 @@ import {
   NotificationRelay,
   PostgresScheduleStore,
   ScheduleService,
+  StatusService,
+  type StatusProbe,
   CampaignService,
   DdbSyncService,
   MemoryTableStore,
@@ -68,10 +70,10 @@ if (isEntryPoint) {
     store = new MemoryStore();
   }
   let replay: ReplayBuffer;
+  let valkey: Valkey | undefined;
   if (config.valkeyUrl !== undefined) {
-    replay = new ValkeyReplayBuffer(
-      keyValueFromRedisClient(new Valkey(config.valkeyUrl) as unknown as RedisClientLike),
-    );
+    valkey = new Valkey(config.valkeyUrl);
+    replay = new ValkeyReplayBuffer(keyValueFromRedisClient(valkey as unknown as RedisClientLike));
   } else {
     console.warn('[backend] VALKEY_URL not set: replay buffer is in-memory, lost on restart');
     replay = new MemoryReplayBuffer();
@@ -170,11 +172,34 @@ if (isEntryPoint) {
       `[backend] D&D Beyond sync on: linked characters refresh every ${config.ddbSync.intervalHours} h`,
     );
   }
+  // Public status page data: coarse health of what the backend depends on.
+  const statusProbes: StatusProbe[] = [];
+  const dbPool = pool;
+  if (dbPool)
+    statusProbes.push({ name: 'database', run: async () => void (await dbPool.query('SELECT 1')) });
+  const cache = valkey;
+  if (cache) statusProbes.push({ name: 'valkey', run: async () => void (await cache.ping()) });
+  statusProbes.push({
+    name: 'livekit',
+    run: async () => {
+      const url = process.env.LIVEKIT_HEALTH_URL ?? config.liveKitApiUrl;
+      const response = await fetch(url, { signal: AbortSignal.timeout(3000) });
+      if (response.status >= 500) throw new Error(`status ${response.status}`);
+    },
+  });
+  const status = new StatusService({
+    probes: statusProbes,
+    onlinePlayers: () => hub.presence.onlineUsers(),
+    activeRecordings: () => hub.recording.activeCount(),
+    ...(pool ? { jobs: new PostgresJobQueue(pool) } : {}),
+    downloads: config.clientDownloads,
+  });
   const server = createServer(
     createApp({
       config,
       store,
       ddb,
+      status,
       realtime: hub,
       recording: hub.recording,
       records,

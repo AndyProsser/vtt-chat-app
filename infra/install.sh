@@ -200,6 +200,7 @@ MEDIA_DIR=$STATE_DIR/media
 # Signed client updates (`vtt-admin updates publish`), served at /updates.
 UPDATES_DIR=$STATE_DIR/updates
 WEB_DIR=$APP_DIR/web/dist
+STATUS_DIR=$APP_DIR/status/dist
 DATABASE_URL=postgres://$APP_USER:$pg_pass@127.0.0.1:5432/$APP_USER
 VALKEY_URL=redis://127.0.0.1:6379
 LIVEKIT_URL=wss://$DOMAIN/livekit
@@ -233,8 +234,8 @@ deploy_app() {
   (
     export PATH="$NODE_DIR/bin:$PATH" HOME="$build" npm_config_update_notifier=false npm_config_fund=false
     cd "$build"
-    npm ci -w backend -w ai -w ddb -w shared -w web --no-audit
-    npm run build -w shared -w ai -w ddb -w backend -w web
+    npm ci -w backend -w ai -w ddb -w shared -w web -w status --no-audit
+    npm run build -w shared -w ai -w ddb -w backend -w web -w status
   )
   # Production tree: manifests + compiled output + production-only node_modules (as in the Dockerfile).
   rm -rf "$APP_DIR.new"; mkdir -p "$APP_DIR.new"
@@ -246,6 +247,7 @@ deploy_app() {
     for d in shared ai ddb backend; do cp -r "$d/dist" "$APP_DIR.new/$d/"; done
     cp -r backend/migrations "$APP_DIR.new/backend/"
     cp -r web/dist "$APP_DIR.new/web/"
+    cp -r status/dist "$APP_DIR.new/status/"
   )
   (
     export PATH="$NODE_DIR/bin:$PATH" HOME="$build" npm_config_update_notifier=false npm_config_fund=false

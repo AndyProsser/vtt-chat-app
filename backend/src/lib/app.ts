@@ -8,6 +8,8 @@ import { inviteRoutes, webPages } from './http/joinRoutes.js';
 import type { DdbSyncService } from './ddb/ddbSyncService.js';
 import { avatarRoutes } from './http/avatarRoutes.js';
 import { ddbRoutes } from './http/ddbRoutes.js';
+import { statusApi, statusPage } from './http/statusRoutes.js';
+import type { StatusService } from './status/statusService.js';
 import { authRoutes } from './http/authRoutes.js';
 import { campaignRoutes } from './http/campaignRoutes.js';
 import { NoMailTransport, type MagicLinkSender } from './http/delivery.js';
@@ -35,6 +37,8 @@ export interface AppDeps {
   store: Store;
   /** D&D Beyond character sync (link, sync now, unlink). Routes answer 'disabled' without it. */
   ddb?: DdbSyncService;
+  /** The public status data at `/api/status`. */
+  status?: StatusService;
   /** Delivers magic-link tokens. Defaults to "not configured". */
   sender?: MagicLinkSender;
   /** Realtime hooks, so REST changes reach live sockets. Optional: REST works without a hub. */
@@ -92,6 +96,7 @@ export function createApp({
   config,
   store,
   ddb,
+  status,
   sender,
   realtime,
   recording,
@@ -125,6 +130,11 @@ export function createApp({
     '/api/invites',
     inviteRoutes({ campaigns, downloads: config.clientDownloads, inviteLimiter }),
   );
+  if (status) app.use('/api/status', statusApi(status));
+  if (config.statusDir) {
+    const page = statusPage(config.statusDir);
+    if (page) app.use(page);
+  }
   if (config.webDir) {
     const pages = webPages(config.webDir);
     if (pages) app.use(pages);

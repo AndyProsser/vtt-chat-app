@@ -29,6 +29,8 @@ export interface BackendConfig {
   mediaDir: string | undefined;
   /** Built join page (`web/dist`). Unset: no browser pages are served and invites are API-only. */
   webDir: string | undefined;
+  /** Built status page (`status/dist`), served at `/status`. Unset: only `/api/status` (the data) exists. */
+  statusDir: string | undefined;
   /**
    * Directory of client updates (`latest.json` plus the signed installers), served at `/updates`.
    * Unset: no update endpoint, and tray apps pointed at this server simply find no update.
@@ -61,6 +63,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): BackendConfig 
     recordingsDir: env.RECORDINGS_DIR || undefined,
     mediaDir: env.MEDIA_DIR || undefined,
     webDir: env.WEB_DIR || undefined,
+    statusDir: env.STATUS_DIR || undefined,
     updatesDir: env.UPDATES_DIR || undefined,
     clientDownloads: {
       ...(env.CLIENT_URL_WINDOWS ? { windows: env.CLIENT_URL_WINDOWS } : {}),

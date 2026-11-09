@@ -96,6 +96,11 @@ export class RecordingState {
     };
   }
 
+  /** How many campaigns are being recorded right now (paused counts: the recording is open). */
+  activeCount(): number {
+    return this.active.size;
+  }
+
   /** True only while audio is actually being captured (started or resumed, not paused). */
   isCapturing(campaignId: string): boolean {
     const recording = this.active.get(campaignId);

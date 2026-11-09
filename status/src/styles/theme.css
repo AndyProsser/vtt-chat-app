@@ -1,2 +1,45 @@
-:root {
+body {
+  margin: 0;
+}
+
+.status-shell {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  padding: 32px 16px;
+  background:
+    radial-gradient(circle at 15% 0%, var(--accent-3), transparent 50%), var(--color-background);
+}
+
+.status-column {
+  width: 100%;
+  max-width: 520px;
+}
+
+.status-banner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 20px;
+  border-radius: var(--radius-4);
+  border: 1px solid var(--gray-a5);
+  background: var(--color-panel-solid);
+}
+.status-dot {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  border-radius: 50%;
+}
+.status-banner-ok .status-dot {
+  background: var(--green-9);
+  box-shadow: 0 0 0 5px var(--green-a4);
+}
+.status-banner-warn .status-dot {
+  background: var(--amber-9);
+  box-shadow: 0 0 0 5px var(--amber-a4);
+}
+.status-banner-down .status-dot {
+  background: var(--red-9);
+  box-shadow: 0 0 0 5px var(--red-a4);
 }

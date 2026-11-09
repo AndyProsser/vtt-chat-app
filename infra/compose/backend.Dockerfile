@@ -30,6 +30,11 @@ RUN npm ci -w web
 COPY web web
 RUN npm run build -w web
 
+FROM manifests AS statuspage
+RUN npm ci -w status
+COPY status status
+RUN npm run build -w status
+
 FROM manifests AS deps
 RUN npm ci --omit=dev -w backend -w ai -w ddb -w shared && npm cache clean --force
 
@@ -48,6 +53,8 @@ COPY --from=build /app/backend/dist backend/dist
 COPY backend/migrations backend/migrations
 # The browser join page (invite → account → app download), served by the backend at /join.
 COPY --from=web /app/web/dist web/dist
+# The public status page, served at /status.
+COPY --from=statuspage /app/status/dist status/dist
 
 FROM app AS worker
 # ffmpeg/ffprobe cut each track into speech windows; Whisper and the LLM are separate services.
@@ -58,7 +65,7 @@ CMD ["node", "ai/dist/cli/worker.js"]
 FROM app AS backend
 USER node
 EXPOSE 3000
-ENV PORT=3000 WEB_DIR=/app/web/dist
+ENV PORT=3000 WEB_DIR=/app/web/dist STATUS_DIR=/app/status/dist
 HEALTHCHECK --interval=10s --timeout=3s --retries=5 \
   CMD node -e "fetch('http://127.0.0.1:'+process.env.PORT+'/api/health').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"
 CMD ["node", "backend/dist/index.js"]

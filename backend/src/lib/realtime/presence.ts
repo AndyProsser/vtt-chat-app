@@ -80,6 +80,14 @@ export class PresenceTracker {
     return true;
   }
 
+  /** How many different people are connected, across every campaign. */
+  onlineUsers(): number {
+    const users = new Set<string>();
+    for (const members of this.campaigns.values())
+      for (const [id, entry] of members) if (entry.connections.size > 0) users.add(id);
+    return users.size;
+  }
+
   isOnline(campaignId: string, userId: string): boolean {
     return (this.campaigns.get(campaignId)?.get(userId)?.connections.size ?? 0) > 0;
   }
