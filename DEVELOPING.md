@@ -21,7 +21,7 @@ Primary server target: **Ubuntu Server**. Client targets, in priority order: **W
 - **Two TypeScript versions on purpose.** Every workspace compiles with **TypeScript 7** (`tsc` from its own `node_modules`). The **root** pins **TypeScript ~6.0** only because `typescript-eslint` needs the JS compiler API, which TS 7 doesn't ship (it requires `typescript <6.1`). Don't "fix" the root back to 7 until typescript-eslint supports it; it will fail to install.
 - **Rust** (stable, via [rustup](https://rustup.rs)) — for `tauri-client/src-tauri/` and `tauri-client/rust-livekit/`. `rustup` installs `cargo`/`rustc` but **not** a linker:
   - **Windows:** install the "Desktop development with C++" workload from [Visual Studio Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) (the default `x86_64-pc-windows-msvc` target needs `link.exe`). VS Code is not sufficient. Separately, `rust-livekit`'s prebuilt `libwebrtc_sys` is built against the static CRT (`/MT`) while rustc defaults to `/MD`, which fails with `LNK2038` unless static CRT linkage is forced. That is handled by `tauri-client/.cargo/config.toml` (`target-feature=+crt-static`) — don't remove that file.
-  - **Linux:** `build-essential`, plus the audio dev headers (`libasound2-dev`) for `cpal`.
+  - **Linux:** `build-essential`, the audio dev headers (`libasound2-dev`) for `cpal`, and **`clang`** (`sudo apt install clang`). The LiveKit Rust SDK (`livekit` 0.10, pinned in `tauri-client/rust-livekit/Cargo.toml`) builds its WebRTC layer (`webrtc-sys`) with `clang++`: libwebrtc is built against Chromium's libc++, and GCC ignores the `trivial_abi` annotations that make `unique_ptr`/`shared_ptr` cross the boundary correctly, so a GCC build compiles and then misbehaves. The build script stops with "clang++ is required" if it is missing. If your clang is installed under another name or path, set `CXX` to it. A from-scratch build compiles WebRTC glue and takes several minutes.
   - **macOS:** Xcode Command Line Tools.
 - **Tauri prerequisites** for your OS — see the [Tauri prerequisites guide](https://tauri.app/start/prerequisites/) (WebView2 on Windows, WebKitGTK on Linux, Xcode CLT on macOS). The tray app's panels are local pages, so webview quirks matter far less than they did under the previous design.
 - **Server-side services** (for backend/records work — a dev VM is the easiest way to get these):
@@ -81,6 +81,20 @@ npm run dev:mock                                               # the four player
 Then run the app (`cd tauri-client && cargo run -p src-tauri`) and sign in to `http://localhost:3000` as **`dm@vtt.test`**. Every account's password is generated into `.dev/accounts.json` (git-ignored, mode 0600) and never printed. `livekit-server` is a static binary: put it in `~/.local/bin` (releases at github.com/livekit/livekit). Resetting the database (`docker compose … down`) is fine: `dev:seed` signs in or re-creates everything with the same passwords.
 
 The mock players are real LiveKit participants publishing synthetic "speech", so the speaking glow and the link-quality screen are driven by the real paths. They do not exercise Egress/recording (no Egress server in this setup).
+
+### Upgrading the LiveKit SDK
+
+`rust-livekit` pins `livekit` to a minor version (currently 0.10). To move it: change the version in `tauri-client/rust-livekit/Cargo.toml`, run `cargo check --workspace --all-targets`, then the live tests against `livekit-server --dev`. They need a voice token for the dev DM and run one at a time, because two joins with the same identity evict each other:
+
+```bash
+export VTT_TEST_URL=ws://127.0.0.1:7880 VTT_TEST_TOKEN=<a voice token>
+cd tauri-client
+for t in connection_state choosing_devices mute_from leaving_and listing_devices; do
+  cargo test -p rust-livekit -- --ignored $t
+done
+```
+
+Prefer a release at least two weeks old, and keep `docs/architecture/AUDIO-SPIKE-RESULTS.md` honest if device or echo-cancellation behaviour changes.
 
 ## Shell Behaviour: Hotkeys **(carried over)**
 
