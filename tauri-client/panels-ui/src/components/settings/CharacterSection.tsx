@@ -1,4 +1,4 @@
-import { Check, Plus, Save, UserRound } from 'lucide-react';
+import { Check, ChevronDown, ChevronRight, Plus, Save, UserRound } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { useAccount } from '../../hooks/useAccount.js';
@@ -15,7 +15,7 @@ import {
 import { isDm } from '../../lib/tableModel.js';
 import { useTableStore } from '../../lib/tableStore.js';
 import { accountErrorMessage, campaignApi } from '../../lib/tauriBridge.js';
-import { EmblemIcon } from '../Portrait.js';
+import { EmblemIcon, Portrait } from '../Portrait.js';
 import { ToolButton } from '../ToolButton.js';
 
 /**
@@ -69,6 +69,7 @@ export function CharacterSection() {
         <CharacterCard
           key={c.id}
           record={c}
+          playerName={status?.displayName ?? ''}
           playing={!dm && c.name === activeName}
           canPlay={!dm}
           onSave={(patch) => run(() => campaignApi('PATCH', `characters/${c.id}`, patch))}
@@ -172,32 +173,57 @@ function Fields({
 
 function CharacterCard({
   record,
+  playerName,
   playing,
   canPlay,
   onSave,
   onPlay,
 }: {
   record: CharacterRecord;
+  playerName: string;
   playing: boolean;
   canPlay: boolean;
   onSave: (patch: Record<string, unknown>) => Promise<void>;
   onPlay: () => Promise<void>;
 }) {
   const [draft, setDraft] = useState(draftOf(record));
+  const [open, setOpen] = useState(false);
   useEffect(() => setDraft(draftOf(record)), [record]);
   const patch = characterPatch(record, draft);
   const dirty = Object.keys(patch).length > 0;
   return (
     <section className={playing ? 'vtt-session vtt-loot-taken' : 'vtt-session'}>
-      <Fields draft={draft} onChange={setDraft} />
+      <button
+        type="button"
+        className="vtt-char-head"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+      >
+        <span className="vtt-av vtt-char-av">
+          <Portrait avatarUrl={record.avatarUrl} fallback={record.name.slice(0, 2).toUpperCase()} />
+        </span>
+        <span className="vtt-char-text">
+          <b>{record.name}</b>
+          <span className="vtt-muted">
+            {[record.race, record.className, record.level ? `level ${record.level}` : null]
+              .filter(Boolean)
+              .join(' · ') || 'No details yet'}
+          </span>
+          <span className="vtt-muted">Played by {playerName || 'you'}</span>
+        </span>
+        {open ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+      </button>
+      {open && <Fields draft={draft} onChange={setDraft} />}
       <div className="vtt-form-row">
-        <ToolButton
-          label="Save changes"
-          disabled={!dirty || draft.name.trim() === ''}
-          onClick={() => void onSave(patch)}
-        >
-          <Save size={14} />
-        </ToolButton>
+        {open && (
+          <ToolButton
+            label="Save changes"
+            disabled={!dirty || draft.name.trim() === ''}
+            onClick={() => void onSave(patch)}
+          >
+            <Save size={14} />
+          </ToolButton>
+        )}
         {canPlay && (
           <ToolButton
             label={playing ? 'You are playing this character' : 'Play this character at the table'}
