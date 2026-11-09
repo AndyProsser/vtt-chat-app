@@ -52,6 +52,7 @@ pub fn run() {
             let _ = windows::open_main(app);
         }))
         .plugin(tauri_plugin_deep_link::init())
+        .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
@@ -104,6 +105,10 @@ pub fn run() {
             account_commands::account_select_campaign,
             account_commands::account_add_campaign,
             account_commands::account_rename,
+            account_commands::auth_providers,
+            account_commands::account_open_sso,
+            account_commands::account_request_code,
+            account_commands::account_sign_in_code,
             account_commands::ddb_api,
             account_commands::records_search,
             account_commands::account_set_avatar,

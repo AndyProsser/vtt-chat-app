@@ -25,7 +25,7 @@ The patch (against the `webkitgtk-2.52.6` tag):
 --- a/Source/WebKit/UIProcess/API/gtk/WebKitWebViewBase.cpp
 +++ b/Source/WebKit/UIProcess/API/gtk/WebKitWebViewBase.cpp
 @@ -2900,19 +2900,22 @@
- 
+
  void webkitWebViewBaseEnterAcceleratedCompositingMode(WebKitWebViewBase* webkitWebViewBase, const LayerTreeContext& layerTreeContext)
  {
 -    ASSERT(webkitWebViewBase->priv->acceleratedBackingStore);
@@ -33,7 +33,7 @@ The patch (against the `webkitgtk-2.52.6` tag):
 +        return;
      webkitWebViewBase->priv->acceleratedBackingStore->update(layerTreeContext);
  }
- 
+
  void webkitWebViewBaseUpdateAcceleratedCompositingMode(WebKitWebViewBase* webkitWebViewBase, const LayerTreeContext& layerTreeContext)
  {
 -    ASSERT(webkitWebViewBase->priv->acceleratedBackingStore);
@@ -41,7 +41,7 @@ The patch (against the `webkitgtk-2.52.6` tag):
 +        return;
      webkitWebViewBase->priv->acceleratedBackingStore->update(layerTreeContext);
  }
- 
+
  void webkitWebViewBaseExitAcceleratedCompositingMode(WebKitWebViewBase* webkitWebViewBase)
  {
 -    ASSERT(webkitWebViewBase->priv->acceleratedBackingStore);

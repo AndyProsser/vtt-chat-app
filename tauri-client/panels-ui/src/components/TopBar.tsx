@@ -1,5 +1,13 @@
 import { Popover } from '@radix-ui/themes';
-import { AudioLines, Backpack, FileText, ScrollText, Settings, Volume2, VolumeX } from 'lucide-react';
+import {
+  AudioLines,
+  Backpack,
+  FileText,
+  ScrollText,
+  Settings,
+  Volume2,
+  VolumeX,
+} from 'lucide-react';
 
 import { useVoice } from '../hooks/useVoice.js';
 import { panelOpen } from '../lib/tauriBridge.js';

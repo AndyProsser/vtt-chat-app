@@ -16,7 +16,7 @@ flowchart LR
 ## Items
 
 Every item has an **item type** (weapon, armor, potion, ring, wondrous item, gem, coin…) that picks its
-icon, and magic items have an **SRD rarity** — *common, uncommon, rare, very rare, legendary, artifact* —
+icon, and magic items have an **SRD rarity** — _common, uncommon, rare, very rare, legendary, artifact_ —
 that sets the strength of a soft glow in the rarity's colour (stronger for rarer items; mundane items do
 not glow). Custom items may be given any type and rarity.
 

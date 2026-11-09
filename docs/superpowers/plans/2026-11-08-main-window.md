@@ -61,6 +61,7 @@
 **Files:** Modify `backend/src/lib/recording/recordingState.ts` (+`recordingState.test.ts`), `backend/src/lib/realtime/hub.ts` (frames at ~L195 and ~L798), `backend/src/lib/realtime/wsServer.test.ts`; `tauri-client/rust-sync/src/protocol.rs` (`RecordingInfo`, `ServerEvent::RecordingStatus`, `recording_status` helper, tests); `src-tauri/src/bridge.rs` (+ its test); `panels-ui/src/types/index.ts`, `lib/tableModel.ts` (+test); create `panels-ui/src/lib/elapsed.ts` (+`elapsed.test.ts`); update docs/architecture/SYNC-PROTOCOL.md frame rows.
 
 **Interfaces — Produces:**
+
 - Backend frames: `recording.status` and `recording.state.recording` gain `startedAt: number` (epoch ms, server clock). `RecordingState` takes an injectable `now: () => number = Date.now`; `RecordingChange.startedAt: number`; `current()` returns `startedAt`.
 - Rust: `RecordingInfo.started_at: Option<u64>`; `ServerEvent::RecordingStatus { …, started_at: Option<u64> }`; bridge JSON `startedAt` (number or null).
 - TS: `RecordingView.startedAt: number | null`; `export function formatElapsed(ms: number): string`; `export function elapsedSince(startedAt: number | null, now: number): number` (never negative).
@@ -75,18 +76,39 @@
 **Files:** Create `panels-ui/src/lib/contrast.ts`, `lib/themes.ts`, `lib/themeStore.ts`, `hooks/useSystemAppearance.ts`, `styles/tokens.css`, tests `lib/contrast.test.ts`, `lib/themes.test.ts`; modify `src/main.tsx`, `styles/theme.css`, `package.json` (`@fontsource/cinzel`).
 
 **Interfaces — Produces:**
+
 ```ts
 export type ThemeId = 'dragonfire' | 'arcane' | 'dungeon' | 'verdant' | 'frostbound';
-export interface Palette { bg; bar; rail; chat; bubble; edge; ink; gold; glow; avatar; whisper; whisperEdge; dmMsg: string } // all '#rrggbb'
-export interface Theme { id: ThemeId; name: string; dark: Palette; light: Palette }
-export const THEMES: readonly Theme[];            // order: dragonfire, arcane, dungeon, verdant, frostbound
-export const DEFAULT_THEME: ThemeId;              // 'dragonfire'
-export function resolveTheme(id: string | null | undefined): ThemeId;   // unknown → DEFAULT_THEME
+export interface Palette {
+  bg;
+  bar;
+  rail;
+  chat;
+  bubble;
+  edge;
+  ink;
+  gold;
+  glow;
+  avatar;
+  whisper;
+  whisperEdge;
+  dmMsg: string;
+} // all '#rrggbb'
+export interface Theme {
+  id: ThemeId;
+  name: string;
+  dark: Palette;
+  light: Palette;
+}
+export const THEMES: readonly Theme[]; // order: dragonfire, arcane, dungeon, verdant, frostbound
+export const DEFAULT_THEME: ThemeId; // 'dragonfire'
+export function resolveTheme(id: string | null | undefined): ThemeId; // unknown → DEFAULT_THEME
 export function themeCss(themes?: readonly Theme[]): string;
-export function contrastRatio(a: string, b: string): number;            // WCAG
-export const useThemeStore;                       // { themeId, setTheme(id) }
+export function contrastRatio(a: string, b: string): number; // WCAG
+export const useThemeStore; // { themeId, setTheme(id) }
 export function useSystemAppearance(): 'light' | 'dark';
 ```
+
 CSS variables are `--vtt-<kebab key>` (e.g. `--vtt-whisper-edge`). `themeCss` emits per theme the light palette under `:root[data-theme="<id>"]` and the dark palette under `@media (prefers-color-scheme: dark){:root[data-theme="<id>"]{…}}`. Shape tokens (shared by all themes) in `tokens.css`: `--vtt-radius-control: 8px; --vtt-radius-bubble: 12px; --vtt-radius-pill-square: 2px; --vtt-avatar-radius: 50%`, and `--vtt-font-head: 'Cinzel', Georgia, serif`.
 
 - [ ] **Step 1: Failing tests.** `contrast.test.ts`: `contrastRatio('#000000','#ffffff')` ≈ 21 (±0.1); `('#777777','#777777') === 1`. `themes.test.ts`: for every theme and both variants `contrastRatio(ink, bg|bar|bubble|whisper|dmMsg) >= 4.5` and `contrastRatio(gold, bar) >= 3`; `THEMES.map(t=>t.id)` equals the five ids; `resolveTheme('nope')==='dragonfire'`, `resolveTheme(null)==='dragonfire'`, `resolveTheme('arcane')==='arcane'`; `themeCss()` contains, for each id, `:root[data-theme="<id>"]` and a `prefers-color-scheme: dark` block; `useThemeStore.getState().setTheme('arcane')` sets `document.documentElement.dataset.theme === 'arcane'` and survives a throwing `localStorage` (mock `Storage.prototype.setItem` to throw → no exception, attribute still set).
@@ -153,16 +175,24 @@ CSS variables are `--vtt-<kebab key>` (e.g. `--vtt-whisper-edge`). `themeCss` em
 **Files:** Create `components/ChatView.tsx`, `components/ChatMessage.tsx`, `components/Composer.tsx`, `components/CommandPalette.tsx`, `lib/commands.ts` (+`commands.test.ts`), `lib/chatKinds.ts` (+test); modify `consts/index.ts` (command table).
 
 **Interfaces — Produces:**
+
 ```ts
 export type Parsed =
   | { kind: 'say'; text: string }
   | { kind: 'whisper'; toUserId: string; text: string }
   | { kind: 'open'; target: 'inventory' }
   | { kind: 'error'; message: string };
-export function parseCommand(input: string, ctx: { role: 'dm'|'player'; selfName: string; members: Member[] }): Parsed;
-export function commandPalette(input: string, role: 'dm'|'player'): { name: string; usage: string; help: string }[];
+export function parseCommand(
+  input: string,
+  ctx: { role: 'dm' | 'player'; selfName: string; members: Member[] },
+): Parsed;
+export function commandPalette(
+  input: string,
+  role: 'dm' | 'player',
+): { name: string; usage: string; help: string }[];
 export function lineKind(line: ChatLine, members: Member[]): 'public' | 'whisper' | 'dm-private';
 ```
+
 Commands: `/w <name> <text>` (name matches character or display name, case-insensitive, unique prefix), `/dm <text>` (players; whispers to the DM), `/me <text>` → `say` with text `* <selfName> <text>` (rendered italic when a line starts with `* `), `/loot` and `/take` → `open inventory`. `/voice` is **not** offered and typed returns `error: 'DM voice effects are not available yet'`. Anything else starting with `/` → error; text where `/` is not the first character is plain `say`. `lineKind`: `to` present and sender is the DM → `dm-private`; `to` present otherwise → `whisper`; else `public`.
 
 - [ ] **Step 1: Failing tests** (Review Focus 5): `/w alice hi` → whisper to Alice's id; `/w nobody hi` → error naming `nobody`; `/w alice` → error (no text); `/unknown x` → error; `/` alone → error; `see /w later` → say; `/me waves` with selfName `Ka` → say `* Ka waves`; `/dm psst` as a player → whisper to the DM, as the DM → error ("you are the DM"); palette for `/w` lists `/w`; palette with input `/` for a player excludes DM-only commands; `lineKind` three cases.
@@ -200,13 +230,23 @@ Commands: `/w <name> <text>` (name matches character or display name, case-insen
 **Files:** Modify `lib/tableModel.ts` (+`tableModel.test.ts`), `types/index.ts`, `lib/tableStore.ts`; create `lib/timeline.ts` (+`timeline.test.ts`), `components/ChatCards.tsx`, `components/ChatChips.tsx`; modify `HandoutsPanel.tsx`/`LootPanel.tsx` (titles: "Handouts", "Party inventory"; behaviour unchanged).
 
 **Interfaces — Produces:**
+
 ```ts
-export interface TableCard { id: string; kind: 'loot' | 'handout'; title: string; quantity?: number; claimedBy?: string | null; removed?: boolean; after: string | null }
+export interface TableCard {
+  id: string;
+  kind: 'loot' | 'handout';
+  title: string;
+  quantity?: number;
+  claimedBy?: string | null;
+  removed?: boolean;
+  after: string | null;
+}
 // TableState.cards: TableCard[]   (after = id of the last chat line when the card event arrived)
 export type TimelineEntry = { type: 'line'; line: ChatLine } | { type: 'card'; card: TableCard };
 export function timeline(chat: ChatLine[], cards: TableCard[]): TimelineEntry[];
 export function cardLabel(card: TableCard, members: Member[]): string; // "Potion ×2 · available" | "… · taken by Mi" | "Handout: Map of the crypt"
 ```
+
 `applyEvent` handles `loot.dropped` (adds card), `loot.claimed` (sets `claimedBy`, keeps position), `loot.removed` (sets `removed`), `handout.shown` (adds card), `handout.removed` (sets `removed`); events carry `itemId`/`handoutId`, `name`/`title`, `quantity`, `claimedBy` (user id) as built in `hub.ts` (`announceLoot`, `announceHandoutShown`). Applying the same event twice never duplicates a card (keyed by id). Removed cards are hidden from the timeline.
 
 - [ ] **Step 1: Failing tests** (Review Focus 7): replaying `[loot.dropped, loot.claimed]` twice yields one card with `claimedBy` set; `timeline` places a card after the chat line it names and keeps relative order; `cardLabel` shows `taken by <character or display name>` and `available`; removed cards absent from `timeline`.

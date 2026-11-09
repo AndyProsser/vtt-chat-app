@@ -5,7 +5,6 @@ import { useStatus } from '../hooks/useStatus.js';
 import { ago, headline, pipelineLine } from '../lib/summary.js';
 import type { StatusSnapshot } from '../types/index.js';
 
-const TONE = { ok: 'green', warn: 'amber', down: 'red' } as const;
 
 export function StatusPage() {
   const { snapshot, reachable } = useStatus();

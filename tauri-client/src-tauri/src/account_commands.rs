@@ -6,7 +6,7 @@ use tauri::{AppHandle, Emitter, Manager, State};
 
 use crate::account::{
     data_dir, normalise_server, relay_path, status_json, AccountClient, AccountError, CampaignItem,
-    Saved,
+    LoginOutcome, Saved,
 };
 use crate::session::{end_session, start_session, SessionState};
 
@@ -92,6 +92,58 @@ pub async fn account_sign_in(
     let server = normalise_server(&server).map_err(|m| error("invalid_server", &m))?;
     let client = AccountClient::new(&server);
     let login = client.login(&email, &password).await?;
+    finish_sign_in(&app, &state, &sessions, server, login).await
+}
+
+/// Which optional sign-in methods this server offers: `{ oidc, mail }`.
+#[tauri::command]
+pub async fn auth_providers(server: String) -> Result<Value, AccountError> {
+    let server = normalise_server(&server).map_err(|m| error("invalid_server", &m))?;
+    AccountClient::new(&server).providers().await
+}
+
+/// Opens the server's single sign-on page in the system browser. The address is built here from the
+/// server the player typed, so the webview cannot ask for any other page to be opened.
+#[tauri::command]
+pub async fn account_open_sso(app: AppHandle, server: String) -> Result<(), AccountError> {
+    use tauri_plugin_opener::OpenerExt;
+    let server = normalise_server(&server).map_err(|m| error("invalid_server", &m))?;
+    app.opener()
+        .open_url(format!("{server}/api/auth/oidc/"), None::<&str>)
+        .map_err(|_| error("open_failed", "could not open your browser"))
+}
+
+/// Emails a one-time sign-in code. Always succeeds from the player's side when the server is reachable:
+/// whether the address has an account, or the server can send mail, is not revealed.
+#[tauri::command]
+pub async fn account_request_code(server: String, email: String) -> Result<(), AccountError> {
+    let server = normalise_server(&server).map_err(|m| error("invalid_server", &m))?;
+    AccountClient::new(&server).request_code(&email).await
+}
+
+/// Signs in with a one-time code.
+#[tauri::command]
+pub async fn account_sign_in_code(
+    app: AppHandle,
+    state: State<'_, AccountState>,
+    sessions: State<'_, SessionState>,
+    server: String,
+    code: String,
+) -> Result<Value, AccountError> {
+    let server = normalise_server(&server).map_err(|m| error("invalid_server", &m))?;
+    let login = AccountClient::new(&server).redeem_code(&code).await?;
+    finish_sign_in(&app, &state, &sessions, server, login).await
+}
+
+/// Saves the new session, lists the campaigns, and goes live in the only one (if there is just one).
+async fn finish_sign_in(
+    app: &AppHandle,
+    state: &State<'_, AccountState>,
+    sessions: &State<'_, SessionState>,
+    server: String,
+    login: LoginOutcome,
+) -> Result<Value, AccountError> {
+    let client = AccountClient::new(&server);
     let campaigns = client.campaigns(&login.session_token).await?;
 
     let mut inner = state.0.lock().await;
@@ -105,12 +157,12 @@ pub async fn account_sign_in(
         campaign_id: (campaigns.len() == 1).then(|| campaigns[0].id.clone()),
     };
     inner.campaigns = campaigns;
-    persist(&app, &inner.saved);
+    persist(app, &inner.saved);
 
     if let Some(campaign_id) = inner.saved.campaign_id.clone() {
-        go_live(&app, &sessions, &server, &login.session_token, &campaign_id).await?;
+        go_live(app, sessions, &server, &login.session_token, &campaign_id).await?;
     }
-    notify_changed(&app);
+    notify_changed(app);
     Ok(status_json(&inner.saved, &inner.campaigns))
 }
 

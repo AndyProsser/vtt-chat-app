@@ -21,9 +21,11 @@
 ### Task 1: `overlay-ui` — build-time-configurable backend session URL
 
 **Files:**
+
 - Modify: `tauri-client/overlay-ui/src/consts/index.ts`
 
 **Interfaces:**
+
 - Produces: `BACKEND_SESSION_URL` (unchanged export name and type — `string`), now sourced from `import.meta.env.VITE_BACKEND_SESSION_URL` at build time, falling back to today's hardcoded value. No consumer (`backendClient.ts`) needs to change.
 
 - [ ] **Step 1: Change the constant to read from the Vite env var**
@@ -73,10 +75,12 @@ git commit -m "feat(overlay-ui): read backend session URL from VITE_BACKEND_SESS
 ### Task 2: `src-tauri` — dev-only fake-identity module
 
 **Files:**
+
 - Create: `tauri-client/src-tauri/src/dev.rs`
 - Modify: `tauri-client/src-tauri/src/lib.rs`
 
 **Interfaces:**
+
 - Consumes: `tauri::AppHandle` (already used throughout `lib.rs`/`cobalt.rs`/`commands.rs`).
 - Produces: `dev::try_spawn_fake_identity(app: &AppHandle) -> bool` — emits a one-shot `dev:fake-identity` Tauri event (payload shape below) and returns `true` if `VTT_DEV_FAKE_IDENTITY` is set; returns `false` (no emit) otherwise. Only compiled when `debug_assertions` is on. Event payload matches `DdbIdentity` from `shared/src/types/ddb.ts` (`ddbUserId`, `selectedCharacter: { id, name, campaignId }`, `campaign: { id, name, dmUserId }`, `isDm`) via `#[serde(rename_all = "camelCase")]` on Rust structs named `DevFakeIdentity`/`DevFakeCharacter`/`DevFakeCampaign` — consumed by Task 3's `onDevFakeIdentity` in `tauriBridge.ts`, which types the event payload as `DdbIdentity`.
 
@@ -169,7 +173,7 @@ mod consts;
 mod dev;
 ```
 
-Then add this helper function above `pub fn run()` (it always exists — in release builds its body is just `false`, so nothing about its *presence* depends on `debug_assertions`, only its behavior does, keeping `mod dev`'s absence from a release binary self-contained to that one line above):
+Then add this helper function above `pub fn run()` (it always exists — in release builds its body is just `false`, so nothing about its _presence_ depends on `debug_assertions`, only its behavior does, keeping `mod dev`'s absence from a release binary self-contained to that one line above):
 
 ```rust
 /// Dispatches to `dev::try_spawn_fake_identity` in debug builds only; always `false` in release
@@ -235,7 +239,7 @@ Expected: no output (grep finds nothing) — confirms the string, and therefore 
 - [ ] **Step 6: Manual smoke test of the emit path**
 
 Run: `cd tauri-client && VTT_DEV_FAKE_IDENTITY=smoke-test-campaign cargo run --bin vtt-chat-app`
-Expected: app launches, opens on DDB as usual (the fake identity replaces the cobalt-cookie *watcher*, not the WebView navigation). No crash. Full end-to-end confirmation (overlay actually reacting to the event) happens in Task 3's manual test, since nothing listens for `dev:fake-identity` yet at this point — this step only confirms `try_spawn_fake_identity` doesn't panic or fail to emit.
+Expected: app launches, opens on DDB as usual (the fake identity replaces the cobalt-cookie _watcher_, not the WebView navigation). No crash. Full end-to-end confirmation (overlay actually reacting to the event) happens in Task 3's manual test, since nothing listens for `dev:fake-identity` yet at this point — this step only confirms `try_spawn_fake_identity` doesn't panic or fail to emit.
 
 - [ ] **Step 7: Commit**
 
@@ -249,10 +253,12 @@ git commit -m "feat(src-tauri): add debug-only VTT_DEV_FAKE_IDENTITY bypass for 
 ### Task 3: `overlay-ui` — listen for `dev:fake-identity` and reuse the session pipeline
 
 **Files:**
+
 - Modify: `tauri-client/overlay-ui/src/lib/tauriBridge.ts`
 - Modify: `tauri-client/overlay-ui/src/hooks/useOverlayBridge.ts`
 
 **Interfaces:**
+
 - Consumes: `dev:fake-identity` Tauri event from Task 2, payload typed as `DdbIdentity` (from `@vtt-chat-app/shared`); `requestSession` (`backendClient.ts`, unchanged signature `(identity: DdbIdentity) => Promise<SessionResponse>`); `connectLiveKit` (`tauriBridge.ts`, unchanged).
 - Produces: `onDevFakeIdentity(handler: (identity: DdbIdentity) => void): Promise<UnlistenFn>` — new export from `tauriBridge.ts`, mirrors the existing `onCobaltCookieDetected` shape exactly.
 
@@ -284,9 +290,7 @@ export function onCobaltCookieDetected(
  * `DdbIdentity`, so callers feed it into the same session/connect path `onCobaltCookieDetected`
  * ultimately does, just skipping DDB extraction.
  */
-export function onDevFakeIdentity(
-  handler: (identity: DdbIdentity) => void,
-): Promise<UnlistenFn> {
+export function onDevFakeIdentity(handler: (identity: DdbIdentity) => void): Promise<UnlistenFn> {
   return listen<DdbIdentity>('dev:fake-identity', (event) => handler(event.payload));
 }
 
@@ -362,10 +366,7 @@ export function useOverlayBridge(): void {
 
     const unlistenDevFakeIdentity = onDevFakeIdentity((identity) => {
       establishLiveKitSession(identity).catch((err) => {
-        console.error(
-          '[overlay-ui] failed to establish LiveKit session (dev fake identity)',
-          err,
-        );
+        console.error('[overlay-ui] failed to establish LiveKit session (dev fake identity)', err);
       });
     });
 
@@ -409,6 +410,7 @@ git commit -m "feat(overlay-ui): wire dev:fake-identity into the session/LiveKit
 ### Task 4: Documentation — `DEVELOPING.md` dev-VM section + fake-identity note
 
 **Files:**
+
 - Modify: `DEVELOPING.md`
 
 **Interfaces:** None (docs only).
@@ -431,7 +433,7 @@ participant list, with audio round-tripping.
 
 Insert a new `##` section in `DEVELOPING.md` directly after "Running Stage 1 Locally" and before "Per-Module Setup":
 
-```markdown
+````markdown
 ## Optional: Dedicated Dev VM
 
 CLAUDE.md §4 mandates native (non-Docker) services. Installing Postgres/Redis/LiveKit directly on
@@ -452,6 +454,7 @@ ssh-keygen -t ed25519        # skip if you already have a key pair
 ssh-copy-id user@<your-vm-host>
 ssh user@<your-vm-host>      # confirm passwordless login works
 ```
+````
 
 Once confirmed, it's worth disabling password auth entirely — edit `/etc/ssh/sshd_config` on the
 VM, set `PasswordAuthentication no`, then `sudo systemctl reload sshd`. This is about not typing a
@@ -499,7 +502,8 @@ Then relaunch the Tauri app as usual — same "rebuild overlay, relaunch app" wo
 overlay change. No LiveKit URL change needed on the client side: it flows dynamically from the
 backend's session response, so once the VM's backend has `LIVEKIT_URL` pointed at the VM's LiveKit
 instance, the client picks it up automatically.
-```
+
+````
 
 - [ ] **Step 3: Proofread against CLAUDE.md's docs discipline**
 
@@ -513,7 +517,7 @@ event name, command).
 ```bash
 git add DEVELOPING.md
 git commit -m "docs: add optional dedicated dev-VM section and VTT_DEV_FAKE_IDENTITY note to DEVELOPING.md"
-```
+````
 
 ---
 
@@ -525,6 +529,7 @@ which isn't available in this execution environment. Whoever runs this step shou
 themselves, not have an agent assert it passed.
 
 **Files:**
+
 - Modify: `ROADMAP.md`
 
 - [ ] **Step 1: Start the dev stack**
@@ -563,7 +568,7 @@ round-trip (speak into one instance's mic, hear it from the other's speakers). T
 Only after Step 4 actually passes, in `ROADMAP.md`'s Stage 1 section:
 
 - Flip `⚪ Native LiveKit server running in dev mode — up to you locally (\`livekit-server
-  --dev\`); not yet run end-to-end against the app` to `🟢`, updating the trailing clause to
+  --dev\`); not yet run end-to-end against the app`to`🟢`, updating the trailing clause to
   reflect what was actually verified (e.g. note the fake-identity path was used, or a second real
   DDB account, whichever applies).
 - Update the "Verified locally" paragraph's "Not yet verified" list to remove the LiveKit

@@ -123,13 +123,13 @@ A **shared pool**, nothing more. Not a character sheet; players keep their own s
 
 Kept small, role-aware, with an autocomplete palette on `/`:
 
-| Command               | Who    | Does                                                   |
-| --------------------- | ------ | ------------------------------------------------------ |
-| `/w <name> <text>`    | all    | whisper to one player                                  |
-| `/dm <text>`          | player | message only the DM                                    |
-| `/me <text>`          | all    | emote                                                  |
-| `/voice <name>`       | DM     | choose the DM voice (hidden until Step 6 ships)        |
-| `/loot …`, `/take …`  | DM / player | add to / grab from the Party inventory (aliases of the UI) |
+| Command              | Who         | Does                                                       |
+| -------------------- | ----------- | ---------------------------------------------------------- |
+| `/w <name> <text>`   | all         | whisper to one player                                      |
+| `/dm <text>`         | player      | message only the DM                                        |
+| `/me <text>`         | all         | emote                                                      |
+| `/voice <name>`      | DM          | choose the DM voice (hidden until Step 6 ships)            |
+| `/loot …`, `/take …` | DM / player | add to / grab from the Party inventory (aliases of the UI) |
 
 Dropped from the old app: `/roll`, `/condition`, `/env`, `/ic`, `/ooc`, `/give`, `/drop`,
 `/spend`, `/earn`, `/loot-split`, `/loot-random` (the coin/item bookkeeping is the sheet's job; the
@@ -146,7 +146,7 @@ pool and its split cover what the table needs).
 - **Theme** follows the OS preference by default (`prefers-color-scheme`), with no manual toggle
   required; a manual override may exist in Settings, but the default is always the OS.
 - **NVIDIA + Wayland crash:** the client died on first webview with `Gdk Error 71 (Protocol
-  error)`. Fix in Rust at startup on Linux: set `WEBKIT_DISABLE_DMABUF_RENDERER=1` unless already
+error)`. Fix in Rust at startup on Linux: set `WEBKIT_DISABLE_DMABUF_RENDERER=1` unless already
   set; document it. (Confirmed working as an environment variable on Andy's machine.)
 - **Icons:** app/window/panel icons come from the old frontend's `branding/app-logo.png` and
   `favicon.*` (already done, uncommitted at time of writing).

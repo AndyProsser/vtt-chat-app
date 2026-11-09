@@ -5,6 +5,7 @@ import {
   accountErrorMessage,
   accountSelectCampaign,
   accountSignIn,
+  accountSignInCode,
   accountSignOut,
   accountStatus,
   onAccountChanged,
@@ -17,6 +18,7 @@ export interface AccountApi {
   busy: boolean;
   error: string | undefined;
   signIn: (server: string, email: string, password: string) => Promise<void>;
+  signInWithCode: (server: string, code: string) => Promise<void>;
   selectCampaign: (id: string) => Promise<void>;
   addCampaign: (action: 'join' | 'create' | 'refresh', value: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -60,6 +62,7 @@ export function useAccount(): AccountApi {
     busy,
     error,
     signIn: (server, email, password) => run(() => accountSignIn(server, email, password)),
+    signInWithCode: (server, code) => run(() => accountSignInCode(server, code)),
     selectCampaign: (id) => run(() => accountSelectCampaign(id)),
     addCampaign: (action, value) => run(() => accountAddCampaign(action, value)),
     signOut: () => run(accountSignOut),

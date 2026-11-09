@@ -20,20 +20,20 @@ Sessions run 4–8 hours, with **7–30 days between them**, and chat outside se
 
 ## Transport split
 
-| Carries | Channel | Why |
-| --- | --- | --- |
+| Carries                                                                                                         | Channel                                                 | Why                                             |
+| --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- | ----------------------------------------------- |
 | Speaking, typing, mute/audio state, presence, chat, whispers, recording status, notifications, connection stats | **WebSocket** (owned by the Rust core, not the webview) | Many small, frequent events; one ordered stream |
-| Create user, password/profile change, create campaign, file/handout upload | **REST** | Rare, large, request/response |
-| Character sync (DDB import) | REST to start; WS later if it proves chatty | Rare |
-| Audio | **LiveKit** (UDP) | Media |
-| LiveKit data events | Only where a WS round-trip is a poor fit | Default is WS |
+| Create user, password/profile change, create campaign, file/handout upload                                      | **REST**                                                | Rare, large, request/response                   |
+| Character sync (DDB import)                                                                                     | REST to start; WS later if it proves chatty             | Rare                                            |
+| Audio                                                                                                           | **LiveKit** (UDP)                                       | Media                                           |
+| LiveKit data events                                                                                             | Only where a WS round-trip is a poor fit                | Default is WS                                   |
 
 ## Envelope
 
 JSON text frames, versioned from day one:
 
 ```json
-{ "v": 1, "t": "chat.message", "id": "01J…", "seq": 18234, "ts": 1762300000000, "d": { } }
+{ "v": 1, "t": "chat.message", "id": "01J…", "seq": 18234, "ts": 1762300000000, "d": {} }
 ```
 
 - `v` protocol version; the server refuses unknown majors with a clear "update the app" error.
@@ -58,27 +58,27 @@ remote-revocation path ([CLAUDE.md §11](../../.claude/CLAUDE.md)).
 
 Defaults: buffer the last **500 events or 10 minutes per campaign stream**, whichever is smaller.
 
-**Epochs.** A sequence number only means something within one event stream. Whenever the stream is lost — the backend restarts with an in-memory buffer, Valkey is flushed — numbering starts again from 1, and a client holding "seq 3" from the old stream would be told it is up to date with a *different* stream, silently skipping events. So every stream has an **epoch** (a random id created with the stream). `snapshot` and `resumed` carry it, the client stores it beside its sequence number and sends both back, and a missing or different epoch always gets a snapshot. (Found while designing the Valkey buffer; fixed in both the TypeScript hub and the Rust client.)
+**Epochs.** A sequence number only means something within one event stream. Whenever the stream is lost — the backend restarts with an in-memory buffer, Valkey is flushed — numbering starts again from 1, and a client holding "seq 3" from the old stream would be told it is up to date with a _different_ stream, silently skipping events. So every stream has an **epoch** (a random id created with the stream). `snapshot` and `resumed` carry it, the client stores it beside its sequence number and sends both back, and a missing or different epoch always gets a snapshot. (Found while designing the Valkey buffer; fixed in both the TypeScript hub and the Rust client.)
 Reconnect uses exponential backoff with jitter, capped at 30 s.
 
 ## Recording frames
 
-| Frame | Direction | Meaning |
-| --- | --- | --- |
+| Frame                                                             | Direction                | Meaning                                                                                                                                                                 |
+| ----------------------------------------------------------------- | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `recording.status` `{campaignId, recordingId, status, startedAt}` | server → all in campaign | A transition just happened: `STARTED`, `PAUSED`, `RESUMED` or `STOPPED`. Not buffered for replay. `startedAt` is epoch ms on the server's clock (drives the REC timer). |
-| `recording.state` `{campaignId, recording}` | server → one client | Sent after every `snapshot` **and** `resumed`: `null`, or `{recordingId, status: IN-PROGRESS|PAUSED, acknowledged, startedAt}` for that viewer. |
-| `recording.ack` `{campaignId, recordingId}` | client → server | "I heard the start cue." Stale ids are refused (`stale_recording`). |
-| `recording.ack.update` `{campaignId, recordingId, userId}` | server → DMs | Who has heard it. |
+| `recording.state` `{campaignId, recording}`                       | server → one client      | Sent after every `snapshot` **and** `resumed`: `null`, or `{recordingId, status: IN-PROGRESS                                                                            | PAUSED, acknowledged, startedAt}` for that viewer. |
+| `recording.ack` `{campaignId, recordingId}`                       | client → server          | "I heard the start cue." Stale ids are refused (`stale_recording`).                                                                                                     |
+| `recording.ack.update` `{campaignId, recordingId, userId}`        | server → DMs             | Who has heard it.                                                                                                                                                       |
 
 See [RECORDING-AND-SUMMARIES.md](RECORDING-AND-SUMMARIES.md#the-consent-loop-as-built-2026-11-05) for the full loop.
 
 ## Presence and stats tiers
 
-| Client state | What it sends | Cadence |
-| --- | --- | --- |
-| App running, **no audio** | online/offline only (WS ping/pong is the heartbeat) | 30–60 s ping |
-| **In a voice session** | `stats.report` (RTT, jitter, packet loss, audio level health, reconnect count) | every **5 s** |
-| In a voice session | `speaking.*`, `audio.state` (mute/unmute) | on change |
+| Client state              | What it sends                                                                  | Cadence       |
+| ------------------------- | ------------------------------------------------------------------------------ | ------------- |
+| App running, **no audio** | online/offline only (WS ping/pong is the heartbeat)                            | 30–60 s ping  |
+| **In a voice session**    | `stats.report` (RTT, jitter, packet loss, audio level health, reconnect count) | every **5 s** |
+| In a voice session        | `speaking.*`, `audio.state` (mute/unmute)                                      | on change     |
 
 - Stats are delivered only to subscribed DM/Admin clients (the connection-status screen), never
   broadcast to all players.
@@ -97,11 +97,11 @@ players whose app isn't running; it is never required.
 
 Three tiers, chosen by how much it hurts to lose the data:
 
-| State | Examples | Lives in | If the store is down |
-| --- | --- | --- | --- |
-| Live connection state | who is online, speaking, typing, mute, latest stats sample | **in the backend process** (a map per socket), mirrored to Redis/Valkey only if configured | Nothing lost: clients are still connected and re-announce on reconnect. The process is the truth for its own sockets. |
-| Short-lived shared state | replay buffer (500 events / 10 min), per-recording cue acknowledgements (TTL), pub/sub between `backend` and the `ai` worker | **Redis/Valkey**, with an **in-memory implementation behind the same interface** | Falls back to memory: a backend restart then forces a snapshot instead of a replay, and acknowledgements are re-asked (one extra cue). Annoying, never wrong. |
-| Durable facts | accounts, sessions, memberships, consent, recording status and its **timeline metadata** (speaking indicators, mute, join/leave), notifications | **Postgres** | This is the real failure; the server says so and stops accepting changes rather than guess. |
+| State                    | Examples                                                                                                                                        | Lives in                                                                                   | If the store is down                                                                                                                                          |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Live connection state    | who is online, speaking, typing, mute, latest stats sample                                                                                      | **in the backend process** (a map per socket), mirrored to Redis/Valkey only if configured | Nothing lost: clients are still connected and re-announce on reconnect. The process is the truth for its own sockets.                                         |
+| Short-lived shared state | replay buffer (500 events / 10 min), per-recording cue acknowledgements (TTL), pub/sub between `backend` and the `ai` worker                    | **Redis/Valkey**, with an **in-memory implementation behind the same interface**           | Falls back to memory: a backend restart then forces a snapshot instead of a replay, and acknowledgements are re-asked (one extra cue). Annoying, never wrong. |
+| Durable facts            | accounts, sessions, memberships, consent, recording status and its **timeline metadata** (speaking indicators, mute, join/leave), notifications | **Postgres**                                                                               | This is the real failure; the server says so and stops accepting changes rather than guess.                                                                   |
 
 **Postgres is not the fallback for live state.** Speaking events and 5-second stats samples would turn into constant writes for data that is worthless a minute later. The exception is the recording timeline: those events are part of the record, so they are batched and written to Postgres during a recording whatever Redis is doing.
 

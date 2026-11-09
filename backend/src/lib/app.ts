@@ -7,6 +7,8 @@ import type { BackendConfig } from './config.js';
 import { inviteRoutes, webPages } from './http/joinRoutes.js';
 import type { DdbSyncService } from './ddb/ddbSyncService.js';
 import { avatarRoutes } from './http/avatarRoutes.js';
+import { OidcClient } from './auth/oidc.js';
+import { oidcRoutes } from './http/oidcRoutes.js';
 import { ddbRoutes } from './http/ddbRoutes.js';
 import { statusApi, statusPage } from './http/statusRoutes.js';
 import type { StatusService } from './status/statusService.js';
@@ -154,6 +156,11 @@ export function createApp({
     );
   }
 
+  // Which optional sign-in methods exist, so the app only offers what works.
+  app.get('/api/auth/providers', (_req, res) => {
+    res.json({ oidc: config.oidc !== undefined, mail: config.smtp !== undefined });
+  });
+  if (config.oidc) app.use('/api/auth/oidc', oidcRoutes(new OidcClient(config.oidc), accounts));
   app.use(
     '/api/auth',
     authRoutes({

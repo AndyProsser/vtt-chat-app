@@ -6,7 +6,14 @@ import { useAccount } from '../../hooks/useAccount.js';
 import { useLinkedServer } from '../../hooks/useLinkedServer.js';
 import { avatarValue } from '../../lib/avatars.js';
 import { initials } from '../../lib/rail.js';
-import { accountErrorMessage, accountRename, accountSetAvatar } from '../../lib/tauriBridge.js';
+import {
+  accountErrorMessage,
+  accountOpenSso,
+  accountRename,
+  accountRequestCode,
+  accountSetAvatar,
+  authProviders,
+} from '../../lib/tauriBridge.js';
 import { PictureButton } from '../PictureButton.js';
 import { Portrait } from '../Portrait.js';
 import { ToolButton } from '../ToolButton.js';
@@ -25,6 +32,21 @@ export function AccountSection() {
   }, [linked]);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [useCode, setUseCode] = useState(false);
+  const [code, setCode] = useState('');
+  const [codeNote, setCodeNote] = useState<string>();
+  const [providers, setProviders] = useState<{ oidc: boolean; mail: boolean }>();
+  const typedServer = server ?? status?.server ?? '';
+  useEffect(() => {
+    if (!useCode || typedServer.trim() === '') return;
+    let cancelled = false;
+    authProviders(typedServer)
+      .then((p) => !cancelled && setProviders(p))
+      .catch(() => !cancelled && setProviders(undefined));
+    return () => {
+      cancelled = true;
+    };
+  }, [useCode, typedServer]);
 
   if (!status) return null;
 
@@ -100,11 +122,22 @@ export function AccountSection() {
   }
 
   const address = server ?? status.server ?? '';
+
+  async function sendCode() {
+    try {
+      await accountRequestCode(address, email);
+      setCodeNote('If that address has an account, a code is on its way. Paste it below.');
+    } catch (e) {
+      setCodeNote(accountErrorMessage(e));
+    }
+  }
+
   return (
     <form
       onSubmit={(e) => {
         e.preventDefault();
-        void account.signIn(address, email, password);
+        if (useCode) void account.signInWithCode(address, code);
+        else void account.signIn(address, email, password);
       }}
     >
       <Flex direction="column" gap="3" p="4">
@@ -127,22 +160,62 @@ export function AccountSection() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
-        <TextField.Root
-          type="password"
-          aria-label="Password"
-          placeholder="Password"
-          autoComplete="current-password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
+        {useCode ? (
+          <>
+            <Flex gap="2" wrap="wrap">
+              {providers?.oidc && (
+                <Button type="button" variant="soft" onClick={() => void accountOpenSso(address)}>
+                  Sign in with single sign-on
+                </Button>
+              )}
+              {providers?.mail !== false && (
+                <Button
+                  type="button"
+                  variant="soft"
+                  disabled={address.trim() === '' || email === ''}
+                  onClick={() => void sendCode()}
+                >
+                  Email me a code
+                </Button>
+              )}
+            </Flex>
+            {codeNote && (
+              <Text size="2" color="gray">
+                {codeNote}
+              </Text>
+            )}
+            <TextField.Root
+              aria-label="Sign-in code"
+              placeholder="Code (from email, single sign-on, or your DM)"
+              autoComplete="one-time-code"
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+            />
+          </>
+        ) : (
+          <TextField.Root
+            type="password"
+            aria-label="Password"
+            placeholder="Password"
+            autoComplete="current-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        )}
         {errorBox}
         <Button
           type="submit"
           size="3"
           loading={account.busy}
-          disabled={address.trim() === '' || email === '' || password === ''}
+          disabled={
+            address.trim() === '' ||
+            (useCode ? code.trim() === '' : email === '' || password === '')
+          }
         >
           Sign in
+        </Button>
+        <Button type="button" variant="ghost" size="1" onClick={() => setUseCode((v) => !v)}>
+          {useCode ? 'Use a password instead' : 'Use a code instead (no password)'}
         </Button>
       </Flex>
     </form>

@@ -60,7 +60,8 @@ pub(crate) fn apply(
     if let Some(wanted) = input {
         if let Some(device) = audio
             .recording_devices()
-            .find(|d| key_of(d.id.as_str(), &d.name) == wanted) {
+            .find(|d| key_of(d.id.as_str(), &d.name) == wanted)
+        {
             audio
                 .switch_recording_device(&device.id)
                 .map_err(|e| format!("could not switch the microphone: {e}"))?;
@@ -69,7 +70,8 @@ pub(crate) fn apply(
     if let Some(wanted) = output {
         if let Some(device) = audio
             .playout_devices()
-            .find(|d| key_of(d.id.as_str(), &d.name) == wanted) {
+            .find(|d| key_of(d.id.as_str(), &d.name) == wanted)
+        {
             audio
                 .switch_playout_device(&device.id)
                 .map_err(|e| format!("could not switch the speaker: {e}"))?;

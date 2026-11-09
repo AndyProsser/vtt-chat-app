@@ -22,13 +22,13 @@ with our own frames through `capture_frame`. Using it means **we capture the mic
 
 ## The trade-offs
 
-| Concern                        | Effect on the DM's path                                                                                 |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------- |
-| Echo cancellation, noise       | **Lost** unless re-added (WebRTC's APM is not exposed by the Rust SDK as far as I found); open-mic tables with speakers need it. Headphones largely avoid the problem. |
-| "Mute releases the device"     | Still achievable: stop our own cpal stream. Unmute latency must be re-measured (AUDIO-SPIKE-RESULTS.md).|
-| Latency                        | Capture buffer + one DSP block + the source queue; a pitch/formant shifter needs ~20–40 ms of look-ahead on top of today's. Budget to be measured on the dev box. |
-| CPU                            | A phase-vocoder or granular shifter is a few percent of one core per 48 kHz mono stream; fine for one DM. |
-| Players                        | Unchanged: only the DM's published track differs. Normal voice is the same code path with the effect off. |
+| Concern                    | Effect on the DM's path                                                                                                                                                |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Echo cancellation, noise   | **Lost** unless re-added (WebRTC's APM is not exposed by the Rust SDK as far as I found); open-mic tables with speakers need it. Headphones largely avoid the problem. |
+| "Mute releases the device" | Still achievable: stop our own cpal stream. Unmute latency must be re-measured (AUDIO-SPIKE-RESULTS.md).                                                               |
+| Latency                    | Capture buffer + one DSP block + the source queue; a pitch/formant shifter needs ~20–40 ms of look-ahead on top of today's. Budget to be measured on the dev box.      |
+| CPU                        | A phase-vocoder or granular shifter is a few percent of one core per 48 kHz mono stream; fine for one DM.                                                              |
+| Players                    | Unchanged: only the DM's published track differs. Normal voice is the same code path with the effect off.                                                              |
 
 ## Options
 

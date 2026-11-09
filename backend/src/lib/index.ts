@@ -14,6 +14,8 @@ export * from './http/campaignRoutes.js';
 export * from './http/delivery.js';
 export * from './http/middleware.js';
 export * from './http/rateLimit.js';
+export * from './auth/oidc.js';
+export * from './http/smtpTransport.js';
 export * from './realtime/hub.js';
 export * from './realtime/presence.js';
 export * from './realtime/protocol.js';

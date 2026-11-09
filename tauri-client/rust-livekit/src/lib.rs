@@ -654,7 +654,8 @@ mod live_tests {
     async fn leaving_and_rejoining_works() {
         let url = std::env::var("VTT_TEST_URL").expect("VTT_TEST_URL");
         let token = std::env::var("VTT_TEST_TOKEN").expect("VTT_TEST_TOKEN");
-        let join = || crate::LiveKitClient::connect(&url, &token, Arc::new(|_| {}), Arc::new(|_| {}));
+        let join =
+            || crate::LiveKitClient::connect(&url, &token, Arc::new(|_| {}), Arc::new(|_| {}));
         join().await.expect("first join").disconnect().await.ok();
         tokio::time::sleep(std::time::Duration::from_millis(500)).await;
         let again = join().await.expect("the second join");

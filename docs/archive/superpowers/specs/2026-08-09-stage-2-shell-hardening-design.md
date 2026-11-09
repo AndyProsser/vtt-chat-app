@@ -29,12 +29,12 @@ No new Tauri IPC commands. Hotkeys act on `SharedClient`/the window directly via
 
 **Bindings:**
 
-| Shortcut | Event | Action |
-| --- | --- | --- |
-| Right Ctrl | `Pressed` | `set_microphone_muted(false)` |
-| Right Ctrl | `Released` | `set_microphone_muted(true)` |
-| Ctrl+Shift+M | `Pressed` | toggle based on `is_microphone_muted()` |
-| Ctrl+Shift+O | `Pressed` | emit `overlay:toggle` event |
+| Shortcut     | Event      | Action                                  |
+| ------------ | ---------- | --------------------------------------- |
+| Right Ctrl   | `Pressed`  | `set_microphone_muted(false)`           |
+| Right Ctrl   | `Released` | `set_microphone_muted(true)`            |
+| Ctrl+Shift+M | `Pressed`  | toggle based on `is_microphone_muted()` |
+| Ctrl+Shift+O | `Pressed`  | emit `overlay:toggle` event             |
 
 Hardcoded defaults, not user-configurable in this stage — configurability needs a persistence story that doesn't exist until Stage 5, and bolting a settings path on now would be built against an unknown future shape.
 
@@ -76,9 +76,9 @@ Suffix-matches the host against `dndbeyond.com` and `wizards.com` (the domain it
 **New-window requests — resolving a Stage-2-vs-Stage-4 boundary.** `on_new_window` (Tauri's `WebviewWindowBuilder` API, confirmed to exist and take a `Fn(Url, NewWindowFeatures) -> NewWindowResponse<R>`) fires for `window.open()`. Tauri's own docs don't say whether `target="_blank"` anchor clicks route through it too — community reports suggest they may bypass it entirely. Design:
 
 - `safety_net.rs` gets a capture-phase click listener that strips `target="_blank"` before the click completes, turning it into an ordinary same-window navigation that flows through the `on_navigation` check above. No separate allow/deny logic needed in JS.
-- `on_new_window` itself: real multi-window doesn't exist until Stage 4, so it must never spawn an OS window here. Instead, navigate the *existing* main window — to the target if `allowlist::is_allowed`, to the blocked page if not. Both interception points converge on the same `is_allowed` + blocked-page mechanism as ordinary navigation.
+- `on_new_window` itself: real multi-window doesn't exist until Stage 4, so it must never spawn an OS window here. Instead, navigate the _existing_ main window — to the target if `allowlist::is_allowed`, to the blocked page if not. Both interception points converge on the same `is_allowed` + blocked-page mechanism as ordinary navigation.
 
-**Known gap, not fixed in this stage — OAuth login domains.** [`DDB-AUTH.md`](../../architecture/DDB-AUTH.md) documents Steam/Google/Apple OAuth as the *recommended* login path (Akamai bot-scoring breaks the plain email/password form). OAuth necessarily redirects to domains outside `dndbeyond.com`/`wizards.com` — Google's, Apple's, or Steam's own login pages, and likely an Auth0 tenant domain in between. The exact redirect chain has not been captured live (only the *failing* plain-login flow has a HAR trace; the *working* OAuth flow does not). Enforcing the allowlist as scoped here **will break OAuth login** until that chain is traced and added. Ship anyway, log as a known issue in `ROADMAP.md`, fast-follow once a live OAuth HAR capture is done (same evidentiary standard as the tracker list below — confirmed domains only, not guessed).
+**Known gap, not fixed in this stage — OAuth login domains.** [`DDB-AUTH.md`](../../architecture/DDB-AUTH.md) documents Steam/Google/Apple OAuth as the _recommended_ login path (Akamai bot-scoring breaks the plain email/password form). OAuth necessarily redirects to domains outside `dndbeyond.com`/`wizards.com` — Google's, Apple's, or Steam's own login pages, and likely an Auth0 tenant domain in between. The exact redirect chain has not been captured live (only the _failing_ plain-login flow has a HAR trace; the _working_ OAuth flow does not). Enforcing the allowlist as scoped here **will break OAuth login** until that chain is traced and added. Ship anyway, log as a known issue in `ROADMAP.md`, fast-follow once a live OAuth HAR capture is done (same evidentiary standard as the tracker list below — confirmed domains only, not guessed).
 
 ## 3. Ad-block extension
 
@@ -132,7 +132,7 @@ hotkeys.rs
              (app-focused only, but works on every platform including Wayland)
 ```
 
-**Correction found during implementation: push-to-talk is not on path 1 at all.** `global-hotkey` has no scancode mapping for bare modifier keys, so registering Right Ctrl fails with `Unable to register hotkey: Unknown scancode for key: ControlRight` on *every* platform, not just Wayland. PTT is delivered solely by path 2, which reads `event.code === 'ControlRight'` without difficulty. The global registration attempt was removed rather than left to fail on every launch. Decided 2026-08-11 to keep Right Ctrl as the single binding rather than introduce a second, chord-based global PTT — a chord is worse to hold while talking, and Ctrl+Shift+M remains globally registered for the alt-tabbed emergency-mute case.
+**Correction found during implementation: push-to-talk is not on path 1 at all.** `global-hotkey` has no scancode mapping for bare modifier keys, so registering Right Ctrl fails with `Unable to register hotkey: Unknown scancode for key: ControlRight` on _every_ platform, not just Wayland. PTT is delivered solely by path 2, which reads `event.code === 'ControlRight'` without difficulty. The global registration attempt was removed rather than left to fail on every launch. Decided 2026-08-11 to keep Right Ctrl as the single binding rather than introduce a second, chord-based global PTT — a chord is worse to hold while talking, and Ctrl+Shift+M remains globally registered for the alt-tabbed emergency-mute case.
 
 Registration is also **per-shortcut, not batched**: `on_shortcuts` is all-or-nothing, so PTT's failure initially took mute and overlay toggle down with it.
 
@@ -142,7 +142,7 @@ Path 2 is a capture-phase `keydown`/`keyup` listener on `document`, matching `ev
 
 Both paths must be idempotent — on Windows/X11 a single Right Ctrl press can fire both, and `push_to_talk(false)` twice must be harmless.
 
-**Effect on the stage's "Done when".** *"PTT/mute work via hotkey without the overlay focused"* is satisfied on every platform via path 2 (DDB page focused, overlay not). Without the **app** focused, only mute and overlay toggle qualify, and only on Windows/macOS/X11 — push-to-talk is app-focused everywhere, per the correction above. `ROADMAP.md` carries the full platform matrix rather than marking the bar unqualifiedly passed.
+**Effect on the stage's "Done when".** _"PTT/mute work via hotkey without the overlay focused"_ is satisfied on every platform via path 2 (DDB page focused, overlay not). Without the **app** focused, only mute and overlay toggle qualify, and only on Windows/macOS/X11 — push-to-talk is app-focused everywhere, per the correction above. `ROADMAP.md` carries the full platform matrix rather than marking the bar unqualifiedly passed.
 
 ### B. Mute is a local capture gate, mirrored to the track — not track mute alone
 

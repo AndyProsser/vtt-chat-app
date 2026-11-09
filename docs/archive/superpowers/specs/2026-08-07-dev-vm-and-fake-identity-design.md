@@ -77,6 +77,7 @@ Room membership is keyed by `identity.campaign.id` (`backend/src/lib/app.ts:29` 
   ```
 
   Serialized with `#[serde(rename_all = "camelCase")]` (matching the existing `LiveKitStatePayload` pattern in `commands.rs`) so the emitted JSON matches `DdbIdentity`'s camelCase fields on the TS side.
+
 - `tauri-client/overlay-ui/src/hooks/useOverlayBridge.ts` gains a second listener, `onDevFakeIdentity` (new export in `tauriBridge.ts`, mirroring `onCobaltCookieDetected`), that receives the `DdbIdentity` directly and calls `requestSession` + `connectLiveKit` — skipping `extractDdbIdentity`/`ddb/` entirely, since there's no cookie to exchange. Everything downstream (backend session issuance, LiveKit token minting, room join) is the real code path real identities use; only the DDB-auth step is replaced.
 - When `VTT_DEV_FAKE_IDENTITY` is unset (the default, including all release builds), behavior is unchanged from today.
 

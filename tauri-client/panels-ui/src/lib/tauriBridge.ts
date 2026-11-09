@@ -73,6 +73,21 @@ export const accountStatus = () => invoke<AccountStatus>('account_status');
 export const accountSignIn = (server: string, email: string, password: string) =>
   invoke<AccountStatus>('account_sign_in', { server, email, password });
 
+/** Which optional sign-in methods the server offers (`auth_providers`). */
+export const authProviders = (server: string) =>
+  invoke<{ oidc: boolean; mail: boolean }>('auth_providers', { server });
+
+/** Opens the server's single sign-on page in the system browser (`account_open_sso`). */
+export const accountOpenSso = (server: string) => invoke<void>('account_open_sso', { server });
+
+/** Emails a one-time sign-in code (the answer is the same whether or not the address has an account). */
+export const accountRequestCode = (server: string, email: string) =>
+  invoke<void>('account_request_code', { server, email });
+
+/** Signs in with a one-time code, from email or handed over by the DM or operator. */
+export const accountSignInCode = (server: string, code: string) =>
+  invoke<AccountStatus>('account_sign_in_code', { server, code });
+
 export const accountSelectCampaign = (campaignId: string) =>
   invoke<AccountStatus>('account_select_campaign', { campaignId });
 

@@ -19,11 +19,11 @@ This system does the equivalent **inside the Tauri WebView directly** — there 
 
 ## Trust Boundary
 
-| Trusted                                                | Not trusted                                              |
-| ------------------------------------------------------- | ------------------------------------------------------------ |
+| Trusted                                                | Not trusted                                                 |
+| ------------------------------------------------------ | ----------------------------------------------------------- |
 | Character/campaign membership as reported by DDB's API | Any identity claim not backed by the cobalt cookie exchange |
 | DM status from the campaign owner field                | Role escalation beyond what DDB's campaign data indicates   |
-| Character metadata (name, class, HP, etc.) from DDB     | Arbitrary metadata not sourced from DDB                      |
+| Character metadata (name, class, HP, etc.) from DDB    | Arbitrary metadata not sourced from DDB                     |
 
 This app never asks the user for a password, and never stores one. D&D Beyond's own session is the only credential.
 
@@ -41,7 +41,7 @@ https://myaccounts.wizards.com/login?client_id=7G6UYZSMWRBL5AT5EDFJXCBTE4&prompt
 - `redirect_uri` — `https://www.dndbeyond.com/oauth-wizards-callback`. DDB's own callback handler completes the exchange and sets `CobaltSession` server-side once Wizards' Auth0 issues the authorization code; this app never sees that exchange, only the resulting cookie.
 - `response_type=code`, `scope=email`, `state` — standard Auth0 authorization-code parameters. `state` is base64 and decodes to `<random-id>|<origin>|<return-url>` in the observed sample (e.g. the return URL is the character-sheet page the user started from).
 
-This confirms what was previously an assumption in this doc: **DDB delegates real authentication to a Wizards-owned Auth0 tenant**; DDB itself never handles a password. The trust model in this document (this app never asks for or stores a password) holds one level further up than originally documented — it's true of DDB *and* of Wizards.
+This confirms what was previously an assumption in this doc: **DDB delegates real authentication to a Wizards-owned Auth0 tenant**; DDB itself never handles a password. The trust model in this document (this app never asks for or stores a password) holds one level further up than originally documented — it's true of DDB _and_ of Wizards.
 
 ## Resolved: Plain Email/Password Login (Was: Fails Under WebKitGTK / Akamai Bot Manager)
 
@@ -53,7 +53,7 @@ Earlier testing (Stage 1) saw `myaccounts.wizards.com/login`'s plain email/passw
 
 ## Known Issue: OAuth Recommended Path Was Also Blocked (Partially Fixed 2026-08-13)
 
-Until this app's own page-restriction allowlist (`tauri-client/src-tauri/src/consts.rs`, `ALLOWED_DOMAINS`) is amended, the "Steam/Google/Apple OAuth remains the standing recommended path" line above was itself broken by this app's own code, not by Wizards/Akamai — meaning both login paths (plain email/password *and* the OAuth fallback) failed at once, just for unrelated reasons. Confirmed live 2026-08-13: clicking "Sign in with Google" on `myaccounts.wizards.com/login` navigates to Google Identity Services' button endpoint, `accounts.google.com/gsi/button?...`, which the allowlist rejected (only `dndbeyond.com`/`wizards.com` were listed) and replaced with this app's blocked page.
+Until this app's own page-restriction allowlist (`tauri-client/src-tauri/src/consts.rs`, `ALLOWED_DOMAINS`) is amended, the "Steam/Google/Apple OAuth remains the standing recommended path" line above was itself broken by this app's own code, not by Wizards/Akamai — meaning both login paths (plain email/password _and_ the OAuth fallback) failed at once, just for unrelated reasons. Confirmed live 2026-08-13: clicking "Sign in with Google" on `myaccounts.wizards.com/login` navigates to Google Identity Services' button endpoint, `accounts.google.com/gsi/button?...`, which the allowlist rejected (only `dndbeyond.com`/`wizards.com` were listed) and replaced with this app's blocked page.
 
 `accounts.google.com` is now in `ALLOWED_DOMAINS`, unblocking that endpoint. **Not yet confirmed:** whether the rest of the flow — the actual consent screen and the redirect back to DDB's `oauth-wizards-callback` — needs any domain beyond this one, since Google's flow may stay entirely on `accounts.google.com` or may not. Apple and Steam are unconfirmed and still blocked; each needs its own live click-through before being added, per the evidence bar in [ROADMAP.md](../../ROADMAP.md#stage-2--audio-continuity-hotkeys-page-restriction--ad-block).
 

@@ -5,6 +5,8 @@ import {
   DEV_LIVEKIT_URL,
 } from '../consts/index.js';
 
+import type { OidcConfig } from './auth/oidc.js';
+
 export interface ClientDownloads {
   windows?: string;
   macos?: string;
@@ -44,6 +46,10 @@ export interface BackendConfig {
    * Optional D&D Beyond character sync (`DDB_SYNC=1`). Off by default because it contacts a third
    * party; `DDB_SYNC_HOURS` is how stale a linked character may get before the timer refreshes it.
    */
+  /** Outbound mail for magic links (`SMTP_URL`, e.g. smtps://user:pass@mail.example.com:465, plus `MAIL_FROM`). Unset: the Admin CLI issues codes. */
+  /** Optional single sign-on (`OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, and `PUBLIC_URL` for the redirect). */
+  oidc: OidcConfig | undefined;
+  smtp: { url: string; from: string } | undefined;
   ddbSync: { enabled: boolean; intervalHours: number };
 }
 
@@ -70,6 +76,18 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): BackendConfig 
       ...(env.CLIENT_URL_MACOS ? { macos: env.CLIENT_URL_MACOS } : {}),
       ...(env.CLIENT_URL_LINUX ? { linux: env.CLIENT_URL_LINUX } : {}),
     },
+    oidc:
+      env.OIDC_ISSUER && env.OIDC_CLIENT_ID && env.OIDC_CLIENT_SECRET && env.PUBLIC_URL
+        ? {
+            issuer: env.OIDC_ISSUER,
+            clientId: env.OIDC_CLIENT_ID,
+            clientSecret: env.OIDC_CLIENT_SECRET,
+            redirectUri: `${env.PUBLIC_URL.replace(/\/$/, '')}/api/auth/oidc/callback`,
+          }
+        : undefined,
+    smtp: env.SMTP_URL
+      ? { url: env.SMTP_URL, from: env.MAIL_FROM ?? 'VTT Chat <no-reply@localhost>' }
+      : undefined,
     ddbSync: {
       enabled: env.DDB_SYNC === '1' || env.DDB_SYNC === 'true',
       intervalHours: env.DDB_SYNC_HOURS ? Math.max(1, Number(env.DDB_SYNC_HOURS) || 12) : 12,

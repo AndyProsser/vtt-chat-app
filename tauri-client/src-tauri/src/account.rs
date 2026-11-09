@@ -406,7 +406,47 @@ impl AccountClient {
             .send()
             .await
             .map_err(Self::unreachable)?;
-        let body = Self::read(response).await?;
+        Self::outcome(Self::read(response).await?)
+    }
+
+    /// What the server offers beyond a password: `{ "oidc": bool, "mail": bool }`.
+    pub async fn providers(&self) -> Result<Value, AccountError> {
+        let response = self
+            .http
+            .get(format!("{}/api/auth/providers", self.base))
+            .send()
+            .await
+            .map_err(Self::unreachable)?;
+        Self::read(response).await
+    }
+
+    /// Asks the server to email a one-time sign-in code. The server answers the same whether or not the
+    /// address has an account (and whether or not it can send mail), so this reveals nothing.
+    pub async fn request_code(&self, email: &str) -> Result<(), AccountError> {
+        let response = self
+            .http
+            .post(format!("{}/api/auth/magic-link", self.base))
+            .json(&json!({ "email": email.trim(), "purpose": "signin" }))
+            .send()
+            .await
+            .map_err(Self::unreachable)?;
+        Self::read(response).await.map(|_| ())
+    }
+
+    /// Signs in with a one-time code (from email, or handed over by the DM or operator).
+    pub async fn redeem_code(&self, code: &str) -> Result<LoginOutcome, AccountError> {
+        let response = self
+            .http
+            .post(format!("{}/api/auth/magic-link/redeem", self.base))
+            .json(&json!({ "token": code.trim(), "deviceLabel": device_label() }))
+            .send()
+            .await
+            .map_err(Self::unreachable)?;
+        Self::outcome(Self::read(response).await?)
+    }
+
+    /// The session and profile out of a login or code-redeem reply.
+    fn outcome(body: Value) -> Result<LoginOutcome, AccountError> {
         let token = body
             .get("sessionToken")
             .and_then(Value::as_str)

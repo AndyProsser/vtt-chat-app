@@ -35,6 +35,7 @@ import {
   PostgresScheduleStore,
   ScheduleService,
   StatusService,
+  createSmtpMailTransport,
   type StatusProbe,
   CampaignService,
   DdbSyncService,
@@ -200,6 +201,9 @@ if (isEntryPoint) {
       store,
       ddb,
       status,
+      ...(config.smtp
+        ? { sender: createSmtpMailTransport(config.smtp.url, config.smtp.from) }
+        : {}),
       realtime: hub,
       recording: hub.recording,
       records,

@@ -27,12 +27,14 @@
 ## Task 1: Vitest test runner + characterize the existing untested no-op guard
 
 **Files:**
+
 - Create: `tauri-client/overlay-ui/src/lib/microphoneStore.test.ts`
 - Create: `tauri-client/overlay-ui/vitest.config.ts`
 - Modify: `tauri-client/overlay-ui/package.json`
 - Modify: `package.json` (root)
 
 **Interfaces:**
+
 - Consumes: `useMicrophoneStore` from `tauri-client/overlay-ui/src/lib/microphoneStore.ts` (existing, unchanged — `{ muted: boolean; applyMuted: (muted: boolean) => void }`).
 - Produces: a working `npm test` script at the root and in `overlay-ui`, and a `vitest.config.ts` every later task's tests load via (`environment: 'jsdom'`, `include: ['src/**/*.test.ts']`). Later tasks assume this exists and don't re-configure it.
 
@@ -150,10 +152,12 @@ git commit -m "test(overlay-ui): add Vitest and cover microphoneStore's no-op gu
 ## Task 2: Shared IPC contract for the speakers event
 
 **Files:**
+
 - Modify: `shared/src/consts/index.ts`
 - Modify: `shared/src/types/ipc.ts`
 
 **Interfaces:**
+
 - Produces: `LIVEKIT_SPEAKERS_EVENT` (string const) and `SpeakingStatePayload` (`{ speakingIdentities: string[] }`), both re-exported from `@vtt-chat-app/shared`. Task 4 (Rust emit side) and Task 9 (TS listen side) depend on these exact names.
 
 Pure declarations — no logic to unit test. Verified by the package's own build/typecheck, which every consumer's typecheck also exercises.
@@ -206,10 +210,12 @@ git commit -m "feat(shared): add livekit:speakers IPC contract"
 ## Task 3: `rust-livekit` — active-speaker event → `SpeakersChangeCallback`
 
 **Files:**
+
 - Modify: `tauri-client/rust-livekit/src/lib.rs`
 - Modify: `tauri-client/rust-livekit/examples/loopback.rs`
 
 **Interfaces:**
+
 - Consumes: `livekit::prelude::{Participant, RoomEvent}` (already in scope via the existing `use livekit::prelude::*;`). `Participant::identity(&self) -> ParticipantIdentity`, and `ParticipantIdentity: Display` (verified against the vendored `livekit` 0.8.2 source — `crates.io/livekit-0.8.2/src/room/id.rs`, `src/room/participant/mod.rs`).
 - Produces: `pub type SpeakersChangeCallback = Arc<dyn Fn(Vec<String>) + Send + Sync>;` and a new third parameter on `LiveKitClient::connect`. Task 4 (`commands.rs`) and this task's own `loopback.rs` update are the only two callers in the mono-repo.
 
@@ -313,12 +319,14 @@ git commit -m "feat(rust-livekit): emit active-speaker identities via SpeakersCh
 ## Task 4: `src-tauri` — relay `livekit:speakers`, add `set_microphone_muted`, share the mute-apply path
 
 **Files:**
+
 - Modify: `tauri-client/src-tauri/src/consts.rs`
 - Modify: `tauri-client/src-tauri/src/hotkeys.rs`
 - Modify: `tauri-client/src-tauri/src/commands.rs`
 - Modify: `tauri-client/src-tauri/src/lib.rs`
 
 **Interfaces:**
+
 - Consumes: `rust_livekit::SpeakersChangeCallback` (Task 3), `shared`'s `LIVEKIT_SPEAKERS_EVENT` name mirrored by hand as `SPEAKERS_STATE_EVENT` (Rust can't import the TS package — same rationale as the existing `MICROPHONE_STATE_EVENT`/`OVERLAY_TOGGLE_EVENT` pair in `consts.rs`).
 - Produces: `hotkeys::apply_microphone_mute(app: &AppHandle, muted: bool)` (used by both `dispatch` and the new command) and the `set_microphone_muted` Tauri command, which Task 11's `MuteButton` invokes by name (`"set_microphone_muted"`, `{ muted: boolean }`).
 
@@ -513,11 +521,13 @@ git commit -m "feat(src-tauri): relay livekit:speakers and add set_microphone_mu
 ## Task 5: `pageMode.ts` — `classifyPage`
 
 **Files:**
+
 - Create: `tauri-client/overlay-ui/src/lib/pageMode.ts`
 - Create: `tauri-client/overlay-ui/src/lib/pageMode.test.ts`
 - Modify: `tauri-client/overlay-ui/src/lib/index.ts`
 
 **Interfaces:**
+
 - Produces: `export type OverlayMode = 'full' | 'pill'`, `export function classifyPage(url: URL): OverlayMode`, `export const OVERLAY_EVERYWHERE_STORAGE_KEY: string`. Task 6 (`usePageMode`) and Task 15 (`OverlayRoot`) consume `OverlayMode` and `classifyPage`.
 
 Implements design §1's classification rule (not the SPA-subscription half — that's Task 6).
@@ -631,11 +641,13 @@ git commit -m "feat(overlay-ui): add classifyPage for full/pill overlay mode"
 ## Task 6: SPA-navigation subscription + `usePageMode`
 
 **Files:**
+
 - Modify: `tauri-client/overlay-ui/src/lib/pageMode.ts`
 - Create: `tauri-client/overlay-ui/src/hooks/usePageMode.ts`
 - Modify: `tauri-client/overlay-ui/src/hooks/index.ts`
 
 **Interfaces:**
+
 - Consumes: `classifyPage`, `OverlayMode` (Task 5).
 - Produces: `export function subscribeToPageModeChanges(listener: () => void): () => void` (from `lib/pageMode.ts`) and `export function usePageMode(): OverlayMode` (new hook). Task 15 (`OverlayRoot`) consumes `usePageMode`.
 
@@ -693,9 +705,7 @@ import { classifyPage, subscribeToPageModeChanges, type OverlayMode } from '../l
 
 /** Re-classifies on navigation — see `subscribeToPageModeChanges` for what triggers it. */
 export function usePageMode(): OverlayMode {
-  const [mode, setMode] = useState<OverlayMode>(() =>
-    classifyPage(new URL(window.location.href)),
-  );
+  const [mode, setMode] = useState<OverlayMode>(() => classifyPage(new URL(window.location.href)));
 
   useEffect(() => {
     const recompute = () => setMode(classifyPage(new URL(window.location.href)));
@@ -742,11 +752,13 @@ git commit -m "feat(overlay-ui): add usePageMode with SPA-navigation re-classifi
 ## Task 7: `speakingStore`
 
 **Files:**
+
 - Create: `tauri-client/overlay-ui/src/lib/speakingStore.ts`
 - Create: `tauri-client/overlay-ui/src/lib/speakingStore.test.ts`
 - Modify: `tauri-client/overlay-ui/src/lib/index.ts`
 
 **Interfaces:**
+
 - Produces: `useSpeakingStore` (Zustand store, `{ speakingIdentities: Set<string>; applySpeakers: (identities: string[]) => void }`). Task 8 (`useIsSpeaking`) and Task 10 (`useOverlayBridge`) consume it.
 
 Implements design §3.
@@ -868,10 +880,12 @@ git commit -m "feat(overlay-ui): add speakingStore with wholesale-replace + no-o
 ## Task 8: `useIsSpeaking`, wired into churn diagnostics
 
 **Files:**
+
 - Create: `tauri-client/overlay-ui/src/hooks/useIsSpeaking.ts`
 - Modify: `tauri-client/overlay-ui/src/hooks/index.ts`
 
 **Interfaces:**
+
 - Consumes: `useSpeakingStore` (Task 7), `useChurnDiagnostics` (existing, `tauri-client/overlay-ui/src/hooks/useChurnDiagnostics.ts`).
 - Produces: `export function useIsSpeaking(identity: string): boolean`. Task 12 (`SpeakingDot`) consumes it.
 
@@ -930,9 +944,11 @@ git commit -m "feat(overlay-ui): add useIsSpeaking, wiring churn diagnostics int
 ## Task 9: `tauriBridge` — listen for speakers, invoke the mute command
 
 **Files:**
+
 - Modify: `tauri-client/overlay-ui/src/lib/tauriBridge.ts`
 
 **Interfaces:**
+
 - Consumes: `LIVEKIT_SPEAKERS_EVENT`, `SpeakingStatePayload` (Task 2, `@vtt-chat-app/shared`); Rust command `set_microphone_muted` (Task 4).
 - Produces: `export function onSpeakersChanged(handler: (payload: SpeakingStatePayload) => void): Promise<UnlistenFn>` and `export function setMicrophoneMuted(muted: boolean): Promise<void>`. Task 10 (`useOverlayBridge`) consumes the former; Task 11 (`MuteButton`) consumes the latter.
 
@@ -994,9 +1010,11 @@ git commit -m "feat(overlay-ui): add onSpeakersChanged and setMicrophoneMuted IP
 ## Task 10: Wire `speakingStore` into `useOverlayBridge`
 
 **Files:**
+
 - Modify: `tauri-client/overlay-ui/src/hooks/useOverlayBridge.ts`
 
 **Interfaces:**
+
 - Consumes: `useSpeakingStore` (Task 7), `onSpeakersChanged` (Task 9).
 
 - [ ] **Step 1: Implement**
@@ -1099,16 +1117,18 @@ git commit -m "feat(overlay-ui): apply livekit:speakers events into speakingStor
 ## Task 11: Wire in Radix Themes + `MuteButton` + pointer-events narrowing
 
 **Files:**
+
 - Modify: `tauri-client/overlay-ui/src/main.tsx`
 - Create: `tauri-client/overlay-ui/src/components/MuteButton.tsx`
 - Modify: `tauri-client/overlay-ui/src/components/index.ts`
 - Modify: `tauri-client/overlay-ui/src/styles/theme.css`
 
 **Interfaces:**
+
 - Consumes: `useMicrophoneMuted` (existing), `setMicrophoneMuted` (Task 9), `Theme`/`Button` from `@radix-ui/themes` (dependency since Stage 1, `^3.2.0` in `package.json`, actual installed version `3.3.0` — confirmed present in `node_modules`, never previously imported anywhere in `overlay-ui`).
 - Produces: `export const MuteButton`. Task 14 (`FullPanel`, `MicPill`) consumes it. `main.tsx` now renders `<Theme>` as the root of the React tree — every component rendered inside `OverlayRoot` from this task onward is inside a Radix theme context.
 
-Implements design §4/§5, plus the Radix-adoption decision made before this task started (see this plan's Architecture section): `@radix-ui/themes` is a dependency that's never been imported — Stage 1/2's components all used plain HTML elements, deviating from CLAUDE.md §3/§19's "React 19 + Radix UI for every UI surface." This is the overlay's first interactive control, so it's also the first point where that matters. Confirmed and accepted: Radix's `tokens.css` + `components.css` (~600KB total, verified via `wc -c` against the installed package) get inlined into `overlay-ui`'s injected bundle — `styles.css` (Radix's usual single-import recommendation) is *not* used here, specifically to avoid also pulling in `utilities.css`/`layout.css`, which this stage's components don't use.
+Implements design §4/§5, plus the Radix-adoption decision made before this task started (see this plan's Architecture section): `@radix-ui/themes` is a dependency that's never been imported — Stage 1/2's components all used plain HTML elements, deviating from CLAUDE.md §3/§19's "React 19 + Radix UI for every UI surface." This is the overlay's first interactive control, so it's also the first point where that matters. Confirmed and accepted: Radix's `tokens.css` + `components.css` (~600KB total, verified via `wc -c` against the installed package) get inlined into `overlay-ui`'s injected bundle — `styles.css` (Radix's usual single-import recommendation) is _not_ used here, specifically to avoid also pulling in `utilities.css`/`layout.css`, which this stage's components don't use.
 
 Radix's `Theme` component renders a wrapping `<div class="radix-themes">` (confirmed via `node_modules/@radix-ui/themes/dist/esm/components/theme.d.ts` — `React.ForwardRefExoticComponent<... React.RefAttributes<HTMLDivElement>>`), which becomes a new ancestor of `.vtt-overlay` inside the Shadow DOM. Because `.vtt-overlay`'s existing `position: fixed` takes it out of flow regardless of this new ancestor, and neither `.vtt-overlay` nor its content have changed size/position rules, this shouldn't change the overlay's on-page footprint — but the design's existing "manual verification" bar for this stage (does the overlay avoid intercepting DDB canvas clicks) now also covers the `Theme` wrapper, so this task adds a defensive CSS rule (`pointer-events: none` on `.radix-themes` itself, not just `.vtt-overlay`) rather than assuming the wrapper is inert.
 
@@ -1266,12 +1286,14 @@ git commit -m "feat(overlay-ui): wire in Radix Theme provider and add MuteButton
 ## Task 12: `SpeakingDot` + `ParticipantRow`
 
 **Files:**
+
 - Create: `tauri-client/overlay-ui/src/components/SpeakingDot.tsx`
 - Create: `tauri-client/overlay-ui/src/components/ParticipantRow.tsx`
 - Modify: `tauri-client/overlay-ui/src/components/index.ts`
 - Modify: `tauri-client/overlay-ui/src/styles/theme.css`
 
 **Interfaces:**
+
 - Consumes: `useIsSpeaking` (Task 8).
 - Produces: `export const SpeakingDot: React.FC<{ participantId: string }>`, `export const ParticipantRow: React.FC<{ identity: string }>`. Task 13 (`ParticipantList`) consumes `ParticipantRow`.
 
@@ -1290,11 +1312,7 @@ import { useIsSpeaking } from '../hooks/useIsSpeaking.js';
  * `participantId` — never a composed participant object — so a participant re-renders only
  * when their own speaking state flips.
  */
-export const SpeakingDot = memo(function SpeakingDot({
-  participantId,
-}: {
-  participantId: string;
-}) {
+export const SpeakingDot = memo(function SpeakingDot({ participantId }: { participantId: string }) {
   const speaking = useIsSpeaking(participantId);
   return (
     <span className={speaking ? 'vtt-speaking-dot vtt-speaking-dot-active' : 'vtt-speaking-dot'} />
@@ -1383,9 +1401,11 @@ git commit -m "feat(overlay-ui): add leaf-isolated SpeakingDot and ParticipantRo
 ## Task 13: `ParticipantList` renders `ParticipantRow`
 
 **Files:**
+
 - Modify: `tauri-client/overlay-ui/src/components/ParticipantList.tsx`
 
 **Interfaces:**
+
 - Consumes: `ParticipantRow` (Task 12).
 
 - [ ] **Step 1: Implement**
@@ -1435,11 +1455,13 @@ git commit -m "feat(overlay-ui): render ParticipantRow per identity in Participa
 ## Task 14: `FullPanel` + `MicPill`
 
 **Files:**
+
 - Create: `tauri-client/overlay-ui/src/components/FullPanel.tsx`
 - Create: `tauri-client/overlay-ui/src/components/MicPill.tsx`
 - Modify: `tauri-client/overlay-ui/src/components/index.ts`
 
 **Interfaces:**
+
 - Consumes: `ConnectionStatus`, `MicrophoneStatus`, `MuteButton`, `ParticipantList` (existing/Task 11).
 - Produces: `export function FullPanel()`, `export function MicPill()`. Task 15 (`OverlayRoot`) consumes both.
 
@@ -1525,9 +1547,11 @@ git commit -m "feat(overlay-ui): add FullPanel and MicPill compositions"
 ## Task 15: `OverlayRoot` chooses `FullPanel`/`MicPill` via `usePageMode`
 
 **Files:**
+
 - Modify: `tauri-client/overlay-ui/src/components/OverlayRoot.tsx`
 
 **Interfaces:**
+
 - Consumes: `usePageMode` (Task 6), `FullPanel`, `MicPill` (Task 14).
 
 This closes out the design's component tree (§4) and its page-classification requirement (§1).
@@ -1583,9 +1607,11 @@ git commit -m "feat(overlay-ui): mount FullPanel or MicPill based on usePageMode
 ## Task 16: Wire `npm test` into CI
 
 **Files:**
+
 - Modify: `.github/workflows/ci.yml`
 
 **Interfaces:**
+
 - Consumes: the root `test` script (Task 1, Step 6).
 
 Per design §7: "wired into CI alongside the existing lint/typecheck/build steps."
@@ -1595,12 +1621,12 @@ Per design §7: "wired into CI alongside the existing lint/typecheck/build steps
 Edit `.github/workflows/ci.yml`, in the `typescript` job:
 
 ```yaml
-      - run: npm ci
-      - run: npm run lint
-      - run: npm run format:check
-      - run: npm run typecheck
-      - run: npm run build
-      - run: npm test
+- run: npm ci
+- run: npm run lint
+- run: npm run format:check
+- run: npm run typecheck
+- run: npm run build
+- run: npm test
 ```
 
 - [ ] **Step 2: Verify locally**
@@ -1620,6 +1646,7 @@ git commit -m "ci: run npm test in the TypeScript CI job"
 ## Task 17: Docs + final full verification
 
 **Files:**
+
 - Modify: `ROADMAP.md`
 - Modify: `CONTRIBUTING.md`
 - Modify: `DEVELOPING.md`

@@ -26,10 +26,12 @@
 ## Task 1: `avatarColor` — deterministic placeholder color
 
 **Files:**
+
 - Create: `tauri-client/overlay-ui/src/lib/avatarColor.ts`
 - Test: `tauri-client/overlay-ui/src/lib/avatarColor.test.ts`
 
 **Interfaces:**
+
 - Produces: `export function avatarColor(identity: string): string` — returns an `hsl(...)` CSS color string. Task 4 (`Avatar`) consumes it.
 
 - [ ] **Step 1: Write the failing test**
@@ -109,10 +111,12 @@ git commit -m "feat(overlay-ui): add avatarColor for deterministic placeholder a
 ## Task 2: `expandStore` — per-instance expand/collapse
 
 **Files:**
+
 - Create: `tauri-client/overlay-ui/src/lib/expandStore.ts`
 - Test: `tauri-client/overlay-ui/src/lib/expandStore.test.ts`
 
 **Interfaces:**
+
 - Produces: `useExpandStore` (Zustand store, `{ expanded: boolean; toggle: () => void }`). Task 6 (`ExpandToggle`) and Task 10 (`OverlayRoot`) consume it.
 
 - [ ] **Step 1: Write the failing test**
@@ -190,10 +194,12 @@ git commit -m "feat(overlay-ui): add expandStore for per-instance expand/collaps
 ## Task 3: `corner` — pick-a-corner positioning, persisted
 
 **Files:**
+
 - Create: `tauri-client/overlay-ui/src/lib/corner.ts`
 - Test: `tauri-client/overlay-ui/src/lib/corner.test.ts`
 
 **Interfaces:**
+
 - Produces: `export type Corner = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'`, `CORNER_STORAGE_KEY`, `DEFAULT_CORNER`, `getCorner(): Corner`, `setCorner(corner: Corner): void`, `cornerStyle(corner: Corner): string`. Task 9 (`OverlayCornerMenu`) consumes `getCorner`/`setCorner`/`Corner`; Task 11 (`main.tsx`) consumes `getCorner`/`cornerStyle`.
 
 - [ ] **Step 1: Write the failing test**
@@ -308,11 +314,13 @@ git commit -m "feat(overlay-ui): add corner get/set/style for pick-a-corner posi
 ## Task 4: `Avatar` — leaf-isolated placeholder avatar with speaking ring
 
 **Files:**
+
 - Create: `tauri-client/overlay-ui/src/components/Avatar.tsx`
 - Modify: `tauri-client/overlay-ui/src/components/index.ts`
 - Modify: `tauri-client/overlay-ui/src/styles/theme.css`
 
 **Interfaces:**
+
 - Consumes: `useIsSpeaking` (existing), `avatarColor` (Task 1).
 - Produces: `export const Avatar: React.FC<{ participantId: string }>`. Task 7 (`CompactPanel`) and Task 8 (`ExpandedPanel`) consume it.
 
@@ -389,10 +397,12 @@ git commit -m "feat(overlay-ui): add Avatar, absorbing SpeakingDot's leaf-isolat
 ## Task 5: `MuteIcon` — icon-only mute control with a third "not connected" state
 
 **Files:**
+
 - Create: `tauri-client/overlay-ui/src/components/MuteIcon.tsx`
 - Modify: `tauri-client/overlay-ui/src/components/index.ts`
 
 **Interfaces:**
+
 - Consumes: `useConnected` (existing), `useMicrophoneMuted` (existing), `setMicrophoneMuted` (existing, `lib/tauriBridge.ts`), Radix `IconButton`/`Tooltip`.
 - Produces: `export const MuteIcon: React.FC`. Task 7/8 consume it. Replaces `MuteButton` (removed in Task 12).
 
@@ -483,10 +493,12 @@ git commit -m "feat(overlay-ui): add MuteIcon with a distinct not-connected stat
 ## Task 6: `ExpandToggle` — the compact/expanded switch, with fade
 
 **Files:**
+
 - Create: `tauri-client/overlay-ui/src/components/ExpandToggle.tsx`
 - Modify: `tauri-client/overlay-ui/src/components/index.ts`
 
 **Interfaces:**
+
 - Consumes: `useExpandStore` (Task 2), Radix `IconButton`/`Tooltip`.
 - Produces: `export const ExpandToggle: React.FC`. Task 7/8 consume it.
 
@@ -545,11 +557,13 @@ git commit -m "feat(overlay-ui): add ExpandToggle for the compact/expanded switc
 ## Task 7: `CompactPanel` — the new default view
 
 **Files:**
+
 - Create: `tauri-client/overlay-ui/src/components/CompactPanel.tsx`
 - Modify: `tauri-client/overlay-ui/src/components/index.ts`
 - Modify: `tauri-client/overlay-ui/src/styles/theme.css`
 
 **Interfaces:**
+
 - Consumes: `useParticipantIdentities` (existing), `MuteIcon` (Task 5), `Avatar` (Task 4), `ExpandToggle` (Task 6).
 - Produces: `export function CompactPanel()`. Task 10 (`OverlayRoot`) consumes it. Replaces `FullPanel`/`MicPill` (removed in Task 12).
 
@@ -649,11 +663,13 @@ git commit -m "feat(overlay-ui): add CompactPanel, the one default view"
 ## Task 8: `ExpandedPanel` — the opt-in vertical view
 
 **Files:**
+
 - Create: `tauri-client/overlay-ui/src/components/ExpandedPanel.tsx`
 - Modify: `tauri-client/overlay-ui/src/components/index.ts`
 - Modify: `tauri-client/overlay-ui/src/styles/theme.css`
 
 **Interfaces:**
+
 - Consumes: `useParticipantIdentities` (existing), `MuteIcon` (Task 5), `Avatar` (Task 4), `ExpandToggle` (Task 6).
 - Produces: `export function ExpandedPanel()`. Task 10 consumes it.
 
@@ -761,10 +777,12 @@ git commit -m "feat(overlay-ui): add ExpandedPanel, the opt-in vertical view"
 ## Task 9: `OverlayCornerMenu` — right-click corner picker
 
 **Files:**
+
 - Create: `tauri-client/overlay-ui/src/components/OverlayCornerMenu.tsx`
 - Modify: `tauri-client/overlay-ui/src/components/index.ts`
 
 **Interfaces:**
+
 - Consumes: `Corner`, `getCorner`, `setCorner` (Task 3), Radix `ContextMenu`.
 - Produces: `export function OverlayCornerMenu({ children }: { children: React.ReactNode })`. Task 10 (`OverlayRoot`) wraps both panels in it.
 
@@ -846,9 +864,11 @@ git commit -m "feat(overlay-ui): add OverlayCornerMenu, right-click corner picke
 ## Task 10: `OverlayRoot` — wire it all together
 
 **Files:**
+
 - Modify: `tauri-client/overlay-ui/src/components/OverlayRoot.tsx`
 
 **Interfaces:**
+
 - Consumes: `useExpandStore` (Task 2), `CompactPanel` (Task 7), `ExpandedPanel` (Task 8), `OverlayCornerMenu` (Task 9). Drops `usePageMode` entirely.
 
 - [ ] **Step 1: Implement**
@@ -904,9 +924,11 @@ git commit -m "feat(overlay-ui): wire OverlayRoot to the compact/expanded switch
 ## Task 11: `main.tsx` — corner-aware host positioning
 
 **Files:**
+
 - Modify: `tauri-client/overlay-ui/src/main.tsx`
 
 **Interfaces:**
+
 - Consumes: `getCorner`, `cornerStyle` (Task 3).
 
 Replaces the hardcoded `top: 0 !important; left: 0 !important` from Stage 3a's z-index fix with the corner read from `localStorage` at mount time.
@@ -1000,6 +1022,7 @@ git commit -m "feat(overlay-ui): position the host by the persisted corner, not 
 ## Task 12: Remove superseded Stage 3a components
 
 **Files:**
+
 - Delete: `tauri-client/overlay-ui/src/components/FullPanel.tsx`
 - Delete: `tauri-client/overlay-ui/src/components/MicPill.tsx`
 - Delete: `tauri-client/overlay-ui/src/components/ConnectionStatus.tsx`

@@ -124,14 +124,14 @@ crossfades, hotkeys, and a public broadcast link (players hear it in the app).
   still downloading cancels that play; `sound.state` after a reconnect rebuilds from the server's truth.
 - **Why this shape (the echo):** a player's own speaker-playback of effects was invisible to WebRTC's echo
   cancellation, so a player on speakers with an open mic sent every effect back into the call and
-  everyone heard it twice. Sent *through* the call, effects arrive by the same path as voices, which
+  everyone heard it twice. Sent _through_ the call, effects arrive by the same path as voices, which
   WebRTC cancels. **Trade-offs:** effects are heard only if the DM is in voice; per-player gains and
   per-player targets (`to`) no longer apply (one track for everyone, and the DM's group routing still
   decides who hears the DM); the DM on speakers with an open mic can still echo their own effects into
   their own microphone, so the DM should use headphones or turn the monitor off.
 - **Verified:** an ignored integration test (`the_soundboard_track_reaches_other_participants`) publishes
   the track against a real `livekit-server`, and a listener (`scripts/dev/listen-soundboard.ts`, a mock
-  player) received it at the right level for the right length. Whether it *sounds* right (pitch steadiness
+  player) received it at the right level for the right length. Whether it _sounds_ right (pitch steadiness
   after Opus and the jitter buffer, latency, the DM's monitor sync) needs ears.
 - **Not built:** the board/scene _editor_ UI (the library is edited through the API for now) and
   uploading clips from the app.

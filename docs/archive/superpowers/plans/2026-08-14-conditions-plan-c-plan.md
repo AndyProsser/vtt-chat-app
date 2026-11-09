@@ -4,7 +4,7 @@
 
 **Goal:** D&D 5e condition badges on avatars — a color-coded dot + hover tooltip in the compact view, full badges in the expanded view — DM-editable by default with a two-tier permission model, synced across every client via Plan B's WS layer. **Depends on Plan A (`Avatar`, `OverlayCornerMenu`) and Plan B (`wsConnect`/`wsSend`/`onWsMessage`) both being implemented first** — this plan assumes their final state, not the pre-Plan-A/B codebase.
 
-**Assumption flagged for review:** D&D 5e's SRD condition list doesn't include "silenced" or "drunk/confused" — those were named as *examples* of audio-effect conditions during the design conversation, not standard 5e terms. This plan treats them as two app-specific additions layered on top of the 14 standard 5e conditions, specifically for the audio-effect mechanic. If that's not the intent, the condition list (Task 1) is the one place to change.
+**Assumption flagged for review:** D&D 5e's SRD condition list doesn't include "silenced" or "drunk/confused" — those were named as _examples_ of audio-effect conditions during the design conversation, not standard 5e terms. This plan treats them as two app-specific additions layered on top of the 14 standard 5e conditions, specifically for the audio-effect mechanic. If that's not the intent, the condition list (Task 1) is the one place to change.
 
 **Architecture:** No backend or Rust changes — this plan is purely a consumer of Plan B's existing generic pipe. Two new domain stores (`conditionsStore`, `identityStore`) plus one existing gap closed: nothing today tracks "am I the DM" client-side (`useOverlayBridge.ts` extracts `identity.isDm` and discards it after the connect calls) — `identityStore` fixes that, since the permission model needs it. A small dispatcher (`wsDispatch.ts`) parses raw `onWsMessage` JSON against `wsEnvelopeSchema` and routes by `type` to the right store; there's no registry/plugin system, just an if-chain, since three message types don't need one. Setting/clearing a condition sends a `condition:set`/`condition:clear` envelope via `wsSend` — Plan B's server already validates-and-rebroadcasts any envelope shape generically, so no backend work is needed for the sync itself.
 
@@ -23,11 +23,13 @@
 ## Task 1: `shared/` — condition list + concrete WS message types
 
 **Files:**
+
 - Create: `shared/src/types/conditions.ts`
 - Modify: `shared/src/types/index.ts`
 - Modify: `shared/src/types/ws.ts`
 
 **Interfaces:**
+
 - Produces: `ConditionId`, `ConditionDefinition`, `CONDITIONS`, `conditionDefinition(id)`; `ConditionSetPayload`, `ConditionClearPayload`, `PlayerConditionEditingPayload`; the concrete envelope aliases `ConditionSetEnvelope = WsEnvelope<'condition:set', ConditionSetPayload>` etc. Task 3/4/6 consume these.
 
 - [ ] **Step 1: Add the condition list**
@@ -159,11 +161,13 @@ git commit -m "feat(shared): add condition list and condition/permission WS enve
 ## Task 2: `identityStore` — closes the "am I the DM" gap
 
 **Files:**
+
 - Create: `tauri-client/overlay-ui/src/lib/identityStore.ts`
 - Create: `tauri-client/overlay-ui/src/lib/identityStore.test.ts`
 - Modify: `tauri-client/overlay-ui/src/lib/index.ts`
 
 **Interfaces:**
+
 - Produces: `useIdentityStore` (`{ ddbUserId: string | null; isDm: boolean; applyIdentity: (identity: DdbIdentity) => void }`). Task 8 (`useOverlayBridge` wiring) populates it; Task 5 (`useIsDm`) and Plan A's `OverlayCornerMenu` (Task 6 of this plan) read from it.
 
 Domain state — a cache of what `ddb/`'s extraction already determined, not derived client-side again. No-op-guarded on `ddbUserId` (the identity that matters for equality; `isDm` only ever changes alongside a `ddbUserId` change in practice, since it's the same login).
@@ -265,6 +269,7 @@ git commit -m "feat(overlay-ui): add identityStore, closing the am-I-the-DM gap"
 ## Task 3: `conditionsStore` + `permissionsStore`
 
 **Files:**
+
 - Create: `tauri-client/overlay-ui/src/lib/conditionsStore.ts`
 - Create: `tauri-client/overlay-ui/src/lib/conditionsStore.test.ts`
 - Create: `tauri-client/overlay-ui/src/lib/permissionsStore.ts`
@@ -272,6 +277,7 @@ git commit -m "feat(overlay-ui): add identityStore, closing the am-I-the-DM gap"
 - Modify: `tauri-client/overlay-ui/src/lib/index.ts`
 
 **Interfaces:**
+
 - Produces: `useConditionsStore` (`{ conditionsByParticipant: Record<string, ConditionId[]>; applySet: (participantId, conditionId) => void; applyClear: (participantId, conditionId) => void }`) and `usePermissionsStore` (`{ allowPlayerConditionEditing: boolean; applyAllowPlayerConditionEditing: (allowed: boolean) => void }`, default `true` — "start by trusting players a little", per the design conversation). Task 4 (`wsDispatch`) and Task 5 (selector hooks) consume both.
 
 - [ ] **Step 1: Write the failing tests**
@@ -433,7 +439,9 @@ export const usePermissionsStore = create<PermissionsStore>((set) => ({
   allowPlayerConditionEditing: true,
   applyAllowPlayerConditionEditing: (allowed) =>
     set((state) =>
-      state.allowPlayerConditionEditing === allowed ? state : { allowPlayerConditionEditing: allowed },
+      state.allowPlayerConditionEditing === allowed
+        ? state
+        : { allowPlayerConditionEditing: allowed },
     ),
 }));
 ```
@@ -461,11 +469,13 @@ git commit -m "feat(overlay-ui): add conditionsStore and permissionsStore"
 ## Task 4: `wsDispatch` — parse and route incoming WS messages
 
 **Files:**
+
 - Create: `tauri-client/overlay-ui/src/lib/wsDispatch.ts`
 - Create: `tauri-client/overlay-ui/src/lib/wsDispatch.test.ts`
 - Modify: `tauri-client/overlay-ui/src/lib/index.ts`
 
 **Interfaces:**
+
 - Consumes: `wsEnvelopeSchema` (existing, `@vtt-chat-app/shared`), the `CONDITION_SET_TYPE`/`CONDITION_CLEAR_TYPE`/`PLAYER_CONDITION_EDITING_TYPE` constants and payload types (Task 1).
 - Produces: `export function createWsDispatch(handlers: WsDispatchHandlers): (raw: string) => void` where `WsDispatchHandlers = { onConditionSet: (payload: ConditionSetPayload) => void; onConditionClear: (payload: ConditionClearPayload) => void; onPlayerConditionEditing: (payload: PlayerConditionEditingPayload) => void }`. Task 8 (`useOverlayBridge` wiring) consumes it.
 
@@ -496,7 +506,10 @@ describe('createWsDispatch', () => {
       }),
     );
 
-    expect(onConditionSet).toHaveBeenCalledWith({ participantId: 'alice', conditionId: 'poisoned' });
+    expect(onConditionSet).toHaveBeenCalledWith({
+      participantId: 'alice',
+      conditionId: 'poisoned',
+    });
   });
 
   it('routes condition:clear to onConditionClear', () => {
@@ -526,7 +539,13 @@ describe('createWsDispatch', () => {
       onPlayerConditionEditing,
     });
 
-    dispatch(JSON.stringify({ id: '3', type: 'permission:condition-editing', payload: { allowed: false } }));
+    dispatch(
+      JSON.stringify({
+        id: '3',
+        type: 'permission:condition-editing',
+        payload: { allowed: false },
+      }),
+    );
 
     expect(onPlayerConditionEditing).toHaveBeenCalledWith({ allowed: false });
   });
@@ -538,7 +557,9 @@ describe('createWsDispatch', () => {
       onPlayerConditionEditing: vi.fn(),
     });
 
-    expect(() => dispatch(JSON.stringify({ id: '4', type: 'chat:message', payload: {} }))).not.toThrow();
+    expect(() =>
+      dispatch(JSON.stringify({ id: '4', type: 'chat:message', payload: {} })),
+    ).not.toThrow();
   });
 
   it('ignores malformed JSON without throwing', () => {
@@ -562,7 +583,11 @@ Expected: FAIL — cannot find module `./wsDispatch.js`.
 
 ```ts
 // tauri-client/overlay-ui/src/lib/wsDispatch.ts
-import type { ConditionClearPayload, ConditionSetPayload, PlayerConditionEditingPayload } from '@vtt-chat-app/shared';
+import type {
+  ConditionClearPayload,
+  ConditionSetPayload,
+  PlayerConditionEditingPayload,
+} from '@vtt-chat-app/shared';
 import {
   CONDITION_CLEAR_TYPE,
   CONDITION_SET_TYPE,
@@ -638,12 +663,14 @@ git commit -m "feat(overlay-ui): add wsDispatch, routing WS messages by type"
 ## Task 5: Selector hooks
 
 **Files:**
+
 - Create: `tauri-client/overlay-ui/src/hooks/useConditions.ts`
 - Create: `tauri-client/overlay-ui/src/hooks/useIsDm.ts`
 - Create: `tauri-client/overlay-ui/src/hooks/useAllowPlayerConditionEditing.ts`
 - Modify: `tauri-client/overlay-ui/src/hooks/index.ts`
 
 **Interfaces:**
+
 - Produces: `useConditions(participantId: string): ConditionId[]`, `useIsDm(): boolean`, `useAllowPlayerConditionEditing(): boolean`. Task 6/7 consume all three.
 
 - [ ] **Step 1: Implement**
@@ -709,6 +736,7 @@ git commit -m "feat(overlay-ui): add useConditions/useIsDm/useAllowPlayerConditi
 ## Task 6: `ConditionDot` + `ConditionMenu`, wired into `Avatar`
 
 **Files:**
+
 - Create: `tauri-client/overlay-ui/src/components/ConditionDot.tsx`
 - Create: `tauri-client/overlay-ui/src/components/ConditionMenu.tsx`
 - Modify: `tauri-client/overlay-ui/src/components/Avatar.tsx` (from Plan A)
@@ -717,6 +745,7 @@ git commit -m "feat(overlay-ui): add useConditions/useIsDm/useAllowPlayerConditi
 - Modify: `tauri-client/overlay-ui/src/styles/theme.css`
 
 **Interfaces:**
+
 - Consumes: `useConditions`, `useIsDm`, `useAllowPlayerConditionEditing` (Task 5), `wsSend` (Plan B, `lib/tauriBridge.ts`), `CONDITIONS`/`ConditionId` (Task 1), Radix `ContextMenu`/`Tooltip`.
 - Produces: `export const ConditionDot: React.FC<{ participantId: string }>`, `export const ConditionMenu: React.FC<{ participantId: string; children: ReactNode }>`. `Avatar.tsx` wraps itself in `ConditionMenu` and renders `ConditionDot` alongside its existing speaking ring.
 
@@ -738,7 +767,11 @@ import { useConditions } from '../hooks/useConditions.js';
  * condition detail on tokens, this dot only needs to catch the eye and point at the hover
  * detail. Renders nothing when the participant has no active conditions.
  */
-export const ConditionDot = memo(function ConditionDot({ participantId }: { participantId: string }) {
+export const ConditionDot = memo(function ConditionDot({
+  participantId,
+}: {
+  participantId: string;
+}) {
   const conditions = useConditions(participantId);
   if (conditions.length === 0) return null;
 
@@ -748,7 +781,9 @@ export const ConditionDot = memo(function ConditionDot({ participantId }: { part
   return (
     <Tooltip content={label}>
       <span
-        className={hasAudioEffect ? 'vtt-condition-dot vtt-condition-dot-audio' : 'vtt-condition-dot'}
+        className={
+          hasAudioEffect ? 'vtt-condition-dot vtt-condition-dot-audio' : 'vtt-condition-dot'
+        }
         aria-hidden="true"
       />
     </Tooltip>
@@ -775,7 +810,13 @@ import { wsSend } from '../lib/tauriBridge.js';
  * — audio-effect conditions (silenced, drunk-confused) are never player-editable, regardless of
  * that setting, since they drive real per-listener audio routing.
  */
-export function ConditionMenu({ participantId, children }: { participantId: string; children: ReactNode }) {
+export function ConditionMenu({
+  participantId,
+  children,
+}: {
+  participantId: string;
+  children: ReactNode;
+}) {
   const isDm = useIsDm();
   const allowPlayerEditing = useAllowPlayerConditionEditing();
   const activeConditions = useConditions(participantId);
@@ -903,10 +944,12 @@ git commit -m "feat(overlay-ui): add ConditionDot/ConditionMenu, wired into Avat
 ## Task 7: Full condition badges in `ExpandedPanel`
 
 **Files:**
+
 - Modify: `tauri-client/overlay-ui/src/components/ExpandedPanel.tsx` (from Plan A)
 - Modify: `tauri-client/overlay-ui/src/styles/theme.css`
 
 **Interfaces:**
+
 - Consumes: `useConditions` (Task 5), `conditionDefinition` (Task 1).
 
 Per the design spec's expanded-view mockup — full text labels per row, not just a dot, since the expanded view has room for detail the compact view deliberately doesn't.
@@ -916,13 +959,15 @@ Per the design spec's expanded-view mockup — full text labels per row, not jus
 Edit `tauri-client/overlay-ui/src/components/ExpandedPanel.tsx` — add a small per-row badge list. Replace the `<li>` row rendering:
 
 ```tsx
-{participantIdentities.map((identity) => (
-  <li key={identity} className="vtt-expanded-row">
-    <Avatar participantId={identity} />
-    <span>{identity}</span>
-    <ConditionBadges participantId={identity} />
-  </li>
-))}
+{
+  participantIdentities.map((identity) => (
+    <li key={identity} className="vtt-expanded-row">
+      <Avatar participantId={identity} />
+      <span>{identity}</span>
+      <ConditionBadges participantId={identity} />
+    </li>
+  ));
+}
 ```
 
 Add the import at the top (alongside the existing `Avatar`/`MuteIcon`/`ExpandToggle` imports):
@@ -1008,9 +1053,11 @@ git commit -m "feat(overlay-ui): show full condition badges in ExpandedPanel"
 ## Task 8: DM permission toggle in `OverlayCornerMenu`
 
 **Files:**
+
 - Modify: `tauri-client/overlay-ui/src/components/OverlayCornerMenu.tsx` (from Plan A)
 
 **Interfaces:**
+
 - Consumes: `useIsDm` (Task 5), `useAllowPlayerConditionEditing` (Task 5), `wsSend` (Plan B).
 
 Adds the DM-only item Plan A's version of this component was deliberately structured to accept later ("DM-only items land in this same menu in later plans, built here so they have somewhere to go without restructuring this component again").
@@ -1020,25 +1067,27 @@ Adds the DM-only item Plan A's version of this component was deliberately struct
 Edit `tauri-client/overlay-ui/src/components/OverlayCornerMenu.tsx` — add the DM-only section after the existing `ContextMenu.RadioGroup` (corner picker), inside `ContextMenu.Content`:
 
 ```tsx
-{isDm && (
-  <>
-    <ContextMenu.Separator />
-    <ContextMenu.CheckboxItem
-      checked={allowPlayerEditing}
-      onCheckedChange={(checked) => {
-        void wsSend(
-          JSON.stringify({
-            id: crypto.randomUUID(),
-            type: 'permission:condition-editing',
-            payload: { allowed: checked },
-          }),
-        );
-      }}
-    >
-      Players can edit conditions
-    </ContextMenu.CheckboxItem>
-  </>
-)}
+{
+  isDm && (
+    <>
+      <ContextMenu.Separator />
+      <ContextMenu.CheckboxItem
+        checked={allowPlayerEditing}
+        onCheckedChange={(checked) => {
+          void wsSend(
+            JSON.stringify({
+              id: crypto.randomUUID(),
+              type: 'permission:condition-editing',
+              payload: { allowed: checked },
+            }),
+          );
+        }}
+      >
+        Players can edit conditions
+      </ContextMenu.CheckboxItem>
+    </>
+  );
+}
 ```
 
 Add the two new hook calls near the top of the component (alongside the existing `useState` for `selected`), and the two new imports:
@@ -1074,9 +1123,11 @@ git commit -m "feat(overlay-ui): add DM-only player-condition-editing toggle to 
 ## Task 9: Wire identity + WS dispatch into `useOverlayBridge`
 
 **Files:**
+
 - Modify: `tauri-client/overlay-ui/src/hooks/useOverlayBridge.ts`
 
 **Interfaces:**
+
 - Consumes: `useIdentityStore` (Task 2), `useConditionsStore`/`usePermissionsStore` (Task 3), `createWsDispatch` (Task 4), `onWsMessage` (Plan B).
 
 Assumes Plan B's Task 13 has already been applied to this file (the `wsConnect(backendWsUrl(session.appSessionToken))` line inside the cobalt-cookie handler) — this task edits on top of that.

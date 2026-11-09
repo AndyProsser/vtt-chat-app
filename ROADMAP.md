@@ -18,27 +18,33 @@
 
 ## Where we are and what is next
 
-**As of 2026-11-09 the player experience is essentially complete:** sign in, join, talk, chat, whisper, loot, RSVP, hear the DM's scenes and stingers, with recording and consent working end to end. What is left is fine-tuning the UI/UX, character sync with D&D Beyond, and the operator and release work around it.
+**As of 2026-11-09 the player experience is essentially complete:** sign in, join, talk, chat, whisper, loot, RSVP, hear the DM's scenes and stingers, browse past sessions, with recording and consent working end to end. What is left is **verification on real machines** (nothing below has been clicked through in a real window since it was built), a few UI/UX refinements, and release work.
 
 ```mermaid
 flowchart LR
-  A[Now: polish and verify] --> B[D&D Beyond character sync]
-  A --> C[Records history screen]
-  B --> D[Status page and mobile SPA]
+  A[Verify on the dev PC] --> B[Real-service first runs]
+  A --> C[UI polish]
+  B --> D[Soak and hardening]
   C --> D
-  D --> E[Hardening and release]
+  D --> E[Mobile SPA and release]
 ```
+
+**Built 2026-11-09 (unverified in a real window or against real services):**
+
+- **D&D Beyond character sync** ([DDB-SYNC.md](docs/architecture/DDB-SYNC.md)): link on the Campaign → Character screen, "Sync now", hourly refresh of name, race, class, level and portrait. Off unless `DDB_SYNC=1`. **Never run against the live service**; the parser is the one place to adjust.
+- **Session history window**: recordings, summaries (DM-only ones only for the DM), transcript, search, DM delete.
+- **Public status page** at `/status` and `/api/status`, built and served in both install tiers.
+- **Emailed sign-in codes** (`SMTP_URL`), **single sign-on** (OIDC) and a **code sign-in** in the app ([SIGN-IN-OPTIONS.md](docs/architecture/SIGN-IN-OPTIONS.md)). SSO was tested against a fake provider only.
 
 **Next steps, in order:**
 
-1. **Verify in a real window** (nothing new to build): unmute and the voice button after the 0.10.1 bump, rail drag between groups, portrait upload, device switching, scene editor, mute badges. Fix whatever it turns up.
-2. **UI/UX fine-tuning:** the new character voices (Dragon, God, Drunk, Authoritative: Rust DSP plus listening tests), ambience and music categories in the sound library (the importer has no category option, so loops are empty), a real mic level meter, a keyboard alternative to drag-to-group, orphan portrait cleanup.
-3. **D&D Beyond character sync** (`ddb/`, Stage 10): import name, class, level and portrait from a public character URL into the character profile, behind the existing Linked accounts placeholder. Public pages only, off by default. Open design question: one-time import or refresh on demand.
-4. **Recording history screen** (Stage 5): browse past sessions, read summaries (DM-only ones stay DM-only), search. Then the purge rules for raw audio.
-5. **Soak and drills** (Stage 9): the recorded 4-hour soak, then a server restart mid-recording.
-6. **Operator side:** the public status page (Stage 8), OIDC and the SMTP sender, and the "second person deploys from the docs" test (Stage 3).
-7. **Mobile SPA** (Stage 7) once the records screen exists, since it reuses that API.
-8. **Per-player volume and mic gain:** blocked on the SDK; revisit at the next LiveKit upgrade.
+1. **On the dev PC:** run the app and try everything listed above plus unmute, rail drag, portrait upload, device switching and the scene editor. Link a real public D&D Beyond sheet and read what comes back. Point SMTP and an Authelia at the backend once.
+2. **UI/UX fine-tuning** from what step 1 turns up. Known gaps: the new character voices (Dragon, God, Drunk, Authoritative: Rust DSP plus listening tests), ambience and music categories in the sound library (the importer has no category option, so loops are empty), a real mic level meter, a keyboard alternative to drag-to-group, orphan portrait cleanup.
+3. **Purge rules for raw audio** after the DM confirms a summary (Stage 5), and the recorded 4-hour soak, then a server restart mid-recording (Stage 9).
+4. **Second-person deploy test** from the docs on a blank VM (Stage 3).
+5. **Mobile SPA** (Stage 7): reuses the records API that now exists.
+6. **D&D Beyond, later:** stats, AC, passive perception and max HP on the character screen.
+7. **Per-player volume and mic gain:** blocked on the LiveKit SDK (0.10.1 exposes neither); revisit at the next upgrade.
 
 ---
 
@@ -110,7 +116,7 @@ The riskiest unknowns are all "does this actually work on real machines with ope
 
 ## Stage 3 — Server Core
 
-**Status:** 🟢 Nearly done — built and verified against real services: identity/campaign domain, REST, WebSocket hub with a Valkey-backed replay buffer, Postgres store and migrations, recording state and consent acknowledgements, the Admin CLI (`vtt-admin`), and **both install tiers** (Docker Compose; native `infra/install.sh` on Ubuntu 24.04). **Remaining:** OIDC and the SMTP sender, chat persistence, and the "done when" test — a second person deploying from the docs on a blank VM
+**Status:** 🟢 Nearly done — built and verified against real services: identity/campaign domain, REST, WebSocket hub with a Valkey-backed replay buffer, Postgres store and migrations, recording state and consent acknowledgements, the Admin CLI (`vtt-admin`), and **both install tiers** (Docker Compose; native `infra/install.sh` on Ubuntu 24.04). **Remaining:** chat persistence and the "done when" test — a second person deploying from the docs on a blank VM
 **Depends on:** Stage 2 (and the open identity decision, below)
 
 **Decided with Andy (2026-11-05):** the identity & access model ([CLAUDE.md §11](.claude/CLAUDE.md#11-identity--access-model--direction-decided-2026-11-05-details-open)) and the sync protocol ([SYNC-PROTOCOL.md](docs/architecture/SYNC-PROTOCOL.md), draft). Remaining open: Admin quick-access extras, OIDC specifics, and the assumed defaults (invite expiry 7 days, magic-link lifetime 15 minutes, minimum password length 10).
@@ -148,7 +154,7 @@ The riskiest unknowns are all "does this actually work on real machines with ope
 
 ## Stage 5 — Records & AI Summaries (Core)
 
-**Status:** 🟡 In Progress — the processing half is built and verified live (Egress files → durable job queue → worker → Whisper/LLM, local or remote with fallback → transcripts and summaries in Postgres; Admin CLI `jobs` / `recording`). **Records API built** (read, search, DM-only enforced at the API, DM delete). **Not built:** the history panel, "DM confirms → purge raw audio" and the purge rules, and the cloud-adapter extras. The recording loop itself — DM start/stop → per-speaker capture gated on the consent acknowledgement → processing — is closed and verified live. See [docs/BUILD-STATUS.md](docs/BUILD-STATUS.md)
+**Status:** 🟡 In Progress — the processing half is built and verified live (Egress files → durable job queue → worker → Whisper/LLM, local or remote with fallback → transcripts and summaries in Postgres; Admin CLI `jobs` / `recording`). **Records API built** (read, search, DM-only enforced at the API, DM delete). **History window built 2026-11-09 (unverified in a real window).** **Not built:** "DM confirms → purge raw audio" and the purge rules, and the cloud-adapter extras. The recording loop itself — DM start/stop → per-speaker capture gated on the consent acknowledgement → processing — is closed and verified live. See [docs/BUILD-STATUS.md](docs/BUILD-STATUS.md)
 **Depends on:** Stage 3, Stage 4 (Stage 2 Part B already proved the pipeline shape)
 
 **Deliverables:**
@@ -196,7 +202,7 @@ The riskiest unknowns are all "does this actually work on real machines with ope
 
 ## Stage 8 — Operations: Admin CLI & Status Page
 
-**Status:** 🟡 The Admin CLI (`vtt-admin`) is built and in use (Stage 3); the public status page (`status/`) is still an empty scaffold
+**Status:** 🟢 The Admin CLI (`vtt-admin`) is built and in use (Stage 3); the public status page (`status/`, `/status` and `/api/status`) is built 2026-11-09, unverified on a real deployment
 **Depends on:** Stage 5
 
 **Deliverables:**
@@ -235,10 +241,10 @@ The riskiest unknowns are all "does this actually work on real machines with ope
 
 Each item is independent, off by default, and must never be assumed by application code:
 
-- D&D Beyond character import from public pages (`ddb/`) — **next up**, see [Where we are](#where-we-are-and-what-is-next)
+- D&D Beyond character sync from public pages (`ddb/`) — **built, unverified** ([DDB-SYNC.md](docs/architecture/DDB-SYNC.md)); extra stats are later
 - Cloudflare TURN (extra ICE server); Cloudflare Realtime SFU as an alternative to LiveKit (a large design of its own); Cloudflare Pages for static hosting
 - Cloud transcription / LLM providers beyond Stage 5's first adapters
-- OIDC/Authelia SSO, if the identity decision allows
+- OIDC/Authelia SSO — **built, tested against a fake provider only** ([SIGN-IN-OPTIONS.md](docs/architecture/SIGN-IN-OPTIONS.md))
 - Remote AI backends (Whisper/LLM on another machine, e.g. a GPU PC) are a Stage 5 provider-interface concern, not Stage 10
 
 ---

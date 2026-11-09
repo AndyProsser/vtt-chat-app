@@ -10,11 +10,11 @@
 
 ## Global Constraints
 
-- **Plan B ships zero domain message types.** No `condition:*` events, no chat events — those are Plan C and the future chat stage. This plan is validated by connecting, reconnecting, and replaying *generic* envelopes only.
+- **Plan B ships zero domain message types.** No `condition:*` events, no chat events — those are Plan C and the future chat stage. This plan is validated by connecting, reconnecting, and replaying _generic_ envelopes only.
 - Auth reuses the existing `appSessionToken` (`backend/src/lib/session/appSession.ts`) — do not invent a second auth mechanism for the WS layer.
 - Replay buffer is in-memory only in this plan (bounded, per-campaign) — no Redis. Do not add a Redis dependency here; that's explicitly Stage 5's job.
 - Every store write must no-op-guard where a value could plausibly not change; every unbounded-growth collection needs an explicit retention limit decided at creation time ([STATE-AND-RESILIENCE.md § Bounded Retention](../../architecture/STATE-AND-RESILIENCE.md#bounded-retention)) — the replay buffer's cap is exactly this, sized and enforced in the same commit that creates it, not added later.
-- Rust confined to `tauri-client/`; TypeScript everywhere else (CLAUDE.md §3). The WS *server* is `backend/` (Node/Express), never Rust — only the *client* side lives in Rust.
+- Rust confined to `tauri-client/`; TypeScript everywhere else (CLAUDE.md §3). The WS _server_ is `backend/` (Node/Express), never Rust — only the _client_ side lives in Rust.
 - `rustfmt`/`clippy -D warnings` clean for Rust; ESLint + Prettier clean for TypeScript; all touched workspaces' `typecheck`/`build`/`test` stay green on every task.
 
 ---
@@ -22,11 +22,13 @@
 ## Task 1: `WsEnvelope` type + Zod schema in `shared/`
 
 **Files:**
+
 - Create: `shared/src/types/ws.ts`
 - Modify: `shared/src/types/index.ts`
 - Modify: `shared/src/lib/schemas.ts`
 
 **Interfaces:**
+
 - Produces: `export interface WsEnvelope<TType extends string = string, TPayload = unknown>` and `export const wsEnvelopeSchema`. Task 6 (backend `ws/server.ts`) and Task 12 (`tauriBridge.ts` — via the Rust relay's JSON shape) both key off this shape.
 
 No test — pure type/schema declarations, consistent with how Stage 3a's shared additions (`LIVEKIT_SPEAKERS_EVENT`/`SpeakingStatePayload`) were verified by build/typecheck alone, not a dedicated test.
@@ -90,9 +92,11 @@ git commit -m "feat(shared): add WsEnvelope type and validation schema for the W
 ## Task 2: `WS_MESSAGE_EVENT` Tauri event name
 
 **Files:**
+
 - Modify: `shared/src/consts/index.ts`
 
 **Interfaces:**
+
 - Produces: `WS_MESSAGE_EVENT` constant. Mirrored by hand in Rust `consts.rs` (Task 9) per the established cross-language duplication pattern (Rust can't import the TS package, CLAUDE.md §3). Task 12 (`tauriBridge.ts`) consumes it.
 
 - [ ] **Step 1: Add the constant**
@@ -127,10 +131,12 @@ git commit -m "feat(shared): add WS_MESSAGE_EVENT Tauri event name"
 ## Task 3: Stand up Vitest for `backend/`
 
 **Files:**
+
 - Create: `backend/vitest.config.ts`
 - Modify: `backend/package.json`
 
 **Interfaces:**
+
 - Produces: a working `npm run test --workspace backend`. Task 4 (`replayBuffer`) is the first consumer.
 
 `backend/` has no test runner today — this mirrors exactly how Stage 3a's Task 1 stood up Vitest for `overlay-ui`, minus the `jsdom`/`localStorage` polyfill concerns (backend is a plain Node environment, not a DOM one — `environment: 'node'`, Vitest's default, no `jsdom` dependency needed here).
@@ -191,10 +197,12 @@ git commit -m "test(backend): stand up Vitest"
 ## Task 4: `replayBuffer` — bounded, per-campaign, in-memory
 
 **Files:**
+
 - Create: `backend/src/ws/replayBuffer.ts`
 - Create: `backend/src/ws/replayBuffer.test.ts`
 
 **Interfaces:**
+
 - Produces: `export function createReplayBuffer(maxEntriesPerCampaign: number)` returning `{ register(campaignId: string, envelope: WsEnvelope): void; replay(campaignId: string, lastEventId: string | undefined): { envelopes: WsEnvelope[]; truncated: boolean } }`. Task 6 (`ws/server.ts`) consumes it.
 
 `truncated: true` means `lastEventId` wasn't found in the buffer (evicted, or never existed) — the caller (Task 6) falls back to telling the client to do a full state resync rather than attempting a partial replay against unknown state, per [STATE-AND-RESILIENCE.md § WebSocket Reliability](../../architecture/STATE-AND-RESILIENCE.md#websocket-reliability).
@@ -362,9 +370,11 @@ git commit -m "feat(backend): add bounded per-campaign replay buffer"
 ## Task 5: WS-specific consts
 
 **Files:**
+
 - Modify: `backend/src/consts/index.ts`
 
 **Interfaces:**
+
 - Produces: `WS_PATH`, `WS_HEARTBEAT_INTERVAL_MS`, `WS_REPLAY_BUFFER_SIZE`. Task 6 consumes all three.
 
 - [ ] **Step 1: Add the constants**
@@ -407,10 +417,12 @@ git commit -m "feat(backend): add WS path/heartbeat/replay-buffer-size consts"
 ## Task 6: `ws/server.ts` — the WS server itself
 
 **Files:**
+
 - Create: `backend/src/ws/server.ts`
 - Modify: `backend/package.json` (add `ws` dependency)
 
 **Interfaces:**
+
 - Consumes: `createReplayBuffer` (Task 4), `WS_PATH`/`WS_HEARTBEAT_INTERVAL_MS`/`WS_REPLAY_BUFFER_SIZE` (Task 5), `verifyAppSessionToken` (existing, `lib/session/appSession.ts`), `wsEnvelopeSchema` (Task 1).
 - Produces: `export function attachWsServer(httpServer: http.Server, config: BackendConfig): void`. Task 7 (`index.ts`) consumes it.
 
@@ -484,7 +496,11 @@ export function attachWsServer(httpServer: HttpServer, config: BackendConfig): v
     verifyAppSessionToken(token, config.appJwtSecret)
       .then((claims) => {
         wss.handleUpgrade(request, socket, head, (ws) => {
-          const connection: TrackedConnection = { socket: ws, campaignId: claims.campaignId, isAlive: true };
+          const connection: TrackedConnection = {
+            socket: ws,
+            campaignId: claims.campaignId,
+            isAlive: true,
+          };
           let campaignConnections = connectionsByCampaign.get(claims.campaignId);
           if (campaignConnections === undefined) {
             campaignConnections = new Set();
@@ -505,13 +521,21 @@ export function attachWsServer(httpServer: HttpServer, config: BackendConfig): v
             if (!parsed.success) return;
             // Plan B defines no domain types to act on — just re-broadcast to the rest of the
             // campaign and register for replay, same as a server-originated broadcast would.
-            broadcastToCampaign(connectionsByCampaign, replayBuffer, claims.campaignId, parsed.data, connection);
+            broadcastToCampaign(
+              connectionsByCampaign,
+              replayBuffer,
+              claims.campaignId,
+              parsed.data,
+              connection,
+            );
           });
 
           const lastEventId = url.searchParams.get('lastEventId') ?? undefined;
           const { envelopes, truncated } = replayBuffer.replay(claims.campaignId, lastEventId);
           if (truncated) {
-            ws.send(JSON.stringify({ id: generateEnvelopeId(), type: 'ws:resync-required', payload: {} }));
+            ws.send(
+              JSON.stringify({ id: generateEnvelopeId(), type: 'ws:resync-required', payload: {} }),
+            );
           } else {
             for (const envelope of envelopes) ws.send(JSON.stringify(envelope));
           }
@@ -579,9 +603,11 @@ git commit -m "feat(backend): add attachWsServer — auth, heartbeat, campaign-s
 ## Task 7: Wire `attachWsServer` into `index.ts`
 
 **Files:**
+
 - Modify: `backend/src/index.ts`
 
 **Interfaces:**
+
 - Consumes: `attachWsServer` (Task 6).
 
 `createApp` (`lib/app.ts`) stays a pure Express-app factory — the HTTP server itself moves here, explicit, so both Express and the WS layer can attach to the same instance. Previously `createApp(config).listen(...)` created the `http.Server` implicitly inside `.listen()`; `attachWsServer` needs that same server instance before `.listen()` is called.
@@ -637,9 +663,11 @@ git commit -m "feat(backend): attach the WS layer to the same HTTP server Expres
 ## Task 8: Rust — promote `tokio-tungstenite` to a direct dependency
 
 **Files:**
+
 - Modify: `tauri-client/src-tauri/Cargo.toml`
 
 **Interfaces:**
+
 - Produces: `tokio_tungstenite`, `futures_util` available to `src-tauri`. Task 11 (`ws_client.rs`) consumes both.
 
 Both crates are already in `Cargo.lock` as transitive dependencies (via `livekit`'s own WebSocket signaling) at the exact versions checked below — this adds no new crate to the build, only promotes existing ones to direct dependencies. Verified against the vendored source before this plan was written (`tokio-tungstenite` 0.29.0: `connect_async<R: IntoClientRequest>(request: R) -> Result<(WebSocketStream<MaybeTlsStream<TcpStream>>, Response), Error>`; `WebSocketStream` implements `Stream<Item = Result<Message, WsError>>` + `Sink<Message>`; `Message::text(impl Into<Utf8Bytes>)` constructor; `Message::Text(Utf8Bytes)` where `Utf8Bytes: AsRef<str>`). `futures-util`'s `"sink"` feature (gating the `Sink`-related traits/utilities `SinkExt` needs) isn't part of its default feature set, but `"std"` already is — `tokio-tungstenite` itself depends on `futures-util` with exactly `features = ["sink", "std"]` and no `default-features = false`, so matching that shape (add `"sink"`, leave defaults on) is the safe, minimal change; Cargo unifies feature flags across the whole dependency graph regardless.
@@ -678,9 +706,11 @@ git commit -m "feat(src-tauri): promote tokio-tungstenite/futures-util to direct
 ## Task 9: Rust — WS event + backoff consts
 
 **Files:**
+
 - Modify: `tauri-client/src-tauri/src/consts.rs`
 
 **Interfaces:**
+
 - Produces: `WS_MESSAGE_EVENT`, `WS_RECONNECT_BASE_DELAY_MS`, `WS_RECONNECT_MAX_ATTEMPTS`. Task 11 consumes all three.
 
 - [ ] **Step 1: Add the constants**
@@ -716,10 +746,12 @@ git commit -m "feat(src-tauri): add WS event name and reconnect-backoff consts"
 ## Task 10: Rust — `ws_client.rs`
 
 **Files:**
+
 - Create: `tauri-client/src-tauri/src/ws_client.rs`
 - Modify: `tauri-client/src-tauri/src/lib.rs` (add `mod ws_client;`)
 
 **Interfaces:**
+
 - Consumes: `tokio_tungstenite::connect_async`, `futures_util::{StreamExt, SinkExt}`, `consts::{WS_MESSAGE_EVENT, WS_RECONNECT_BASE_DELAY_MS, WS_RECONNECT_MAX_ATTEMPTS}`.
 - Produces: `pub fn backoff_delay(attempt: u32) -> std::time::Duration` (pure, tested), `pub type SharedWsSender = Arc<Mutex<Option<UnboundedSender<String>>>>`, and `pub fn spawn(app: tauri::AppHandle, url: String, sender_state: SharedWsSender)` (starts the connect/reconnect loop as a background Tokio task). Task 11 (`commands.rs`) consumes `spawn`, `SharedWsSender`, and manages a `SharedWsSender` as Tauri app state (parallel to `SharedClient` for LiveKit) so a `ws_send` command can reach it.
 
@@ -908,10 +940,12 @@ git commit -m "feat(src-tauri): add ws_client — connect, relay, exponential-ba
 ## Task 11: Rust — `ws_connect` and `ws_send` commands
 
 **Files:**
+
 - Modify: `tauri-client/src-tauri/src/commands.rs`
 - Modify: `tauri-client/src-tauri/src/lib.rs` (manage `SharedWsSender` state, register both commands)
 
 **Interfaces:**
+
 - Consumes: `ws_client::spawn`, `ws_client::SharedWsSender` (Task 10).
 - Produces: `#[tauri::command] pub fn ws_connect(app: AppHandle, state: State<'_, SharedWsSender>, url: String) -> Result<(), String>` and `#[tauri::command] pub fn ws_send(state: State<'_, SharedWsSender>, payload: String) -> Result<(), String>`. Task 12 (`tauriBridge.ts`) invokes both by name; Plan C's DM-facing condition-set/clear actions call `ws_send`.
 
@@ -993,9 +1027,11 @@ git commit -m "feat(src-tauri): add ws_connect and ws_send commands"
 ## Task 12: TS — `wsConnect`/`wsSend`/`onWsMessage` in `tauriBridge.ts`
 
 **Files:**
+
 - Modify: `tauri-client/overlay-ui/src/lib/tauriBridge.ts`
 
 **Interfaces:**
+
 - Produces: `export function wsConnect(url: string): Promise<void>`, `export function wsSend(payload: string): Promise<void>`, and `export function onWsMessage(handler: (payload: string) => void): Promise<UnlistenFn>`. Task 13 (`backendWsUrl` helper + `useOverlayBridge` wiring) consumes `wsConnect`/`onWsMessage`; `wsSend` has no consumer in this plan — it exists so Plan C's DM-facing condition-set/clear actions can call it without another round of `tauriBridge.ts` plumbing.
 
 `onWsMessage`'s handler receives the raw JSON string, not a parsed `WsEnvelope` — Plan B has no domain types to validate against yet, so parsing/validating is each consumer's job (Plan C etc.), matching the same "generic pipe" boundary the backend side keeps.
@@ -1063,10 +1099,12 @@ git commit -m "feat(overlay-ui): add wsConnect/onWsMessage IPC wrappers"
 ## Task 13: TS — `backendWsUrl` + wire into `useOverlayBridge`
 
 **Files:**
+
 - Modify: `tauri-client/overlay-ui/src/lib/backendClient.ts`
 - Modify: `tauri-client/overlay-ui/src/hooks/useOverlayBridge.ts`
 
 **Interfaces:**
+
 - Consumes: `BACKEND_SESSION_URL` (existing, `consts/index.ts`), `wsConnect` (Task 12).
 - Produces: `export function backendWsUrl(token: string): string`.
 
@@ -1100,34 +1138,34 @@ export function backendWsUrl(appSessionToken: string): string {
 Edit `tauri-client/overlay-ui/src/hooks/useOverlayBridge.ts` — the cobalt-cookie handler currently does:
 
 ```ts
-    const unlistenCookie = onCobaltCookieDetected(({ cookieValue }) => {
-      void (async () => {
-        try {
-          const identity = await extractDdbIdentity(cookieValue);
-          const session = await requestSession(identity);
-          await connectLiveKit(session.liveKit.url, session.liveKit.token);
-        } catch (err) {
-          console.error('[overlay-ui] failed to establish LiveKit session', err);
-        }
-      })();
-    });
+const unlistenCookie = onCobaltCookieDetected(({ cookieValue }) => {
+  void (async () => {
+    try {
+      const identity = await extractDdbIdentity(cookieValue);
+      const session = await requestSession(identity);
+      await connectLiveKit(session.liveKit.url, session.liveKit.token);
+    } catch (err) {
+      console.error('[overlay-ui] failed to establish LiveKit session', err);
+    }
+  })();
+});
 ```
 
 Replace with:
 
 ```ts
-    const unlistenCookie = onCobaltCookieDetected(({ cookieValue }) => {
-      void (async () => {
-        try {
-          const identity = await extractDdbIdentity(cookieValue);
-          const session = await requestSession(identity);
-          await connectLiveKit(session.liveKit.url, session.liveKit.token);
-          await wsConnect(backendWsUrl(session.appSessionToken));
-        } catch (err) {
-          console.error('[overlay-ui] failed to establish LiveKit session', err);
-        }
-      })();
-    });
+const unlistenCookie = onCobaltCookieDetected(({ cookieValue }) => {
+  void (async () => {
+    try {
+      const identity = await extractDdbIdentity(cookieValue);
+      const session = await requestSession(identity);
+      await connectLiveKit(session.liveKit.url, session.liveKit.token);
+      await wsConnect(backendWsUrl(session.appSessionToken));
+    } catch (err) {
+      console.error('[overlay-ui] failed to establish LiveKit session', err);
+    }
+  })();
+});
 ```
 
 And add `backendWsUrl` to the `backendClient.js` import and `wsConnect` to the `tauriBridge.js` import at the top of the file:

@@ -24,12 +24,12 @@ The rules below are the fixes that emerged from that postmortem, applied from da
 
 Every piece of client state is one of exactly two kinds. Don't blur them.
 
-|                      | Domain state                                                           | UI-only state                                                                                                                |
-| -------------------- | ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| Examples             | room/participant roster, presence, speaking, recording state, channel/party membership, unread counts | panel open/closed, active tab, whisper target, panel position/size                                      |
-| Source of truth      | Backend (Postgres for durable, Redis for transient pub/sub)            | Client only                                                                                                                  |
-| On reconnect/refresh | **Replaced wholesale** from a fresh snapshot — never merged or patched | Restored from a local persisted UI store, with per-field validity checks (e.g. clear a whisper target that no longer exists) |
-| Ever sent to backend | Yes                                                                    | No                                                                                                                           |
+|                      | Domain state                                                                                          | UI-only state                                                                                                                |
+| -------------------- | ----------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Examples             | room/participant roster, presence, speaking, recording state, channel/party membership, unread counts | panel open/closed, active tab, whisper target, panel position/size                                                           |
+| Source of truth      | Backend (Postgres for durable, Redis for transient pub/sub)                                           | Client only                                                                                                                  |
+| On reconnect/refresh | **Replaced wholesale** from a fresh snapshot — never merged or patched                                | Restored from a local persisted UI store, with per-field validity checks (e.g. clear a whisper target that no longer exists) |
+| Ever sent to backend | Yes                                                                                                   | No                                                                                                                           |
 
 A Zustand client store is a **cache** of domain state, not the source of truth. Treat it as stale from the moment a disconnect is detected until an explicit rehydration completes — never render off a domain store you know is stale.
 

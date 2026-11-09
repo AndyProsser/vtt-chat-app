@@ -27,7 +27,7 @@ sequenceDiagram
   every operator hosts their own players. It follows that the operator decides when players move to a
   new build; there is no central update server, in keeping with self-host-first.
 - **Never restarts on its own.** A restart drops the player out of the room mid-session, so the app only
-  *offers* ("Version 0.3.0 is ready"), and installs on the click. A check that finds nothing, finds no
+  _offers_ ("Version 0.3.0 is ready"), and installs on the click. A check that finds nothing, finds no
   server, or hits a server without updates is silent.
 - **Cross-platform:** the updater is Tauri's own (`tauri-plugin-updater`), one code path for Windows,
   macOS and Linux.

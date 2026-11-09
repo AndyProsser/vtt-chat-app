@@ -6,10 +6,10 @@ right to use (`--from <folder>`), or `--kenney` for the packs below.
 
 ## Bundled starter source (not committed — fetched on request)
 
-| Pack                                                     | Author                | Licence                                          |
-| -------------------------------------------------------- | --------------------- | ------------------------------------------------ |
-| RPG Audio (doors, books, cloth, metal, footsteps…)       | Kenney (kenney.nl)    | CC0 1.0 — no attribution required (credit welcome) |
-| Impact Sounds (wood, metal, glass, stone, plates, soft)  | Kenney (kenney.nl)    | CC0 1.0 — no attribution required (credit welcome) |
+| Pack                                                    | Author             | Licence                                            |
+| ------------------------------------------------------- | ------------------ | -------------------------------------------------- |
+| RPG Audio (doors, books, cloth, metal, footsteps…)      | Kenney (kenney.nl) | CC0 1.0 — no attribution required (credit welcome) |
+| Impact Sounds (wood, metal, glass, stone, plates, soft) | Kenney (kenney.nl) | CC0 1.0 — no attribution required (credit welcome) |
 
 `--kenney` downloads CC0 repackagings of these packs from GitHub
 (`Boyquotes/kenney-rpg-audio-for-godot`, `Boyquotes/kenney-impact-sounds-for-godot`, both CC0-1.0);
@@ -29,4 +29,4 @@ Anything you load is your responsibility to have the right to use; CC0 means no 
 ## Not part of recordings
 
 Sound effects are sent to the table on a separate `soundboard` track that the backend never records; a
-recording's timeline only notes *which* effect or scene was played and when (metadata), not its audio.
+recording's timeline only notes _which_ effect or scene was played and when (metadata), not its audio.

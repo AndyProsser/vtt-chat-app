@@ -49,6 +49,13 @@ services:
       VALKEY_URL: redis://valkey:6379
       # Uploaded handouts and soundboard clips (type- and size-checked, served only to those allowed).
       MEDIA_DIR: /data/media
+      # Optional outbound mail for emailed sign-in codes, and single sign-on. All off unless set in .env.
+      SMTP_URL: ${SMTP_URL:-}
+      MAIL_FROM: ${MAIL_FROM:-}
+      OIDC_ISSUER: ${OIDC_ISSUER:-}
+      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-}
+      OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:-}
+      PUBLIC_URL: https://${SITE_ADDRESS}
       # Optional D&D Beyond character sync (off unless DDB_SYNC=1 in .env). Contacts dndbeyond.com.
       DDB_SYNC: ${DDB_SYNC:-}
       DDB_SYNC_HOURS: ${DDB_SYNC_HOURS:-}

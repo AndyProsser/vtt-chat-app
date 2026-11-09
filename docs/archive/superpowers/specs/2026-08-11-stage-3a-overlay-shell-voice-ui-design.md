@@ -8,16 +8,16 @@
 
 Stage 3 as written in `ROADMAP.md` bundles three subsystems that share a stage number but not a dependency chain, and pulls in two items whose mechanisms live in other stages. Splitting it (decided 2026-08-11):
 
-| Part | Contents | Depends on |
-| --- | --- | --- |
-| **3a** (this spec) | Page-scoped overlay mounting, speaking indicators, voice controls, churn diagnostics wired up | Stage 2 |
-| **3b** | DDB DOM extraction — character metadata, campaign metadata, token conditions | Stage 2; independent of 3a |
-| **3c** | Chat, bounded retention, refresh recovery, reconnect/backoff/event-replay | 3a; needs the chat-transport question resolved first |
+| Part               | Contents                                                                                      | Depends on                                           |
+| ------------------ | --------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| **3a** (this spec) | Page-scoped overlay mounting, speaking indicators, voice controls, churn diagnostics wired up | Stage 2                                              |
+| **3b**             | DDB DOM extraction — character metadata, campaign metadata, token conditions                  | Stage 2; independent of 3a                           |
+| **3c**             | Chat, bounded retention, refresh recovery, reconnect/backoff/event-replay                     | 3a; needs the chat-transport question resolved first |
 
 Two items are explicitly **not** in any of them:
 
 - **The group selector moves to Stage 4.** Stage 3 lists the selector UI; Stage 4 lists group routing, the mechanism it drives. Building a selector with nothing to select is busywork.
-- **The chat transport is an open architectural question, deferred to 3c.** [CLAUDE.md §8.4](../../../CLAUDE.md) says LiveKit carries "data events for chat + bookmarks". Stage 3 and [STATE-AND-RESILIENCE.md](../../architecture/STATE-AND-RESILIENCE.md#websocket-reliability) instead describe a WebSocket layer with a *server-side* bounded replay buffer. Those are different architectures and the docs currently assert both. Compounding it, `backend/` has no WebSocket layer today and Postgres/Redis are Stage 5 deliverables, so a server-side replay buffer has nowhere durable to live yet. 3c resolves this deliberately; 3a does not touch it.
+- **The chat transport is an open architectural question, deferred to 3c.** [CLAUDE.md §8.4](../../../CLAUDE.md) says LiveKit carries "data events for chat + bookmarks". Stage 3 and [STATE-AND-RESILIENCE.md](../../architecture/STATE-AND-RESILIENCE.md#websocket-reliability) instead describe a WebSocket layer with a _server-side_ bounded replay buffer. Those are different architectures and the docs currently assert both. Compounding it, `backend/` has no WebSocket layer today and Postgres/Redis are Stage 5 deliverables, so a server-side replay buffer has nowhere durable to live yet. 3c resolves this deliberately; 3a does not touch it.
 
 ## Scope
 
@@ -42,7 +42,7 @@ export function classifyPage(url: URL): OverlayMode;
 
 **Why a pill instead of nothing off-Maps.** ROADMAP's wording is "overlay injection scoped to Maps VTT only", but a session is joined from the character page and push-to-talk is app-focused-only (Stage 2). A strictly Maps-only overlay would leave a player mid-session with no mic-state feedback and no mute control while reading a rules page — they would have to navigate back to Maps to mute. The pill is the smallest thing that closes that hole while keeping the full panel off pages where a participant list is clutter. Decided 2026-08-11.
 
-**The `/games/<id>` pattern is taken from the Stage 3 known-issue note in `ROADMAP.md`**, which recorded it from a real Maps VTT page. It is not inferred from DDB internals (CLAUDE.md §14), but it *is* load-bearing and single-sourced, so implementation verifies it against a real Maps load before the stage closes.
+**The `/games/<id>` pattern is taken from the Stage 3 known-issue note in `ROADMAP.md`**, which recorded it from a real Maps VTT page. It is not inferred from DDB internals (CLAUDE.md §14), but it _is_ load-bearing and single-sourced, so implementation verifies it against a real Maps load before the stage closes.
 
 ### SPA route changes
 
@@ -130,7 +130,7 @@ Not covered by automated tests, and stated rather than skipped silently: that `u
 
 ## Known risk carried in from Stage 3's ROADMAP notes
 
-Maps with an **animated background render blank under WebKitGTK** on affected Linux hardware — reproduced in Epiphany independently of this app, and now believed to share a root cause with the [NVIDIA EGL driver bug](../../WEBKITGTK-NVIDIA-EGL-CRASH.md) behind the Stage 1 homepage crash. This threatens 3a's ability to *verify* full-panel mode on a real animated map, though not the overlay code itself: the overlay is a Shadow DOM sibling of the canvas, not a consumer of it. If a blank map blocks verification, the cheap check recorded in `ROADMAP.md` is to re-open with `__EGL_VENDOR_LIBRARY_FILENAMES` pointed at Mesa and see whether the background appears.
+Maps with an **animated background render blank under WebKitGTK** on affected Linux hardware — reproduced in Epiphany independently of this app, and now believed to share a root cause with the [NVIDIA EGL driver bug](../../WEBKITGTK-NVIDIA-EGL-CRASH.md) behind the Stage 1 homepage crash. This threatens 3a's ability to _verify_ full-panel mode on a real animated map, though not the overlay code itself: the overlay is a Shadow DOM sibling of the canvas, not a consumer of it. If a blank map blocks verification, the cheap check recorded in `ROADMAP.md` is to re-open with `__EGL_VENDOR_LIBRARY_FILENAMES` pointed at Mesa and see whether the background appears.
 
 ## Open questions carried into implementation
 
