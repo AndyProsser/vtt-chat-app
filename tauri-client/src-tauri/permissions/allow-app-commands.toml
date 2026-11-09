@@ -38,4 +38,5 @@ commands.allow = [
   "handout_upload",
   "clipboard_picture",
   "soundboard_monitor_set",
+  "soundboard_levels_set",
 ]

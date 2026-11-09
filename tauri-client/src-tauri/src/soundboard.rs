@@ -27,6 +27,8 @@ pub enum Action {
         looping: bool,
         /// The play's own volume times the take's level (the table volume is applied by the mixer).
         gain: f32,
+        /// Started by a scene layer (as opposed to a stinger button), so the scene level applies.
+        scene: bool,
     },
     Stop(String),
     StopAll,
@@ -47,7 +49,13 @@ fn play_action(d: &Value) -> Option<Action> {
         looping: d.get("mode").and_then(Value::as_str) == Some("loop"),
         gain: number(d.get("volume"), 1.0).clamp(0.0, 1.0)
             * number(d.get("level"), 1.0).clamp(0.0, 1.0),
+        scene: d.get("layerId").is_some_and(|v| !v.is_null()),
     })
+}
+
+/// The play's gain after the DM's per-kind level: `(stingers, scenes)`.
+fn kind_gain(gain: f32, levels: (f32, f32), scene: bool) -> f32 {
+    gain * if scene { levels.1 } else { levels.0 }
 }
 
 /// Turns one table frame into actions. Unknown frames and malformed payloads give none.
@@ -111,6 +119,8 @@ pub struct Soundboard {
     /// carries them to everyone else anyway).
     monitor: AtomicBool,
     levels: Mutex<(f32, f32)>,
+    /// The DM's volume for each kind of sound, 0 to 1: (stingers, scenes). Applied as a sound starts.
+    kind_levels: Mutex<(f32, f32)>,
     /// Plays that should still start once their clip arrives (a stop removes them).
     wanted: Mutex<HashSet<String>>,
     decoded: Mutex<HashMap<String, Arc<Vec<f32>>>>,
@@ -123,6 +133,7 @@ impl Default for Soundboard {
             is_dm: AtomicBool::new(false),
             monitor: AtomicBool::new(true),
             levels: Mutex::new((1.0, 1.0)),
+            kind_levels: Mutex::new((1.0, 1.0)),
             wanted: Mutex::new(HashSet::new()),
             decoded: Mutex::new(HashMap::new()),
         }
@@ -197,7 +208,9 @@ pub async fn on_table(app: &AppHandle, t: &str, data: &Value) {
                 take_id,
                 looping,
                 gain,
+                scene,
             } => {
+                let gain = kind_gain(gain, *board.kind_levels.lock().unwrap(), scene);
                 board.wanted.lock().unwrap().insert(play_id.clone());
                 attach_call(app, &board).await;
                 let app = app.clone();
@@ -239,6 +252,14 @@ pub fn soundboard_monitor_set(app: AppHandle, on: bool) {
     let board = app.state::<Soundboard>();
     board.monitor.store(on, Ordering::Relaxed);
     board.engine.set_monitor(on);
+}
+
+/// The DM's volume for stingers and for scenes (0 to 1 each). A sound already playing keeps the level
+/// it started with; the next one uses the new level.
+#[tauri::command]
+pub fn soundboard_levels_set(app: AppHandle, stingers: f32, scenes: f32) {
+    let board = app.state::<Soundboard>();
+    *board.kind_levels.lock().unwrap() = (stingers.clamp(0.0, 1.0), scenes.clamp(0.0, 1.0));
 }
 
 /// Everything stops when the session ends (sign-out, revoked, switching campaign).
@@ -336,9 +357,17 @@ mod tests {
                 play_id: "p".into(),
                 take_id: "t".into(),
                 looping: true,
-                gain: 0.25
+                gain: 0.25,
+                scene: false
             }]
         );
+        let layered = json!({"playId":"p","takeId":"t","mode":"oneshot","volume":1,"level":1,"layerId":"l1"});
+        assert!(matches!(
+            &plan("sound.play", &layered, "me")[0],
+            Action::Play { scene: true, .. }
+        ));
+        assert_eq!(kind_gain(0.5, (0.8, 0.4), true), 0.2);
+        assert_eq!(kind_gain(0.5, (0.8, 0.4), false), 0.4);
         let one = json!({"playId":"p","takeId":"t","mode":"oneshot","volume":1,"level":1});
         assert!(matches!(
             &plan("sound.play", &one, "me")[0],

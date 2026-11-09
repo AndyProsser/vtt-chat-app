@@ -24,7 +24,7 @@ const TIP: Record<(typeof VOICES)[number], string> = {
 export function VoiceStrip() {
   const { current, error, choose } = useVoiceEffect();
   return (
-    <div className="vtt-drawer-row">
+    <div className="vtt-chips">
       {VOICES.map((v) => {
         const Icon = VOICE_ICON[v];
         return (

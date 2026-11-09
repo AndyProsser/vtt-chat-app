@@ -179,3 +179,7 @@ export const avatarUpload = (data: string) => invoke<{ id: string }>('avatar_upl
 
 /** A portrait as a `data:` URL (the window may not fetch from the network). */
 export const avatarImage = (id: string) => invoke<string>('avatar_image', { id });
+
+/** The DM's volume for stingers and for scenes (0 to 1 each), applied as each sound starts. */
+export const soundboardLevelsSet = (stingers: number, scenes: number) =>
+  invoke<void>('soundboard_levels_set', { stingers, scenes });

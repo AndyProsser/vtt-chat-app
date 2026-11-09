@@ -11,7 +11,7 @@ import { useTableStore } from '../lib/tableStore.js';
 import { AvatarRail } from './AvatarRail.js';
 import { ChatView } from './ChatView.js';
 import { BottomBar } from './BottomBar.js';
-import { EffectsStrip } from './EffectsStrip.js';
+import { SoundDrawer } from './deck/SoundDrawer.js';
 import { SignInGate } from './SignInGate.js';
 import { TopBar } from './TopBar.js';
 import { UpdateBanner } from './UpdateBanner.js';
@@ -44,7 +44,7 @@ function Table({ selfId }: { selfId: string | null }) {
         <div className="vtt-chat-col">
           {dm && drawer && (
             <aside className="vtt-drawer" aria-label="Sound effects">
-              <EffectsStrip />
+              <SoundDrawer />
             </aside>
           )}
           <ChatView selfId={selfId} />
