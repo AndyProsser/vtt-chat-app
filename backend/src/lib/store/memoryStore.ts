@@ -106,6 +106,11 @@ export class MemoryStore implements Store {
       .filter((c) => c.userId === userId && c.campaignId === campaignId)
       .map(copy)
       .sort((a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id));
+  listLinkedCharacters = async (): Promise<Character[]> =>
+    [...this.data.characters.values()]
+      .filter((c) => c.sourceUrl !== null)
+      .map(copy)
+      .sort((a, b) => (a.syncedAt ?? 0) - (b.syncedAt ?? 0) || a.id.localeCompare(b.id));
   putCharacter = async (character: Character): Promise<void> => {
     this.data.characters.set(character.id, copy(character));
   };

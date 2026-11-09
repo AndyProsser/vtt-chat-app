@@ -16,6 +16,32 @@
 
 ---
 
+## Where we are and what is next
+
+**As of 2026-11-09 the player experience is essentially complete:** sign in, join, talk, chat, whisper, loot, RSVP, hear the DM's scenes and stingers, with recording and consent working end to end. What is left is fine-tuning the UI/UX, character sync with D&D Beyond, and the operator and release work around it.
+
+```mermaid
+flowchart LR
+  A[Now: polish and verify] --> B[D&D Beyond character sync]
+  A --> C[Records history screen]
+  B --> D[Status page and mobile SPA]
+  C --> D
+  D --> E[Hardening and release]
+```
+
+**Next steps, in order:**
+
+1. **Verify in a real window** (nothing new to build): unmute and the voice button after the 0.10.1 bump, rail drag between groups, portrait upload, device switching, scene editor, mute badges. Fix whatever it turns up.
+2. **UI/UX fine-tuning:** the new character voices (Dragon, God, Drunk, Authoritative: Rust DSP plus listening tests), ambience and music categories in the sound library (the importer has no category option, so loops are empty), a real mic level meter, a keyboard alternative to drag-to-group, orphan portrait cleanup.
+3. **D&D Beyond character sync** (`ddb/`, Stage 10): import name, class, level and portrait from a public character URL into the character profile, behind the existing Linked accounts placeholder. Public pages only, off by default. Open design question: one-time import or refresh on demand.
+4. **Recording history screen** (Stage 5): browse past sessions, read summaries (DM-only ones stay DM-only), search. Then the purge rules for raw audio.
+5. **Soak and drills** (Stage 9): the recorded 4-hour soak, then a server restart mid-recording.
+6. **Operator side:** the public status page (Stage 8), OIDC and the SMTP sender, and the "second person deploys from the docs" test (Stage 3).
+7. **Mobile SPA** (Stage 7) once the records screen exists, since it reuses that API.
+8. **Per-player volume and mic gain:** blocked on the SDK; revisit at the next LiveKit upgrade.
+
+---
+
 ## Stage 0 — Foundations
 
 **Status:** 🟢 Done (carried over unchanged)
@@ -104,7 +130,7 @@ The riskiest unknowns are all "does this actually work on real machines with ope
 
 ## Stage 4 — Tray Client
 
-**Status:** 🟡 In Progress — the Rust core is wired and verified: tray icon with live / muted / recording / paused / disconnected states, mic gate (player mute + consent gate), signed-in session over `rust-sync`, the consent flow (verified live against a real backend). **Built since:** browser join page (first run), in-app sign-in with a saved session that resumes silently, panel windows, the Rust→panel event feed, and the account/roster/chat panels, the session token in the OS keychain (file fallback only when none exists), and Tauri 2.12; the **Recording panel**, **Handouts, Loot and Sessions (RSVP) panels** on an allow-listed Rust REST relay, the **DM Soundboard** with local clip playback (fetch, cache, decode, mix in Rust), and the **Voice groups** panel. **Reshaped (2026-11-08):** the nine tray panels became **one compact RPG-themed main window** (avatar rail with speaking glow and hover cards, themed chat with whispers and slash commands, record state and timer, mute and level meter, Connect/Disconnect voice, DM effects drawer and Groups menu) plus Settings, Handouts and Party-inventory windows, five switchable themes (Dragonfire default; light/dark follows the OS), and a tray icon that is the logo with a status badge — design in [docs/superpowers/specs/2026-11-08-main-window-design.md](docs/superpowers/specs/2026-11-08-main-window-design.md), plan in [docs/superpowers/plans/2026-11-08-main-window.md](docs/superpowers/plans/2026-11-08-main-window.md). **Party inventory** (grab for self or party, coin, equal split) is built. **Also built:** **sound effects through the call** (the DM's app mixes them in Rust and sends them on a `soundboard` track — which fixes the speaker echo — never recorded, but noted in the recording timeline) and a CC0 sound-pack importer (`npm run sounds:import`); the **SRD item catalog** (240 magic and ~210 mundane items) with type icons and rarity glow, custom items, and an original **random-treasure generator** by CR with a DM preview (re-roll, remove, add; see [docs/architecture/LOOT.md](docs/architecture/LOOT.md)); a **character profile per campaign** (name, race, class, level, emblem); **several campaigns per account** (a switcher in the title bar, join by invite code or create one in-app, a different DM in each; the Campaign tab in Settings holds the DM's per-campaign tools: invite link, hand over the DM role, leave — system administration stays in `vtt-admin`), icon-first controls with tooltips, drag-and-drop voice groups with avatars, a compact session scheduler (30-minute steps, a duration, "Session N" titles), the DM **connection screen** (latency / jitter / loss per player, reported from Rust every 5 s), `vtt-chat://connect` links (pre-fill the server in Settings), **start with the computer** (opt-in; starts to the tray), single instance, and **crash recovery** (a release build supervises itself: restarts after a crash with backoff, gives up after 5 in 5 minutes; verified by SIGKILLing the child). **Also built:** signed **auto-update** (`/updates` route, `vtt-admin updates publish`) and the DM connection screen. **Not built:** a recorded 4-hour soak (`tauri-client/scripts/soak.sh` is ready; a 5-minute check with the mock table showed flat webview memory), a Settings Audio tab, a real mic level meter (the meter is on/off from the speaking flag), a drag-to-group keyboard alternative, a recording-history screen, optional avatar upload (emblems only), and an image cache in Rust. **Needs a human (pick up here):** listen-test the effects through the call (pitch and latency; DM on speakers should use headphones or turn off the monitor), the DM character voice, and exercise the Groups drag, scheduler, loot bench, Character tab and clipboard paste in a real window. Before real releases, back up the updater key (`~/.tauri/vtt-chat-updater.key`) and give it a password. **Next up:** the **account avatar** (a portrait on your profile, shown in the rail for the DM and for anyone without a character; character portraits are built), removing unused portrait files, per-player volume and a microphone gain slider (the voice layer exposes neither), real latency checks of the new sparkline and rail groups in a live session, and the D&D Beyond import behind the Linked accounts placeholder. The Groups menu in the top bar stays for renaming and removing groups; moving people is now in the rail (my call). **Done 2026-11-09:** groups in the left rail (drag between sections, new-group target, bring-everyone-back button, group on the hover card), soundboard tabs (Voice, Environment, Background, Creatures; categories derived from board and loop mode), change your player name, character portraits (upload, shrunk to 256 px, stored on the server and shown through Rust), microphone and speaker choice in General, the unmute crash (the mute path needed the Tokio runtime), the soundboard icon drawer, latency sparkline coloured by quality at each moment, panels open centred over the main window, Settings reorganised to Profile / Campaign / Sessions / General, attendance locked 4 hours after a session starts, previous sessions hidden by default, DM Markdown notes per session. Dev: `npm run dev:seed` then `npm run dev:mock` puts mock players online in every seeded campaign (they reconnect by themselves). See [docs/BUILD-STATUS.md](docs/BUILD-STATUS.md)
+**Status:** 🟢 Feature-complete for players as of 2026-11-09; 🟡 fine-tuning and verification remain. One compact RPG-themed main window (avatar rail with speaking glow, quality-coloured connection sparkline, group sections and hover cards; themed chat with whispers; record state and consent; mute and level meter; voice connect), Settings as a popover (Profile, Campaign, Sessions, General with audio devices and themes), Handouts and Party-inventory windows, the DM **Scene Deck** (Voice, Stinger and Scene panels with favourites, custom scenes and per-type levels), loot with the SRD catalogue and treasure generator, scheduling with RSVP, account and character avatars, sound through the call, signed auto-update, start-with-computer, crash recovery and the DM connection screen. Voice runs on **LiveKit Rust SDK 0.10.1** (Linux builds need `clang`; see [DEVELOPING.md](DEVELOPING.md)). **Not built:** a recorded 4-hour soak (`tauri-client/scripts/soak.sh` is ready), a real mic level meter, a keyboard alternative to drag-to-group, a recording-history screen, per-player volume and mic gain (the SDK exposes neither), orphan portrait cleanup, the new character voices (Dragon, God, Drunk, Authoritative), and the D&D Beyond import behind the Linked accounts placeholder. **Needs a human:** listen-tests of effects and character voices, and a pass through the real window (unmute, rail drag, portrait upload, device switching, scene editor). Back up the updater key (`~/.tauri/vtt-chat-updater.key`) and give it a password before real releases. Detail of what is built vs verified: [docs/BUILD-STATUS.md](docs/BUILD-STATUS.md). Design: [main-window spec](docs/superpowers/specs/2026-11-08-main-window-design.md).
 **Depends on:** Stage 2 (audio engine), Stage 3 (server to connect to)
 
 **Deliverables:**
@@ -141,7 +167,7 @@ The riskiest unknowns are all "does this actually work on real machines with ope
 
 ## Stage 6 — Table Features
 
-**Status:** 🟡 Server side built and tested (2026-11-07): chat and private whispers, handouts/maps/images/text snippets, loot with atomic claims, the DM soundboard (a mini thaumaturgy.app), session schedule + RSVP + reminders + stored notifications, and party split — see [TABLE-FEATURES.md](docs/architecture/TABLE-FEATURES.md). **Not built:** every client/UI side (Stage 4), voice whispers, and the end-to-end "full session" test below.
+**Status:** 🟢 Built end to end for players (server 2026-11-07, client 2026-11-08 to 09); 🟡 the full-session test below is not yet run. Server: chat and private whispers, handouts/maps/images/text snippets, loot with atomic claims, the DM soundboard (a mini thaumaturgy.app), session schedule + RSVP + reminders + stored notifications, and party split — see [TABLE-FEATURES.md](docs/architecture/TABLE-FEATURES.md). Client: chat and whispers, handouts, loot and party inventory, the Scene Deck, scheduling and RSVP, and party split in the rail (Stage 4). **Not built:** voice whispers and the end-to-end "full session" test below.
 **Depends on:** Stage 5
 
 **Deliverables:**
@@ -159,7 +185,7 @@ The riskiest unknowns are all "does this actually work on real machines with ope
 
 ## Stage 7 — Mobile SPA
 
-**Status:** ⚪ Not Started
+**Status:** ⚪ Not Started (only the invite/join page in `web/` exists)
 **Depends on:** Stage 3 (API), Stage 6 (content)
 
 `web/`: a basic mobile-first SPA designed more for messages than gaming — messages, RSVP, handouts, history/summaries, and possibly basic listen/talk (open question). Served by the box by default; Cloudflare Pages is an optional adapter.
@@ -170,7 +196,7 @@ The riskiest unknowns are all "does this actually work on real machines with ope
 
 ## Stage 8 — Operations: Admin CLI & Status Page
 
-**Status:** ⚪ Not Started
+**Status:** 🟡 The Admin CLI (`vtt-admin`) is built and in use (Stage 3); the public status page (`status/`) is still an empty scaffold
 **Depends on:** Stage 5
 
 **Deliverables:**
@@ -209,7 +235,7 @@ The riskiest unknowns are all "does this actually work on real machines with ope
 
 Each item is independent, off by default, and must never be assumed by application code:
 
-- D&D Beyond character import from public pages (`ddb/`)
+- D&D Beyond character import from public pages (`ddb/`) — **next up**, see [Where we are](#where-we-are-and-what-is-next)
 - Cloudflare TURN (extra ICE server); Cloudflare Realtime SFU as an alternative to LiveKit (a large design of its own); Cloudflare Pages for static hosting
 - Cloud transcription / LLM providers beyond Stage 5's first adapters
 - OIDC/Authelia SSO, if the identity decision allows

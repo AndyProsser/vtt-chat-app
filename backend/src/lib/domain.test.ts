@@ -378,6 +378,8 @@ describe('campaigns', () => {
       level: 3,
       avatarUrl: null,
       sourceUrl: null,
+      syncedAt: null,
+      sourceAvatar: null,
     };
 
     async function table(): Promise<{ campaignId: string }> {

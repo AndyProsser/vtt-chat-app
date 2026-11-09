@@ -19,7 +19,6 @@ const characterBody = z.object({
   race: z.string().max(80).nullable().default(null),
   level: z.number().int().min(1).max(30).nullable().default(null),
   avatarUrl: z.string().url().max(2048).nullable().default(null),
-  sourceUrl: z.string().url().max(2048).nullable().default(null),
 });
 const characterPatch = z.object({
   name: z.string().max(200).optional(),

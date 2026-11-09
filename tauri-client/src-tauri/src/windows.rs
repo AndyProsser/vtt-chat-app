@@ -148,7 +148,10 @@ pub fn open(app: &AppHandle, name: &str) -> Result<(), String> {
         .and_then(|m| m.current_monitor().ok().flatten())
         .map(|mon| {
             let scale = mon.scale_factor();
-            (mon.size().width as f64 / scale, mon.size().height as f64 / scale)
+            (
+                mon.size().width as f64 / scale,
+                mon.size().height as f64 / scale,
+            )
         });
     let size = fit_size(panel.size, screen);
     if let Some(main) = &main {
@@ -176,9 +179,18 @@ mod tests {
 
     #[test]
     fn a_window_is_never_taller_than_the_screen_allows() {
-        assert_eq!(fit_size((400.0, 540.0), Some((1920.0, 1080.0))), (400.0, 540.0));
-        assert_eq!(fit_size((400.0, 540.0), Some((1280.0, 600.0))), (400.0, 510.0));
-        assert_eq!(fit_size((2000.0, 540.0), Some((1000.0, 1000.0))), (900.0, 540.0));
+        assert_eq!(
+            fit_size((400.0, 540.0), Some((1920.0, 1080.0))),
+            (400.0, 540.0)
+        );
+        assert_eq!(
+            fit_size((400.0, 540.0), Some((1280.0, 600.0))),
+            (400.0, 510.0)
+        );
+        assert_eq!(
+            fit_size((2000.0, 540.0), Some((1000.0, 1000.0))),
+            (900.0, 540.0)
+        );
         assert_eq!(fit_size((400.0, 540.0), None), (400.0, 540.0));
     }
 

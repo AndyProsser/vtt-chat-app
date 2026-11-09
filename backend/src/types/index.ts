@@ -57,6 +57,10 @@ export interface Character {
   avatarUrl: string | null;
   /** The public D&D Beyond URL it was imported from, if any. */
   sourceUrl: string | null;
+  /** When the D&D Beyond link was last read successfully (epoch ms). */
+  syncedAt: number | null;
+  /** The D&D Beyond portrait address last imported; the portrait is only replaced when this changes. */
+  sourceAvatar: string | null;
 }
 
 /** A long-lived, remotely revocable sign-in on one device. Only a hash of the secret is stored. */

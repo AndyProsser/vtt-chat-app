@@ -38,6 +38,11 @@ export interface BackendConfig {
   clientDownloads: ClientDownloads;
   /** LiveKit's HTTP API as the backend reaches it (room and Egress calls). */
   liveKitApiUrl: string;
+  /**
+   * Optional D&D Beyond character sync (`DDB_SYNC=1`). Off by default because it contacts a third
+   * party; `DDB_SYNC_HOURS` is how stale a linked character may get before the timer refreshes it.
+   */
+  ddbSync: { enabled: boolean; intervalHours: number };
 }
 
 /**
@@ -61,6 +66,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): BackendConfig 
       ...(env.CLIENT_URL_WINDOWS ? { windows: env.CLIENT_URL_WINDOWS } : {}),
       ...(env.CLIENT_URL_MACOS ? { macos: env.CLIENT_URL_MACOS } : {}),
       ...(env.CLIENT_URL_LINUX ? { linux: env.CLIENT_URL_LINUX } : {}),
+    },
+    ddbSync: {
+      enabled: env.DDB_SYNC === '1' || env.DDB_SYNC === 'true',
+      intervalHours: env.DDB_SYNC_HOURS ? Math.max(1, Number(env.DDB_SYNC_HOURS) || 12) : 12,
     },
     liveKitApiUrl:
       env.LIVEKIT_API_URL ??

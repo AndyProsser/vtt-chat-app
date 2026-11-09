@@ -18,11 +18,12 @@ COPY web/package.json web/
 COPY tauri-client/panels-ui/package.json tauri-client/panels-ui/
 
 FROM manifests AS build
-RUN npm ci -w backend -w ai -w shared
+RUN npm ci -w backend -w ai -w ddb -w shared
 COPY shared shared
 COPY ai ai
+COPY ddb ddb
 COPY backend backend
-RUN npm run build -w shared -w ai -w backend
+RUN npm run build -w shared -w ai -w ddb -w backend
 
 FROM manifests AS web
 RUN npm ci -w web
@@ -30,7 +31,7 @@ COPY web web
 RUN npm run build -w web
 
 FROM manifests AS deps
-RUN npm ci --omit=dev -w backend -w ai -w shared && npm cache clean --force
+RUN npm ci --omit=dev -w backend -w ai -w ddb -w shared && npm cache clean --force
 
 FROM node:26-alpine AS app
 ENV NODE_ENV=production
@@ -40,6 +41,8 @@ COPY --from=build /app/shared/package.json shared/package.json
 COPY --from=build /app/shared/dist shared/dist
 COPY --from=build /app/ai/package.json ai/package.json
 COPY --from=build /app/ai/dist ai/dist
+COPY --from=build /app/ddb/package.json ddb/package.json
+COPY --from=build /app/ddb/dist ddb/dist
 COPY --from=build /app/backend/package.json backend/package.json
 COPY --from=build /app/backend/dist backend/dist
 COPY backend/migrations backend/migrations

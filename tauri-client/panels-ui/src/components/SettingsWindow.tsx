@@ -7,7 +7,6 @@ import { AudioSection } from './settings/AudioSection.js';
 import { AppearanceSection } from './settings/AppearanceSection.js';
 import { CampaignTab } from './settings/CampaignTab.js';
 import { GeneralSection } from './settings/GeneralSection.js';
-import { LinkedAccounts } from './settings/LinkedAccounts.js';
 import { SessionsSection } from './settings/SessionsSection.js';
 
 /**
@@ -26,7 +25,6 @@ export function SettingsContent() {
         </Tabs.List>
         <Tabs.Content value="profile">
           <AccountSection />
-          <LinkedAccounts />
         </Tabs.Content>
         <Tabs.Content value="campaign">
           <CampaignTab />

@@ -83,6 +83,11 @@ export const accountRename = (name: string) => invoke<AccountStatus>('account_re
 export const accountSetAvatar = (avatar: string | null) =>
   invoke<AccountStatus>('account_set_avatar', { avatar });
 
+/** D&D Beyond sync (`ddb_api`): is it on, link a sheet, sync now, unlink. Answers the updated character. */
+export const ddbStatus = () => invoke<{ enabled: boolean }>('ddb_api', { action: 'status' });
+export const ddbAction = (action: 'link' | 'sync' | 'unlink', characterId: string, url?: string) =>
+  invoke<{ character: unknown }>('ddb_api', { action, characterId, url });
+
 /** Joins a campaign by invite code, or creates one, then switches to it (`account_add_campaign`). */
 export const accountAddCampaign = (action: 'join' | 'create' | 'refresh', value: string) =>
   invoke<AccountStatus>('account_add_campaign', { action, value });

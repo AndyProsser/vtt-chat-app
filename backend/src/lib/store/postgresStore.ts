@@ -98,6 +98,8 @@ const toCharacter = (r: Row): Character => ({
   level: nullable(r.level as number | null),
   avatarUrl: nullable(r.avatar_url as string | null),
   sourceUrl: nullable(r.source_url as string | null),
+  syncedAt: r.synced_at === null || r.synced_at === undefined ? null : Number(r.synced_at),
+  sourceAvatar: nullable(r.source_avatar as string | null),
 });
 
 const toChat = (r: Row): ChatMessage => ({
@@ -313,12 +315,19 @@ export class PostgresStore implements Store {
     return rows.map(toCharacter);
   }
 
+  async listLinkedCharacters(): Promise<Character[]> {
+    const { rows } = await this.db.query(
+      'SELECT * FROM characters WHERE source_url IS NOT NULL ORDER BY synced_at NULLS FIRST, id',
+    );
+    return rows.map(toCharacter);
+  }
+
   async putCharacter(c: Character): Promise<void> {
     await this.db.query(
-      `INSERT INTO characters (id, user_id, campaign_id, name, class_name, race, level, avatar_url, source_url)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      `INSERT INTO characters (id, user_id, campaign_id, name, class_name, race, level, avatar_url, source_url, synced_at, source_avatar)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
        ON CONFLICT (id) DO UPDATE SET user_id = $2, campaign_id = $3, name = $4, class_name = $5,
-         race = $6, level = $7, avatar_url = $8, source_url = $9`,
+         race = $6, level = $7, avatar_url = $8, source_url = $9, synced_at = $10, source_avatar = $11`,
       [
         c.id,
         c.userId,
@@ -329,6 +338,8 @@ export class PostgresStore implements Store {
         c.level,
         c.avatarUrl,
         c.sourceUrl,
+        c.syncedAt,
+        c.sourceAvatar,
       ],
     );
   }

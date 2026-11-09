@@ -5,7 +5,9 @@ import { AccountService } from './auth/accountService.js';
 import { CampaignService } from './campaigns/campaignService.js';
 import type { BackendConfig } from './config.js';
 import { inviteRoutes, webPages } from './http/joinRoutes.js';
+import type { DdbSyncService } from './ddb/ddbSyncService.js';
 import { avatarRoutes } from './http/avatarRoutes.js';
+import { ddbRoutes } from './http/ddbRoutes.js';
 import { authRoutes } from './http/authRoutes.js';
 import { campaignRoutes } from './http/campaignRoutes.js';
 import { NoMailTransport, type MagicLinkSender } from './http/delivery.js';
@@ -31,6 +33,8 @@ import type { Store } from './store/store.js';
 export interface AppDeps {
   config: BackendConfig;
   store: Store;
+  /** D&D Beyond character sync (link, sync now, unlink). Routes answer 'disabled' without it. */
+  ddb?: DdbSyncService;
   /** Delivers magic-link tokens. Defaults to "not configured". */
   sender?: MagicLinkSender;
   /** Realtime hooks, so REST changes reach live sockets. Optional: REST works without a hub. */
@@ -87,6 +91,7 @@ const MINUTE = 60_000;
 export function createApp({
   config,
   store,
+  ddb,
   sender,
   realtime,
   recording,
@@ -196,6 +201,7 @@ export function createApp({
   }
 
   if (media) app.use('/api/avatars', avatarRoutes({ accounts, media }));
+  app.use('/api/ddb', ddbRoutes({ accounts, ...(ddb ? { ddb } : {}) }));
 
   if (table) {
     const handouts = new HandoutService({ store, table, media });

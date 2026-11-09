@@ -6,6 +6,9 @@ export interface CharacterRecord {
   race: string | null;
   level: number | null;
   avatarUrl: string | null;
+  /** The D&D Beyond sheet it is linked to, if any, and when it was last read (epoch ms). */
+  sourceUrl?: string | null;
+  syncedAt?: number | null;
 }
 
 /** What the form holds while editing: text fields, so a half-typed level is still just text. */

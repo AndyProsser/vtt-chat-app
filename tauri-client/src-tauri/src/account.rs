@@ -151,6 +151,41 @@ const RELAY_CAMPAIGN_AREAS: [&str; 10] = [
 /// `handouts/abc/show` → `/api/campaigns/<id>/handouts/abc/show`; `soundboard/library` →
 /// `/api/soundboard/library`. Only plain path segments (letters, digits, `-`, `_`) are accepted: no
 /// `..`, no query, no scheme, no empty segment.
+/// The D&D Beyond sync calls a panel may make: `(method, path, body)`. Ids are checked as plain
+/// segments and the link is passed as data, never put into a path.
+pub fn ddb_call(
+    action: &str,
+    campaign_id: &str,
+    character_id: Option<&str>,
+    url: Option<&str>,
+) -> Result<(&'static str, &'static str, Option<Value>), AccountError> {
+    let bad = || AccountError::new("bad_path", "that request is not allowed");
+    let plain = |s: &str| {
+        !s.is_empty()
+            && s.len() <= 64
+            && s.chars()
+                .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+    };
+    if action == "status" {
+        return Ok(("GET", "/api/ddb/status", None));
+    }
+    let character = character_id.filter(|c| plain(c)).ok_or_else(bad)?;
+    if !plain(campaign_id) {
+        return Err(bad());
+    }
+    let mut body = serde_json::json!({ "campaignId": campaign_id, "characterId": character });
+    let path = match action {
+        "link" => {
+            body["url"] = Value::String(url.ok_or_else(bad)?.to_string());
+            "/api/ddb/link"
+        }
+        "sync" => "/api/ddb/sync",
+        "unlink" => "/api/ddb/unlink",
+        _ => return Err(bad()),
+    };
+    Ok(("POST", path, Some(body)))
+}
+
 pub fn relay_path(campaign_id: &str, relative: &str) -> Result<String, AccountError> {
     let bad = || AccountError::new("bad_path", "that request is not allowed");
     let segments: Vec<&str> = relative.split('/').collect();
@@ -561,6 +596,22 @@ pub fn data_dir(app: &tauri::AppHandle) -> Option<PathBuf> {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn ddb_calls_are_fixed_paths_with_checked_ids() {
+        use super::ddb_call;
+        let (m, p, b) =
+            ddb_call("link", "c1", Some("ch-2"), Some("https://x/characters/1")).unwrap();
+        assert_eq!((m, p), ("POST", "/api/ddb/link"));
+        assert_eq!(b.unwrap()["url"], "https://x/characters/1");
+        assert_eq!(
+            ddb_call("status", "", None, None).unwrap().1,
+            "/api/ddb/status"
+        );
+        assert!(ddb_call("sync", "c1", Some("../x"), None).is_err());
+        assert!(ddb_call("link", "c1", Some("ch"), None).is_err());
+        assert!(ddb_call("delete", "c1", Some("ch"), None).is_err());
+    }
+
     use super::*;
 
     #[test]

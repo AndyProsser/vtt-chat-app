@@ -361,7 +361,8 @@ mod tests {
                 scene: false
             }]
         );
-        let layered = json!({"playId":"p","takeId":"t","mode":"oneshot","volume":1,"level":1,"layerId":"l1"});
+        let layered =
+            json!({"playId":"p","takeId":"t","mode":"oneshot","volume":1,"level":1,"layerId":"l1"});
         assert!(matches!(
             &plan("sound.play", &layered, "me")[0],
             Action::Play { scene: true, .. }

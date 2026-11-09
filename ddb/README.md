@@ -2,11 +2,11 @@
 
 **Optional** D&D Beyond character import. Not part of the default install and not on any critical path — see [CLAUDE.md §8.7](../.claude/CLAUDE.md).
 
-**Status:** an empty stub. The previous design's code (cobalt-token exchange, Character Service calls, identity orchestrator) was removed in Stage 1 and is kept for reference in [docs/archive/ddb-legacy/](../docs/archive/ddb-legacy/README.md). The import feature itself is [ROADMAP Stage 10](../ROADMAP.md#stage-10--optional-integrations-advanced-users).
+**Status:** built (see [DDB-SYNC.md](../docs/architecture/DDB-SYNC.md)); off unless the operator sets `DDB_SYNC=1`. Not yet run against the live service.
 
-## What it will be
+## What it is
 
-A small module that, given a **public character URL** (or, if easy, a login token), fetches character name / class / portrait so a player's profile can show it. Public pages only. No login, no cookie access, no scraping beyond that page.
+A small, pure module: read the id from a public sheet address, fetch the character from the sheet's own public service, and parse name / race / class / level / portrait address. The backend does the syncing (link, sync now, hourly timer). Public sheets only; no login, no cookie.
 
 ## What was removed, and why
 

@@ -34,6 +34,8 @@ import {
   NotificationRelay,
   PostgresScheduleStore,
   ScheduleService,
+  CampaignService,
+  DdbSyncService,
   MemoryTableStore,
   PostgresSoundStore,
   PostgresTableStore,
@@ -152,10 +154,27 @@ if (isEntryPoint) {
     onNotified: () => void relay.flush().catch(() => undefined),
   });
   setInterval(() => void reminders.sendDueReminders().catch(() => undefined), 60_000).unref();
+  // Optional D&D Beyond character sync: off unless the operator turns it on; refreshed hourly.
+  const ddb = new DdbSyncService({
+    store,
+    campaigns: new CampaignService({ store }),
+    enabled: config.ddbSync.enabled,
+    intervalMs: config.ddbSync.intervalHours * 3_600_000,
+    ...(media ? { media } : {}),
+    onChanged: (campaignId) =>
+      void Promise.resolve(hub.announceRosterChanged(campaignId)).catch(() => undefined),
+  });
+  if (ddb.enabled) {
+    setInterval(() => void ddb.syncDue().catch(() => undefined), 3_600_000).unref();
+    console.log(
+      `[backend] D&D Beyond sync on: linked characters refresh every ${config.ddbSync.intervalHours} h`,
+    );
+  }
   const server = createServer(
     createApp({
       config,
       store,
+      ddb,
       realtime: hub,
       recording: hub.recording,
       records,

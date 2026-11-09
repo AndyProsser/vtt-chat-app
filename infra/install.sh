@@ -233,8 +233,8 @@ deploy_app() {
   (
     export PATH="$NODE_DIR/bin:$PATH" HOME="$build" npm_config_update_notifier=false npm_config_fund=false
     cd "$build"
-    npm ci -w backend -w ai -w shared -w web --no-audit
-    npm run build -w shared -w ai -w backend -w web
+    npm ci -w backend -w ai -w ddb -w shared -w web --no-audit
+    npm run build -w shared -w ai -w ddb -w backend -w web
   )
   # Production tree: manifests + compiled output + production-only node_modules (as in the Dockerfile).
   rm -rf "$APP_DIR.new"; mkdir -p "$APP_DIR.new"
@@ -243,14 +243,14 @@ deploy_app() {
     mkdir -p "$APP_DIR.new"/{shared,ai,backend,ddb,status,web,tauri-client/panels-ui}
     cp package.json package-lock.json tsconfig.base.json "$APP_DIR.new"/
     for d in shared ai backend ddb status web tauri-client/panels-ui; do cp "$d/package.json" "$APP_DIR.new/$d/"; done
-    for d in shared ai backend; do cp -r "$d/dist" "$APP_DIR.new/$d/"; done
+    for d in shared ai ddb backend; do cp -r "$d/dist" "$APP_DIR.new/$d/"; done
     cp -r backend/migrations "$APP_DIR.new/backend/"
     cp -r web/dist "$APP_DIR.new/web/"
   )
   (
     export PATH="$NODE_DIR/bin:$PATH" HOME="$build" npm_config_update_notifier=false npm_config_fund=false
     cd "$APP_DIR.new"
-    npm ci --omit=dev -w backend -w ai -w shared --no-audit
+    npm ci --omit=dev -w backend -w ai -w ddb -w shared --no-audit
   )
   rm -rf "$APP_DIR.old"; [[ -d "$APP_DIR" ]] && mv "$APP_DIR" "$APP_DIR.old"
   mv "$APP_DIR.new" "$APP_DIR"; rm -rf "$APP_DIR.old" "$build"

@@ -42,3 +42,4 @@ export * from './schedule/scheduleStore.js';
 export * from './parties/audioRouter.js';
 export * from './parties/partyService.js';
 export * from './parties/partyState.js';
+export * from './ddb/ddbSyncService.js';

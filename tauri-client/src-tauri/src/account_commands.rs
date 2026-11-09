@@ -251,7 +251,10 @@ pub async fn account_rename(
             Some(serde_json::json!({ "displayName": name })),
         )
         .await?;
-    if let Some(new_name) = response.pointer("/user/displayName").and_then(Value::as_str) {
+    if let Some(new_name) = response
+        .pointer("/user/displayName")
+        .and_then(Value::as_str)
+    {
         inner.saved.display_name = Some(new_name.to_string());
         persist(&app, &inner.saved);
     }
@@ -475,6 +478,30 @@ pub async fn campaign_api(
         .await
 }
 
+/// D&D Beyond sync for one of the player's characters: `status`, `link` (with a sheet address),
+/// `sync` or `unlink`. The server does the work; this only keeps the paths fixed.
+#[tauri::command]
+pub async fn ddb_api(
+    state: State<'_, AccountState>,
+    action: String,
+    character_id: Option<String>,
+    url: Option<String>,
+) -> Result<Value, AccountError> {
+    let (server, token, campaign) = if action == "status" {
+        let (s, t, _) = credentials(&state)
+            .await
+            .map_err(|_| error("signed_out", "sign in first"))?;
+        (s, t, String::new())
+    } else {
+        credentials(&state).await?
+    };
+    let (method, path, body) =
+        crate::account::ddb_call(&action, &campaign, character_id.as_deref(), url.as_deref())?;
+    AccountClient::new(&server)
+        .relay(&token, method, path, body)
+        .await
+}
+
 /// Uploads a picture (a pasted screenshot, a map) as a new handout. `data` is the file, base64;
 /// the server checks what it really is and how big it may be.
 #[tauri::command]
@@ -525,10 +552,7 @@ pub async fn campaign_file(
 
 /// An avatar id is a UUID; anything else never reaches the server as a path.
 fn is_avatar_id(id: &str) -> bool {
-    id.len() == 36
-        && id
-            .chars()
-            .all(|c| c.is_ascii_hexdigit() || c == '-')
+    id.len() == 36 && id.chars().all(|c| c.is_ascii_hexdigit() || c == '-')
 }
 
 /// The server and session token, for calls that are not about a campaign.

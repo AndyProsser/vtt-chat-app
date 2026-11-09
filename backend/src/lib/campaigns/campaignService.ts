@@ -14,7 +14,11 @@ export interface CampaignDeps {
   newId?: () => string;
 }
 
-export type NewCharacter = Omit<Character, 'id' | 'userId' | 'campaignId'>;
+/** The D&D Beyond link is never set here; it goes through the sync service, which checks the sheet. */
+export type NewCharacter = Omit<
+  Character,
+  'id' | 'userId' | 'campaignId' | 'sourceUrl' | 'syncedAt' | 'sourceAvatar'
+>;
 
 /** Campaigns, who is in them, invites, characters, and the DM swap. */
 export class CampaignService {
@@ -131,7 +135,16 @@ export class CampaignService {
     if (name.length === 0 || name.length > 120) {
       throw new DomainError('invalid_input', 'character name must be 1–120 characters');
     }
-    const character: Character = { ...input, name, id: this.newId(), userId: user.id, campaignId };
+    const character: Character = {
+      ...input,
+      name,
+      id: this.newId(),
+      userId: user.id,
+      campaignId,
+      sourceUrl: null,
+      syncedAt: null,
+      sourceAvatar: null,
+    };
     await this.store.transaction(async (tx) => {
       await tx.putCharacter(character);
       // A DM has no active character while DM; theirs is parked and restored on swap-back.

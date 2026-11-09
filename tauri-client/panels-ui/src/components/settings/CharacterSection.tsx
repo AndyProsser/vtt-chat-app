@@ -14,6 +14,7 @@ import {
 import { isDm } from '../../lib/tableModel.js';
 import { useTableStore } from '../../lib/tableStore.js';
 import { accountErrorMessage, campaignApi } from '../../lib/tauriBridge.js';
+import { DdbLink } from './DdbLink.js';
 import { PictureButton } from '../PictureButton.js';
 import { EmblemIcon, Portrait } from '../Portrait.js';
 import { ToolButton } from '../ToolButton.js';
@@ -73,6 +74,7 @@ export function CharacterSection() {
           canPlay={!dm}
           onSave={(patch) => run(() => campaignApi('PATCH', `characters/${c.id}`, patch))}
           onPlay={() => run(() => campaignApi('PUT', 'active-character', { characterId: c.id }))}
+          onLinkChanged={reload}
         />
       ))}
       {adding ? (
@@ -181,6 +183,7 @@ function CharacterCard({
   canPlay,
   onSave,
   onPlay,
+  onLinkChanged,
 }: {
   record: CharacterRecord;
   playerName: string;
@@ -188,6 +191,7 @@ function CharacterCard({
   canPlay: boolean;
   onSave: (patch: Record<string, unknown>) => Promise<void>;
   onPlay: () => Promise<void>;
+  onLinkChanged: () => void;
 }) {
   const [draft, setDraft] = useState(draftOf(record));
   const [open, setOpen] = useState(false);
@@ -217,6 +221,14 @@ function CharacterCard({
         {open ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
       </button>
       {open && <Fields draft={draft} onChange={setDraft} />}
+      {open && (
+        <DdbLink
+          characterId={record.id}
+          sourceUrl={record.sourceUrl}
+          syncedAt={record.syncedAt}
+          onChanged={onLinkChanged}
+        />
+      )}
       <div className="vtt-form-row">
         {open && (
           <ToolButton

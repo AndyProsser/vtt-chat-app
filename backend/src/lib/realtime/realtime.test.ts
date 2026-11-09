@@ -333,6 +333,8 @@ describe('Hub: subscriptions, presence and the snapshot', () => {
       level: 5,
       avatarUrl: null,
       sourceUrl: null,
+      syncedAt: null,
+      sourceAvatar: null,
     });
     const dm = await connect(t, 'd1', 'dm');
     const member = dm.last('snapshot')?.d.members.find((m: any) => m.userId === t.player.id);
@@ -441,6 +443,8 @@ describe('Hub: live events', () => {
       level: null,
       avatarUrl: null,
       sourceUrl: null,
+      syncedAt: null,
+      sourceAvatar: null,
     });
     await t.hub.receive('p1', frame('chat.message', { campaignId: t.campaignId, text: 'Hello!' }));
     for (const conn of [dm, player]) {
@@ -480,6 +484,8 @@ describe('Hub: live events', () => {
       level: 5,
       avatarUrl: 'emblem:bow',
       sourceUrl: null,
+      syncedAt: null,
+      sourceAvatar: null,
     });
     await t.hub.announceRosterChanged(t.campaignId);
     for (const conn of [dm, player]) {
