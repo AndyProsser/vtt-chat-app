@@ -1331,3 +1331,36 @@ body,
   box-sizing: border-box;
   pointer-events: none;
 }
+
+/* Session history: search hits and the transcript. */
+.vtt-hit {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 10px;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  border: 1px solid var(--vtt-edge);
+  border-radius: var(--vtt-radius-bubble);
+  background: var(--vtt-bubble);
+}
+.vtt-hit:hover {
+  border-color: var(--vtt-accent);
+}
+.vtt-hit mark {
+  background: color-mix(in srgb, var(--vtt-accent) 35%, transparent);
+  color: inherit;
+  border-radius: 2px;
+}
+.vtt-transcript {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+.vtt-transcript p {
+  margin: 0;
+}

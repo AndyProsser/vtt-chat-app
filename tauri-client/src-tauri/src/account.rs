@@ -135,8 +135,9 @@ fn write_private(path: &Path, saved: &Saved) -> std::io::Result<()> {
 /// The parts of the REST API a panel may reach, all under the signed-in campaign (or the DM's own
 /// sound library). The server still checks who is allowed to do what; this only stops a panel — which
 /// loads nothing but our own pages — from being turned into a general-purpose HTTP client.
-const RELAY_CAMPAIGN_AREAS: [&str; 10] = [
+const RELAY_CAMPAIGN_AREAS: [&str; 11] = [
     "handouts",
+    "recordings",
     "loot",
     "sessions",
     "sounds",
@@ -184,6 +185,34 @@ pub fn ddb_call(
         _ => return Err(bad()),
     };
     Ok(("POST", path, Some(body)))
+}
+
+/// `/api/campaigns/<id>/recordings/search?q=…&limit=20`, with the search text percent-encoded. A
+/// separate builder because [`relay_path`] allows plain path segments only, never a query string.
+pub fn records_search_path(campaign_id: &str, query: &str) -> Result<String, AccountError> {
+    let bad = |m: &str| AccountError::new("invalid_input", m);
+    if campaign_id.is_empty()
+        || !campaign_id
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+    {
+        return Err(bad("that request is not allowed"));
+    }
+    let query = query.trim();
+    if query.chars().count() < 2 || query.chars().count() > 200 {
+        return Err(bad("search for 2 to 200 characters"));
+    }
+    let mut encoded = String::new();
+    for b in query.bytes() {
+        if b.is_ascii_alphanumeric() || b"-._~".contains(&b) {
+            encoded.push(b as char);
+        } else {
+            encoded.push_str(&format!("%{b:02X}"));
+        }
+    }
+    Ok(format!(
+        "/api/campaigns/{campaign_id}/recordings/search?q={encoded}&limit=20"
+    ))
 }
 
 pub fn relay_path(campaign_id: &str, relative: &str) -> Result<String, AccountError> {
@@ -596,6 +625,18 @@ pub fn data_dir(app: &tauri::AppHandle) -> Option<PathBuf> {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn records_search_encodes_the_text_and_checks_its_length() {
+        use super::records_search_path;
+        assert_eq!(
+            records_search_path("c1", " red dragon&x ").unwrap(),
+            "/api/campaigns/c1/recordings/search?q=red%20dragon%26x&limit=20"
+        );
+        assert!(records_search_path("c1", "a").is_err());
+        assert!(records_search_path("c/1", "dragon").is_err());
+        assert!(super::relay_path("c1", "recordings/abc/transcript").is_ok());
+    }
+
     #[test]
     fn ddb_calls_are_fixed_paths_with_checked_ids() {
         use super::ddb_call;

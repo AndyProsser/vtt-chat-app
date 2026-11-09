@@ -1,5 +1,6 @@
 import { panelFromHash } from '../lib/panelName.js';
 import { HandoutsPanel } from './HandoutsPanel.js';
+import { HistoryPanel } from './HistoryPanel.js';
 import { LootPanel } from './LootPanel.js';
 import { MainWindow } from './MainWindow.js';
 import { SettingsWindow } from './SettingsWindow.js';
@@ -12,6 +13,12 @@ export function PanelRoot() {
       return (
         <div className="vtt-settings">
           <HandoutsPanel />
+        </div>
+      );
+    case 'history':
+      return (
+        <div className="vtt-settings">
+          <HistoryPanel />
         </div>
       );
     case 'inventory':

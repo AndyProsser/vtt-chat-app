@@ -1,5 +1,5 @@
 import { Popover } from '@radix-ui/themes';
-import { AudioLines, Backpack, FileText, Settings, Volume2, VolumeX } from 'lucide-react';
+import { AudioLines, Backpack, FileText, ScrollText, Settings, Volume2, VolumeX } from 'lucide-react';
 
 import { useVoice } from '../hooks/useVoice.js';
 import { panelOpen } from '../lib/tauriBridge.js';
@@ -36,6 +36,9 @@ export function TopBar({ dm, effectsOpen, onToggleEffects }: Props) {
       )}
       <ToolButton label="Handouts" onClick={() => void panelOpen('handouts')}>
         <FileText size={15} />
+      </ToolButton>
+      <ToolButton label="Session history" onClick={() => void panelOpen('history')}>
+        <ScrollText size={15} />
       </ToolButton>
       <ToolButton label="Party inventory" onClick={() => void panelOpen('inventory')}>
         <Backpack size={15} />

@@ -26,6 +26,11 @@ pub const PANELS: &[Panel] = &[
         size: (420.0, 540.0),
     },
     Panel {
+        name: "history",
+        title: "Session history — VTT Chat",
+        size: (460.0, 600.0),
+    },
+    Panel {
         name: "inventory",
         title: "Party inventory — VTT Chat",
         size: (400.0, 520.0),
@@ -197,7 +202,7 @@ mod tests {
     #[test]
     fn secondary_panels_are_exactly_the_closed_set() {
         let names: Vec<_> = PANELS.iter().map(|p| p.name).collect();
-        assert_eq!(names, ["settings", "handouts", "inventory"]);
+        assert_eq!(names, ["settings", "handouts", "history", "inventory"]);
         assert!(panel("chat").is_none());
         assert!(panel("main").is_none(), "main has its own opener");
         assert!(panel("../etc").is_none());

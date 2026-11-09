@@ -28,6 +28,7 @@ commands.allow = [
   "account_add_campaign",
   "account_rename",
   "ddb_api",
+  "records_search",
   "account_set_avatar",
   "avatar_upload",
   "avatar_image",

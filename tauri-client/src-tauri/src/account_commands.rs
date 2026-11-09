@@ -478,6 +478,19 @@ pub async fn campaign_api(
         .await
 }
 
+/// Searches the campaign's recorded history (transcripts and the summaries the caller may see).
+#[tauri::command]
+pub async fn records_search(
+    state: State<'_, AccountState>,
+    query: String,
+) -> Result<Value, AccountError> {
+    let (server, token, campaign) = credentials(&state).await?;
+    let path = crate::account::records_search_path(&campaign, &query)?;
+    AccountClient::new(&server)
+        .relay(&token, "GET", &path, None)
+        .await
+}
+
 /// D&D Beyond sync for one of the player's characters: `status`, `link` (with a sheet address),
 /// `sync` or `unlink`. The server does the work; this only keeps the paths fixed.
 #[tauri::command]

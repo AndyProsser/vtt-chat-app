@@ -83,6 +83,10 @@ export const accountRename = (name: string) => invoke<AccountStatus>('account_re
 export const accountSetAvatar = (avatar: string | null) =>
   invoke<AccountStatus>('account_set_avatar', { avatar });
 
+/** Searches the campaign's recorded history (`records_search`). */
+export const recordsSearch = (query: string) =>
+  invoke<{ hits: import('./history.js').SearchHit[] }>('records_search', { query });
+
 /** D&D Beyond sync (`ddb_api`): is it on, link a sheet, sync now, unlink. Answers the updated character. */
 export const ddbStatus = () => invoke<{ enabled: boolean }>('ddb_api', { action: 'status' });
 export const ddbAction = (action: 'link' | 'sync' | 'unlink', characterId: string, url?: string) =>

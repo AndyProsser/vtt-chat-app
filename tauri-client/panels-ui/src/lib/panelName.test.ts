@@ -3,8 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { panelFromHash } from './panelName.js';
 
 describe('panelFromHash', () => {
-  it('reads the four window names', () => {
-    for (const name of ['main', 'settings', 'handouts', 'inventory']) {
+  it('reads the window names', () => {
+    for (const name of ['main', 'settings', 'handouts', 'history', 'inventory']) {
       expect(panelFromHash(`#${name}`)).toBe(name);
     }
   });

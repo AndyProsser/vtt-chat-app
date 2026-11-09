@@ -63,7 +63,12 @@ pub fn run() {
             // position can be on a monitor that is gone or span two, so they always open centred
             // over the main window instead (windows.rs).
             tauri_plugin_window_state::Builder::default()
-                .with_denylist(&["panel-settings", "panel-handouts", "panel-inventory"])
+                .with_denylist(&[
+                    "panel-settings",
+                    "panel-handouts",
+                    "panel-history",
+                    "panel-inventory",
+                ])
                 .build(),
         )
         .manage(rust_livekit::SharedClient::default())
@@ -100,6 +105,7 @@ pub fn run() {
             account_commands::account_add_campaign,
             account_commands::account_rename,
             account_commands::ddb_api,
+            account_commands::records_search,
             account_commands::account_set_avatar,
             account_commands::avatar_upload,
             account_commands::avatar_image,
