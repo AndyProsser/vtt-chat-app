@@ -1017,3 +1017,39 @@ body,
 .vtt-char-av {
   overflow: hidden;
 }
+
+.vtt-card {
+  position: relative;
+}
+.vtt-card-sep {
+  border: 0;
+  border-top: 1px solid var(--vtt-edge);
+  margin: 6px 0 4px;
+}
+.vtt-card-dot {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--vtt-edge);
+}
+.vtt-card-dot-good,
+.vtt-card-dot-unknown {
+  background: #2eb86c;
+}
+.vtt-card-dot-fair {
+  background: #e0a12b;
+}
+.vtt-card-dot-poor {
+  background: #e53935;
+}
+.vtt-card-dot-online {
+  background: transparent;
+  border: 2px solid #2eb86c;
+  box-sizing: border-box;
+}
+.vtt-card-dot-offline {
+  background: #7d7d85;
+}

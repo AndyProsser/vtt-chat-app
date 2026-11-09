@@ -62,30 +62,35 @@ export function AvatarRail({ dm }: { dm: boolean }) {
         </Fragment>
       ))}
       {dm && (
-        <div className="vtt-rail-foot">
-          <div
-            data-lane="new"
-            className={drag?.over === 'new' ? 'vtt-rail-new vtt-rail-new-over' : 'vtt-rail-new'}
-            title="Drag a player here to start a new group"
-            aria-label="Start a new group: drag a player here"
-          >
-            <UsersRound size={16} aria-hidden />
-          </div>
-          {view.split && (
-            <ToolButton
-              label="Bring everyone back together"
-              onClick={() => void send('party.reset', {})}
+        <>
+          <hr className="vtt-rail-sep" />
+          <div className="vtt-rail-item">
+            <div
+              data-lane="new"
+              className={drag?.over === 'new' ? 'vtt-rail-new vtt-rail-new-over' : 'vtt-rail-new'}
+              title="Drag a player here to start a new group"
+              aria-label="Start a new group: drag a player here"
             >
-              <Merge size={14} />
-            </ToolButton>
-          )}
-          {error && (
-            <span className="vtt-muted" role="alert">
-              !
-            </span>
-          )}
-          <ConnectionMenu />
-        </div>
+              <UsersRound size={16} aria-hidden />
+            </div>
+            {view.split && (
+              <ToolButton
+                label="Bring everyone back together"
+                onClick={() => void send('party.reset', {})}
+              >
+                <Merge size={14} />
+              </ToolButton>
+            )}
+            {error && (
+              <span className="vtt-muted" role="alert">
+                !
+              </span>
+            )}
+          </div>
+          <div className="vtt-rail-foot">
+            <ConnectionMenu />
+          </div>
+        </>
       )}
       {drag &&
         createPortal(

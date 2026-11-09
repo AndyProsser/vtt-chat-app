@@ -5,6 +5,8 @@ import { useIsSpeaking } from '../hooks/useIsSpeaking.js';
 import { avatarColor } from '../lib/avatarColor.js';
 import { initials, memberCard } from '../lib/rail.js';
 import type { Member } from '../types/index.js';
+import { linkQuality } from '../lib/linkQuality.js';
+import { useStatsStore } from '../lib/statsStore.js';
 import { Portrait } from './Portrait.js';
 
 /**
@@ -40,7 +42,7 @@ export const RailAvatar = memo(function RailAvatar({
           )}
         </span>
       </HoverCard.Trigger>
-      <HoverCard.Content size="1" side="right" maxWidth="220px">
+      <HoverCard.Content size="1" side="right" maxWidth="220px" className="vtt-card">
         <Text as="div" weight="bold" size="2" className="vtt-head">
           {card.title}
         </Text>
@@ -50,14 +52,34 @@ export const RailAvatar = memo(function RailAvatar({
           </Text>
         ))}
         {groupName && (
-          <Text as="div" size="1">
-            Group: {groupName}
-          </Text>
+          <>
+            <hr className="vtt-card-sep" />
+            <Text as="div" size="1" className="vtt-head">
+              {groupName}
+            </Text>
+          </>
         )}
-        <Text as="div" size="1" color="gray">
-          {member.online ? (member.inVoice ? 'In voice' : 'Online') : 'Offline'}
-        </Text>
+        <StatusDot member={member} />
       </HoverCard.Content>
     </HoverCard.Root>
   );
 });
+
+/**
+ * Top-right of the hover card: grey when offline, an outlined dot when online but not in voice, and
+ * otherwise the call quality (green, amber, red; green until the DM's link report arrives). One
+ * primitive selector, so only a change of quality re-renders it.
+ */
+function StatusDot({ member }: { member: Member }) {
+  const quality = useStatsStore((s) => linkQuality(s.byUser.get(member.userId)));
+  const state = !member.online ? 'offline' : !member.inVoice ? 'online' : quality;
+  const label = {
+    offline: 'Offline',
+    online: 'Online, not in voice',
+    good: 'In voice, good connection',
+    fair: 'In voice, fair connection',
+    poor: 'In voice, poor connection',
+    unknown: 'In voice',
+  }[state];
+  return <i className={`vtt-card-dot vtt-card-dot-${state}`} role="img" aria-label={label} title={label} />;
+}
