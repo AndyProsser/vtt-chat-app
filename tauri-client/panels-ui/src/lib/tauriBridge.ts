@@ -205,6 +205,24 @@ export const audioDevices = () => invoke<AudioDeviceList>('audio_devices');
 export const audioDeviceChoose = (kind: 'input' | 'output', id: string | null) =>
   invoke<void>('audio_device_choose', { kind, id });
 
+/** Which audio engine is chosen (for the next call) and which this call uses (`null` when not in voice). */
+export interface AudioEngineState {
+  engine: 'mixer' | 'platform';
+  active: 'mixer' | 'platform' | null;
+  micGain: number;
+  volumes: Record<string, number>;
+}
+export const audioEngine = () => invoke<AudioEngineState>('audio_engine');
+export const audioEngineSet = (engine: 'mixer' | 'platform') =>
+  invoke<void>('audio_engine_set', { engine });
+/** Microphone volume, 0 to 4 (new engine only). */
+export const micGainSet = (gain: number) => invoke<void>('mic_gain_set', { gain });
+/** The microphone's level right now, 0 to 1, or `null` when the new engine is not running. */
+export const micLevel = () => invoke<number | null>('mic_level');
+/** One person's volume, 0 to 2 (new engine only). */
+export const playerVolumeSet = (userId: string, gain: number) =>
+  invoke<void>('player_volume_set', { userId, gain });
+
 /** Uploads a shrunken portrait (base64) and returns its id. */
 export const avatarUpload = (data: string) => invoke<{ id: string }>('avatar_upload', { data });
 

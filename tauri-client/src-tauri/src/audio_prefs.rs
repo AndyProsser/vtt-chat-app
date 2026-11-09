@@ -6,11 +6,17 @@ use std::path::Path;
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
 pub struct AudioPrefs {
     pub input: Option<String>,
     pub output: Option<String>,
+    /// `"mixer"` for the app's own audio engine; anything else (or nothing) is the platform layer.
+    pub engine: Option<String>,
+    /// Microphone volume (mixer engine only), 0 to 4; `None` is 1.
+    pub mic_gain: Option<f32>,
+    /// Each person's volume (mixer engine only), by account id, 0 to 2.
+    pub volumes: std::collections::HashMap<String, f32>,
 }
 
 const FILE_NAME: &str = "audio.json";
@@ -32,6 +38,10 @@ impl AudioPrefs {
         )
     }
 
+    pub fn uses_mixer(&self) -> bool {
+        self.engine.as_deref() == Some("mixer")
+    }
+
     /// Sets one side (`input` or `output`); anything else is refused.
     pub fn with(mut self, kind: &str, id: Option<String>) -> Result<Self, String> {
         match kind {
@@ -46,6 +56,28 @@ impl AudioPrefs {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn an_old_file_without_the_new_fields_still_loads() {
+        let prefs: AudioPrefs = serde_json::from_str(r#"{"input":"mic","output":null}"#).unwrap();
+        assert_eq!(prefs.input.as_deref(), Some("mic"));
+        assert!(!prefs.uses_mixer());
+        assert!(prefs.volumes.is_empty());
+    }
+
+    #[test]
+    fn engine_gain_and_volumes_round_trip() {
+        let mut prefs = AudioPrefs {
+            engine: Some("mixer".into()),
+            mic_gain: Some(1.5),
+            ..Default::default()
+        };
+        prefs.volumes.insert("user-1".into(), 0.5);
+        let back: AudioPrefs =
+            serde_json::from_str(&serde_json::to_string(&prefs).unwrap()).unwrap();
+        assert_eq!(back, prefs);
+        assert!(back.uses_mixer());
+    }
 
     #[test]
     fn choices_survive_a_restart_and_a_missing_file_means_defaults() {
@@ -67,6 +99,7 @@ mod tests {
         let prefs = AudioPrefs {
             input: Some("a".into()),
             output: None,
+            ..Default::default()
         };
         assert_eq!(prefs.clone().with("input", None).unwrap().input, None);
         assert!(prefs.with("camera", Some("x".into())).is_err());

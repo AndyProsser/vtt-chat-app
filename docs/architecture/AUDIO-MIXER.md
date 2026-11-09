@@ -1,17 +1,21 @@
 # The mixer engine: our own capture and playback
 
-**Status:** design plus the first layers (2026-11-09). Built and unit-tested without a sound card; **not yet wired into a call and never listened to.** The platform audio path stays the default until the mixer has been tried on the dev PC.
+**Status:** built and wired into calls (2026-11-09), **opt-in and never listened to.** Unit-tested without a sound card, and live-tested against a dev LiveKit server (remote voice reaches the playout mixer, the processed microphone reaches another participant, mute and leave work). The platform audio path stays the default until the mixer has been tried on the dev PC.
+
+**To try it:** Settings → General → Audio → "New audio engine (experimental)", then leave and join voice again. Or start the app with `VTT_AUDIO_BACKEND=mixer`. Switch it off the same way if anything sounds wrong.
+
+**What you get with it:** a microphone volume with a real level meter (Settings, and the meter in the main window), a volume slider for each person (their hover card), echo cancellation that still works while a character voice is on, and the soundboard monitor and recording cues playing through the same mixer so the canceller knows about them.
 
 ## Why
 
 Today WebRTC's `PlatformAudio` owns the sound card: it captures the microphone, plays every remote voice, and runs echo cancellation between the two. That is simple and echo-safe for plain voice, but it is a closed box:
 
-| Want | Why the platform path cannot |
-| --- | --- |
-| Echo cancellation for the DM's **character voices** | The effect path captures the microphone itself, so WebRTC never sees what was played: AEC is off while a voice is on. |
-| Echo cancellation for **sound we play ourselves** (soundboard monitor, recording cues) | These use a second output stream WebRTC cannot see, so the microphone hears them and nothing cancels them. |
-| **Per-player volume** | No playout volume API in the SDK (checked in 0.10.1's source). |
-| **Microphone gain** and a **real level meter** | No capture gain or level API on that path. |
+| Want                                                                                   | Why the platform path cannot                                                                                          |
+| -------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Echo cancellation for the DM's **character voices**                                    | The effect path captures the microphone itself, so WebRTC never sees what was played: AEC is off while a voice is on. |
+| Echo cancellation for **sound we play ourselves** (soundboard monitor, recording cues) | These use a second output stream WebRTC cannot see, so the microphone hears them and nothing cancels them.            |
+| **Per-player volume**                                                                  | No playout volume API in the SDK (checked in 0.10.1's source).                                                        |
+| **Microphone gain** and a **real level meter**                                         | No capture gain or level API on that path.                                                                            |
 
 All four come from the same thing: if one piece of our code owns both the input and the output, it can tell the echo canceller exactly what left the speakers.
 
@@ -43,7 +47,7 @@ flowchart LR
 - **One 48 kHz mono, 10 ms world** inside the engine (what WebRTC wants). Device rates and channel counts are converted at the edges only.
 - **Layers, each testable without hardware:** `processing` (APM wrapper), `playout` (the mixer: streams, gains, limiter), `capture` (gain, meter, voice, cleaning), `io` (cpal behind small traits, with fakes for tests), then the LiveKit wiring.
 - **Mute still releases the microphone** (stop the input stream), as now.
-- **The soundboard track and the cues** keep working as they do; their local monitor simply plays *through* the playout mixer, so the canceller knows about it.
+- **The soundboard track and the cues** keep working as they do; their local monitor simply plays _through_ the playout mixer, so the canceller knows about it.
 
 ## Decisions and why
 
@@ -52,6 +56,12 @@ flowchart LR
 - **Delay is estimated, then trimmed.** The canceller is told the output-plus-input latency; a wrong value slows convergence rather than breaking it. Measured on the dev PC, not guessed.
 - **No hardware AEC.** The platform path can use a device's built-in canceller where one exists. The mixer does not. Cost: a few percent of one core for AEC3.
 - **Clock drift** between the microphone and speakers (separate devices have separate clocks) is handled by the canceller up to a point; the playout buffer absorbs the rest by dropping or repeating a block, never growing without bound.
+
+## How the pieces map to the code
+
+`rust-livekit/src/engine/`: `processing` (APM wrapper), `playout` (the mixer), `capture` (gain, meter, cleaning, then the voice), `rate` (streaming resampler), `duplex` (the two sound-card callbacks as plain functions), `io` (cpal), `mixer_audio` (LiveKit glue), `local` (cues and the soundboard monitor routed into the mixer). `LiveKitClient::connect_with_backend` picks the engine; the app stores the choice in `audio.json` (with microphone volume and each person's volume).
+
+Order inside the microphone path is gain, level, **cleaning, then the character voice**. The reverse would pitch-shift the echo and the canceller could no longer recognise it.
 
 ## Not verified (needs the dev PC)
 

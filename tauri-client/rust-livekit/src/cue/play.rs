@@ -16,6 +16,13 @@ use crate::error::LiveKitError;
 /// leak into it. Cues are about half a second long and the start cue gates capture, so this is
 /// acceptable; revisit if acoustic tests say otherwise.
 pub fn play_cue_blocking(cue: Cue) -> Result<(), LiveKitError> {
+    // With the mixer engine running, the cue plays through it, where the echo canceller can see it.
+    if crate::engine::local::play_blocking(
+        "local:cue",
+        &synth::render(cue, crate::voice_fx::SAMPLE_RATE),
+    ) {
+        return Ok(());
+    }
     let host = cpal::default_host();
     let device = host
         .default_output_device()

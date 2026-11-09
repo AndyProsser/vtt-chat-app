@@ -67,15 +67,36 @@ pub async fn connect_voice(app: &AppHandle, url: &str, token: &str) -> Result<()
             );
         });
 
-    let client = LiveKitClient::connect(url, token, callback, speakers_callback)
-        .await
-        .map_err(|err| err.to_string())?;
+    let prefs = crate::account::data_dir(app)
+        .map(|dir| crate::audio_prefs::AudioPrefs::load(&dir))
+        .unwrap_or_default();
+    // The app's own audio engine when chosen in Settings (or by VTT_AUDIO_BACKEND=mixer for testing).
+    let backend = if prefs.uses_mixer() {
+        rust_livekit::AudioBackend::Mixer
+    } else {
+        rust_livekit::AudioBackend::from_env()
+    };
+    let (url_owned, token_owned) = (url.to_string(), token.to_string());
+    let provider: rust_livekit::ConnectInfoProvider = Arc::new(move || {
+        let info = rust_livekit::ConnectInfo {
+            url: url_owned.clone(),
+            token: token_owned.clone(),
+        };
+        Box::pin(async move { Ok(info) })
+    });
+    let client =
+        LiveKitClient::connect_with_backend(provider, callback, speakers_callback, backend)
+            .await
+            .map_err(|err| err.to_string())?;
 
     // The microphone and speaker the player chose last time (a missing device keeps the default).
-    if let Some(dir) = crate::account::data_dir(app) {
-        let prefs = crate::audio_prefs::AudioPrefs::load(&dir);
-        if let Err(message) = client.use_devices(prefs.input.as_deref(), prefs.output.as_deref()) {
-            eprintln!("[src-tauri] {message}");
+    if let Err(message) = client.use_devices(prefs.input.as_deref(), prefs.output.as_deref()) {
+        eprintln!("[src-tauri] {message}");
+    }
+    if let Some(mixer) = client.mixer() {
+        mixer.set_mic_gain(prefs.mic_gain.unwrap_or(1.0));
+        for (user, volume) in &prefs.volumes {
+            mixer.set_player_volume(user, *volume);
         }
     }
     let probe = client.link_probe();
@@ -353,4 +374,93 @@ mod tests {
         assert!(payload.room_name.is_none());
         assert!(payload.participant_identities.is_empty());
     }
+}
+
+/// Which audio engine is chosen (`engine`, used from the next call) and which one this call uses
+/// (`active`; `null` when not in voice).
+#[tauri::command]
+pub fn audio_engine(app: AppHandle, state: State<'_, SharedClient>) -> serde_json::Value {
+    let prefs = crate::account::data_dir(&app)
+        .map(|dir| crate::audio_prefs::AudioPrefs::load(&dir))
+        .unwrap_or_default();
+    let active = state.lock().unwrap().as_ref().map(|client| {
+        if client.mixer().is_some() {
+            "mixer"
+        } else {
+            "platform"
+        }
+    });
+    serde_json::json!({
+        "engine": if prefs.uses_mixer() { "mixer" } else { "platform" },
+        "active": active,
+        "micGain": prefs.mic_gain.unwrap_or(1.0),
+        "volumes": prefs.volumes,
+    })
+}
+
+/// Chooses the audio engine for the next call: `"mixer"` or `"platform"`.
+#[tauri::command]
+pub fn audio_engine_set(app: AppHandle, engine: String) -> Result<(), String> {
+    if engine != "mixer" && engine != "platform" {
+        return Err("unknown audio engine".into());
+    }
+    let dir = crate::account::data_dir(&app).ok_or("no place to save the choice")?;
+    let mut prefs = crate::audio_prefs::AudioPrefs::load(&dir);
+    prefs.engine = Some(engine);
+    prefs.save(&dir).map_err(|e| e.to_string())
+}
+
+/// Microphone volume, 0 to 4 (mixer engine). Saved, and applied now if the mixer is running.
+#[tauri::command]
+pub fn mic_gain_set(
+    app: AppHandle,
+    state: State<'_, SharedClient>,
+    gain: f32,
+) -> Result<(), String> {
+    let gain = gain.clamp(0.0, 4.0);
+    let dir = crate::account::data_dir(&app).ok_or("no place to save the choice")?;
+    let mut prefs = crate::audio_prefs::AudioPrefs::load(&dir);
+    prefs.mic_gain = Some(gain);
+    prefs.save(&dir).map_err(|e| e.to_string())?;
+    if let Some(mixer) = state.lock().unwrap().as_ref().and_then(|c| c.mixer()) {
+        mixer.set_mic_gain(gain);
+    }
+    Ok(())
+}
+
+/// How loud the microphone is right now, 0 to 1, or `null` when the mixer engine is not running.
+#[tauri::command]
+pub fn mic_level(state: State<'_, SharedClient>) -> Option<f32> {
+    state
+        .lock()
+        .unwrap()
+        .as_ref()
+        .and_then(|c| c.mixer())
+        .map(|m| m.level().get())
+}
+
+/// One person's volume, 0 to 2 (mixer engine). Saved by account id, and applied now if running.
+#[tauri::command]
+pub fn player_volume_set(
+    app: AppHandle,
+    state: State<'_, SharedClient>,
+    user_id: String,
+    gain: f32,
+) -> Result<(), String> {
+    if user_id.is_empty() || user_id.len() > 64 {
+        return Err("unknown person".into());
+    }
+    let gain = gain.clamp(0.0, 2.0);
+    let dir = crate::account::data_dir(&app).ok_or("no place to save the choice")?;
+    let mut prefs = crate::audio_prefs::AudioPrefs::load(&dir);
+    if (gain - 1.0).abs() < 0.01 {
+        prefs.volumes.remove(&user_id);
+    } else {
+        prefs.volumes.insert(user_id.clone(), gain);
+    }
+    prefs.save(&dir).map_err(|e| e.to_string())?;
+    if let Some(mixer) = state.lock().unwrap().as_ref().and_then(|c| c.mixer()) {
+        mixer.set_player_volume(&user_id, gain);
+    }
+    Ok(())
 }

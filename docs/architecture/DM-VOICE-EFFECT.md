@@ -1,5 +1,7 @@
 # DM voice effect — design note (open, needs a decision)
 
+> **Update 2026-11-09:** the premise below ("WebRTC's APM is not exposed") turned out to be wrong, and the new mixer engine ([AUDIO-MIXER.md](AUDIO-MIXER.md)) keeps echo cancellation on while a character voice is active. With that engine the echo-cancellation trade-off below no longer applies; it still applies on the platform engine.
+
 **Status:** built 2026-11-08 as **option 1** (Andy: yes, accepted the echo-cancellation trade-off, will test).
 The DSP is unit-tested; the capture path starts and releases the real microphone on the dev box; **nobody
 has listened to it yet, and latency/CPU on a live call are unmeasured.** See "As built" at the end.

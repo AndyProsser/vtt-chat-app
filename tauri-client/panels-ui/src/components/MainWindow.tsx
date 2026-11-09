@@ -40,7 +40,7 @@ function Table({ selfId }: { selfId: string | null }) {
       <TopBar dm={dm} effectsOpen={drawer} onToggleEffects={() => setDrawer((d) => !d)} />
       <UpdateBanner />
       <div className="vtt-body">
-        <AvatarRail dm={dm} />
+        <AvatarRail dm={dm} selfId={selfId} />
         <div className="vtt-chat-col">
           {dm && drawer && (
             <aside className="vtt-drawer" aria-label="Sound effects">

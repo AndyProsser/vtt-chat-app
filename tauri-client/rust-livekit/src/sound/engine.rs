@@ -227,13 +227,22 @@ fn run(rx: mpsc::Receiver<Command>) {
                 sink(&block);
             }
             if monitor {
-                ring.lock()
-                    .unwrap_or_else(|e| e.into_inner())
-                    .push_block(&block);
+                // With the mixer engine running, the monitor plays through it (so the echo canceller
+                // knows about it); otherwise through a stream of our own.
+                if let Some(playout) = crate::engine::local::current() {
+                    playout
+                        .lock()
+                        .unwrap_or_else(|e| e.into_inner())
+                        .push("local:soundboard", &block);
+                } else {
+                    ring.lock()
+                        .unwrap_or_else(|e| e.into_inner())
+                        .push_block(&block);
+                }
             }
             produced += 1;
         }
-        if monitor && stream.is_none() {
+        if monitor && stream.is_none() && crate::engine::local::current().is_none() {
             match open(Arc::clone(&ring)) {
                 Ok(s) => stream = Some(s),
                 Err(err) => {

@@ -6,6 +6,7 @@ pub mod duplex;
 pub mod io;
 #[cfg(test)]
 mod live_tests;
+pub mod local;
 pub mod mixer_audio;
 pub mod playout;
 pub mod processing;

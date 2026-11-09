@@ -132,10 +132,12 @@ impl MixerAudio {
         if on && output.is_none() {
             let name = self.wanted_output.lock().unwrap().clone();
             *output = Some(io::start_output(name.as_deref(), self.duplex.clone())?);
+            super::local::set(Some(self.duplex.playout.clone()));
         } else if !on {
             if let Some(running) = output.take() {
                 running.stop();
             }
+            super::local::set(None);
         }
         Ok(())
     }

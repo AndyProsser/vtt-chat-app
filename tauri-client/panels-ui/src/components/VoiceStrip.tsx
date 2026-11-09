@@ -1,5 +1,6 @@
 import { Bot, Bug, Crown, Flame, Landmark, Martini, Mountain, Skull, User } from 'lucide-react';
 
+import { useAudioEngine } from '../hooks/useAudioEngine.js';
 import { useVoiceEffect } from '../hooks/useVoiceEffect.js';
 import { VOICES } from '../lib/commands.js';
 import { ToolButton } from './ToolButton.js';
@@ -31,6 +32,7 @@ const TIP: Record<(typeof VOICES)[number], string> = {
 /** The DM's character voices, as icons. Anything but your own voice turns echo cancellation off. */
 export function VoiceStrip() {
   const { current, error, choose } = useVoiceEffect();
+  const engine = useAudioEngine();
   return (
     <div className="vtt-deck-chips">
       {VOICES.map((v) => {
@@ -41,7 +43,7 @@ export function VoiceStrip() {
           </ToolButton>
         );
       })}
-      {current !== 'normal' && (
+      {current !== 'normal' && engine?.active !== 'mixer' && (
         <span className="vtt-muted">Echo cancellation is off while a character voice is on.</span>
       )}
       {error && (
