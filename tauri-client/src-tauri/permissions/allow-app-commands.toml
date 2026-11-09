@@ -7,6 +7,7 @@ commands.allow = [
   "livekit_connect",
   "livekit_disconnect",
   "voice_connect",
+  "livekit_snapshot",
   "voice_effect_set",
   "voice_effect_get",
   "hotkey_action",

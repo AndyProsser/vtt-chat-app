@@ -21,6 +21,13 @@ import {
   LIVEKIT_STATE_EVENT,
 } from '@vtt-chat-app/shared';
 
+/**
+ * Where voice and the microphone stand right now. The app joins voice when it starts, before any window
+ * is listening, so a window asks once when it opens instead of waiting for a change that may never come.
+ */
+export const livekitSnapshot = () =>
+  invoke<[LiveKitConnectionState, MicrophoneStatePayload]>('livekit_snapshot');
+
 export function onLiveKitState(
   handler: (state: LiveKitConnectionState) => void,
 ): Promise<UnlistenFn> {

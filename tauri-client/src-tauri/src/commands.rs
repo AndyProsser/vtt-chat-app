@@ -8,7 +8,7 @@ use crate::mic_gate::MicGate;
 
 #[derive(Debug, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
-struct LiveKitStatePayload {
+pub struct LiveKitStatePayload {
     connected: bool,
     room_name: Option<String>,
     participant_identities: Vec<String>,
@@ -136,6 +136,33 @@ pub fn audio_device_choose(
         client.use_devices(input, output)?;
     }
     Ok(())
+}
+
+/// Where voice stands now, for a window that was not listening when the join happened (the app joins
+/// at start-up, before any window exists). Includes the player's mute so the buttons match too.
+#[tauri::command]
+pub fn livekit_snapshot(
+    app: AppHandle,
+    state: State<'_, SharedClient>,
+) -> (LiveKitStatePayload, crate::hotkeys::MicrophoneStatePayload) {
+    let connection = state
+        .lock()
+        .unwrap()
+        .as_ref()
+        .map(|client| client.connection_state())
+        .unwrap_or_else(|| rust_livekit::ConnectionState {
+            connected: false,
+            room_name: None,
+            participant_identities: Vec::new(),
+        });
+    let gate = app.state::<MicGate>();
+    (
+        connection.into(),
+        crate::hotkeys::MicrophoneStatePayload {
+            muted: gate.user_muted(),
+            gated: gate.gate_held(),
+        },
+    )
 }
 
 #[tauri::command]

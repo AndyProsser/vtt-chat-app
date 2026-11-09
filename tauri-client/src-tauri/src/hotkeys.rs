@@ -51,11 +51,11 @@ pub fn mute_state_for(action: HotkeyAction, currently_muted: bool) -> Option<boo
 
 #[derive(Debug, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
-struct MicrophoneStatePayload {
+pub struct MicrophoneStatePayload {
     /// The player's own mute choice.
-    muted: bool,
+    pub muted: bool,
     /// The consent gate is holding the mic closed regardless (a start cue is playing).
-    gated: bool,
+    pub gated: bool,
 }
 
 /// Records the player's mute choice, applies it to the microphone through the consent gate, and

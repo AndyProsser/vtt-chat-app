@@ -79,6 +79,7 @@ pub fn run() {
             commands::livekit_connect,
             commands::livekit_disconnect,
             commands::voice_connect,
+            commands::livekit_snapshot,
             commands::voice_effect_set,
             commands::voice_effect_get,
             commands::hotkey_action,

@@ -3,7 +3,12 @@ import { useEffect } from 'react';
 import { useMicrophoneStore } from '../lib/microphoneStore.js';
 import { useSpeakingStore } from '../lib/speakingStore.js';
 import { useLiveKitStore } from '../lib/store.js';
-import { onLiveKitState, onMicrophoneState, onSpeakersChanged } from '../lib/tauriBridge.js';
+import {
+  livekitSnapshot,
+  onLiveKitState,
+  onMicrophoneState,
+  onSpeakersChanged,
+} from '../lib/tauriBridge.js';
 
 /**
  * Applies the Rust core's events to the panel's stores. The core owns audio and the server
@@ -29,6 +34,16 @@ export function usePanelBridge(): void {
         if (!cancelled) applySpeakers(speakingIdentities);
       }),
     ];
+
+    // Listen first, then ask: a change in between is applied by the event, and the snapshot is current.
+    void livekitSnapshot().then(
+      ([state, mic]) => {
+        if (cancelled) return;
+        applyState(state);
+        applyMuted(mic.muted);
+      },
+      (e: unknown) => console.error('[panels-ui] voice snapshot failed', e),
+    );
 
     return () => {
       cancelled = true;

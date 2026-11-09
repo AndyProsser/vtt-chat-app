@@ -173,6 +173,28 @@ impl LiveKitClient {
         }
     }
 
+    /// Where the connection stands right now. A window that opens after the join (or was not listening
+    /// yet) asks for this instead of waiting for the next change event.
+    pub fn connection_state(&self) -> ConnectionState {
+        match lock(&self.active).as_ref() {
+            Some(active) => ConnectionState {
+                connected: true,
+                room_name: Some(active.room.name()),
+                participant_identities: active
+                    .room
+                    .remote_participants()
+                    .keys()
+                    .map(|identity| identity.to_string())
+                    .collect(),
+            },
+            None => ConnectionState {
+                connected: false,
+                room_name: None,
+                participant_identities: Vec::new(),
+            },
+        }
+    }
+
     /// The microphones and speakers the system offers.
     pub fn audio_devices(&self) -> devices::DeviceList {
         devices::list(&self.audio)
@@ -629,5 +651,20 @@ mod live_tests {
         let again = join().await.expect("the second join");
         again.set_microphone_muted(false);
         again.disconnect().await.ok();
+    }
+
+    /// The connection state can be read at any time, not only from change events.
+    #[tokio::test(flavor = "multi_thread")]
+    #[ignore = "needs a LiveKit server and a voice token"]
+    async fn connection_state_can_be_read_after_joining() {
+        let url = std::env::var("VTT_TEST_URL").expect("VTT_TEST_URL");
+        let token = std::env::var("VTT_TEST_TOKEN").expect("VTT_TEST_TOKEN");
+        let client =
+            crate::LiveKitClient::connect(&url, &token, Arc::new(|_| {}), Arc::new(|_| {}))
+                .await
+                .expect("join");
+        let state = client.connection_state();
+        assert!(state.connected);
+        assert!(state.room_name.is_some());
     }
 }
