@@ -57,7 +57,14 @@ pub fn run() {
             Some(vec![AUTOSTART_FLAG]),
         ))
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
-        .plugin(tauri_plugin_window_state::Builder::default().build())
+        .plugin(
+            // The main window remembers where it was. The occasional panels do not: a remembered
+            // position can be on a monitor that is gone or span two, so they always open centred
+            // over the main window instead (windows.rs).
+            tauri_plugin_window_state::Builder::default()
+                .with_denylist(&["panel-settings", "panel-handouts", "panel-inventory"])
+                .build(),
+        )
         .manage(rust_livekit::SharedClient::default())
         .manage(mic_gate::MicGate::default())
         .manage(session::SessionState::default())

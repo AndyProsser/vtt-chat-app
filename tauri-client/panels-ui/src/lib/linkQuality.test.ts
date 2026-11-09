@@ -95,4 +95,14 @@ describe('link history for the sparkline', () => {
     });
     expect(again.get('a')?.history).toEqual([30]);
   });
+
+  it('records the quality of each sample so the trace can show recovery', () => {
+    let map: ReadonlyMap<string, LinkStatsView> = new Map();
+    map = applyStatsEvent(map, {
+      t: 'stats.update',
+      d: { userId: 'a', stats: { rttMs: 400, jitterMs: 1, packetLossPct: 0, at: 1 } },
+    });
+    map = update(map, 30, 2);
+    expect(map.get('a')?.qualities).toEqual(['poor', 'good']);
+  });
 });

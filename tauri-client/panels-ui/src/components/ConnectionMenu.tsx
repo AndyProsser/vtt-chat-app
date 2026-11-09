@@ -40,7 +40,7 @@ export function ConnectionMenu() {
           <Activity size={15} />
         </ToolButton>
       </Popover.Trigger>
-      <Popover.Content size="1" width="320px" align="end">
+      <Popover.Content size="1" width="400px" align="end">
         <div className="vtt-groups">
           <div className="vtt-groups-row">
             <span className="vtt-muted">Latency, last two minutes</span>
@@ -59,7 +59,7 @@ export function ConnectionMenu() {
             const state = !m.online ? 'offline' : !m.inVoice ? 'not in voice' : undefined;
             return (
               <div key={m.userId} className="vtt-groups-row" title={describeLink(stats)}>
-                <span>
+                <span className="vtt-link-name">
                   <i className={`vtt-dot vtt-dot-${quality}`} aria-label={quality} />{' '}
                   {m.character?.name ?? m.displayName}
                 </span>
@@ -67,13 +67,17 @@ export function ConnectionMenu() {
                   <span className="vtt-muted">{state}</span>
                 ) : view === 'graph' ? (
                   <span className="vtt-link-graph">
-                    <Sparkline values={stats?.history ?? []} quality={quality} />
+                    <Sparkline
+                      values={stats?.history ?? []}
+                      qualities={stats?.qualities ?? []}
+                      quality={quality}
+                    />
                     <span className="vtt-muted vtt-link-now">
                       {stats ? `${Math.round(stats.rttMs)} ms` : '—'}
                     </span>
                   </span>
                 ) : (
-                  <span className="vtt-muted">{describeLink(stats)}</span>
+                  <span className="vtt-muted vtt-link-numbers">{describeLink(stats)}</span>
                 )}
               </div>
             );

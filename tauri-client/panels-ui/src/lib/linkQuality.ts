@@ -8,6 +8,8 @@ export interface LinkStatsView {
   at: number;
   /** Recent round-trip samples, oldest first, for the sparkline. */
   history?: readonly number[];
+  /** The link quality at each of those samples, so the trace can change colour as it recovers. */
+  qualities?: readonly Quality[];
 }
 
 /** About two minutes of samples at the 5-second report rate. */
@@ -46,10 +48,12 @@ function asStats(v: unknown): LinkStatsView | undefined {
 
 /** Appends this sample to the previous history, unless it is the same report seen again. */
 function withHistory(stats: LinkStatsView, previous: LinkStatsView | undefined): LinkStatsView {
-  const before = previous?.history ?? [];
   const repeat = previous !== undefined && previous.at === stats.at && stats.at !== 0;
-  const history = repeat ? before : [...before, stats.rttMs].slice(-HISTORY_LENGTH);
-  return { ...stats, history };
+  if (repeat)
+    return { ...stats, history: previous.history ?? [], qualities: previous.qualities ?? [] };
+  const history = [...(previous?.history ?? []), stats.rttMs].slice(-HISTORY_LENGTH);
+  const qualities = [...(previous?.qualities ?? []), linkQuality(stats)].slice(-HISTORY_LENGTH);
+  return { ...stats, history, qualities };
 }
 
 /** Folds one feed event into the per-player stats map; returns the same map when nothing changed. */

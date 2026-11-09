@@ -2,8 +2,8 @@
 //!
 //! Hidden is the default and costs nothing: no window exists while a panel is closed, so there is
 //! no webview, no timer and no animation running (CLAUDE.md §2 principle 5, §8.1). Audio and the
-//! consent flow never depend on a panel being open. Position and size are remembered per panel by
-//! the window-state plugin, keyed on the window label.
+//! consent flow never depend on a panel being open. A panel opens centred over the main window
+//! (a transient child, so Wayland places it too), sized to fit the monitor it is on.
 
 use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindowBuilder};
 
@@ -103,6 +103,15 @@ pub fn window_ready(window: tauri::WebviewWindow) -> Result<(), String> {
     Ok(())
 }
 
+/// The window size to ask for: the panel's own size, but at most 85% of the monitor's height and
+/// 90% of its width, so a window never opens with its bottom edge off the screen.
+fn fit_size(size: (f64, f64), screen: Option<(f64, f64)>) -> (f64, f64) {
+    match screen {
+        Some((w, h)) => (size.0.min(w * 0.9), size.1.min(h * 0.85)),
+        None => size,
+    }
+}
+
 pub fn panel(name: &str) -> Option<&'static Panel> {
     PANELS.iter().find(|p| p.name == name)
 }
@@ -130,10 +139,26 @@ pub fn open(app: &AppHandle, name: &str) -> Result<(), String> {
     if let Some(icon) = app.default_window_icon() {
         builder = builder.icon(icon.clone()).map_err(|e| e.to_string())?;
     }
+    // Open over the main window, on the same monitor, and never taller or wider than that monitor.
+    // Wayland ignores programmatic positions, so what places the window is the parent link (a
+    // transient child is centred on its parent by the compositor); `center()` covers X11 and Windows.
+    let main = app.get_webview_window(MAIN_LABEL);
+    let screen = main
+        .as_ref()
+        .and_then(|m| m.current_monitor().ok().flatten())
+        .map(|mon| {
+            let scale = mon.scale_factor();
+            (mon.size().width as f64 / scale, mon.size().height as f64 / scale)
+        });
+    let size = fit_size(panel.size, screen);
+    if let Some(main) = &main {
+        builder = builder.parent(main).map_err(|e| e.to_string())?;
+    }
     let window = builder
         .visible(false)
-        .inner_size(panel.size.0, panel.size.1)
+        .inner_size(size.0, size.1)
         .min_inner_size(260.0, 200.0)
+        .center()
         .build()
         .map_err(|e| e.to_string())?;
     show_when_ready(window);
@@ -148,6 +173,14 @@ pub fn panel_open(app: AppHandle, name: String) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_window_is_never_taller_than_the_screen_allows() {
+        assert_eq!(fit_size((400.0, 540.0), Some((1920.0, 1080.0))), (400.0, 540.0));
+        assert_eq!(fit_size((400.0, 540.0), Some((1280.0, 600.0))), (400.0, 510.0));
+        assert_eq!(fit_size((2000.0, 540.0), Some((1000.0, 1000.0))), (900.0, 540.0));
+        assert_eq!(fit_size((400.0, 540.0), None), (400.0, 540.0));
+    }
 
     #[test]
     fn secondary_panels_are_exactly_the_closed_set() {
