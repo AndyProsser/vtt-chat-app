@@ -4,6 +4,7 @@ import { DAY_MS } from '../../consts/index.js';
 import type { Campaign, Character, Invite, Membership, User } from '../../types/index.js';
 import { generateCode, hashSecret, normaliseCode } from '../auth/crypto.js';
 import type { Clock } from '../auth/accountService.js';
+import { AVATAR_VALUE } from '../avatarValue.js';
 import { DomainError } from '../errors.js';
 import type { Store } from '../store/store.js';
 
@@ -185,11 +186,7 @@ export class CampaignService {
     }
     if (patch.avatarUrl !== undefined) {
       const url = patch.avatarUrl;
-      if (
-        url !== null &&
-        url !== '' &&
-        !/^(https?:\/\/\S{1,2040}|emblem:[a-z0-9-]{1,30}|avatar:[0-9a-f-]{36})$/i.test(url)
-      ) {
+      if (url !== null && url !== '' && !AVATAR_VALUE.test(url)) {
         throw new DomainError(
           'invalid_input',
           'the avatar must be a web address, an uploaded picture or one of the built-in emblems',

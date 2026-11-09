@@ -45,6 +45,7 @@ const toUser = (r: Row): User => ({
   id: r.id as string,
   email: r.email as string,
   displayName: r.display_name as string,
+  avatarUrl: nullable(r.avatar_url as string | null),
   passwordHash: nullable(r.password_hash as string | null),
   isAdmin: r.is_admin as boolean,
   consentVersion: r.consent_version as string,
@@ -204,10 +205,10 @@ export class PostgresStore implements Store {
 
   async putUser(u: User): Promise<void> {
     await this.db.query(
-      `INSERT INTO users (id, email, display_name, password_hash, is_admin, consent_version, consent_at, created_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      `INSERT INTO users (id, email, display_name, password_hash, is_admin, consent_version, consent_at, created_at, avatar_url)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
        ON CONFLICT (id) DO UPDATE SET email = $2, display_name = $3, password_hash = $4,
-         is_admin = $5, consent_version = $6, consent_at = $7, created_at = $8`,
+         is_admin = $5, consent_version = $6, consent_at = $7, created_at = $8, avatar_url = $9`,
       [
         u.id,
         u.email,
@@ -217,6 +218,7 @@ export class PostgresStore implements Store {
         u.consentVersion,
         u.consentAt,
         u.createdAt,
+        u.avatarUrl ?? null,
       ],
     );
   }

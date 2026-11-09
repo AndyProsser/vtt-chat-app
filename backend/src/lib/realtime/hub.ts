@@ -791,6 +791,7 @@ export class Hub {
       members.push({
         userId: user.id,
         displayName: user.displayName,
+        avatarUrl: user.avatarUrl ?? null,
         role: membership.role,
         character: character
           ? {

@@ -7,6 +7,7 @@ import {
   MINUTE_MS,
 } from '../../consts/index.js';
 import type { MagicLinkPurpose, Session, User } from '../../types/index.js';
+import { OWN_AVATAR_VALUE } from '../avatarValue.js';
 import { DomainError } from '../errors.js';
 import type { Store } from '../store/store.js';
 import { generateSecret, hashPassword, hashSecret, verifyPassword } from './crypto.js';
@@ -103,16 +104,36 @@ export class AccountService {
     return user;
   }
 
-  /** Changes the name other people see. Same rules as registration: not blank, at most 80 characters. */
-  async updateDisplayName(userId: string, displayName: string): Promise<User> {
-    const name = displayName.trim();
-    if (name.length === 0 || name.length > 80) {
-      throw new DomainError('invalid_input', 'a name is required (at most 80 characters)');
-    }
+  /**
+   * Changes what other people see: the name (same rules as registration: not blank, at most 80
+   * characters) and/or the portrait (an uploaded picture or emblem, or `null` to clear it). A field
+   * that is not given is left alone.
+   */
+  async updateProfile(
+    userId: string,
+    changes: { displayName?: string; avatarUrl?: string | null },
+  ): Promise<User> {
     const user = await this.requireUser(userId);
-    const updated = { ...user, displayName: name };
-    await this.store.putUser(updated);
-    return updated;
+    const next = { ...user };
+    if (changes.displayName !== undefined) {
+      const name = changes.displayName.trim();
+      if (name.length === 0 || name.length > 80) {
+        throw new DomainError('invalid_input', 'a name is required (at most 80 characters)');
+      }
+      next.displayName = name;
+    }
+    if (changes.avatarUrl !== undefined) {
+      const url = changes.avatarUrl;
+      if (url !== null && url !== '' && !OWN_AVATAR_VALUE.test(url)) {
+        throw new DomainError(
+          'invalid_input',
+          'the portrait must be an uploaded picture or an emblem',
+        );
+      }
+      next.avatarUrl = url === null || url === '' ? null : url;
+    }
+    await this.store.putUser(next);
+    return next;
   }
 
   /** Records that an existing user accepted the current consent text (after the text changed). */

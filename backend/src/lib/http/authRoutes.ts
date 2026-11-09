@@ -27,7 +27,12 @@ const magicRedeemBody = z.object({
   newPassword: z.string().max(512).optional(),
   deviceLabel: z.string().max(80).optional(),
 });
-const profileBody = z.object({ displayName: z.string().max(200) });
+const profileBody = z
+  .object({
+    displayName: z.string().max(200).optional(),
+    avatarUrl: z.string().max(100).nullable().optional(),
+  })
+  .refine((b) => b.displayName !== undefined || b.avatarUrl !== undefined, 'nothing to change');
 const consentBody = z.object({ version: z.string() });
 
 export interface AuthRouteDeps {
@@ -132,7 +137,10 @@ export function authRoutes({
 
   router.patch('/me', async (req, res) => {
     const body = profileBody.parse(req.body);
-    const user = await accounts.updateDisplayName(authOf(res).user.id, body.displayName);
+    const user = await accounts.updateProfile(authOf(res).user.id, {
+      ...(body.displayName === undefined ? {} : { displayName: body.displayName }),
+      ...(body.avatarUrl === undefined ? {} : { avatarUrl: body.avatarUrl }),
+    });
     onProfileChanged?.(user.id);
     res.json({ user: publicUser(user) });
   });

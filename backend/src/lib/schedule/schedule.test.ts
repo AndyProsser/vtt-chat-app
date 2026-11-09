@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- tests inspect loosely-typed JSON bodies */
+import { randomUUID } from 'node:crypto';
 import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 
@@ -311,7 +312,7 @@ describe('notifications', () => {
 
 describe('attendance after the session', () => {
   const past = async (hoursAgo: number, title = 'Old night') => {
-    const id = `old-${title}-${hoursAgo}`;
+    const id = randomUUID();
     await schedule.putSession({
       id,
       campaignId: campaign,

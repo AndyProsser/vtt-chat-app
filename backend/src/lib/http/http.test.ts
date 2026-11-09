@@ -165,6 +165,29 @@ describe('accounts over HTTP', () => {
     ).toBe(401);
   });
 
+  it('keeps a person portrait, accepting only uploaded pictures and emblems', async () => {
+    const ann = await signUp('ann');
+    const id = '0b1f3a52-6c1e-4d57-9a64-0c2f7d3e8a11';
+    const set = (avatarUrl: string | null) =>
+      api.call('PATCH', '/api/auth/me', { token: ann.token, body: { avatarUrl } });
+    expect((await set(`avatar:${id}`)).body.user.avatarUrl).toBe(`avatar:${id}`);
+    expect((await api.call('GET', '/api/auth/me', { token: ann.token })).body.user.avatarUrl).toBe(
+      `avatar:${id}`,
+    );
+    expect((await set('emblem:crown')).status).toBe(200);
+    expect((await set('javascript:alert(1)')).status).toBe(400);
+    expect((await set('https://x.test/a.png')).status).toBe(400);
+    const cleared = await set(null);
+    expect(cleared.body.user.avatarUrl).toBeNull();
+    // A name-only change leaves the portrait alone.
+    await set('emblem:gem');
+    const renamed = await api.call('PATCH', '/api/auth/me', {
+      token: ann.token,
+      body: { displayName: 'Annie' },
+    });
+    expect(renamed.body.user).toMatchObject({ displayName: 'Annie', avatarUrl: 'emblem:gem' });
+  });
+
   it('refuses registration without the current consent text', async () => {
     const res = await api.call('POST', '/api/auth/register', {
       body: { email: 'a@b.co', displayName: 'A', acceptedConsentVersion: 'old' },

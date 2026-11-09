@@ -11,6 +11,8 @@ export interface User {
   /** Lower-cased. */
   email: string;
   displayName: string;
+  /** The person's own portrait (`avatar:<id>` or `emblem:<name>`), if they set one. */
+  avatarUrl?: string | null;
   /** `null` for accounts that only sign in by magic link or OIDC. */
   passwordHash: string | null;
   /** The first account on a fresh instance becomes Admin. */

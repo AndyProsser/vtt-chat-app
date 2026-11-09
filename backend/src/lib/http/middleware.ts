@@ -45,6 +45,7 @@ export function publicUser(user: User) {
     id: user.id,
     email: user.email,
     displayName: user.displayName,
+    avatarUrl: user.avatarUrl ?? null,
     isAdmin: user.isAdmin,
     consentVersion: user.consentVersion,
   };
