@@ -4379,6 +4379,7 @@ name = "rust-livekit"
 version = "0.2.0"
 dependencies = [
  "cpal",
+ "futures-util",
  "livekit",
  "symphonia",
  "thiserror 2.0.19",

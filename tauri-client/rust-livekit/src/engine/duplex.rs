@@ -74,8 +74,16 @@ impl Duplex {
     }
 
     pub fn set_device_latency_ms(&self, input: u32, output: u32) {
-        self.input_latency_ms.store(input, Ordering::Relaxed);
-        self.output_latency_ms.store(output, Ordering::Relaxed);
+        self.set_input_latency_ms(input);
+        self.set_output_latency_ms(output);
+    }
+
+    pub fn set_input_latency_ms(&self, ms: u32) {
+        self.input_latency_ms.store(ms, Ordering::Relaxed);
+    }
+
+    pub fn set_output_latency_ms(&self, ms: u32) {
+        self.output_latency_ms.store(ms, Ordering::Relaxed);
     }
 
     /// Microphone samples, interleaved, at the device's rate.
@@ -125,7 +133,7 @@ impl Duplex {
             output.ready.extend(converted);
 
             let n = self.blocks.fetch_add(1, Ordering::Relaxed) + 1;
-            if n % DELAY_UPDATE_BLOCKS == 0 {
+            if n.is_multiple_of(DELAY_UPDATE_BLOCKS) {
                 let queued_ms = (output.ready.len() as u64 * 1000 / u64::from(rate)) as u32;
                 let delay = self.input_latency_ms.load(Ordering::Relaxed)
                     + self.output_latency_ms.load(Ordering::Relaxed)

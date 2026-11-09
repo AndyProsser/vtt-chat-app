@@ -61,6 +61,10 @@ impl VoicePath {
         })
     }
 
+    pub(crate) fn runtime(&self) -> &tokio::runtime::Handle {
+        &self.runtime
+    }
+
     pub(crate) fn voice(&self) -> Voice {
         *self.voice.lock().unwrap()
     }

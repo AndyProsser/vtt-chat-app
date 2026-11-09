@@ -17,6 +17,8 @@ pub const MAX_GAIN: f32 = 2.0;
 struct Stream {
     buffered: VecDeque<f32>,
     gain: f32,
+    /// The loudest sample ever pushed: lets a test (or a "who is talking" hint) see that audio arrived.
+    peak: f32,
     /// False until `PREROLL` has arrived, and again after the stream runs dry.
     playing: bool,
 }
@@ -45,8 +47,10 @@ impl Playout {
         let s = self.streams.entry(stream.to_string()).or_insert(Stream {
             buffered: VecDeque::new(),
             gain: 1.0,
+            peak: 0.0,
             playing: false,
         });
+        s.peak = samples.iter().fold(s.peak, |m, x| m.max(x.abs()));
         s.buffered.extend(samples.iter().copied());
         if s.buffered.len() > MAX_BUFFERED {
             let excess = s.buffered.len() - MAX_BUFFERED;
@@ -66,6 +70,7 @@ impl Playout {
             .or_insert(Stream {
                 buffered: VecDeque::new(),
                 gain,
+                peak: 0.0,
                 playing: false,
             })
             .gain = gain;
@@ -73,6 +78,11 @@ impl Playout {
 
     pub fn gain(&self, stream: &str) -> f32 {
         self.streams.get(stream).map_or(1.0, |s| s.gain)
+    }
+
+    /// The loudest sample this stream has delivered so far (0 if it never has).
+    pub fn peak_seen(&self, stream: &str) -> f32 {
+        self.streams.get(stream).map_or(0.0, |s| s.peak)
     }
 
     /// Everything's volume together.

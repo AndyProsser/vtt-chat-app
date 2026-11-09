@@ -24,6 +24,7 @@ use livekit::track::{LocalAudioTrack, LocalTrack};
 use livekit::{AudioProcessingOptions, PlatformAudio};
 use tokio::sync::{mpsc::UnboundedReceiver, Notify};
 
+use crate::engine::mixer_audio::MixerAudio;
 use crate::voice_path::VoicePath;
 
 /// Mirrors `shared`'s `LiveKitConnectionState` IPC type — kept dependency-free here since
@@ -59,6 +60,94 @@ pub type ConnectInfoProvider = Arc<dyn Fn() -> ConnectInfoFuture + Send + Sync>;
 const HEARTBEAT_TICK: Duration = Duration::from_secs(5);
 const RESUME_THRESHOLD: Duration = Duration::from_secs(10);
 
+/// Which audio engine a call uses.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum AudioBackend {
+    /// WebRTC's platform audio layer (the default): closed box, with the device's own echo handling.
+    #[default]
+    Platform,
+    /// Our own mixer engine (docs/architecture/AUDIO-MIXER.md): per-player volume, microphone gain, a level
+    /// meter, and echo cancellation that also covers character voices and sounds the app plays itself.
+    Mixer,
+}
+
+impl AudioBackend {
+    /// `VTT_AUDIO_BACKEND=mixer` selects the mixer; anything else (or nothing) is the platform layer.
+    pub fn from_env() -> Self {
+        match std::env::var("VTT_AUDIO_BACKEND").as_deref() {
+            Ok("mixer") => Self::Mixer,
+            _ => Self::Platform,
+        }
+    }
+}
+
+/// The engine in use for one client.
+#[derive(Clone)]
+enum Audio {
+    Platform(PlatformAudio),
+    Mixer(Arc<MixerAudio>),
+}
+
+impl Audio {
+    fn rtc_source(&self) -> livekit::webrtc::audio_source::RtcAudioSource {
+        match self {
+            Audio::Platform(a) => a.rtc_source(),
+            Audio::Mixer(m) => m.rtc_source(),
+        }
+    }
+
+    fn devices(&self) -> devices::DeviceList {
+        match self {
+            Audio::Platform(a) => devices::list(a),
+            Audio::Mixer(m) => m.devices(),
+        }
+    }
+
+    fn use_devices(&self, input: Option<&str>, output: Option<&str>) -> Result<(), String> {
+        match self {
+            Audio::Platform(a) => devices::apply(a, input, output),
+            Audio::Mixer(m) => m.use_devices(input, output),
+        }
+    }
+
+    /// Makes the microphone path match the mute flag and the chosen voice.
+    fn apply(
+        &self,
+        voice_path: &VoicePath,
+        mic: Option<&LocalAudioTrack>,
+        fx: Option<&LocalAudioTrack>,
+        muted: bool,
+    ) -> Result<(), String> {
+        match self {
+            Audio::Platform(a) => voice_path.apply(a, mic, fx, muted),
+            Audio::Mixer(m) => {
+                // One path for every voice: the effect is a stage in the capture pipeline, and muting
+                // releases the microphone (the track is muted too, so nothing is published).
+                let _in_runtime = voice_path.runtime().enter();
+                m.set_voice(voice_path.voice());
+                let result = m.set_capturing(!muted);
+                if let Some(track) = mic {
+                    if muted {
+                        track.mute();
+                    } else {
+                        track.unmute();
+                    }
+                }
+                result
+            }
+        }
+    }
+
+    fn release(&self) {
+        match self {
+            Audio::Platform(a) => {
+                let _ = a.stop_recording();
+            }
+            Audio::Mixer(m) => m.shutdown(),
+        }
+    }
+}
+
 struct ActiveRoom {
     room: Arc<Room>,
     microphone_track: LocalAudioTrack,
@@ -75,7 +164,7 @@ struct ActiveRoom {
 /// platform audio layer (`PlatformAudio`) — the same engine on every OS. Muting stops the
 /// recording device itself, so the OS microphone indicator turns off.
 pub struct LiveKitClient {
-    audio: PlatformAudio,
+    audio: Audio,
     /// Source of truth for "should audio leave this machine". Survives rejoins.
     microphone_muted: Arc<AtomicBool>,
     voice_path: Arc<VoicePath>,
@@ -119,17 +208,45 @@ impl LiveKitClient {
         on_state_change: StateChangeCallback,
         on_speakers_change: SpeakersChangeCallback,
     ) -> Result<Self, LiveKitError> {
-        let audio = PlatformAudio::new().map_err(|err| LiveKitError::Audio(err.to_string()))?;
-        // `start_recording` fails until a device has been selected explicitly (measured on
-        // Windows — docs/architecture/AUDIO-SPIKE-RESULTS.md).
-        if let Some(device) = audio.recording_devices().next() {
-            audio
-                .set_recording_device(&device.id)
-                .map_err(|err| LiveKitError::Audio(err.to_string()))?;
-        }
-        audio
-            .configure_audio_processing(AudioProcessingOptions::default())
-            .map_err(|err| LiveKitError::Audio(err.to_string()))?;
+        Self::connect_with_backend(
+            provider,
+            on_state_change,
+            on_speakers_change,
+            AudioBackend::from_env(),
+        )
+        .await
+    }
+
+    /// As [`Self::connect_with_provider`], choosing the audio engine explicitly.
+    pub async fn connect_with_backend(
+        provider: ConnectInfoProvider,
+        on_state_change: StateChangeCallback,
+        on_speakers_change: SpeakersChangeCallback,
+        backend: AudioBackend,
+    ) -> Result<Self, LiveKitError> {
+        let audio = match backend {
+            AudioBackend::Platform => {
+                let audio =
+                    PlatformAudio::new().map_err(|err| LiveKitError::Audio(err.to_string()))?;
+                // `start_recording` fails until a device has been selected explicitly (measured on
+                // Windows — docs/architecture/AUDIO-SPIKE-RESULTS.md).
+                if let Some(device) = audio.recording_devices().next() {
+                    audio
+                        .set_recording_device(&device.id)
+                        .map_err(|err| LiveKitError::Audio(err.to_string()))?;
+                }
+                audio
+                    .configure_audio_processing(AudioProcessingOptions::default())
+                    .map_err(|err| LiveKitError::Audio(err.to_string()))?;
+                Audio::Platform(audio)
+            }
+            AudioBackend::Mixer => {
+                let mixer = MixerAudio::new(tokio::runtime::Handle::current());
+                // The speakers stay open for the whole call; the microphone opens when unmuted.
+                mixer.set_playing(true).map_err(LiveKitError::Audio)?;
+                Audio::Mixer(mixer)
+            }
+        };
 
         let microphone_muted = Arc::new(AtomicBool::new(true));
         let active: Arc<Mutex<Option<ActiveRoom>>> = Arc::new(Mutex::new(None));
@@ -203,12 +320,12 @@ impl LiveKitClient {
 
     /// The microphones and speakers the system offers.
     pub fn audio_devices(&self) -> devices::DeviceList {
-        devices::list(&self.audio)
+        self.audio.devices()
     }
 
     /// Switches to the chosen microphone and speaker (by id, from [`Self::audio_devices`]); works mid-call.
     pub fn use_devices(&self, input: Option<&str>, output: Option<&str>) -> Result<(), String> {
-        devices::apply(&self.audio, input, output)
+        self.audio.use_devices(input, output)
     }
 
     /// A handle for changing the character voice from another task (the client sits behind a lock
@@ -224,6 +341,14 @@ impl LiveKitClient {
 
     pub fn is_microphone_muted(&self) -> bool {
         self.microphone_muted.load(Ordering::Relaxed)
+    }
+
+    /// The mixer engine, when this client uses it: per-player volume, microphone gain and the level meter.
+    pub fn mixer(&self) -> Option<Arc<MixerAudio>> {
+        match &self.audio {
+            Audio::Mixer(m) => Some(m.clone()),
+            Audio::Platform(_) => None,
+        }
     }
 
     /// A cheap handle for measuring link quality from another task (the client itself sits behind
@@ -242,7 +367,7 @@ impl LiveKitClient {
         if let Some(active) = active {
             active.room.close().await?;
         }
-        let _ = self.audio.stop_recording();
+        self.audio.release();
         self.supervisor.abort();
         Ok(())
     }
@@ -251,7 +376,7 @@ impl LiveKitClient {
 /// Changes the DM's character voice; see [`LiveKitClient::voice_control`].
 #[derive(Clone)]
 pub struct VoiceControl {
-    audio: PlatformAudio,
+    audio: Audio,
     microphone_muted: Arc<AtomicBool>,
     voice_path: Arc<VoicePath>,
     active: Arc<Mutex<Option<ActiveRoom>>>,
@@ -261,8 +386,8 @@ impl VoiceControl {
     /// Makes the microphone paths match the mute flag and the chosen voice.
     fn reapply(&self) -> Result<(), String> {
         let guard = lock(&self.active);
-        self.voice_path.apply(
-            &self.audio,
+        self.audio.apply(
+            &self.voice_path,
             guard.as_ref().map(|a| &a.microphone_track),
             guard.as_ref().and_then(|a| a.fx_track.as_ref()),
             self.microphone_muted.load(Ordering::Relaxed),
@@ -274,7 +399,8 @@ impl VoiceControl {
     /// An error means the effect could not start and the normal voice is in use.
     pub async fn set_voice_effect(&self, voice: Voice) -> Result<(), LiveKitError> {
         self.voice_path.set_voice(voice);
-        if voice != Voice::Normal {
+        // The mixer applies the voice inside its own capture pipeline: no second track.
+        if voice != Voice::Normal && !matches!(self.audio, Audio::Mixer(_)) {
             let missing = lock(&self.active)
                 .as_ref()
                 .filter(|a| a.fx_track.is_none())
@@ -330,7 +456,7 @@ impl LinkProbe {
 /// Everything the supervisor task owns.
 struct Session {
     provider: ConnectInfoProvider,
-    audio: PlatformAudio,
+    audio: Audio,
     microphone_muted: Arc<AtomicBool>,
     voice_path: Arc<VoicePath>,
     active: Arc<Mutex<Option<ActiveRoom>>>,
@@ -367,6 +493,9 @@ impl Session {
                 let end = self.run_until_lost(&room, events).await;
 
                 // The room is gone either way; make that visible before doing anything slow.
+                if let Audio::Mixer(mixer) = &self.audio {
+                    mixer.left_room();
+                }
                 lock(&self.active).take();
                 (self.on_state_change)(ConnectionState::default());
                 let _ = room.close().await;
@@ -434,6 +563,9 @@ impl Session {
                 }
                 event = events.recv() => {
                     let Some(event) = event else { return SessionEnd::Lost };
+                    if let Audio::Mixer(mixer) = &self.audio {
+                        mixer.on_room_event(&event);
+                    }
                     match event {
                         RoomEvent::ParticipantConnected(_)
                         | RoomEvent::ParticipantDisconnected(_) => {
@@ -457,7 +589,7 @@ impl Session {
 
 async fn join_once(
     provider: &ConnectInfoProvider,
-    audio: &PlatformAudio,
+    audio: &Audio,
     microphone_muted: &Arc<AtomicBool>,
     voice_path: &Arc<VoicePath>,
 ) -> Result<Joined, LiveKitError> {
@@ -477,15 +609,15 @@ async fn join_once(
         .await?;
 
     // A rejoin keeps a chosen character voice: publish its track again before applying the state.
-    let fx_track = if voice_path.voice() != Voice::Normal {
+    let fx_track = if voice_path.voice() != Voice::Normal && !matches!(audio, Audio::Mixer(_)) {
         Some(publish_fx_track(&room, voice_path).await?)
     } else {
         None
     };
 
     // Re-apply the mute state: a fresh track and a fresh device session must not undo it.
-    if let Err(message) = voice_path.apply(
-        audio,
+    if let Err(message) = audio.apply(
+        voice_path,
         Some(&microphone_track),
         fx_track.as_ref(),
         microphone_muted.load(Ordering::Relaxed),
