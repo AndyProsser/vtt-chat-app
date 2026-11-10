@@ -13,6 +13,7 @@ import { accountErrorMessage, campaignApi } from '../lib/tauriBridge.js';
 import type { ItemType, LootDraft, Member, Rarity, SrdItem } from '../types/index.js';
 import { ItemIcon } from './ItemIcon.js';
 import { PlayerSelect } from './PlayerSelect.js';
+import { Dropdown } from './Dropdown.js';
 import { ToolButton } from './ToolButton.js';
 
 /**
@@ -179,32 +180,24 @@ export function LootWorkbench({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
-        <select
-          className="vtt-select"
-          aria-label="Type"
+        <Dropdown
+          label="Type"
           value={typeFilter}
-          onChange={(e) => setTypeFilter(e.target.value as ItemType | '')}
-        >
-          <option value="">Any type</option>
-          {ITEM_TYPES.map((t) => (
-            <option key={t} value={t}>
-              {typeLabel(t)}
-            </option>
-          ))}
-        </select>
-        <select
-          className="vtt-select"
-          aria-label="Rarity"
+          onChange={(v) => setTypeFilter(v as ItemType | '')}
+          options={[
+            { value: '', label: 'Any type' },
+            ...ITEM_TYPES.map((t) => ({ value: t, label: typeLabel(t) })),
+          ]}
+        />
+        <Dropdown
+          label="Rarity"
           value={rarityFilter}
-          onChange={(e) => setRarityFilter(e.target.value as Rarity | '')}
-        >
-          <option value="">Any rarity</option>
-          {RARITIES.map((r) => (
-            <option key={r} value={r}>
-              {rarityLabel(r)}
-            </option>
-          ))}
-        </select>
+          onChange={(v) => setRarityFilter(v as Rarity | '')}
+          options={[
+            { value: '', label: 'Any rarity' },
+            ...RARITIES.map((r) => ({ value: r, label: rarityLabel(r) })),
+          ]}
+        />
         <ToolButton label="Search" submit disabled={busy}>
           <Search size={14} />
         </ToolButton>
@@ -271,31 +264,24 @@ export function LootWorkbench({
         </label>
         {!coin && (
           <>
-            <select
-              className="vtt-select"
-              aria-label="Item type"
+            <Dropdown
+              label="Item type"
               value={itemType}
-              onChange={(e) => setItemType(e.target.value as ItemType)}
-            >
-              {ITEM_TYPES.filter((t) => t !== 'coin').map((t) => (
-                <option key={t} value={t}>
-                  {typeLabel(t)}
-                </option>
-              ))}
-            </select>
-            <select
-              className="vtt-select"
-              aria-label="Rarity"
+              onChange={(v) => setItemType(v as ItemType)}
+              options={ITEM_TYPES.filter((t) => t !== 'coin').map((t) => ({
+                value: t,
+                label: typeLabel(t),
+              }))}
+            />
+            <Dropdown
+              label="Rarity"
               value={rarity}
-              onChange={(e) => setRarity(e.target.value as Rarity | '')}
-            >
-              <option value="">Mundane</option>
-              {RARITIES.map((r) => (
-                <option key={r} value={r}>
-                  {rarityLabel(r)}
-                </option>
-              ))}
-            </select>
+              onChange={(v) => setRarity(v as Rarity | '')}
+              options={[
+                { value: '', label: 'Mundane' },
+                ...RARITIES.map((r) => ({ value: r, label: rarityLabel(r) })),
+              ]}
+            />
           </>
         )}
         <ToolButton label="Add to the list" submit>

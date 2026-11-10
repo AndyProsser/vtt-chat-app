@@ -111,7 +111,7 @@ export function SceneEditor({
                 placeholder={l.mode === 'loop' ? 'Pick ambience or music' : 'Pick an effect'}
                 style={{ flex: 1, minWidth: 0 }}
               />
-              <Select.Content>
+              <Select.Content position="popper" sideOffset={4} className="vtt-dropdown">
                 {soundsFor(l.mode, sounds).map((s) => (
                   <Select.Item key={s.id} value={s.id}>
                     {s.name}

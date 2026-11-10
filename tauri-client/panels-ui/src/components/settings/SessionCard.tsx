@@ -13,6 +13,7 @@ import {
 import type { RsvpStatus, SessionView } from '../../types/index.js';
 import { MarkdownEditor } from '../MarkdownEditor.js';
 import { MarkdownView } from '../MarkdownView.js';
+import { Dropdown } from '../Dropdown.js';
 import { ToolButton } from '../ToolButton.js';
 
 const RSVP: { status: RsvpStatus; label: string; icon: typeof Check }[] = [
@@ -101,30 +102,18 @@ export function SessionCard({
             value={date}
             onChange={(e) => setDate(e.target.value)}
           />
-          <select
-            className="vtt-select"
-            aria-label="Start time"
+          <Dropdown
+            label="Start time"
             value={time}
-            onChange={(e) => setTime(e.target.value)}
-          >
-            {times.map((t) => (
-              <option key={t} value={t}>
-                {t}
-              </option>
-            ))}
-          </select>
-          <select
-            className="vtt-select"
-            aria-label="Duration"
-            value={duration}
-            onChange={(e) => setDuration(Number(e.target.value))}
-          >
-            {durations.map((d) => (
-              <option key={d} value={d}>
-                {durationLabel(d)}
-              </option>
-            ))}
-          </select>
+            onChange={setTime}
+            options={times.map((t) => ({ value: t, label: t }))}
+          />
+          <Dropdown
+            label="Duration"
+            value={String(duration)}
+            onChange={(v) => setDuration(Number(v))}
+            options={durations.map((d) => ({ value: String(d), label: durationLabel(d) }))}
+          />
         </div>
         {startsAt !== undefined && (
           <span className="vtt-muted">{formatRange(startsAt, duration)}</span>

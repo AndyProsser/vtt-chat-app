@@ -31,6 +31,28 @@ export default tseslint.config(
     languageOptions: {
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
+    rules: {
+      // The OS's native dropdown looks out of place and stretches to the full screen height in a small
+      // window. Use the Dropdown component (tauri-client/panels-ui/src/components/Dropdown.tsx).
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "JSXOpeningElement[name.name='select']",
+          message: 'Use the styled <Dropdown>, never a native <select>.',
+        },
+      ],
+    },
+  },
+  {
+    // Plain Node scripts (the live drills under infra/) run outside the TypeScript packages.
+    files: ['infra/**/*.mjs'],
+    languageOptions: {
+      globals: {
+        process: 'readonly',
+        console: 'readonly',
+        setTimeout: 'readonly',
+      },
+    },
   },
   prettierConfig,
 );

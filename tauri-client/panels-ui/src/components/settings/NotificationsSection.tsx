@@ -104,7 +104,7 @@ function TimePick({
   return (
     <Select.Root value={timeOf(value)} onValueChange={(t) => onChange(minuteOf(t))}>
       <Select.Trigger aria-label={label} style={{ minWidth: 88 }} />
-      <Select.Content>
+      <Select.Content position="popper" sideOffset={4} className="vtt-dropdown">
         {TIME_OPTIONS.map((t) => (
           <Select.Item key={t} value={t}>
             {t}

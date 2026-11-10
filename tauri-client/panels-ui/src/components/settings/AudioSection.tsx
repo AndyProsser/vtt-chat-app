@@ -64,7 +64,7 @@ export function AudioSection() {
   ) => (
     <Select.Root value={chosen ?? DEFAULT} onValueChange={(v) => void choose(kind, v)}>
       <Select.Trigger aria-label={label} style={{ maxWidth: 220 }} />
-      <Select.Content>
+      <Select.Content position="popper" sideOffset={4} className="vtt-dropdown">
         <Select.Item value={DEFAULT}>System default</Select.Item>
         {devices.map((d) => (
           <Select.Item key={d.id} value={d.id}>
@@ -121,7 +121,7 @@ export function AudioSection() {
               }}
             >
               <Select.Trigger aria-label="Background noise filter" style={{ minWidth: 130 }} />
-              <Select.Content>
+              <Select.Content position="popper" sideOffset={4} className="vtt-dropdown">
                 {NOISE_FILTER_LEVELS.map((level) => (
                   <Select.Item key={level} value={level}>
                     {NOISE_FILTER_LABEL[level]}

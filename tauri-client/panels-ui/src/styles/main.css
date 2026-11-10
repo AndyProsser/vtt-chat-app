@@ -1790,3 +1790,15 @@ body,
   opacity: 0.35;
   cursor: default;
 }
+
+/* Dropdown lists open under their control and never taller than the room the window has left. */
+.vtt-dropdown {
+  max-height: min(260px, var(--radix-select-content-available-height));
+}
+.vtt-status-card {
+  margin-top: 8px;
+  padding: 4px 12px;
+  border: 1px solid var(--vtt-edge);
+  border-radius: var(--vtt-radius-bubble);
+  background: var(--vtt-bubble);
+}

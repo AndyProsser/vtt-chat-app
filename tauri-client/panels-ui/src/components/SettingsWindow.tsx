@@ -26,8 +26,8 @@ export function SettingsContent() {
           <Tabs.Trigger value="general">General</Tabs.Trigger>
         </Tabs.List>
         <Tabs.Content value="profile">
-          <StatusSetting />
           <AccountSection />
+          <StatusSetting />
         </Tabs.Content>
         <Tabs.Content value="campaign">
           <CampaignTab />

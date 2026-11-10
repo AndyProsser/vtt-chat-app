@@ -17,6 +17,7 @@ import { useTableStore } from '../../lib/tableStore.js';
 import { accountErrorMessage, campaignApi } from '../../lib/tauriBridge.js';
 import type { SessionView } from '../../types/index.js';
 import { SessionCard, durationLabel } from './SessionCard.js';
+import { Dropdown } from '../Dropdown.js';
 import { ToolButton } from '../ToolButton.js';
 
 /** Upcoming sessions with one-tap RSVPs; the DM schedules the next one in a single compact row. */
@@ -120,30 +121,18 @@ export function SessionsSection() {
               value={date}
               onChange={(e) => setDate(e.target.value)}
             />
-            <select
-              className="vtt-select"
-              aria-label="Start time"
+            <Dropdown
+              label="Start time"
               value={time}
-              onChange={(e) => setTime(e.target.value)}
-            >
-              {TIME_OPTIONS.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </select>
-            <select
-              className="vtt-select"
-              aria-label="Duration"
-              value={duration}
-              onChange={(e) => setDuration(Number(e.target.value))}
-            >
-              {DURATION_OPTIONS.map((d) => (
-                <option key={d} value={d}>
-                  {durationLabel(d)}
-                </option>
-              ))}
-            </select>
+              onChange={setTime}
+              options={TIME_OPTIONS.map((t) => ({ value: t, label: t }))}
+            />
+            <Dropdown
+              label="Duration"
+              value={String(duration)}
+              onChange={(v) => setDuration(Number(v))}
+              options={DURATION_OPTIONS.map((d) => ({ value: String(d), label: durationLabel(d) }))}
+            />
           </div>
           {startsAt !== undefined && (
             <span className="vtt-muted">{formatRange(startsAt, duration)}</span>
