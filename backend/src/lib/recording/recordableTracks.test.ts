@@ -1,7 +1,7 @@
 import { TrackType } from 'livekit-server-sdk';
 import { describe, expect, it } from 'vitest';
 
-import { SOUNDBOARD_TRACK, recordableTracks } from './liveKitRecorder.js';
+import { SOUNDBOARD_TRACK, orphanOfPath, recordableTracks } from './liveKitRecorder.js';
 
 const track = (sid: string, name: string, over: object = {}) => ({
   sid,
@@ -58,5 +58,24 @@ describe('recordableTracks', () => {
         },
       ]),
     ).toEqual([]);
+  });
+});
+
+describe('orphanOfPath', () => {
+  it('reads the recording and the speaker back from the path an egress was started with', () => {
+    expect(orphanOfPath('eg1', '/out/rec-9/0a1b-2c3d@{time}')).toEqual({
+      egressId: 'eg1',
+      recordingId: 'rec-9',
+      identity: '0a1b-2c3d',
+      effects: false,
+    });
+    expect(orphanOfPath('eg2', '/out/rec-9/0a1b-effects@{time}')).toMatchObject({
+      identity: '0a1b',
+      effects: true,
+    });
+  });
+  it('gives nothing for a path of another shape', () => {
+    expect(orphanOfPath('eg', 'file.ogg')).toBeUndefined();
+    expect(orphanOfPath('eg', '/out/rec-9/no-at-sign.ogg')).toBeUndefined();
   });
 });

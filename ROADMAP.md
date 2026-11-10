@@ -57,7 +57,7 @@ flowchart LR
 
 1. **On the dev PC:** run the app and try everything listed above plus unmute, rail drag, portrait upload, device switching and the scene editor. Link a real public D&D Beyond sheet and read what comes back. Point SMTP and an Authelia at the backend once.
 2. **UI/UX fine-tuning** from what step 1 turns up, starting with **listening to the four new voices** and the importer's ambience and music loops (run `npm run sounds:import -- --from <dir> --category ambience`).
-3. **Purge defaults** (age-based retention is built; still open: purge when the DM confirms a summary, and a warning to the DM first), the recorded 4-hour soak, then a server restart mid-recording (Stage 9).
+3. **Purge defaults** (age-based retention is built; still open: purge when the DM confirms a summary, and a warning to the DM first), and the recorded 4-hour soak (Stage 9). The server-restart-mid-recording drill is done (2026-11-10).
 4. **Second-person deploy test** from the docs on a blank VM (Stage 3).
 5. **Mobile SPA** (Stage 7): built, with history search, a handout viewer (flip and zoom) and an install manifest added 2026-11-10; open it on a real phone (`/app`) and try it on iOS Safari.
 6. **D&D Beyond:** AC, passive perception, max HP and ability scores are built (2026-11-10, worked out by us); compare the first real sheets against D&D Beyond. Later: saves, skills, Unarmored Defense.
@@ -246,8 +246,8 @@ The riskiest unknowns are all "does this actually work on real machines with ope
 - Verified audio parity on Windows, Linux (GNOME + KDE) and, if a player appears, macOS
 - Tray behaviour documented per desktop (GNOME AppIndicator, Wayland limits) with graceful degradation
 - Real 8+ hour soak with churn, memory profiled against the Stage 0.5 rules
-- A real server-restart-mid-recording drill: recording recovers or fails loudly, never silently
-- Security pass: consent-cue bypass attempts, private-audio leakage into records, token/session expiry, ACL checks on every records endpoint
+- A real server-restart-mid-recording drill: recording recovers or fails loudly, never silently — **built and drilled 2026-11-10** (`infra/records-smoke/restart-drill.sh`; recovery stops the leftover egresses and keeps the audio; see [RECORDING-AND-SUMMARIES.md](docs/architecture/RECORDING-AND-SUMMARIES.md)); a `kill -9` of the packaged backend is still to try
+- Security pass: consent-cue bypass attempts, private-audio leakage into records, token/session expiry, ACL checks on every records endpoint — **done 2026-11-10** for the REST surface and live sockets (access matrix; found and fixed a player who left still receiving chat and voice); the Egress capture and whisper paths were already covered by tests
 - Packaging: installers per OS, signed where practical, updater verified
 
 **Done when:** a full real campaign session runs on all supported platforms without manual intervention.

@@ -6,7 +6,7 @@ import {
   TrackType,
 } from 'livekit-server-sdk';
 
-import type { EgressResult, RecorderTrack, TrackRecorder } from './capture.js';
+import type { EgressResult, OrphanEgress, RecorderTrack, TrackRecorder } from './capture.js';
 
 /** The DM's sound-effects track (the tray app publishes it under this name); never recorded. */
 export const SOUNDBOARD_TRACK = 'soundboard';
@@ -39,6 +39,27 @@ export function recordableTracks(
           : { identity: p.identity, trackSid: t.sid },
       ),
   );
+}
+
+/**
+ * Reads back which recording and speaker an egress belongs to from the path it was started with
+ * (`<dir>/<recordingId>/<identity>[-effects]@{time}`), or `undefined` for a path of another shape.
+ */
+export function orphanOfPath(egressId: string, filepath: string): OrphanEgress | undefined {
+  const parts = filepath.split('/').filter((p) => p !== '');
+  const file = parts.at(-1);
+  const recordingId = parts.at(-2);
+  if (!file || !recordingId) return undefined;
+  const at = file.indexOf('@');
+  if (at <= 0) return undefined;
+  const name = file.slice(0, at);
+  const effects = name.endsWith('-effects');
+  return {
+    egressId,
+    recordingId,
+    identity: effects ? name.slice(0, -'-effects'.length) : name,
+    effects,
+  };
 }
 
 /**
@@ -103,6 +124,18 @@ export function createLiveKitRecorder(options: {
         // LiveKit reports nanoseconds since the epoch.
         ...(file?.startedAt ? { startedAtMs: Number(file.startedAt / 1_000_000n) } : {}),
       };
+    },
+
+    async orphans(room): Promise<OrphanEgress[]> {
+      const all = await egress.listEgress({ roomName: room });
+      return all.flatMap((info) => {
+        const request = info.request;
+        if (request.case !== 'track') return [];
+        const output = request.value.output;
+        if (output.case !== 'file') return [];
+        const found = orphanOfPath(info.egressId, output.value.filepath);
+        return found ? [found] : [];
+      });
     },
   };
 }

@@ -5,9 +5,11 @@ import { MemoryAckStore } from './ackStore.js';
 import {
   RecordingCapture,
   type EgressResult,
+  type OrphanEgress,
   type RecorderTrack,
   type TrackRecorder,
 } from './capture.js';
+import { orphanOfPath } from './liveKitRecorder.js';
 
 const CAMPAIGN = 'camp-1';
 const REC = 'rec-1';
@@ -52,6 +54,14 @@ class FakeRecorder implements TrackRecorder {
   }
   async result(egressId: string): Promise<EgressResult> {
     return this.results.get(egressId) ?? { state: 'failed', error: 'unknown egress' };
+  }
+  /** What LiveKit still knows after a backend restart: every egress it was asked to start. */
+  async orphans(): Promise<OrphanEgress[]> {
+    if (this.failListing) throw new Error('livekit unreachable');
+    return this.started.flatMap((s) => {
+      const o = orphanOfPath(s.egressId, s.filepath);
+      return o ? [o] : [];
+    });
   }
 }
 
@@ -357,5 +367,85 @@ describe('RecordingCapture', () => {
     expect((await records.listRecordingEvents('orphan')).map((e) => e.event)).toEqual([
       'interrupted',
     ]);
+  });
+
+  describe('after a restart', () => {
+    /** A new process: same database and same LiveKit, but no memory of the recording. */
+    const restarted = () =>
+      new RecordingCapture({
+        recorder,
+        records,
+        jobs,
+        acks,
+        dir: '/out/',
+        speakerName: async (_c, id) => `name-of-${id}`,
+        now: () => time,
+        newId: (() => {
+          let i = 100;
+          return () => `track-${++i}`;
+        })(),
+        log: (l) => log.push(l),
+        sleep: async () => {
+          time += 100;
+        },
+        pollMs: 100,
+      });
+
+    async function recordingWithTwoSpeakers() {
+      capture.onRecordingChange(change('STARTED'));
+      await capture.idle();
+      publish('ann');
+      publish('bo');
+      await ack('ann');
+      await ack('bo');
+      expect(recorder.started).toHaveLength(2);
+    }
+
+    it('stops the egresses that kept running, keeps their audio as tracks and queues processing', async () => {
+      await recordingWithTwoSpeakers();
+      time += 60_000;
+
+      const fresh = restarted();
+      expect(await fresh.recoverInterrupted()).toBe(1);
+
+      // Nothing is left recording invisibly: every egress was stopped.
+      expect([...recorder.results.values()].map((r) => r.state)).toEqual(['complete', 'complete']);
+      const tracks = await records.listTracks(REC);
+      expect(tracks.map((t) => t.speakerId).sort()).toEqual(['ann', 'bo']);
+      expect(tracks.every((t) => t.filePath.endsWith('.ogg'))).toBe(true);
+
+      const recording = await records.getRecording(REC);
+      expect(recording?.status).toBe('stopped');
+      expect(recording?.stoppedAt).toBe(time);
+      expect((await records.listRecordingEvents(REC)).map((e) => e.event)).toEqual([
+        'started',
+        'interrupted',
+        'stopped',
+      ]);
+      expect(await jobs.list()).toHaveLength(1);
+      expect(log.some((l) => l.includes('interrupted by a restart'))).toBe(true);
+    });
+
+    it('does not touch another recording’s egresses', async () => {
+      await recordingWithTwoSpeakers();
+      recorder.started.push({
+        egressId: 'eg-other',
+        trackSid: 'sid-x',
+        filepath: '/out/someone-elses/zed@{time}',
+        at: time,
+      });
+      recorder.results.set('eg-other', { state: 'active' });
+      await restarted().recoverInterrupted();
+      expect(recorder.results.get('eg-other')).toEqual({ state: 'active' });
+    });
+
+    it('marks the recording failed, loudly, when LiveKit cannot be asked', async () => {
+      await recordingWithTwoSpeakers();
+      recorder.failListing = true;
+      expect(await restarted().recoverInterrupted()).toBe(1);
+      expect((await records.getRecording(REC))?.status).toBe('failed');
+      expect(await jobs.list()).toHaveLength(0);
+      expect(log.some((l) => l.includes('could not recover'))).toBe(true);
+    });
   });
 });

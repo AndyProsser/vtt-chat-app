@@ -201,3 +201,31 @@ what retention removes, and the text is kept for good.
   session history shows the DM "audio deleted". Players are not told.
 - **Not built:** the DM confirming a summary before the audio goes (the retention window is the confirmation);
   a disk-usage figure on the status page or in the CLI (use `df -h` and `du -sh` on the recordings volume).
+
+## When the server restarts mid-recording (built and drilled 2026-11-10)
+
+Recording state lives in the backend's memory, but Egress is a separate process and **keeps writing**
+when the backend goes away. Before this was handled, a restart had two bad outcomes: the app showed
+"not recording" while every voice was still being captured (a consent problem, principle 4), and the audio
+already captured was never registered or processed (a lost recording).
+
+On startup, for each recording the database still calls `recording` that this process knows nothing about,
+`RecordingCapture.recoverInterrupted()`:
+
+1. asks LiveKit for the room's track egresses and picks this recording's out by the path each was started
+   with (`<dir>/<recordingId>/<speaker>@{time}`, so no new table or column is needed);
+2. stops every one still running and waits for its file;
+3. keeps the files as tracks, closes the recording as `stopped` (events `interrupted`, `stopped`) and queues
+   processing, so what was said up to the restart is transcribed and summarised like any recording;
+4. only if LiveKit **cannot be asked** does it mark the recording `failed` and log `could not recover`, so the
+   failure is loud. A recording with no egress on record is also marked `failed`.
+
+After that the DM starts a new recording; the clients, which read state from the server, now truthfully see none.
+**Not handled:** carrying on recording across a restart without a gap (it would need the consent
+acknowledgements, which are also in memory, to survive too), and a restart while paused (the paused flag is
+memory too; the recording is recovered the same way).
+
+Drilled against a real LiveKit server and a real Egress with `infra/records-smoke/restart-drill.sh`: a speaker is
+recorded, the process "restarts", recovery stops the egress and keeps a playable file. It passed on
+2026-11-10 on the dev PC. The drill's backend side runs in one process (a fresh `RecordingCapture`
+standing in for the restarted backend); a real `kill -9` of the packaged backend is not drilled.

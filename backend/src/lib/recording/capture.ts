@@ -13,6 +13,14 @@ export interface RecorderTrack {
   effects?: boolean;
 }
 
+/** An egress LiveKit still has on record for a room, found again after a restart. */
+export interface OrphanEgress {
+  egressId: string;
+  recordingId: string;
+  identity: string;
+  effects: boolean;
+}
+
 export interface EgressResult {
   state: 'active' | 'complete' | 'failed';
   /** Where Egress wrote the file (a path on the Egress host, shared with the worker). */
@@ -28,6 +36,8 @@ export interface TrackRecorder {
   start(room: string, trackSid: string, filepath: string): Promise<string>;
   stop(egressId: string): Promise<void>;
   result(egressId: string): Promise<EgressResult>;
+  /** Every track egress LiveKit has on record for `room`, so a restart can find what it left running. */
+  orphans?(room: string): Promise<OrphanEgress[]>;
 }
 
 export interface CaptureDeps {
@@ -175,24 +185,61 @@ export class RecordingCapture {
   }
 
   /**
-   * A recording the database says is running, but this process knows nothing about, was cut off by
-   * a restart. Its files may exist but were never registered, so mark it rather than leave it
-   * "recording" forever.
+   * A recording the database says is running, but this process knows nothing about, was cut off by a
+   * restart. Two things must not happen: the egresses it started must not keep recording invisibly (the
+   * app would show "not recording" while the server still captured every voice), and the audio already
+   * captured must not be lost. So each one's egresses are stopped, their files kept as tracks, the
+   * recording is closed as stopped and processing is queued. Only when LiveKit cannot be asked is the
+   * recording marked failed, loudly, as before.
    */
   async recoverInterrupted(): Promise<number> {
     let n = 0;
     for (const r of await this.deps.records.listRecordings(1000)) {
       if (r.status !== 'recording' || this.live.has(r.campaignId)) continue;
-      await this.deps.records.setRecordingStatus(r.id, 'failed');
-      await this.deps.records.addRecordingEvent({
-        recordingId: r.id,
-        at: this.now(),
-        event: 'interrupted',
-      });
-      this.log(`recording ${r.id} was interrupted by a restart`);
       n += 1;
+      await this.recoverOne(r.id, r.campaignId, r.startedAt);
     }
     return n;
+  }
+
+  private async recoverOne(recordingId: string, campaignId: string, startedAt: number) {
+    const { records } = this.deps;
+    this.log(`recording ${recordingId} was interrupted by a restart`);
+    let found: OrphanEgress[];
+    try {
+      found = (await this.deps.recorder.orphans?.(campaignId)) ?? [];
+    } catch (error) {
+      this.log(
+        `could not recover recording ${recordingId}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      await records.setRecordingStatus(recordingId, 'failed');
+      await records.addRecordingEvent({ recordingId, at: this.now(), event: 'interrupted' });
+      return;
+    }
+    const mine = found.filter((o) => o.recordingId === recordingId);
+    if (mine.length === 0) {
+      await records.setRecordingStatus(recordingId, 'failed');
+      await records.addRecordingEvent({ recordingId, at: this.now(), event: 'interrupted' });
+      return;
+    }
+    const live: Live = {
+      recordingId,
+      startedAt,
+      capturing: false,
+      segments: new Map(mine.map((o) => [o.egressId, o])),
+    };
+    await records.addRecordingEvent({ recordingId, at: this.now(), event: 'interrupted' });
+    await this.finishSegments(campaignId, live, true);
+    await records.addRecordingEvent({ recordingId, at: this.now(), event: 'stopped' });
+    await records.putRecording({
+      id: recordingId,
+      campaignId,
+      startedAt,
+      stoppedAt: this.now(),
+      status: 'stopped',
+    });
+    await this.deps.jobs.enqueue({ kind: PROCESS_RECORDING_JOB, recordingId }, this.now());
+    this.log(`recording ${recordingId}: recovered ${mine.length} egress(es); processing queued`);
   }
 
   // ---- internals ----
