@@ -1,9 +1,10 @@
-import { Badge, Button, Callout, Card, Flex, Heading, Text } from '@radix-ui/themes';
-import { useState } from 'react';
+import { Badge, Button, Callout, Card, Flex, Heading, Text, TextField } from '@radix-ui/themes';
+import { useEffect, useState } from 'react';
 
 import { useLoad } from '../../hooks/useLoad.js';
 import { clock, recordingTitle } from '../../lib/phone/format.js';
-import { recording, recordings, transcript } from '../../lib/phone/phoneApi.js';
+import { recording, recordings, searchHistory, transcript } from '../../lib/phone/phoneApi.js';
+import { hitLabel, snippetParts } from '../../lib/phone/search.js';
 import type { RecordingItem } from '../../types/phone.js';
 
 const STATUS_NOTE: Record<string, string> = {
@@ -30,6 +31,14 @@ export function HistoryTab({ token, campaignId }: { token: string; campaignId: s
   return (
     <Flex direction="column" gap="3" className="phone-pad">
       <Heading size="5">History</Heading>
+      <HistorySearch
+        token={token}
+        campaignId={campaignId}
+        onOpen={(id) => {
+          const found = list.find((r) => r.id === id);
+          if (found) setOpen(found);
+        }}
+      />
       {error && (
         <Callout.Root color="red">
           <Callout.Text>{error}</Callout.Text>
@@ -127,6 +136,68 @@ function RecordingView({
           ))}
         </Flex>
       )}
+    </Flex>
+  );
+}
+
+const MIN_QUERY = 2;
+const TYPING_PAUSE_MS = 400;
+
+/** A search box over everything said, typed and summarised. Waits for a pause in typing before asking. */
+function HistorySearch({
+  token,
+  campaignId,
+  onOpen,
+}: {
+  token: string;
+  campaignId: string;
+  onOpen: (recordingId: string) => void;
+}) {
+  const [text, setText] = useState('');
+  const [query, setQuery] = useState('');
+  useEffect(() => {
+    const t = setTimeout(() => setQuery(text.trim()), TYPING_PAUSE_MS);
+    return () => clearTimeout(t);
+  }, [text]);
+  const active = query.length >= MIN_QUERY;
+  const hits = useLoad(
+    () => (active ? searchHistory(token, campaignId, query) : Promise.resolve([])),
+    `${campaignId}:${active ? query : ''}`,
+  );
+  return (
+    <Flex direction="column" gap="2">
+      <TextField.Root
+        type="search"
+        placeholder="Search what was said"
+        aria-label="Search the history"
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+      />
+      {active && hits.error && <Text color="red">{hits.error}</Text>}
+      {active && !hits.loading && !hits.error && (hits.data?.length ?? 0) === 0 && (
+        <Text color="gray">Nothing found for “{query}”.</Text>
+      )}
+      {active &&
+        (hits.data ?? []).map((h, i) => (
+          <Card key={`${h.recordingId}:${i}`} asChild size="1">
+            <button
+              type="button"
+              className="phone-card-button"
+              onClick={() => onOpen(h.recordingId)}
+            >
+              <Flex direction="column" gap="1">
+                <Text size="1" color="gray">
+                  {hitLabel(h)}
+                </Text>
+                <Text size="2">
+                  {snippetParts(h.snippet).map((p, j) =>
+                    p.mark ? <mark key={j}>{p.text}</mark> : <span key={j}>{p.text}</span>,
+                  )}
+                </Text>
+              </Flex>
+            </button>
+          </Card>
+        ))}
     </Flex>
   );
 }

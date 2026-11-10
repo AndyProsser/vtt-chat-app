@@ -4,6 +4,7 @@ import type {
   HandoutItem,
   RecordingItem,
   RsvpStatus,
+  SearchHit,
   SessionItem,
   SummaryItem,
   Utterance,
@@ -134,4 +135,18 @@ export async function handoutFile(
   );
   if (!response.ok) throw new Error(`file ${response.status}`);
   return response.blob();
+}
+
+/** Searches what was said, typed and summarised in the campaign's recorded sessions. */
+export async function searchHistory(
+  token: string,
+  campaignId: string,
+  q: string,
+): Promise<SearchHit[]> {
+  const res = await request<{ hits: SearchHit[] }>(
+    'GET',
+    `/api/campaigns/${campaignId}/recordings/search?q=${encodeURIComponent(q)}`,
+    { token },
+  );
+  return res.hits;
 }

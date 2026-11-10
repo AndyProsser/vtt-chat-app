@@ -77,5 +77,19 @@ export function webPages(webDir: string): Router | undefined {
     res.setHeader('Cache-Control', 'no-cache');
     res.sendFile(phone);
   });
+  // The install manifest and its icons: a fixed list, so nothing else in the folder is reachable.
+  const installFiles: Record<string, string> = {
+    '/app.webmanifest': 'application/manifest+json',
+    '/app-icon-192.png': 'image/png',
+    '/app-icon-512.png': 'image/png',
+    '/apple-touch-icon.png': 'image/png',
+  };
+  router.get(Object.keys(installFiles), (req, res, next) => {
+    const file = resolve(root, req.path.slice(1));
+    if (!existsSync(file)) return next();
+    res.type(installFiles[req.path]!);
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    res.sendFile(file);
+  });
   return router;
 }

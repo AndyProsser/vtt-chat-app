@@ -45,12 +45,26 @@ the device out elsewhere (Settings → Sessions in the tray app) signs the phone
 - Light and dark follow the operating system. Radix's `inherit` appearance does **not** do that by itself, so a
   small hook (`useSystemAppearance`) tells it; the invite page and the status page had the same gap and use it too.
 
-## Left out on purpose (first cut)
+## Added after the first cut (2026-11-10)
 
-Voice (above). Search across history (the API has it; the screen does not). Push notifications when the phone app
-is closed (a web page cannot be woken without a push service, which would be a third party; the tray app is the
-answer for that). Handout zoom and flip, and the DM's tools: those stay in the tray app. An installable
-"add to home screen" manifest and offline use.
+- **History search.** A box above the session list; it waits for a pause in typing, then asks the records
+  search (the same API and the same DM-only rule as the tray app). A hit shows who said or typed it and when,
+  with the matched words highlighted, and opens that session. The server sends the snippet as escaped text with
+  `<mark>` tags; the page splits it into parts and draws the marks itself, so it never treats text as HTML.
+- **Handout viewer.** Tap a picture to open it full screen: flip between a set's pictures with the buttons or a
+  sideways swipe (wrapping round), and zoom to pan around a map. A swipe only flips while the picture fits; when
+  zoomed, a drag pans. It is always dark inside, in both themes.
+- **Install to the home screen.** `/app.webmanifest`, three icons and the iOS meta tags. The server serves
+  exactly those four files from the web folder and nothing else in it. There is deliberately **no service worker**:
+  the app is live chat, so an offline shell would only show a stale page that cannot do anything. Whether a given
+  browser offers "Install" without one is unverified; "Add to Home Screen" works without it on iOS and Android.
+
+## Left out on purpose
+
+Voice (above). Push notifications when the phone app is closed (a web page cannot be woken without a push
+service, which would be a third party; the tray app is the answer for that). The DM's tools: those stay in the
+tray app. Offline use. Pinch-zoom with two fingers inside the viewer is the browser's own; there is no custom
+gesture code.
 
 ## Not verified
 

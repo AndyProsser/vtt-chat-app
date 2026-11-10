@@ -5,6 +5,7 @@ import { useLoad } from '../../hooks/useLoad.js';
 import { blobToDataUrl } from '../../lib/phone/dataUrl.js';
 import { handoutFile, handouts } from '../../lib/phone/phoneApi.js';
 import type { HandoutItem } from '../../types/phone.js';
+import { PictureViewer } from './PictureViewer.js';
 
 const KIND_LABEL = { text: 'Note', image: 'Pictures', map: 'Map', pdf: 'PDF' } as const;
 
@@ -96,6 +97,7 @@ function Pictures({
 }) {
   const [urls, setUrls] = useState<(string | undefined)[]>([]);
   const [error, setError] = useState<string>();
+  const [viewing, setViewing] = useState<number>();
   useEffect(() => {
     let current = true;
     setUrls([]);
@@ -111,16 +113,20 @@ function Pictures({
       current = false;
     };
   }, [item.id, item.fileCount, token, campaignId]);
+  const ready = urls.filter((u): u is string => u !== undefined);
   return (
     <Flex direction="column" gap="3">
       {Array.from({ length: Math.max(1, item.fileCount) }, (_, i) =>
         urls[i] ? (
-          <img
+          <button
             key={i}
-            src={urls[i]}
-            alt={`${item.title}, picture ${i + 1}`}
-            className="phone-picture"
-          />
+            type="button"
+            className="phone-picture-button"
+            aria-label={`Open picture ${i + 1} full screen`}
+            onClick={() => setViewing(i)}
+          >
+            <img src={urls[i]} alt={`${item.title}, picture ${i + 1}`} className="phone-picture" />
+          </button>
         ) : (
           <div key={i} className="phone-picture phone-picture-loading" aria-busy />
         ),
@@ -129,6 +135,14 @@ function Pictures({
         <Text size="2" color="red" role="alert">
           {error}
         </Text>
+      )}
+      {viewing !== undefined && ready.length === Math.max(1, item.fileCount) && (
+        <PictureViewer
+          urls={ready}
+          title={item.title}
+          start={viewing}
+          onClose={() => setViewing(undefined)}
+        />
       )}
     </Flex>
   );

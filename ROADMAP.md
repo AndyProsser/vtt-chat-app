@@ -59,7 +59,7 @@ flowchart LR
 2. **UI/UX fine-tuning** from what step 1 turns up, starting with **listening to the four new voices** and the importer's ambience and music loops (run `npm run sounds:import -- --from <dir> --category ambience`).
 3. **Purge defaults** (age-based retention is built; still open: purge when the DM confirms a summary, and a warning to the DM first), the recorded 4-hour soak, then a server restart mid-recording (Stage 9).
 4. **Second-person deploy test** from the docs on a blank VM (Stage 3).
-5. **Mobile SPA** (Stage 7): built as a first cut; open it on a real phone (`/app`) and try it on iOS Safari. Later: search, an install manifest.
+5. **Mobile SPA** (Stage 7): built, with history search, a handout viewer (flip and zoom) and an install manifest added 2026-11-10; open it on a real phone (`/app`) and try it on iOS Safari.
 6. **D&D Beyond:** AC, passive perception, max HP and ability scores are built (2026-11-10, worked out by us); compare the first real sheets against D&D Beyond. Later: saves, skills, Unarmored Defense.
 7. **Decide the audio engine default** after trying the mixer on the dev PC (latency, CPU, echo with real speakers, Bluetooth and USB headsets, hour-long drift). Flip the default only when it has been better than the platform path for a few real sessions.
 8. **Try the optional sound-card backends and RNNoise** once the mixer is validated: cpal 0.18's `pipewire`, `pulseaudio` and `jack` cargo features (off today; Linux uses ALSA, which PipeWire serves; they need the PipeWire/PulseAudio dev libraries in the Docker image and CI), (RNNoise itself is built: [AUDIO-MIXER.md](docs/architecture/AUDIO-MIXER.md); it needs a listening test; the 50/60 Hz hum notch filters are built ahead of it). cpal is now 0.18.2 (decided 2026-11-09); see [AUDIO-MIXER.md](docs/architecture/AUDIO-MIXER.md).
@@ -211,7 +211,7 @@ The riskiest unknowns are all "does this actually work on real machines with ope
 
 ## Stage 7 — Mobile SPA
 
-**Status:** 🟡 First cut built 2026-11-10 ([MOBILE-WEB-APP.md](docs/architecture/MOBILE-WEB-APP.md)): sign-in, chat with whispers, sessions with RSVP, handouts, history with summaries and transcripts. Exercised in a phone-sized headless browser; **not tried on a real phone**. No voice, by decision (the tray app owns audio)
+**Status:** 🟡 First cut built 2026-11-10 ([MOBILE-WEB-APP.md](docs/architecture/MOBILE-WEB-APP.md)): sign-in, chat with whispers, sessions with RSVP, handouts, history with summaries, transcripts and search, a handout viewer, and an install manifest. Exercised in a phone-sized headless browser; **not tried on a real phone**. No voice, by decision (the tray app owns audio)
 **Depends on:** Stage 3 (API), Stage 6 (content)
 
 `web/`: a basic mobile-first SPA designed more for messages than gaming — messages, RSVP, handouts, history/summaries, and possibly basic listen/talk (open question). Served by the box by default; Cloudflare Pages is an optional adapter.

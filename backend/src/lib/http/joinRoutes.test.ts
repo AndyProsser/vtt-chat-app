@@ -127,6 +127,19 @@ describe('the join page backend', () => {
     expect(joinPage.headers.get('content-security-policy')).not.toContain('blob:');
   });
 
+  it('serves the phone app’s install manifest and icons, and only those files from the folder', async () => {
+    await writeFile(join(webDir, 'app.webmanifest'), '{"name":"VTT Chat"}');
+    await writeFile(join(webDir, 'app-icon-192.png'), 'png');
+    await writeFile(join(webDir, 'secret.txt'), 'no');
+    const manifest = await fetch(`${base}/app.webmanifest`);
+    expect(manifest.status).toBe(200);
+    expect(manifest.headers.get('content-type')).toContain('manifest+json');
+    expect(await manifest.text()).toContain('VTT Chat');
+    expect((await fetch(`${base}/app-icon-192.png`)).status).toBe(200);
+    expect((await fetch(`${base}/secret.txt`)).status).toBe(404);
+    expect((await fetch(`${base}/app-icon-512.png`)).status).toBe(404);
+  });
+
   it('serves no pages when no web directory is configured', async () => {
     const store = await backend.reset();
     const app = createApp({ config: config(undefined), store });

@@ -77,3 +77,13 @@ export interface Utterance {
 }
 
 export type LiveState = 'connecting' | 'live' | 'offline';
+
+/** One match from the history search. The snippet is escaped text with the matches in <mark> tags. */
+export interface SearchHit {
+  recordingId: string;
+  source: 'transcript' | 'summary' | 'chat';
+  kind?: string;
+  speakerName?: string;
+  atMs?: number;
+  snippet: string;
+}
