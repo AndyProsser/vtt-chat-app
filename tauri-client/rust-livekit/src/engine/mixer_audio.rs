@@ -44,7 +44,7 @@ pub struct MixerAudio {
 }
 
 impl MixerAudio {
-    pub fn new(runtime: tokio::runtime::Handle) -> Arc<Self> {
+    pub fn new(runtime: tokio::runtime::Handle, auto_gain: bool) -> Arc<Self> {
         let source = NativeAudioSource::new(
             // WebRTC's own processing already ran in `Duplex`; the source must not process again.
             AudioSourceOptions {
@@ -78,7 +78,10 @@ impl MixerAudio {
             })
             .expect("feeder thread");
         let duplex = Duplex::new(
-            ProcessingOptions::default(),
+            ProcessingOptions {
+                gain_control: auto_gain,
+                ..Default::default()
+            },
             Box::new(move |block: &[f32]| {
                 let _ = tx.send(block.to_vec());
             }),

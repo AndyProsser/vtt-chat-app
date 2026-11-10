@@ -282,6 +282,15 @@ body,
 .vtt-meter .vtt-meter-on {
   background: var(--vtt-glow);
 }
+.vtt-meter .vtt-meter-on[data-zone='ok'] {
+  background: #3fb97a;
+}
+.vtt-meter .vtt-meter-on[data-zone='warm'] {
+  background: #e3a73b;
+}
+.vtt-meter .vtt-meter-on[data-zone='hot'] {
+  background: #e5484d;
+}
 .vtt-meter[data-dim='true'] {
   opacity: 0.4;
 }

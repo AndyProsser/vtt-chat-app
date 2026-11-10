@@ -10,6 +10,7 @@ import {
   audioDeviceChoose,
   audioDevices,
   audioEngineSet,
+  autoGainSet,
   micGainSet,
   type AudioDeviceList,
 } from '../../lib/tauriBridge.js';
@@ -29,6 +30,7 @@ export function AudioSection() {
   const engine = useAudioEngine();
   const [chosen, setChosen] = useState<'mixer' | 'platform'>();
   const [gain, setGain] = useState<number>();
+  const [auto, setAuto] = useState<boolean>();
   const running = engine?.active === 'mixer';
   const level = useMicLevel(running);
   useEffect(() => {
@@ -99,6 +101,20 @@ export function AudioSection() {
             {(chosen ?? engine.engine) === (engine.active ?? engine.engine)
               ? 'Per-person volume, microphone volume, a live level, and echo cancellation for character voices.'
               : 'Takes effect the next time you join voice (leave and join again).'}
+          </span>
+          <SettingRow label="Adjust microphone volume automatically">
+            <Switch
+              aria-label="Adjust microphone volume automatically"
+              checked={auto ?? engine.autoGain}
+              onCheckedChange={(on) => {
+                setAuto(on);
+                void autoGainSet(on).catch((e: unknown) => setError(accountErrorMessage(e)));
+              }}
+            />
+          </SettingRow>
+          <span className="vtt-muted">
+            Keeps quiet and loud talkers at a similar level. Switch it off to set the volume
+            yourself. Takes effect the next time you join voice.
           </span>
           {running && (
             <SettingRow label="Microphone volume">

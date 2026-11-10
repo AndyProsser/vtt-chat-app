@@ -40,6 +40,7 @@ commands.allow = [
   "audio_engine",
   "audio_engine_set",
   "mic_gain_set",
+  "auto_gain_set",
   "mic_level",
   "player_volume_set",
   "audio_device_choose",

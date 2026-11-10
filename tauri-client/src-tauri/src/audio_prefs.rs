@@ -15,6 +15,8 @@ pub struct AudioPrefs {
     pub engine: Option<String>,
     /// Microphone volume (mixer engine only), 0 to 4; `None` is 1.
     pub mic_gain: Option<f32>,
+    /// Adjust the microphone volume automatically; `None` is on. Fixed for the length of a call.
+    pub auto_gain: Option<bool>,
     /// Each person's volume (mixer engine only), by account id, 0 to 2.
     pub volumes: std::collections::HashMap<String, f32>,
 }
@@ -36,6 +38,10 @@ impl AudioPrefs {
             dir.join(FILE_NAME),
             serde_json::to_string_pretty(self).map_err(std::io::Error::other)?,
         )
+    }
+
+    pub fn auto_gain_on(&self) -> bool {
+        self.auto_gain.unwrap_or(true)
     }
 
     pub fn uses_mixer(&self) -> bool {
@@ -63,6 +69,10 @@ mod tests {
         assert_eq!(prefs.input.as_deref(), Some("mic"));
         assert!(!prefs.uses_mixer());
         assert!(prefs.volumes.is_empty());
+        assert!(
+            prefs.auto_gain_on(),
+            "automatic volume is on unless switched off"
+        );
     }
 
     #[test]
@@ -70,6 +80,7 @@ mod tests {
         let mut prefs = AudioPrefs {
             engine: Some("mixer".into()),
             mic_gain: Some(1.5),
+            auto_gain: Some(false),
             ..Default::default()
         };
         prefs.volumes.insert("user-1".into(), 0.5);
@@ -77,6 +88,7 @@ mod tests {
             serde_json::from_str(&serde_json::to_string(&prefs).unwrap()).unwrap();
         assert_eq!(back, prefs);
         assert!(back.uses_mixer());
+        assert!(!back.auto_gain_on());
     }
 
     #[test]

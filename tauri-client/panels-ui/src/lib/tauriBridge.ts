@@ -210,6 +210,8 @@ export interface AudioEngineState {
   engine: 'mixer' | 'platform';
   active: 'mixer' | 'platform' | null;
   micGain: number;
+  /** Adjust the microphone volume automatically (chosen for the next call). */
+  autoGain: boolean;
   volumes: Record<string, number>;
 }
 export const audioEngine = () => invoke<AudioEngineState>('audio_engine');
@@ -217,6 +219,8 @@ export const audioEngineSet = (engine: 'mixer' | 'platform') =>
   invoke<void>('audio_engine_set', { engine });
 /** Microphone volume, 0 to 4 (new engine only). */
 export const micGainSet = (gain: number) => invoke<void>('mic_gain_set', { gain });
+/** Automatic microphone volume on or off; takes effect the next time you join voice. */
+export const autoGainSet = (on: boolean) => invoke<void>('auto_gain_set', { on });
 /** The microphone's level right now, 0 to 1, or `null` when the new engine is not running. */
 export const micLevel = () => invoke<number | null>('mic_level');
 /** One person's volume, 0 to 2 (new engine only). */

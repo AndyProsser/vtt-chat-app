@@ -74,6 +74,15 @@ stable device ids. The PipeWire, PulseAudio and JACK backends are opt-in cargo f
 5 seconds because repeated enumeration leaks on some Windows backends (cpal#802). Device ids are
 still device names, so saved choices keep working.
 
+## Automatic microphone volume
+
+WebRTC's gain controller was always on; 2026-11-10 it became a setting (Settings, Audio; default on,
+`autoGain` in audio.json). It is fixed when a call starts, so a change applies at the next join. It
+applies to both engines. Off means the microphone-volume slider is the only gain. A noise gate with an
+automatic threshold (for table noise on open mics) is deliberately separate and not built; it goes
+with RNNoise (ROADMAP step 8). The level meter is green, amber from about -15 dB and red on the last
+bar; the platform engine can only show on/off because the SDK exposes no level.
+
 ## Not verified (needs the dev PC)
 
 Everything past the unit tests: real device behaviour on Windows and Linux (including USB headsets and Bluetooth), measured latency, drift over an hour, CPU, and what it sounds like. `docs/BUILD-STATUS.md` tracks it.

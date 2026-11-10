@@ -108,6 +108,7 @@ pub fn run() {
             commands::audio_engine,
             commands::audio_engine_set,
             commands::mic_gain_set,
+            commands::auto_gain_set,
             commands::mic_level,
             commands::player_volume_set,
             account_commands::auth_providers,

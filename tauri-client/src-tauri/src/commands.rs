@@ -84,10 +84,15 @@ pub async fn connect_voice(app: &AppHandle, url: &str, token: &str) -> Result<()
         };
         Box::pin(async move { Ok(info) })
     });
-    let client =
-        LiveKitClient::connect_with_backend(provider, callback, speakers_callback, backend)
-            .await
-            .map_err(|err| err.to_string())?;
+    let client = LiveKitClient::connect_with_backend(
+        provider,
+        callback,
+        speakers_callback,
+        backend,
+        prefs.auto_gain_on(),
+    )
+    .await
+    .map_err(|err| err.to_string())?;
 
     // The microphone and speaker the player chose last time (a missing device keeps the default).
     if let Err(message) = client.use_devices(prefs.input.as_deref(), prefs.output.as_deref()) {
@@ -394,6 +399,7 @@ pub fn audio_engine(app: AppHandle, state: State<'_, SharedClient>) -> serde_jso
         "engine": if prefs.uses_mixer() { "mixer" } else { "platform" },
         "active": active,
         "micGain": prefs.mic_gain.unwrap_or(1.0),
+        "autoGain": prefs.auto_gain_on(),
         "volumes": prefs.volumes,
     })
 }
@@ -407,6 +413,15 @@ pub fn audio_engine_set(app: AppHandle, engine: String) -> Result<(), String> {
     let dir = crate::account::data_dir(&app).ok_or("no place to save the choice")?;
     let mut prefs = crate::audio_prefs::AudioPrefs::load(&dir);
     prefs.engine = Some(engine);
+    prefs.save(&dir).map_err(|e| e.to_string())
+}
+
+/// Turns automatic microphone volume on or off. Takes effect the next time the player joins voice.
+#[tauri::command]
+pub fn auto_gain_set(app: AppHandle, on: bool) -> Result<(), String> {
+    let dir = crate::account::data_dir(&app).ok_or("no place to save the choice")?;
+    let mut prefs = crate::audio_prefs::AudioPrefs::load(&dir);
+    prefs.auto_gain = Some(on);
     prefs.save(&dir).map_err(|e| e.to_string())
 }
 
