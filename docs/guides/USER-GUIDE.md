@@ -52,6 +52,12 @@ The window has, from top to bottom:
 Nothing joins voice by itself. The app opens **Offline**; choose Online when you want to talk
 ([section 3](#3-status-online-away-offline)).
 
+**While the window is closed or behind others**, the tray icon gets an **orange dot** when something new
+arrived (hover for the count; opening the window clears it). Public chat gives the dot. During a game
+(you are in voice and a recording is running), whispers and shared handouts also give the dot and a
+desktop notification; outside a game, whispers wait for you in the chat. Session reminders and changes, and
+"summary ready", always pop up. Details: [NOTIFICATIONS.md](../architecture/NOTIFICATIONS.md).
+
 ## 3. Status: Online, Away, Offline
 
 One switch says whether you are at the table. It is the **dot beside the Settings button**, the **Status**
@@ -152,7 +158,7 @@ you hear it first.
 ## 9. Sessions and reminders
 
 The DM schedules sessions (date, time, length). You see the next one in **Settings → Sessions**, and you can
-answer **Can make it / Late / Can't**. The server sends reminders 24 hours and 1 hour before. Showing them as desktop notifications, with an unread badge on the tray icon, is being built (see [the roadmap](../../ROADMAP.md)); until then they appear in the app when you open it.
+answer **Can make it / Late / Can't**. The server sends reminders 24 hours and 1 hour before. They also show as a desktop notification, even when the app is hidden.
 
 ## 10. Your character and settings
 
