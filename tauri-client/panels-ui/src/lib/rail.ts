@@ -48,14 +48,16 @@ export function memberAvatar(m: Member): string | undefined {
   return m.character?.avatarUrl || m.avatarUrl || undefined;
 }
 
-export type RailState = 'offline' | 'away' | 'online' | 'voice';
+export type RailState = 'disconnected' | 'offline' | 'away' | 'online' | 'voice';
 
 /**
- * How a person shows on the rail: Offline when not connected or when they chose Offline, Away (amber),
- * Online for chat only, and "voice" once they are in the room (the dot then shows call quality).
+
+ * How a person shows on the rail: Disconnected (app closed or signed out), Offline (they chose it; chat
+ * still works), Away (amber), Online for chat only, and "voice" once they are in the room.
  */
 export function railState(m: Pick<Member, 'online' | 'inVoice' | 'status'>): RailState {
-  if (!m.online || m.status === 'offline') return 'offline';
+  if (!m.online) return 'disconnected';
+  if (m.status === 'offline') return 'offline';
   if (m.status === 'away') return 'away';
   return m.inVoice ? 'voice' : 'online';
 }

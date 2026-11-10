@@ -144,6 +144,9 @@ body,
 .vtt-av-offline {
   opacity: 0.35;
 }
+.vtt-av-idle {
+  opacity: 0.6;
+}
 .vtt-av-badge {
   position: absolute;
   right: -3px;
@@ -1044,15 +1047,8 @@ body,
   border-radius: 50%;
   background: var(--vtt-edge);
 }
-.vtt-card-dot-good,
-.vtt-card-dot-unknown {
+.vtt-card-dot-voice {
   background: #2eb86c;
-}
-.vtt-card-dot-fair {
-  background: #e0a12b;
-}
-.vtt-card-dot-poor {
-  background: #e53935;
 }
 .vtt-card-dot-online {
   background: transparent;
@@ -1064,6 +1060,12 @@ body,
 }
 .vtt-card-dot-offline {
   background: #7d7d85;
+}
+.vtt-card-dot-disconnected {
+  background: transparent;
+  border: 2px solid #7d7d85;
+  box-sizing: border-box;
+  opacity: 0.6;
 }
 
 .vtt-settings-pop {

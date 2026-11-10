@@ -8,8 +8,6 @@ import { useIsSpeaking } from '../hooks/useIsSpeaking.js';
 import { avatarColor } from '../lib/avatarColor.js';
 import { initials, memberAvatar, memberCard, railState } from '../lib/rail.js';
 import type { Member } from '../types/index.js';
-import { linkQuality } from '../lib/linkQuality.js';
-import { useStatsStore } from '../lib/statsStore.js';
 import { Portrait } from './Portrait.js';
 
 /**
@@ -34,7 +32,8 @@ export const RailAvatar = memo(function RailAvatar({
     'vtt-av',
     member.role === 'dm' ? 'vtt-av-dm' : '',
     speaking ? 'vtt-av-speaking' : '',
-    railState(member) === 'offline' ? 'vtt-av-offline' : '',
+    railState(member) === 'disconnected' ? 'vtt-av-offline' : '',
+    railState(member) === 'offline' ? 'vtt-av-idle' : '',
   ].join(' ');
   const muted = member.online && member.inVoice && member.muted;
   return (
@@ -76,23 +75,15 @@ export const RailAvatar = memo(function RailAvatar({
   );
 });
 
-/**
- * Top-right of the hover card: grey when offline, an outlined dot when online but not in voice, and
- * otherwise the call quality (green, amber, red; green until the DM's link report arrives). One
- * primitive selector, so only a change of quality re-renders it.
- */
+/** Top-right of the hover card: how this person is showing right now (not their call quality). */
 function StatusDot({ member }: { member: Member }) {
-  const quality = useStatsStore((s) => linkQuality(s.byUser.get(member.userId)));
-  const rail = railState(member);
-  const state = rail === 'voice' ? quality : rail;
+  const state = railState(member);
   const label = {
-    offline: 'Offline',
+    disconnected: 'Disconnected (app closed or signed out)',
+    offline: 'Offline (chat only)',
     away: 'Away',
     online: 'Online, not in voice',
-    good: 'In voice, good connection',
-    fair: 'In voice, fair connection',
-    poor: 'In voice, poor connection',
-    unknown: 'In voice',
+    voice: 'Online, in voice',
   }[state];
   return (
     <i

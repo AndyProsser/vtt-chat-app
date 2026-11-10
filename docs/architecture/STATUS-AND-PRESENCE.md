@@ -16,9 +16,11 @@ Decided 2026-11-10 (Andy). One switch for "am I at the table?", shown to everyon
   hotkey, which brings the window forward). The tray's Mute item is disabled while Offline.
 - **Unmuting by hand while Away** means the player is back: the status becomes Online.
 - **A failed voice join** puts the status back to Offline and shows the error.
-- **Offline is the player's statement, not the connection's.** Someone with chat open who chose Offline
-  shows as Offline on the rail (dimmed). The dot colours: green online/in voice (call quality for the DM),
-  amber away, grey offline.
+- **Four things show on the rail**, as a dot on the person's hover card and a dimmed avatar:
+  **Online** (green; outlined until they are in voice), **Away** (amber), **Offline** (grey: they
+  chose it, chat still works) and **Disconnected** (hollow grey ring, most dimmed: the app is closed
+  or they are signed out, so nothing they last chose applies). The dot does not show call quality; the
+  DM's connection screen does.
 
 ## Away detection
 

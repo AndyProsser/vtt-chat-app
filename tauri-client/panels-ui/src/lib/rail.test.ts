@@ -112,9 +112,12 @@ describe('memberAvatar', () => {
 });
 
 describe('railState', () => {
-  it('shows a connected person as offline when they chose Offline', () => {
+  it('shows someone whose app is closed or signed out as disconnected, whatever they last chose', () => {
+    expect(railState({ online: false, inVoice: true, status: 'online' })).toBe('disconnected');
+    expect(railState({ online: false, inVoice: false, status: 'offline' })).toBe('disconnected');
+  });
+  it('shows a connected person who chose Offline as offline, not disconnected', () => {
     expect(railState({ online: true, inVoice: false, status: 'offline' })).toBe('offline');
-    expect(railState({ online: false, inVoice: true, status: 'online' })).toBe('offline');
   });
   it('shows Away, chat-only Online, and in-voice Online', () => {
     expect(railState({ online: true, inVoice: true, status: 'away' })).toBe('away');
