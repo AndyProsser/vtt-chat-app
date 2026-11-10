@@ -23,6 +23,8 @@ export interface RecordingTrack {
   /** Whispers and private-channel audio: never transcribed, never summarised. */
   private: boolean;
   transcribedAt: number | null;
+  /** When the raw audio file was deleted (retention or `vtt-admin recording purge`); the text stays. */
+  purgedAt?: number | null;
 }
 
 export type RecordingEventName =

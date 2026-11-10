@@ -206,16 +206,17 @@ Runtime settings (no restart) live in the database: `./vtt-admin settings show`.
 
 **The admin command** (`./vtt-admin` in `infra/compose`; natively `node backend/dist/cli/main.js`):
 
-| Command                                                       | Use                                                              |
-| ------------------------------------------------------------- | ---------------------------------------------------------------- |
-| `status`                                                      | Is everything up? Exits 1 if not (good for monitoring)           |
-| `settings show` / `keys` / `set <key> <value>`                | Campaign creation, offline limit, invite expiry, AI backends     |
-| `user list`, `user admin <email> grant\|revoke`               | See accounts; make or remove an Admin                            |
-| `user code <email> [signin\|reset]`                           | One-time code for someone locked out                             |
-| `user revoke-sessions <email>`                                | Sign a person out everywhere (lost laptop)                       |
-| `jobs list [state]`, `jobs retry <id>`                        | Look at the summary queue; retry a failed job                    |
-| `recording list`, `recording reprocess <id> [--retranscribe]` | Redo a recording's summaries (or transcript) from the kept audio |
-| `updates publish …`, `updates status`                         | Publish an app update; see what players are offered              |
+| Command                                                       | Use                                                                          |
+| ------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `status`                                                      | Is everything up? Exits 1 if not (good for monitoring)                       |
+| `settings show` / `keys` / `set <key> <value>`                | Campaign creation, offline limit, invite expiry, AI backends                 |
+| `user list`, `user admin <email> grant\|revoke`               | See accounts; make or remove an Admin                                        |
+| `user code <email> [signin\|reset]`                           | One-time code for someone locked out                                         |
+| `user revoke-sessions <email>`                                | Sign a person out everywhere (lost laptop)                                   |
+| `jobs list [state]`, `jobs retry <id>`                        | Look at the summary queue; retry a failed job                                |
+| `recording list`, `recording reprocess <id> [--retranscribe]` | Redo a recording's summaries (or transcript) from the kept audio             |
+| `recording purge <id>` or `--older-than <days>`               | Delete the raw audio of processed recordings (transcript and summaries stay) |
+| `updates publish …`, `updates status`                         | Publish an app update; see what players are offered                          |
 
 **Logs:** Compose: `docker compose logs -f backend` (also `livekit`, `egress`, `worker`, `caddy`).
 Native: `journalctl -u vtt-backend -f` (also `vtt-livekit`, `vtt-worker`, `caddy`).
@@ -223,9 +224,13 @@ Native: `journalctl -u vtt-backend -f` (also `vtt-livekit`, `vtt-worker`, `caddy
 **Watching it:** `https://your-domain/status` shows backend, database, LiveKit and the records queue,
 the number of connected players and whether a recording is active. It is public and shows nothing private.
 
-**Disk:** recordings and uploads grow. There is **no automatic cleanup yet** (raw-audio purging after a
-summary is confirmed is on the roadmap): check `df -h` now and then; recordings live in the `recordings`
-volume (Compose) or `/var/lib/vtt/recordings` (native).
+**Disk:** recordings and uploads grow, and the raw audio is by far the biggest part. Set
+`RECORDING_RETENTION_DAYS` (for example `60`) in `.env` and the worker deletes the audio of processed
+recordings that old, keeping the transcript and summaries; or do it yourself with
+`./vtt-admin recording purge --older-than 60`. `./vtt-admin recording list` shows which recordings still have
+their audio. There is no disk-usage figure in the tools yet: use `df -h`, and `du -sh` on the recordings volume
+(Compose: `docker system df -v`; native: `/var/lib/vtt/recordings`). Do not purge a recording you may want to
+**re-transcribe** with a better model: once the audio is gone only the summaries can be redone.
 
 **Health you can rely on:** the app reconnects itself after network loss, sleep or a server restart. A
 recording survives the DM's app crashing (see section 6). A **server** restart during a recording marks

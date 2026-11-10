@@ -186,6 +186,19 @@ describe('reading history', () => {
     expect(asDm.body.recordings[0].summaries.sort()).toEqual(['dm-only', 'session']);
   });
 
+  it('tells the DM, and only the DM, whether the raw audio is still kept', async () => {
+    const id = await seed();
+    const dmView = () =>
+      call('GET', `/api/campaigns/${campaign}/recordings`, dm.token).then(
+        (r) => r.body.recordings[0],
+      );
+    expect((await dmView()).audio).toBe('kept');
+    for (const t of await records.listTracks(id)) await records.markTrackPurged(t.id, 7);
+    expect((await dmView()).audio).toBe('purged');
+    const asPlayer = await call('GET', `/api/campaigns/${campaign}/recordings`, player.token);
+    expect(asPlayer.body.recordings[0].audio).toBeUndefined();
+  });
+
   it('DM-only summaries are returned to the DM alone', async () => {
     const id = await seed();
     const asPlayer = (

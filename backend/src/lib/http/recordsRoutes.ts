@@ -61,6 +61,16 @@ export function recordsRoutes(deps: RecordsRouteDeps): Router {
     return recording;
   }
 
+  /** Whether a recording's raw audio is still on the server: all of it, none of it, or some. */
+  const audioState = async (
+    recordingId: string,
+  ): Promise<'kept' | 'purged' | 'partly' | 'none'> => {
+    const tracks = await records.listTracks(recordingId);
+    if (tracks.length === 0) return 'none';
+    const purged = tracks.filter((t) => (t.purgedAt ?? null) !== null).length;
+    return purged === 0 ? 'kept' : purged === tracks.length ? 'purged' : 'partly';
+  };
+
   const visible = (summaries: StoredSummary[], isDm: boolean) =>
     summaries.filter((s) => s.visibility === 'members' || isDm);
 
@@ -76,6 +86,8 @@ export function recordsRoutes(deps: RecordsRouteDeps): Router {
         stoppedAt: r.stoppedAt,
         status: r.status,
         summaries: summaries.map((s) => s.kind),
+        // Retention is the operator's and the DM's business: players are not told.
+        ...(isDm ? { audio: await audioState(r.id) } : {}),
       });
     }
     res.json({ recordings: items });

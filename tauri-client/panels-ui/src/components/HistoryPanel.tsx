@@ -197,6 +197,7 @@ function Recording({
             {durationLabel(item.startedAt, item.stoppedAt)}
             {item.status !== 'processed' ? ` · ${statusWord(item.status)}` : ''}
             {item.summaries.length > 0 ? ` · ${item.summaries.map(summaryLabel).join(', ')}` : ''}
+            {dm && item.audio === 'purged' ? ' · audio deleted' : ''}
           </span>
         </span>
         {open ? <ChevronDown size={16} /> : <ChevronRight size={16} />}

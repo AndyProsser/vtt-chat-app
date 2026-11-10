@@ -202,8 +202,12 @@ services:
       OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.2:3b}
       WHISPER_API_KEY: ${WHISPER_API_KEY:-}
       LLM_API_KEY: ${LLM_API_KEY:-}
+      # Delete raw audio this many days after a recording is processed (blank or 0: keep it).
+      RECORDINGS_DIR: /out
+      RECORDING_RETENTION_DAYS: ${RECORDING_RETENTION_DAYS:-}
     volumes:
-      - recordings:/out:ro
+      # Writable so the worker can purge raw audio (retention or `vtt-admin recording purge`).
+      - recordings:/out
 
   caddy:
     image: caddy:2-alpine

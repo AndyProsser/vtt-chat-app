@@ -5,6 +5,8 @@ export interface RecordingItem {
   stoppedAt: number | null;
   status: string;
   summaries: string[];
+  /** The DM's view of retention: is the raw audio still on the server? */
+  audio?: 'kept' | 'purged' | 'partly' | 'none';
 }
 export interface SummaryView {
   kind: string;

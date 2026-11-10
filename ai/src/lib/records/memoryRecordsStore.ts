@@ -36,6 +36,24 @@ export class MemoryRecordsStore implements RecordsStore {
   listRecordingEvents = async (recordingId: string) =>
     this.events.filter((e) => e.recordingId === recordingId).map((e) => ({ ...e }));
 
+  markTrackPurged = async (trackId: string, at: number) => {
+    const track = this.tracks.get(trackId);
+    if (track) track.purgedAt = at;
+  };
+  listPurgeableRecordings = async (stoppedBefore: number, limit: number) =>
+    [...this.recordings.values()]
+      .filter(
+        (r) =>
+          r.status === 'processed' &&
+          r.stoppedAt !== null &&
+          r.stoppedAt < stoppedBefore &&
+          [...this.tracks.values()].some(
+            (t) => t.recordingId === r.id && (t.purgedAt ?? null) === null,
+          ),
+      )
+      .sort((a, b) => (a.stoppedAt ?? 0) - (b.stoppedAt ?? 0))
+      .slice(0, limit);
+
   listTracks = async (recordingId: string) =>
     [...this.tracks.values()].filter((t) => t.recordingId === recordingId);
   putTrack = async (t: RecordingTrack) => void this.tracks.set(t.id, { ...t });

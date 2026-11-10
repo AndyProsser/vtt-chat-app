@@ -46,6 +46,7 @@ const toTrack = (r: Row): RecordingTrack => ({
   startOffsetMs: r.start_offset_ms as number,
   private: r.private as boolean,
   transcribedAt: (r.transcribed_at as number | null) ?? null,
+  purgedAt: (r.purged_at as number | null) ?? null,
 });
 
 /** The records tables of `backend/migrations/0003_records.sql`. */
@@ -174,6 +175,24 @@ export class PostgresRecordsStore implements RecordsStore {
       });
     }
     return out;
+  }
+
+  async markTrackPurged(trackId: string, at: number): Promise<void> {
+    await this.pool.query('UPDATE recording_tracks SET purged_at = $2 WHERE id = $1', [
+      trackId,
+      at,
+    ]);
+  }
+
+  async listPurgeableRecordings(stoppedBefore: number, limit: number): Promise<Recording[]> {
+    const { rows } = await this.pool.query<Row>(
+      `SELECT r.* FROM recordings r
+        WHERE r.status = 'processed' AND r.stopped_at IS NOT NULL AND r.stopped_at < $1
+          AND EXISTS (SELECT 1 FROM recording_tracks t WHERE t.recording_id = r.id AND t.purged_at IS NULL)
+        ORDER BY r.stopped_at, r.id LIMIT $2`,
+      [stoppedBefore, limit],
+    );
+    return rows.map(toRecording);
   }
 
   async listRecordings(limit: number): Promise<Recording[]> {

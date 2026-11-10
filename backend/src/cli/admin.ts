@@ -6,7 +6,12 @@ import {
   validateAiSettings,
 } from '@vtt-chat-app/shared';
 
-import { PROCESS_RECORDING_JOB, type JobQueue, type RecordsStore } from '@vtt-chat-app/ai';
+import {
+  PROCESS_RECORDING_JOB,
+  PURGE_RECORDING_JOB,
+  type JobQueue,
+  type RecordsStore,
+} from '@vtt-chat-app/ai';
 
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -61,6 +66,8 @@ const USAGE = `vtt-admin — system operations for this instance (gameplay is ma
   jobs list [queued|running|done|failed] records-pipeline jobs, newest last
   jobs retry <job-id>                    put a failed job back in the queue
   recording list                         recent recordings and their status
+  recording purge <id> | --older-than <days>
+                                         delete the raw audio of processed recordings (the text stays)
   recording reprocess <id> [--retranscribe]
                                          redo the summaries (and with the flag, the transcripts) from the kept audio
   updates publish <dir> --version <v> --base-url <url> [--notes <text>]
@@ -461,7 +468,18 @@ async function recordings(
       for (const r of list) {
         const when = new Date(r.startedAt).toISOString().slice(0, 16).replace('T', ' ');
         const tracks = await deps.records.listTracks(r.id);
-        deps.out(`${r.id}  ${r.status.padEnd(10)} ${when}  ${tracks.length} track(s)`);
+        const purged = tracks.filter((t) => (t.purgedAt ?? null) !== null).length;
+        const audio =
+          tracks.length === 0
+            ? ''
+            : purged === 0
+              ? 'audio kept'
+              : purged === tracks.length
+                ? 'audio purged'
+                : 'audio partly purged';
+        deps.out(
+          `${r.id}  ${r.status.padEnd(10)} ${when}  ${tracks.length} track(s)  ${audio}`.trimEnd(),
+        );
       }
       if (list.length === 0) deps.out('no recordings');
       return 0;
@@ -480,6 +498,15 @@ async function recordings(
         throw new SettingError('that recording is still in progress; stop it first');
       }
       const transcripts = flags.includes('--retranscribe');
+      if (
+        transcripts &&
+        (await deps.records.listTracks(id)).some((t) => (t.purgedAt ?? null) !== null)
+      ) {
+        throw new SettingError(
+          'the raw audio of that recording has been purged, so it cannot be transcribed again; ' +
+            'reprocess without --retranscribe to redo only the summaries',
+        );
+      }
       await deps.records.resetForReprocess(id, { transcripts });
       await deps.records.setRecordingStatus(id, 'stopped');
       const job = await deps.jobs.enqueue(
@@ -491,8 +518,39 @@ async function recordings(
       );
       return 0;
     }
+    case 'purge': {
+      const now = (deps.now ?? Date.now)();
+      if (rest[0] === '--older-than') {
+        const days = positiveInt(rest[1] ?? '', 'the number of days');
+        const due = await deps.records.listPurgeableRecordings(now - days * 86_400_000, 500);
+        for (const r of due) {
+          await deps.jobs.enqueue({ kind: PURGE_RECORDING_JOB, recordingId: r.id }, now);
+        }
+        deps.out(
+          `queued ${due.length} purge(s) of raw audio older than ${days} day(s); the worker deletes the files`,
+        );
+        return 0;
+      }
+      const [id] = rest;
+      if (!id) {
+        deps.err('usage: recording purge <recording-id> | purge --older-than <days>');
+        return 2;
+      }
+      const recording = await deps.records.getRecording(id);
+      if (!recording) throw new SettingError('no recording with that id');
+      if (recording.status !== 'processed') {
+        throw new SettingError(
+          'that recording has not been processed yet; its audio is still needed (see: recording list)',
+        );
+      }
+      const job = await deps.jobs.enqueue({ kind: PURGE_RECORDING_JOB, recordingId: id }, now);
+      deps.out(
+        `queued ${job.id}: the worker will delete the raw audio and keep the transcript and summaries`,
+      );
+      return 0;
+    }
     default:
-      deps.err('usage: recording list | reprocess <recording-id> [--retranscribe]');
+      deps.err('usage: recording list | reprocess <recording-id> [--retranscribe] | purge <id>');
       return 2;
   }
 }

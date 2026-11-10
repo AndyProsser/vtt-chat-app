@@ -179,3 +179,25 @@ A recording means a game is running, so the app protects it:
   never included**: the server only hands public lines to the recording, and the processing step ignores
   any chat event that names a recipient. Chat outside a recording is not kept for transcripts. Typed lines
   are not searchable yet (search reads spoken transcripts and summaries).
+
+## Retention: raw audio is the part that fills the disk (decided and built 2026-11-10)
+
+The transcript and the summaries are text and tiny; the per-speaker audio files are not. So the audio is
+what retention removes, and the text is kept for good.
+
+- **By time (automatic):** `RECORDING_RETENTION_DAYS` (set on the worker; blank or 0 keeps audio for ever).
+  Every six hours the worker looks for **processed** recordings that stopped more than that many days ago
+  and still have audio, and queues one `purge-recording` job each. The job deletes the track files, removes
+  the recording's empty folder, and records `purged_at` on each track. It is safe to repeat and does not
+  mind a file that is already gone.
+- **By hand:** `vtt-admin recording purge <id>` or `recording purge --older-than <days>` queue the same
+  jobs (the worker, which can see the audio, does the deleting). A recording that is **not processed
+  yet is refused**: its audio is still the input to the transcript.
+- **What it never touches:** transcripts, summaries, the recording's timeline, or any file outside the
+  recordings folder (the worker refuses a path that is not under `RECORDINGS_DIR`).
+- **What it costs you:** after a purge, `recording reprocess --retranscribe` is refused (there is nothing to
+  transcribe); redoing only the **summaries** still works, from the kept transcript.
+- **Who can see it:** `vtt-admin recording list` shows "audio kept / purged" for each recording, and the
+  session history shows the DM "audio deleted". Players are not told.
+- **Not built:** the DM confirming a summary before the audio goes (the retention window is the confirmation);
+  a disk-usage figure on the status page or in the CLI (use `df -h` and `du -sh` on the recordings volume).

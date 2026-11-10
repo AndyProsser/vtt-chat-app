@@ -225,6 +225,7 @@ describe.skipIf(TEST_DATABASE_URL === undefined)('migrate', () => {
         '0018_avatar_files.sql',
         '0019_handout_files.sql',
         '0020_recording_chat.sql',
+        '0021_track_purged.sql',
       ]);
       expect(await migrate(pool)).toEqual([]);
     } finally {

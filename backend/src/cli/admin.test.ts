@@ -321,6 +321,80 @@ describe('jobs and recordings', () => {
     expect((await records.getRecording('r1'))?.status).toBe('stopped');
   });
 
+  it('lists whether each recording still has its audio', async () => {
+    await rec('r1', 'stopped');
+    await records.putTrack({
+      id: 't',
+      recordingId: 'r1',
+      speakerId: 'a',
+      speakerName: 'A',
+      filePath: '/a.ogg',
+      startOffsetMs: 0,
+      private: false,
+      transcribedAt: 5,
+    });
+    await run('recording list');
+    expect(out.join('\n')).toContain('1 track(s)  audio kept');
+    await records.markTrackPurged('t', 9);
+    out.length = 0;
+    await run('recording list');
+    expect(out.join('\n')).toContain('audio purged');
+  });
+
+  it("purge queues the deletion of one processed recording's raw audio, and refuses an unfinished one", async () => {
+    await rec('r1', 'stopped');
+    expect(await run('recording purge r1')).toBe(1);
+    expect(err.join('\n')).toContain('not been processed');
+    await records.setRecordingStatus('r1', 'processed');
+    expect(await run('recording purge r1')).toBe(0);
+    expect((await jobs.list(['queued'])).map((j) => [j.kind, j.recordingId])).toEqual([
+      ['purge-recording', 'r1'],
+    ]);
+  });
+
+  it('purge --older-than queues every processed recording past that age with audio left', async () => {
+    const day = 86_400_000;
+    await records.putRecording({
+      id: 'old',
+      campaignId: 'c',
+      startedAt: -41 * day,
+      stoppedAt: -40 * day, // the harness clock is 1000 ms: this is long before the cutoff
+      status: 'processed',
+    });
+    await records.putTrack({
+      id: 'o1',
+      recordingId: 'old',
+      speakerId: 'a',
+      speakerName: 'A',
+      filePath: '/o.ogg',
+      startOffsetMs: 0,
+      private: false,
+      transcribedAt: 1,
+    });
+    expect(await run('recording purge --older-than 30')).toBe(0);
+    expect(out.join('\n')).toContain('queued 1');
+    expect(await jobs.list(['queued'])).toHaveLength(1);
+    expect(await run('recording purge --older-than nope')).toBe(1);
+  });
+
+  it('reprocess --retranscribe is refused once the audio has been purged, but a summary redo is not', async () => {
+    await rec('r1', 'stopped');
+    await records.putTrack({
+      id: 't',
+      recordingId: 'r1',
+      speakerId: 'a',
+      speakerName: 'A',
+      filePath: '/a.ogg',
+      startOffsetMs: 0,
+      private: false,
+      transcribedAt: 5,
+      purgedAt: 9,
+    });
+    expect(await run('recording reprocess r1 --retranscribe')).toBe(1);
+    expect(err.join('\n')).toContain('purged');
+    expect(await run('recording reprocess r1')).toBe(0);
+  });
+
   it('reprocess --retranscribe also forgets the transcripts', async () => {
     await rec('r1');
     await records.putTrack({

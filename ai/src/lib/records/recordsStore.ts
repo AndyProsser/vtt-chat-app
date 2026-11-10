@@ -72,6 +72,14 @@ export interface RecordsStore {
   ): Promise<StoredSummary | undefined>;
   putSummary(summary: StoredSummary): Promise<void>;
 
+  /** Notes that a track's audio file has been deleted. */
+  markTrackPurged(trackId: string, at: number): Promise<void>;
+  /**
+   * Processed recordings that stopped before `stoppedBefore` and still have audio on disk: what the
+   * retention sweep may purge. Newest last; at most `limit`.
+   */
+  listPurgeableRecordings(stoppedBefore: number, limit: number): Promise<Recording[]>;
+
   campaignName(campaignId: string): Promise<string | undefined>;
   getAiSettings(): Promise<AiSettings>;
 }
