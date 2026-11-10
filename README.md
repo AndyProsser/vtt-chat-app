@@ -42,7 +42,7 @@ vtt-chat-app/
 │   ├── src-tauri/         # Rust: tray, panels, hotkeys, autostart, updater
 │   ├── rust-livekit/      # Rust: audio engine + LiveKit client + cue player
 │   └── panels-ui/         # TS/React panels (replaces legacy overlay-ui/)
-├── web/                   # Mobile-first SPA (planned)
+├── web/                   # Invite page and the phone app (/app)
 ├── ai/                    # Records pipeline: transcode, Whisper, diarize, summarise
 ├── ddb/                   # OPTIONAL D&D Beyond character import
 ├── status/                # Public status page (React + Radix)

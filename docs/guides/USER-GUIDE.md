@@ -161,6 +161,15 @@ you hear it first.
 The DM schedules sessions (date, time, length). You see the next one in **Settings → Sessions**, and you can
 answer **Can make it / Late / Can't**. The server sends reminders 24 hours and 1 hour before. They also show as a desktop notification, even when the app is hidden. Choose what you want to hear about, and set **quiet hours** (no pop-ups, for example overnight), in **Settings → General → Notifications**.
 
+### On your phone
+
+Open `https://<your server>/app` in your phone's browser and sign in with your email and password, or with a
+one-time code. You get four tabs: **Chat** (the table's chat and your whispers; you can reply or whisper to one
+person), **Sessions** (when the next one is, and your answer), **Handouts** (what the DM has shown you) and
+**History** (summaries and transcripts of past sessions). There is **no voice** on the phone: use the desktop
+app for that. It does not buzz you when closed; the desktop app does that. **Menu → Sign out** when you are on
+someone else's phone.
+
 ## 10. Your character and settings
 
 Open **Settings** (the cog):

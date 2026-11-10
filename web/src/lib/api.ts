@@ -10,7 +10,7 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(
+export async function request<T>(
   method: string,
   path: string,
   options: { body?: unknown; token?: string } = {},

@@ -95,7 +95,7 @@ operator can switch on; the system must work with all of them off.
 - **`tauri-client/panels-ui/`** — React + Radix panels: chat/whispers, handouts, loot, RSVP, history,
   DM soundboard and party controls. Pure UI; talks to the Rust core over Tauri IPC and to the
   backend through the core's connection.
-- **`web/`** — mobile-first SPA for messages, RSVP, handouts and basic listen/talk. Planned.
+- **`web/`** — mobile-first pages: the invite page (`/join`) and the **phone app** (`/app`: chat, whispers, sessions and RSVP, handouts, history; no voice) — see [MOBILE-WEB-APP.md](MOBILE-WEB-APP.md).
 - **`backend/`** — Express API and WebSocket layer: identity and campaign access, LiveKit tokens,
   channels, chat, handouts, loot, scheduling, recording control and state, the records API, the
   status endpoints and client downloads. Also hosts the Admin CLI.
@@ -141,4 +141,4 @@ operator can switch on; the system must work with all of them off.
 | Client ↔ server sync protocol (revive archived "Plan B"?)         |                                                                          |
 | ~~Container bundle for other self-hosters?~~                      | Decided 2026-11-07: Docker Compose is primary, native for advanced users |
 | Per-platform audio findings (AEC quality, device release on mute) |                                                                          |
-| Mobile SPA scope: listen/talk, or messages only?                  |                                                                          |
+| ~~Mobile SPA scope: listen/talk, or messages only?~~              | Decided 2026-11-10: messages only; voice stays in the tray app           |

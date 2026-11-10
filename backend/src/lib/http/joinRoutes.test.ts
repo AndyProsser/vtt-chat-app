@@ -111,6 +111,22 @@ describe('the join page backend', () => {
     expect((await fetch(`${base}/assets/../index.html`)).status).not.toBe(500);
   });
 
+  it('serves the phone app at /app, with the extra allowances it needs, only when it was built', async () => {
+    expect((await fetch(`${base}/app`)).status).toBe(404);
+    await writeFile(join(webDir, 'app.html'), '<!doctype html><title>phone</title>');
+    const res = await fetch(`${base}/app`);
+    expect(res.status).toBe(200);
+    expect(await res.text()).toContain('<title>phone</title>');
+    const csp = res.headers.get('content-security-policy') ?? '';
+    expect(csp).toContain("default-src 'self'");
+    expect(csp).toMatch(/img-src[^;]*blob:/);
+    expect(csp).toMatch(/connect-src[^;]*wss?:/);
+    expect(csp).toContain("frame-ancestors 'none'");
+    // The join page keeps its tighter policy.
+    const joinPage = await fetch(`${base}/join`);
+    expect(joinPage.headers.get('content-security-policy')).not.toContain('blob:');
+  });
+
   it('serves no pages when no web directory is configured', async () => {
     const store = await backend.reset();
     const app = createApp({ config: config(undefined), store });

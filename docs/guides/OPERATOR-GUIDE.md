@@ -197,7 +197,7 @@ natively. Restart the backend after changing them (`docker compose up -d`, or
 | `DDB_SYNC`, `DDB_SYNC_HOURS`                                              | off, 12                  | `1`: keep linked D&D Beyond characters fresh (contacts dndbeyond.com)                                                                   |
 | `CLIENT_URL_WINDOWS` / `_MACOS` / `_LINUX`                                | none                     | Download links on the join page                                                                                                         |
 | `UPDATES_DIR`                                                             | (set for you)            | Where signed app updates are published                                                                                                  |
-| `WEB_DIR`, `STATUS_DIR`                                                   | (set for you)            | The join page and the status page                                                                                                       |
+| `WEB_DIR`, `STATUS_DIR`                                                   | (set for you)            | The join page, the phone app (`/app`) and the status page                                                                               |
 | `PORT`                                                                    | 3000                     | The backend's port (loopback only in Compose)                                                                                           |
 
 Runtime settings (no restart) live in the database: `./vtt-admin settings show`.

@@ -166,8 +166,19 @@ export function createApp({
   }
 
   // Which optional sign-in methods exist, so the app only offers what works.
-  app.get('/api/auth/providers', (_req, res) => {
-    res.json({ oidc: config.oidc !== undefined, mail: config.smtp !== undefined });
+  // It also names the current recording-notice version, so a sign-in screen can ask a returning player to
+  // accept a changed notice. Public and harmless: the wording is in the apps, the version is just a label.
+  app.get('/api/auth/providers', async (_req, res, next) => {
+    try {
+      const { consentVersion } = await store.getSettings();
+      res.json({
+        oidc: config.oidc !== undefined,
+        mail: config.smtp !== undefined,
+        consentVersion,
+      });
+    } catch (error) {
+      next(error);
+    }
   });
   if (config.oidc) app.use('/api/auth/oidc', oidcRoutes(new OidcClient(config.oidc), accounts));
   app.use(

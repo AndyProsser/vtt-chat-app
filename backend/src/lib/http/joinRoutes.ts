@@ -45,14 +45,21 @@ export function webPages(webDir: string): Router | undefined {
   if (!existsSync(index)) return undefined;
 
   const router = Router();
-  router.use((_req, res, next) => {
+  router.use((req, res, next) => {
     // Only this origin's own script and styles; the page talks to this server's API and nothing else.
+    // The phone app also shows pictures it fetched with its sign-in (blob:) and listens on a WebSocket
+    // to the same server (ws:/wss: because browsers differ on whether 'self' covers it).
+    const phoneApp = req.path === '/app';
     res.setHeader(
       'Content-Security-Policy',
-      "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; frame-ancestors 'none'; base-uri 'none'",
+      "default-src 'self'; " +
+        `img-src 'self' data:${phoneApp ? ' blob:' : ''}; ` +
+        `${phoneApp ? "connect-src 'self' ws: wss:; " : ''}` +
+        "style-src 'self' 'unsafe-inline'; frame-ancestors 'none'; base-uri 'none'",
     );
     next();
   });
+  const phone = resolve(root, 'app.html');
   router.use(
     '/assets',
     express.static(resolve(root, 'assets'), {
@@ -63,6 +70,12 @@ export function webPages(webDir: string): Router | undefined {
   );
   router.get(['/join', '/join/:code'], (_req, res) => {
     res.sendFile(index);
+  });
+  // The phone app (web/app.html). Hash routes, so this one path is all the server needs to know.
+  router.get('/app', (_req, res, next) => {
+    if (!existsSync(phone)) return next();
+    res.setHeader('Cache-Control', 'no-cache');
+    res.sendFile(phone);
   });
   return router;
 }

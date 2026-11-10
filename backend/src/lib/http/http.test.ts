@@ -92,6 +92,14 @@ async function signUp(name: string): Promise<{ token: string; id: string }> {
   return { token: res.body.sessionToken, id: res.body.user.id };
 }
 
+describe('sign-in options', () => {
+  it('tells the sign-in screen which consent notice version to ask for', async () => {
+    const { status, body } = await api.call('GET', '/api/auth/providers');
+    expect(status).toBe(200);
+    expect(body.consentVersion).toBe((await store.getSettings()).consentVersion);
+  });
+});
+
 describe('health and hardening', () => {
   it('answers health without auth and sets safe headers', async () => {
     const res = await fetch(

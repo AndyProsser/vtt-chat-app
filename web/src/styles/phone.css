@@ -1,0 +1,189 @@
+/* The phone app: one column, a header, a scrolling middle and a tab bar that clears the home indicator. */
+html,
+body,
+#root {
+  height: 100%;
+}
+.radix-themes {
+  height: 100%;
+}
+.phone-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+  background: var(--color-background);
+}
+.phone-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: max(10px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) 10px
+    max(16px, env(safe-area-inset-left));
+  border-bottom: 1px solid var(--gray-5);
+}
+.phone-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.phone-dot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--gray-8);
+}
+.phone-dot-live {
+  background: var(--green-9);
+}
+.phone-dot-connecting {
+  background: var(--amber-9);
+}
+.phone-main {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.phone-pad {
+  padding: 16px max(16px, env(safe-area-inset-right)) 24px max(16px, env(safe-area-inset-left));
+}
+.phone-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-top: 1px solid var(--gray-5);
+  background: var(--color-panel-solid);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.phone-tab {
+  appearance: none;
+  border: 0;
+  background: none;
+  color: var(--gray-11);
+  font: inherit;
+  font-size: 14px;
+  padding: 14px 4px;
+  cursor: pointer;
+  border-top: 2px solid transparent;
+}
+.phone-tab-on {
+  color: var(--accent-11);
+  font-weight: 600;
+  border-top-color: var(--accent-9);
+}
+.phone-tab:focus-visible {
+  outline: 2px solid var(--focus-8);
+  outline-offset: -2px;
+}
+.phone-sign-in {
+  max-width: 420px;
+  margin: 0 auto;
+  padding: max(32px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) 32px
+    max(16px, env(safe-area-inset-left));
+}
+.phone-card-button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+/* Chat */
+.phone-chat {
+  height: 100%;
+}
+.phone-chat-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px max(16px, env(safe-area-inset-right)) 8px max(16px, env(safe-area-inset-left));
+  overscroll-behavior: contain;
+}
+.phone-line {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 88%;
+  align-self: flex-start;
+}
+.phone-line-mine {
+  align-self: flex-end;
+  align-items: flex-end;
+}
+.phone-line-head {
+  padding: 0 4px;
+}
+.phone-bubble {
+  background: var(--gray-3);
+  border-radius: 14px;
+  padding: 8px 12px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.4;
+}
+.phone-line-mine .phone-bubble {
+  background: var(--accent-9);
+  color: var(--accent-contrast);
+}
+.phone-line-whisper .phone-bubble {
+  background: var(--violet-3);
+  color: var(--violet-12);
+  border: 1px dashed var(--violet-8);
+  font-style: italic;
+}
+.phone-line-whisper.phone-line-mine .phone-bubble {
+  background: var(--violet-4);
+}
+.phone-live-note {
+  padding: 4px 16px;
+  text-align: center;
+}
+.phone-composer {
+  padding: 8px max(16px, env(safe-area-inset-right)) 10px max(16px, env(safe-area-inset-left));
+  border-top: 1px solid var(--gray-5);
+}
+
+/* Content */
+.phone-note {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.55;
+}
+.phone-clamp {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.phone-picture {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: var(--radius-3);
+  background: var(--gray-3);
+}
+.phone-picture-loading {
+  aspect-ratio: 4 / 3;
+}
+.phone-kind {
+  text-transform: capitalize;
+}
+.phone-utterance {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .phone-tab {
+    transition: color 120ms ease;
+  }
+}
