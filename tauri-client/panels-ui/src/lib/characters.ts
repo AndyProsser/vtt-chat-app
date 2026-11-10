@@ -9,6 +9,33 @@ export interface CharacterRecord {
   /** The D&D Beyond sheet it is linked to, if any, and when it was last read (epoch ms). */
   sourceUrl?: string | null;
   syncedAt?: number | null;
+  /** Worked out from the linked sheet by the server; absent until a sync has read one. */
+  sheet?: CharacterSheet | null;
+}
+
+export interface CharacterSheet {
+  abilities: { str: number; dex: number; con: number; int: number; wis: number; cha: number };
+  maxHp: number;
+  armorClass: number;
+  passivePerception: number;
+}
+
+/** "AC 16 · HP 50 · Passive Perception 11", or null with no sheet. */
+export function vitalsLine(sheet: CharacterSheet | null | undefined): string | null {
+  if (!sheet) return null;
+  return `AC ${sheet.armorClass} · HP ${sheet.maxHp} · Passive Perception ${sheet.passivePerception}`;
+}
+
+/** "STR 16 (+3) · DEX 14 (+2) · …", or null with no sheet. */
+export function abilityLine(sheet: CharacterSheet | null | undefined): string | null {
+  if (!sheet) return null;
+  const entries = Object.entries(sheet.abilities) as [string, number][];
+  return entries
+    .map(([k, v]) => {
+      const m = Math.floor((v - 10) / 2);
+      return `${k.toUpperCase()} ${v} (${m >= 0 ? '+' : '-'}${Math.abs(m)})`;
+    })
+    .join(' · ');
 }
 
 /** What the form holds while editing: text fields, so a half-typed level is still just text. */

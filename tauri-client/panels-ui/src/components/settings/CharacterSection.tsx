@@ -5,9 +5,11 @@ import { useAccount } from '../../hooks/useAccount.js';
 import { useCampaignQuery } from '../../hooks/useCampaignQuery.js';
 import { EMBLEMS, avatarValue, emblemOf, emblemValue } from '../../lib/avatars.js';
 import {
+  abilityLine,
   blankDraft,
   characterPatch,
   draftOf,
+  vitalsLine,
   type CharacterDraft,
   type CharacterRecord,
 } from '../../lib/characters.js';
@@ -220,6 +222,16 @@ function CharacterCard({
         </span>
         {open ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
       </button>
+      {open && vitalsLine(record.sheet) && (
+        <span
+          className="vtt-muted"
+          title="Worked out from your D&D Beyond sheet; check it there for unusual builds"
+        >
+          {vitalsLine(record.sheet)}
+          <br />
+          {abilityLine(record.sheet)}
+        </span>
+      )}
       {open && <Fields draft={draft} onChange={setDraft} />}
       {open && (
         <DdbLink

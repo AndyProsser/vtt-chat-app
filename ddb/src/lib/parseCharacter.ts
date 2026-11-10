@@ -1,4 +1,5 @@
 import type { DdbCharacter } from '../types/index.js';
+import { parseSheet } from './parseSheet.js';
 
 const isRecord = (v: unknown): v is Record<string, unknown> =>
   typeof v === 'object' && v !== null && !Array.isArray(v);
@@ -43,5 +44,6 @@ export function parseCharacter(body: unknown): DdbCharacter | undefined {
           : named.map((c) => `${c.name} ${c.level}`).join(' / '),
     level: total >= 1 && total <= 30 ? total : null,
     portraitUrl: portrait && /^https:\/\//i.test(portrait) ? portrait : null,
+    sheet: parseSheet(data),
   };
 }

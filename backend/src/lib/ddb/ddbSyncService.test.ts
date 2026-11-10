@@ -41,6 +41,7 @@ async function setup(opts: { enabled?: boolean } = {}) {
       className: 'Fighter',
       level: 5,
       portraitUrl: 'https://www.dndbeyond.com/a.png',
+      sheet: null,
     },
   };
   let clock = 1_000;
@@ -71,7 +72,46 @@ async function setup(opts: { enabled?: boolean } = {}) {
 
 const URL1 = 'https://www.dndbeyond.com/characters/123';
 
+const SHEET = {
+  abilities: { str: 16, dex: 14, con: 14, int: 10, wis: 12, cha: 8 },
+  maxHp: 50,
+  armorClass: 16,
+  passivePerception: 11,
+};
+
 describe('DdbSyncService', () => {
+  it('keeps the at-a-glance numbers, and the last good ones when a later read has none', async () => {
+    const t = await setup();
+    t.setSheet({
+      ok: true,
+      character: {
+        name: 'T',
+        race: null,
+        className: null,
+        level: 5,
+        portraitUrl: null,
+        sheet: SHEET,
+      },
+    });
+    const linked = await t.service.link(t.user, t.campaign.id, t.character.id, URL1);
+    expect(linked.sheet).toEqual(SHEET);
+    t.setSheet({
+      ok: true,
+      character: {
+        name: 'T',
+        race: null,
+        className: null,
+        level: 5,
+        portraitUrl: null,
+        sheet: null,
+      },
+    });
+    t.tick(5_000);
+    const again = await t.service.syncNow(t.user, t.campaign.id, t.character.id);
+    expect(again.sheet).toEqual(SHEET);
+    expect((await t.store.getCharacter(t.character.id))?.sheet).toEqual(SHEET);
+  });
+
   it('links a character, copying its details and portrait', async () => {
     const t = await setup();
     const c = await t.service.link(t.user, t.campaign.id, t.character.id, URL1);
@@ -128,6 +168,7 @@ describe('DdbSyncService', () => {
         className: 'Fighter',
         level: 6,
         portraitUrl: 'https://www.dndbeyond.com/a.png',
+        sheet: null,
       },
     });
     const after = await t.service.syncNow(t.user, t.campaign.id, t.character.id);
@@ -141,6 +182,7 @@ describe('DdbSyncService', () => {
         className: null,
         level: 6,
         portraitUrl: 'https://www.dndbeyond.com/b.png',
+        sheet: null,
       },
     });
     const next = await t.service.syncNow(t.user, t.campaign.id, t.character.id);
@@ -188,6 +230,7 @@ describe('DdbSyncService', () => {
           className: null,
           level: null,
           portraitUrl: 'https://www.dndbeyond.com/x.svg',
+          sheet: null,
         },
       }),
       fetchImage: async () => Buffer.from('<svg onload=alert(1)>'),

@@ -72,14 +72,25 @@ export class DdbSyncService {
     const outcome = await this.fetchSheet(id);
     if (!outcome.ok) throw new DomainError('invalid_input', REASON_TEXT[outcome.reason]!);
     // A fresh link forgets the old portrait source so the new sheet's portrait is imported.
-    const linked: Character = { ...mine, sourceUrl: characterSheetUrl(id), sourceAvatar: null };
+    const linked: Character = {
+      ...mine,
+      sourceUrl: characterSheetUrl(id),
+      sourceAvatar: null,
+      sheet: null,
+    };
     return this.apply(linked, outcome.character);
   }
 
   async unlink(user: User, campaignId: string, characterId: string): Promise<Character> {
     this.requireEnabled();
     const mine = await this.ownCharacter(user, campaignId, characterId);
-    const next: Character = { ...mine, sourceUrl: null, syncedAt: null, sourceAvatar: null };
+    const next: Character = {
+      ...mine,
+      sourceUrl: null,
+      syncedAt: null,
+      sourceAvatar: null,
+      sheet: null,
+    };
     await this.deps.store.putCharacter(next);
     this.deps.onChanged?.(next.campaignId);
     return next;
@@ -136,6 +147,8 @@ export class DdbSyncService {
       level: sheet.level ?? character.level,
       avatarUrl,
       sourceAvatar,
+      // A sheet that stops parsing keeps the last good numbers, like every other field.
+      sheet: sheet.sheet ?? character.sheet,
       syncedAt: this.now(),
     };
     await this.deps.store.putCharacter(next);

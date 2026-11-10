@@ -152,6 +152,7 @@ describe.skipIf(backend.kind !== 'postgres')('Postgres constraints', () => {
       sourceUrl: null,
       syncedAt: null,
       sourceAvatar: null,
+      sheet: null,
     });
     await expect(
       store.putMembership({ ...membership(c, u, 'dm'), activeCharacterId: characterId }),
@@ -226,6 +227,7 @@ describe.skipIf(TEST_DATABASE_URL === undefined)('migrate', () => {
         '0019_handout_files.sql',
         '0020_recording_chat.sql',
         '0021_track_purged.sql',
+        '0022_character_sheet.sql',
       ]);
       expect(await migrate(pool)).toEqual([]);
     } finally {

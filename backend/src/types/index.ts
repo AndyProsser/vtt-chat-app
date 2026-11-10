@@ -61,7 +61,12 @@ export interface Character {
   syncedAt: number | null;
   /** The D&D Beyond portrait address last imported; the portrait is only replaced when this changes. */
   sourceAvatar: string | null;
+  /** At-a-glance numbers worked out from the D&D Beyond sheet (ability scores, max HP, AC, passive perception). */
+  sheet: CharacterSheet | null;
 }
+
+/** Shared with the D&D Beyond reader; calculated by us, so the app labels them as such. */
+export type CharacterSheet = import('@vtt-chat-app/ddb').DdbSheet;
 
 /** A long-lived, remotely revocable sign-in on one device. Only a hash of the secret is stored. */
 export interface Session {

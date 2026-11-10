@@ -31,6 +31,17 @@ sequenceDiagram
 - **Honest request identity.** The server identifies itself as this app; it does not imitate a browser.
 - **Unofficial endpoint.** D&D Beyond has no public API. The character service the sheet itself uses can change shape; the parser reads only the few fields above and treats anything unexpected as "unreadable" rather than failing. **This has not been run against the live service** (no network check was possible from the build box): the first real link is the test, and `ddb/src/lib/parseCharacter.ts` is the one place to adjust.
 
+## At-a-glance numbers (built 2026-11-10, unverified against a real sheet)
+
+A sync also stores ability scores, max hit points, armor class and passive perception (`characters.sheet`, shown under the character's name in Settings). **D&D Beyond does not send these finished, so `ddb/src/lib/parseSheet.ts` works them out**, and the app says so in a tooltip:
+
+- **Ability scores:** base + bonus stats + `bonus` modifiers for that score; `set` modifiers (a belt that makes Strength 19) only raise it; an override replaces it.
+- **Max HP:** the sheet's override if there is one, else base + bonus + Constitution modifier x level.
+- **Passive perception:** 10 + Wisdom modifier, plus proficiency (or double for expertise), plus `passive-perception` bonuses (Observant).
+- **Armor class:** equipped body armour by type (light + Dexterity, medium + Dexterity up to 2, heavy as is), a shield on top, 10 + Dexterity with none, plus `armor-class` bonuses.
+
+**Not modelled:** Unarmored Defense (Barbarian, Monk), Mage Armor and other spell effects, and conditional bonuses. Those builds will show a different AC from the sheet. The fixtures are written from the known shape of the reply, not captured from the live service, so **compare the first few real sheets against D&D Beyond** and adjust `parseSheet.ts`. A later read that has no ability scores keeps the last good numbers.
+
 ## Later (not built)
 
-Stats, AC, passive perception and max HP. They need a place in the character screen first; the parser and stored model are built to grow.
+Spell slots, saving throws and skills, and Unarmored Defense.

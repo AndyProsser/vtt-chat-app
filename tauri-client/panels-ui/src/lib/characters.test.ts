@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { blankDraft, characterPatch, draftOf, type CharacterRecord } from './characters.js';
+import {
+  abilityLine,
+  blankDraft,
+  characterPatch,
+  draftOf,
+  vitalsLine,
+  type CharacterRecord,
+} from './characters.js';
 
 const aria: CharacterRecord = {
   id: 'c1',
@@ -45,5 +52,26 @@ describe('blankDraft', () => {
       level: '1',
       avatarUrl: null,
     });
+  });
+});
+
+describe('the at-a-glance numbers from a linked sheet', () => {
+  const sheet = {
+    abilities: { str: 16, dex: 14, con: 14, int: 10, wis: 12, cha: 8 },
+    maxHp: 50,
+    armorClass: 16,
+    passivePerception: 11,
+  };
+  it('puts armor class, hit points and passive perception on one line', () => {
+    expect(vitalsLine(sheet)).toBe('AC 16 · HP 50 · Passive Perception 11');
+  });
+  it('shows each ability score with its modifier', () => {
+    expect(abilityLine(sheet)).toBe(
+      'STR 16 (+3) · DEX 14 (+2) · CON 14 (+2) · INT 10 (+0) · WIS 12 (+1) · CHA 8 (-1)',
+    );
+  });
+  it('says nothing when there is no sheet', () => {
+    expect(vitalsLine(null)).toBeNull();
+    expect(abilityLine(undefined)).toBeNull();
   });
 });

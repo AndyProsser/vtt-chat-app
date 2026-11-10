@@ -17,7 +17,7 @@ export interface CampaignDeps {
 /** The D&D Beyond link is never set here; it goes through the sync service, which checks the sheet. */
 export type NewCharacter = Omit<
   Character,
-  'id' | 'userId' | 'campaignId' | 'sourceUrl' | 'syncedAt' | 'sourceAvatar'
+  'id' | 'userId' | 'campaignId' | 'sourceUrl' | 'syncedAt' | 'sourceAvatar' | 'sheet'
 >;
 
 /** Campaigns, who is in them, invites, characters, and the DM swap. */
@@ -144,6 +144,7 @@ export class CampaignService {
       sourceUrl: null,
       syncedAt: null,
       sourceAvatar: null,
+      sheet: null,
     };
     await this.store.transaction(async (tx) => {
       await tx.putCharacter(character);

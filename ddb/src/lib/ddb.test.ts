@@ -48,13 +48,21 @@ describe('parseCharacter', () => {
       className: 'Fighter 3 / Wizard 2',
       level: 5,
       portraitUrl: 'https://www.dndbeyond.com/avatars/1/2/abc.jpeg',
+      sheet: null,
     });
   });
   it('uses a single class name plainly and tolerates missing fields', () => {
     const one = parseCharacter({
       data: { name: 'Bo', classes: [{ level: 4, definition: { name: 'Monk' } }] },
     });
-    expect(one).toEqual({ name: 'Bo', race: null, className: 'Monk', level: 4, portraitUrl: null });
+    expect(one).toEqual({
+      name: 'Bo',
+      race: null,
+      className: 'Monk',
+      level: 4,
+      portraitUrl: null,
+      sheet: null,
+    });
   });
   it('drops non-https portraits and refuses a reply with no name', () => {
     expect(

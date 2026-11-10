@@ -3,5 +3,6 @@
 export { characterIdFromUrl, characterSheetUrl } from './lib/characterUrl.js';
 export { fetchCharacter, portraitAllowed, type FetchOutcome } from './lib/fetchCharacter.js';
 export { parseCharacter } from './lib/parseCharacter.js';
+export { parseSheet } from './lib/parseSheet.js';
 export { PORTRAIT_HOSTS } from './consts/index.js';
-export type { DdbCharacter, FetchLike } from './types/index.js';
+export type { DdbCharacter, DdbSheet, FetchLike } from './types/index.js';
