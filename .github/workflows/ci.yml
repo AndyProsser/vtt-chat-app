@@ -16,6 +16,7 @@ jobs:
           node-version: 26
           cache: npm
       - run: npm ci
+      - run: tauri-client/scripts/release-version.sh
       - run: npm run lint
       - run: npm run format:check
       # Build before typecheck: panels-ui imports @vtt-chat-app/shared,
