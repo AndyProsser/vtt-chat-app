@@ -239,6 +239,28 @@ export class PostgresTableStore implements TableStore {
     }
   }
 
+  async changeClaim(
+    id: string,
+    userId: string,
+    from: ClaimedFor[],
+    to: 'party' | null,
+  ): Promise<LootItem | undefined> {
+    try {
+      const { rows } = await this.pool.query<Row>(
+        to === null
+          ? `UPDATE loot_items SET claimed_by = NULL, claimed_at = NULL, claimed_for = NULL, split = NULL
+              WHERE id = $1 AND claimed_by = $2 AND claimed_for = ANY($3) RETURNING *`
+          : `UPDATE loot_items SET claimed_for = 'party'
+              WHERE id = $1 AND claimed_by = $2 AND claimed_for = ANY($3) RETURNING *`,
+        [id, userId, from],
+      );
+      return rows[0] ? toLoot(rows[0]) : undefined;
+    } catch (error) {
+      if ((error as { code?: string }).code === BAD_UUID) return undefined;
+      throw error;
+    }
+  }
+
   async deleteLoot(id: string): Promise<void> {
     await this.pool.query('DELETE FROM loot_items WHERE id = $1', [id]);
   }

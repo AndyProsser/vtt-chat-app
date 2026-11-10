@@ -129,6 +129,19 @@ export function lootRoutes(deps: LootRouteDeps): Router {
     res.json({ item });
   });
 
+  router.post('/:itemId/store', async (req, res) => {
+    const item = await loot.stash(authOf(res).user, campaign(req), param(req.params.itemId));
+    deps.onChange?.('claimed', item);
+    res.json({ item });
+  });
+
+  // Putting it back reuses the "claimed" notice: the item now has nobody holding it.
+  router.post('/:itemId/return', async (req, res) => {
+    const item = await loot.giveBack(authOf(res).user, campaign(req), param(req.params.itemId));
+    deps.onChange?.('claimed', item);
+    res.json({ item });
+  });
+
   router.post('/:itemId/assign', async (req, res) => {
     const body = z.object({ userId: z.string().min(1).max(64) }).parse(req.body);
     const item = await loot.assign(

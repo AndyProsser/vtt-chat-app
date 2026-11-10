@@ -75,5 +75,19 @@ export class MemoryTableStore implements TableStore {
     item.split = split ? copy(split) : null;
     return copy(item);
   };
+  changeClaim = async (id: string, userId: string, from: ClaimedFor[], to: 'party' | null) => {
+    const item = this.loot.get(id);
+    if (!item || item.claimedBy !== userId || !item.claimedFor || !from.includes(item.claimedFor))
+      return undefined;
+    if (to === null) {
+      item.claimedBy = null;
+      item.claimedAt = null;
+      item.claimedFor = null;
+      item.split = null;
+    } else {
+      item.claimedFor = to;
+    }
+    return copy(item);
+  };
   deleteLoot = async (id: string) => void this.loot.delete(id);
 }

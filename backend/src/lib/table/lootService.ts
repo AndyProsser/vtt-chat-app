@@ -204,6 +204,34 @@ export class LootService {
     return claimed;
   }
 
+  /** The player who took an item (or was given it) moves it into the party stash. */
+  async stash(user: User, campaignId: string, itemId: string): Promise<LootItem> {
+    return this.change(user, campaignId, itemId, ['self', 'assigned'], 'party');
+  }
+
+  /** The player who took, stored, or was given an item puts it back on the table, unclaimed. */
+  async giveBack(user: User, campaignId: string, itemId: string): Promise<LootItem> {
+    return this.change(user, campaignId, itemId, ['self', 'party', 'assigned'], null);
+  }
+
+  private async change(
+    user: User,
+    campaignId: string,
+    itemId: string,
+    from: ClaimedFor[],
+    to: 'party' | null,
+  ): Promise<LootItem> {
+    await this.role(user, campaignId);
+    const existing = await this.deps.table.getLoot(itemId);
+    if (!existing || existing.campaignId !== campaignId) throw new DomainError('not_found');
+    if (existing.claimedBy === null) throw new DomainError('conflict', 'nobody has taken that');
+    if (existing.claimedBy !== user.id || existing.claimedFor === 'split')
+      throw new DomainError('forbidden', 'only the player who took it can do that');
+    const changed = await this.deps.table.changeClaim(itemId, user.id, from, to);
+    if (!changed) throw new DomainError('conflict', 'it is already stored, or already back');
+    return changed;
+  }
+
   /** The DM hands an unclaimed item straight to one player of this campaign. */
   async assign(
     user: User,

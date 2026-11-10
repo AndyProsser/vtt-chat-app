@@ -150,6 +150,59 @@ describe('dropping and claiming', () => {
   });
 });
 
+describe('storing and returning what you took', () => {
+  const act = (token: string, id: string, what: 'store' | 'return') =>
+    call('POST', `/api/campaigns/${campaign}/loot/${id}/${what}`, token, {});
+
+  it('the player who took an item can move it to the party stash, and only once', async () => {
+    const id = (await drop(dm.token)).body.item.id;
+    await claim(alice.token, id);
+    const stored = await act(alice.token, id, 'store');
+    expect(stored.status).toBe(200);
+    expect(stored.body.item).toMatchObject({ claimedBy: alice.id, claimedFor: 'party' });
+    expect(events.at(-1)).toMatchObject({ event: 'claimed', claimedBy: alice.id });
+    expect((await act(alice.token, id, 'store')).status).toBe(409); // already stored
+  });
+
+  it('nobody else can store or return it, and neither can the DM', async () => {
+    const id = (await drop(dm.token)).body.item.id;
+    expect((await act(alice.token, id, 'store')).status).toBe(409); // nothing taken yet
+    await claim(alice.token, id);
+    for (const who of [bob, dm]) {
+      expect((await act(who.token, id, 'store')).status).toBe(403);
+      expect((await act(who.token, id, 'return')).status).toBe(403);
+    }
+  });
+
+  it('returning puts it back as unclaimed, from either state, for anyone to take', async () => {
+    const id = (await drop(dm.token)).body.item.id;
+    await claim(alice.token, id);
+    const back = await act(alice.token, id, 'return');
+    expect(back.status).toBe(200);
+    expect(back.body.item).toMatchObject({ claimedBy: null, claimedFor: null });
+    expect(events.at(-1)).toMatchObject({ event: 'claimed', claimedBy: null });
+    expect((await claim(bob.token, id)).status).toBe(200);
+    await act(bob.token, id, 'store');
+    expect((await act(bob.token, id, 'return')).status).toBe(200); // stored items can be returned too
+    expect((await act(bob.token, id, 'return')).status).toBe(409); // already back
+  });
+
+  it('lets the player return something the DM gave them', async () => {
+    const id = (await drop(dm.token)).body.item.id;
+    await call('POST', `/api/campaigns/${campaign}/loot/${id}/assign`, dm.token, {
+      userId: alice.id,
+    });
+    expect((await act(alice.token, id, 'return')).status).toBe(200);
+  });
+
+  it('leaves a split pile of coin alone', async () => {
+    const id = (await drop(dm.token, { name: 'gp', kind: 'coin', quantity: 10 })).body.item.id;
+    await call('POST', `/api/campaigns/${campaign}/loot/${id}/split`, dm.token, {});
+    expect((await act(alice.token, id, 'return')).status).toBe(403);
+    expect((await act(alice.token, id, 'store')).status).toBe(403);
+  });
+});
+
 describe('who may do what', () => {
   it('only the DM drops or removes', async () => {
     expect((await drop(alice.token)).status).toBe(403);

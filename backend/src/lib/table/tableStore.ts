@@ -106,6 +106,17 @@ export interface TableStore {
     claimedFor: ClaimedFor,
     split?: LootSplit,
   ): Promise<LootItem | undefined>;
+  /**
+   * Changes how an item the player took is held: `to` is `'party'` (stored in the shared stash) or
+   * `null` (returned to the table, unclaimed). **Atomic** and only for the player who holds it, in one
+   * of the `from` states; otherwise `undefined`.
+   */
+  changeClaim(
+    id: string,
+    userId: string,
+    from: ClaimedFor[],
+    to: 'party' | null,
+  ): Promise<LootItem | undefined>;
   deleteLoot(id: string): Promise<void>;
 }
 
