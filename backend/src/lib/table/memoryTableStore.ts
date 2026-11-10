@@ -31,7 +31,8 @@ export class MemoryTableStore implements TableStore {
   campaignHandoutBytes = async (campaignId: string) => {
     let total = 0;
     for (const h of this.handouts.values()) {
-      if (h.campaignId === campaignId && h.mediaId) total += this.media.get(h.mediaId)?.bytes ?? 0;
+      if (h.campaignId !== campaignId) continue;
+      for (const id of h.mediaIds) total += this.media.get(id)?.bytes ?? 0;
     }
     return total;
   };

@@ -50,7 +50,13 @@ export interface AppDeps {
     announceRecording(change: RecordingChange): void;
     announceHandoutShown?(
       campaignId: string,
-      handout: { id: string; title: string; kind: string; body?: string | null },
+      handout: {
+        id: string;
+        title: string;
+        kind: string;
+        body?: string | null;
+        mediaIds?: string[];
+      },
       audience: { everyone: boolean; userIds: string[] },
       dmIds: string[],
     ): void;

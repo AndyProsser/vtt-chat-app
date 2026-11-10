@@ -13,10 +13,15 @@ describe('handoutExcerpt', () => {
     expect(out.endsWith('…')).toBe(true);
     expect(out.endsWith(' …')).toBe(false);
   });
-  it('is nothing for a picture, a map, a PDF or an empty note', () => {
-    expect(handoutExcerpt('image', 'ignored')).toBeUndefined();
-    expect(handoutExcerpt('map', null)).toBeUndefined();
-    expect(handoutExcerpt('pdf', 'x')).toBeUndefined();
+  it('is the caption of a picture set or PDF too', () => {
+    expect(handoutExcerpt('image', ' The ward on the north wall. ')).toBe(
+      'The ward on the north wall.',
+    );
+    expect(handoutExcerpt('pdf', 'Page 3 matters.')).toBe('Page 3 matters.');
+  });
+  it('is nothing when there is no text, or only blanks', () => {
+    expect(handoutExcerpt('image', null)).toBeUndefined();
+    expect(handoutExcerpt('map', undefined)).toBeUndefined();
     expect(handoutExcerpt('text', '   ')).toBeUndefined();
   });
 });

@@ -25,7 +25,8 @@ export interface Handout {
   /** Text snippets only. */
   body: string | null;
   /** Everything else: the uploaded file. */
-  mediaId: string | null;
+  /** The files in order: one PDF, or up to twelve pictures; none for a note. */
+  mediaIds: string[];
   visibility: HandoutVisibility;
   /** Who may see it when `visibility` is `some`. */
   recipients: string[];

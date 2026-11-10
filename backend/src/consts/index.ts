@@ -38,6 +38,8 @@ export const MAX_BOARD_BUTTONS = 60;
 export const MAX_SCENE_LAYERS = 12;
 
 export const MAX_TEXT_HANDOUT_CHARS = 20_000;
+/** Pictures in one picture handout (a PDF handout is one file). */
+export const MAX_HANDOUT_IMAGES = 12;
 
 export const MAGIC_LINK_TTL_MINUTES = 15;
 export const MIN_PASSWORD_LENGTH = 10;

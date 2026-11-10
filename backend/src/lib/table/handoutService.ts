@@ -3,6 +3,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import {
   MAX_CAMPAIGN_HANDOUT_BYTES,
   MAX_HANDOUT_BYTES,
+  MAX_HANDOUT_IMAGES,
   MAX_TEXT_HANDOUT_CHARS,
 } from '../../consts/index.js';
 import { DomainError } from '../errors.js';
@@ -69,7 +70,7 @@ export class HandoutService {
       title,
       kind: 'text',
       body: input.body,
-      mediaId: null,
+      mediaIds: [],
       visibility: 'dm',
       recipients: [],
       createdBy: user.id,
@@ -90,20 +91,80 @@ export class HandoutService {
     },
   ): Promise<Handout> {
     await this.requireDm(user, campaignId);
+    const title = input.title.trim();
+    if (title.length < 1 || title.length > 200)
+      throw new DomainError('invalid_input', 'title must be 1–200 characters');
+    const media = await this.storeFile(
+      user,
+      campaignId,
+      input,
+      input.kind === 'pdf' ? 'pdf' : 'image',
+    );
+    try {
+      const handout: Handout = {
+        id: this.newId(),
+        campaignId,
+        title,
+        // Pictures and maps are the same thing now: a set of pictures.
+        kind: input.kind === 'pdf' ? 'pdf' : 'image',
+        body: null,
+        mediaIds: [media.id],
+        visibility: 'dm',
+        recipients: [],
+        createdBy: user.id,
+        createdAt: this.now(),
+      };
+      await this.deps.table.putHandout(handout);
+      return handout;
+    } catch (error) {
+      await this.discard(media.id);
+      throw error;
+    }
+  }
+
+  /** Adds a picture to the end of a picture handout (never to a note or a PDF). */
+  async addImage(
+    user: User,
+    campaignId: string,
+    handoutId: string,
+    input: { bytes: Buffer; originalName: string },
+  ): Promise<Handout> {
+    await this.requireDm(user, campaignId);
+    const current = await this.own(campaignId, handoutId);
+    if (current.kind !== 'image' && current.kind !== 'map')
+      throw new DomainError('invalid_input', 'only a picture handout can take more pictures');
+    if (current.mediaIds.length >= MAX_HANDOUT_IMAGES)
+      throw new DomainError(
+        'invalid_input',
+        `a handout holds at most ${MAX_HANDOUT_IMAGES} pictures`,
+      );
+    const media = await this.storeFile(user, campaignId, input, 'image');
+    try {
+      const next: Handout = { ...current, mediaIds: [...current.mediaIds, media.id] };
+      await this.deps.table.putHandout(next);
+      return next;
+    } catch (error) {
+      await this.discard(media.id);
+      throw error;
+    }
+  }
+
+  /** Checks and stores one uploaded file, returning its record. */
+  private async storeFile(
+    user: User,
+    campaignId: string,
+    input: { bytes: Buffer; originalName: string },
+    wanted: 'image' | 'pdf',
+  ): Promise<MediaFile> {
     if (!this.deps.media)
       throw new DomainError(
         'conflict',
         'file storage is not configured on this server (MEDIA_DIR)',
       );
-    const title = input.title.trim();
-    if (title.length < 1 || title.length > 200)
-      throw new DomainError('invalid_input', 'title must be 1–200 characters');
     if (input.bytes.length === 0) throw new DomainError('invalid_input', 'the file is empty');
     if (input.bytes.length > MAX_HANDOUT_BYTES)
       throw new DomainError('too_large', 'that file is too large');
-
     const detected = detectMedia(input.bytes);
-    const wanted = input.kind === 'pdf' ? 'pdf' : 'image';
     if (!detected || detected.kind !== wanted) {
       throw new DomainError(
         'unsupported_media',
@@ -114,7 +175,6 @@ export class HandoutService {
     if (used + input.bytes.length > MAX_CAMPAIGN_HANDOUT_BYTES) {
       throw new DomainError('too_large', 'this campaign has used up its file storage');
     }
-
     const media: MediaFile = {
       id: this.newId(),
       ownerId: user.id,
@@ -128,26 +188,17 @@ export class HandoutService {
     await this.deps.media.put(media.id, input.bytes);
     try {
       await this.deps.table.putMedia(media);
-      const handout: Handout = {
-        id: this.newId(),
-        campaignId,
-        title,
-        kind: input.kind,
-        body: null,
-        mediaId: media.id,
-        visibility: 'dm',
-        recipients: [],
-        createdBy: user.id,
-        createdAt: this.now(),
-      };
-      await this.deps.table.putHandout(handout);
-      return handout;
     } catch (error) {
-      // Don't leave an orphaned file behind if the database write failed.
-      await this.deps.media.delete(media.id).catch(() => undefined);
-      await this.deps.table.deleteMedia(media.id).catch(() => undefined);
+      await this.discard(media.id);
       throw error;
     }
+    return media;
+  }
+
+  /** Don't leave an orphaned file behind if a database write failed. */
+  private async discard(mediaId: string): Promise<void> {
+    await this.deps.media?.delete(mediaId).catch(() => undefined);
+    await this.deps.table.deleteMedia(mediaId).catch(() => undefined);
   }
 
   /** Shows a handout to everyone, or to the listed members only. Returns who it was shown to. */
@@ -208,15 +259,15 @@ export class HandoutService {
       next.title = title;
     }
     if (changes.text !== undefined) {
-      if (current.kind !== 'text')
-        throw new DomainError('invalid_input', 'only text can be edited');
-      if (changes.text.length < 1 || changes.text.length > MAX_TEXT_HANDOUT_CHARS) {
+      // A note's text is required; a picture or PDF may carry a caption, or none.
+      const optional = current.kind !== 'text';
+      if (changes.text.length > MAX_TEXT_HANDOUT_CHARS || (!optional && changes.text.length < 1)) {
         throw new DomainError(
           'invalid_input',
-          `text must be 1–${MAX_TEXT_HANDOUT_CHARS} characters`,
+          `text must be ${optional ? 0 : 1}–${MAX_TEXT_HANDOUT_CHARS} characters`,
         );
       }
-      next.body = changes.text;
+      next.body = optional && changes.text.trim() === '' ? null : changes.text;
     }
     await this.deps.table.putHandout(next);
     return next;
@@ -240,12 +291,14 @@ export class HandoutService {
     user: User,
     campaignId: string,
     handoutId: string,
+    index = 0,
   ): Promise<{ media: MediaFile; bytes: Buffer }> {
     const handout = await this.get(user, campaignId, handoutId);
-    if (!handout.mediaId || !this.deps.media) throw new DomainError('not_found');
+    const mediaId = handout.mediaIds[index];
+    if (!mediaId || !this.deps.media) throw new DomainError('not_found');
     const [media, bytes] = await Promise.all([
-      this.deps.table.getMedia(handout.mediaId),
-      this.deps.media.get(handout.mediaId),
+      this.deps.table.getMedia(mediaId),
+      this.deps.media.get(mediaId),
     ]);
     if (!media || !bytes) throw new DomainError('not_found');
     return { media, bytes };
@@ -255,9 +308,9 @@ export class HandoutService {
     await this.requireDm(user, campaignId);
     const handout = await this.own(campaignId, handoutId);
     await this.deps.table.deleteHandout(handout.id);
-    if (handout.mediaId) {
-      await this.deps.table.deleteMedia(handout.mediaId);
-      await this.deps.media?.delete(handout.mediaId);
+    for (const mediaId of handout.mediaIds) {
+      await this.deps.table.deleteMedia(mediaId);
+      await this.deps.media?.delete(mediaId);
     }
   }
 

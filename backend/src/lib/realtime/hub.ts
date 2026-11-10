@@ -208,7 +208,13 @@ export class Hub {
   /** A handout was just shown: tell exactly the people who may now see it (the DM's own sockets included). */
   announceHandoutShown(
     campaignId: string,
-    handout: { id: string; title: string; kind: string; body?: string | null },
+    handout: {
+      id: string;
+      title: string;
+      kind: string;
+      body?: string | null;
+      mediaIds?: string[];
+    },
     audience: { everyone: boolean; userIds: string[] },
     dmIds: string[],
   ): void {
@@ -222,6 +228,7 @@ export class Hub {
         title: handout.title,
         kind: handout.kind,
         excerpt: handoutExcerpt(handout.kind, handout.body),
+        fileCount: handout.mediaIds?.length ?? 0,
       },
       audience.everyone ? {} : { only: (s) => s.auth !== null && allowed.has(s.auth.user.id) },
     );

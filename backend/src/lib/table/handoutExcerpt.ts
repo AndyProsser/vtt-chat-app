@@ -1,9 +1,9 @@
 /** How much of a note travels in the "handout shown" event: enough for a three-line preview in chat. */
 export const EXCERPT_CHARS = 400;
 
-/** The start of a text handout for its chat card; nothing for pictures, maps, PDFs or an empty note. */
-export function handoutExcerpt(kind: string, body: string | null | undefined): string | undefined {
-  if (kind !== 'text' || !body) return undefined;
+/** The start of a note, or the caption of a picture set or PDF, for its chat card; nothing if there is none. */
+export function handoutExcerpt(_kind: string, body: string | null | undefined): string | undefined {
+  if (!body) return undefined;
   const text = body.trim();
   if (text === '') return undefined;
   if (text.length <= EXCERPT_CHARS) return text;

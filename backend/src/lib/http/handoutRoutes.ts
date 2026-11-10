@@ -1,7 +1,7 @@
 import express, { Router } from 'express';
 import { z } from 'zod';
 
-import { MAX_HANDOUT_BYTES } from '../../consts/index.js';
+import { MAX_HANDOUT_BYTES, MAX_HANDOUT_IMAGES } from '../../consts/index.js';
 import type { AccountService } from '../auth/accountService.js';
 import { DomainError } from '../errors.js';
 import type { Audience, HandoutService } from '../table/handoutService.js';
@@ -22,6 +22,7 @@ const editBody = z.object({
   title: z.string().max(200).optional(),
   text: z.string().max(20_000).optional(),
 });
+const imageQuery = z.object({ name: z.string().max(200).default('upload') });
 const fileQuery = z.object({
   title: z.string().min(1).max(200),
   kind: z.enum(['image', 'map', 'pdf']),
@@ -40,7 +41,8 @@ const view = (h: Handout) => ({
   title: h.title,
   kind: h.kind,
   body: h.body,
-  hasFile: h.mediaId !== null,
+  hasFile: h.mediaIds.length > 0,
+  fileCount: h.mediaIds.length,
   visibility: h.visibility,
   recipients: h.recipients,
   createdAt: h.createdAt,
@@ -95,11 +97,17 @@ export function handoutRoutes(deps: HandoutRouteDeps): Router {
     });
   });
 
-  router.get('/:handoutId/file', async (req, res) => {
+  const sendFile = async (
+    res: express.Response,
+    campaignId: string,
+    handoutId: string,
+    index: number,
+  ) => {
     const { media, bytes } = await handouts.readFile(
       authOf(res).user,
-      campaign(req),
-      param(req.params.handoutId),
+      campaignId,
+      handoutId,
+      index,
     );
     res.setHeader('Content-Type', media.mime);
     res.setHeader('Content-Length', String(bytes.length));
@@ -108,7 +116,36 @@ export function handoutRoutes(deps: HandoutRouteDeps): Router {
     res.setHeader('Content-Security-Policy', "default-src 'none'; sandbox");
     res.setHeader('Cache-Control', 'private, max-age=3600');
     res.end(bytes);
+  };
+
+  router.get('/:handoutId/file', (req, res) =>
+    sendFile(res, campaign(req), param(req.params.handoutId), 0),
+  );
+
+  router.get('/:handoutId/files/:index', (req, res) => {
+    const index = Number(req.params.index);
+    if (!Number.isInteger(index) || index < 0 || index >= MAX_HANDOUT_IMAGES)
+      throw new DomainError('not_found');
+    return sendFile(res, campaign(req), param(req.params.handoutId), index);
   });
+
+  // Another picture for a picture handout: a raw body like the first upload.
+  router.post(
+    '/:handoutId/images',
+    express.raw({ type: () => true, limit: MAX_HANDOUT_BYTES + 1024 }),
+    async (req, res) => {
+      const query = imageQuery.safeParse(req.query);
+      if (!query.success) throw new DomainError('invalid_input', 'the picture needs a name');
+      const bytes = Buffer.isBuffer(req.body) ? req.body : Buffer.alloc(0);
+      const h = await handouts.addImage(
+        authOf(res).user,
+        campaign(req),
+        param(req.params.handoutId),
+        { bytes, originalName: query.data.name },
+      );
+      res.json({ handout: view(h) });
+    },
+  );
 
   router.patch('/:handoutId', async (req, res) => {
     const body = editBody.parse(req.body);

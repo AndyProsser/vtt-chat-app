@@ -37,7 +37,7 @@ const toHandout = (r: Row): Handout => ({
   title: r.title as string,
   kind: r.kind as HandoutKind,
   body: (r.body as string | null) ?? null,
-  mediaId: (r.media_id as string | null) ?? null,
+  mediaIds: (r.media_ids as string[] | null) ?? [],
   visibility: r.visibility as HandoutVisibility,
   recipients: (r.recipients as string[] | null) ?? [],
   createdBy: (r.created_by as string | null) ?? null,
@@ -63,7 +63,10 @@ const toLoot = (r: Row): LootItem => ({
 });
 
 const HANDOUT_SELECT = `
-  SELECT h.*, COALESCE(array_agg(r.user_id::text) FILTER (WHERE r.user_id IS NOT NULL), '{}') AS recipients
+  SELECT h.*,
+         COALESCE(array_agg(DISTINCT r.user_id::text) FILTER (WHERE r.user_id IS NOT NULL), '{}') AS recipients,
+         COALESCE((SELECT array_agg(f.media_id::text ORDER BY f.position)
+                     FROM handout_files f WHERE f.handout_id = h.id), '{}') AS media_ids
     FROM handouts h LEFT JOIN handout_recipients r ON r.handout_id = h.id`;
 
 /** The table-feature tables of `backend/migrations/`. */
@@ -103,7 +106,8 @@ export class PostgresTableStore implements TableStore {
   async campaignHandoutBytes(campaignId: string): Promise<number> {
     const { rows } = await this.pool.query<{ n: string | null }>(
       `SELECT COALESCE(SUM(m.bytes), 0)::bigint AS n FROM handouts h
-         JOIN media_files m ON m.id = h.media_id WHERE h.campaign_id = $1`,
+         JOIN handout_files f ON f.handout_id = h.id
+         JOIN media_files m ON m.id = f.media_id WHERE h.campaign_id = $1`,
       [campaignId],
     );
     return Number(rows[0]?.n ?? 0);
@@ -114,21 +118,18 @@ export class PostgresTableStore implements TableStore {
     try {
       await client.query('BEGIN');
       await client.query(
-        `INSERT INTO handouts (id, campaign_id, title, kind, body, media_id, visibility, created_by, created_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-         ON CONFLICT (id) DO UPDATE SET title = $3, kind = $4, body = $5, media_id = $6, visibility = $7`,
-        [
-          h.id,
-          h.campaignId,
-          h.title,
-          h.kind,
-          h.body,
-          h.mediaId,
-          h.visibility,
-          h.createdBy,
-          h.createdAt,
-        ],
+        `INSERT INTO handouts (id, campaign_id, title, kind, body, visibility, created_by, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+         ON CONFLICT (id) DO UPDATE SET title = $3, kind = $4, body = $5, visibility = $6`,
+        [h.id, h.campaignId, h.title, h.kind, h.body, h.visibility, h.createdBy, h.createdAt],
       );
+      await client.query('DELETE FROM handout_files WHERE handout_id = $1', [h.id]);
+      for (const [position, mediaId] of h.mediaIds.entries()) {
+        await client.query(
+          'INSERT INTO handout_files (handout_id, position, media_id) VALUES ($1, $2, $3)',
+          [h.id, position, mediaId],
+        );
+      }
       await client.query('DELETE FROM handout_recipients WHERE handout_id = $1', [h.id]);
       for (const userId of h.recipients) {
         await client.query('INSERT INTO handout_recipients (handout_id, user_id) VALUES ($1, $2)', [

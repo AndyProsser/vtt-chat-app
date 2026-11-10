@@ -212,6 +212,76 @@ describe('drafts and showing', () => {
   });
 });
 
+const PNG2 = Buffer.concat([
+  Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+  Buffer.alloc(64, 9),
+]);
+
+describe('a set of pictures', () => {
+  const addImage = (token: string, id: string, file = PNG2, c = campaign) =>
+    call('POST', `/api/campaigns/${c}/handouts/${id}/images?name=b.png`, token, undefined, file);
+
+  it('grows by one picture at a time, in order, and each one can be fetched', async () => {
+    const id = (await upload(dm.token)).body.handout.id;
+    expect((await addImage(dm.token, id)).body.handout.fileCount).toBe(2);
+    const list = (await call('GET', `/api/campaigns/${campaign}/handouts`, dm.token)).body.handouts;
+    expect(list[0]).toMatchObject({ id, fileCount: 2, hasFile: true });
+    const first = await call('GET', `/api/campaigns/${campaign}/handouts/${id}/files/0`, dm.token);
+    const second = await call('GET', `/api/campaigns/${campaign}/handouts/${id}/files/1`, dm.token);
+    expect(first.bytes.equals(PNG)).toBe(true);
+    expect(second.bytes.equals(PNG2)).toBe(true);
+    expect(
+      (await call('GET', `/api/campaigns/${campaign}/handouts/${id}/file`, dm.token)).bytes.equals(
+        PNG,
+      ),
+    ).toBe(true);
+    expect(
+      (await call('GET', `/api/campaigns/${campaign}/handouts/${id}/files/2`, dm.token)).status,
+    ).toBe(404);
+  });
+
+  it('is limited to twelve pictures, and only the DM can add them', async () => {
+    const id = (await upload(dm.token)).body.handout.id;
+    expect((await addImage(alice.token, id)).status).toBe(403);
+    for (let i = 1; i < 12; i++) expect((await addImage(dm.token, id)).status).toBe(200);
+    expect((await addImage(dm.token, id)).status).toBe(400);
+  });
+
+  it('never mixes: a PDF takes no pictures and a picture set takes no PDF', async () => {
+    const pdf = (await upload(dm.token, campaign, 'title=Doc&kind=pdf&name=d.pdf', PDF)).body
+      .handout.id;
+    expect((await addImage(dm.token, pdf)).status).toBe(400);
+    const set = (await upload(dm.token)).body.handout.id;
+    expect((await addImage(dm.token, set, PDF)).status).toBe(415);
+  });
+
+  it('removes every file when the handout is deleted', async () => {
+    const id = (await upload(dm.token)).body.handout.id;
+    await addImage(dm.token, id);
+    expect(media.files.size).toBe(2);
+    await call('DELETE', `/api/campaigns/${campaign}/handouts/${id}`, dm.token);
+    expect(media.files.size).toBe(0);
+  });
+
+  it('counts every picture against the campaign storage', async () => {
+    const id = (await upload(dm.token)).body.handout.id;
+    await addImage(dm.token, id);
+    expect(await table.campaignHandoutBytes(campaign)).toBe(PNG.length + PNG2.length);
+  });
+
+  it('lets the DM give a picture or PDF handout a caption, and clear it', async () => {
+    const id = (await upload(dm.token)).body.handout.id;
+    const set = await call('PATCH', `/api/campaigns/${campaign}/handouts/${id}`, dm.token, {
+      text: 'The ward on the north wall.',
+    });
+    expect(set.body.handout.body).toBe('The ward on the north wall.');
+    const cleared = await call('PATCH', `/api/campaigns/${campaign}/handouts/${id}`, dm.token, {
+      text: '',
+    });
+    expect(cleared.body.handout.body).toBeNull();
+  });
+});
+
 describe('editing a handout', () => {
   it('lets the DM change the title and text, and players see the new version', async () => {
     const id = (
@@ -244,7 +314,6 @@ describe('editing a handout', () => {
     expect((await patch(text, alice.token, { title: 'x' })).status).toBe(403);
     expect((await patch(text, dm.token, { title: '   ' })).status).toBe(400);
     const picture = (await upload(dm.token)).body.handout.id;
-    expect((await patch(picture, dm.token, { text: 'words' })).status).toBe(400);
     expect((await patch(picture, dm.token, { title: 'A better name' })).status).toBe(200);
   });
 });
@@ -345,7 +414,7 @@ describe('uploads are checked by their bytes', () => {
       title: 'big',
       kind: 'image',
       body: null,
-      mediaId: f,
+      mediaIds: [f],
       visibility: 'dm',
       recipients: [],
       createdBy: dm.id,
