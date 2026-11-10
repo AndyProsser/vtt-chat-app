@@ -1,5 +1,6 @@
 mod account;
 mod account_commands;
+mod attention;
 mod audio_prefs;
 mod autostart;
 mod away_watch;
@@ -56,6 +57,7 @@ pub fn run() {
         }))
         .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
@@ -79,6 +81,9 @@ pub fn run() {
         .manage(rust_livekit::SharedClient::default())
         .manage(mic_gate::MicGate::default())
         .manage(status_commands::StatusState::default())
+        .manage(attention::Unread::default())
+        .manage(attention::LastNotified::default())
+        .manage(attention::SelfId::default())
         .manage(session::SessionState::default())
         .manage(account_commands::AccountState::default())
         .manage(bridge::PanelFeed::default())
@@ -159,6 +164,14 @@ pub fn run() {
                 }
             }
             Ok(())
+        })
+        .on_window_event(|window, event| {
+            // Looking at the main window again clears the tray's unread dot.
+            if window.label() == windows::MAIN_LABEL {
+                if let tauri::WindowEvent::Focused(true) = event {
+                    attention::clear(tauri::Manager::app_handle(window));
+                }
+            }
         })
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

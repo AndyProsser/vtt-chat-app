@@ -149,7 +149,12 @@ pub fn refresh_tray(app: &AppHandle) {
         (m.connected, m.indicator.unwrap_or(Indicator::None))
     };
     let mic_closed = app.state::<MicGate>().effective();
-    tray::apply(app, tray::tray_state(connected, mic_closed, indicator));
+    let unread = app.state::<crate::attention::Unread>().count();
+    tray::apply(
+        app,
+        tray::tray_state(connected, mic_closed, indicator),
+        unread,
+    );
     // The menu's Mute / Unmute label follows the same state.
     tray::refresh_menu(app);
 }
@@ -213,6 +218,7 @@ pub async fn start_session(
                             .record(&value, retain);
                         let _ = app.emit(crate::bridge::SYNC_EVENT, value);
                     }
+                    crate::attention::on_server_event(&app, server_event);
                     match server_event {
                         rust_sync::ServerEvent::Snapshot { data, .. } => {
                             crate::soundboard::note_roster(&app, data).await;

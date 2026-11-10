@@ -57,6 +57,9 @@ impl TrayState {
 
 pub const ICON_SIZE: u32 = 64;
 
+/// The unread dot (top right): a warm orange, which no state badge uses.
+const UNREAD_COLOUR: [u8; 3] = [0xff, 0x8a, 0x1f];
+
 /// Badge geometry: a disc in the bottom-right corner with a dark outline so it reads on any panel.
 const BADGE_RADIUS: f32 = 13.0;
 const BADGE_OUTLINE: f32 = 2.0;
@@ -107,7 +110,7 @@ fn logo() -> &'static [u8] {
 
 /// The logo with a status badge bottom-right (like a file-sync client's tray icon): green live,
 /// amber muted, red recording, red ring paused, grey badge on a greyed logo when disconnected.
-pub fn render_icon(state: TrayState) -> Vec<u8> {
+pub fn render_icon_with(state: TrayState, unread: bool) -> Vec<u8> {
     let mut pixels = logo().to_vec();
     if state == TrayState::Disconnected {
         for p in pixels.as_chunks_mut::<4>().0.iter_mut() {
@@ -131,6 +134,26 @@ pub fn render_icon(state: TrayState) -> Vec<u8> {
             };
             let i = ((y * ICON_SIZE + x) * 4) as usize;
             pixels[i..i + 4].copy_from_slice(&[colour[0], colour[1], colour[2], 0xff]);
+        }
+    }
+    if unread {
+        let centre = BADGE_RADIUS + 1.0;
+        for y in 0..ICON_SIZE {
+            for x in 0..ICON_SIZE {
+                let d = ((x as f32 - (ICON_SIZE as f32 - centre)).powi(2)
+                    + (y as f32 - centre).powi(2))
+                .sqrt();
+                if d > BADGE_RADIUS {
+                    continue;
+                }
+                let colour = if d > BADGE_RADIUS - BADGE_OUTLINE {
+                    OUTLINE_COLOUR
+                } else {
+                    UNREAD_COLOUR
+                };
+                let i = ((y * ICON_SIZE + x) * 4) as usize;
+                pixels[i..i + 4].copy_from_slice(&[colour[0], colour[1], colour[2], 0xff]);
+            }
         }
     }
     pixels
@@ -248,20 +271,59 @@ pub fn install(app: &tauri::AppHandle) -> tauri::Result<()> {
 }
 
 fn icon_image(state: TrayState) -> tauri::image::Image<'static> {
-    tauri::image::Image::new_owned(render_icon(state), ICON_SIZE, ICON_SIZE)
+    icon_image_with(state, false)
+}
+
+fn icon_image_with(state: TrayState, unread: bool) -> tauri::image::Image<'static> {
+    tauri::image::Image::new_owned(render_icon_with(state, unread), ICON_SIZE, ICON_SIZE)
 }
 
 /// Shows `state` on the tray icon, if one is installed.
-pub fn apply(app: &tauri::AppHandle, state: TrayState) {
+pub fn apply(app: &tauri::AppHandle, state: TrayState, unread: u32) {
     if let Some(tray) = app.tray_by_id(TRAY_ID) {
-        let _ = tray.set_icon(Some(icon_image(state)));
-        let _ = tray.set_tooltip(Some(state.tooltip()));
+        let _ = tray.set_icon(Some(icon_image_with(state, unread > 0)));
+        let _ = tray.set_tooltip(Some(tooltip_with(state, unread)));
+    }
+}
+
+/// The tooltip, with the unread count when there is one.
+pub fn tooltip_with(state: TrayState, unread: u32) -> String {
+    match unread {
+        0 => state.tooltip().to_string(),
+        n => format!("{} · {n} unread", state.tooltip()),
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn an_unread_dot_shows_at_the_top_right_only_when_there_is_something_unread() {
+        let plain = render_icon_with(TrayState::Live, false);
+        let dotted = render_icon_with(TrayState::Live, true);
+        assert_eq!(plain, render_icon_with(TrayState::Live, false));
+        let size = ICON_SIZE as usize;
+        let at = |pixels: &[u8], x: usize, y: usize| {
+            let i = (y * size + x) * 4;
+            [pixels[i], pixels[i + 1], pixels[i + 2]]
+        };
+        let (x, y) = (size - 8, 8);
+        assert_eq!(at(&dotted, x, y), UNREAD_COLOUR);
+        assert_ne!(at(&plain, x, y), UNREAD_COLOUR);
+        // The state badge, bottom right, is untouched by the dot.
+        let (bx, by) = (size - 14, size - 14);
+        assert_eq!(at(&dotted, bx, by), at(&plain, bx, by));
+    }
+
+    #[test]
+    fn the_tooltip_says_how_many_are_unread() {
+        assert_eq!(tooltip_with(TrayState::Live, 0), "VTT Chat — live");
+        assert_eq!(
+            tooltip_with(TrayState::Live, 3),
+            "VTT Chat — live · 3 unread"
+        );
+    }
 
     #[test]
     fn the_mute_item_follows_the_mute_and_is_off_while_offline() {
@@ -316,14 +378,18 @@ mod tests {
         for (i, a) in states.iter().enumerate() {
             for b in &states[i + 1..] {
                 assert_ne!(a.tooltip(), b.tooltip());
-                assert_ne!(render_icon(*a), render_icon(*b), "{a:?} vs {b:?}");
+                assert_ne!(
+                    render_icon_with(*a, false),
+                    render_icon_with(*b, false),
+                    "{a:?} vs {b:?}"
+                );
             }
         }
     }
 
     #[test]
     fn icons_are_the_right_size_and_not_blank() {
-        let icon = render_icon(TrayState::Live);
+        let icon = render_icon_with(TrayState::Live, false);
         assert_eq!(icon.len(), (ICON_SIZE * ICON_SIZE * 4) as usize);
         assert!(icon.chunks(4).any(|p| p[3] == 0xff));
         assert!(
@@ -349,7 +415,7 @@ mod tests {
             (TrayState::Disconnected, [0x8a, 0x8f, 0x98]),
         ] {
             assert_eq!(
-                pixel(&render_icon(state), BADGE.0, BADGE.1),
+                pixel(&render_icon_with(state, false), BADGE.0, BADGE.1),
                 [r, g, b, 0xff],
                 "{state:?}"
             );
@@ -358,8 +424,16 @@ mod tests {
 
     #[test]
     fn a_paused_badge_is_hollow_where_recording_is_solid() {
-        let paused = pixel(&render_icon(TrayState::Paused), BADGE.0, BADGE.1);
-        let recording = pixel(&render_icon(TrayState::Recording), BADGE.0, BADGE.1);
+        let paused = pixel(
+            &render_icon_with(TrayState::Paused, false),
+            BADGE.0,
+            BADGE.1,
+        );
+        let recording = pixel(
+            &render_icon_with(TrayState::Recording, false),
+            BADGE.0,
+            BADGE.1,
+        );
         assert_ne!(paused, recording);
         assert_eq!(
             paused,
@@ -370,7 +444,7 @@ mod tests {
 
     #[test]
     fn a_disconnected_logo_is_grey() {
-        let icon = render_icon(TrayState::Disconnected);
+        let icon = render_icon_with(TrayState::Disconnected, false);
         let mut checked = 0;
         for y in 0..ICON_SIZE {
             for x in 0..ICON_SIZE {
@@ -390,7 +464,7 @@ mod tests {
 
     #[test]
     fn a_live_logo_keeps_its_colour() {
-        let icon = render_icon(TrayState::Live);
+        let icon = render_icon_with(TrayState::Live, false);
         let coloured = icon
             .chunks(4)
             .any(|p| p[3] == 0xff && !(p[0] == p[1] && p[1] == p[2]) && p[0] > 150 && p[1] < 80);
