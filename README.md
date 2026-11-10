@@ -2,7 +2,7 @@
 
 > Self-hosted voice, chat and **session records with AI summaries** for tabletop groups. A tiny tray app for players, a mobile web app, and a server you run yourself — no cloud account required.
 
-**Status:** Rebuild in progress (v0.2.0). The project changed direction on 2026-10-29; the old design is gone from the code and archived in `docs/archive/`. The server-side foundations (accounts, campaigns, REST, WebSocket, recording consent) and the Rust client libraries exist and are tested, but **nothing user-facing runs yet** — the tray app has no window, and much has not been run against real infrastructure. **[docs/BUILD-STATUS.md](docs/BUILD-STATUS.md) says exactly what is built, what is verified, and what is next.** See [CLAUDE.md](.claude/CLAUDE.md) for the spec and [ROADMAP.md](ROADMAP.md) for the plan.
+**Status:** The player and DM experience is built (voice, chat, handouts, loot, recording with transcripts and AI summaries, status, noise filtering) and runs on a developer's machine; the server installs from Docker Compose or a native script. **It has not yet been installed by anyone but its author**, and much has not been run against real infrastructure. **[docs/BUILD-STATUS.md](docs/BUILD-STATUS.md) says exactly what is built, what is verified, and what is next.** Start with the **[operator guide](docs/guides/OPERATOR-GUIDE.md)** (to host) or the **[user guide](docs/guides/USER-GUIDE.md)** (to play). See [CLAUDE.md](.claude/CLAUDE.md) for the spec and [ROADMAP.md](ROADMAP.md) for the plan.
 
 ---
 
@@ -55,6 +55,8 @@ Each module has its own `README.md` describing its purpose and current status.
 
 ## Documentation
 
+- [docs/guides/OPERATOR-GUIDE.md](docs/guides/OPERATOR-GUIDE.md) — install, configure, operate, back up, update and fix a server (draft)
+- [docs/guides/USER-GUIDE.md](docs/guides/USER-GUIDE.md) — joining a table, voice, chat, handouts, loot, recording, the DM's tools (draft)
 - [CLAUDE.md](.claude/CLAUDE.md) — full architecture spec and build constraints
 - [ROADMAP.md](ROADMAP.md) — staged build order
 - [CONTRIBUTING.md](CONTRIBUTING.md) — how to contribute, PR process
