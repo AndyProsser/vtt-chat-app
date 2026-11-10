@@ -20,6 +20,7 @@ import { SoundboardRuntime } from '../soundboard/runtime.js';
 import type { PartyService } from '../parties/partyService.js';
 import type { ScheduleStore } from '../schedule/scheduleStore.js';
 import { notificationView } from '../schedule/relay.js';
+import { handoutExcerpt } from '../table/handoutExcerpt.js';
 import type { SoundStore } from '../soundboard/soundStore.js';
 import { RecordingState, type RecordingChange } from '../recording/recordingState.js';
 import type { BufferedEvent, ReplayBuffer } from './replayBuffer.js';
@@ -207,7 +208,7 @@ export class Hub {
   /** A handout was just shown: tell exactly the people who may now see it (the DM's own sockets included). */
   announceHandoutShown(
     campaignId: string,
-    handout: { id: string; title: string; kind: string },
+    handout: { id: string; title: string; kind: string; body?: string | null },
     audience: { everyone: boolean; userIds: string[] },
     dmIds: string[],
   ): void {
@@ -215,7 +216,13 @@ export class Hub {
     this.broadcast(
       campaignId,
       'handout.shown',
-      { campaignId, handoutId: handout.id, title: handout.title, kind: handout.kind },
+      {
+        campaignId,
+        handoutId: handout.id,
+        title: handout.title,
+        kind: handout.kind,
+        excerpt: handoutExcerpt(handout.kind, handout.body),
+      },
       audience.everyone ? {} : { only: (s) => s.auth !== null && allowed.has(s.auth.user.id) },
     );
   }

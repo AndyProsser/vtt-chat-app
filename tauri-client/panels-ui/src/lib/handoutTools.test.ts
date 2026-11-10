@@ -6,6 +6,7 @@ import {
   imageFromClipboard,
   isShared,
   pastedTitle,
+  plainPreview,
   removalWarning,
   searchHandouts,
 } from './handoutTools.js';
@@ -89,5 +90,18 @@ describe('fileFromBase64', () => {
     expect(f.type).toBe('image/png');
     expect(f.name).toBe('clip.png');
     expect(f.size).toBe(3);
+  });
+});
+
+describe('plainPreview', () => {
+  it('drops Markdown marks so a card reads as plain words', () => {
+    expect(plainPreview('# The key\n\n**Beware** the _crypt_.\n> read aloud\n- one\n- two')).toBe(
+      'The key Beware the crypt. read aloud one two',
+    );
+  });
+  it('keeps ordinary punctuation and collapses blank space', () => {
+    expect(plainPreview('  Meet me at dusk -  bring 3 torches.  ')).toBe(
+      'Meet me at dusk - bring 3 torches.',
+    );
   });
 });

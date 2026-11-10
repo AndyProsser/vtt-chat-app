@@ -250,7 +250,16 @@ function newCard(state: TableState, id: string, kind: TableCard['kind'], d: Obj)
         claimedBy: null,
         after: lastChatId(state),
       }
-    : { id, kind, title, after: lastChatId(state) };
+    : {
+        id,
+        kind,
+        title,
+        ...(d.kind === 'image' || d.kind === 'map' || d.kind === 'pdf' || d.kind === 'text'
+          ? { handoutKind: d.kind }
+          : {}),
+        ...(typeof d.excerpt === 'string' ? { excerpt: d.excerpt } : {}),
+        after: lastChatId(state),
+      };
 }
 
 const asClaimedFor = (v: unknown): ClaimedFor | null =>

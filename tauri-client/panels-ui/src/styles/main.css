@@ -1484,3 +1484,46 @@ body,
   max-width: none;
   user-select: none;
 }
+
+/* A handout in chat: a thumbnail for a picture, three lines for a note; click opens it large. */
+.vtt-card-handout {
+  align-items: flex-start;
+}
+.vtt-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+.vtt-card-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.vtt-card-title b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.vtt-card-excerpt {
+  font-size: 12px;
+  opacity: 0.85;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+.vtt-card-thumb {
+  width: 72px;
+  height: 56px;
+  flex: none;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid var(--vtt-edge);
+  background: var(--vtt-chat);
+  display: block;
+}

@@ -91,6 +91,10 @@ export interface TableCard {
   claimedBy?: string | null;
   claimedFor?: ClaimedFor | null;
   split?: LootSplit | null;
+  /** A handout's kind, so its card can show a picture or the start of the text. */
+  handoutKind?: 'image' | 'map' | 'pdf' | 'text';
+  /** The start of a text handout, for the card's three-line preview. */
+  excerpt?: string;
   removed?: boolean;
   after: string | null;
 }

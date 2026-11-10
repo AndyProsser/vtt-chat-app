@@ -276,8 +276,14 @@ describe('loot and handout cards', () => {
       kind: 'handout',
       title: 'Crypt map',
     });
+    expect(state.cards.at(-1)).toMatchObject({ handoutKind: 'map' });
+    state = applyEvent(state, {
+      t: 'handout.shown',
+      d: { handoutId: 'h2', title: 'Note', kind: 'text', excerpt: 'Meet me at dusk.' },
+    });
+    expect(state.cards.at(-1)).toMatchObject({ handoutKind: 'text', excerpt: 'Meet me at dusk.' });
     state = applyEvent(state, { t: 'handout.removed', d: { handoutId: 'h1' } });
-    expect(state.cards.at(-1)?.removed).toBe(true);
+    expect(state.cards.find((c) => c.id === 'handout:h1')?.removed).toBe(true);
   });
 });
 
