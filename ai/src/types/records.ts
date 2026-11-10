@@ -8,6 +8,8 @@ export interface Recording {
   startedAt: number;
   stoppedAt: number | null;
   status: RecordingStatus;
+  /** When the DM was warned that this recording's audio will be deleted to free disk space, if ever. */
+  audioNoticeAt?: number | null;
 }
 
 /** One speaker's audio for one recording, as written by LiveKit Egress. */

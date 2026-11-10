@@ -5,9 +5,12 @@ import { useAccount } from '../hooks/useAccount.js';
 import { useCampaignQuery } from '../hooks/useCampaignQuery.js';
 import { useTableFeed } from '../hooks/useTableFeed.js';
 import {
+  audioActions,
+  audioDeletionNote,
   clock,
   durationLabel,
   snippetParts,
+  speakerName,
   summaryLabel,
   type RecordingItem,
   type SearchHit,
@@ -88,6 +91,7 @@ export function HistoryPanel() {
           open={openId === r.id}
           onToggle={() => setOpenId(openId === r.id ? undefined : r.id)}
           onRemove={() => remove(r.id)}
+          onAudioDeleted={reload}
         />
       ))}
     </div>
@@ -179,12 +183,14 @@ function Recording({
   open,
   onToggle,
   onRemove,
+  onAudioDeleted,
 }: {
   item: RecordingItem;
   dm: boolean;
   open: boolean;
   onToggle: () => void;
   onRemove: () => void;
+  onAudioDeleted: () => void;
 }) {
   const [confirming, setConfirming] = useState(false);
   const live = item.status === 'recording' || item.status === 'processing';
@@ -203,6 +209,14 @@ function Recording({
         {open ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
       </button>
       {open && <Detail id={item.id} />}
+      {open && audioDeletionNote(item, dm) && (
+        <span className="vtt-warning" role="status">
+          {audioDeletionNote(item, dm)}
+        </span>
+      )}
+      {open && audioActions(item, dm).canDelete && (
+        <DeleteAudio id={item.id} onDone={onAudioDeleted} />
+      )}
       {open && dm && !live && (
         <div>
           {confirming ? (
@@ -225,6 +239,67 @@ function Recording({
         </div>
       )}
     </section>
+  );
+}
+
+/** The DM's go-ahead to delete the raw audio once they have read the summary. The text stays; this cannot be undone. */
+function DeleteAudio({ id, onDone }: { id: string; onDone: () => void }) {
+  const [confirming, setConfirming] = useState(false);
+  const [queued, setQueued] = useState(false);
+  const [error, setError] = useState<string>();
+
+  async function run() {
+    try {
+      setError(undefined);
+      await campaignApi('POST', `recordings/${id}/audio/delete`);
+      setConfirming(false);
+      setQueued(true);
+      onDone();
+    } catch (e) {
+      setError(accountErrorMessage(e));
+    }
+  }
+
+  if (queued)
+    return (
+      <span className="vtt-muted">Deleting the audio. The transcript and summaries stay.</span>
+    );
+  return (
+    <div>
+      {error && (
+        <div className="vtt-composer-error" role="alert" style={{ position: 'static' }}>
+          {error}
+        </div>
+      )}
+      {confirming ? (
+        <div className="vtt-warning" role="alert">
+          <span>
+            Delete the raw audio of this session? The transcript and summaries stay. This cannot be
+            undone, and the audio cannot be transcribed again.
+          </span>
+          <span className="vtt-form-row">
+            <ToolButton
+              label="Yes, delete the audio"
+              danger
+              text="Delete"
+              onClick={() => void run()}
+            >
+              <Trash2 size={14} />
+            </ToolButton>
+            <ToolButton label="Keep the audio" onClick={() => setConfirming(false)}>
+              <X size={14} />
+            </ToolButton>
+          </span>
+        </div>
+      ) : (
+        <ToolButton
+          label="The summary is good: delete the audio…"
+          onClick={() => setConfirming(true)}
+        >
+          <Trash2 size={14} />
+        </ToolButton>
+      )}
+    </div>
   );
 }
 
@@ -278,7 +353,8 @@ function Detail({ id }: { id: string }) {
           {transcript.length === 0 && <span className="vtt-muted">No transcript yet.</span>}
           {transcript.map((u, i) => (
             <p key={i}>
-              <span className="vtt-muted">{clock(u.startMs)}</span> <b>{u.speaker}</b> {u.text}
+              <span className="vtt-muted">{clock(u.startMs)}</span> <b>{speakerName(u.speaker)}</b>{' '}
+              {u.text}
             </p>
           ))}
         </div>

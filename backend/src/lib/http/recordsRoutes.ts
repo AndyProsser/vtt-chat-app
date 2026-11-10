@@ -1,4 +1,11 @@
-import { mergeTranscripts, type RecordsStore, type StoredSummary } from '@vtt-chat-app/ai';
+import {
+  AUDIO_NOTICE_DAYS,
+  mergeTranscripts,
+  PURGE_RECORDING_JOB,
+  type JobQueue,
+  type RecordsStore,
+  type StoredSummary,
+} from '@vtt-chat-app/ai';
 import { Router } from 'express';
 import { z } from 'zod';
 
@@ -11,6 +18,8 @@ export interface RecordsRouteDeps {
   accounts: AccountService;
   store: Store;
   records: RecordsStore;
+  /** Where the worker's jobs are queued. Without it, deleting audio from the app is unavailable. */
+  jobs?: JobQueue;
 }
 
 const searchQuery = z.object({
@@ -88,6 +97,10 @@ export function recordsRoutes(deps: RecordsRouteDeps): Router {
         summaries: summaries.map((s) => s.kind),
         // Retention is the operator's and the DM's business: players are not told.
         ...(isDm ? { audio: await audioState(r.id) } : {}),
+        // When the audio will be deleted anyway to free disk space, so the DM can decide first.
+        ...(isDm && r.audioNoticeAt != null
+          ? { audioDeletedOn: r.audioNoticeAt + AUDIO_NOTICE_DAYS * 86_400_000 }
+          : {}),
       });
     }
     res.json({ recordings: items });
@@ -136,6 +149,29 @@ export function recordsRoutes(deps: RecordsRouteDeps): Router {
         text: u.text,
       })),
     });
+  });
+
+  // The DM says the summary is good and the raw audio can go. The worker, which can see the files, does the
+  // deleting; the transcript and the summaries stay. Only a processed recording: until then its audio is the
+  // input to the transcript.
+  router.post('/:recordingId/audio/delete', async (req, res) => {
+    const { campaignId, isDm } = await membership(req, authOf(res).user.id);
+    if (!isDm) throw new DomainError('forbidden', 'only the DM can delete a recording’s audio');
+    const recording = await ownRecording(campaignId, param(req.params.recordingId));
+    if (recording.status !== 'processed') {
+      throw new DomainError(
+        'conflict',
+        'the recording is not processed yet, so its audio is still needed',
+      );
+    }
+    const state = await audioState(recording.id);
+    if (state === 'purged' || state === 'none') {
+      throw new DomainError('conflict', 'there is no audio left to delete');
+    }
+    if (!deps.jobs)
+      throw new DomainError('conflict', 'deleting audio is not available on this server');
+    await deps.jobs.enqueue({ kind: PURGE_RECORDING_JOB, recordingId: recording.id }, Date.now());
+    res.status(202).json({ audio: 'deleting' });
   });
 
   // The DM can delete a campaign's records (RECORDING-AND-SUMMARIES.md, Access & retention).

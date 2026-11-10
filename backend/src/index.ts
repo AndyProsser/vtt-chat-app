@@ -228,6 +228,7 @@ if (isEntryPoint) {
       realtime: hub,
       recording: hub.recording,
       records,
+      ...(pool ? { jobs: new PostgresJobQueue(pool) } : {}),
       table,
       sounds,
       schedule,

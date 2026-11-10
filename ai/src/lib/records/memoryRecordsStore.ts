@@ -31,6 +31,13 @@ export class MemoryRecordsStore implements RecordsStore {
   events: RecordingEvent[] = [];
   /** Recordings whose members were told the summary is ready. */
   notified: string[] = [];
+  audioPurgeNotices: { recordingId: string; purgeAt: number }[] = [];
+  markAudioNotice = async (recordingId: string, at: number) => {
+    const r = this.recordings.get(recordingId);
+    if (r && (r.audioNoticeAt ?? null) === null) r.audioNoticeAt = at;
+  };
+  notifyAudioPurgeSoon = async (recordingId: string, purgeAt: number) =>
+    void this.audioPurgeNotices.push({ recordingId, purgeAt });
   notifySummaryReady = async (recordingId: string) => void this.notified.push(recordingId);
   addRecordingEvent = async (e: RecordingEvent) => void this.events.push({ ...e });
   listRecordingEvents = async (recordingId: string) =>

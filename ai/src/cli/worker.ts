@@ -12,6 +12,8 @@
  *   RECORDINGS_DIR      where the audio files live (needed to delete raw audio)
  *   RECORDING_RETENTION_DAYS   delete the raw audio of processed recordings after this many days
  *                       (0 or unset: keep it for ever; `vtt-admin recording purge` still works)
+ *   AUDIO_DISK_PURGE    0 turns off the disk rule: below 10% free on the recordings disk the DM is warned,
+ *                       and 3 days later the oldest unconfirmed audio is deleted (under 3% free: no wait)
  *
  *   node ai/dist/cli/worker.js [--once]     --once: drain the queue, then exit
  */
@@ -33,6 +35,7 @@ import {
   PURGE_RECORDING_JOB,
   scheduleRetentionPurges,
 } from '../lib/records/purgeRecording.js';
+import { freePercentOf, sweepDiskPurges } from '../lib/records/diskPurge.js';
 import { transcribeTrackFile } from '../lib/records/transcribeTrack.js';
 import { createOpenAiTranscribe } from '../lib/providers/openaiCompat.js';
 import { transcribeWavWithWhisperCli } from '../lib/whisperCli.js';
@@ -99,10 +102,25 @@ async function main(): Promise<void> {
     log,
   };
   const retentionDays = Number(process.env.RECORDING_RETENTION_DAYS ?? 0);
+  // The disk rule (decided 2026-11-10): when the recordings disk runs low, warn the DM and then delete the
+  // oldest unconfirmed audio. On by default; AUDIO_DISK_PURGE=0 turns it off.
+  const diskRule = recordingsDir !== undefined && process.env.AUDIO_DISK_PURGE !== '0';
   const sweep = (): void => {
     scheduleRetentionPurges({ records, queue, days: retentionDays })
       .then((n) => n > 0 && log(`retention: queued ${n} purge(s) of raw audio`))
       .catch((error: unknown) => log(`retention sweep failed: ${String(error)}`));
+    if (!diskRule || recordingsDir === undefined) return;
+    freePercentOf(recordingsDir)
+      .then(async (freePercent) => {
+        if (freePercent === undefined) return;
+        const done = await sweepDiskPurges({ records, queue, freePercent });
+        if (done.notified + done.purged > 0) {
+          log(
+            `disk ${freePercent.toFixed(1)}% free: warned ${done.notified} DM(s), queued ${done.purged} purge(s)`,
+          );
+        }
+      })
+      .catch((error: unknown) => log(`disk sweep failed: ${String(error)}`));
   };
   const once = process.argv.includes('--once');
   const abort = new AbortController();
@@ -117,8 +135,12 @@ async function main(): Promise<void> {
       log('records worker started');
       if (retentionDays > 0) {
         log(`raw audio is deleted ${retentionDays} day(s) after a recording is processed`);
+      }
+      if (diskRule)
+        log('raw audio is deleted, after a 3-day warning, when the disk runs below 10% free');
+      if (retentionDays > 0 || diskRule) {
         sweep();
-        setInterval(sweep, 6 * 3_600_000).unref();
+        setInterval(sweep, 3_600_000).unref();
       }
       await runWorker({ ...options, signal: abort.signal });
     }

@@ -57,7 +57,7 @@ flowchart LR
 
 1. **On the dev PC:** run the app and try everything listed above plus unmute, rail drag, portrait upload, device switching and the scene editor. Link a real public D&D Beyond sheet and read what comes back. Point SMTP and an Authelia at the backend once.
 2. **UI/UX fine-tuning** from what step 1 turns up, starting with **listening to the four new voices** and the importer's ambience and music loops (run `npm run sounds:import -- --from <dir> --category ambience`).
-3. **Purge defaults** (age-based retention is built; still open: purge when the DM confirms a summary, and a warning to the DM first), and the recorded 4-hour soak (Stage 9). The server-restart-mid-recording drill is done (2026-11-10).
+3. **Purge rules (built 2026-11-10):** age-based retention, the DM's "delete the audio" button, and a disk-low rule with a 3-day warning. Not built: purge at the next session start. Then the recorded 4-hour soak (Stage 9). The server-restart-mid-recording drill is done (2026-11-10).
 4. **Second-person deploy test** from the docs on a blank VM (Stage 3).
 5. **Mobile SPA** (Stage 7): built, with history search, a handout viewer (flip and zoom) and an install manifest added 2026-11-10; open it on a real phone (`/app`) and try it on iOS Safari.
 6. **D&D Beyond:** AC, passive perception, max HP and ability scores are built (2026-11-10, worked out by us); compare the first real sheets against D&D Beyond. Later: saves, skills, Unarmored Defense.
@@ -174,7 +174,7 @@ The riskiest unknowns are all "does this actually work on real machines with ope
 
 ## Stage 5 — Records & AI Summaries (Core)
 
-**Status:** 🟡 In Progress — the processing half is built and verified live (Egress files → durable job queue → worker → Whisper/LLM, local or remote with fallback → transcripts and summaries in Postgres; Admin CLI `jobs` / `recording`). **Records API built** (read, search, DM-only enforced at the API, DM delete). **History window built 2026-11-09 (unverified in a real window).** **Not built:** "DM confirms → purge raw audio" and the purge rules, and the cloud-adapter extras. The recording loop itself — DM start/stop → per-speaker capture gated on the consent acknowledgement → processing — is closed and verified live. See [docs/BUILD-STATUS.md](docs/BUILD-STATUS.md)
+**Status:** 🟡 In Progress — the processing half is built and verified live (Egress files → durable job queue → worker → Whisper/LLM, local or remote with fallback → transcripts and summaries in Postgres; Admin CLI `jobs` / `recording`). **Records API built** (read, search, DM-only enforced at the API, DM delete). **History window built 2026-11-09 (unverified in a real window).** **Built 2026-11-10:** the DM confirms → purge raw audio, and a disk-low purge rule with a 3-day warning (the next-session rule is not built). **Not built:** the cloud-adapter extras. The recording loop itself — DM start/stop → per-speaker capture gated on the consent acknowledgement → processing — is closed and verified live. See [docs/BUILD-STATUS.md](docs/BUILD-STATUS.md)
 **Depends on:** Stage 3, Stage 4 (Stage 2 Part B already proved the pipeline shape)
 
 **Deliverables:**

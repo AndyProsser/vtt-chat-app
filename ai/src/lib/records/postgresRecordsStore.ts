@@ -35,6 +35,7 @@ const toRecording = (r: Row): Recording => ({
   startedAt: r.started_at as number,
   stoppedAt: (r.stopped_at as number | null) ?? null,
   status: r.status as RecordingStatus,
+  audioNoticeAt: (r.audio_notice_at as number | null) ?? null,
 });
 
 const toTrack = (r: Row): RecordingTrack => ({
@@ -193,6 +194,25 @@ export class PostgresRecordsStore implements RecordsStore {
       [stoppedBefore, limit],
     );
     return rows.map(toRecording);
+  }
+
+  async markAudioNotice(recordingId: string, at: number): Promise<void> {
+    await this.pool.query(
+      'UPDATE recordings SET audio_notice_at = $2 WHERE id = $1 AND audio_notice_at IS NULL',
+      [recordingId, at],
+    );
+  }
+
+  async notifyAudioPurgeSoon(recordingId: string, purgeAt: number, at: number): Promise<void> {
+    await this.pool.query(
+      `INSERT INTO notifications (id, user_id, campaign_id, kind, title, body, data, created_at)
+       SELECT gen_random_uuid(), m.user_id, r.campaign_id, 'audio.purge', 'Session audio will be deleted',
+              'The raw audio of a session is about to be deleted to free disk space. Open History to delete it now; the transcript and summaries stay.',
+              jsonb_build_object('recordingId', r.id::text, 'purgeAt', $2::bigint), $3
+         FROM recordings r JOIN memberships m ON m.campaign_id = r.campaign_id AND m.role = 'dm'
+        WHERE r.id = $1`,
+      [recordingId, purgeAt, at],
+    );
   }
 
   async listRecordings(limit: number): Promise<Recording[]> {

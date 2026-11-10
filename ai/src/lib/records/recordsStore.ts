@@ -80,6 +80,14 @@ export interface RecordsStore {
    */
   listPurgeableRecordings(stoppedBefore: number, limit: number): Promise<Recording[]>;
 
+  /** Notes (once) that the campaign's DM was warned about this recording's audio. */
+  markAudioNotice(recordingId: string, at: number): Promise<void>;
+  /**
+   * Tells the campaign's DM, with one stored notification, that the recording's raw audio will be deleted
+   * on `purgeAt` unless they delete it themselves sooner.
+   */
+  notifyAudioPurgeSoon(recordingId: string, purgeAt: number, at: number): Promise<void>;
+
   campaignName(campaignId: string): Promise<string | undefined>;
   getAiSettings(): Promise<AiSettings>;
 }

@@ -1,4 +1,4 @@
-import type { RecordsStore } from '@vtt-chat-app/ai';
+import type { JobQueue, RecordsStore } from '@vtt-chat-app/ai';
 import express, { type Express } from 'express';
 
 import { AccountService } from './auth/accountService.js';
@@ -84,6 +84,8 @@ export interface AppDeps {
   recording?: RecordingState;
   /** A campaign's recorded history (transcripts, summaries, search). Omit to leave those routes off. */
   records?: RecordsStore;
+  /** The worker's job queue, so the DM can have a recording's raw audio deleted. */
+  jobs?: JobQueue;
   /** Handouts, maps, images and snippets. Omit to leave those routes off. */
   table?: TableStore;
   /** Where uploaded file bytes live. Without it only text snippets work. */
@@ -112,6 +114,7 @@ export function createApp({
   realtime,
   recording,
   records,
+  jobs,
   table,
   media,
   sounds,
@@ -236,7 +239,10 @@ export function createApp({
   );
 
   if (records) {
-    app.use('/api/campaigns/:campaignId/recordings', recordsRoutes({ accounts, store, records }));
+    app.use(
+      '/api/campaigns/:campaignId/recordings',
+      recordsRoutes({ accounts, store, records, ...(jobs ? { jobs } : {}) }),
+    );
   }
 
   if (media) app.use('/api/avatars', avatarRoutes({ accounts, media, store }));

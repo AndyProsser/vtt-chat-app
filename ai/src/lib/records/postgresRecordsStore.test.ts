@@ -209,3 +209,49 @@ describe.skipIf(TEST_DATABASE_URL === undefined)('notifySummaryReady on Postgres
     }
   });
 });
+
+describe.skipIf(TEST_DATABASE_URL === undefined)('audio purge warnings on Postgres', () => {
+  it('warns the campaign’s DM and nobody else, once, with the date the audio goes', async () => {
+    const d = await openTestDb();
+    try {
+      const store = new PostgresRecordsStore(d.pool);
+      const campaign = await d.campaign('Strahd');
+      const user = async (name: string, role: 'dm' | 'player') => {
+        const id = randomUUID();
+        await d.pool.query(
+          `INSERT INTO users (id, email, display_name, consent_version, consent_at, created_at) VALUES ($1, $2, $3, '1', 1, 1)`,
+          [id, `${name}@x.test`, name],
+        );
+        await d.pool.query(
+          `INSERT INTO memberships (campaign_id, user_id, role, joined_at) VALUES ($1, $2, $3, 1)`,
+          [campaign, id, role],
+        );
+        return id;
+      };
+      const dm = await user('dana', 'dm');
+      await user('alice', 'player');
+      const recordingId = randomUUID();
+      await store.putRecording({
+        id: recordingId,
+        campaignId: campaign,
+        startedAt: 1,
+        stoppedAt: 2,
+        status: 'processed',
+      });
+
+      await store.markAudioNotice(recordingId, 500);
+      await store.markAudioNotice(recordingId, 900); // the first warning stands
+      expect((await store.getRecording(recordingId))?.audioNoticeAt).toBe(500);
+
+      await store.notifyAudioPurgeSoon(recordingId, 12345, 500);
+      const { rows } = await d.pool.query(
+        `SELECT user_id, kind, (data->>'purgeAt')::bigint AS purge_at FROM notifications`,
+      );
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toMatchObject({ user_id: dm, kind: 'audio.purge' });
+      expect(Number(rows[0].purge_at)).toBe(12345);
+    } finally {
+      await d.close();
+    }
+  });
+});

@@ -234,6 +234,13 @@ filling disk is noticed before it stops recordings (built 2026-11-10; the figure
 no one has yet watched it cross the threshold on a live server). Do not purge a recording you may want to
 **re-transcribe** with a better model: once the audio is gone only the summaries can be redone.
 
+Two more things delete raw audio. **The DM** can delete a processed session's audio from the session history
+once they have read the summary. And **when the recordings disk falls below 10% free** the worker (checking
+hourly) warns the DM of the oldest unconfirmed recordings (a stored notification, and a note in the history),
+then deletes that audio three days later; below 3% free it does not wait. At most two recordings are handled per
+check. Set `AUDIO_DISK_PURGE=0` in `.env` to switch the disk rule off (the age rule and the DM's button stay).
+(Built 2026-11-10; tested with fakes and a real Postgres, not yet watched on a filling disk.)
+
 **Health you can rely on:** the app reconnects itself after network loss, sleep or a server restart. A
 recording survives the DM's app crashing (see section 6). A **server** restart during a recording marks
 that recording interrupted; the audio already written is kept and can be reprocessed.

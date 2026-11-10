@@ -7,6 +7,8 @@ export interface RecordingItem {
   summaries: string[];
   /** The DM's view of retention: is the raw audio still on the server? */
   audio?: 'kept' | 'purged' | 'partly' | 'none';
+  /** When the server will delete the audio anyway to free disk space (DM only; set once the DM was warned). */
+  audioDeletedOn?: number;
 }
 export interface SummaryView {
   kind: string;
@@ -16,7 +18,8 @@ export interface SummaryView {
   createdAt: number;
 }
 export interface Utterance {
-  speaker: string;
+  /** `{ id, name }` from the server. */
+  speaker: { id: string; name: string } | string;
   startMs: number;
   endMs: number;
   text: string;
@@ -79,4 +82,29 @@ export function snippetParts(snippet: string): { text: string; mark: boolean }[]
   }
   if (last < snippet.length) parts.push({ text: decode(snippet.slice(last)), mark: false });
   return parts;
+}
+
+/** The name to show for an utterance's speaker. */
+export const speakerName = (speaker: Utterance['speaker']): string =>
+  typeof speaker === 'string' ? speaker : speaker.name;
+
+/** What the DM may do about a recording's raw audio. Only a processed one: until then it is the input. */
+export function audioActions(item: RecordingItem, dm: boolean): { canDelete: boolean } {
+  const has = item.audio === 'kept' || item.audio === 'partly';
+  return { canDelete: dm && item.status === 'processed' && has };
+}
+
+/** "The audio will be deleted on Fri 13 Nov to free disk space", for the DM; null when not due. */
+export function audioDeletionNote(
+  item: Pick<RecordingItem, 'audioDeletedOn'>,
+  dm: boolean,
+  locale?: string,
+): string | null {
+  if (!dm || item.audioDeletedOn === undefined) return null;
+  const day = new Date(item.audioDeletedOn).toLocaleDateString(locale, {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  });
+  return `The audio will be deleted on ${day} to free disk space. Delete it now, or leave it.`;
 }

@@ -199,8 +199,21 @@ what retention removes, and the text is kept for good.
   transcribe); redoing only the **summaries** still works, from the kept transcript.
 - **Who can see it:** `vtt-admin recording list` shows "audio kept / purged" for each recording, and the
   session history shows the DM "audio deleted". Players are not told.
-- **Not built:** the DM confirming a summary before the audio goes (the retention window is the confirmation);
-  a disk-usage figure on the status page or in the CLI (use `df -h` and `du -sh` on the recordings volume).
+- **The DM confirms (built 2026-11-10):** on a **processed** recording that still has audio, the DM sees "The
+  summary is good: delete the audio" in the tray's session history, behind a "this cannot be undone" step.
+  `POST /api/campaigns/:id/recordings/:rid/audio/delete` (DM only; 409 if not processed or nothing left) queues
+  the same `purge-recording` job, so the worker does the deleting. It is **not** in the phone app, by decision:
+  a mistap there would delete audio for good.
+- **When the disk runs low (built 2026-11-10, decided with Andy):** below 10% free on the recordings disk the
+  worker (hourly) picks the **oldest** processed recordings that still have audio and gives their DM a stored
+  notification (`audio.purge`; shown as a pop-up under the "session" notification setting) and a note in the
+  history with the date. Three days after the warning it queues the purge. Below **3%** free there is no wait.
+  At most two recordings per kind per check, so one run cannot clear a library. `AUDIO_DISK_PURGE=0` turns the
+  rule off. There is **no "keep this one" button**: the DM can only delete sooner or let it happen; the operator
+  can switch the rule off or free space another way. (A hold would be a small addition if it is missed.)
+- **Not built:** purging when the next session starts (the other stale rule on the list; Andy chose the disk
+  rule), and the DM warning on any rule but the disk one (the age rule, `RECORDING_RETENTION_DAYS`, is the
+  operator's explicit setting and still deletes without a notice).
 
 ## When the server restarts mid-recording (built and drilled 2026-11-10)
 

@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
-import { clock, durationLabel, snippetParts, summaryLabel } from './history.js';
+import {
+  audioActions,
+  audioDeletionNote,
+  clock,
+  durationLabel,
+  snippetParts,
+  speakerName,
+  summaryLabel,
+} from './history.js';
 
 describe('durationLabel', () => {
   it('reads naturally across the ranges', () => {
@@ -34,5 +42,42 @@ describe('summaryLabel', () => {
   it('names the kinds and passes unknown ones through', () => {
     expect(summaryLabel('dm-only')).toBe('DM only');
     expect(summaryLabel('odd')).toBe('odd');
+  });
+});
+
+describe('speakerName', () => {
+  it('reads the name from the {id, name} the server sends, and tolerates a plain string', () => {
+    expect(speakerName({ id: 'u1', name: 'Aria' })).toBe('Aria');
+    expect(speakerName('Bruno')).toBe('Bruno');
+  });
+});
+
+describe('audioActions', () => {
+  const rec = (status: string, audio?: 'kept' | 'purged' | 'partly' | 'none') => ({
+    id: 'r',
+    startedAt: 0,
+    stoppedAt: 1,
+    status,
+    summaries: [],
+    ...(audio ? { audio } : {}),
+  });
+  it('offers the DM to delete the audio of a processed recording that still has some', () => {
+    expect(audioActions(rec('processed', 'kept'), true).canDelete).toBe(true);
+    expect(audioActions(rec('processed', 'partly'), true).canDelete).toBe(true);
+  });
+  it('does not, for a player, a recording still being processed, or audio that is gone', () => {
+    expect(audioActions(rec('processed', 'kept'), false).canDelete).toBe(false);
+    expect(audioActions(rec('processing', 'kept'), true).canDelete).toBe(false);
+    expect(audioActions(rec('processed', 'purged'), true).canDelete).toBe(false);
+    expect(audioActions(rec('processed', 'none'), true).canDelete).toBe(false);
+  });
+});
+
+describe('audioDeletionNote', () => {
+  it('says when the audio will go, for the DM only', () => {
+    const on = new Date(2026, 10, 13).getTime();
+    expect(audioDeletionNote({ audioDeletedOn: on }, true, 'en-AU')).toMatch(/13 Nov/);
+    expect(audioDeletionNote({ audioDeletedOn: on }, false, 'en-AU')).toBeNull();
+    expect(audioDeletionNote({}, true, 'en-AU')).toBeNull();
   });
 });

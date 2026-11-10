@@ -205,6 +205,8 @@ services:
       # Delete raw audio this many days after a recording is processed (blank or 0: keep it).
       RECORDINGS_DIR: /out
       RECORDING_RETENTION_DAYS: ${RECORDING_RETENTION_DAYS:-}
+      # 0 turns off the disk rule (warn the DM, then delete the oldest audio when the disk is below 10% free).
+      AUDIO_DISK_PURGE: ${AUDIO_DISK_PURGE:-}
     volumes:
       # Writable so the worker can purge raw audio (retention or `vtt-admin recording purge`).
       - recordings:/out

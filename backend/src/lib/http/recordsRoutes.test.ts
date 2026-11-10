@@ -1,7 +1,13 @@
 import type { AddressInfo } from 'node:net';
 import type { Server } from 'node:http';
 
-import { MemoryRecordsStore, PostgresRecordsStore, type RecordsStore } from '@vtt-chat-app/ai';
+import {
+  MemoryJobQueue,
+  MemoryRecordsStore,
+  PostgresRecordsStore,
+  PURGE_RECORDING_JOB,
+  type RecordsStore,
+} from '@vtt-chat-app/ai';
 import { afterAll, afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { createApp } from '../app.js';
@@ -27,6 +33,7 @@ const CONFIG: BackendConfig = {
 let server: Server;
 let base: string;
 let records: RecordsStore;
+let jobs: MemoryJobQueue;
 
 interface Person {
   id: string;
@@ -68,7 +75,8 @@ beforeEach(async () => {
     backend.kind === 'postgres' && backend.pool
       ? new PostgresRecordsStore(backend.pool)
       : new MemoryRecordsStore();
-  const app = createApp({ config: CONFIG, store, records });
+  jobs = new MemoryJobQueue();
+  const app = createApp({ config: CONFIG, store, records, jobs });
   await new Promise<void>((resolve) => {
     server = app.listen(0, '127.0.0.1', resolve);
   });
@@ -344,6 +352,50 @@ describe('deleting', () => {
     expect(
       (await call('GET', `/api/campaigns/${campaign}/recordings/${id}`, player.token)).status,
     ).toBe(200);
+  });
+
+  describe('confirming that the audio can go', () => {
+    const confirm = (id: string, token: string, c = campaign) =>
+      call('POST', `/api/campaigns/${c}/recordings/${id}/audio/delete`, token);
+
+    it('lets the DM have the raw audio deleted once the recording is processed, and queues the purge', async () => {
+      const id = await seed();
+      const res = await confirm(id, dm.token);
+      expect(res.status).toBe(202);
+      const queued = await jobs.list();
+      expect(queued).toHaveLength(1);
+      expect(queued[0]).toMatchObject({ kind: PURGE_RECORDING_JOB, recordingId: id });
+    });
+
+    it('is the DM’s alone, and only inside its own campaign', async () => {
+      const id = await seed();
+      expect((await confirm(id, player.token)).status).toBe(403);
+      expect((await confirm(id, outsider.token)).status).toBe(403);
+      expect((await confirm(id, dm.token, otherCampaign)).status).toBe(404);
+      expect(await jobs.list()).toHaveLength(0);
+    });
+
+    it('refuses a recording that is not processed yet, because its audio is still the input', async () => {
+      const id = await seed();
+      await records.setRecordingStatus(id, 'processing');
+      expect((await confirm(id, dm.token)).status).toBe(409);
+      expect(await jobs.list()).toHaveLength(0);
+    });
+
+    it('refuses when the audio is already gone', async () => {
+      const id = await seed();
+      for (const t of await records.listTracks(id)) await records.markTrackPurged(t.id, 7);
+      expect((await confirm(id, dm.token)).status).toBe(409);
+    });
+
+    it('tells the DM, and not the players, when the audio is due to be deleted anyway', async () => {
+      const id = await seed();
+      await records.markAudioNotice(id, 5_000);
+      const view = async (token: string) =>
+        (await call('GET', `/api/campaigns/${campaign}/recordings`, token)).body.recordings[0];
+      expect((await view(dm.token)).audioDeletedOn).toBe(5_000 + 3 * 86_400_000);
+      expect((await view(player.token)).audioDeletedOn).toBeUndefined();
+    });
   });
 
   it('refuses while a recording is still running or being processed', async () => {

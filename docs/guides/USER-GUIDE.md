@@ -192,6 +192,11 @@ never in the middle of a game on its own.
 
 - **Record**: the record button in the bar starts, pauses, resumes and stops. A recording protects the
   session: you cannot switch campaigns or hand over the role until it stops.
+- **Audio is kept until you say otherwise.** The raw recordings are large. Once a session is written up and you
+  have read the summary, open it in the session history and choose **"The summary is good: delete the audio"**.
+  The transcript and summaries stay; the audio goes and cannot be got back, so it cannot be transcribed again.
+  If the server's disk runs low you are warned (a notification, and a note on the session) three days before the
+  oldest audio is deleted for you.
 - The first time, **invite your players**: Settings → Campaign → invites (a link by email, a code, or a QR).
 
 **Voices and groups**
