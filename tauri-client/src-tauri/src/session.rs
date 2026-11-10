@@ -34,7 +34,7 @@ type ClientSlot = Arc<Mutex<Option<SyncClient>>>;
 struct ActiveSession {
     slot: ClientSlot,
     campaign_id: String,
-    voice: Arc<Mutex<(bool, bool)>>,
+    voice: Arc<Mutex<(bool, bool, crate::status::Status)>>,
     events: tauri::async_runtime::JoinHandle<()>,
 }
 
@@ -284,15 +284,17 @@ pub fn announce_voice_state(app: &AppHandle, in_voice: Option<bool>) {
         return;
     };
     let user_muted = app.state::<MicGate>().user_muted();
+    let status = crate::status_commands::current(app);
     let in_voice = {
         let mut voice = active.voice.lock().unwrap();
         voice.1 = user_muted;
+        voice.2 = status;
         if let Some(v) = in_voice {
             voice.0 = v;
         }
         voice.0
     };
-    let frame = audio_state_frame(&active.campaign_id, in_voice, user_muted);
+    let frame = audio_state_frame(&active.campaign_id, in_voice, user_muted, status.as_str());
     let slot = active.slot.lock().unwrap();
     if let Some(client) = slot.as_ref() {
         client.send(frame);

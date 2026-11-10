@@ -64,6 +64,10 @@ pub struct MicrophoneStatePayload {
 /// and the UI mute button (`commands::set_microphone_muted`) both call it, so a click and a
 /// keypress can't drift.
 pub fn apply_microphone_mute(app: &AppHandle, muted: bool) {
+    if !muted {
+        // Unmuting while Away means the player is back.
+        crate::status_commands::on_unmute(app);
+    }
     let gate = app.state::<MicGate>();
     let effective = gate.set_user_muted(muted);
     push_mute_to_client(app, effective);
@@ -113,6 +117,12 @@ pub fn dispatch(app: &AppHandle, action: HotkeyAction) {
             }
         };
         if guard.is_none() {
+            // Not in voice: an unmute asks whether to join instead of doing nothing.
+            if action == HotkeyAction::ToggleMute {
+                drop(guard);
+                let _ = crate::windows::open_main(app);
+                let _ = app.emit(crate::status_commands::OFFER_CONNECT_EVENT, ());
+            }
             return;
         }
         // The player's own choice, not the effective state: while the consent gate holds the mic

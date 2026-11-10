@@ -185,7 +185,7 @@ async fn forwards_live_frames_only_once_authenticated() {
     assert_eq!(next_json(&mut ws).await["t"], "resume");
     expect_event(&mut events, |e| matches!(e, SyncEvent::Connected)).await;
 
-    client.send(rust_sync::audio_state_frame("camp", true, false));
+    client.send(rust_sync::audio_state_frame("camp", true, false, "online"));
     let forwarded = next_json(&mut ws).await;
     assert_eq!(forwarded["t"], "audio.state");
 

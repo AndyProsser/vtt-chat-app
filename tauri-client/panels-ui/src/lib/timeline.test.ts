@@ -25,6 +25,7 @@ const member = (userId: string, displayName: string, character?: string): Member
   character: character ? { name: character } : null,
   online: true,
   inVoice: false,
+  status: 'offline',
   muted: true,
 });
 

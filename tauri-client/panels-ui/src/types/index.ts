@@ -30,6 +30,8 @@ export interface Member {
   online: boolean;
   inVoice: boolean;
   muted: boolean;
+  /** Their own choice: online, away (in the room, mic closed) or offline (out of voice; chat stays on). */
+  status: 'online' | 'away' | 'offline';
 }
 
 export interface ChatLine {

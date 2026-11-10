@@ -42,8 +42,8 @@ fn error(code: &str, message: &str) -> AccountError {
     }
 }
 
-/// Starts the live session for `campaign_id`, then joins its voice room. Voice failing is reported
-/// but does not undo the session: chat, presence and the consent flow still work.
+/// Starts the live session for `campaign_id` (chat, presence, the consent flow). It does not join voice:
+/// the player is Offline until they choose Online (status.rs).
 async fn go_live(
     app: &AppHandle,
     sessions: &SessionState,
@@ -61,16 +61,6 @@ async fn go_live(
     .await
     .map_err(|m| error("session", &m))?;
 
-    let client = AccountClient::new(server);
-    let voice = match client.voice_token(token, campaign_id).await {
-        Ok((url, voice_token)) => crate::commands::connect_voice(app, &url, &voice_token)
-            .await
-            .map_err(|m| error("voice", &m)),
-        Err(err) => Err(err),
-    };
-    if let Err(err) = voice {
-        let _ = app.emit(ACCOUNT_ERROR_EVENT, &err);
-    }
     Ok(())
 }
 
@@ -382,6 +372,7 @@ async fn teardown(app: &AppHandle, sessions: &SessionState) {
         let _ = voice.disconnect().await;
     }
     let _ = end_session(app.clone(), sessions).await;
+    crate::status_commands::reset(app);
 }
 
 /// The server revoked this session (or aged it out): forget the token, keep the server address.

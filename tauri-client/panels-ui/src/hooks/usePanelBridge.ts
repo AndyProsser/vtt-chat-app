@@ -3,11 +3,14 @@ import { useEffect } from 'react';
 import { useMicrophoneStore } from '../lib/microphoneStore.js';
 import { useSpeakingStore } from '../lib/speakingStore.js';
 import { useLiveKitStore } from '../lib/store.js';
+import { useStatusStore } from '../lib/statusStore.js';
 import {
   livekitSnapshot,
   onLiveKitState,
   onMicrophoneState,
   onSpeakersChanged,
+  onStatus,
+  statusGet,
 } from '../lib/tauriBridge.js';
 
 /**
@@ -19,6 +22,7 @@ export function usePanelBridge(): void {
   const applyState = useLiveKitStore((state) => state.applyState);
   const applyMuted = useMicrophoneStore((state) => state.applyMuted);
   const applySpeakers = useSpeakingStore((state) => state.applySpeakers);
+  const applyStatus = useStatusStore((state) => state.applyStatus);
 
   useEffect(() => {
     let cancelled = false;
@@ -29,6 +33,9 @@ export function usePanelBridge(): void {
       }),
       onMicrophoneState(({ muted }) => {
         if (!cancelled) applyMuted(muted);
+      }),
+      onStatus((status) => {
+        if (!cancelled) applyStatus(status);
       }),
       onSpeakersChanged(({ speakingIdentities }) => {
         if (!cancelled) applySpeakers(speakingIdentities);
@@ -45,9 +52,14 @@ export function usePanelBridge(): void {
       (e: unknown) => console.error('[panels-ui] voice snapshot failed', e),
     );
 
+    void statusGet().then(
+      (status) => !cancelled && applyStatus(status),
+      (e: unknown) => console.error('[panels-ui] status read failed', e),
+    );
+
     return () => {
       cancelled = true;
       for (const unlisten of unlisteners) void unlisten.then((fn) => fn());
     };
-  }, [applyState, applyMuted, applySpeakers]);
+  }, [applyState, applyMuted, applySpeakers, applyStatus]);
 }

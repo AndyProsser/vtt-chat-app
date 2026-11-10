@@ -48,7 +48,7 @@ async fn main() {
                     SyncEvent::Connected => {
                         println!("connected");
                         // What a voice client does on every (re)connect: re-announce its state.
-                        client.send(audio_state_frame(&campaign, true, false));
+                        client.send(audio_state_frame(&campaign, true, false, "online"));
                         if let Some(text) = &say {
                             client.send(chat_frame(&campaign, text));
                         }

@@ -74,11 +74,11 @@ See [RECORDING-AND-SUMMARIES.md](RECORDING-AND-SUMMARIES.md#the-consent-loop-as-
 
 ## Presence and stats tiers
 
-| Client state              | What it sends                                                                  | Cadence       |
-| ------------------------- | ------------------------------------------------------------------------------ | ------------- |
-| App running, **no audio** | online/offline only (WS ping/pong is the heartbeat)                            | 30–60 s ping  |
-| **In a voice session**    | `stats.report` (RTT, jitter, packet loss, audio level health, reconnect count) | every **5 s** |
-| In a voice session        | `speaking.*`, `audio.state` (mute/unmute)                                      | on change     |
+| Client state              | What it sends                                                                                                                                     | Cadence       |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
+| App running, **no audio** | online/offline only (WS ping/pong is the heartbeat)                                                                                               | 30–60 s ping  |
+| **In a voice session**    | `stats.report` (RTT, jitter, packet loss, audio level health, reconnect count)                                                                    | every **5 s** |
+| In a voice session        | `speaking.*`, `audio.state` (mute/unmute, and the player's `status`: online, away, offline; see [STATUS-AND-PRESENCE.md](STATUS-AND-PRESENCE.md)) | on change     |
 
 - Stats are delivered only to subscribed DM/Admin clients (the connection-status screen), never
   broadcast to all players.

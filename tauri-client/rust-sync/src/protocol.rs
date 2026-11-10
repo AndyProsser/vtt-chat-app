@@ -84,6 +84,8 @@ pub enum ServerEvent {
         user_id: String,
         in_voice: bool,
         muted: bool,
+        /// `"online"`, `"away"`, `"offline"`; empty from a server that predates status.
+        status: String,
     },
     SpeakingUpdate {
         campaign_id: String,
@@ -249,6 +251,11 @@ pub fn parse_server_frame(raw: &str) -> Result<(ServerEvent, Option<u64>), Parse
             user_id: text(d, "userId"),
             in_voice: flag(d, "inVoice"),
             muted: flag(d, "muted"),
+            status: d
+                .get("status")
+                .and_then(Value::as_str)
+                .unwrap_or("")
+                .to_string(),
         },
         "speaking.update" => ServerEvent::SpeakingUpdate {
             campaign_id: campaign_id(),
@@ -330,10 +337,11 @@ pub fn resume_frame(campaign_id: &str, cursor: Option<(&str, u64)>) -> String {
     }
 }
 
-pub fn audio_state_frame(campaign_id: &str, in_voice: bool, muted: bool) -> String {
+/// `status` is the player's own status: `"online"`, `"away"` or `"offline"`.
+pub fn audio_state_frame(campaign_id: &str, in_voice: bool, muted: bool, status: &str) -> String {
     frame(
         "audio.state",
-        json!({ "campaignId": campaign_id, "inVoice": in_voice, "muted": muted }),
+        json!({ "campaignId": campaign_id, "inVoice": in_voice, "muted": muted, "status": status }),
     )
 }
 
@@ -676,11 +684,12 @@ mod tests {
         let without: Value = serde_json::from_str(&resume_frame("c", None)).unwrap();
         assert_eq!(without["d"], json!({ "campaignId": "c" }));
 
-        let audio: Value = serde_json::from_str(&audio_state_frame("c", true, false)).unwrap();
+        let audio: Value =
+            serde_json::from_str(&audio_state_frame("c", true, false, "away")).unwrap();
         assert_eq!(audio["t"], "audio.state");
         assert_eq!(
             audio["d"],
-            json!({ "campaignId": "c", "inVoice": true, "muted": false })
+            json!({ "campaignId": "c", "inVoice": true, "muted": false, "status": "away" })
         );
 
         let stats: Value = serde_json::from_str(&stats_frame("c", 40.0, 5.0, 1.5)).unwrap();

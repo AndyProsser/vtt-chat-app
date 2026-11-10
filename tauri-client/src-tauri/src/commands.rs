@@ -351,23 +351,6 @@ fn start_stats_reporter(app: &AppHandle, probe: rust_livekit::LinkProbe) {
     });
 }
 
-/// The tray's "Connect / disconnect voice": joins if not in voice, leaves if in it. Runs on the async
-/// runtime because both directions are network calls.
-pub fn toggle_voice(app: &AppHandle) {
-    let app = app.clone();
-    tauri::async_runtime::spawn(async move {
-        let in_voice = app.state::<SharedClient>().lock().unwrap().is_some();
-        let result = if in_voice {
-            livekit_disconnect(app.clone(), app.state::<SharedClient>()).await
-        } else {
-            voice_connect(app.clone(), app.state()).await
-        };
-        if let Err(err) = result {
-            eprintln!("[src-tauri] voice toggle failed: {err}");
-        }
-    });
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

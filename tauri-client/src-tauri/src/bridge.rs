@@ -37,11 +37,12 @@ pub fn panel_event(server_event: &ServerEvent) -> Option<(Value, bool)> {
             user_id,
             in_voice,
             muted,
+            status,
             ..
         } => (
             event(
                 "audio.update",
-                json!({ "userId": user_id, "inVoice": in_voice, "muted": muted }),
+                json!({ "userId": user_id, "inVoice": in_voice, "muted": muted, "status": status }),
             ),
             true,
         ),

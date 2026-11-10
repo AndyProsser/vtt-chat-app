@@ -142,26 +142,73 @@ const TRAY_ID: &str = "main";
 const MENU_TOGGLE_MUTE: &str = "toggle_mute";
 const MENU_QUIT: &str = "quit";
 const MENU_SHOW: &str = "show";
-const MENU_TOGGLE_VOICE: &str = "toggle_voice";
+const MENU_ONLINE: &str = "status_online";
+const MENU_AWAY: &str = "status_away";
+const MENU_OFFLINE: &str = "status_offline";
 
-/// Creates the tray icon (disconnected until the session says otherwise) with a menu:
-/// show the window, mute/unmute, and quit. Muting from the tray works without any panel (usable without a mouse
-/// elsewhere: hotkeys; with a mouse: this).
-pub fn install(app: &tauri::AppHandle) -> tauri::Result<()> {
-    use tauri::menu::{Menu, MenuItem};
-    use tauri::tray::TrayIconBuilder;
+/// The labels and enabled state of the tray menu for a given status and mute. Pure, so it is testable:
+/// the mute item reads "Mute" or "Unmute" and is disabled while Offline (there is no voice to mute).
+#[derive(Debug, PartialEq, Eq)]
+pub struct MenuSpec {
+    pub mute_label: &'static str,
+    pub mute_enabled: bool,
+}
 
+pub fn menu_spec(status: crate::status::Status, user_muted: bool) -> MenuSpec {
+    MenuSpec {
+        mute_label: if user_muted { "Unmute" } else { "Mute" },
+        mute_enabled: status != crate::status::Status::Offline,
+    }
+}
+
+fn build_menu(app: &tauri::AppHandle) -> tauri::Result<tauri::menu::Menu<tauri::Wry>> {
+    use crate::status::Status;
+    use tauri::menu::{CheckMenuItem, Menu, MenuItem, PredefinedMenuItem, Submenu};
+    use tauri::Manager;
+
+    let status = crate::status_commands::current(app);
+    let spec = menu_spec(status, app.state::<crate::mic_gate::MicGate>().user_muted());
     let show = MenuItem::with_id(app, MENU_SHOW, "Show VTT Chat", true, None::<&str>)?;
-    let toggle = MenuItem::with_id(app, MENU_TOGGLE_MUTE, "Mute / unmute", true, None::<&str>)?;
-    let voice = MenuItem::with_id(
+    let item = |id: &str, label: &str, mine: Status| {
+        CheckMenuItem::with_id(app, id, label, true, status == mine, None::<&str>)
+    };
+    let online = item(MENU_ONLINE, "Online", Status::Online)?;
+    let away = item(MENU_AWAY, "Away", Status::Away)?;
+    let offline = item(MENU_OFFLINE, "Offline", Status::Offline)?;
+    let label = match status {
+        Status::Online => "Status: Online",
+        Status::Away => "Status: Away",
+        Status::Offline => "Status: Offline",
+    };
+    let status_menu = Submenu::with_items(app, label, true, &[&online, &away, &offline])?;
+    let mute = MenuItem::with_id(
         app,
-        MENU_TOGGLE_VOICE,
-        "Connect / disconnect voice",
-        true,
+        MENU_TOGGLE_MUTE,
+        spec.mute_label,
+        spec.mute_enabled,
         None::<&str>,
     )?;
+    let separator = PredefinedMenuItem::separator(app)?;
     let quit = MenuItem::with_id(app, MENU_QUIT, "Quit", true, None::<&str>)?;
-    let menu = Menu::with_items(app, &[&show, &toggle, &voice, &quit])?;
+    Menu::with_items(app, &[&show, &status_menu, &mute, &separator, &quit])
+}
+
+/// Rebuilds the menu from the current status and mute. Cheap, and only called when one of them changes.
+pub fn refresh_menu(app: &tauri::AppHandle) {
+    if let Some(tray) = app.tray_by_id(TRAY_ID) {
+        if let Ok(menu) = build_menu(app) {
+            let _ = tray.set_menu(Some(menu));
+        }
+    }
+}
+
+/// Creates the tray icon (disconnected until the session says otherwise) with a menu: show the window,
+/// the status (Online, Away, Offline), mute or unmute, and quit. Muting from the tray works without any
+/// panel.
+pub fn install(app: &tauri::AppHandle) -> tauri::Result<()> {
+    use tauri::tray::TrayIconBuilder;
+
+    let menu = build_menu(app)?;
     let state = TrayState::Disconnected;
     TrayIconBuilder::with_id(TRAY_ID)
         .icon(icon_image(state))
@@ -175,7 +222,13 @@ pub fn install(app: &tauri::AppHandle) -> tauri::Result<()> {
             MENU_SHOW => {
                 let _ = crate::windows::open_main(app);
             }
-            MENU_TOGGLE_VOICE => crate::commands::toggle_voice(app),
+            MENU_ONLINE => {
+                crate::status_commands::apply_from_menu(app, crate::status::Status::Online)
+            }
+            MENU_AWAY => crate::status_commands::apply_from_menu(app, crate::status::Status::Away),
+            MENU_OFFLINE => {
+                crate::status_commands::apply_from_menu(app, crate::status::Status::Offline)
+            }
             MENU_QUIT => app.exit(0),
             _ => {}
         })
@@ -209,6 +262,21 @@ pub fn apply(app: &tauri::AppHandle, state: TrayState) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_mute_item_follows_the_mute_and_is_off_while_offline() {
+        use crate::status::Status::{Away, Offline, Online};
+        assert_eq!(
+            menu_spec(Online, false),
+            MenuSpec {
+                mute_label: "Mute",
+                mute_enabled: true
+            }
+        );
+        assert_eq!(menu_spec(Away, true).mute_label, "Unmute");
+        assert!(menu_spec(Away, true).mute_enabled);
+        assert!(!menu_spec(Offline, true).mute_enabled);
+    }
 
     #[test]
     fn disconnected_beats_everything() {

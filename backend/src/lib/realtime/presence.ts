@@ -5,6 +5,8 @@ export interface Stats {
   at: number;
 }
 
+export type Status = 'online' | 'away' | 'offline';
+
 export interface UserPresence {
   userId: string;
   /** At least one open, authenticated connection subscribed to the campaign. */
@@ -12,6 +14,8 @@ export interface UserPresence {
   /** Connected to the voice room. Only voice clients report anything beyond online/offline. */
   inVoice: boolean;
   muted: boolean;
+  /** The player's own choice: online, away (in the room, mic closed), offline (out of voice). */
+  status: Status;
   speaking: boolean;
   /** Latest sample only — this is a status screen, not a metrics database. */
   stats: Stats | null;
@@ -21,6 +25,7 @@ interface Entry {
   connections: Set<string>;
   inVoice: boolean;
   muted: boolean;
+  status: Status;
   speaking: boolean;
   stats: Stats | null;
 }
@@ -54,15 +59,25 @@ export class PresenceTracker {
     return true;
   }
 
-  setAudio(campaignId: string, userId: string, inVoice: boolean, muted: boolean): void {
+  /** Returns the status now in effect: what the client chose, else online/offline from `inVoice`. */
+  setAudio(
+    campaignId: string,
+    userId: string,
+    inVoice: boolean,
+    muted: boolean,
+    status?: Status,
+  ): Status {
     const entry = this.existing(campaignId, userId);
-    if (!entry) return;
+    const effective = status ?? (inVoice ? 'online' : 'offline');
+    if (!entry) return effective;
     entry.inVoice = inVoice;
     entry.muted = muted;
+    entry.status = effective;
     if (!inVoice) {
       entry.speaking = false;
       entry.stats = null;
     }
+    return effective;
   }
 
   /** Returns `true` if the value changed (so callers can skip redundant broadcasts). */
@@ -101,6 +116,7 @@ export class PresenceTracker {
       online: entry.connections.size > 0,
       inVoice: entry.inVoice,
       muted: entry.muted,
+      status: entry.status,
       speaking: entry.speaking,
       stats: entry.stats,
     }));
@@ -114,7 +130,14 @@ export class PresenceTracker {
     }
     let entry = users.get(userId);
     if (!entry) {
-      entry = { connections: new Set(), inVoice: false, muted: true, speaking: false, stats: null };
+      entry = {
+        connections: new Set(),
+        inVoice: false,
+        muted: true,
+        status: 'offline',
+        speaking: false,
+        stats: null,
+      };
       users.set(userId, entry);
     }
     return entry;

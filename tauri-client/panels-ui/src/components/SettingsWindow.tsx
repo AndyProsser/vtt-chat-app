@@ -7,6 +7,7 @@ import { AudioSection } from './settings/AudioSection.js';
 import { AppearanceSection } from './settings/AppearanceSection.js';
 import { CampaignTab } from './settings/CampaignTab.js';
 import { GeneralSection } from './settings/GeneralSection.js';
+import { StatusSetting } from './settings/StatusSetting.js';
 import { SessionsSection } from './settings/SessionsSection.js';
 
 /**
@@ -24,6 +25,7 @@ export function SettingsContent() {
           <Tabs.Trigger value="general">General</Tabs.Trigger>
         </Tabs.List>
         <Tabs.Content value="profile">
+          <StatusSetting />
           <AccountSection />
         </Tabs.Content>
         <Tabs.Content value="campaign">

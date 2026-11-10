@@ -24,6 +24,7 @@ describe('otherPlayers', () => {
     online: true,
     inVoice: false,
     muted: true,
+    status: 'offline',
   });
   it('lists the people the DM role can be handed to: players other than me', () => {
     expect(

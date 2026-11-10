@@ -375,6 +375,41 @@ describe('Hub: live events', () => {
     expect(await t.replay.latestSeq(t.campaignId)).toBe(0);
   });
 
+  it('relays the status a player chose, and falls back for an older client that sends none', async () => {
+    dm.sent.length = 0;
+    await t.hub.receive(
+      'p1',
+      frame('audio.state', {
+        campaignId: t.campaignId,
+        inVoice: true,
+        muted: true,
+        status: 'away',
+      }),
+    );
+    expect(dm.of('audio.update').at(-1)?.d.status).toBe('away');
+    await voice();
+    expect(dm.of('audio.update').at(-1)?.d.status).toBe('online');
+    await t.hub.receive(
+      'p1',
+      frame('audio.state', { campaignId: t.campaignId, inVoice: false, muted: true }),
+    );
+    expect(dm.of('audio.update').at(-1)?.d.status).toBe('offline');
+  });
+
+  it('rejects a status that is not online, away or offline', async () => {
+    dm.sent.length = 0;
+    await t.hub.receive(
+      'p1',
+      frame('audio.state', {
+        campaignId: t.campaignId,
+        inVoice: true,
+        muted: true,
+        status: 'busy',
+      }),
+    );
+    expect(dm.of('audio.update')).toHaveLength(0);
+  });
+
   it('ignores speaking from a client that is not in voice', async () => {
     await t.hub.receive('p1', frame('speaking.set', { campaignId: t.campaignId, speaking: true }));
     expect(dm.of('speaking.update')).toHaveLength(0);

@@ -56,11 +56,18 @@ function toMembers(raw: unknown): Member[] {
       online: o.online === true,
       inVoice: o.inVoice === true,
       muted: o.muted !== false,
+      status: toStatus(o.status, o.inVoice === true),
     } satisfies Member;
   });
 }
 
 /** Adds lines, keeping one copy per id (a replay and a history fetch can overlap), oldest first. */
+/** A status from the server; one that predates it is online when in voice and offline otherwise. */
+export function toStatus(raw: unknown, inVoice: boolean): Member['status'] {
+  if (raw === 'online' || raw === 'away' || raw === 'offline') return raw;
+  return inVoice ? 'online' : 'offline';
+}
+
 export function mergeChat(existing: ChatLine[], incoming: ChatLine[]): ChatLine[] {
   const byId = new Map(existing.map((l) => [l.id, l]));
   for (const line of incoming) byId.set(line.id, line);
@@ -120,6 +127,7 @@ export function applyEvent(state: TableState, event: SyncEvent): TableState {
       return patchMember(state, String(d.userId), {
         inVoice: d.inVoice === true,
         muted: d.muted !== false,
+        status: toStatus(d.status, d.inVoice === true),
       });
     case 'party.state': {
       const parties = (Array.isArray(d.parties) ? d.parties : [])

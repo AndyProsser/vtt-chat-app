@@ -25,7 +25,14 @@ export const clientData = {
     epoch: z.string().max(64).optional(),
   }),
   // Audio-connected clients only; an idle client sends nothing but WebSocket pings.
-  'audio.state': z.object({ campaignId, inVoice: z.boolean(), muted: z.boolean() }),
+  // `status` is the player's own choice; clients that predate it send none and get online/offline
+  // from `inVoice`.
+  'audio.state': z.object({
+    campaignId,
+    inVoice: z.boolean(),
+    muted: z.boolean(),
+    status: z.enum(['online', 'away', 'offline']).optional(),
+  }),
   'speaking.set': z.object({ campaignId, speaking: z.boolean() }),
   'stats.report': z.object({
     campaignId,

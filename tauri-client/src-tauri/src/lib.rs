@@ -2,6 +2,7 @@ mod account;
 mod account_commands;
 mod audio_prefs;
 mod autostart;
+mod away_watch;
 mod bridge;
 mod clipboard;
 mod commands;
@@ -14,6 +15,8 @@ mod recording;
 mod session;
 mod shell;
 mod soundboard;
+mod status;
+mod status_commands;
 pub mod supervisor;
 mod tray;
 mod updater;
@@ -74,6 +77,7 @@ pub fn run() {
         )
         .manage(rust_livekit::SharedClient::default())
         .manage(mic_gate::MicGate::default())
+        .manage(status_commands::StatusState::default())
         .manage(session::SessionState::default())
         .manage(account_commands::AccountState::default())
         .manage(bridge::PanelFeed::default())
@@ -110,6 +114,10 @@ pub fn run() {
             commands::mic_gain_set,
             commands::auto_gain_set,
             commands::mic_level,
+            status_commands::status_get,
+            status_commands::status_set,
+            away_watch::away_minutes_get,
+            away_watch::away_minutes_set,
             commands::player_volume_set,
             account_commands::auth_providers,
             account_commands::account_open_sso,
@@ -137,6 +145,7 @@ pub fn run() {
                 // No tray (e.g. GNOME without the AppIndicator extension): say so, keep running.
                 eprintln!("[src-tauri] could not create the tray icon: {err}");
             }
+            away_watch::start(app.handle());
             account_commands::resume(app.handle());
             register_links(app);
             // Autostart launches with `--hidden`: just the tray, no window in the user's face.

@@ -10,6 +10,7 @@ const m = (userId: string, name: string, role: Member['role'] = 'player'): Membe
   character: null,
   online: true,
   inVoice: true,
+  status: 'online',
   muted: false,
 });
 const members = [m('dm', 'Dee', 'dm'), m('a', 'Amy'), m('b', 'Bob'), m('c', 'Cat')];
@@ -82,6 +83,7 @@ describe('rail sections', () => {
       displayName: name,
       online,
       inVoice: false,
+      status: 'offline',
       muted: false,
     }) as unknown as Member;
   const members = [

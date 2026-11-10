@@ -1,20 +1,12 @@
 import { Popover } from '@radix-ui/themes';
-import {
-  AudioLines,
-  Backpack,
-  FileText,
-  ScrollText,
-  Settings,
-  Volume2,
-  VolumeX,
-} from 'lucide-react';
+import { AudioLines, Backpack, FileText, ScrollText, Settings } from 'lucide-react';
 
-import { useVoice } from '../hooks/useVoice.js';
 import { panelOpen } from '../lib/tauriBridge.js';
 import { CampaignSwitcher } from './CampaignSwitcher.js';
 import { GroupsMenu } from './GroupsMenu.js';
 import { RecordingIndicator } from './RecordingIndicator.js';
 import { SettingsContent } from './SettingsWindow.js';
+import { StatusMenu } from './StatusMenu.js';
 import { ToolButton } from './ToolButton.js';
 
 interface Props {
@@ -26,7 +18,6 @@ interface Props {
 
 /** Record state and timer on the left; on the right, icon buttons (with tip text) for the rest. */
 export function TopBar({ dm, effectsOpen, onToggleEffects }: Props) {
-  const voice = useVoice();
   return (
     <header className="vtt-top">
       <CampaignSwitcher />
@@ -51,19 +42,6 @@ export function TopBar({ dm, effectsOpen, onToggleEffects }: Props) {
       <ToolButton label="Party inventory" onClick={() => void panelOpen('inventory')}>
         <Backpack size={15} />
       </ToolButton>
-      <ToolButton
-        label={
-          voice.error ??
-          (voice.connected
-            ? 'In voice: click to leave (chat stays on)'
-            : 'Voice is off: click to join')
-        }
-        pressed={voice.connected}
-        disabled={voice.busy}
-        onClick={() => void voice.toggle()}
-      >
-        {voice.connected ? <Volume2 size={15} /> : <VolumeX size={15} />}
-      </ToolButton>
       <Popover.Root>
         <Popover.Trigger>
           <ToolButton label="Settings">
@@ -74,6 +52,7 @@ export function TopBar({ dm, effectsOpen, onToggleEffects }: Props) {
           <SettingsContent />
         </Popover.Content>
       </Popover.Root>
+      <StatusMenu />
     </header>
   );
 }

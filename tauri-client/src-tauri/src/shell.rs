@@ -7,6 +7,7 @@ use std::pin::Pin;
 use std::sync::{Arc, Mutex};
 use std::time::SystemTime;
 
+use crate::status::Status;
 use rust_livekit::cue::policy::Cue;
 use rust_sync::{audio_state_frame, recording_ack_frame, SyncEvent};
 
@@ -43,7 +44,7 @@ pub struct Shell<P: Platform> {
     campaign_id: String,
     /// What to re-announce to the server on every (re)connect: (in voice, muted). Shared so the
     /// mute button and hotkeys can update it without waiting for a cue to finish playing.
-    voice: Arc<Mutex<(bool, bool)>>,
+    voice: Arc<Mutex<(bool, bool, Status)>>,
 }
 
 impl<P: Platform> Shell<P> {
@@ -52,11 +53,11 @@ impl<P: Platform> Shell<P> {
             coordinator: Coordinator::new(),
             platform,
             campaign_id: campaign_id.into(),
-            voice: Arc::new(Mutex::new((false, true))),
+            voice: Arc::new(Mutex::new((false, true, Status::Offline))),
         }
     }
 
-    pub fn voice_handle(&self) -> Arc<Mutex<(bool, bool)>> {
+    pub fn voice_handle(&self) -> Arc<Mutex<(bool, bool, Status)>> {
         Arc::clone(&self.voice)
     }
 
@@ -70,9 +71,13 @@ impl<P: Platform> Shell<P> {
             SyncEvent::Connected => {
                 self.platform.connection_changed(true);
                 // The server forgets this on reconnect, so say it again.
-                let (in_voice, muted) = *self.voice.lock().unwrap();
-                self.platform
-                    .send_frame(audio_state_frame(&self.campaign_id, in_voice, muted));
+                let (in_voice, muted, status) = *self.voice.lock().unwrap();
+                self.platform.send_frame(audio_state_frame(
+                    &self.campaign_id,
+                    in_voice,
+                    muted,
+                    status.as_str(),
+                ));
             }
             SyncEvent::Disconnected => self.platform.connection_changed(false),
             SyncEvent::Revoked => self.sign_out(SignedOut::Revoked).await,
@@ -289,7 +294,7 @@ mod tests {
     async fn every_connect_reannounces_the_voice_state() {
         let fake = Fake::heard();
         let mut shell = Shell::new(fake.clone(), "c");
-        *shell.voice_handle().lock().unwrap() = (true, false);
+        *shell.voice_handle().lock().unwrap() = (true, false, Status::Away);
         fake.log.lock().unwrap().clear();
         shell.handle(SyncEvent::Connected, now()).await;
         let log = fake.log();

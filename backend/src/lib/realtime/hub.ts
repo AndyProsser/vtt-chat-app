@@ -446,12 +446,19 @@ export class Hub {
   private audioState(state: ConnState, data: ClientData<'audio.state'>): void {
     const auth = state.auth;
     if (!auth || !this.subscribed(state, data.campaignId)) return;
-    this.presence.setAudio(data.campaignId, auth.user.id, data.inVoice, data.muted);
+    const status = this.presence.setAudio(
+      data.campaignId,
+      auth.user.id,
+      data.inVoice,
+      data.muted,
+      data.status,
+    );
     this.broadcast(data.campaignId, 'audio.update', {
       campaignId: data.campaignId,
       userId: auth.user.id,
       inVoice: data.inVoice,
       muted: data.muted,
+      status,
     });
     if (!data.inVoice) {
       // Leaving voice also ends "speaking" and drops stats; tell everyone the speaking bit cleared.
@@ -805,6 +812,7 @@ export class Hub {
         online: presence?.online ?? false,
         inVoice: presence?.inVoice ?? false,
         muted: presence?.muted ?? true,
+        status: presence?.status ?? 'offline',
         speaking: presence?.speaking ?? false,
         ...(viewerIsDm ? { stats: presence?.stats ?? null } : {}),
       });

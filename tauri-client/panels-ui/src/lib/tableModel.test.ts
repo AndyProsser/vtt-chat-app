@@ -42,7 +42,17 @@ describe('tableModel', () => {
       t: 'audio.update',
       d: { userId: 'p1', inVoice: true, muted: false },
     });
-    expect(voice.members[1]).toMatchObject({ inVoice: true, muted: false });
+    expect(voice.members[1]).toMatchObject({ inVoice: true, muted: false, status: 'online' });
+    const away = applyEvent(voice, {
+      t: 'audio.update',
+      d: { userId: 'p1', inVoice: true, muted: true, status: 'away' },
+    });
+    expect(away.members[1]).toMatchObject({ status: 'away' });
+    const left = applyEvent(away, {
+      t: 'audio.update',
+      d: { userId: 'p1', inVoice: false, muted: true },
+    });
+    expect(left.members[1]).toMatchObject({ status: 'offline' });
   });
 
   it('keeps one copy of a line seen twice and orders by time', () => {
@@ -145,6 +155,7 @@ describe('recording state', () => {
         online: true,
         inVoice: false,
         muted: true,
+        status: 'offline',
       },
       {
         userId: 'p',
@@ -154,6 +165,7 @@ describe('recording state', () => {
         online: true,
         inVoice: false,
         muted: true,
+        status: 'offline',
       },
     ] as const;
     expect(isDm([...members], 'd')).toBe(true);

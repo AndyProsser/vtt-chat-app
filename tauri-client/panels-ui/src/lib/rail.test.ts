@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
 import type { Member } from '../types/index.js';
-import { initials, memberAvatar, memberCard, railOrder, speakingMembers } from './rail.js';
+import {
+  initials,
+  memberAvatar,
+  memberCard,
+  railOrder,
+  railState,
+  speakingMembers,
+} from './rail.js';
 
 const m = (userId: string, over: Partial<Member> = {}): Member => ({
   userId,
@@ -11,6 +18,7 @@ const m = (userId: string, over: Partial<Member> = {}): Member => ({
   online: true,
   inVoice: true,
   muted: false,
+  status: 'online',
   ...over,
 });
 
@@ -100,5 +108,17 @@ describe('memberAvatar', () => {
       'emblem:crown',
     );
     expect(memberAvatar({ ...base, character: null } as never)).toBeUndefined();
+  });
+});
+
+describe('railState', () => {
+  it('shows a connected person as offline when they chose Offline', () => {
+    expect(railState({ online: true, inVoice: false, status: 'offline' })).toBe('offline');
+    expect(railState({ online: false, inVoice: true, status: 'online' })).toBe('offline');
+  });
+  it('shows Away, chat-only Online, and in-voice Online', () => {
+    expect(railState({ online: true, inVoice: true, status: 'away' })).toBe('away');
+    expect(railState({ online: true, inVoice: false, status: 'online' })).toBe('online');
+    expect(railState({ online: true, inVoice: true, status: 'online' })).toBe('voice');
   });
 });

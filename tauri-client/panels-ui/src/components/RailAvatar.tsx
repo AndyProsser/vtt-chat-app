@@ -6,7 +6,7 @@ import { useAudioEngine } from '../hooks/useAudioEngine.js';
 import { playerVolumeSet } from '../lib/tauriBridge.js';
 import { useIsSpeaking } from '../hooks/useIsSpeaking.js';
 import { avatarColor } from '../lib/avatarColor.js';
-import { initials, memberAvatar, memberCard } from '../lib/rail.js';
+import { initials, memberAvatar, memberCard, railState } from '../lib/rail.js';
 import type { Member } from '../types/index.js';
 import { linkQuality } from '../lib/linkQuality.js';
 import { useStatsStore } from '../lib/statsStore.js';
@@ -34,7 +34,7 @@ export const RailAvatar = memo(function RailAvatar({
     'vtt-av',
     member.role === 'dm' ? 'vtt-av-dm' : '',
     speaking ? 'vtt-av-speaking' : '',
-    member.online ? '' : 'vtt-av-offline',
+    railState(member) === 'offline' ? 'vtt-av-offline' : '',
   ].join(' ');
   const muted = member.online && member.inVoice && member.muted;
   return (
@@ -83,9 +83,11 @@ export const RailAvatar = memo(function RailAvatar({
  */
 function StatusDot({ member }: { member: Member }) {
   const quality = useStatsStore((s) => linkQuality(s.byUser.get(member.userId)));
-  const state = !member.online ? 'offline' : !member.inVoice ? 'online' : quality;
+  const rail = railState(member);
+  const state = rail === 'voice' ? quality : rail;
   const label = {
     offline: 'Offline',
+    away: 'Away',
     online: 'Online, not in voice',
     good: 'In voice, good connection',
     fair: 'In voice, fair connection',

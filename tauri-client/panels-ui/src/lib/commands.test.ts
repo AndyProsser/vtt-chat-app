@@ -10,6 +10,7 @@ const m = (userId: string, name: string, over: Partial<Member> = {}): Member => 
   character: null,
   online: true,
   inVoice: false,
+  status: 'offline',
   muted: true,
   ...over,
 });

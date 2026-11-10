@@ -7,6 +7,7 @@ import type {
 } from '@vtt-chat-app/shared';
 
 import { ACCOUNT_ERROR_EVENT, SYNC_EVENT } from '../consts/index.js';
+import type { Status } from './statusStore.js';
 import type { UpdateInfo } from './updateInfo.js';
 import type {
   AccountError,
@@ -32,6 +33,19 @@ export function onLiveKitState(
   handler: (state: LiveKitConnectionState) => void,
 ): Promise<UnlistenFn> {
   return listen<LiveKitConnectionState>(LIVEKIT_STATE_EVENT, (event) => handler(event.payload));
+}
+
+/** Status (online, away, offline) and the choice of when to go Away by itself. Every launch starts Offline. */
+export const statusGet = () => invoke<Status>('status_get');
+export const statusSet = (status: Status) => invoke<void>('status_set', { status });
+export const awayMinutesGet = () => invoke<number>('away_minutes_get');
+export const awayMinutesSet = (minutes: number) => invoke<void>('away_minutes_set', { minutes });
+export function onStatus(handler: (status: Status) => void): Promise<UnlistenFn> {
+  return listen<Status>('status:changed', (event) => handler(event.payload));
+}
+/** An unmute was pressed (hotkey) while not in voice: offer to join. */
+export function onOfferConnect(handler: () => void): Promise<UnlistenFn> {
+  return listen('status:offer-connect', () => handler());
 }
 
 export function onMicrophoneState(
