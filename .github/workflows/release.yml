@@ -1,0 +1,104 @@
+name: Release
+
+# Builds the signed desktop installers for Windows, macOS and Linux and attaches them to a DRAFT
+# GitHub release. Nothing reaches a player until an operator downloads the files and runs
+# `vtt-admin updates publish` (docs/architecture/CLIENT-UPDATES.md): players update from their own
+# server, never from GitHub.
+#
+#   git tag v0.3.0 && git push origin v0.3.0      (the tag must match tauri.conf.json; see below)
+#
+# Secrets (Settings → Secrets and variables → Actions):
+#   TAURI_SIGNING_PRIVATE_KEY           the updater key's contents (REQUIRED: without it nothing can update)
+#   TAURI_SIGNING_PRIVATE_KEY_PASSWORD  its password, if it has one
+# Code signing for the OS itself (Windows Authenticode, Apple notarisation) is NOT set up: Windows
+# SmartScreen and macOS Gatekeeper will warn on first run until it is. See docs/guides/RELEASING.md.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing tag to build, e.g. v0.3.0'
+        required: true
+
+permissions:
+  contents: write
+
+env:
+  TAG: ${{ github.event.inputs.tag || github.ref_name }}
+
+jobs:
+  draft:
+    name: Check the version and open a draft release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.TAG }}
+      - name: Tag, tauri.conf.json and Cargo.toml must agree
+        run: tauri-client/scripts/release-version.sh "$TAG"
+      - name: Create the draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "$TAG" >/dev/null 2>&1 || \
+            gh release create "$TAG" --draft --verify-tag --title "$TAG" --generate-notes
+
+  build:
+    name: Build (${{ matrix.name }})
+    needs: draft
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: Linux, os: ubuntu-24.04 }
+          - { name: Windows, os: windows-latest }
+          - { name: macOS (Apple silicon), os: macos-latest }
+    runs-on: ${{ matrix.os }}
+    env:
+      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.TAG }}
+      - name: Refuse to build without the updater key
+        shell: bash
+        run: |
+          if [ -z "$TAURI_SIGNING_PRIVATE_KEY" ]; then
+            echo "TAURI_SIGNING_PRIVATE_KEY is not set: installers would be unsigned and no app could update to them." >&2
+            exit 1
+          fi
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: tauri-client
+      - name: Linux build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev \
+            libxdo-dev libssl-dev libasound2-dev patchelf clang
+      - run: npm ci
+      # Builds shared first, then the panels the installer carries (frontendDist is panels-ui/dist).
+      - run: npm run build
+      - name: Build the signed installers
+        working-directory: tauri-client
+        run: npx tauri build
+      - name: Attach the installers and their signatures to the draft release
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd tauri-client/target/release/bundle
+          files=()
+          while IFS= read -r f; do files+=("$f"); done < <(
+            find . -type f \( -name '*.AppImage' -o -name '*.deb' -o -name '*-setup.exe' -o -name '*.msi' \
+              -o -name '*.dmg' -o -name '*.app.tar.gz' -o -name '*.sig' \) )
+          [ "${#files[@]}" -gt 0 ] || { echo "the bundler produced nothing" >&2; exit 1; }
+          gh release upload "$TAG" "${files[@]}" --clobber

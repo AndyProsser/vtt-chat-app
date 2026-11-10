@@ -8,6 +8,7 @@ explain **what to do**.
 | ----------------------------------- | --------------------------- | ------------------------------------------------------------------------------ |
 | [Operator guide](OPERATOR-GUIDE.md) | whoever hosts the server    | Install, first run, configure, operate, back up, update, fix                   |
 | [User guide](USER-GUIDE.md)         | players and Dungeon Masters | Join a table, voice, chat, handouts, loot, recording, the DM's tools, settings |
+| [Releasing](RELEASING.md)           | whoever cuts a release      | Tag, build signed installers in CI, publish to each server                     |
 
 **Status: drafts** (started 2026-11-10). They describe what is built and tested; each guide marks the
 steps that have not yet been tried on a real machine by someone other than the author, and those are the

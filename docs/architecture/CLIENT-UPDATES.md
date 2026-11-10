@@ -49,6 +49,8 @@ npx tauri signer generate --ci -p "" -w ~/.tauri/vtt-chat-updater.key   # privat
 
 ## Releasing
 
+The steps below are the manual path. **CI now builds all three platforms from a tag** and attaches the signed installers to a draft release: see [RELEASING.md](../guides/RELEASING.md) (not yet run).
+
 1. Bump the version in `tauri-client/src-tauri/tauri.conf.json` (and `Cargo.toml`).
 2. Build the signed installers (needs `bundle.active: true`, the signing key in the environment):
    `TAURI_SIGNING_PRIVATE_KEY_PATH=~/.tauri/vtt-chat-updater.key npx tauri build` in `tauri-client/`.
