@@ -53,6 +53,8 @@ const USAGE = `vtt-admin — system operations for this instance (gameplay is ma
   settings keys                          every setting you can change, and what it accepts
   settings set <key> <value>             change one setting
   user list                              all accounts
+  user create <email> --name <name> --accept-consent [--admin]
+                                         make an account (no password; the first one is the Admin)
   user admin <email> grant|revoke        give or take away Admin (the last Admin cannot be removed)
   user code <email> [signin|reset]       issue a one-time code to hand over on a side channel (${MAGIC_LINK_TTL_MINUTES} min)
   user revoke-sessions <email>           sign that account out on every device
@@ -117,6 +119,26 @@ function settingsLines(s: InstanceSettings): string[] {
     `ai.fallback.after-seconds  ${s.ai.fallback.afterSeconds}`,
     `ai.fallback.retry-seconds  ${s.ai.fallback.retrySeconds}`,
   ];
+}
+
+/** `--name Some Words --accept-consent --admin`: the name runs until the next flag. */
+function parseCreateFlags(flags: string[]): {
+  name: string;
+  acceptConsent: boolean;
+  admin: boolean;
+} {
+  const words: string[] = [];
+  let collecting = false;
+  let acceptConsent = false;
+  let admin = false;
+  for (const flag of flags) {
+    if (flag === '--name') collecting = true;
+    else if (flag === '--accept-consent') ((collecting = false), (acceptConsent = true));
+    else if (flag === '--admin') ((collecting = false), (admin = true));
+    else if (flag.startsWith('--')) throw new SettingError(`unknown option ${flag}`);
+    else if (collecting) words.push(flag);
+  }
+  return { name: words.join(' ').trim(), acceptConsent, admin };
 }
 
 async function findUser(deps: AdminDeps, email: string | undefined): Promise<User> {
@@ -267,6 +289,40 @@ async function users(
       deps.out(issued.token);
       return 0;
     }
+    case 'create': {
+      const [email, ...flags] = rest;
+      const parsed = parseCreateFlags(flags);
+      if (!email || !parsed.name) {
+        deps.err('usage: user create <email> --name <display name> --accept-consent [--admin]');
+        return 2;
+      }
+      if (!parsed.acceptConsent) {
+        throw new SettingError(
+          'creating an account records that the person has agreed to the recording notice; ' +
+            'pass --accept-consent if they have (for the first account, that is you)',
+        );
+      }
+      const settings = await deps.store.getSettings();
+      let user: User;
+      try {
+        user = await deps.accounts.register({
+          email,
+          displayName: parsed.name,
+          acceptedConsentVersion: settings.consentVersion,
+        });
+      } catch (error) {
+        throw new SettingError(error instanceof Error ? error.message : String(error));
+      }
+      if (parsed.admin && !user.isAdmin) {
+        user = { ...user, isAdmin: true };
+        await deps.store.putUser(user);
+      }
+      deps.out(
+        `created ${user.email}${user.isAdmin ? ' (Admin)' : ''}; it has no password. ` +
+          `Hand over a sign-in code with: user code ${user.email}`,
+      );
+      return 0;
+    }
     case 'revoke-sessions': {
       const user = await findUser(deps, rest[0]);
       await deps.accounts.revokeAllSessions(user.id);
@@ -275,7 +331,7 @@ async function users(
     }
     default:
       deps.err(
-        'usage: user list | admin <email> grant|revoke | code <email> [signin|reset] | revoke-sessions <email>',
+        'usage: user list | create <email> --name <name> --accept-consent [--admin] | admin <email> grant|revoke | code <email> [signin|reset] | revoke-sessions <email>',
       );
       return 2;
   }

@@ -170,6 +170,44 @@ describe('users', () => {
     await expect(accounts.redeemMagicLink(token)).rejects.toThrow();
   });
 
+  it('creates an account (the first becomes Admin) that signs in with a one-time code, no password', async () => {
+    expect(await run('user create first@example.com --name Dungeon Master --accept-consent')).toBe(
+      0,
+    );
+    const [created] = await store.listUsers();
+    expect(created).toMatchObject({
+      email: 'first@example.com',
+      displayName: 'Dungeon Master',
+      isAdmin: true,
+      passwordHash: null,
+    });
+    expect(await run('user code first@example.com')).toBe(0);
+    const signedIn = await accounts.redeemMagicLink(out.at(-1) ?? '');
+    expect(signedIn.user.id).toBe(created?.id);
+  });
+
+  it('makes a later account a plain user unless --admin is given, and can add another Admin', async () => {
+    await run('user create a@example.com --name A --accept-consent');
+    await run('user create b@example.com --name B --accept-consent');
+    await run('user create c@example.com --name C --accept-consent --admin');
+    const byEmail = Object.fromEntries((await store.listUsers()).map((u) => [u.email, u.isAdmin]));
+    expect(byEmail).toEqual({
+      'a@example.com': true,
+      'b@example.com': false,
+      'c@example.com': true,
+    });
+  });
+
+  it('refuses without --accept-consent, a name, a good address, or a duplicate', async () => {
+    expect(await run('user create a@example.com --name A')).toBe(1);
+    expect(err.join('\n')).toContain('--accept-consent');
+    expect(await run('user create a@example.com --accept-consent')).toBe(2);
+    expect(await run('user create not-an-address --name A --accept-consent')).toBe(1);
+    await run('user create a@example.com --name A --accept-consent');
+    expect(await run('user create a@example.com --name A --accept-consent')).toBe(1);
+    expect(await store.countUsers()).toBe(1);
+  });
+
   it('issues a reset code on request and rejects a bad purpose', async () => {
     await register('alice');
     await run('user code alice@example.com reset');

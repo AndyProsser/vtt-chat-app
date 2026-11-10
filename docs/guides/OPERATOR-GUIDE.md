@@ -120,13 +120,14 @@ LXC containers are possible but unsupported ([DEPLOYMENT-AND-TRANSPORT.md](../ar
    the browser join page from an invite), so the very first account is made on the server:
 
    ```bash
-   ./vtt-admin user create you@example.com --name "Your Name" --admin
+   ./vtt-admin user create you@example.com --name "Your Name" --accept-consent
    ./vtt-admin user code you@example.com signin      # a one-time code
    ```
 
    Then open the desktop app, choose your server, and sign in with that code (Profile → sign in with a
-   code). Set a password afterwards if you want one. **(`user create` is new, 2026-11-10, and has not yet
-   been tried by someone else.)**
+   code). Set a password afterwards if you want one. `--accept-consent` records that the person has agreed to the recording notice (for the first account, that is
+   you). The first account is the Admin; add `--admin` to make a later one an Admin too. **(`user create` is new,
+   2026-11-10, and has not yet been tried by someone else.)**
 
 2. **Decide who may create campaigns:** `./vtt-admin settings set campaign-creation closed` (only Admins) or
    `open` (any signed-in player). Default is set when the instance is created; `settings show` lists it.
