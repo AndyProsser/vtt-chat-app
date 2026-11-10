@@ -16,6 +16,7 @@ export const ChatMessage = memo(function ChatMessage({ line, members, selfId }: 
   const kind = lineKind(line, members);
   const sender = members.find((m) => m.userId === line.from.userId);
   const mine = line.from.userId === selfId;
+  const fromDm = sender?.role === 'dm';
   const name = mine ? 'You' : line.from.name;
   const emote = line.text.startsWith('* ');
   const label =
@@ -29,7 +30,7 @@ export const ChatMessage = memo(function ChatMessage({ line, members, selfId }: 
           ? 'whispers to you'
           : `whisper → ${line.to?.name ?? ''}`;
   return (
-    <div className="vtt-msg">
+    <div className={mine ? 'vtt-msg vtt-msg-mine' : 'vtt-msg'}>
       <span className={sender?.role === 'dm' ? 'vtt-av vtt-av-sm vtt-av-dm' : 'vtt-av vtt-av-sm'}>
         <Portrait
           avatarUrl={sender ? memberAvatar(sender) : undefined}
@@ -37,9 +38,12 @@ export const ChatMessage = memo(function ChatMessage({ line, members, selfId }: 
           size={13}
         />
       </span>
-      <div className={`vtt-bubble vtt-bubble-${kind}`}>
+      <div
+        className={`vtt-bubble vtt-bubble-${kind}${fromDm && kind === 'public' ? ' vtt-bubble-from-dm' : ''}${mine ? ' vtt-bubble-mine' : ''}`}
+      >
         <div className="vtt-msg-meta">
           <b>{name}</b>
+          {fromDm && !mine && <span className="vtt-dm-tag">DM</span>}
           {label && <span className="vtt-msg-label">{label}</span>}
         </div>
         <div className={emote ? 'vtt-emote' : undefined}>

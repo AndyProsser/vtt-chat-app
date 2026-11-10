@@ -47,11 +47,19 @@ pub fn open_main(app: &AppHandle) -> Result<(), String> {
         window.set_focus().map_err(|e| e.to_string())?;
         return Ok(());
     }
+    let screen = app.primary_monitor().ok().flatten().map(|mon| {
+        let scale = mon.scale_factor();
+        (
+            mon.size().width as f64 / scale,
+            mon.size().height as f64 / scale,
+        )
+    });
+    let size = main_size(screen);
     let mut builder =
         WebviewWindowBuilder::new(app, MAIN_LABEL, WebviewUrl::App("index.html#main".into()))
             .title("VTT Chat")
             .visible(false)
-            .inner_size(460.0, 640.0)
+            .inner_size(size.0, size.1)
             .min_inner_size(380.0, 420.0);
     if let Some(icon) = app.default_window_icon() {
         builder = builder.icon(icon.clone()).map_err(|e| e.to_string())?;
@@ -59,6 +67,23 @@ pub fn open_main(app: &AppHandle) -> Result<(), String> {
     let window = builder.build().map_err(|e| e.to_string())?;
     show_when_ready(window);
     Ok(())
+}
+
+/// The first-open size of the main window: narrow, and tall enough to leave a little room above and below
+/// on the screen (88% of its height, between 640 and 1000). The window-state plugin remembers any size the
+/// player changes it to.
+fn main_size(screen: Option<(f64, f64)>) -> (f64, f64) {
+    let height = screen.map_or(720.0, |(_, h)| (h * 0.88).clamp(640.0, 1000.0));
+    (420.0, height)
+}
+
+/// The window colour behind a page that is still loading; it matches the loading screen in index.html.
+fn loading_colour(dark: bool) -> tauri::window::Color {
+    if dark {
+        tauri::window::Color(0x17, 0x14, 0x0f, 0xff)
+    } else {
+        tauri::window::Color(0xf4, 0xef, 0xe6, 0xff)
+    }
 }
 
 /// How long a new window may stay hidden waiting for its page to say it has painted. If the page
@@ -162,14 +187,25 @@ pub fn open(app: &AppHandle, name: &str) -> Result<(), String> {
     if let Some(main) = &main {
         builder = builder.parent(main).map_err(|e| e.to_string())?;
     }
+    // Shown at once, not after the first paint: a panel page takes a second or more to load, and a
+    // window that appears after that pause feels like nothing happened. The page paints a loading
+    // indicator the moment it can (index.html), and the window's own colour avoids a white flash.
+    let dark = main
+        .as_ref()
+        .and_then(|m| m.theme().ok())
+        .is_none_or(|t| t != tauri::Theme::Light);
     let window = builder
-        .visible(false)
+        .visible(true)
+        .background_color(loading_colour(dark))
         .inner_size(size.0, size.1)
         .min_inner_size(260.0, 200.0)
         .center()
         .build()
         .map_err(|e| e.to_string())?;
-    show_when_ready(window);
+    opened_at()
+        .lock()
+        .unwrap()
+        .insert(window.label().to_string(), std::time::Instant::now());
     Ok(())
 }
 
@@ -181,6 +217,26 @@ pub fn panel_open(app: AppHandle, name: String) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_main_window_opens_narrow_and_leaves_room_above_and_below() {
+        assert_eq!(
+            main_size(Some((1920.0, 1080.0))),
+            (420.0, 1000.0_f64.min(1080.0 * 0.88))
+        );
+        assert_eq!(main_size(Some((1366.0, 768.0))).1, 768.0 * 0.88);
+        assert_eq!(
+            main_size(Some((800.0, 600.0))).1,
+            640.0,
+            "never below the minimum"
+        );
+        assert_eq!(
+            main_size(Some((3840.0, 2160.0))).1,
+            1000.0,
+            "never absurdly tall"
+        );
+        assert_eq!(main_size(None), (420.0, 720.0));
+    }
 
     #[test]
     fn a_window_is_never_taller_than_the_screen_allows() {

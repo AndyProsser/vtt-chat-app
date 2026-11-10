@@ -205,6 +205,27 @@ body,
   background: var(--vtt-dm-msg);
   border-color: var(--vtt-gold);
 }
+/* Your own lines sit on the right with a warm tint; the DM's public lines carry a gold edge and a tag. */
+.vtt-msg-mine {
+  flex-direction: row-reverse;
+}
+.vtt-bubble-mine {
+  background: color-mix(in srgb, var(--vtt-gold) 16%, var(--vtt-bubble));
+  border-color: color-mix(in srgb, var(--vtt-gold) 45%, var(--vtt-edge));
+}
+.vtt-bubble-from-dm {
+  border-color: var(--vtt-gold);
+  border-left-width: 3px;
+  background: color-mix(in srgb, var(--vtt-gold) 9%, var(--vtt-bubble));
+}
+.vtt-dm-tag {
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  padding: 0 5px;
+  border-radius: 6px;
+  border: 1px solid var(--vtt-gold);
+  color: var(--vtt-gold);
+}
 .vtt-msg-meta {
   font-size: 11px;
   display: flex;
