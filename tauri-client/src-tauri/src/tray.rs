@@ -110,7 +110,7 @@ fn logo() -> &'static [u8] {
 pub fn render_icon(state: TrayState) -> Vec<u8> {
     let mut pixels = logo().to_vec();
     if state == TrayState::Disconnected {
-        for p in pixels.chunks_exact_mut(4) {
+        for p in pixels.as_chunks_mut::<4>().0.iter_mut() {
             let grey = (p[0] as u32 * 30 + p[1] as u32 * 59 + p[2] as u32 * 11) / 100;
             p[..3].fill(grey as u8);
         }
