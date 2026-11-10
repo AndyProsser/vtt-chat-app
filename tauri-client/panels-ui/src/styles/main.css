@@ -1759,3 +1759,34 @@ body,
 .vtt-pick-none {
   margin-bottom: 4px;
 }
+
+/* The DM's strip for editing a set of pictures: each thumbnail has move and remove buttons. */
+.vtt-pic-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+.vtt-thumb-edit {
+  width: 84px;
+  height: 64px;
+}
+.vtt-thumb-tools {
+  position: absolute;
+  inset: auto 0 0 0;
+  display: flex;
+  justify-content: space-between;
+  padding: 2px;
+  background: color-mix(in srgb, var(--vtt-bubble) 80%, transparent);
+  border-radius: 0 0 6px 6px;
+}
+.vtt-thumb-tools button {
+  position: static;
+  width: 20px;
+  height: 18px;
+  border-radius: 4px;
+}
+.vtt-thumb-tools button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}

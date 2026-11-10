@@ -1,9 +1,10 @@
-import { Check, Pencil, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { ArrowLeft, ArrowRight, Check, ImagePlus, Pencil, Trash2, X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 
 import { useAccount } from '../hooks/useAccount.js';
 import { useTableFeed } from '../hooks/useTableFeed.js';
-import { handoutPicture } from '../lib/handoutPicture.js';
+import { forgetHandoutPictures, handoutPicture } from '../lib/handoutPicture.js';
+import { moveOrder } from '../lib/pictureOrder.js';
 import { handoutIdFromHash } from '../lib/panelName.js';
 import { isDm } from '../lib/tableModel.js';
 import { useTableStore } from '../lib/tableStore.js';
@@ -11,6 +12,7 @@ import {
   accountErrorMessage,
   campaignApi,
   campaignFile,
+  handoutAddImage,
   onHandoutView,
 } from '../lib/tauriBridge.js';
 import type { Handout } from '../types/index.js';
@@ -19,6 +21,7 @@ import { ImageZoom } from './ImageZoom.js';
 import { MarkdownEditor } from './MarkdownEditor.js';
 import { MarkdownView } from './MarkdownView.js';
 import { PdfView } from './PdfView.js';
+import { fileToBase64, MAX_PICTURES } from '../lib/handoutTools.js';
 import { ToolButton } from './ToolButton.js';
 
 /** One picture of a set, with zoom; the zoom starts again for each picture. */
@@ -40,6 +43,130 @@ function SetPicture({ id, title, index }: { id: string; title: string; index: nu
   if (failed) return <span className="vtt-muted">Could not load the picture.</span>;
   if (!src) return <span className="vtt-muted">Loading…</span>;
   return <ImageZoom key={`${id}:${index}`} src={src} alt={`${title}, picture ${index + 1}`} />;
+}
+
+/** A small picture for the editing strip. */
+function Thumb({ id, index, version }: { id: string; index: number; version: number }) {
+  const [src, setSrc] = useState<string>();
+  useEffect(() => {
+    let cancelled = false;
+    setSrc(undefined);
+    handoutPicture(id, index).then(
+      (s) => !cancelled && setSrc(s),
+      () => undefined,
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [id, index, version]);
+  return src ? <img src={src} alt={`Picture ${index + 1}`} /> : <span aria-hidden />;
+}
+
+/**
+ * The DM's strip for a set of pictures: move one earlier or later, take one out (never the last), or add
+ * another. Each change is saved at once; the server keeps the order.
+ */
+function PictureEditor({
+  handout,
+  onChanged,
+  onError,
+}: {
+  handout: Handout;
+  onChanged: (next: Handout) => void;
+  onError: (message: string) => void;
+}) {
+  const [version, setVersion] = useState(0);
+  const [busy, setBusy] = useState(false);
+  const chooser = useRef<HTMLInputElement>(null);
+
+  async function run(call: () => Promise<{ handout: Handout }>) {
+    setBusy(true);
+    try {
+      const { handout: next } = await call();
+      forgetHandoutPictures(handout.id);
+      setVersion((v) => v + 1);
+      onChanged(next);
+    } catch (e) {
+      onError(accountErrorMessage(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="vtt-pic-editor">
+      <div className="vtt-thumbs">
+        {Array.from({ length: handout.fileCount }, (_, i) => (
+          <span key={i} className="vtt-thumb vtt-thumb-edit">
+            <Thumb id={handout.id} index={i} version={version} />
+            <span className="vtt-thumb-tools">
+              <button
+                type="button"
+                aria-label={`Move picture ${i + 1} earlier`}
+                disabled={busy || i === 0}
+                onClick={() =>
+                  void run(() =>
+                    campaignApi('PUT', `handouts/${handout.id}/files`, {
+                      order: moveOrder(handout.fileCount, i, -1),
+                    }),
+                  )
+                }
+              >
+                <ArrowLeft size={11} />
+              </button>
+              <button
+                type="button"
+                aria-label={`Remove picture ${i + 1}`}
+                disabled={busy || handout.fileCount <= 1}
+                onClick={() =>
+                  void run(() => campaignApi('DELETE', `handouts/${handout.id}/files/${i}`))
+                }
+              >
+                <Trash2 size={11} />
+              </button>
+              <button
+                type="button"
+                aria-label={`Move picture ${i + 1} later`}
+                disabled={busy || i === handout.fileCount - 1}
+                onClick={() =>
+                  void run(() =>
+                    campaignApi('PUT', `handouts/${handout.id}/files`, {
+                      order: moveOrder(handout.fileCount, i, 1),
+                    }),
+                  )
+                }
+              >
+                <ArrowRight size={11} />
+              </button>
+            </span>
+          </span>
+        ))}
+      </div>
+      <input
+        ref={chooser}
+        type="file"
+        accept="image/png,image/jpeg,image/gif,image/webp"
+        hidden
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          e.target.value = '';
+          if (file)
+            void run(async () => {
+              await handoutAddImage(handout.id, file.name || 'upload', await fileToBase64(file));
+              return campaignApi<{ handout: Handout }>('GET', `handouts/${handout.id}`);
+            });
+        }}
+      />
+      <ToolButton
+        label="Add another picture"
+        text="Add"
+        disabled={busy || handout.fileCount >= MAX_PICTURES}
+        onClick={() => chooser.current?.click()}
+      >
+        <ImagePlus size={14} />
+      </ToolButton>
+    </div>
+  );
 }
 
 /**
@@ -184,6 +311,16 @@ export function HandoutViewer() {
             ) : (
               handout.body && <p className="vtt-viewer-caption">{handout.body}</p>
             ))}
+          {pictures && editing && (
+            <PictureEditor
+              handout={handout}
+              onChanged={(next) => {
+                setHandout(next);
+                setIndex(0);
+              }}
+              onError={setError}
+            />
+          )}
           {pictures && (
             <FlipPanel count={handout.fileCount} index={index} onIndex={setIndex}>
               <SetPicture id={handout.id} title={handout.title} index={index} />

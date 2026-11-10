@@ -69,7 +69,7 @@ the others the body is the caption, up to 300 characters in the form). Maps are 
   then; previous/next page and zoom). The DM can edit the title and text there; players only read.
 - Server: `handout_files` (migration 0019) keeps the ordered files; `POST …/handouts/:id/images` adds a
   picture (DM only, picture handouts only, twelve at most); `GET …/files/:n` serves one (`/file` is the
-  first); `PATCH` edits title and caption. Each file counts against the campaign's storage.
+  first); `DELETE …/files/:n` removes one (never the last; the rest close up); `PUT …/files {order}` reorders; `PATCH` edits title and caption. Each file counts against the campaign's storage.
 - **Unverified:** the PDF reader inside the app window (the page's content security policy may need
   `'wasm-unsafe-eval'` for some embedded image types), and flipping through twelve large pictures
   (each is fetched when first shown and kept for the life of the window).

@@ -129,6 +129,32 @@ export function handoutRoutes(deps: HandoutRouteDeps): Router {
     return sendFile(res, campaign(req), param(req.params.handoutId), index);
   });
 
+  router.delete('/:handoutId/files/:index', async (req, res) => {
+    const index = Number(req.params.index);
+    if (!Number.isInteger(index) || index < 0 || index >= MAX_HANDOUT_IMAGES)
+      throw new DomainError('not_found');
+    const h = await handouts.removeImage(
+      authOf(res).user,
+      campaign(req),
+      param(req.params.handoutId),
+      index,
+    );
+    res.json({ handout: view(h) });
+  });
+
+  router.put('/:handoutId/files', async (req, res) => {
+    const body = z
+      .object({ order: z.array(z.number().int()).max(MAX_HANDOUT_IMAGES) })
+      .parse(req.body);
+    const h = await handouts.reorderImages(
+      authOf(res).user,
+      campaign(req),
+      param(req.params.handoutId),
+      body.order,
+    );
+    res.json({ handout: view(h) });
+  });
+
   // Another picture for a picture handout: a raw body like the first upload.
   router.post(
     '/:handoutId/images',

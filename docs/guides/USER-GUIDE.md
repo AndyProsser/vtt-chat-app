@@ -123,7 +123,8 @@ a **PDF**. Each can have a short caption.
 - **Click a card** to open it big, in its own window you can place beside the game. Pictures have **zoom**
   buttons (also Ctrl + the mouse wheel; drag to move around), which is useful for a large map. A PDF is
   read page by page inside the window.
-- Only the DM can edit a handout (open it and press the pencil). The handouts button in the bar lists
+- Only the DM can edit a handout (open it and press the pencil). For a set of pictures the pencil also shows a
+  strip to move a picture earlier or later, remove one (never the last), or add another. The handouts button in the bar lists
   everything shared with you.
 
 ## 7. Loot and the party inventory

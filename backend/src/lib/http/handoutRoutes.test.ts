@@ -269,6 +269,32 @@ describe('a set of pictures', () => {
     expect(await table.campaignHandoutBytes(campaign)).toBe(PNG.length + PNG2.length);
   });
 
+  it('lets the DM remove a picture (never the last) and the rest close up in order', async () => {
+    const id = (await upload(dm.token)).body.handout.id;
+    await addImage(dm.token, id, PNG2);
+    const path = (n: number) => `/api/campaigns/${campaign}/handouts/${id}/files/${n}`;
+    expect((await call('DELETE', path(0), alice.token)).status).toBe(403);
+    expect((await call('DELETE', path(0), dm.token)).body.handout.fileCount).toBe(1);
+    expect((await call('GET', path(0), dm.token)).bytes.equals(PNG2)).toBe(true);
+    expect(media.files.size).toBe(1); // the removed picture's bytes are gone too
+    expect((await call('DELETE', path(0), dm.token)).status).toBe(400); // the last one stays
+    expect((await call('DELETE', path(5), dm.token)).status).toBe(404);
+  });
+
+  it('lets the DM put the pictures in a new order, and refuses an order that is not a shuffle', async () => {
+    const id = (await upload(dm.token)).body.handout.id;
+    await addImage(dm.token, id, PNG2);
+    const order = (body: unknown, token = dm.token) =>
+      call('PUT', `/api/campaigns/${campaign}/handouts/${id}/files`, token, body);
+    expect((await order({ order: [1, 0] })).body.handout.fileCount).toBe(2);
+    const first = await call('GET', `/api/campaigns/${campaign}/handouts/${id}/files/0`, dm.token);
+    expect(first.bytes.equals(PNG2)).toBe(true);
+    expect((await order({ order: [0, 0] })).status).toBe(400);
+    expect((await order({ order: [0] })).status).toBe(400);
+    expect((await order({ order: [0, 2] })).status).toBe(400);
+    expect((await order({ order: [0, 1] }, alice.token)).status).toBe(403);
+  });
+
   it('lets the DM give a picture or PDF handout a caption, and clear it', async () => {
     const id = (await upload(dm.token)).body.handout.id;
     const set = await call('PATCH', `/api/campaigns/${campaign}/handouts/${id}`, dm.token, {

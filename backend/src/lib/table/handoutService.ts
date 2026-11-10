@@ -149,6 +149,56 @@ export class HandoutService {
     }
   }
 
+  /** Takes one picture out of a set (never the last: delete the handout instead). The rest close up. */
+  async removeImage(
+    user: User,
+    campaignId: string,
+    handoutId: string,
+    index: number,
+  ): Promise<Handout> {
+    await this.requireDm(user, campaignId);
+    const current = await this.own(campaignId, handoutId);
+    this.requirePictureSet(current);
+    const mediaId = current.mediaIds[index];
+    if (mediaId === undefined) throw new DomainError('not_found');
+    if (current.mediaIds.length <= 1)
+      throw new DomainError(
+        'invalid_input',
+        'a handout needs at least one picture; delete it instead',
+      );
+    const next: Handout = { ...current, mediaIds: current.mediaIds.filter((_, i) => i !== index) };
+    await this.deps.table.putHandout(next);
+    await this.deps.table.deleteMedia(mediaId);
+    await this.deps.media?.delete(mediaId);
+    return next;
+  }
+
+  /** Puts a set's pictures in a new order: `order[i]` is the old position of the picture that is now `i`. */
+  async reorderImages(
+    user: User,
+    campaignId: string,
+    handoutId: string,
+    order: number[],
+  ): Promise<Handout> {
+    await this.requireDm(user, campaignId);
+    const current = await this.own(campaignId, handoutId);
+    this.requirePictureSet(current);
+    const n = current.mediaIds.length;
+    const shuffle =
+      order.length === n &&
+      new Set(order).size === n &&
+      order.every((i) => Number.isInteger(i) && i >= 0 && i < n);
+    if (!shuffle) throw new DomainError('invalid_input', 'the order must list each picture once');
+    const next: Handout = { ...current, mediaIds: order.map((i) => current.mediaIds[i]!) };
+    await this.deps.table.putHandout(next);
+    return next;
+  }
+
+  private requirePictureSet(handout: Handout): void {
+    if (handout.kind !== 'image' && handout.kind !== 'map')
+      throw new DomainError('invalid_input', 'only a picture handout has pictures to change');
+  }
+
   /** Checks and stores one uploaded file, returning its record. */
   private async storeFile(
     user: User,
