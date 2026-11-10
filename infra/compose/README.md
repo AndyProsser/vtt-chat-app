@@ -34,6 +34,10 @@ First start downloads ~190 MB (Whisper) and ~2 GB (the LLM). **The loop is close
 
 `./vtt-admin status` (database, Valkey, LiveKit), `./vtt-admin settings …`, `./vtt-admin user …` — see [backend/README.md](../../backend/README.md#admin-cli-vtt-admin). The first account to register is the Admin.
 
+## Backup and restore
+
+`./backup.sh [--audio] [--to <folder>]` writes one folder with the database, the uploaded files and your `.env` and `livekit.yaml` (secrets, mode 700: keep it off this machine); `./restore.sh <folder> --yes [--with-config]` puts it back, replacing what is there. Details and the native-install equivalent: [the operator guide](../../docs/guides/OPERATOR-GUIDE.md#9-back-up-and-restore).
+
 ## Ports to open
 
 `80/tcp`, `443/tcp+udp`, `7881/tcp` (ICE-over-TCP fallback), and the UDP range in `livekit.yaml` (default `50000-50200/udp`). Behind NAT, run `./setup.sh <site> <public-ip>` so LiveKit advertises the public address.

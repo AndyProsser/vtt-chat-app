@@ -238,23 +238,40 @@ that recording interrupted; the audio already written is kept and can be reproce
 
 ## 9. Back up and restore
 
-There is no built-in backup command yet; use the standard tools. You need three things:
+**Compose** has two scripts (`infra/compose`):
 
-1. **The database** (accounts, campaigns, chat, summaries):
-   ```bash
-   cd infra/compose
-   docker compose exec -T postgres pg_dump -U vtt vtt | gzip > vtt-$(date +%F).sql.gz
-   ```
-   (natively: `sudo -u postgres pg_dump vtt | gzip > …`; the database and its user are both called `vtt`).
-2. **Uploaded files**: the media volume (Compose: `docker volume ls`, look for `media`; natively
-   `/var/lib/vtt/media`).
-3. **Recordings** (if you keep the audio): the `recordings` volume.
-4. **Your `.env` and `livekit.yaml`** (or `/etc/vtt/vtt.env`): they hold the secrets. Without them a restored
-   database cannot be used, and a regenerated set signs everyone out.
+```bash
+./backup.sh                  # database + uploaded files + your .env and livekit.yaml, into ./backups/vtt-backup-<date>
+./backup.sh --audio          # also the recorded audio (large; the transcripts are in the database anyway)
+./backup.sh --to /mnt/usb    # somewhere else
+```
 
-Restore into a fresh install: bring the stack up, stop the backend, load the dump
-(`gunzip -c vtt-….sql.gz | docker compose exec -T postgres psql -U vtt vtt`), put the files back, start the backend.
-**(Restore has not been rehearsed end to end; try it once on a spare machine before you need it.)**
+Each run makes one folder (mode 700) with `database.sql.gz`, `media.tar.gz`, `config/` (the **secrets**) and a
+`MANIFEST.txt`. **Copy it off the machine** (another disk, another computer): a backup on the same disk
+does not survive that disk. Do it on a schedule, for example a weekly cron job:
+`0 4 * * 0  cd /path/to/vtt-chat-app/infra/compose && ./backup.sh --to /mnt/backups`.
+
+**To restore** (on a fresh install, or to go back in time):
+
+```bash
+./restore.sh ./backups/vtt-backup-20261110-040000 --yes             # replaces the database and uploads here
+./restore.sh <folder> --yes --with-config                           # on a brand-new machine: also the saved .env and livekit.yaml
+./vtt-admin status
+```
+
+`restore.sh` stops the backend, replaces the database and the uploaded files, then starts everything. It
+refuses without `--yes`. A restore needs the **same secrets** the data was made with: the saved `.env` holds
+the database password and the keys that sign players in, which is why `--with-config` exists. On a
+machine that already runs, **take a fresh backup first**.
+
+Tested 2026-11-10 against a real Postgres and volume: data and uploaded files deleted, restored, and
+compared. **Not tested:** a full restore onto a brand-new machine through to players reconnecting, and the
+`--audio` path on real recordings. Rehearse on a spare machine once.
+
+**Native install** has no script yet; do it by hand: `sudo -u postgres pg_dump vtt | gzip > vtt.sql.gz`
+(the database and its user are both `vtt`), copy `/var/lib/vtt/media` (and `/var/lib/vtt/recordings` if
+you keep audio), and `/etc/vtt/vtt.env`. Restore by loading the dump into an empty `vtt` database and
+putting the files and `vtt.env` back.
 
 Keep Postgres on local or block storage, **never on NFS** (file locking over NFS can corrupt a database).
 
