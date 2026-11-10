@@ -26,7 +26,12 @@ Decided 2026-11-10 (Andy). One switch for "am I at the table?", shown to everyon
 
 Away is set by hand, or by the app when the player has walked off:
 
-1. **Screen lock or screensaver** starts it at once. Linux reads GNOME's screensaver signal over D-Bus.
+1. **Screen lock or screensaver** starts it. Linux reads GNOME's screensaver signal over D-Bus (at once).
+   **Windows** asks, on each 15-second check, whether the lock screen's desktop is up (`OpenInputDesktop`
+   fails while it is). **macOS** asks the session dictionary (`ioreg`). The Windows and macOS paths were
+   written 2026-11-10 and **have not been run on those systems**: the Windows call compiles against its
+   API, the macOS parser is unit-tested on sample text. A Windows UAC prompt also counts as locked for a
+   moment; it ends as soon as the prompt closes.
 2. **No keyboard or mouse use** for a chosen time (default 10 minutes; 5 to 60, or never; Settings →
    Profile). Linux reads Mutter's idle monitor over D-Bus; Windows and macOS read the system idle time.
 3. **Coming back** (unlock, or input within 10 seconds) ends an Away the app set by itself. An Away the
@@ -34,8 +39,8 @@ Away is set by hand, or by the app when the player has walked off:
 
 The watcher sleeps while Offline and checks every 15 seconds otherwise, so it costs nothing at idle.
 
-**Not done:** the Windows and macOS screen-lock signals (only the idle timer applies there), and KDE or
-other Linux desktops without GNOME's D-Bus names (no automatic Away; the manual status works).
+**Not done:** KDE and other Linux desktops without GNOME's D-Bus names (no automatic Away; the manual
+status works).
 
 ## How it is built
 

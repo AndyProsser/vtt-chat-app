@@ -46,3 +46,6 @@ zbus = "5"
 
 [target.'cfg(any(target_os = "windows", target_os = "macos"))'.dependencies]
 user-idle = "0.6"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.59", features = ["Win32_System_StationsAndDesktops"] }

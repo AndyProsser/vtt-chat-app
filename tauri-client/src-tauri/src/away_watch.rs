@@ -73,6 +73,68 @@ pub fn idle_step(status: Status, idle_secs: u64, away_minutes: u32) -> IdleStep 
     }
 }
 
+#[derive(Debug, PartialEq, Eq)]
+pub enum LockStep {
+    Locked,
+    Unlocked,
+    Nothing,
+}
+
+/// What a change in "is the screen locked" means. Linux hears about it from a D-Bus signal instead;
+/// Windows and macOS are asked on each poll.
+pub fn lock_step(was_locked: bool, locked: bool) -> LockStep {
+    match (was_locked, locked) {
+        (false, true) => LockStep::Locked,
+        (true, false) => LockStep::Unlocked,
+        _ => LockStep::Nothing,
+    }
+}
+
+/// Reads macOS's session dictionary (`ioreg -n Root -d1 -a`): the screen is locked when it has
+/// `CGSSessionScreenIsLocked` set to true. Unverified on a real Mac.
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+pub fn ioreg_says_locked(text: &str) -> bool {
+    text.find("CGSSessionScreenIsLocked")
+        .map(|at| &text[at..])
+        .is_some_and(|rest| {
+            let after = rest.split("</key>").nth(1).unwrap_or("");
+            after.trim_start().starts_with("<true/>")
+        })
+}
+
+/// Whether the screen is locked right now, where the platform can be asked (Windows, macOS). On Linux the
+/// screensaver's signal is used instead, and this is always `false`.
+fn screen_locked() -> bool {
+    #[cfg(windows)]
+    {
+        // The lock screen runs on a separate desktop; while it is up the input desktop cannot be opened.
+        use windows_sys::Win32::System::StationsAndDesktops::{CloseDesktop, OpenInputDesktop};
+        const DESKTOP_SWITCHDESKTOP: u32 = 0x0100;
+        // SAFETY: a plain query; the handle, if we get one, is closed at once.
+        unsafe {
+            let desktop = OpenInputDesktop(0, 0, DESKTOP_SWITCHDESKTOP);
+            if desktop.is_null() {
+                true
+            } else {
+                CloseDesktop(desktop);
+                false
+            }
+        }
+    }
+    #[cfg(target_os = "macos")]
+    {
+        std::process::Command::new("/usr/sbin/ioreg")
+            .args(["-n", "Root", "-d1", "-a"])
+            .output()
+            .map(|out| ioreg_says_locked(&String::from_utf8_lossy(&out.stdout)))
+            .unwrap_or(false)
+    }
+    #[cfg(not(any(windows, target_os = "macos")))]
+    {
+        false
+    }
+}
+
 /// Starts the watcher on its own thread. It does nothing while Offline.
 pub fn start(app: &AppHandle) {
     let app = app.clone();
@@ -92,10 +154,22 @@ pub fn start(app: &AppHandle) {
 
 fn poll(app: &AppHandle) {
     let mut probe = IdleProbe::new();
+    let mut was_locked = false;
     loop {
         std::thread::sleep(POLL);
         let status = crate::status_commands::current(app);
         if status == Status::Offline {
+            continue;
+        }
+        let locked = screen_locked();
+        let step = lock_step(was_locked, locked);
+        was_locked = locked;
+        match step {
+            LockStep::Locked => go_away(app),
+            LockStep::Unlocked => back(app),
+            LockStep::Nothing => {}
+        }
+        if locked {
             continue;
         }
         let Some(idle) = probe.idle_secs() else {
@@ -255,5 +329,24 @@ mod tests {
                 .away_minutes,
             10
         );
+    }
+
+    #[test]
+    fn locking_and_unlocking_are_noticed_once_each() {
+        assert_eq!(lock_step(false, true), LockStep::Locked);
+        assert_eq!(lock_step(true, false), LockStep::Unlocked);
+        assert_eq!(lock_step(false, false), LockStep::Nothing);
+        assert_eq!(lock_step(true, true), LockStep::Nothing);
+    }
+
+    #[test]
+    fn the_mac_session_dictionary_says_whether_the_screen_is_locked() {
+        let locked = "<key>CGSSessionScreenIsLocked</key>\n<true/>";
+        let unlocked = "<key>kCGSSessionOnConsoleKey</key><true/>";
+        assert!(ioreg_says_locked(locked));
+        assert!(!ioreg_says_locked(unlocked));
+        assert!(!ioreg_says_locked(
+            "<key>CGSSessionScreenIsLocked</key><false/>"
+        ));
     }
 }
