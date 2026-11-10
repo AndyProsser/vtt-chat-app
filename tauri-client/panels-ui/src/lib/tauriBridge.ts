@@ -151,8 +151,12 @@ type Method = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 export const campaignApi = <T = unknown>(method: Method, path: string, body?: unknown) =>
   invoke<T>('campaign_api', { method, path, body });
 
-/** Uploads a picture as a new handout (`handout_upload`); `data` is the file as base64. */
-export const handoutUpload = (title: string, kind: 'image' | 'map', name: string, data: string) =>
+/** Adds a picture to a picture handout (`handout_add_image`); `data` is the file as base64. */
+export const handoutAddImage = (handoutId: string, name: string, data: string) =>
+  invoke<{ handout: { id: string } }>('handout_add_image', { handoutId, name, data });
+
+/** Uploads a picture or PDF as a new handout (`handout_upload`); `data` is the file as base64. */
+export const handoutUpload = (title: string, kind: 'image' | 'pdf', name: string, data: string) =>
   invoke<{ handout: { id: string } }>('handout_upload', { title, kind, name, data });
 
 /** Whether the DM also hears effects on their own speakers (`soundboard_monitor_set`). */

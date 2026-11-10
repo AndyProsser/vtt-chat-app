@@ -258,6 +258,7 @@ function newCard(state: TableState, id: string, kind: TableCard['kind'], d: Obj)
           ? { handoutKind: d.kind }
           : {}),
         ...(typeof d.excerpt === 'string' ? { excerpt: d.excerpt } : {}),
+        ...(typeof d.fileCount === 'number' ? { fileCount: d.fileCount } : {}),
         after: lastChatId(state),
       };
 }

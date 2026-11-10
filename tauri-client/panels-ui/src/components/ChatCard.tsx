@@ -1,6 +1,7 @@
-import { FileText, ImageOff, Map as MapIcon } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { FileText, Image as ImageIcon, ImageOff, Paperclip } from 'lucide-react';
+import { useEffect, useState, type ReactNode } from 'react';
 
+import { FlipPanel } from './FlipPanel.js';
 import { ItemIcon } from './ItemIcon.js';
 import { handoutPicture } from '../lib/handoutPicture.js';
 import { plainPreview } from '../lib/handoutTools.js';
@@ -10,54 +11,83 @@ import type { Member, TableCard } from '../types/index.js';
 
 const handoutId = (card: TableCard) => card.id.replace(/^handout:/, '');
 
-/** A small picture for a picture handout's card. */
-function Thumbnail({ card }: { card: TableCard }) {
+/** One picture of a handout, loaded when it first shows. */
+function CardPicture({ card, index }: { card: TableCard; index: number }) {
   const [src, setSrc] = useState<string>();
   const [failed, setFailed] = useState(false);
   useEffect(() => {
     let cancelled = false;
-    handoutPicture(handoutId(card)).then(
+    setSrc(undefined);
+    handoutPicture(handoutId(card), index).then(
       (s) => !cancelled && setSrc(s),
       () => !cancelled && setFailed(true),
     );
     return () => {
       cancelled = true;
     };
-  }, [card]);
-  if (failed) return <ImageOff size={16} aria-label="The picture could not be loaded" />;
+  }, [card, index]);
+  if (failed)
+    return (
+      <span className="vtt-card-picture-empty">
+        <ImageOff size={18} aria-hidden /> The picture could not be loaded
+      </span>
+    );
   return src ? (
-    <img className="vtt-card-thumb" src={src} alt="" />
+    <img className="vtt-card-picture-img" src={src} alt={`${card.title}, picture ${index + 1}`} />
   ) : (
-    <span className="vtt-card-thumb" />
+    <span className="vtt-card-picture-empty vtt-muted">Loading…</span>
+  );
+}
+
+/** The title and the first lines of the text (a note's start, or a caption). */
+function CardText({ card, icon }: { card: TableCard; icon: ReactNode }) {
+  const preview = card.excerpt ? plainPreview(card.excerpt) : '';
+  return (
+    <span className="vtt-card-body">
+      <span className="vtt-card-title">
+        {icon}
+        <b>{card.title}</b>
+      </span>
+      {preview && <span className="vtt-card-excerpt">{preview}</span>}
+    </span>
   );
 }
 
 /**
- * A handout in chat: a note shows its title and the first three lines, a picture or map shows a small
- * thumbnail with its title as the caption. Clicking opens it large in its own window.
+ * A handout in chat. A note shows its title and first three lines; a PDF is the same with a paperclip; a
+ * set of pictures shows the title and caption above a larger picture, with flip buttons when there are
+ * several. Clicking opens it large in its own window (zoom for pictures, pages for a PDF).
  */
 function HandoutCard({ card }: { card: TableCard }) {
-  const picture = card.handoutKind === 'image' || card.handoutKind === 'map';
-  const preview = card.excerpt ? plainPreview(card.excerpt) : '';
+  const [index, setIndex] = useState(0);
+  const open = () => void handoutViewOpen(handoutId(card));
+  const label = `Open the handout: ${card.title}`;
+  if (card.handoutKind === 'image' || card.handoutKind === 'map') {
+    return (
+      <article className="vtt-card vtt-card-handout vtt-card-set">
+        <button type="button" className="vtt-card-open" aria-label={label} onClick={open}>
+          <CardText card={card} icon={<ImageIcon size={14} aria-hidden />} />
+        </button>
+        <FlipPanel count={card.fileCount ?? 1} index={index} onIndex={setIndex}>
+          <button type="button" className="vtt-card-picture" aria-label={label} onClick={open}>
+            <CardPicture card={card} index={index} />
+          </button>
+        </FlipPanel>
+      </article>
+    );
+  }
   return (
-    <button
-      type="button"
-      className="vtt-card vtt-card-handout"
-      aria-label={`Open the handout: ${card.title}`}
-      onClick={() => void handoutViewOpen(handoutId(card))}
-    >
-      {picture && <Thumbnail card={card} />}
-      <span className="vtt-card-body">
-        <span className="vtt-card-title">
-          {card.handoutKind === 'map' ? (
-            <MapIcon size={14} aria-hidden />
+    <button type="button" className="vtt-card vtt-card-handout" aria-label={label} onClick={open}>
+      <CardText
+        card={card}
+        icon={
+          card.handoutKind === 'pdf' ? (
+            <Paperclip size={14} aria-hidden />
           ) : (
             <FileText size={14} aria-hidden />
-          )}
-          <b>{card.title}</b>
-        </span>
-        {preview && <span className="vtt-card-excerpt">{preview}</span>}
-      </span>
+          )
+        }
+      />
     </button>
   );
 }

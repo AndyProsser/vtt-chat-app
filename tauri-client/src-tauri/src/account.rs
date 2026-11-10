@@ -275,6 +275,32 @@ pub fn handout_upload_path(
     ))
 }
 
+/// `/api/campaigns/<id>/handouts/<handout>/images?name=…`: one more picture for a picture handout.
+pub fn handout_image_path(
+    campaign_id: &str,
+    handout_id: &str,
+    name: &str,
+) -> Result<String, AccountError> {
+    let plain = |s: &str| {
+        !s.is_empty()
+            && s.chars()
+                .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+    };
+    if !plain(campaign_id) || !plain(handout_id) {
+        return Err(AccountError::new(
+            "invalid_input",
+            "that request is not allowed",
+        ));
+    }
+    let mut url = url::Url::parse("http://x").expect("a constant URL parses");
+    url.query_pairs_mut()
+        .append_pair("name", &name.chars().take(200).collect::<String>());
+    Ok(format!(
+        "/api/campaigns/{campaign_id}/handouts/{handout_id}/images?{}",
+        url.query().unwrap_or_default()
+    ))
+}
+
 /// `play.example.com` → `https://play.example.com`; trailing slashes dropped. Plain `http://` is
 /// accepted only because a LAN/dev server may not have a certificate; the caller shows what it got.
 pub fn normalise_server(input: &str) -> Result<String, String> {
@@ -820,6 +846,17 @@ mod tests {
                 .mode();
             assert_eq!(mode & 0o077, 0, "fallback file must be owner-only");
         }
+    }
+
+    #[test]
+    fn an_added_picture_goes_to_its_own_handout_and_nothing_else() {
+        assert_eq!(
+            handout_image_path("c1", "h-1", "second map.png").unwrap(),
+            "/api/campaigns/c1/handouts/h-1/images?name=second+map.png"
+        );
+        assert!(handout_image_path("c1", "../x", "n").is_err());
+        assert!(handout_image_path("c1", "", "n").is_err());
+        assert!(handout_image_path("c 1", "h", "n").is_err());
     }
 
     #[test]

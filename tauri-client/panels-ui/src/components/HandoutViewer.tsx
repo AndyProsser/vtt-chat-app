@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 
 import { useAccount } from '../hooks/useAccount.js';
 import { useTableFeed } from '../hooks/useTableFeed.js';
+import { handoutPicture } from '../lib/handoutPicture.js';
 import { handoutIdFromHash } from '../lib/panelName.js';
 import { isDm } from '../lib/tableModel.js';
 import { useTableStore } from '../lib/tableStore.js';
@@ -13,14 +14,38 @@ import {
   onHandoutView,
 } from '../lib/tauriBridge.js';
 import type { Handout } from '../types/index.js';
+import { FlipPanel } from './FlipPanel.js';
 import { ImageZoom } from './ImageZoom.js';
 import { MarkdownEditor } from './MarkdownEditor.js';
 import { MarkdownView } from './MarkdownView.js';
+import { PdfView } from './PdfView.js';
 import { ToolButton } from './ToolButton.js';
+
+/** One picture of a set, with zoom; the zoom starts again for each picture. */
+function SetPicture({ id, title, index }: { id: string; title: string; index: number }) {
+  const [src, setSrc] = useState<string>();
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    setSrc(undefined);
+    setFailed(false);
+    handoutPicture(id, index).then(
+      (s) => !cancelled && setSrc(s),
+      () => !cancelled && setFailed(true),
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [id, index]);
+  if (failed) return <span className="vtt-muted">Could not load the picture.</span>;
+  if (!src) return <span className="vtt-muted">Loading…</span>;
+  return <ImageZoom key={`${id}:${index}`} src={src} alt={`${title}, picture ${index + 1}`} />;
+}
 
 /**
  * One handout, large, in a window of its own (opened from its card in chat). Players read it; the DM can
- * also edit it. Pictures get zoom controls here, and only here.
+ * also edit its title and text. A set of pictures flips and zooms (maps can be huge), and a PDF is read
+ * here page by page.
  */
 export function HandoutViewer() {
   useTableFeed();
@@ -29,7 +54,8 @@ export function HandoutViewer() {
   const dm = isDm(members, status?.userId ?? null);
   const [id, setId] = useState(() => handoutIdFromHash(window.location.hash));
   const [handout, setHandout] = useState<Handout>();
-  const [picture, setPicture] = useState<string>();
+  const [pdf, setPdf] = useState<string>();
+  const [index, setIndex] = useState(0);
   const [error, setError] = useState<string>();
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState('');
@@ -49,15 +75,16 @@ export function HandoutViewer() {
     if (!id) return;
     let cancelled = false;
     setHandout(undefined);
-    setPicture(undefined);
+    setPdf(undefined);
+    setIndex(0);
     setError(undefined);
     campaignApi<{ handout: Handout }>('GET', `handouts/${id}`)
       .then(async ({ handout: h }) => {
         if (cancelled) return;
         setHandout(h);
-        if ((h.kind === 'image' || h.kind === 'map') && h.hasFile) {
-          const src = await campaignFile(`handouts/${id}/file`);
-          if (!cancelled) setPicture(src);
+        if (h.kind === 'pdf' && h.hasFile) {
+          const data = await campaignFile(`handouts/${id}/file`);
+          if (!cancelled) setPdf(data);
         }
       })
       .catch((e: unknown) => !cancelled && setError(accountErrorMessage(e)));
@@ -77,11 +104,10 @@ export function HandoutViewer() {
     if (!handout) return;
     setSaving(true);
     try {
-      const body = handout.kind === 'text' ? { title, text } : { title };
       const { handout: next } = await campaignApi<{ handout: Handout }>(
         'PATCH',
         `handouts/${handout.id}`,
-        body,
+        { title, text },
       );
       setHandout(next);
       setEditing(false);
@@ -94,6 +120,8 @@ export function HandoutViewer() {
   }
 
   if (!id) return <div className="vtt-viewer vtt-muted">No handout selected.</div>;
+  const note = handout?.kind === 'text';
+  const pictures = handout && (handout.kind === 'image' || handout.kind === 'map');
   return (
     <div className="vtt-viewer">
       {error && (
@@ -137,18 +165,32 @@ export function HandoutViewer() {
               </span>
             )}
           </header>
-          {handout.kind === 'text' &&
+          {note &&
             (editing ? (
               <MarkdownEditor value={text} onChange={setText} />
             ) : (
               <MarkdownView text={handout.body ?? ''} />
             ))}
-          {(handout.kind === 'image' || handout.kind === 'map') && picture && (
-            <ImageZoom src={picture} alt={handout.title} />
+          {!note &&
+            (editing ? (
+              <textarea
+                className="vtt-input"
+                aria-label="Caption"
+                placeholder="A line or two to go with it (optional)"
+                rows={3}
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+              />
+            ) : (
+              handout.body && <p className="vtt-viewer-caption">{handout.body}</p>
+            ))}
+          {pictures && (
+            <FlipPanel count={handout.fileCount} index={index} onIndex={setIndex}>
+              <SetPicture id={handout.id} title={handout.title} index={index} />
+            </FlipPanel>
           )}
-          {handout.kind === 'pdf' && (
-            <span className="vtt-muted">A PDF — open it from the web page.</span>
-          )}
+          {handout.kind === 'pdf' &&
+            (pdf ? <PdfView dataUrl={pdf} /> : <span className="vtt-muted">Loading the PDF…</span>)}
         </>
       )}
     </div>

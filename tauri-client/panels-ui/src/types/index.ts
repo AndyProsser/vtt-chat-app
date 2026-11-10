@@ -95,6 +95,8 @@ export interface TableCard {
   handoutKind?: 'image' | 'map' | 'pdf' | 'text';
   /** The start of a text handout, for the card's three-line preview. */
   excerpt?: string;
+  /** How many pictures a picture handout holds. */
+  fileCount?: number;
   removed?: boolean;
   after: string | null;
 }
@@ -140,6 +142,8 @@ export interface Handout {
   kind: 'image' | 'map' | 'pdf' | 'text';
   body: string | null;
   hasFile: boolean;
+  /** Pictures in a picture handout (1 for a PDF, 0 for a note). */
+  fileCount: number;
   visibility: 'dm' | 'all' | 'some';
 }
 

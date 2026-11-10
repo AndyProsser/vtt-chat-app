@@ -136,6 +136,7 @@ pub fn run() {
             account_commands::recording_control,
             account_commands::campaign_api,
             account_commands::handout_upload,
+            account_commands::handout_add_image,
             clipboard::clipboard_picture,
             soundboard::soundboard_monitor_set,
             soundboard::soundboard_levels_set,

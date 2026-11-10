@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest';
 
 import type { Handout } from '../types/index.js';
 import {
+  canCreateHandout,
   fileFromBase64,
   imageFromClipboard,
   isShared,
+  MAX_PICTURES,
   pastedTitle,
   plainPreview,
   removalWarning,
@@ -17,6 +19,7 @@ const h = (over: Partial<Handout>): Handout => ({
   kind: 'map',
   body: null,
   hasFile: true,
+  fileCount: 1,
   visibility: 'dm',
   ...over,
 });
@@ -103,5 +106,22 @@ describe('plainPreview', () => {
     expect(plainPreview('  Meet me at dusk -  bring 3 torches.  ')).toBe(
       'Meet me at dusk - bring 3 torches.',
     );
+  });
+});
+
+describe('canCreateHandout', () => {
+  const base = { title: 'Crypt', text: '', pictures: 0, hasPdf: false };
+  it('needs a title, then the right content for the kind', () => {
+    expect(canCreateHandout({ ...base, mode: 'note', text: 'Hello' })).toBe(true);
+    expect(canCreateHandout({ ...base, mode: 'note', text: '   ' })).toBe(false);
+    expect(canCreateHandout({ ...base, mode: 'pictures', pictures: 2 })).toBe(true);
+    expect(canCreateHandout({ ...base, mode: 'pictures', pictures: 0 })).toBe(false);
+    expect(canCreateHandout({ ...base, mode: 'pdf', hasPdf: true })).toBe(true);
+    expect(canCreateHandout({ ...base, mode: 'pdf', title: ' ', hasPdf: true })).toBe(false);
+  });
+  it('allows at most twelve pictures', () => {
+    expect(canCreateHandout({ ...base, mode: 'pictures', pictures: 12 })).toBe(true);
+    expect(canCreateHandout({ ...base, mode: 'pictures', pictures: 13 })).toBe(false);
+    expect(MAX_PICTURES).toBe(12);
   });
 });

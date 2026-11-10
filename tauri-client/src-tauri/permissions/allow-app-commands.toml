@@ -54,6 +54,7 @@ commands.allow = [
   "campaign_api",
   "campaign_file",
   "handout_upload",
+  "handout_add_image",
   "clipboard_picture",
   "soundboard_monitor_set",
   "soundboard_levels_set",

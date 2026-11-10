@@ -80,3 +80,22 @@ export function plainPreview(markdown: string): string {
     .replace(/\s+/g, ' ')
     .trim();
 }
+
+/** Pictures in one handout; the server's limit, repeated so the form can say so before uploading. */
+export const MAX_PICTURES = 12;
+
+export type NewHandoutMode = 'note' | 'pictures' | 'pdf';
+
+/** Whether the "new handout" form has what the server needs: a title, and content that fits the kind. */
+export function canCreateHandout(f: {
+  mode: NewHandoutMode;
+  title: string;
+  text: string;
+  pictures: number;
+  hasPdf: boolean;
+}): boolean {
+  if (f.title.trim() === '') return false;
+  if (f.mode === 'note') return f.text.trim() !== '';
+  if (f.mode === 'pictures') return f.pictures >= 1 && f.pictures <= MAX_PICTURES;
+  return f.hasPdf;
+}

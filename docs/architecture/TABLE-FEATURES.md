@@ -56,6 +56,24 @@ nosniff` and `Content-Security-Policy: default-src 'none'; sandbox`.
   `GET /api/campaigns/:id/handouts`.
 - **Not built:** sweeping media files when a whole campaign is deleted; thumbnails; image dimension limits.
 
+## Handout kinds (reshaped 2026-11-10)
+
+A handout is **one** of three things, never a mix: a **note** (Markdown), a **set of pictures** (one to twelve,
+shown in order), or **one PDF**. Any of them can carry a short **caption** (a note's text is its body; for
+the others the body is the caption, up to 300 characters in the form). Maps are pictures.
+
+- In chat the card shows the title and caption above a larger picture, with flip buttons for a set; a PDF
+  shows a paperclip, the title and the caption; a note shows the first three lines. Clicking any of them
+  opens the **viewer window** (one reusable window): the same flip panel plus zoom (buttons, Ctrl and the
+  wheel, drag to move; built for a 5000 by 5000 map), or the PDF drawn page by page (pdf.js, loaded only
+  then; previous/next page and zoom). The DM can edit the title and text there; players only read.
+- Server: `handout_files` (migration 0019) keeps the ordered files; `POST …/handouts/:id/images` adds a
+  picture (DM only, picture handouts only, twelve at most); `GET …/files/:n` serves one (`/file` is the
+  first); `PATCH` edits title and caption. Each file counts against the campaign's storage.
+- **Unverified:** the PDF reader inside the app window (the page's content security policy may need
+  `'wasm-unsafe-eval'` for some embedded image types), and flipping through twelve large pictures
+  (each is fetched when first shown and kept for the life of the window).
+
 ## Loot drops with pickers (built)
 
 Defaults taken (not asked): an item is claimed **whole** by one player (a stack has a quantity but is not
