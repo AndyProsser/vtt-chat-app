@@ -814,6 +814,7 @@ describe('Hub: recording consent flow', () => {
         status: 'IN-PROGRESS',
         acknowledged: false,
         startedAt: expect.any(Number),
+        graceSeconds: 30,
       },
     });
   });

@@ -149,6 +149,7 @@ export function applyEvent(state: TableState, event: SyncEvent): TableState {
               recordingId: r.recordingId,
               capturing: r.capturing !== false,
               startedAt: asStart(r.startedAt),
+              ...(typeof r.graceSeconds === 'number' ? { graceSeconds: r.graceSeconds } : {}),
             }
           : null;
       return sameRecording(state.recording, next) ? state : { ...state, recording: next };
@@ -163,6 +164,9 @@ export function applyEvent(state: TableState, event: SyncEvent): TableState {
               recordingId: id,
               capturing: d.status !== 'PAUSED',
               startedAt: asStart(d.startedAt) ?? (sameRun ? state.recording!.startedAt : null),
+              ...(sameRun && state.recording?.graceSeconds !== undefined
+                ? { graceSeconds: state.recording.graceSeconds }
+                : {}),
             };
       return sameRecording(state.recording, next) ? state : { ...state, recording: next };
     }
@@ -180,7 +184,8 @@ function sameRecording(a: RecordingView | null, b: RecordingView | null): boolea
       b !== null &&
       a.recordingId === b.recordingId &&
       a.capturing === b.capturing &&
-      a.startedAt === b.startedAt)
+      a.startedAt === b.startedAt &&
+      a.graceSeconds === b.graceSeconds)
   );
 }
 

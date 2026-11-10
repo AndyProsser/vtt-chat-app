@@ -91,6 +91,7 @@ pub fn panel_event(server_event: &ServerEvent) -> Option<(Value, bool)> {
                         "recordingId": r.recording_id,
                         "capturing": r.capturing,
                         "startedAt": r.started_at,
+                        "graceSeconds": r.grace_seconds,
                     })),
                 }),
             ),
@@ -188,6 +189,7 @@ mod tests {
                 capturing: true,
                 acknowledged: false,
                 started_at: Some(2000),
+                grace_seconds: None,
             }),
         };
         assert_eq!(

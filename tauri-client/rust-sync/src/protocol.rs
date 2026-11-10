@@ -44,6 +44,8 @@ pub struct RecordingInfo {
     pub acknowledged: bool,
     /// Epoch milliseconds (server clock) when the recording started, if the server said.
     pub started_at: Option<u64>,
+    /// How long the DM may be away before any player can pause, resume or stop it (operator setting).
+    pub grace_seconds: Option<u64>,
 }
 
 /// A decoded server → client frame. Campaign data the UI renders as-is (`Snapshot`, stats) stays
@@ -298,6 +300,7 @@ pub fn parse_server_frame(raw: &str) -> Result<(ServerEvent, Option<u64>), Parse
                         .and_then(Value::as_bool)
                         .unwrap_or(false),
                     started_at: r.get("startedAt").and_then(Value::as_u64),
+                    grace_seconds: r.get("graceSeconds").and_then(Value::as_u64),
                 }),
         },
         "roster.changed" => ServerEvent::RosterChanged {
@@ -576,9 +579,25 @@ mod tests {
                     capturing: true,
                     acknowledged: true,
                     started_at: None,
+                    grace_seconds: None,
                 })
             }
         );
+
+        let (graced, _) = parse_server_frame(&server(
+            "recording.state",
+            json!({ "campaignId": "c", "recording": {
+                "recordingId": "r1", "status": "IN-PROGRESS", "graceSeconds": 45 } }),
+            None,
+        ))
+        .unwrap();
+        match graced {
+            ServerEvent::RecordingState {
+                recording: Some(info),
+                ..
+            } => assert_eq!(info.grace_seconds, Some(45)),
+            other => panic!("not a recording state: {other:?}"),
+        }
 
         let (paused, _) = parse_server_frame(&server(
             "recording.state",

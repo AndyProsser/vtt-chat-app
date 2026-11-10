@@ -29,6 +29,16 @@ pub struct TrayModel {
     indicator: Option<Indicator>,
 }
 
+impl TrayModel {
+    /// Whether a recording is open (capturing or paused) in the campaign this app is in.
+    pub fn recording_open(&self) -> bool {
+        matches!(
+            self.indicator,
+            Some(Indicator::Recording) | Some(Indicator::Paused)
+        )
+    }
+}
+
 type ClientSlot = Arc<Mutex<Option<SyncClient>>>;
 
 struct ActiveSession {

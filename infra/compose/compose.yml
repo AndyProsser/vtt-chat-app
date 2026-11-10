@@ -73,6 +73,9 @@ services:
       LIVEKIT_HEALTH_URL: http://host.docker.internal:7880
       # Audio capture: Egress (records profile) writes per-speaker files here; the worker reads them.
       RECORDINGS_DIR: /out
+      # Seconds the DM may be disconnected before players can pause/resume/stop a recording, and before a
+      # recording nobody is connected to stops by itself (5 to 3600, default 30).
+      RECORDING_GRACE_SECONDS: ${RECORDING_GRACE_SECONDS:-}
       # Testing only: 1 also saves the DM's sound effects as a private, untranscribed file.
       RECORD_SOUNDBOARD: ${RECORD_SOUNDBOARD:-}
     extra_hosts: ['host.docker.internal:host-gateway']

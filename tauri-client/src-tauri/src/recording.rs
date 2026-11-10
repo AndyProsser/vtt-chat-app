@@ -304,6 +304,7 @@ mod tests {
                 capturing,
                 acknowledged,
                 started_at: None,
+                grace_seconds: None,
             }),
         }
     }

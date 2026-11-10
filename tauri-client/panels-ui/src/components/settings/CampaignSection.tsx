@@ -20,6 +20,7 @@ export function CampaignSection() {
   const members = useTableStore((s) => s.members);
   const selfId = status?.userId ?? null;
   const dm = isDm(members, selfId);
+  const recording = useTableStore((s) => s.recording !== null);
   const campaign = status?.campaigns.find((c) => c.id === status.campaignId);
   const [link, setLink] = useState<string>();
   const [confirm, setConfirm] = useState<string>();
@@ -78,7 +79,11 @@ export function CampaignSection() {
       {dm && (
         <section className="vtt-session">
           <b>Hand over the DM role</b>
-          <span className="vtt-muted">You and the player swap places; you become a player.</span>
+          <span className="vtt-muted">
+            {recording
+              ? 'A recording is running. Stop it before handing over the DM role.'
+              : 'You and the player swap places; you become a player.'}
+          </span>
           {otherPlayers(members, selfId).length === 0 && (
             <span className="vtt-muted">No other players yet.</span>
           )}
@@ -110,7 +115,11 @@ export function CampaignSection() {
                     </ToolButton>
                   </span>
                 ) : (
-                  <ToolButton label={`Make ${label} the DM…`} onClick={() => setConfirm(m.userId)}>
+                  <ToolButton
+                    label={`Make ${label} the DM…`}
+                    disabled={recording}
+                    onClick={() => setConfirm(m.userId)}
+                  >
                     <Crown size={14} />
                   </ToolButton>
                 )}

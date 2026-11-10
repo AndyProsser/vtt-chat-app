@@ -61,6 +61,8 @@ export interface RecordingView {
   capturing: boolean;
   /** Epoch ms on the server's clock; `null` if the server did not say. */
   startedAt: number | null;
+  /** The operator's grace period in seconds (how long the DM may be away), when the server said. */
+  graceSeconds?: number;
 }
 
 export type RecordingAction = 'start' | 'pause' | 'resume' | 'stop';

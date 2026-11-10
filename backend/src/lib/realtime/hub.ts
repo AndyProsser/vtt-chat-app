@@ -54,6 +54,11 @@ export interface HubOptions {
   onRecordingAck?: (campaignId: string, recordingId: string, userId: string) => void;
   /** Told about every soundboard frame sent to a table, for the recording's timeline. */
   onTableEvent?: (campaignId: string, type: string, data: unknown) => void;
+  /**
+   * How long (ms) a recording tolerates the DM being away before players may step in, and nobody being
+   * connected before it stops by itself. Default 30 s (RECORDING_GRACE_SECONDS).
+   */
+  recordingGraceMs?: number;
   /** Told about every line typed into the public chat (never a whisper), for a recording's transcript. */
   onPublicChat?: (
     campaignId: string,
@@ -103,6 +108,11 @@ export class Hub {
   private readonly now: () => number;
   private readonly authTimeoutMs: number;
   private readonly maxBadFrames: number;
+  private readonly graceMs: number;
+  private readonly startedAt: number;
+  /** When each person last had no connection to a campaign (`campaign:user`), for "how long has the DM been away". */
+  private readonly lastOnline = new Map<string, number>();
+  private readonly emptyTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
   constructor(private readonly options: HubOptions) {
     this.presence = options.presence ?? new PresenceTracker();
@@ -128,6 +138,8 @@ export class Hub {
     this.now = options.now ?? Date.now;
     this.authTimeoutMs = options.authTimeoutMs ?? 5_000;
     this.maxBadFrames = options.maxBadFrames ?? 20;
+    this.graceMs = options.recordingGraceMs ?? 30_000;
+    this.startedAt = this.now();
   }
 
   /** Registers a new socket. It must authenticate before the timeout or it is dropped. */
@@ -308,6 +320,8 @@ export class Hub {
   }
 
   close(): void {
+    for (const timer of this.emptyTimers.values()) clearTimeout(timer);
+    this.emptyTimers.clear();
     this.soundboard?.close();
     for (const state of this.connections.values()) {
       if (state.authTimer) clearTimeout(state.authTimer);
@@ -405,6 +419,7 @@ export class Hub {
       return;
     }
 
+    this.cancelAutoStop(campaignId);
     const newlyOnline = !state.campaigns.has(campaignId)
       ? this.presence.connect(campaignId, auth.user.id, state.conn.id)
       : false;
@@ -786,6 +801,40 @@ export class Hub {
     return false;
   }
 
+  /**
+   * How long (ms) the campaign's DM has had no connection: 0 while they are connected. Players may only
+   * step in on a recording once this passes the grace period.
+   */
+  async dmAwayMs(campaignId: string): Promise<number> {
+    const dm = (await this.options.store.listMemberships(campaignId)).find((m) => m.role === 'dm');
+    if (!dm) return 0;
+    if (this.presence.snapshot(campaignId).some((p) => p.userId === dm.userId && p.online))
+      return 0;
+    const since = this.lastOnline.get(`${campaignId}:${dm.userId}`) ?? this.startedAt;
+    return Math.max(0, this.now() - since);
+  }
+
+  /** Nobody connected to a recorded campaign: stop it if that lasts longer than the grace period. */
+  private maybeAutoStop(campaignId: string): void {
+    if (this.presence.snapshot(campaignId).some((p) => p.online)) return;
+    if (!this.recording.current(campaignId) || this.emptyTimers.has(campaignId)) return;
+    const timer = setTimeout(() => {
+      this.emptyTimers.delete(campaignId);
+      if (this.presence.snapshot(campaignId).some((p) => p.online)) return;
+      if (!this.recording.current(campaignId)) return;
+      console.warn(`[recording] ${campaignId}: nobody connected for the grace period; stopping`);
+      this.announceRecording(this.recording.stop(campaignId));
+    }, this.graceMs);
+    timer.unref();
+    this.emptyTimers.set(campaignId, timer);
+  }
+
+  private cancelAutoStop(campaignId: string): void {
+    const timer = this.emptyTimers.get(campaignId);
+    if (timer) clearTimeout(timer);
+    this.emptyTimers.delete(campaignId);
+  }
+
   private leave(state: ConnState, campaignId: string): void {
     const auth = state.auth;
     if (!auth) return;
@@ -796,6 +845,8 @@ export class Hub {
       this.options.parties?.forgetTable(campaignId);
     }
     if (this.presence.disconnect(campaignId, auth.user.id, state.conn.id)) {
+      this.lastOnline.set(`${campaignId}:${auth.user.id}`, this.now());
+      this.maybeAutoStop(campaignId);
       this.broadcast(campaignId, 'presence.update', {
         campaignId,
         userId: auth.user.id,
@@ -884,6 +935,7 @@ export class Hub {
       recordingId: current.recordingId,
       status: current.status,
       startedAt: current.startedAt,
+      graceSeconds: Math.round(this.graceMs / 1000),
       acknowledged: await this.acks.hasAcked(campaignId, current.recordingId, viewerId),
     };
   }

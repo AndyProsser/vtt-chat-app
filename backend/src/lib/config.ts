@@ -28,6 +28,12 @@ export interface BackendConfig {
    */
   recordingsDir: string | undefined;
   /**
+   * How long the DM (or everyone) may be disconnected during a recording before something happens: after
+   * this long without the DM, any player may pause, resume or stop it; after this long with nobody
+   * connected, it stops by itself. `RECORDING_GRACE_SECONDS`, default 30.
+   */
+  recordingGraceSeconds: number;
+  /**
    * Testing only: also save the DM's soundboard track as its own private file (never transcribed).
    * Off by default, because effects are deliberately not part of the session record.
    */
@@ -72,6 +78,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): BackendConfig 
     databaseUrl: env.DATABASE_URL || undefined,
     valkeyUrl: env.VALKEY_URL || undefined,
     recordingsDir: env.RECORDINGS_DIR || undefined,
+    recordingGraceSeconds: graceSeconds(env.RECORDING_GRACE_SECONDS),
     recordSoundboard: env.RECORD_SOUNDBOARD === '1',
     mediaDir: env.MEDIA_DIR || undefined,
     webDir: env.WEB_DIR || undefined,
@@ -103,4 +110,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): BackendConfig 
       env.LIVEKIT_HEALTH_URL ??
       (env.LIVEKIT_URL ?? DEV_LIVEKIT_URL).replace(/^ws/, 'http'),
   };
+}
+
+/** The recording grace period: whole seconds from 5 to 3600, 30 when unset or unreadable. */
+export function graceSeconds(raw: string | undefined): number {
+  const n = Number(raw);
+  if (raw === undefined || raw === '' || !Number.isFinite(n)) return 30;
+  return Math.min(3600, Math.max(5, Math.round(n)));
 }

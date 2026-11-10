@@ -156,6 +156,11 @@ async fn finish_sign_in(
     Ok(status_json(&inner.saved, &inner.campaigns))
 }
 
+/// The DM cannot leave a campaign that is recording: the recording is their session. Players come and go.
+fn switch_blocked(current_role: Option<&str>, recording_open: bool) -> bool {
+    recording_open && current_role == Some("dm")
+}
+
 /// Makes `campaign_id` the live campaign: leaves the current one (chat link and voice room) first, so
 /// switching never leaves a second voice connection behind, then joins the new one.
 async fn switch_to(
@@ -172,6 +177,24 @@ async fn switch_to(
     };
     if !inner.campaigns.iter().any(|c| c.id == campaign_id) {
         return Err(error("unknown_campaign", "you are not in that campaign"));
+    }
+    let role = inner
+        .saved
+        .campaign_id
+        .as_deref()
+        .filter(|current| *current != campaign_id)
+        .and_then(|current| inner.campaigns.iter().find(|c| c.id == current))
+        .map(|c| c.role.as_str());
+    let recording_open = app
+        .state::<std::sync::Mutex<crate::session::TrayModel>>()
+        .lock()
+        .unwrap()
+        .recording_open();
+    if switch_blocked(role, recording_open) {
+        return Err(error(
+            "recording_active",
+            "A recording is running. Stop it before switching campaigns.",
+        ));
     }
     teardown(app, sessions).await;
     inner.saved.campaign_id = Some(campaign_id.to_string());
@@ -700,5 +723,21 @@ mod avatar_tests {
         assert!(!is_avatar_id("../../etc/passwd"));
         assert!(!is_avatar_id("0b1f3a52-6c1e-4d57-9a64-0c2f7d3e8a1/"));
         assert!(!is_avatar_id(""));
+    }
+}
+
+#[cfg(test)]
+mod switch_tests {
+    use super::switch_blocked;
+
+    #[test]
+    fn only_a_dm_with_a_recording_open_is_held_in_their_campaign() {
+        assert!(switch_blocked(Some("dm"), true));
+        assert!(
+            !switch_blocked(Some("dm"), false),
+            "no recording, free to go"
+        );
+        assert!(!switch_blocked(Some("player"), true), "players come and go");
+        assert!(!switch_blocked(None, true), "no current campaign");
     }
 }

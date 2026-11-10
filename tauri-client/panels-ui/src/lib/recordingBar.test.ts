@@ -24,6 +24,13 @@ describe('recordingBar', () => {
     expect(recordingBar(null, false, 0)).toMatchObject({ visible: false, actions: [] });
   });
 
+  it('lets a player pause, resume or stop once the DM has been away past the grace period, never start', () => {
+    expect(recordingBar(running, false, 2000, true).actions).toEqual(['pause', 'stop']);
+    expect(recordingBar(paused, false, 2000, true).actions).toEqual(['resume', 'stop']);
+    expect(recordingBar(null, false, 2000, true).actions).toEqual([]);
+    expect(recordingBar(running, false, 2000, false).actions).toEqual([]);
+  });
+
   it('never shows a negative time when the start is in the future or unknown', () => {
     expect(recordingBar({ ...running, startedAt: 9000 }, false, 1000).label).toBe('00:00:00');
     expect(recordingBar({ ...running, startedAt: null }, false, 1000).label).toBe('00:00:00');

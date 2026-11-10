@@ -48,6 +48,10 @@ export interface CampaignRouteDeps {
   recording: RecordingState;
   /** Called after a recording change, so every client can play its local cue. */
   onRecordingChanged?: (change: RecordingChange) => void;
+  /** How long the campaign's DM has had no connection (0 while connected). */
+  dmAwayMs?: (campaignId: string) => Promise<number>;
+  /** How long the DM may be away before players may pause, resume or stop a recording. */
+  recordingGraceMs?: number;
 }
 
 function param(value: string | string[] | undefined): string {
@@ -64,6 +68,8 @@ export function campaignRoutes(deps: CampaignRouteDeps): Router {
     onRosterChanged,
     recording,
     onRecordingChanged,
+    dmAwayMs,
+    recordingGraceMs = 30_000,
   } = deps;
   const router = Router();
   router.use(requireAuth(deps.accounts));
@@ -166,6 +172,8 @@ export function campaignRoutes(deps: CampaignRouteDeps): Router {
   router.post('/:id/dm-swap', async (req, res) => {
     const body = swapBody.parse(req.body);
     const campaignId = param(req.params.id);
+    if (recording.current(campaignId))
+      throw new DomainError('conflict', 'stop the recording before handing over the DM role');
     await campaigns.swapDm(authOf(res).user, campaignId, body.newDmUserId);
     onRosterChanged?.(campaignId);
     res.status(204).end();
@@ -203,8 +211,16 @@ export function campaignRoutes(deps: CampaignRouteDeps): Router {
     const campaignId = param(req.params.id);
     const membership = await store.getMembership(campaignId, user.id);
     if (!membership) throw new DomainError('forbidden', 'not a member of this campaign');
-    if (membership.role !== 'dm')
-      throw new DomainError('forbidden', 'only the DM can control recording');
+    if (membership.role !== 'dm') {
+      // Players may pause, resume or stop (never start) once the DM has been away past the grace period.
+      const away =
+        body.action !== 'start' && recording.current(campaignId) ? await dmAwayMs?.(campaignId) : 0;
+      if (away === undefined || away < recordingGraceMs)
+        throw new DomainError(
+          'forbidden',
+          `only the DM can control recording (players can step in once the DM has been away ${Math.round(recordingGraceMs / 1000)} seconds)`,
+        );
+    }
 
     const change = recording[body.action](campaignId);
     onRecordingChanged?.(change);

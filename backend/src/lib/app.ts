@@ -48,6 +48,8 @@ export interface AppDeps {
     revokeSession(sessionId: string): void;
     announceRosterChanged(campaignId: string): void | Promise<void>;
     announceRecording(change: RecordingChange): void;
+    /** How long the campaign's DM has had no connection (0 while connected). */
+    dmAwayMs?(campaignId: string): Promise<number>;
     announceHandoutShown?(
       campaignId: string,
       handout: {
@@ -205,6 +207,8 @@ export function createApp({
       },
       inviteLimiter,
       recording: recording ?? new RecordingState(),
+      recordingGraceMs: (config.recordingGraceSeconds ?? 30) * 1000,
+      ...(realtime?.dmAwayMs ? { dmAwayMs: (id: string) => realtime.dmAwayMs!(id) } : {}),
       ...(realtime
         ? {
             onRosterChanged: (id: string) => {

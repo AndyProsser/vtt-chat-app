@@ -155,3 +155,27 @@ What is _not_ built: the durable record of each recording (start/stop/pause time
 
 1. Default values for the purge rules, and whether the DM is warned before an automatic purge.
 2. The acknowledgement expiry (30 minutes is an assumption; it is one constant) and whether it should be configurable per instance.
+
+## While a recording runs (decided 2026-11-10)
+
+A recording means a game is running, so the app protects it:
+
+- **The DM cannot walk away from it.** While their campaign is recording, the DM cannot switch to another
+  campaign (the app refuses, and the switcher says why) or hand over the DM role (the server answers
+  `409`). Both wait for Stop. Players come and go freely; each campaign is its own voice room, so
+  switching leaves one room and, as always, the player chooses Online to join the next.
+- **If the DM's app drops, the recording carries on.** Nothing changes for `RECORDING_GRACE_SECONDS`
+  (operator setting, 5 to 3600, default **30**). After that, **any player in the campaign** can pause,
+  resume or stop it (never start one); the buttons appear in their top bar and the server enforces the
+  same rule. The moment the DM reconnects, control is theirs alone again; a recording a player paused
+  stays paused until the DM resumes it. "The DM's connection" means their app's link to the server, not
+  voice, so going Offline in voice does not count as being away.
+- **If everyone drops, it stops by itself.** When nobody is connected to the campaign for the grace
+  period, the server stops the recording and processes it as normal. Anyone who returns inside the period
+  keeps it going.
+- **Chat in the transcript.** Lines typed into the **public** chat from start to stop (pauses included) are
+  kept on the recording's timeline and merged into the transcript and summaries, marked "(typed)", for
+  example `[0:42:10] Aria (typed): Anyone smell brine?`. **Whispers, and the DM's private lines, are
+  never included**: the server only hands public lines to the recording, and the processing step ignores
+  any chat event that names a recipient. Chat outside a recording is not kept for transcripts. Typed lines
+  are not searchable yet (search reads spoken transcripts and summaries).

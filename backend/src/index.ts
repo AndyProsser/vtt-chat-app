@@ -114,6 +114,7 @@ if (isEntryPoint) {
     onRecordingAck: (campaignId) => capture?.onAck(campaignId),
     onTableEvent: (campaignId, type, data) => capture?.onTableEvent(campaignId, type, data),
     onPublicChat: (campaignId, line) => capture?.onChat(campaignId, line),
+    recordingGraceMs: config.recordingGraceSeconds * 1000,
   });
   hubRef.current = hub;
   if (config.recordingsDir !== undefined && pool !== undefined) {
