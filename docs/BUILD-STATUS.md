@@ -2,7 +2,7 @@
 
 Where the build actually stands, so the next session (or the next machine) can pick up without re-deriving it. Kept deliberately honest: **"built" is not "verified".** Update this file in the same change as the work it describes; the plan itself is in [ROADMAP.md](../ROADMAP.md) and the live threads in [.claude/intent.md](../.claude/intent.md).
 
-- **As of:** 2026-11-09 · **Version:** 0.2.0 · **Branch:** `main`
+- **As of:** 2026-11-10 · **Version:** 0.2.0 · **Branch:** `main`
 - **Built on a Windows machine away from the normal dev box.** No Linux, no Postgres, no Valkey, no LiveKit server, no `ffmpeg`/`whisper.cpp`/`ollama` were available. Everything below that needs them is marked **UNVERIFIED**.
 
 ## How to check the repo is healthy
@@ -14,6 +14,23 @@ cd tauri-client && cargo fmt --check && cargo clippy --workspace --all-targets -
 ```
 
 Last run (2026-11-09, memory stores): backend 406 (+18 skipped without Postgres), panels-ui 213, ddb 9, status 3; Rust: src-tauri 88 (+2 ignored), rust-livekit and rust-sync as before, with the LiveKit live tests passing individually on SDK 0.10.1. `cargo clippy -D warnings` still fails on the old unused `capture_allowed`. Not run: anything in CI (the workflow exists, nothing has run it since the pivot).
+
+## Built 2026-11-10 and not yet verified in a real window or on a real server
+
+| Feature                                                                                | Verified how                                                                                     | Still needs                                                      |
+| -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------- |
+| Status (Online/Away/Offline), tray submenu, status dot, shared with the table          | state machine, tray menu, rail and server tests                                                  | a real tray and window; Away on a real lock                      |
+| Away on Windows (lock desktop) and macOS (`ioreg`)                                     | Windows call compiled in isolation; macOS parser unit-tested                                     | a real Windows PC and a Mac                                      |
+| Handouts: notes, picture sets (flip, zoom, reorder, remove, add), PDFs, captions       | backend tests on memory and real Postgres; panel helpers                                         | the PDF reader and the viewer window in a real app; large images |
+| Loot actions (take, store, return, give) and the shared player list                    | backend tests on memory and Postgres; panel rules                                                | a real window                                                    |
+| Chat in transcripts and search; recording grace period; DM held in place; auto-stop    | backend tests (real timers, real sockets); AI tests; Rust switch rule                            | a real recording through Egress; a DM actually disconnecting     |
+| `RECORD_SOUNDBOARD` effects file                                                       | capture and recorder tests with a fake LiveKit                                                   | Egress                                                           |
+| Retention: raw-audio purge (`RECORDING_RETENTION_DAYS`, `recording purge`)             | handler, sweep and CLI tests (memory); route test (Postgres)                                     | the worker deleting real files on the volume                     |
+| RNNoise noise filter (off, light, standard, strong) with the hum notch                 | measured on real speech (JFK clip) mixed with synthetic fan and key clicks; unit tests           | listening; a real keyboard; the default level                    |
+| Unread dot and desktop notifications                                                   | the policy and icon are unit-tested                                                              | a real pop-up on each OS                                         |
+| `vtt-admin user create`; `backup.sh` / `restore.sh`                                    | CLI tests; the scripts run against a real Postgres and volume (data deleted, restored, compared) | a full restore onto a new machine; `--audio`                     |
+| Operator guide and user guide ([docs/guides/](guides/README.md))                       | written from the code and the existing docs; commands checked against the CLI                    | someone other than the author following them on a blank machine  |
+| cpal 0.18.2; main window sizing; panel loading screen; mic icons; coloured level meter | builds, lints, headless tests                                                                    | a real window and a headset                                      |
 
 ## Built 2026-11-09 and not yet verified outside tests
 
