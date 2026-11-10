@@ -90,6 +90,7 @@ pub async fn connect_voice(app: &AppHandle, url: &str, token: &str) -> Result<()
         speakers_callback,
         backend,
         prefs.auto_gain_on(),
+        prefs.noise_filter_level(),
     )
     .await
     .map_err(|err| err.to_string())?;
@@ -383,6 +384,7 @@ pub fn audio_engine(app: AppHandle, state: State<'_, SharedClient>) -> serde_jso
         "active": active,
         "micGain": prefs.mic_gain.unwrap_or(1.0),
         "autoGain": prefs.auto_gain_on(),
+        "noiseFilter": prefs.noise_filter_level().name(),
         "volumes": prefs.volumes,
     })
 }
@@ -397,6 +399,27 @@ pub fn audio_engine_set(app: AppHandle, engine: String) -> Result<(), String> {
     let mut prefs = crate::audio_prefs::AudioPrefs::load(&dir);
     prefs.engine = Some(engine);
     prefs.save(&dir).map_err(|e| e.to_string())
+}
+
+/// Sets the background-noise filter (`off`, `light`, `standard`, `strong`). Saved, and applied now if the
+/// mixer engine is in a call. (WebRTC's own noise suppression is decided when the call starts, so moving
+/// from `off` to on mid-call runs both until the next join.)
+#[tauri::command]
+pub fn noise_filter_set(
+    app: AppHandle,
+    state: State<'_, SharedClient>,
+    level: String,
+) -> Result<(), String> {
+    let parsed = rust_livekit::engine::denoise::NoiseFilter::from_name(&level)
+        .ok_or("unknown noise filter level")?;
+    let dir = crate::account::data_dir(&app).ok_or("no place to save the choice")?;
+    let mut prefs = crate::audio_prefs::AudioPrefs::load(&dir);
+    prefs.noise_filter = Some(parsed.name().into());
+    prefs.save(&dir).map_err(|e| e.to_string())?;
+    if let Some(mixer) = state.lock().unwrap().as_ref().and_then(|c| c.mixer()) {
+        mixer.set_noise_filter(parsed);
+    }
+    Ok(())
 }
 
 /// Turns automatic microphone volume on or off. Takes effect the next time the player joins voice.

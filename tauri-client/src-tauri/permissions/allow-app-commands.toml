@@ -42,6 +42,7 @@ commands.allow = [
   "audio_engine_set",
   "mic_gain_set",
   "auto_gain_set",
+  "noise_filter_set",
   "mic_level",
   "status_get",
   "status_set",

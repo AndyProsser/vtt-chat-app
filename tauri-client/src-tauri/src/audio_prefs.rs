@@ -17,6 +17,9 @@ pub struct AudioPrefs {
     pub mic_gain: Option<f32>,
     /// Adjust the microphone volume automatically; `None` is on. Fixed for the length of a call.
     pub auto_gain: Option<bool>,
+    /// Background-noise filter strength (mixer engine only): `off`, `light`, `standard` or `strong`;
+    /// `None` is standard.
+    pub noise_filter: Option<String>,
     /// Each person's volume (mixer engine only), by account id, 0 to 2.
     pub volumes: std::collections::HashMap<String, f32>,
 }
@@ -38,6 +41,13 @@ impl AudioPrefs {
             dir.join(FILE_NAME),
             serde_json::to_string_pretty(self).map_err(std::io::Error::other)?,
         )
+    }
+
+    pub fn noise_filter_level(&self) -> rust_livekit::engine::denoise::NoiseFilter {
+        self.noise_filter
+            .as_deref()
+            .and_then(rust_livekit::engine::denoise::NoiseFilter::from_name)
+            .unwrap_or_default()
     }
 
     pub fn auto_gain_on(&self) -> bool {
@@ -81,6 +91,7 @@ mod tests {
             engine: Some("mixer".into()),
             mic_gain: Some(1.5),
             auto_gain: Some(false),
+            noise_filter: Some("strong".into()),
             ..Default::default()
         };
         prefs.volumes.insert("user-1".into(), 0.5);
@@ -89,6 +100,10 @@ mod tests {
         assert_eq!(back, prefs);
         assert!(back.uses_mixer());
         assert!(!back.auto_gain_on());
+        assert_eq!(
+            back.noise_filter_level(),
+            rust_livekit::engine::denoise::NoiseFilter::Strong
+        );
     }
 
     #[test]

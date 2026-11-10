@@ -13,6 +13,7 @@ use livekit::webrtc::audio_source::{AudioSourceOptions, RtcAudioSource};
 use livekit::webrtc::audio_stream::native::NativeAudioStream;
 
 use super::capture::Level;
+use super::denoise::NoiseFilter;
 use super::duplex::Duplex;
 use super::io::{self, Running};
 use super::processing::ProcessingOptions;
@@ -44,7 +45,11 @@ pub struct MixerAudio {
 }
 
 impl MixerAudio {
-    pub fn new(runtime: tokio::runtime::Handle, auto_gain: bool) -> Arc<Self> {
+    pub fn new(
+        runtime: tokio::runtime::Handle,
+        auto_gain: bool,
+        noise_filter: NoiseFilter,
+    ) -> Arc<Self> {
         let source = NativeAudioSource::new(
             // WebRTC's own processing already ran in `Duplex`; the source must not process again.
             AudioSourceOptions {
@@ -80,12 +85,20 @@ impl MixerAudio {
         let duplex = Duplex::new(
             ProcessingOptions {
                 gain_control: auto_gain,
+                // RNNoise replaces WebRTC's noise suppression; running both would suppress twice and
+                // make the voice thin. (Chosen at the start of a call; the filter level itself is live.)
+                noise_suppression: noise_filter == NoiseFilter::Off,
                 ..Default::default()
             },
             Box::new(move |block: &[f32]| {
                 let _ = tx.send(block.to_vec());
             }),
         );
+        duplex
+            .capture
+            .lock()
+            .unwrap()
+            .set_noise_filter(noise_filter);
         Arc::new(Self {
             duplex,
             source,
@@ -166,6 +179,11 @@ impl MixerAudio {
 
     pub fn set_voice(&self, voice: Voice) {
         self.duplex.capture.lock().unwrap().set_voice(voice);
+    }
+
+    /// The background-noise filter's strength, live.
+    pub fn set_noise_filter(&self, level: NoiseFilter) {
+        self.duplex.capture.lock().unwrap().set_noise_filter(level);
     }
 
     pub fn set_mic_gain(&self, gain: f32) {

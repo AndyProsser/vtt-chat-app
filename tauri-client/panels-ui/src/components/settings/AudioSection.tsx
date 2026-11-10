@@ -12,8 +12,16 @@ import {
   audioEngineSet,
   autoGainSet,
   micGainSet,
+  noiseFilterSet,
   type AudioDeviceList,
 } from '../../lib/tauriBridge.js';
+import {
+  isNoiseFilterLevel,
+  NOISE_FILTER_HINT,
+  NOISE_FILTER_LABEL,
+  NOISE_FILTER_LEVELS,
+  type NoiseFilterLevel,
+} from '../../lib/noiseFilter.js';
 import { SettingRow } from './SettingRow.js';
 
 const DEFAULT = '__default__';
@@ -31,6 +39,7 @@ export function AudioSection() {
   const [chosen, setChosen] = useState<'mixer' | 'platform'>();
   const [gain, setGain] = useState<number>();
   const [auto, setAuto] = useState<boolean>();
+  const [filter, setFilter] = useState<NoiseFilterLevel>();
   const running = engine?.active === 'mixer';
   const level = useMicLevel(running);
   useEffect(() => {
@@ -102,6 +111,26 @@ export function AudioSection() {
               ? 'Per-person volume, microphone volume, a live level, and echo cancellation for character voices.'
               : 'Takes effect the next time you join voice (leave and join again).'}
           </span>
+          <SettingRow label="Background noise">
+            <Select.Root
+              value={filter ?? engine.noiseFilter}
+              onValueChange={(v) => {
+                if (!isNoiseFilterLevel(v)) return;
+                setFilter(v);
+                void noiseFilterSet(v).catch((e: unknown) => setError(accountErrorMessage(e)));
+              }}
+            >
+              <Select.Trigger aria-label="Background noise filter" style={{ minWidth: 130 }} />
+              <Select.Content>
+                {NOISE_FILTER_LEVELS.map((level) => (
+                  <Select.Item key={level} value={level}>
+                    {NOISE_FILTER_LABEL[level]}
+                  </Select.Item>
+                ))}
+              </Select.Content>
+            </Select.Root>
+          </SettingRow>
+          <span className="vtt-muted">{NOISE_FILTER_HINT[filter ?? engine.noiseFilter]}</span>
           <SettingRow label="Adjust microphone volume automatically">
             <Switch
               aria-label="Adjust microphone volume automatically"

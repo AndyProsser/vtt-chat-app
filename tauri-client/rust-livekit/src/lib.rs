@@ -214,18 +214,21 @@ impl LiveKitClient {
             on_speakers_change,
             AudioBackend::from_env(),
             true,
+            engine::denoise::NoiseFilter::default(),
         )
         .await
     }
 
     /// As [`Self::connect_with_provider`], choosing the audio engine explicitly, and whether the
-    /// microphone volume is adjusted automatically (`auto_gain`; fixed for the call).
+    /// microphone volume is adjusted automatically (`auto_gain`; fixed for the call) and how hard background
+    /// noise is filtered (`noise_filter`, mixer engine only; adjustable during the call).
     pub async fn connect_with_backend(
         provider: ConnectInfoProvider,
         on_state_change: StateChangeCallback,
         on_speakers_change: SpeakersChangeCallback,
         backend: AudioBackend,
         auto_gain: bool,
+        noise_filter: engine::denoise::NoiseFilter,
     ) -> Result<Self, LiveKitError> {
         let audio = match backend {
             AudioBackend::Platform => {
@@ -247,7 +250,8 @@ impl LiveKitClient {
                 Audio::Platform(audio)
             }
             AudioBackend::Mixer => {
-                let mixer = MixerAudio::new(tokio::runtime::Handle::current(), auto_gain);
+                let mixer =
+                    MixerAudio::new(tokio::runtime::Handle::current(), auto_gain, noise_filter);
                 // The speakers stay open for the whole call; the microphone opens when unmuted.
                 mixer.set_playing(true).map_err(LiveKitError::Audio)?;
                 Audio::Mixer(mixer)

@@ -1,5 +1,6 @@
-//! What happens to each 10 ms block of microphone before it is sent: volume, a level reading, WebRTC's
-//! cleaning (echo, noise, level), and last the DM's character voice.
+//! What happens to each 10 ms block of microphone before it is sent: volume, WebRTC's cleaning (echo,
+//! noise, level), RNNoise's background-noise filter (when chosen), a level reading of what is left, and last
+//! the DM's character voice.
 //!
 //! The order matters. The canceller must see the microphone as it came in, because the echo in it is a
 //! copy of what we played; a pitch-shifted echo is no longer a copy and would not be cancelled. So the
@@ -10,6 +11,7 @@ use std::sync::{Arc, Mutex};
 
 use crate::voice_fx::{Voice, VoiceFx, BLOCK};
 
+use super::denoise::{Denoiser, NoiseFilter};
 use super::processing::Processing;
 
 /// A microphone level the interface can read at any time: 0 (silent) to 1 (full scale), on a decibel
@@ -38,6 +40,7 @@ pub struct CapturePipeline {
     gain: f32,
     level: Level,
     processing: Arc<Mutex<Processing>>,
+    denoise: Denoiser,
     fx: VoiceFx,
 }
 
@@ -47,6 +50,7 @@ impl CapturePipeline {
             gain: 1.0,
             level,
             processing,
+            denoise: Denoiser::new(NoiseFilter::Off),
             fx: VoiceFx::new(Voice::Normal),
         }
     }
@@ -55,6 +59,13 @@ impl CapturePipeline {
     /// the gain-control stage sees the level the player chose.
     pub fn set_gain(&mut self, gain: f32) {
         self.gain = gain.clamp(0.0, 4.0);
+    }
+
+    /// How hard to filter background noise (fans, air conditioning, typing); live, any time.
+    pub fn set_noise_filter(&mut self, level: NoiseFilter) {
+        if level != self.denoise.level() {
+            self.denoise.set_level(level);
+        }
     }
 
     /// Changing voice starts a fresh effect: the shifters hold a little state that must not leak across.
@@ -80,6 +91,8 @@ impl CapturePipeline {
             .map(|s| (s * self.gain).clamp(-1.0, 1.0))
             .collect();
         let cleaned = self.processing.lock().unwrap().clean(&scaled);
+        // Then RNNoise (when chosen), so the meter and everyone else hear the filtered sound.
+        let cleaned = self.denoise.process(&cleaned);
         // The meter shows what is sent (after echo, noise and gain control), so typing the cleaner
         // removes does not pin it, and it matches what other people hear.
         self.level.update(&cleaned);
@@ -270,5 +283,33 @@ mod tests {
         let cleaned = meter(true);
         assert!(raw > 0.6, "the echo is loud without cleaning: {raw}");
         assert!(cleaned < raw - 0.15, "cleaned {cleaned}, raw {raw}");
+    }
+
+    /// The noise filter sits in the pipeline: a steady fan reads on the meter with it off, and not with it on.
+    #[test]
+    fn the_noise_filter_takes_a_fan_off_the_meter() {
+        fn meter(filter: NoiseFilter) -> f32 {
+            let (mut p, level, _) = pipeline(off());
+            p.set_noise_filter(filter);
+            let mut noise = 7u32;
+            let (mut a, mut b) = (0.0f32, 0.0f32);
+            for _ in 0..300 {
+                let block: Vec<f32> = (0..BLOCK)
+                    .map(|_| {
+                        noise = noise.wrapping_mul(1_664_525).wrapping_add(1_013_904_223);
+                        let white = (noise >> 8) as f32 / (1 << 23) as f32 - 1.0;
+                        a += 0.08 * (white - a);
+                        b += 0.08 * (a - b);
+                        b * 0.5
+                    })
+                    .collect();
+                p.process(&block);
+            }
+            level.get()
+        }
+        let off = meter(NoiseFilter::Off);
+        let on = meter(NoiseFilter::Standard);
+        assert!(off > 0.3, "the fan should show without the filter: {off}");
+        assert!(on < off - 0.3, "and mostly vanish with it: {on} vs {off}");
     }
 }

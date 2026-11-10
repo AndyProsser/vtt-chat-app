@@ -74,6 +74,42 @@ stable device ids. The PipeWire, PulseAudio and JACK backends are opt-in cargo f
 5 seconds because repeated enumeration leaks on some Windows backends (cpal#802). Device ids are
 still device names, so saved choices keep working.
 
+## Background-noise filter: RNNoise (built 2026-11-10)
+
+RNNoise, as the pure-Rust `nnnoiseless` crate (BSD-3, no native library, a few hundred KB of model weights
+inside the binary, about 1% of a core), runs on the mixer engine's 10 ms blocks **after** WebRTC's echo
+cancellation and **before** the character voice. The level meter reads what it leaves. Settings, Audio:
+
+| Level    | What it does                                                                                                          | Measured on a real recording of speech*   |
+| -------- | --------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| Off      | Nothing (WebRTC's own noise suppression runs as before).                                                              | n/a                                       |
+| Light    | 60% filtered, 40% original: gentler, keeps more of the room.                                                          | voice -2.7 dB, room -8 dB                 |
+| Standard | Full RNNoise. WebRTC's noise suppression is turned off so the two do not stack.                                       | voice -0.1 dB, room -58 dB                |
+| Strong   | Standard plus a **gate**: a block counts as speech only if RNNoise rates three in a row as speech; others drop 20 dB. | voice -0.1 dB, room -77 dB, typing -16 dB |
+
+\*One public-domain sample (the JFK clip shipped with whisper.cpp) scaled to ordinary talking level, mixed with
+a synthetic fan (about -34 dBFS, low-frequency noise) and synthetic key clicks. Re-run it on your own
+recording: `VTT_SPEECH_RAW=speech.raw cargo test -p rust-livekit real_speech -- --ignored --nocapture`
+(`VTT_DENOISE_OUT=<folder>` also writes the mixed input and each level as `.raw` to listen to).
+
+What it is good and bad at, found while measuring:
+
+- **Fans, air conditioning, rumble, room hiss:** very good (50 dB and more on low-frequency noise).
+- **A pure steady hum** (one pitch, like 100 or 120 Hz mains hum) is passed as if it were a voice; WebRTC's
+  high-pass filter, which stays on, handles the lowest of it. A hum above 150 Hz would need a notch filter.
+- **White noise**, unlike any real fan, is also passed (it looks like a fricative to the network).
+- **Typing and mouse clicks:** RNNoise alone only softens loud ones (a click looks like speech for a block or
+  two). The **Strong** gate is what removes them, because speech keeps looking like speech and a click does
+  not. The cost is 20 ms of delay, and a gate can clip a very soft word start; if Strong clips you, use
+  Standard.
+- **Latency:** Standard and Light add RNNoise's own block (10 ms, already inside our block size); Strong adds
+  20 ms more for the look-ahead.
+- The filter level is live; WebRTC's noise suppression is chosen when the call starts, so turning the
+  filter on mid-call runs both until the next join. Not available on the platform engine (the SDK has no
+  hook for it).
+- **Not verified by ear:** the numbers above are energy measurements; only listening says how natural it
+  sounds, how Strong treats quiet speech, and how it copes with a real keyboard and mouse.
+
 ## Automatic microphone volume
 
 WebRTC's gain controller was always on; 2026-11-10 it became a setting (Settings, Audio; default on,

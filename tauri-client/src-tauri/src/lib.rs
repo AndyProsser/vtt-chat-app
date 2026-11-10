@@ -115,6 +115,7 @@ pub fn run() {
             commands::audio_engine_set,
             commands::mic_gain_set,
             commands::auto_gain_set,
+            commands::noise_filter_set,
             commands::mic_level,
             status_commands::status_get,
             status_commands::status_set,

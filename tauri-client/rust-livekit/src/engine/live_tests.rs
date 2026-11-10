@@ -40,6 +40,7 @@ async fn mixer_client(url: &str, token: &str) -> LiveKitClient {
         Arc::new(|_| {}),
         AudioBackend::Mixer,
         true,
+        crate::engine::denoise::NoiseFilter::Off,
     )
     .await
     .expect("join with the mixer engine")

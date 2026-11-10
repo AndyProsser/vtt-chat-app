@@ -2,6 +2,7 @@
 //! docs/architecture/AUDIO-MIXER.md). Built in layers, each testable without a sound card.
 
 pub mod capture;
+pub mod denoise;
 pub mod duplex;
 pub mod io;
 #[cfg(test)]

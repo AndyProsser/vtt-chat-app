@@ -7,6 +7,7 @@ import type {
 } from '@vtt-chat-app/shared';
 
 import { ACCOUNT_ERROR_EVENT, SYNC_EVENT } from '../consts/index.js';
+import type { NoiseFilterLevel } from './noiseFilter.js';
 import type { Status } from './statusStore.js';
 import type { UpdateInfo } from './updateInfo.js';
 import type {
@@ -237,6 +238,8 @@ export interface AudioEngineState {
   micGain: number;
   /** Adjust the microphone volume automatically (chosen for the next call). */
   autoGain: boolean;
+  /** Background-noise filter strength (new engine only). */
+  noiseFilter: NoiseFilterLevel;
   volumes: Record<string, number>;
 }
 export const audioEngine = () => invoke<AudioEngineState>('audio_engine');
@@ -245,6 +248,9 @@ export const audioEngineSet = (engine: 'mixer' | 'platform') =>
 /** Microphone volume, 0 to 4 (new engine only). */
 export const micGainSet = (gain: number) => invoke<void>('mic_gain_set', { gain });
 /** Automatic microphone volume on or off; takes effect the next time you join voice. */
+/** Background-noise filter strength; saved, and applied now if the new engine is in a call. */
+export const noiseFilterSet = (level: NoiseFilterLevel) =>
+  invoke<void>('noise_filter_set', { level });
 export const autoGainSet = (on: boolean) => invoke<void>('auto_gain_set', { on });
 /** The microphone's level right now, 0 to 1, or `null` when the new engine is not running. */
 export const micLevel = () => invoke<number | null>('mic_level');
