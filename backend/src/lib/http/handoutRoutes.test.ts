@@ -212,6 +212,43 @@ describe('drafts and showing', () => {
   });
 });
 
+describe('editing a handout', () => {
+  it('lets the DM change the title and text, and players see the new version', async () => {
+    const id = (
+      await call('POST', `/api/campaigns/${campaign}/handouts`, dm.token, {
+        title: 'Riddle',
+        text: 'Speak friend.',
+      })
+    ).body.handout.id;
+    await call('POST', `/api/campaigns/${campaign}/handouts/${id}/show`, dm.token, { to: 'all' });
+    const edited = await call('PATCH', `/api/campaigns/${campaign}/handouts/${id}`, dm.token, {
+      title: 'The riddle',
+      text: 'Speak friend and enter.',
+    });
+    expect(edited.status).toBe(200);
+    const seen = (await call('GET', `/api/campaigns/${campaign}/handouts/${id}`, alice.token)).body
+      .handout;
+    expect(seen).toMatchObject({ title: 'The riddle', body: 'Speak friend and enter.' });
+    expect(seen.visibility).toBe('all');
+  });
+
+  it('refuses players, empty titles, and text on a picture', async () => {
+    const text = (
+      await call('POST', `/api/campaigns/${campaign}/handouts`, dm.token, {
+        title: 'Riddle',
+        text: 'Speak friend.',
+      })
+    ).body.handout.id;
+    const patch = (id: string, token: string, body: object) =>
+      call('PATCH', `/api/campaigns/${campaign}/handouts/${id}`, token, body);
+    expect((await patch(text, alice.token, { title: 'x' })).status).toBe(403);
+    expect((await patch(text, dm.token, { title: '   ' })).status).toBe(400);
+    const picture = (await upload(dm.token)).body.handout.id;
+    expect((await patch(picture, dm.token, { text: 'words' })).status).toBe(400);
+    expect((await patch(picture, dm.token, { title: 'A better name' })).status).toBe(200);
+  });
+});
+
 describe('who may do what', () => {
   it('only the DM creates, shows, hides and deletes', async () => {
     expect((await upload(alice.token)).status).toBe(403);

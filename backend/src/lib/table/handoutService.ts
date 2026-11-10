@@ -191,6 +191,37 @@ export class HandoutService {
     return next;
   }
 
+  /** Renames a handout and/or rewrites its text (text handouts only). The DM only. */
+  async update(
+    user: User,
+    campaignId: string,
+    handoutId: string,
+    changes: { title?: string; text?: string },
+  ): Promise<Handout> {
+    await this.requireDm(user, campaignId);
+    const current = await this.own(campaignId, handoutId);
+    const next: Handout = { ...current };
+    if (changes.title !== undefined) {
+      const title = changes.title.trim();
+      if (title.length < 1 || title.length > 200)
+        throw new DomainError('invalid_input', 'title must be 1–200 characters');
+      next.title = title;
+    }
+    if (changes.text !== undefined) {
+      if (current.kind !== 'text')
+        throw new DomainError('invalid_input', 'only text can be edited');
+      if (changes.text.length < 1 || changes.text.length > MAX_TEXT_HANDOUT_CHARS) {
+        throw new DomainError(
+          'invalid_input',
+          `text must be 1–${MAX_TEXT_HANDOUT_CHARS} characters`,
+        );
+      }
+      next.body = changes.text;
+    }
+    await this.deps.table.putHandout(next);
+    return next;
+  }
+
   list(user: User, campaignId: string): Promise<Handout[]> {
     return this.viewer(user, campaignId).then((v) => this.deps.table.listHandouts(campaignId, v));
   }

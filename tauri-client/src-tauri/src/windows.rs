@@ -154,18 +154,64 @@ fn label(name: &str) -> String {
 /// capability file grants (`panel-*`).
 pub fn open(app: &AppHandle, name: &str) -> Result<(), String> {
     let panel = panel(name).ok_or_else(|| format!("unknown panel: {name}"))?;
-    let label = label(panel.name);
+    open_page(app, &label(panel.name), panel.name, panel.title, panel.size)
+}
+
+/// An id that is safe to put in a window label and a URL: letters, digits, dash and underscore only.
+pub fn is_plain_id(id: &str) -> bool {
+    !id.is_empty()
+        && id.len() <= 64
+        && id
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+}
+
+/// The handout viewer's event: a new id to show in the window that is already open.
+pub const HANDOUT_VIEW_EVENT: &str = "handout:view";
+
+/// A window for one handout: the main window's handout cards open it. There is one viewer window; a second
+/// card clicked shows its handout in the same window rather than piling up windows.
+pub fn open_handout(app: &AppHandle, id: &str) -> Result<(), String> {
+    use tauri::Emitter;
+    if !is_plain_id(id) {
+        return Err("not a handout id".into());
+    }
+    let label = label("handout");
     if let Some(window) = app.get_webview_window(&label) {
+        let _ = window.emit(HANDOUT_VIEW_EVENT, id);
+    }
+    open_page(
+        app,
+        &label,
+        &format!("handout/{id}"),
+        "Handout",
+        (560.0, 720.0),
+    )
+}
+
+#[tauri::command]
+pub fn handout_view_open(app: AppHandle, id: String) -> Result<(), String> {
+    open_handout(&app, &id)
+}
+
+fn open_page(
+    app: &AppHandle,
+    label: &str,
+    route: &str,
+    title: &str,
+    size: (f64, f64),
+) -> Result<(), String> {
+    if let Some(window) = app.get_webview_window(label) {
         window.show().map_err(|e| e.to_string())?;
         window.set_focus().map_err(|e| e.to_string())?;
         return Ok(());
     }
     let mut builder = WebviewWindowBuilder::new(
         app,
-        &label,
-        WebviewUrl::App(format!("index.html#{}", panel.name).into()),
+        label,
+        WebviewUrl::App(format!("index.html#{route}").into()),
     )
-    .title(panel.title);
+    .title(title);
     if let Some(icon) = app.default_window_icon() {
         builder = builder.icon(icon.clone()).map_err(|e| e.to_string())?;
     }
@@ -183,7 +229,7 @@ pub fn open(app: &AppHandle, name: &str) -> Result<(), String> {
                 mon.size().height as f64 / scale,
             )
         });
-    let size = fit_size(panel.size, screen);
+    let size = fit_size(size, screen);
     if let Some(main) = &main {
         builder = builder.parent(main).map_err(|e| e.to_string())?;
     }
@@ -217,6 +263,15 @@ pub fn panel_open(app: AppHandle, name: String) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn only_plain_ids_become_window_labels() {
+        assert!(is_plain_id("a1b2-c3_d4"));
+        assert!(!is_plain_id(""));
+        assert!(!is_plain_id("../x"));
+        assert!(!is_plain_id("a b"));
+        assert!(!is_plain_id(&"x".repeat(65)));
+    }
 
     #[test]
     fn the_main_window_opens_narrow_and_leaves_room_above_and_below() {

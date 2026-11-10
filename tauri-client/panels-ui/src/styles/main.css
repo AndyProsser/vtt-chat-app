@@ -1431,3 +1431,56 @@ body,
   background: transparent;
   box-shadow: inset 0 0 0 2px #8a8f98;
 }
+
+/* The handout viewer window: a large reading area, with zoom controls on pictures. */
+.vtt-viewer {
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 100%;
+  box-sizing: border-box;
+}
+.vtt-viewer-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: space-between;
+}
+.vtt-viewer-head h2 {
+  margin: 0;
+}
+.vtt-zoom {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  flex: 1;
+}
+.vtt-zoom-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.vtt-zoom-level {
+  min-width: 48px;
+  text-align: center;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.vtt-zoom-frame {
+  overflow: auto;
+  flex: 1;
+  min-height: 240px;
+  border: 1px solid var(--vtt-edge);
+  border-radius: var(--vtt-radius-control);
+  background: var(--vtt-chat);
+}
+.vtt-zoom-frame[data-zoomed='true'] {
+  cursor: grab;
+}
+.vtt-zoom-frame img {
+  display: block;
+  max-width: none;
+  user-select: none;
+}

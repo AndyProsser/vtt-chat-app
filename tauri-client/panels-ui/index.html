@@ -5,51 +5,12 @@
     <meta name="color-scheme" content="light dark" />
     <link rel="icon" type="image/png" href="/favicon.png" />
     <title>VTT Chat App</title>
-    <!-- Painted before any script loads, so a window that takes a second to start shows something. -->
-    <style>
-      html,
-      body {
-        margin: 0;
-        height: 100%;
-        background: #f4efe6;
-      }
-      @media (prefers-color-scheme: dark) {
-        html,
-        body {
-          background: #17140f;
-        }
-      }
-      #loading {
-        height: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 12px;
-        font: 14px system-ui, sans-serif;
-        color: #8a7f6c;
-      }
-      #loading i {
-        width: 18px;
-        height: 18px;
-        border-radius: 50%;
-        border: 2px solid currentColor;
-        border-top-color: transparent;
-        animation: loading-spin 0.8s linear infinite;
-      }
-      @keyframes loading-spin {
-        to {
-          transform: rotate(360deg);
-        }
-      }
-      @media (prefers-reduced-motion: reduce) {
-        #loading i {
-          animation-duration: 3s;
-        }
-      }
-    </style>
+    <link rel="stylesheet" href="/loading.css" />
   </head>
   <body>
-    <div id="root"><div id="loading" role="status"><i></i><span>Loading…</span></div></div>
+    <div id="root">
+      <div id="loading" role="status"><i></i><span>Loading…</span></div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

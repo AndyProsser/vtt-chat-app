@@ -2,7 +2,7 @@ import { FileText } from 'lucide-react';
 
 import { ItemIcon } from './ItemIcon.js';
 import { cardLabel } from '../lib/timeline.js';
-import { panelOpen } from '../lib/tauriBridge.js';
+import { handoutViewOpen, panelOpen } from '../lib/tauriBridge.js';
 import type { Member, TableCard } from '../types/index.js';
 
 /** A loot or handout notice inline in chat; the "taken by" line is the grabbed indicator. */
@@ -12,7 +12,11 @@ export function ChatCard({ card, members }: { card: TableCard; members: Member[]
     <button
       type="button"
       className={taken ? 'vtt-card vtt-card-taken' : 'vtt-card'}
-      onClick={() => void panelOpen(card.kind === 'loot' ? 'inventory' : 'handouts')}
+      onClick={() =>
+        void (card.kind === 'loot'
+          ? panelOpen('inventory')
+          : handoutViewOpen(card.id.replace(/^handout:/, '')))
+      }
     >
       {card.kind === 'loot' ? (
         <ItemIcon

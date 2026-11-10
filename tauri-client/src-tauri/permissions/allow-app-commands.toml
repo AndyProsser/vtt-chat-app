@@ -16,6 +16,7 @@ commands.allow = [
   "sync_command",
   "chat_send",
   "panel_open",
+  "handout_view_open",
   "window_ready",
   "take_pending_server",
   "update_check",

@@ -48,6 +48,13 @@ export function onOfferConnect(handler: () => void): Promise<UnlistenFn> {
   return listen('status:offer-connect', () => handler());
 }
 
+/** Opens (or reuses) the handout viewer window for one handout. */
+export const handoutViewOpen = (id: string) => invoke<void>('handout_view_open', { id });
+/** The viewer window is already open and another handout was clicked. */
+export function onHandoutView(handler: (id: string) => void): Promise<UnlistenFn> {
+  return listen<string>('handout:view', (event) => handler(event.payload));
+}
+
 export function onMicrophoneState(
   handler: (payload: MicrophoneStatePayload) => void,
 ): Promise<UnlistenFn> {

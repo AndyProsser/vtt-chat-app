@@ -70,6 +70,7 @@ pub fn run() {
                 .with_denylist(&[
                     "panel-settings",
                     "panel-handouts",
+                    "panel-handout",
                     "panel-history",
                     "panel-inventory",
                 ])
@@ -98,6 +99,7 @@ pub fn run() {
             commands::sync_command,
             commands::chat_send,
             windows::panel_open,
+            windows::handout_view_open,
             windows::window_ready,
             deeplink::take_pending_server,
             updater::update_check,

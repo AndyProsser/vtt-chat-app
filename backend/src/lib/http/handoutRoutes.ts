@@ -18,6 +18,10 @@ export interface HandoutRouteDeps {
 }
 
 const textBody = z.object({ title: z.string().max(200), text: z.string().max(20_000) });
+const editBody = z.object({
+  title: z.string().max(200).optional(),
+  text: z.string().max(20_000).optional(),
+});
 const fileQuery = z.object({
   title: z.string().min(1).max(200),
   kind: z.enum(['image', 'map', 'pdf']),
@@ -104,6 +108,17 @@ export function handoutRoutes(deps: HandoutRouteDeps): Router {
     res.setHeader('Content-Security-Policy', "default-src 'none'; sandbox");
     res.setHeader('Cache-Control', 'private, max-age=3600');
     res.end(bytes);
+  });
+
+  router.patch('/:handoutId', async (req, res) => {
+    const body = editBody.parse(req.body);
+    const handout = await handouts.update(
+      authOf(res).user,
+      campaign(req),
+      param(req.params.handoutId),
+      body,
+    );
+    res.json({ handout: view(handout) });
   });
 
   router.post('/:handoutId/show', async (req, res) => {
