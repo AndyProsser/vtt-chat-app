@@ -1,3 +1,4 @@
+import { TextField } from '@radix-ui/themes';
 import { ChevronDown, ChevronRight, Search, Trash2, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
@@ -122,8 +123,8 @@ function SearchBox({ onOpen }: { onOpen: (id: string) => void }) {
           void run();
         }}
       >
-        <input
-          className="vtt-input"
+        <TextField.Root
+          size="1"
           style={{ flex: 1, minWidth: 140 }}
           aria-label="Search the history"
           placeholder="Search what was said or summarised"

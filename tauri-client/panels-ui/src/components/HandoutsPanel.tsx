@@ -1,3 +1,4 @@
+import { TextField } from '@radix-ui/themes';
 import {
   ClipboardPaste,
   Eye,
@@ -295,8 +296,8 @@ function NewHandout({ onDone, onError }: { onDone: () => void; onError: (m: stri
         <ToolButton label="A PDF document" pressed={mode === 'pdf'} onClick={() => setMode('pdf')}>
           <Paperclip size={14} />
         </ToolButton>
-        <input
-          className="vtt-input"
+        <TextField.Root
+          size="1"
           style={{ flex: 1, minWidth: 120 }}
           aria-label="Title"
           placeholder="Title"
@@ -306,8 +307,8 @@ function NewHandout({ onDone, onError }: { onDone: () => void; onError: (m: stri
       </div>
       {mode === 'note' && <MarkdownEditor value={text} onChange={setText} />}
       {mode !== 'note' && (
-        <input
-          className="vtt-input"
+        <TextField.Root
+          size="1"
           aria-label="Caption"
           placeholder="A line to go with it (optional)"
           maxLength={300}
@@ -452,8 +453,8 @@ export function HandoutsPanel() {
       {(data?.handouts.length ?? 0) > 0 && (
         <div className="vtt-form-row">
           <Search size={14} aria-hidden />
-          <input
-            className="vtt-input"
+          <TextField.Root
+            size="1"
             style={{ flex: 1 }}
             aria-label="Search handouts"
             placeholder="Search handouts…"

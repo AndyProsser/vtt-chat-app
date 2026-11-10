@@ -1,4 +1,4 @@
-import { Popover } from '@radix-ui/themes';
+import { Popover, TextField } from '@radix-ui/themes';
 import { Plus, Search, Star } from 'lucide-react';
 import { useState } from 'react';
 
@@ -34,8 +34,8 @@ export function SoundPicker({
         <div className="vtt-picker">
           <label className="vtt-picker-search">
             <Search size={14} aria-hidden />
-            <input
-              className="vtt-input"
+            <TextField.Root
+              size="1"
               autoFocus
               aria-label="Find a sound"
               placeholder="door, coins, wolf…"

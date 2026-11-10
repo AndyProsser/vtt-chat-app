@@ -1,3 +1,4 @@
+import { TextField } from '@radix-ui/themes';
 import { Check, ChevronDown, ChevronRight, Plus, Save, UserRound } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
@@ -118,16 +119,16 @@ function Fields({
   return (
     <>
       <div className="vtt-form-row">
-        <input
-          className="vtt-input"
+        <TextField.Root
+          size="1"
           style={{ flex: 1, minWidth: 120 }}
           aria-label="Name"
           placeholder="Name"
           value={draft.name}
           onChange={(e) => set({ name: e.target.value })}
         />
-        <input
-          className="vtt-input"
+        <TextField.Root
+          size="1"
           style={{ width: 60 }}
           aria-label="Level"
           placeholder="Lvl"
@@ -137,16 +138,16 @@ function Fields({
         />
       </div>
       <div className="vtt-form-row">
-        <input
-          className="vtt-input"
+        <TextField.Root
+          size="1"
           style={{ flex: 1, minWidth: 90 }}
           aria-label="Race"
           placeholder="Race"
           value={draft.race}
           onChange={(e) => set({ race: e.target.value })}
         />
-        <input
-          className="vtt-input"
+        <TextField.Root
+          size="1"
           style={{ flex: 1, minWidth: 90 }}
           aria-label="Class"
           placeholder="Class"

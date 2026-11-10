@@ -1,4 +1,4 @@
-import { Popover } from '@radix-ui/themes';
+import { Popover, TextField } from '@radix-ui/themes';
 import { Trash2, Users } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -151,8 +151,9 @@ function GroupName({ name, onRename }: { name: string; onRename: (name: string) 
     else setText(name);
   };
   return (
-    <input
-      className="vtt-input vtt-lane-edit"
+    <TextField.Root
+      size="1"
+      className="vtt-lane-edit"
       aria-label="Group name"
       autoFocus
       maxLength={60}

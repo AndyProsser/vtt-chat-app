@@ -250,8 +250,8 @@ function PlayerName({ name }: { name: string }) {
   return (
     <Flex direction="column" gap="2">
       <Flex align="center" gap="2">
-        <input
-          className="vtt-input"
+        <TextField.Root
+          size="1"
           aria-label="Player name"
           autoFocus
           maxLength={80}

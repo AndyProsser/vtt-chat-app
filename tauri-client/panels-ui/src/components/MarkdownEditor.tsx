@@ -1,3 +1,4 @@
+import { TextArea } from '@radix-ui/themes';
 import { Bold, Eye, Heading2, Italic, List, Minus, Pencil, Quote } from 'lucide-react';
 import { useRef, useState } from 'react';
 
@@ -64,9 +65,10 @@ export function MarkdownEditor({
           )}
         </div>
       ) : (
-        <textarea
+        <TextArea
+          size="1"
           ref={area}
-          className="vtt-input vtt-editor-area"
+          className="vtt-editor-area"
           aria-label="Handout text"
           placeholder="Write the handout in Markdown…"
           value={value}

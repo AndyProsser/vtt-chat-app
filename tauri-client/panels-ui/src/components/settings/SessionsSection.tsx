@@ -1,3 +1,4 @@
+import { TextField } from '@radix-ui/themes';
 import { Check, History, Plus, X } from 'lucide-react';
 import { useState } from 'react';
 
@@ -18,6 +19,7 @@ import { accountErrorMessage, campaignApi } from '../../lib/tauriBridge.js';
 import type { SessionView } from '../../types/index.js';
 import { SessionCard, durationLabel } from './SessionCard.js';
 import { Dropdown } from '../Dropdown.js';
+import { DatePicker } from '../DatePicker.js';
 import { ToolButton } from '../ToolButton.js';
 
 /** Upcoming sessions with one-tap RSVPs; the DM schedules the next one in a single compact row. */
@@ -107,20 +109,14 @@ export function SessionsSection() {
             });
           }}
         >
-          <input
-            className="vtt-input"
+          <TextField.Root
+            size="1"
             aria-label="Title"
             value={title ?? suggested}
             onChange={(e) => setTitle(e.target.value)}
           />
           <div className="vtt-form-row">
-            <input
-              className="vtt-date"
-              type="date"
-              aria-label="Date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-            />
+            <DatePicker label="Date" value={date} onChange={setDate} />
             <Dropdown
               label="Start time"
               value={time}

@@ -1,4 +1,4 @@
-import { Popover } from '@radix-ui/themes';
+import { Popover, TextField } from '@radix-ui/themes';
 import { Check, Crown, KeyRound, Plus, Swords } from 'lucide-react';
 import { useState } from 'react';
 
@@ -55,8 +55,8 @@ export function CampaignSwitcher() {
               void account.addCampaign('join', code).then(() => setCode(''));
             }}
           >
-            <input
-              className="vtt-input"
+            <TextField.Root
+              size="1"
               style={{ flex: 1 }}
               aria-label="Invite code"
               placeholder="Invite code…"
@@ -78,8 +78,8 @@ export function CampaignSwitcher() {
               void account.addCampaign('create', name).then(() => setName(''));
             }}
           >
-            <input
-              className="vtt-input"
+            <TextField.Root
+              size="1"
               style={{ flex: 1 }}
               aria-label="New campaign"
               placeholder="New campaign (you will be its DM)…"

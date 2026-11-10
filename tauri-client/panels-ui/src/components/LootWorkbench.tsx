@@ -1,3 +1,4 @@
+import { Checkbox, TextField } from '@radix-ui/themes';
 import { Coins, Dices, Gem, PackagePlus, RotateCw, Search, X } from 'lucide-react';
 import { useState } from 'react';
 
@@ -94,8 +95,8 @@ export function LootWorkbench({
       <div className="vtt-form-row">
         <label className="vtt-volume" title="Challenge rating of what was defeated">
           CR
-          <input
-            className="vtt-input"
+          <TextField.Root
+            size="1"
             style={{ width: 64 }}
             type="number"
             min={0}
@@ -172,8 +173,8 @@ export function LootWorkbench({
           void search();
         }}
       >
-        <input
-          className="vtt-input"
+        <TextField.Root
+          size="1"
           style={{ flex: 1, minWidth: 100 }}
           aria-label="Search the SRD"
           placeholder="Search SRD items…"
@@ -236,16 +237,16 @@ export function LootWorkbench({
           setName('');
         }}
       >
-        <input
-          className="vtt-input"
+        <TextField.Root
+          size="1"
           style={{ flex: 1, minWidth: 100 }}
           aria-label={coin ? 'Currency' : 'Custom item name'}
           placeholder={coin ? 'Currency (gp, sp…)' : 'Custom item…'}
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
-        <input
-          className="vtt-input"
+        <TextField.Root
+          size="1"
           style={{ width: 64 }}
           type="number"
           min={1}
@@ -255,12 +256,7 @@ export function LootWorkbench({
         />
         <label className="vtt-volume" title="A pile of coin">
           <Coins size={14} />
-          <input
-            type="checkbox"
-            aria-label="Coin"
-            checked={coin}
-            onChange={(e) => setCoin(e.target.checked)}
-          />
+          <Checkbox aria-label="Coin" checked={coin} onCheckedChange={(v) => setCoin(v === true)} />
         </label>
         {!coin && (
           <>

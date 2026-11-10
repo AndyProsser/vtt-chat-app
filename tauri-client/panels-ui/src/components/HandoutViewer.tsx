@@ -1,3 +1,4 @@
+import { TextArea, TextField } from '@radix-ui/themes';
 import { ArrowLeft, ArrowRight, Check, ImagePlus, Pencil, Trash2, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
@@ -261,8 +262,8 @@ export function HandoutViewer() {
         <>
           <header className="vtt-viewer-head">
             {editing ? (
-              <input
-                className="vtt-input"
+              <TextField.Root
+                size="1"
                 style={{ flex: 1 }}
                 aria-label="Title"
                 value={title}
@@ -300,8 +301,8 @@ export function HandoutViewer() {
             ))}
           {!note &&
             (editing ? (
-              <textarea
-                className="vtt-input"
+              <TextArea
+                size="1"
                 aria-label="Caption"
                 placeholder="A line or two to go with it (optional)"
                 rows={3}

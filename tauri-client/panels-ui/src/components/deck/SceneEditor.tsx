@@ -1,4 +1,4 @@
-import { Select, Slider } from '@radix-ui/themes';
+import { Select, Slider, TextField } from '@radix-ui/themes';
 import { Check, Plus, Repeat, Shuffle, X } from 'lucide-react';
 import { useState } from 'react';
 
@@ -84,8 +84,8 @@ export function SceneEditor({
   const num = (v: number | null) => (v === null ? '' : String(v));
   return (
     <div className="vtt-set-pane">
-      <input
-        className="vtt-input"
+      <TextField.Root
+        size="1"
         aria-label="Scene name"
         placeholder="Scene name (an emoji works too)"
         maxLength={120}
@@ -151,16 +151,18 @@ export function SceneEditor({
             {l.mode === 'random' && (
               <span className="vtt-gap">
                 every
-                <input
-                  className="vtt-input vtt-num"
+                <TextField.Root
+                  size="1"
+                  className="vtt-num"
                   aria-label="Shortest gap in seconds"
                   inputMode="numeric"
                   value={num(l.minIntervalSec)}
                   onChange={(e) => setLayer(i, { minIntervalSec: toSeconds(e.target.value) })}
                 />
                 to
-                <input
-                  className="vtt-input vtt-num"
+                <TextField.Root
+                  size="1"
+                  className="vtt-num"
                   aria-label="Longest gap in seconds"
                   inputMode="numeric"
                   value={num(l.maxIntervalSec)}

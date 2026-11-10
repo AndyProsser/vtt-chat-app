@@ -1,3 +1,4 @@
+import { TextField } from '@radix-ui/themes';
 import { CalendarClock, Check, Clock, Pencil, Trash2, X } from 'lucide-react';
 import { useState } from 'react';
 
@@ -14,6 +15,7 @@ import type { RsvpStatus, SessionView } from '../../types/index.js';
 import { MarkdownEditor } from '../MarkdownEditor.js';
 import { MarkdownView } from '../MarkdownView.js';
 import { Dropdown } from '../Dropdown.js';
+import { DatePicker } from '../DatePicker.js';
 import { ToolButton } from '../ToolButton.js';
 
 const RSVP: { status: RsvpStatus; label: string; icon: typeof Check }[] = [
@@ -88,20 +90,14 @@ export function SessionCard({
           }).then(() => setEditing(false));
         }}
       >
-        <input
-          className="vtt-input"
+        <TextField.Root
+          size="1"
           aria-label="Title"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
         />
         <div className="vtt-form-row">
-          <input
-            className="vtt-date"
-            type="date"
-            aria-label="Date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-          />
+          <DatePicker label="Date" value={date} onChange={setDate} />
           <Dropdown
             label="Start time"
             value={time}

@@ -1,3 +1,4 @@
+import { TextField } from '@radix-ui/themes';
 import { useMemo, useState } from 'react';
 
 import { commandPalette, parseCommand, type Role } from '../lib/commands.js';
@@ -62,8 +63,8 @@ export function Composer({ selfId, role }: { selfId: string | null; role: Role }
           {error}
         </div>
       )}
-      <input
-        className="vtt-input"
+      <TextField.Root
+        size="1"
         aria-label="Message"
         placeholder="Message the table…  (/w name to whisper)"
         value={text}

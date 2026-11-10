@@ -1,4 +1,4 @@
-import { Popover, Slider, Tabs } from '@radix-ui/themes';
+import { Popover, Slider, Tabs, TextField } from '@radix-ui/themes';
 import { Plus, SlidersHorizontal, Trash2, Pencil, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
@@ -121,8 +121,8 @@ function Favourites({ sounds, pins, onTogglePin }: Props) {
       {favs.length === 0 && <span className="vtt-muted">Nothing favourited yet.</span>}
       {favs.map((s) => row(s, false))}
       <span className="vtt-set-sub">Add a favourite</span>
-      <input
-        className="vtt-input"
+      <TextField.Root
+        size="1"
         aria-label="Find a sound to favourite"
         placeholder="Find a sound"
         value={query}

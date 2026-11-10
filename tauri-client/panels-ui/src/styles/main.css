@@ -1802,3 +1802,58 @@ body,
   border-radius: var(--vtt-radius-bubble);
   background: var(--vtt-bubble);
 }
+
+/* DatePicker */
+.vtt-cal {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.vtt-cal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+}
+.vtt-cal-nav {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: var(--vtt-radius-control);
+  background: transparent;
+  color: var(--vtt-ink);
+  cursor: pointer;
+}
+.vtt-cal-nav:hover,
+.vtt-cal-day:hover {
+  background: var(--vtt-bubble);
+}
+.vtt-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  text-align: center;
+}
+.vtt-cal-dow {
+  font-size: 10px;
+  opacity: 0.6;
+}
+.vtt-cal-day {
+  height: 26px;
+  border: 1px solid transparent;
+  border-radius: var(--vtt-radius-control);
+  background: transparent;
+  color: var(--vtt-ink);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.vtt-cal-day[data-today] {
+  border-color: var(--vtt-edge);
+}
+.vtt-cal-day[aria-pressed='true'] {
+  background: var(--accent-9);
+  color: var(--accent-contrast);
+}

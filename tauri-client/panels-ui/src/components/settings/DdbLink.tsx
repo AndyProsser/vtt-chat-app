@@ -1,3 +1,4 @@
+import { TextField } from '@radix-ui/themes';
 import { Link2, RefreshCw, Unlink } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
@@ -92,8 +93,8 @@ export function DdbLink({
             Beyond).
           </span>
           <div className="vtt-form-row">
-            <input
-              className="vtt-input"
+            <TextField.Root
+              size="1"
               style={{ flex: 1, minWidth: 140 }}
               aria-label="D&D Beyond character link"
               placeholder="https://www.dndbeyond.com/characters/…"
