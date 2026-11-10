@@ -90,6 +90,14 @@ pattern and its reconciliation conventions.
   native install for advanced users; LXC optional. Whisper/LLM may be local or a remote instance
   (Andy's GPU is in his gaming PC). See CLAUDE.md §5.
 
+- **Keep the local Rust toolchain on CI's version (confirmed 2026-11-10).** CI uses
+  `dtolnay/rust-toolchain@stable`, so it runs the newest stable Rust, and its clippy gains lints
+  that an older local stable lacks. Every push failed CI once for this (local 1.97, CI 1.99: the
+  `chunks_exact_to_as_chunks` lint). Run `rustup update stable` before pushing Rust changes, and
+  check with `cargo clippy --workspace --all-targets --all-features -- -D warnings` (the exact CI
+  command). CI also needs `tauri-client/panels-ui/dist` to exist for `generate_context!`; its
+  workflow creates an empty one. A pinned `rust-toolchain.toml` was offered and not chosen.
+
 ## Reconciliation log
 
 - 2026-09-09 (from `CachyOS`) — file created as part of moving `CLAUDE.md` into `.claude/`,

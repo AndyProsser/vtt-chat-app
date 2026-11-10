@@ -79,8 +79,10 @@ impl CapturePipeline {
             .iter()
             .map(|s| (s * self.gain).clamp(-1.0, 1.0))
             .collect();
-        self.level.update(&scaled);
         let cleaned = self.processing.lock().unwrap().clean(&scaled);
+        // The meter shows what is sent (after echo, noise and gain control), so typing the cleaner
+        // removes does not pin it, and it matches what other people hear.
+        self.level.update(&cleaned);
         let mut out = vec![0.0; BLOCK];
         self.fx.process(&cleaned, &mut out);
         out
@@ -226,5 +228,47 @@ mod tests {
             "the echo should be audible without it: {without}"
         );
         assert!(with < without * 0.25, "with {with}, without {without}");
+    }
+
+    /// The meter shows what other people hear, not the raw microphone: sound the cleaner removes (echo
+    /// here; keyboard clatter and room noise in practice) must not push it to the top.
+    #[test]
+    fn the_level_meter_shows_the_cleaned_sound_not_the_raw_microphone() {
+        fn meter(echo_cancellation: bool) -> f32 {
+            let mut options = off();
+            options.echo_cancellation = echo_cancellation;
+            let (mut p, level, processing) = pipeline(options);
+            processing.lock().unwrap().set_delay_ms(60);
+            let mut state = 7u32;
+            let mut history: Vec<f32> = Vec::new();
+            let mut last = 0.0;
+            for b in 0..1_200usize {
+                let played: Vec<f32> = (0..BLOCK)
+                    .map(|_| {
+                        state = state.wrapping_mul(1664525).wrapping_add(1013904223);
+                        0.3 * ((state >> 8) as f32 / (1 << 23) as f32 - 1.0)
+                    })
+                    .collect();
+                processing.lock().unwrap().played(&played);
+                history.extend_from_slice(&played);
+                let end = history.len();
+                let mic: Vec<f32> = (0..BLOCK)
+                    .map(|i| {
+                        (end - BLOCK + i)
+                            .checked_sub(48 * 50)
+                            .map_or(0.0, |j| history[j] * 0.5)
+                    })
+                    .collect();
+                p.process(&mic);
+                if b >= 1_100 {
+                    last = level.get();
+                }
+            }
+            last
+        }
+        let raw = meter(false);
+        let cleaned = meter(true);
+        assert!(raw > 0.6, "the echo is loud without cleaning: {raw}");
+        assert!(cleaned < raw - 0.15, "cleaned {cleaned}, raw {raw}");
     }
 }
