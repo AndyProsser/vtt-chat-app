@@ -95,8 +95,11 @@ recording: `VTT_SPEECH_RAW=speech.raw cargo test -p rust-livekit real_speech -- 
 What it is good and bad at, found while measuring:
 
 - **Fans, air conditioning, rumble, room hiss:** very good (50 dB and more on low-frequency noise).
-- **A pure steady hum** (one pitch, like 100 or 120 Hz mains hum) is passed as if it were a voice; WebRTC's
-  high-pass filter, which stays on, handles the lowest of it. A hum above 150 Hz would need a notch filter.
+- **Mains hum:** RNNoise alone treats a steady tone as a voice (a 120 Hz hum passed at full strength in a
+  measurement). A bank of very narrow notch filters (50 and 60 Hz and their first harmonics, about 3 Hz
+  wide) now runs ahead of it, so hum drops by 30 to 80 dB at 50, 60, 100 and 120 Hz while a voice is not
+  noticeably touched (real speech: -0.1 dB before, -0.2 dB after). A hum at some other pitch, or a rattle
+  at a frequency outside those, is not covered.
 - **White noise**, unlike any real fan, is also passed (it looks like a fricative to the network).
 - **Typing and mouse clicks:** RNNoise alone only softens loud ones (a click looks like speech for a block or
   two). The **Strong** gate is what removes them, because speech keeps looking like speech and a click does
