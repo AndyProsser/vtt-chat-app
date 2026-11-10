@@ -54,6 +54,11 @@ export interface HubOptions {
   onRecordingAck?: (campaignId: string, recordingId: string, userId: string) => void;
   /** Told about every soundboard frame sent to a table, for the recording's timeline. */
   onTableEvent?: (campaignId: string, type: string, data: unknown) => void;
+  /** Told about every line typed into the public chat (never a whisper), for a recording's transcript. */
+  onPublicChat?: (
+    campaignId: string,
+    line: { senderId: string; senderName: string; text: string; at: number },
+  ) => void;
   /** The DM's sound library, to play from. Omit and the soundboard frames are refused. */
   sounds?: SoundStore;
   /** Stored notifications, delivered in the snapshot on connect. */
@@ -579,6 +584,12 @@ export class Hub {
       at,
     });
     this.broadcast(data.campaignId, event.t, event.d, { seq: event.seq });
+    this.options.onPublicChat?.(data.campaignId, {
+      senderId: auth.user.id,
+      senderName: name,
+      text: data.text,
+      at,
+    });
     this.pruneChatSometimes(data.campaignId);
   }
 

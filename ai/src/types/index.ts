@@ -31,6 +31,8 @@ export interface Utterance {
   startMs: number;
   endMs: number;
   text: string;
+  /** Typed into the table's chat during the recording, not spoken. */
+  typed?: boolean;
 }
 
 export type SummaryKind = 'session' | 'dm-only' | 'character';

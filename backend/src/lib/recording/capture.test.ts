@@ -232,6 +232,32 @@ describe('RecordingCapture', () => {
     expect(tracks.find((t) => t.speakerName === 'name-of-dm')?.private).toBe(false);
   });
 
+  it('keeps public chat typed from start to stop, pauses included, and nothing outside it', async () => {
+    const line = (text: string) => ({
+      senderId: 'alice',
+      senderName: 'Aria',
+      text,
+      at: time,
+    });
+    capture.onChat(CAMPAIGN, line('before')); // nothing is recording yet
+    await capture.idle();
+    capture.onRecordingChange(change('STARTED'));
+    await capture.idle();
+    time += 1000;
+    capture.onChat(CAMPAIGN, line('during'));
+    capture.onRecordingChange(change('PAUSED'));
+    await capture.idle();
+    time += 1000;
+    capture.onChat(CAMPAIGN, line('while paused'));
+    capture.onRecordingChange(change('STOPPED'));
+    await capture.idle();
+    capture.onChat(CAMPAIGN, line('after'));
+    await capture.idle();
+    const typed = (await records.listRecordingEvents(REC)).filter((e) => e.event === 'chat');
+    expect(typed.map((e) => e.detail?.text)).toEqual(['during', 'while paused']);
+    expect(typed[0]?.detail).toEqual({ senderId: 'alice', senderName: 'Aria', text: 'during' });
+  });
+
   it('pause ends the files and resume starts new ones: a speaker gets one track per stretch', async () => {
     publish('alice');
     capture.onRecordingChange(change('STARTED'));

@@ -129,6 +129,26 @@ export class RecordingCapture {
     });
   }
 
+  /**
+   * A line typed into the public chat. While a recording is open (capturing or paused) it goes into the
+   * recording's timeline, so the transcript can show it among the spoken lines. Whispers never get here.
+   */
+  onChat(
+    campaignId: string,
+    line: { senderId: string; senderName: string; text: string; at: number },
+  ): void {
+    this.enqueue(campaignId, async () => {
+      const live = this.live.get(campaignId);
+      if (!live) return;
+      await this.deps.records.addRecordingEvent({
+        recordingId: live.recordingId,
+        at: line.at,
+        event: 'chat',
+        detail: { senderId: line.senderId, senderName: line.senderName, text: line.text },
+      });
+    });
+  }
+
   /** Call when a player has acknowledged the start cue: their track may now be recorded. */
   onAck(campaignId: string): void {
     this.enqueue(campaignId, () => this.reconcile(campaignId));

@@ -34,7 +34,9 @@ export type RecordingEventName =
   /** The DM played a sound effect (metadata only: the audio is never recorded). */
   | 'sound'
   /** A scene started or stopped. */
-  | 'scene';
+  | 'scene'
+  /** A line typed into the table's public chat (never a whisper): `detail` has senderId, senderName, text. */
+  | 'chat';
 
 export interface RecordingEvent {
   recordingId: string;

@@ -10,7 +10,8 @@ export function formatTimestamp(ms: number): string {
 }
 
 export function formatUtterance(utterance: Utterance): string {
-  return `[${formatTimestamp(utterance.startMs)}] ${utterance.speaker.name}: ${utterance.text}`;
+  const how = utterance.typed ? ' (typed)' : '';
+  return `[${formatTimestamp(utterance.startMs)}] ${utterance.speaker.name}${how}: ${utterance.text}`;
 }
 
 export function formatTranscript(utterances: readonly Utterance[]): string[] {

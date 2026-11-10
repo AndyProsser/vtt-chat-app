@@ -1,6 +1,7 @@
 import type { AiSettings } from '@vtt-chat-app/shared';
 
 import type { GenerateText, Job, Segment, SummaryKind, TranscribeWav } from '../../types/index.js';
+import { chatUtterances, mergeTimeline } from '../chat.js';
 import { formatTranscript } from '../format.js';
 import type { JobHandler } from '../jobs/worker.js';
 import { mergeTranscripts } from '../merge.js';
@@ -73,7 +74,11 @@ export function createProcessRecordingHandler(deps: ProcessRecordingDeps): JobHa
       }
 
       // 2. Merge, 3. summarise.
-      const utterances = mergeTranscripts(await deps.records.listTranscripts(recording.id));
+      // Spoken lines, plus what people typed into the public chat during the recording (never whispers).
+      const utterances = mergeTimeline(
+        mergeTranscripts(await deps.records.listTranscripts(recording.id)),
+        chatUtterances(await deps.records.listRecordingEvents(recording.id), recording.startedAt),
+      );
       const campaignName = await deps.records.campaignName(recording.campaignId);
       for (const { kind, visibility } of SUMMARIES) {
         if (await deps.records.getSummary(recording.id, kind, '')) continue;
@@ -84,7 +89,7 @@ export function createProcessRecordingHandler(deps: ProcessRecordingDeps): JobHa
             kind,
             subject: '',
             visibility,
-            text: 'No speech was detected in this recording.',
+            text: 'No speech or typed chat was detected in this recording.',
             modelCalls: 0,
             createdAt: now(),
           });

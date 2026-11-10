@@ -34,12 +34,25 @@ interface Table {
 }
 
 let t: Table;
+let publicChat: {
+  campaignId: string;
+  senderId: string;
+  senderName: string;
+  text: string;
+  at: number;
+}[];
 
 beforeEach(async () => {
+  publicChat = [];
   const store = await backend.reset();
   const accounts = new AccountService({ store });
   const campaigns = new CampaignService({ store });
-  const hub = new Hub({ store, accounts, replay: new MemoryReplayBuffer() });
+  const hub = new Hub({
+    store,
+    accounts,
+    replay: new MemoryReplayBuffer(),
+    onPublicChat: (campaignId, line) => publicChat.push({ campaignId, ...line }),
+  });
   const users = {} as Table['users'];
   const tokens: Record<string, string> = {};
   for (const name of ['dm', 'alice', 'bob', 'carol', 'outsider'] as const) {
@@ -73,6 +86,26 @@ const say = (id: string, text: string, to?: string) =>
     id,
     frame('chat.message', { campaignId: t.campaignId, text, ...(to ? { to } : {}) }),
   );
+
+describe('chat for the recording', () => {
+  it('tells the recording about public lines, and never about a whisper', async () => {
+    await join('dm', 'dm');
+    await join('a', 'alice');
+    await join('b', 'bob');
+    await say('a', 'Anyone smell brine?');
+    await say('a', 'psst, the baron is lying', t.users.bob.id);
+    await say('dm', 'The water moves against the current.');
+    expect(publicChat.map((l) => l.text)).toEqual([
+      'Anyone smell brine?',
+      'The water moves against the current.',
+    ]);
+    expect(publicChat[0]).toMatchObject({
+      campaignId: t.campaignId,
+      senderId: t.users.alice.id,
+    });
+    expect(JSON.stringify(publicChat)).not.toContain('baron');
+  });
+});
 
 describe('whispers', () => {
   it('reach the sender and the recipient only', async () => {

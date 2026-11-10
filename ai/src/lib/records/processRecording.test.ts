@@ -93,6 +93,37 @@ describe('process-recording handler', () => {
     expect(prompts[0]).toContain('Curse of Strahd');
   });
 
+  it('includes the chat typed during the recording, marked as typed, and never a whisper', async () => {
+    await records.addRecordingEvent({
+      recordingId: REC,
+      at: 1500,
+      event: 'chat',
+      detail: { senderId: 'carol', senderName: 'CAROL', text: 'the key is under the mat' },
+    });
+    await records.addRecordingEvent({
+      recordingId: REC,
+      at: 1600,
+      event: 'chat',
+      detail: { senderId: 'dan', senderName: 'DAN', text: 'psst-whisper-xyz', to: 'alice' },
+    });
+    await handler().run(job());
+    expect(prompts[0]).toContain('CAROL (typed): the key is under the mat');
+    expect(prompts.join('\n')).not.toContain('psst-whisper-xyz');
+  });
+
+  it('summarises a session that was only typed, rather than calling it silent', async () => {
+    const typedOnly = handler({ transcribeAudioFile: async () => [] });
+    await records.addRecordingEvent({
+      recordingId: REC,
+      at: 100,
+      event: 'chat',
+      detail: { senderId: 'carol', senderName: 'CAROL', text: 'we met in the market' },
+    });
+    await typedOnly.run(job());
+    expect(prompts.length).toBeGreaterThan(0);
+    expect((await records.getSummary(REC, 'session', ''))?.text).not.toMatch(/No speech/);
+  });
+
   it('NEVER transcribes or summarises a private track', async () => {
     await records.putTrack(track('t-whisper', 'carol', { private: true }));
     await handler().run(job());
