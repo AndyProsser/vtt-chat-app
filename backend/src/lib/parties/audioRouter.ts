@@ -16,6 +16,8 @@ export interface AudioRouter {
     trackSids: string[],
     subscribe: boolean,
   ): Promise<void>;
+  /** Disconnects someone from the room, e.g. when they have left the campaign. */
+  remove?(room: string, identity: string): Promise<void>;
 }
 
 /** The LiveKit server API: who is in the room, and per-listener subscriptions. */
@@ -41,6 +43,13 @@ export function createLiveKitAudioRouter(options: {
     async setSubscription(room, listener, trackSids, subscribe) {
       if (trackSids.length === 0) return;
       await rooms.updateSubscriptions(room, listener, trackSids, subscribe);
+    },
+    async remove(room, identity) {
+      try {
+        await rooms.removeParticipant(room, identity);
+      } catch {
+        // Not in the room (or no room yet): nothing to disconnect.
+      }
     },
   };
 }

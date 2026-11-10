@@ -24,13 +24,16 @@ const PASSWORD = 'correct horse battery';
 let server: Server;
 let handle: WsHandle;
 let base: string;
+let removed: string[];
 
 beforeEach(async () => {
+  removed = [];
   const store = new MemoryStore();
   const hub = new Hub({
     store,
     accounts: new AccountService({ store }),
     replay: new MemoryReplayBuffer(),
+    onMemberRemoved: (campaignId, userId) => removed.push(`${campaignId}:${userId}`),
   });
   server = createServer(
     createApp({ config: CONFIG, store, realtime: hub, recording: hub.recording }),
@@ -146,6 +149,45 @@ describe('WebSocket transport', () => {
       seq: 1,
       d: { text: 'hello table', from: { name: 'player' } },
     });
+    dm.ws.close();
+    player.ws.close();
+  });
+
+  it('stops sending a campaign’s chat to a player who has left it, even on a live socket', async () => {
+    const dmToken = await signUp('dm');
+    const playerToken = await signUp('player');
+    const campaignId = (await rest('POST', '/api/campaigns', dmToken, { name: 'Gone' })).body
+      .campaign.id as string;
+    const { code } = (await rest('POST', `/api/campaigns/${campaignId}/invites`, dmToken, {})).body;
+    await rest('POST', '/api/campaigns/join', playerToken, { code });
+
+    const dm = await open();
+    const player = await open();
+    for (const [client, token] of [
+      [dm, dmToken],
+      [player, playerToken],
+    ] as const) {
+      client.send('auth', { token });
+      await client.waitFor('auth.ok');
+      client.send('resume', { campaignId });
+      await client.waitFor('snapshot');
+    }
+
+    expect((await rest('POST', `/api/campaigns/${campaignId}/leave`, playerToken)).status).toBe(
+      204,
+    );
+    // Roster announcements are asynchronous; wait for the DM to hear it, then speak.
+    await dm.waitFor('roster.update');
+    const before = player.frames.length;
+    dm.send('chat.message', { campaignId, text: 'secret plans' });
+    await dm.waitFor('chat.message');
+    await new Promise((r) => setTimeout(r, 100));
+
+    expect(
+      player.frames.slice(before).filter((f) => JSON.stringify(f).includes('secret plans')),
+    ).toEqual([]);
+    // And is taken out of the voice room too, so they cannot keep listening.
+    expect(removed).toHaveLength(1);
     dm.ws.close();
     player.ws.close();
   });

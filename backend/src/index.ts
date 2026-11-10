@@ -92,13 +92,14 @@ if (isEntryPoint) {
   let capture: RecordingCapture | undefined;
   // Voice groups: enforced through LiveKit when it is reachable (the same server the recorder uses).
   const hubRef: { current?: Hub } = {};
+  const audioRouter = createLiveKitAudioRouter({
+    apiUrl: config.liveKitApiUrl,
+    apiKey: config.liveKitApiKey,
+    apiSecret: config.liveKitApiSecret,
+  });
   const parties = new PartyService({
     store,
-    router: createLiveKitAudioRouter({
-      apiUrl: config.liveKitApiUrl,
-      apiKey: config.liveKitApiKey,
-      apiSecret: config.liveKitApiSecret,
-    }),
+    router: audioRouter,
     emit: (campaignId, type, data) => hubRef.current?.broadcastToCampaign(campaignId, type, data),
     log: (line) => console.warn(`[parties] ${line}`),
   });
@@ -111,6 +112,7 @@ if (isEntryPoint) {
     sounds,
     schedule,
     parties,
+    onMemberRemoved: (campaignId, userId) => void audioRouter.remove?.(campaignId, userId),
     onRecordingChange: (change) => capture?.onRecordingChange(change),
     onRecordingAck: (campaignId) => capture?.onAck(campaignId),
     onTableEvent: (campaignId, type, data) => capture?.onTableEvent(campaignId, type, data),

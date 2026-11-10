@@ -70,6 +70,8 @@ export interface HubOptions {
   schedule?: ScheduleStore;
   /** Voice groups. Omit and the party frames are refused. */
   parties?: PartyService;
+  /** Called when someone who was subscribed to a campaign turns out no longer to be a member. */
+  onMemberRemoved?: (campaignId: string, userId: string) => void;
   now?: () => number;
   /** Drop a connection that hasn't authenticated within this long. */
   authTimeoutMs?: number;
@@ -309,8 +311,18 @@ export class Hub {
     const dmIds = await this.dmUserIds(campaignId);
     const forDm = await this.rosterMembers(campaignId, true);
     const forPlayers = await this.rosterMembers(campaignId, false);
-    for (const state of this.connections.values()) {
+    const memberIds = new Set(
+      (await this.options.store.listMemberships(campaignId)).map((m) => m.userId),
+    );
+    for (const state of [...this.connections.values()]) {
       if (!state.auth || !state.campaigns.has(campaignId)) continue;
+      // Someone who left (or was removed) must stop hearing the table at once, not at their next
+      // reconnect: a live subscription is not a membership.
+      if (!memberIds.has(state.auth.user.id)) {
+        this.leave(state, campaignId);
+        this.options.onMemberRemoved?.(campaignId, state.auth.user.id);
+        continue;
+      }
       const isDm = dmIds.has(state.auth.user.id);
       this.send(state, 'roster.update', {
         campaignId,
