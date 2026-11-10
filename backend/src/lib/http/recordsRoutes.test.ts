@@ -251,6 +251,31 @@ describe('search', () => {
     expect(hit.snippet.toLowerCase()).toContain('dragon');
   });
 
+  it('finds a typed chat line, marked as chat with who typed it and when, and never a whisper', async () => {
+    const id = await seed();
+    await records.addRecordingEvent({
+      recordingId: id,
+      at: 1_000 + 4_000,
+      event: 'chat',
+      detail: { senderId: 'a', senderName: 'Aria', text: 'anyone smell brimstone?' },
+    });
+    await records.addRecordingEvent({
+      recordingId: id,
+      at: 1_000 + 5_000,
+      event: 'chat',
+      detail: { senderId: 'c', senderName: 'Carol', text: 'brimstone is a lie', to: 'a' },
+    });
+    const { body } = await search(player.token, 'brimstone');
+    expect(body.hits).toHaveLength(1);
+    expect(body.hits[0]).toMatchObject({
+      recordingId: id,
+      source: 'chat',
+      speakerName: 'Aria',
+      atMs: 4_000,
+    });
+    expect(JSON.stringify(body)).not.toContain('Carol');
+  });
+
   it('finds summaries too', async () => {
     await seed();
     const { body } = await search(player.token, 'party door');

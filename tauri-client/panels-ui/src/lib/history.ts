@@ -23,7 +23,7 @@ export interface Utterance {
 }
 export interface SearchHit {
   recordingId: string;
-  source: 'transcript' | 'summary';
+  source: 'transcript' | 'summary' | 'chat';
   kind?: string;
   speakerName?: string;
   atMs?: number;

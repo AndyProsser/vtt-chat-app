@@ -290,6 +290,19 @@ export class PostgresRecordsStore implements RecordsStore {
         ORDER BY rank DESC, r.started_at DESC LIMIT $3`,
       [campaignId, query, options.limit],
     );
+    const chat = await this.pool.query<Row>(
+      `SELECT r.id AS recording_id, e.detail->>'senderName' AS speaker_name, e.at - r.started_at AS at_ms,
+              ts_headline('english', e.detail->>'text', q, ${opts}) AS snippet,
+              ts_rank(to_tsvector('english', e.detail->>'text'), q) AS rank
+         FROM recording_events e
+         JOIN recordings r ON r.id = e.recording_id,
+              plainto_tsquery('english', $2) q
+        WHERE r.campaign_id = $1 AND e.event = 'chat'
+          AND NOT (e.detail ? 'to') AND NOT (e.detail ? 'recipientId')
+          AND to_tsvector('english', COALESCE(e.detail->>'text', '')) @@ q
+        ORDER BY rank DESC, r.started_at DESC LIMIT $3`,
+      [campaignId, query, options.limit],
+    );
     const summaries = await this.pool.query<Row>(
       `SELECT r.id AS recording_id, m.kind,
               ts_headline('english', m.text, q, ${opts}) AS snippet, ts_rank(to_tsvector('english', m.text), q) AS rank
@@ -307,6 +320,14 @@ export class PostgresRecordsStore implements RecordsStore {
         source: 'transcript' as const,
         speakerName: r.speaker_name as string,
         atMs: r.at_ms as number,
+        snippet: r.snippet as string,
+        rank: Number(r.rank),
+      })),
+      ...chat.rows.map((r) => ({
+        recordingId: r.recording_id as string,
+        source: 'chat' as const,
+        speakerName: (r.speaker_name as string | null) ?? 'Someone',
+        atMs: Math.max(0, Number(r.at_ms)),
         snippet: r.snippet as string,
         rank: Number(r.rank),
       })),

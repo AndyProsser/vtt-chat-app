@@ -160,7 +160,7 @@ function SearchBox({ onOpen }: { onOpen: (id: string) => void }) {
           <span className="vtt-muted">
             {h.source === 'summary'
               ? summaryLabel(h.kind ?? 'session')
-              : `${h.speakerName ?? 'Someone'}${h.atMs !== undefined ? ` at ${clock(h.atMs)}` : ''}`}
+              : `${h.speakerName ?? 'Someone'}${h.source === 'chat' ? ' (typed)' : ''}${h.atMs !== undefined ? ` at ${clock(h.atMs)}` : ''}`}
           </span>
           <span>
             {snippetParts(h.snippet).map((p, j) =>

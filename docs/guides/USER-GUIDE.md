@@ -149,7 +149,7 @@ you hear it first.
 - Each person is recorded separately; the server turns it into a **transcript** and **summaries** after the
   session. Lines typed in the **public chat** during a recording are included, marked "(typed)".
 - **Never recorded or transcribed:** whispers, sound effects from the DM's soundboard, and anything private.
-- **Read them later** with the **session history** button: summaries for the table, a transcript, and search.
+- **Read them later** with the **session history** button: summaries for the table, a transcript, and search (which also finds lines people typed during the recording).
   The DM may also have a DM-only summary that players cannot see.
 - **If the DM drops** (their computer crashes or their network goes), the recording carries on for a short
   grace period (30 seconds by default). After that **any player** can pause, resume or stop it from the top

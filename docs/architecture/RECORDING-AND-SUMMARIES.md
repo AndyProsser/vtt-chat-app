@@ -177,8 +177,8 @@ A recording means a game is running, so the app protects it:
   kept on the recording's timeline and merged into the transcript and summaries, marked "(typed)", for
   example `[0:42:10] Aria (typed): Anyone smell brine?`. **Whispers, and the DM's private lines, are
   never included**: the server only hands public lines to the recording, and the processing step ignores
-  any chat event that names a recipient. Chat outside a recording is not kept for transcripts. Typed lines
-  are not searchable yet (search reads spoken transcripts and summaries).
+  any chat event that names a recipient. Chat outside a recording is not kept for transcripts. Typed lines are
+  searchable with the rest (a hit says who typed it and when, marked "(typed)").
 
 ## Retention: raw audio is the part that fills the disk (decided and built 2026-11-10)
 

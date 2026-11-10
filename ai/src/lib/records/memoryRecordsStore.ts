@@ -147,6 +147,20 @@ export class MemoryRecordsStore implements RecordsStore {
           }
         }
       }
+      for (const e of this.events) {
+        const d = e.detail;
+        if (e.recordingId !== r.id || e.event !== 'chat' || !d) continue;
+        if (d.to !== undefined || d.recipientId !== undefined) continue; // never a whisper
+        if (typeof d.text === 'string' && matches(d.text)) {
+          hits.push({
+            recordingId: r.id,
+            source: 'chat',
+            speakerName: String(d.senderName ?? 'Someone'),
+            atMs: Math.max(0, e.at - r.startedAt),
+            snippet: d.text,
+          });
+        }
+      }
       for (const s of this.summaries.values()) {
         if (s.recordingId !== r.id || (s.visibility === 'dm' && !options.includeDmOnly)) continue;
         if (matches(s.text)) {

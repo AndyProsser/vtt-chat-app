@@ -63,7 +63,7 @@ export interface StoredSummary {
 
 export interface SearchHit {
   recordingId: string;
-  source: 'transcript' | 'summary';
+  source: 'transcript' | 'summary' | 'chat';
   /** For a summary hit, which summary. */
   kind?: SummaryKind;
   speakerName?: string;
