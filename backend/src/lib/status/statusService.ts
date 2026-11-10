@@ -1,6 +1,7 @@
 import type { JobQueue } from '@vtt-chat-app/ai';
 
 import type { ClientDownloads } from '../config.js';
+import { freePercent, isLow, type DiskUse } from './storage.js';
 
 /** One health check. `run` resolves when the service is fine and throws when it is not. */
 export interface StatusProbe {
@@ -27,6 +28,8 @@ export interface StatusSnapshot {
     failed: number;
     last: { state: 'done' | 'failed'; at: number } | null;
   } | null;
+  /** The recordings disk: only the free share, never paths or sizes. Null when not measured. */
+  storage: { freePercent: number; low: boolean } | null;
   downloads: ClientDownloads;
 }
 
@@ -35,6 +38,8 @@ export interface StatusDeps {
   onlinePlayers: () => number;
   activeRecordings: () => number;
   jobs?: JobQueue;
+  /** Measures the disk that holds recordings; null when there is none to measure. */
+  storage?: () => Promise<DiskUse | null>;
   downloads: ClientDownloads;
   now?: () => number;
   /** How long a snapshot is reused, so a busy status page cannot hammer the services. */
@@ -78,6 +83,14 @@ export class StatusService {
         services.push({ name: 'records pipeline', ok: false });
       }
     }
+    let storage: StatusSnapshot['storage'] = null;
+    if (this.deps.storage) {
+      const use = await this.deps.storage().catch(() => null);
+      if (use) {
+        storage = { freePercent: freePercent(use), low: isLow(use) };
+        services.push({ name: 'storage', ok: !storage.low });
+      }
+    }
     const snapshot: StatusSnapshot = {
       at,
       ok: services.every((s) => s.ok),
@@ -85,6 +98,7 @@ export class StatusService {
       players: { online: this.deps.onlinePlayers() },
       recording: { active: this.deps.activeRecordings() },
       pipeline,
+      storage,
       downloads: this.deps.downloads,
     };
     this.cached = snapshot;

@@ -75,6 +75,13 @@ async function main(): Promise<number> {
       jobs: new PostgresJobQueue(pool),
       records: new PostgresRecordsStore(pool),
       ...(config.updatesDir ? { updatesDir: config.updatesDir } : {}),
+      ...(config.recordingsDir ? { recordingsDir: config.recordingsDir } : {}),
+      databaseBytes: async () => {
+        const { rows } = await pool.query<{ size: string }>(
+          'SELECT pg_database_size(current_database()) AS size',
+        );
+        return Number(rows[0]?.size ?? 0);
+      },
       probes,
       out: (line) => console.log(line),
       err: (line) => console.error(line),

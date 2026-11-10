@@ -228,8 +228,10 @@ the number of connected players and whether a recording is active. It is public 
 `RECORDING_RETENTION_DAYS` (for example `60`) in `.env` and the worker deletes the audio of processed
 recordings that old, keeping the transcript and summaries; or do it yourself with
 `./vtt-admin recording purge --older-than 60`. `./vtt-admin recording list` shows which recordings still have
-their audio. There is no disk-usage figure in the tools yet: use `df -h`, and `du -sh` on the recordings volume
-(Compose: `docker system df -v`; native: `/var/lib/vtt/recordings`). Do not purge a recording you may want to
+their audio. `./vtt-admin storage` shows what the recordings folder holds, the free space on its disk, and the
+database size. The public status page shows "Recording storage: N% free" and turns amber under 10%, so a
+filling disk is noticed before it stops recordings (built 2026-11-10; the figures come from the real disk, but
+no one has yet watched it cross the threshold on a live server). Do not purge a recording you may want to
 **re-transcribe** with a better model: once the audio is gone only the summaries can be redone.
 
 **Health you can rely on:** the app reconnects itself after network loss, sleep or a server restart. A
@@ -268,10 +270,16 @@ Tested 2026-11-10 against a real Postgres and volume: data and uploaded files de
 compared. **Not tested:** a full restore onto a brand-new machine through to players reconnecting, and the
 `--audio` path on real recordings. Rehearse on a spare machine once.
 
-**Native install** has no script yet; do it by hand: `sudo -u postgres pg_dump vtt | gzip > vtt.sql.gz`
-(the database and its user are both `vtt`), copy `/var/lib/vtt/media` (and `/var/lib/vtt/recordings` if
-you keep audio), and `/etc/vtt/vtt.env`. Restore by loading the dump into an empty `vtt` database and
-putting the files and `vtt.env` back.
+**Native install** has its own pair, with the same folder shape and flags:
+
+```bash
+sudo infra/backup-native.sh [--audio] [--to /mnt/backups]       # database, /var/lib/vtt/media, /etc/vtt/vtt.env
+sudo infra/restore-native.sh <folder> --yes [--with-config]     # stops vtt-backend and vtt-worker, replaces, starts them
+```
+
+They read `DATABASE_URL`, `MEDIA_DIR` and `RECORDINGS_DIR` from `/etc/vtt/vtt.env`, so they need no database
+superuser. Tested 2026-11-10 against a real Postgres with `--no-services` (data and files destroyed, restored,
+compared). **Not tested:** the systemd stop and start, and a restore on a brand-new machine.
 
 Keep Postgres on local or block storage, **never on NFS** (file locking over NFS can corrupt a database).
 
@@ -305,7 +313,7 @@ ready") and update when they click; the app never restarts by itself mid-game. K
 | Locked out as Admin                                  | Another Admin can run `user admin <you> grant`; with none, `user code <your email> signin` from the server                                                                                               |
 | Recording button does nothing / no audio files       | The records profile is not running (`docker compose --profile records ps`), or `RECORDINGS_DIR` is unset. A player's voice is only recorded after their app played the start cue                         |
 | Summaries never appear                               | `./vtt-admin jobs list failed`; read the worker's log (`docker compose logs worker`); `jobs retry <id>`. The first run is slow on a CPU. A remote AI that is off waits, then falls back to local         |
-| Disk full                                            | Old recordings and uploads. Move or delete files in the recordings/media volumes; there is no auto-purge yet                                                                                             |
+| Disk full                                            | Old recordings and uploads. Move or delete files in the recordings/media volumes; set `RECORDING_RETENTION_DAYS` for an automatic purge of audio (section 8), and check `vtt-admin storage`              |
 | After an update the app says it needs a newer server | Update the server first (section 10), then the apps                                                                                                                                                      |
 | Everything is slow after a long uptime               | `docker stats`; restart one service at a time (`docker compose restart backend`). Players reconnect on their own                                                                                         |
 

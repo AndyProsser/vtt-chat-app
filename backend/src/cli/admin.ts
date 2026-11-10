@@ -16,6 +16,7 @@ import {
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
+import { formatBytes, freePercent, isLow, measureDisk } from '../lib/status/storage.js';
 import { MAGIC_LINK_TTL_MINUTES } from '../consts/index.js';
 import type { AccountService } from '../lib/auth/accountService.js';
 import type { Store } from '../lib/store/store.js';
@@ -35,6 +36,10 @@ export interface AdminDeps {
   jobs: JobQueue;
   records: RecordsStore;
   now?: () => number;
+  /** `RECORDINGS_DIR`: where raw audio is kept (unset: recordings are not kept here). */
+  recordingsDir?: string;
+  /** Size of the database in bytes, for `storage`. */
+  databaseBytes?: () => Promise<number>;
   /** `UPDATES_DIR`: where client updates are published (unset: the `updates` commands refuse). */
   updatesDir?: string;
   /** Health checks for `status`. Injected so tests need no live services. */
@@ -63,6 +68,7 @@ const USAGE = `vtt-admin — system operations for this instance (gameplay is ma
   user admin <email> grant|revoke        give or take away Admin (the last Admin cannot be removed)
   user code <email> [signin|reset]       issue a one-time code to hand over on a side channel (${MAGIC_LINK_TTL_MINUTES} min)
   user revoke-sessions <email>           sign that account out on every device
+  storage                                disk use: recordings, free space, database size
   jobs list [queued|running|done|failed] records-pipeline jobs, newest last
   jobs retry <job-id>                    put a failed job back in the queue
   recording list                         recent recordings and their status
@@ -166,6 +172,8 @@ export async function runAdmin(argv: string[], deps: AdminDeps): Promise<number>
     switch (group) {
       case 'status':
         return await status(deps);
+      case 'storage':
+        return await storage(deps);
       case 'settings':
         return await settings(deps, command, rest);
       case 'user':
@@ -553,4 +561,27 @@ async function recordings(
       deps.err('usage: recording list | reprocess <recording-id> [--retranscribe] | purge <id>');
       return 2;
   }
+}
+
+async function storage(deps: AdminDeps): Promise<number> {
+  if (deps.recordingsDir === undefined) {
+    deps.out('recordings are not kept on this server (RECORDINGS_DIR is not set)');
+  } else {
+    const use = await measureDisk(deps.recordingsDir, { walk: true });
+    if (!use) {
+      deps.err(`cannot read ${deps.recordingsDir}`);
+      return 1;
+    }
+    deps.out(`recordings   ${formatBytes(use.dirBytes ?? 0)}   (${deps.recordingsDir})`);
+    deps.out(
+      `             ${formatBytes(use.freeBytes)} free on that disk of ${formatBytes(use.totalBytes)} (${freePercent(use)}%)`,
+    );
+    if (isLow(use)) {
+      deps.out(
+        'WARNING: that disk is nearly full. Purge raw audio: recording purge --older-than 30',
+      );
+    }
+  }
+  if (deps.databaseBytes) deps.out(`database     ${formatBytes(await deps.databaseBytes())}`);
+  return 0;
 }

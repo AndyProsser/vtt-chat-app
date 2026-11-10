@@ -47,3 +47,4 @@ export * from './parties/partyService.js';
 export * from './parties/partyState.js';
 export * from './ddb/ddbSyncService.js';
 export * from './status/statusService.js';
+export * from './status/storage.js';

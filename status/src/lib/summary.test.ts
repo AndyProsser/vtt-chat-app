@@ -10,6 +10,7 @@ const snap = (services: [string, boolean][]): StatusSnapshot => ({
   players: { online: 0 },
   recording: { active: 0 },
   pipeline: null,
+  storage: null,
   downloads: {},
 });
 

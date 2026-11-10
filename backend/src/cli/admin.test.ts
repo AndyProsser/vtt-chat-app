@@ -17,6 +17,7 @@ let records: MemoryRecordsStore;
 let out: string[];
 let err: string[];
 let updatesDir: string | undefined;
+let recordingsDir: string | undefined;
 
 async function run(args: string, probes: Probe[] = []): Promise<number> {
   return runAdmin(args.split(' ').filter(Boolean), {
@@ -26,6 +27,8 @@ async function run(args: string, probes: Probe[] = []): Promise<number> {
     records,
     now: () => 1_000,
     ...(updatesDir ? { updatesDir } : {}),
+    ...(recordingsDir ? { recordingsDir } : {}),
+    databaseBytes: async () => 5_000_000,
     probes,
     out: (l) => out.push(l),
     err: (l) => err.push(l),
@@ -48,6 +51,7 @@ beforeEach(() => {
   out = [];
   err = [];
   updatesDir = undefined;
+  recordingsDir = undefined;
 });
 
 describe('help and misuse', () => {
@@ -456,5 +460,21 @@ describe('updates', () => {
     expect(err.join('\n')).toContain('--version');
     expect(await run('updates status')).toBe(0);
     expect(out.join('\n')).toContain('no update published');
+  });
+});
+
+describe('storage', () => {
+  it('shows what the recordings folder holds, the free space, and the database size', async () => {
+    recordingsDir = mkdtempSync(path.join(tmpdir(), 'vtt-rec-'));
+    writeFileSync(path.join(recordingsDir, 'a.opus'), Buffer.alloc(2048));
+    expect(await run('storage')).toBe(0);
+    const text = out.join('\n');
+    expect(text).toMatch(/recordings\s+2\.0 KB/);
+    expect(text).toMatch(/free on that disk/);
+    expect(text).toMatch(/database\s+4\.8 MB/);
+  });
+  it('says plainly when recordings are not kept on this server', async () => {
+    expect(await run('storage')).toBe(0);
+    expect(out.join('\n')).toContain('recordings are not kept on this server');
   });
 });

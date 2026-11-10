@@ -76,6 +76,12 @@ function Body({ snapshot, stale = false }: { snapshot: StatusSnapshot; stale?: b
                 : 'Not recording'
             }
           />
+          {snapshot.storage && (
+            <Row
+              label="Recording storage"
+              value={`${snapshot.storage.freePercent}% free${snapshot.storage.low ? ' (running low)' : ''}`}
+            />
+          )}
           <Row label="Summaries queue" value={pipelineLine(snapshot.pipeline)} />
           {snapshot.pipeline?.last && (
             <Row

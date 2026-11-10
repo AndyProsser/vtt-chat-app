@@ -6,4 +6,5 @@ export const SERVICE_LABELS: Record<string, string> = {
   valkey: 'Live state',
   livekit: 'Voice',
   'records pipeline': 'Records pipeline',
+  storage: 'Recording storage',
 };

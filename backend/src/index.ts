@@ -35,6 +35,7 @@ import {
   PostgresScheduleStore,
   ScheduleService,
   StatusService,
+  measureDisk,
   AvatarSweeper,
   createSmtpMailTransport,
   type StatusProbe,
@@ -208,6 +209,9 @@ if (isEntryPoint) {
     onlinePlayers: () => hub.presence.onlineUsers(),
     activeRecordings: () => hub.recording.activeCount(),
     ...(pool ? { jobs: new PostgresJobQueue(pool) } : {}),
+    ...(config.recordingsDir !== undefined
+      ? { storage: () => measureDisk(config.recordingsDir as string) }
+      : {}),
     downloads: config.clientDownloads,
   });
   const server = createServer(

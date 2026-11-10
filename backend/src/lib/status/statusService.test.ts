@@ -69,4 +69,30 @@ describe('StatusService', () => {
     await s.snapshot();
     expect(calls).toBe(2);
   });
+
+  it('shows the free share of the recordings disk and fails the check when it runs low', async () => {
+    const roomy = new StatusService({
+      ...base,
+      probes: [],
+      storage: async () => ({ totalBytes: 1000, freeBytes: 600 }),
+    });
+    const ok = await roomy.snapshot();
+    expect(ok.storage).toEqual({ freePercent: 60, low: false });
+    expect(ok.ok).toBe(true);
+
+    const tight = new StatusService({
+      ...base,
+      probes: [],
+      storage: async () => ({ totalBytes: 1000, freeBytes: 50 }),
+    });
+    const low = await tight.snapshot();
+    expect(low.storage).toEqual({ freePercent: 5, low: true });
+    expect(low.ok).toBe(false);
+    expect(low.services.find((x) => x.name === 'storage')?.ok).toBe(false);
+  });
+
+  it('leaves storage out when there is nothing to measure', async () => {
+    const s = new StatusService({ ...base, probes: [], storage: async () => null });
+    expect((await s.snapshot()).storage).toBeNull();
+  });
 });
