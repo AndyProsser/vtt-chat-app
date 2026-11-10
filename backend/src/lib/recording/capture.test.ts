@@ -217,6 +217,21 @@ describe('RecordingCapture', () => {
     expect(queued[0]).toMatchObject({ kind: PROCESS_RECORDING_JOB, recordingId: REC });
   });
 
+  it('keeps a sound-effects track as a private file that is never transcribed', async () => {
+    publish('dm');
+    recorder.tracks.push({ identity: 'dm', trackSid: 'sid-effects', effects: true });
+    capture.onRecordingChange(change('STARTED'));
+    await capture.idle();
+    await ack('dm');
+    capture.onRecordingChange(change('STOPPED'));
+    await capture.idle();
+    const tracks = await records.listTracks(REC);
+    const effects = tracks.find((t) => t.speakerName === 'Sound effects');
+    expect(effects).toMatchObject({ speakerId: 'dm', private: true });
+    expect(effects?.filePath).toMatch(new RegExp(`^/out/${REC}/dm-effects@t`));
+    expect(tracks.find((t) => t.speakerName === 'name-of-dm')?.private).toBe(false);
+  });
+
   it('pause ends the files and resume starts new ones: a speaker gets one track per stretch', async () => {
     publish('alice');
     capture.onRecordingChange(change('STARTED'));

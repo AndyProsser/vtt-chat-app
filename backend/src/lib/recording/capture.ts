@@ -9,6 +9,8 @@ export interface RecorderTrack {
   /** The LiveKit identity: the account id of whoever is speaking. */
   identity: string;
   trackSid: string;
+  /** The DM's sound-effects track: kept as a private file, never transcribed. */
+  effects?: boolean;
 }
 
 export interface EgressResult {
@@ -49,6 +51,7 @@ export interface CaptureDeps {
 interface Segment {
   egressId: string;
   identity: string;
+  effects: boolean;
 }
 
 interface Live {
@@ -259,9 +262,13 @@ export class RecordingCapture {
       if (live.segments.has(track.trackSid)) continue;
       // The consent rule: not captured until this player has heard the start cue.
       if (!(await this.deps.acks.hasAcked(campaignId, live.recordingId, track.identity))) continue;
-      const filepath = `${this.deps.dir.replace(/\/+$/, '')}/${live.recordingId}/${track.identity}@{time}`;
+      const filepath = `${this.deps.dir.replace(/\/+$/, '')}/${live.recordingId}/${track.identity}${track.effects ? '-effects' : ''}@{time}`;
       const egressId = await this.deps.recorder.start(campaignId, track.trackSid, filepath);
-      live.segments.set(track.trackSid, { egressId, identity: track.identity });
+      live.segments.set(track.trackSid, {
+        egressId,
+        identity: track.identity,
+        effects: track.effects === true,
+      });
       this.log(`recording ${live.recordingId}: capturing ${track.identity}`);
     }
   }
@@ -293,10 +300,13 @@ export class RecordingCapture {
         id: this.newId(),
         recordingId: live.recordingId,
         speakerId: segment.identity,
-        speakerName: await this.deps.speakerName(campaignId, segment.identity),
+        speakerName: segment.effects
+          ? 'Sound effects'
+          : await this.deps.speakerName(campaignId, segment.identity),
         filePath: result.file,
         startOffsetMs: Math.max(0, (result.startedAtMs ?? live.startedAt) - live.startedAt),
-        private: false,
+        // Effects are kept for listening only: private tracks are never transcribed or shown.
+        private: segment.effects,
         transcribedAt: null,
       });
     }

@@ -27,6 +27,11 @@ export interface BackendConfig {
    * worker). Setting it switches audio capture on; unset, recording is only a state flag.
    */
   recordingsDir: string | undefined;
+  /**
+   * Testing only: also save the DM's soundboard track as its own private file (never transcribed).
+   * Off by default, because effects are deliberately not part of the session record.
+   */
+  recordSoundboard: boolean;
   /** Directory for uploaded files (handouts, soundboard clips). Unset: only text snippets work. */
   mediaDir: string | undefined;
   /** Built join page (`web/dist`). Unset: no browser pages are served and invites are API-only. */
@@ -67,6 +72,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): BackendConfig 
     databaseUrl: env.DATABASE_URL || undefined,
     valkeyUrl: env.VALKEY_URL || undefined,
     recordingsDir: env.RECORDINGS_DIR || undefined,
+    recordSoundboard: env.RECORD_SOUNDBOARD === '1',
     mediaDir: env.MEDIA_DIR || undefined,
     webDir: env.WEB_DIR || undefined,
     statusDir: env.STATUS_DIR || undefined,

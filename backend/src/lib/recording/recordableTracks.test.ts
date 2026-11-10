@@ -34,6 +34,18 @@ describe('recordableTracks', () => {
     ).toEqual([{ identity: 'dm', trackSid: 'T1' }]);
   });
 
+  it('can keep the soundboard as a separate effects track when the operator switches that on', () => {
+    expect(
+      recordableTracks(
+        [{ identity: 'dm', tracks: [track('T1', 'microphone'), track('T9', SOUNDBOARD_TRACK)] }],
+        { includeEffects: true },
+      ),
+    ).toEqual([
+      { identity: 'dm', trackSid: 'T1' },
+      { identity: 'dm', trackSid: 'T9', effects: true },
+    ]);
+  });
+
   it('skips muted tracks and anything that is not audio', () => {
     expect(
       recordableTracks([

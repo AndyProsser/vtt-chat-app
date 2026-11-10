@@ -16,12 +16,28 @@ interface ParticipantLike {
   tracks: { sid: string; name: string; type: TrackType; muted: boolean }[];
 }
 
-/** The audio tracks worth recording: voices, not muted, and never the soundboard. */
-export function recordableTracks(participants: ParticipantLike[]): RecorderTrack[] {
+/**
+ * The audio tracks worth recording: voices, not muted, and never the soundboard, unless the operator
+ * switched `includeEffects` on (RECORD_SOUNDBOARD, for testing). Then the soundboard comes back flagged
+ * `effects`, to be kept as a private file that is never transcribed.
+ */
+export function recordableTracks(
+  participants: ParticipantLike[],
+  options: { includeEffects?: boolean } = {},
+): RecorderTrack[] {
   return participants.flatMap((p) =>
     p.tracks
-      .filter((t) => t.type === TrackType.AUDIO && !t.muted && t.name !== SOUNDBOARD_TRACK)
-      .map((t) => ({ identity: p.identity, trackSid: t.sid })),
+      .filter(
+        (t) =>
+          t.type === TrackType.AUDIO &&
+          !t.muted &&
+          (t.name !== SOUNDBOARD_TRACK || options.includeEffects === true),
+      )
+      .map((t) =>
+        t.name === SOUNDBOARD_TRACK
+          ? { identity: p.identity, trackSid: t.sid, effects: true }
+          : { identity: p.identity, trackSid: t.sid },
+      ),
   );
 }
 
@@ -34,6 +50,8 @@ export function createLiveKitRecorder(options: {
   apiUrl: string;
   apiKey: string;
   apiSecret: string;
+  /** Also keep the soundboard track, as a private effects file (testing). */
+  includeEffects?: boolean;
 }): TrackRecorder {
   const rooms = new RoomServiceClient(options.apiUrl, options.apiKey, options.apiSecret);
   const egress = new EgressClient(options.apiUrl, options.apiKey, options.apiSecret);
@@ -46,7 +64,7 @@ export function createLiveKitRecorder(options: {
       } catch {
         return []; // the room does not exist until someone joins it
       }
-      return recordableTracks(participants);
+      return recordableTracks(participants, { includeEffects: options.includeEffects });
     },
 
     async start(room, trackSid, filepath) {

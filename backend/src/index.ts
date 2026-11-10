@@ -121,6 +121,7 @@ if (isEntryPoint) {
         apiUrl: config.liveKitApiUrl,
         apiKey: config.liveKitApiKey,
         apiSecret: config.liveKitApiSecret,
+        includeEffects: config.recordSoundboard,
       }),
       records,
       jobs: new PostgresJobQueue(pool),

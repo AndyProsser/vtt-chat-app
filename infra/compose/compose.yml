@@ -73,6 +73,8 @@ services:
       LIVEKIT_HEALTH_URL: http://host.docker.internal:7880
       # Audio capture: Egress (records profile) writes per-speaker files here; the worker reads them.
       RECORDINGS_DIR: /out
+      # Testing only: 1 also saves the DM's sound effects as a private, untranscribed file.
+      RECORD_SOUNDBOARD: ${RECORD_SOUNDBOARD:-}
     extra_hosts: ['host.docker.internal:host-gateway']
     ports: ['127.0.0.1:${BACKEND_PORT:-3000}:3000'] # loopback only: health checks and local probes
 

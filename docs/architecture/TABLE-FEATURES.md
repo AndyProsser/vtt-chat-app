@@ -108,7 +108,7 @@ crossfades, hotkeys, and a public broadcast link (players hear it in the app).
 - **The DM's app plays them, into the call** (changed 2026-11-08 to fix echo; see below). Only the DM's
   client fetches the take (`GET /api/campaigns/:id/sounds/takes/:takeId/file`), mixes it in Rust and sends
   the mix on its own published LiveKit track named `soundboard`, so every player hears effects through the
-  call. Other clients ignore `sound.*` frames. **They are never in a recording**: the backend skips the
+  call. Other clients ignore `sound.*` frames. **They are never in a recording by default** (an operator can switch `RECORD_SOUNDBOARD=1` on for testing: the track is then saved as its own private file, named `<dm>-effects`, listed as "Sound effects", and never transcribed or shown): the backend skips the
   `soundboard` track (`recordableTracks`), and the recording's timeline instead gets a **metadata entry**
   (`sound` / `scene` events with ids, mode, scene name) while audio is being captured.
 - **Catching up:** `sound.state` (running loops you can hear, the scene, master volume, gains) follows every
