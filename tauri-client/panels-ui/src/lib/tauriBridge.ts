@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
+import type { NotifyPrefs } from './notifyPrefs.js';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import type {
   LiveKitConnectionState,
@@ -41,6 +42,8 @@ export const statusGet = () => invoke<Status>('status_get');
 export const statusSet = (status: Status) => invoke<void>('status_set', { status });
 export const awayMinutesGet = () => invoke<number>('away_minutes_get');
 export const awayMinutesSet = (minutes: number) => invoke<void>('away_minutes_set', { minutes });
+export const notifyPrefsGet = () => invoke<NotifyPrefs>('notify_prefs_get');
+export const notifyPrefsSet = (prefs: NotifyPrefs) => invoke<void>('notify_prefs_set', { prefs });
 export function onStatus(handler: (status: Status) => void): Promise<UnlistenFn> {
   return listen<Status>('status:changed', (event) => handler(event.payload));
 }

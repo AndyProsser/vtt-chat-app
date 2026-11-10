@@ -159,7 +159,7 @@ you hear it first.
 ## 9. Sessions and reminders
 
 The DM schedules sessions (date, time, length). You see the next one in **Settings → Sessions**, and you can
-answer **Can make it / Late / Can't**. The server sends reminders 24 hours and 1 hour before. They also show as a desktop notification, even when the app is hidden.
+answer **Can make it / Late / Can't**. The server sends reminders 24 hours and 1 hour before. They also show as a desktop notification, even when the app is hidden. Choose what you want to hear about, and set **quiet hours** (no pop-ups, for example overnight), in **Settings → General → Notifications**.
 
 ## 10. Your character and settings
 

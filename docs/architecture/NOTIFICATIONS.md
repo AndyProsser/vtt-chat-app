@@ -25,8 +25,13 @@ flowchart TD
   3 seconds, so a burst of whispers is one pop-up. Text is cut to one short line.
 - **Defaults I chose, easy to change in `classify`:** public chat gives a dot but never a pop-up (it is constant);
   loot gives a dot only; "someone answered an invitation" is silent.
+- **Settings → General → Notifications (built 2026-11-10):** a switch each for chat (the dot), whispers,
+  handouts and loot, and sessions (reminders, changes, "summary ready"), plus **quiet hours** (a daily window
+  that may cross midnight, 22:00 to 08:00 by default). Quiet hours silence pop-ups only; the dot still shows,
+  because it never interrupts. Stored in `notifications.json` beside the account file, read for each event
+  (a tiny file, and it means a change applies at once with no restart). `classify` takes the choices and the
+  local minute of the day, so the whole policy, quiet hours included, is still one tested pure function.
 - **Not built:** clicking a pop-up to open the window (the desktop plugin does not report clicks on every
-  platform; clicking the tray icon does it); a quiet-hours setting; a per-kind switch in Settings; a count on
-  the Windows taskbar icon.
+  platform; clicking the tray icon does it); a count on the Windows taskbar icon.
 - **Verified:** the policy and the icon are unit-tested. **Not verified:** a real pop-up on each operating
   system (Windows needs the app installed, not run from a build folder, for its toasts to carry its name).

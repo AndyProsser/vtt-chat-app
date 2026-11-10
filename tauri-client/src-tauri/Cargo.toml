@@ -16,6 +16,7 @@ path = "src/main.rs"
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
+chrono = { version = "0.4", default-features = false, features = ["clock"] }
 rust-livekit = { path = "../rust-livekit" }
 rust-sync = { path = "../rust-sync" }
 serde = { version = "1", features = ["derive"] }

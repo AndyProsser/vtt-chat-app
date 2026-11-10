@@ -17,6 +17,8 @@ use std::sync::atomic::{AtomicU32, Ordering};
 use std::time::{Duration, Instant};
 
 use rust_sync::ServerEvent;
+
+use crate::notify_prefs::NotifyPrefs;
 use serde_json::Value;
 use tauri::{AppHandle, Manager};
 
@@ -37,6 +39,10 @@ pub struct Context<'a> {
     pub in_game: bool,
     /// The main window is shown and focused.
     pub attended: bool,
+    /// What the player chose to hear about, and the quiet hours.
+    pub prefs: &'a NotifyPrefs,
+    /// Minutes after local midnight, for the quiet hours.
+    pub minute: u16,
 }
 
 const NOTE_CHARS: usize = 90;
@@ -60,19 +66,28 @@ fn shortened(text: &str) -> String {
 }
 
 pub fn classify(event: &ServerEvent, ctx: &Context<'_>) -> Attention {
+    let mut attention = classify_kinds(event, ctx);
+    if ctx.prefs.is_quiet(ctx.minute) {
+        attention.notify = None;
+    }
+    attention
+}
+
+fn classify_kinds(event: &ServerEvent, ctx: &Context<'_>) -> Attention {
     if ctx.attended {
         return Attention::default();
     }
+    let prefs = ctx.prefs;
     match event {
         ServerEvent::ChatMessage { data, .. } => {
             let (sender, _) = who(data, "from");
             Attention {
-                unread: sender != ctx.self_id,
+                unread: prefs.chat && sender != ctx.self_id,
                 notify: None,
             }
         }
         ServerEvent::Table { t, data } => match t.as_str() {
-            "chat.whisper" if ctx.in_game => {
+            "chat.whisper" if ctx.in_game && prefs.whispers => {
                 let (sender, name) = who(data, "from");
                 if sender == ctx.self_id {
                     return Attention::default();
@@ -85,20 +100,21 @@ pub fn classify(event: &ServerEvent, ctx: &Context<'_>) -> Attention {
                     )),
                 }
             }
-            "handout.shown" if ctx.in_game => Attention {
+            "handout.shown" if ctx.in_game && prefs.table => Attention {
                 unread: true,
                 notify: Some((
                     "A handout was shared".into(),
                     shortened(&text(data, "title")),
                 )),
             },
-            "loot.dropped" if ctx.in_game => Attention {
+            "loot.dropped" if ctx.in_game && prefs.table => Attention {
                 unread: true,
                 notify: None,
             },
             "notification" => match text(data, "kind").as_str() {
                 // Who has answered an invitation is the DM's business, not worth a pop-up.
                 "rsvp.changed" => Attention::default(),
+                _ if !prefs.sessions => Attention::default(),
                 _ => Attention {
                     unread: false,
                     notify: Some((text(data, "title"), shortened(&text(data, "body")))),
@@ -157,10 +173,15 @@ pub fn on_server_event(app: &AppHandle, event: &ServerEvent) {
     }
     let self_id = app.state::<SelfId>().0.lock().unwrap().clone();
     let attended = main_attended(app);
+    let prefs = crate::account::data_dir(app)
+        .map(|dir| NotifyPrefs::load(&dir))
+        .unwrap_or_default();
     let ctx = Context {
         self_id: &self_id,
         in_game: in_game(app),
         attended,
+        prefs: &prefs,
+        minute: crate::notify_prefs::local_minute(),
     };
     let attention = classify(event, &ctx);
     if attention.unread {
@@ -196,11 +217,26 @@ mod tests {
     use serde_json::json;
 
     const ME: &str = "me";
+    static DEFAULTS: NotifyPrefs = NotifyPrefs {
+        chat: true,
+        whispers: true,
+        table: true,
+        sessions: true,
+        quiet: None,
+    };
     fn away(in_game: bool) -> Context<'static> {
         Context {
             self_id: ME,
             in_game,
             attended: false,
+            prefs: &DEFAULTS,
+            minute: 12 * 60,
+        }
+    }
+    fn with_prefs(in_game: bool, prefs: &'static NotifyPrefs) -> Context<'static> {
+        Context {
+            prefs,
+            ..away(in_game)
         }
     }
     fn table(t: &str, data: Value) -> ServerEvent {
@@ -285,6 +321,77 @@ mod tests {
             json!({ "kind": "rsvp.changed", "title": "x" }),
         );
         assert_eq!(classify(&rsvp, &away(true)), Attention::default());
+    }
+
+    #[test]
+    fn a_kind_the_player_turned_off_is_ignored() {
+        static NO_CHAT: NotifyPrefs = NotifyPrefs {
+            chat: false,
+            ..DEFAULTS
+        };
+        static NO_WHISPERS: NotifyPrefs = NotifyPrefs {
+            whispers: false,
+            ..DEFAULTS
+        };
+        static NO_TABLE: NotifyPrefs = NotifyPrefs {
+            table: false,
+            ..DEFAULTS
+        };
+        static NO_SESSIONS: NotifyPrefs = NotifyPrefs {
+            sessions: false,
+            ..DEFAULTS
+        };
+        assert_eq!(
+            classify(&public("them"), &with_prefs(false, &NO_CHAT)),
+            Attention::default()
+        );
+        assert_eq!(
+            classify(&whisper("them"), &with_prefs(true, &NO_WHISPERS)),
+            Attention::default()
+        );
+        let handout = table("handout.shown", json!({ "title": "Map" }));
+        assert_eq!(
+            classify(&handout, &with_prefs(true, &NO_TABLE)),
+            Attention::default()
+        );
+        let loot = table("loot.dropped", json!({ "name": "Ring" }));
+        assert_eq!(
+            classify(&loot, &with_prefs(true, &NO_TABLE)),
+            Attention::default()
+        );
+        let reminder = table(
+            "notification",
+            json!({ "kind": "session.reminder", "title": "Soon", "body": "7 pm" }),
+        );
+        assert_eq!(
+            classify(&reminder, &with_prefs(false, &NO_SESSIONS)),
+            Attention::default()
+        );
+    }
+
+    #[test]
+    fn quiet_hours_silence_pop_ups_but_the_dot_still_shows() {
+        static NIGHT: NotifyPrefs = NotifyPrefs {
+            quiet: Some(crate::notify_prefs::QuietHours {
+                from: 22 * 60,
+                to: 8 * 60,
+            }),
+            ..DEFAULTS
+        };
+        let at_night = Context {
+            minute: 23 * 60,
+            ..with_prefs(true, &NIGHT)
+        };
+        let a = classify(&whisper("them"), &at_night);
+        assert!(a.unread);
+        assert_eq!(a.notify, None);
+        let reminder = table(
+            "notification",
+            json!({ "kind": "session.reminder", "title": "Soon", "body": "7 pm" }),
+        );
+        assert_eq!(classify(&reminder, &at_night).notify, None);
+        let by_day = with_prefs(true, &NIGHT);
+        assert!(classify(&whisper("them"), &by_day).notify.is_some());
     }
 
     #[test]

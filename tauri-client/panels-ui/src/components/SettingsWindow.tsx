@@ -7,6 +7,7 @@ import { AudioSection } from './settings/AudioSection.js';
 import { AppearanceSection } from './settings/AppearanceSection.js';
 import { CampaignTab } from './settings/CampaignTab.js';
 import { GeneralSection } from './settings/GeneralSection.js';
+import { NotificationsSection } from './settings/NotificationsSection.js';
 import { StatusSetting } from './settings/StatusSetting.js';
 import { SessionsSection } from './settings/SessionsSection.js';
 
@@ -37,6 +38,7 @@ export function SettingsContent() {
         <Tabs.Content value="general">
           <AppearanceSection />
           <AudioSection />
+          <NotificationsSection />
           <GeneralSection />
         </Tabs.Content>
       </Tabs.Root>

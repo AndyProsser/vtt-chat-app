@@ -48,6 +48,8 @@ commands.allow = [
   "status_set",
   "away_minutes_get",
   "away_minutes_set",
+  "notify_prefs_get",
+  "notify_prefs_set",
   "player_volume_set",
   "audio_device_choose",
   "account_sign_out",

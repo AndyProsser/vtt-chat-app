@@ -11,6 +11,7 @@ mod consts;
 mod deeplink;
 mod hotkeys;
 mod mic_gate;
+mod notify_prefs;
 mod platform;
 mod recording;
 mod session;
@@ -126,6 +127,8 @@ pub fn run() {
             status_commands::status_set,
             away_watch::away_minutes_get,
             away_watch::away_minutes_set,
+            notify_prefs::notify_prefs_get,
+            notify_prefs::notify_prefs_set,
             commands::player_volume_set,
             account_commands::auth_providers,
             account_commands::account_open_sso,

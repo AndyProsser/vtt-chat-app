@@ -5095,6 +5095,7 @@ version = "0.2.0"
 dependencies = [
  "arboard",
  "base64 0.22.1",
+ "chrono",
  "keyring",
  "png 0.17.16",
  "reqwest 0.12.28",
