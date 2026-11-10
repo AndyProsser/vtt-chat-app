@@ -40,8 +40,8 @@ A sync also stores ability scores, max hit points, armor class and passive perce
 - **Passive perception:** 10 + Wisdom modifier, plus proficiency (or double for expertise), plus `passive-perception` bonuses (Observant).
 - **Armor class:** equipped body armour by type (light + Dexterity, medium + Dexterity up to 2, heavy as is), a shield on top, 10 + Dexterity with none, plus `armor-class` bonuses.
 
-**Not modelled:** Unarmored Defense (Barbarian, Monk), Mage Armor and other spell effects, and conditional bonuses. Those builds will show a different AC from the sheet. The fixtures are written from the known shape of the reply, not captured from the live service, so **compare the first few real sheets against D&D Beyond** and adjust `parseSheet.ts`. A later read that has no ability scores keeps the last good numbers.
+**Modelled:** unarmored AC formulas that add an ability (Unarmored Defense, Draconic Resilience) and per-level hit points (Draconic Resilience, Tough). **Not modelled:** Mage Armor and other spell effects, flat hit-point grants from consumables, and conditional bonuses, so those builds can differ from the sheet. The fixtures are written from the known shape of the reply. One real sheet (a level 5 Draconic Sorcerer, 2026-11-11) was compared by hand and caught the two gaps above; **compare a few more**, ideally a Barbarian or Monk, and adjust `parseSheet.ts`. A later read that has no ability scores keeps the last good numbers.
 
 ## Later (not built)
 
-Spell slots, saving throws and skills, and Unarmored Defense.
+Spell slots, saving throws and skills.

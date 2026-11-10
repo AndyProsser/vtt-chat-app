@@ -87,4 +87,48 @@ describe('parseSheet', () => {
     expect(parseSheet(null)).toBeNull();
     expect(parseSheet({ ...base(), stats: [{ id: 1, value: 10 }] })).toBeNull();
   });
+
+  // Liath, a level 5 Draconic Sorcerer (checked against the live sheet, D&D Beyond character 150276899):
+  // Draconic Resilience gives +1 HP per level and an unarmored AC of 10 + Dex + Cha.
+  const sorcerer = () => ({
+    classes: [{ level: 5, definition: { name: 'Sorcerer' } }],
+    stats: stats(8, 14, 12, 10, 13, 15),
+    bonusStats: [],
+    overrideStats: [],
+    baseHitPoints: 22,
+    bonusHitPoints: null,
+    overrideHitPoints: null,
+    inventory: [],
+    modifiers: {
+      race: [],
+      class: [
+        { type: 'bonus', subType: 'hit-points-per-level', value: 1 },
+        { type: 'set', subType: 'unarmored-armor-class', value: null, statId: 6 },
+      ],
+      feat: [
+        { type: 'bonus', subType: 'dexterity-score', value: 2 },
+        { type: 'bonus', subType: 'wisdom-score', value: 1 },
+        { type: 'bonus', subType: 'charisma-score', value: 1 },
+      ],
+      item: [],
+    },
+  });
+
+  it('adds hit points per level from class features such as Draconic Resilience', () => {
+    expect(parseSheet(sorcerer())?.maxHp).toBe(32); // 22 + 5 x CON(+1) + 5 x 1
+  });
+
+  it('uses an unarmored AC formula (10 + Dex + the named ability) when no armor is worn', () => {
+    expect(parseSheet(sorcerer())?.armorClass).toBe(16); // 10 + 3 + 3
+  });
+
+  it('lets worn armor take over from the unarmored formula', () => {
+    const worn = {
+      ...sorcerer(),
+      inventory: [
+        { equipped: true, definition: { filterType: 'Armor', armorTypeId: 1, armorClass: 11 } },
+      ],
+    };
+    expect(parseSheet(worn)?.armorClass).toBe(14); // leather 11 + Dex 3
+  });
 });

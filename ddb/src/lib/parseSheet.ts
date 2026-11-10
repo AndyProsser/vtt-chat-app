@@ -13,6 +13,7 @@ interface Modifier {
   type: string;
   subType: string;
   value: number | null;
+  statId: number | null;
 }
 
 function allModifiers(data: Record<string, unknown>): Modifier[] {
@@ -23,7 +24,8 @@ function allModifiers(data: Record<string, unknown>): Modifier[] {
     .map((m) => ({
       type: typeof m.type === 'string' ? m.type : '',
       subType: typeof m.subType === 'string' ? m.subType : '',
-      value: num(m.value),
+      value: num(m.value) ?? num(m.fixedValue),
+      statId: num(m.statId),
     }));
 }
 
@@ -37,8 +39,8 @@ function statValue(list: unknown, id: number): number | null {
 /**
  * Works out the numbers the table wants at a glance (ability scores, max hit points, armor class,
  * passive perception) from the raw sheet. D&D Beyond does not send these finished, so this is our
- * arithmetic and can differ from the sheet in unusual builds (e.g. Unarmored Defense, which is not
- * modelled); the app says so wherever it shows them. Returns null when the ability scores are absent
+ * arithmetic and can differ from the sheet in unusual builds (spell effects such as Mage Armor are
+ * not modelled); the app says so wherever it shows them. Returns null when the ability scores are absent
  * rather than guessing.
  */
 export function parseSheet(body: unknown): DdbSheet | null {
@@ -71,10 +73,16 @@ export function parseSheet(body: unknown): DdbSheet | null {
     .reduce((sum, c) => sum + (num(c.level) ?? 0), 0);
   const proficiency = Math.ceil(Math.max(level, 1) / 4) + 1;
 
+  // Features such as Draconic Resilience or the Tough feat add hit points for every level.
+  const perLevelHp = mods
+    .filter((m) => m.type === 'bonus' && m.subType === 'hit-points-per-level')
+    .reduce((sum, m) => sum + (m.value ?? 0), 0);
   const override = num(body.overrideHitPoints);
   const maxHp =
     override ??
-    (num(body.baseHitPoints) ?? 0) + (num(body.bonusHitPoints) ?? 0) + mod(abilities.con) * level;
+    (num(body.baseHitPoints) ?? 0) +
+      (num(body.bonusHitPoints) ?? 0) +
+      (mod(abilities.con) + perLevelHp) * level;
 
   const perception = mods.filter((m) => m.subType === 'perception');
   const proficient = perception.some((m) => m.type === 'proficiency');
@@ -96,6 +104,12 @@ export function parseSheet(body: unknown): DdbSheet | null {
     .map((i) => i.definition as Record<string, unknown>);
   const dex = mod(abilities.dex);
   let armorClass = 10 + dex;
+  // Unarmored Defense (Barbarian, Monk) and Draconic Resilience name an ability to add to 10 + Dex.
+  for (const m of mods)
+    if (m.type === 'set' && m.subType === 'unarmored-armor-class' && m.statId !== null) {
+      const ability = scores[m.statId - 1];
+      if (ability !== undefined) armorClass = Math.max(armorClass, 10 + dex + mod(ability));
+    }
   const body_ = worn.find((d) => d.armorTypeId !== 4);
   if (body_) {
     const ac = num(body_.armorClass) ?? 10;
