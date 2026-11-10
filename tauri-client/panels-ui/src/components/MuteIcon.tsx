@@ -1,4 +1,5 @@
 import { IconButton, Tooltip } from '@radix-ui/themes';
+import { Mic, MicOff } from 'lucide-react';
 import { memo, useCallback } from 'react';
 
 import { useConnected } from '../hooks/useConnected.js';
@@ -6,8 +7,8 @@ import { useMicrophoneMuted } from '../hooks/useMicrophoneMuted.js';
 import { setMicrophoneMuted } from '../lib/tauriBridge.js';
 
 /**
- * Icon-only mute control with a tooltip carrying the text detail. Three visual states: live,
- * muted, and "not connected" (distinct from muted, so a dead mic isn't mistaken for a muted one).
+ * Icon-only mute control with a tooltip carrying the text detail. Three visual states: live (mic),
+ * muted (mic with a slash), and "not connected" (distinct from muted, so a dead mic isn't mistaken for a muted one).
  */
 export const MuteIcon = memo(function MuteIcon() {
   const connected = useConnected();
@@ -36,7 +37,11 @@ export const MuteIcon = memo(function MuteIcon() {
         onClick={handleClick}
         aria-label={label}
       >
-        <span aria-hidden="true">{muted || !connected ? '○' : '●'}</span>
+        {connected && muted ? (
+          <MicOff size={14} aria-hidden="true" />
+        ) : (
+          <Mic size={14} aria-hidden="true" />
+        )}
       </IconButton>
     </Tooltip>
   );
