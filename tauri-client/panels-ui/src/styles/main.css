@@ -1617,3 +1617,75 @@ body,
   color: var(--vtt-ink);
   cursor: pointer;
 }
+
+/* A loot card in chat opens to show the description and what you can do with the item. */
+.vtt-card-loot {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  cursor: default;
+}
+.vtt-card-loot-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+.vtt-card-chevron {
+  margin-left: auto;
+  transition: transform 0.15s;
+}
+.vtt-card-chevron-open {
+  transform: rotate(180deg);
+}
+.vtt-card-loot-more {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.vtt-loot-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .vtt-card-chevron {
+    transition: none;
+  }
+}
+
+/* A loot card in chat opens to show the description and what you can do with the item. */
+.vtt-card-loot {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  cursor: default;
+}
+.vtt-card-loot-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+.vtt-card-chevron {
+  margin-left: auto;
+  transition: transform 0.15s;
+}
+.vtt-card-chevron-open {
+  transform: rotate(180deg);
+}
+.vtt-card-loot-more {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.vtt-loot-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .vtt-card-chevron {
+    transition: none;
+  }
+}

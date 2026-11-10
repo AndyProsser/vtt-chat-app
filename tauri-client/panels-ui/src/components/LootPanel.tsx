@@ -1,15 +1,4 @@
-import {
-  Backpack,
-  Hand,
-  Inbox,
-  List,
-  Split,
-  Trash2,
-  User,
-  UserCheck,
-  UserPlus,
-  Users,
-} from 'lucide-react';
+import { Backpack, Inbox, List, Split, Trash2, User, UserCheck } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 import { useAccount } from '../hooks/useAccount.js';
@@ -22,6 +11,7 @@ import { itemLabel } from '../lib/timeline.js';
 import { accountErrorMessage, campaignApi } from '../lib/tauriBridge.js';
 import type { LootItem } from '../types/index.js';
 import { ItemIcon } from './ItemIcon.js';
+import { LootActions } from './LootActions.js';
 import { LootWorkbench } from './LootWorkbench.js';
 import { ToolButton } from './ToolButton.js';
 
@@ -47,7 +37,6 @@ export function LootPanel() {
   const players = useMemo(() => members.filter((m) => m.role === 'player'), [members]);
   const { data, error, reload } = useCampaignQuery<{ loot: LootItem[] }>('loot', ['loot.']);
   const [filter, setFilter] = useState<LootFilter>('all');
-  const [giving, setGiving] = useState<string>();
   const [splitting, setSplitting] = useState<string>();
   const [chosen, setChosen] = useState<string[]>([]);
   const [actionError, setActionError] = useState<string>();
@@ -114,30 +103,13 @@ export function LootPanel() {
                 {item.description && <span className="vtt-muted">{item.description}</span>}
               </div>
               <div className="vtt-drawer-row">
-                {open && !dm && (
-                  <>
-                    <ToolButton
-                      label="Take it for yourself"
-                      onClick={() =>
-                        void run(() =>
-                          campaignApi('POST', `loot/${item.id}/claim`, { for: 'self' }),
-                        )
-                      }
-                    >
-                      <Hand size={14} />
-                    </ToolButton>
-                    <ToolButton
-                      label="Take it for the party"
-                      onClick={() =>
-                        void run(() =>
-                          campaignApi('POST', `loot/${item.id}/claim`, { for: 'party' }),
-                        )
-                      }
-                    >
-                      <Users size={14} />
-                    </ToolButton>
-                  </>
-                )}
+                <LootActions
+                  item={item}
+                  selfId={status?.userId ?? null}
+                  dm={dm}
+                  players={players}
+                  onDone={reload}
+                />
                 {open && item.kind === 'coin' && (
                   <ToolButton label="Split the coin equally…" onClick={() => startSplit(item.id)}>
                     <Split size={14} />
@@ -154,25 +126,6 @@ export function LootPanel() {
                 )}
               </div>
             </div>
-            {giving === item.id && (
-              <div className="vtt-form-row" role="group" aria-label="Give to">
-                {players.map((p) => (
-                  <ToolButton
-                    key={p.userId}
-                    label={`Give it to ${p.character?.name ?? p.displayName}`}
-                    text={p.character?.name ?? p.displayName}
-                    onClick={() =>
-                      void run(() =>
-                        campaignApi('POST', `loot/${item.id}/assign`, { userId: p.userId }),
-                      ).then(() => setGiving(undefined))
-                    }
-                  >
-                    <UserPlus size={13} />
-                  </ToolButton>
-                ))}
-                {players.length === 0 && <span className="vtt-muted">No players yet.</span>}
-              </div>
-            )}
             {splitting === item.id && (
               <fieldset className="vtt-split">
                 <legend>

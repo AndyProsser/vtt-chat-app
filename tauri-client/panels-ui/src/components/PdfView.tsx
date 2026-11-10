@@ -25,7 +25,7 @@ export function PdfView({ dataUrl }: { dataUrl: string }) {
       const pdfjs = await import('pdfjs-dist');
       const worker = (await import('pdfjs-dist/build/pdf.worker.min.mjs?url')).default;
       pdfjs.GlobalWorkerOptions.workerSrc = worker;
-      const task = pdfjs.getDocument({ data: bytes, isEvalSupported: false });
+      const task = pdfjs.getDocument({ data: bytes });
       destroy = () => void task.destroy();
       const doc = await task.promise;
       if (!cancelled) {

@@ -295,6 +295,11 @@ describe('party inventory cards', () => {
     });
     expect(state.cards[0]).toMatchObject({ coin: true, title: 'gp', quantity: 10 });
     state = applyEvent(state, {
+      t: 'loot.dropped',
+      d: { itemId: 'r1', name: 'Ring', quantity: 1, description: 'Slightly smug.' },
+    });
+    expect(state.cards.at(-1)).toMatchObject({ title: 'Ring', description: 'Slightly smug.' });
+    state = applyEvent(state, {
       t: 'loot.claimed',
       d: {
         itemId: 'c1',
@@ -363,5 +368,28 @@ describe('roster.update', () => {
       avatarUrl: 'emblem:bow',
     });
     expect(next.chat).toHaveLength(1);
+  });
+});
+
+describe('loot returned to the table', () => {
+  it('turns a claimed card back into an available one, and a store keeps who holds it', () => {
+    let state = applyEvent(emptyTable, {
+      t: 'loot.dropped',
+      d: { itemId: 'i9', name: 'Key', quantity: 1 },
+    });
+    state = applyEvent(state, {
+      t: 'loot.claimed',
+      d: { itemId: 'i9', name: 'Key', quantity: 1, claimedBy: 'p1', claimedFor: 'self' },
+    });
+    state = applyEvent(state, {
+      t: 'loot.claimed',
+      d: { itemId: 'i9', name: 'Key', quantity: 1, claimedBy: 'p1', claimedFor: 'party' },
+    });
+    expect(state.cards.at(-1)).toMatchObject({ claimedBy: 'p1', claimedFor: 'party' });
+    state = applyEvent(state, {
+      t: 'loot.claimed',
+      d: { itemId: 'i9', name: 'Key', quantity: 1, claimedBy: null, claimedFor: null },
+    });
+    expect(state.cards.at(-1)).toMatchObject({ claimedBy: null });
   });
 });

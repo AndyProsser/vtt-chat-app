@@ -84,6 +84,8 @@ export interface TableCard {
   kind: 'loot' | 'handout';
   title: string;
   quantity?: number;
+  /** What a loot item is, when the server sent it (shown when the card is opened). */
+  description?: string;
   /** A pile of coin rather than an item (`title` is then the currency). */
   coin?: boolean;
   itemType?: ItemType;

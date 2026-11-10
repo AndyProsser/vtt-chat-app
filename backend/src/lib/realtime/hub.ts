@@ -241,6 +241,7 @@ export class Hub {
       id: string;
       campaignId: string;
       name: string;
+      description?: string;
       quantity: number;
       claimedBy: string | null;
       kind: 'item' | 'coin';
@@ -254,6 +255,8 @@ export class Hub {
       campaignId: item.campaignId,
       itemId: item.id,
       name: item.name,
+      // The start of the description, for the chat card's expanded view.
+      ...(item.description ? { description: item.description.slice(0, 500) } : {}),
       quantity: item.quantity,
       kind: item.kind,
       itemType: item.itemType,

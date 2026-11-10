@@ -104,6 +104,28 @@ own sheets; the app only records who took what.
 - `loot.claimed` carries `kind`, `claimedFor` and `split`, which is what the chat cards and the
   "taken by …" wording are built from.
 
+### Taking, storing and returning (decided and built 2026-11-10)
+
+Loot cards in chat open (chevron) to show the description and the buttons that fit the person; the
+inventory window uses the same rules (`lib/lootActions.ts`), so they cannot disagree:
+
+| Item is                         | Player sees   | DM sees |
+| ------------------------------- | ------------- | ------- |
+| Unclaimed                       | Take, Store   | Give…   |
+| Taken by me, or given to me     | Store, Return | nothing |
+| Stored by me (party stash)      | Return        | nothing |
+| Someone else's, or a coin split | nothing       | nothing |
+
+- **Take** claims it for yourself; **Store** moves it into the party stash (from the table it claims it
+  for the party; from yours it changes `claimed_for` to `party`); **Return** puts it back as unclaimed
+  from either state. Whoever took or stored it can return it, nobody else; the DM can still remove an
+  item outright.
+- The DM can only **give to one named player**, never to the party. Players always see unclaimed loot
+  (the inventory window's "Still in the pool").
+- Server: `POST …/loot/:id/store` and `…/return` (one conditional `UPDATE` each, so a race has one
+  winner; both reuse the `loot.claimed` notice, with nobody holding it after a return). The notice now
+  carries the start of the description for the chat card.
+
 ## DM soundboard (built)
 
 A mini version of [thaumaturgy.app](https://thaumaturgy.app/), as requested, with **the DM's own library**.

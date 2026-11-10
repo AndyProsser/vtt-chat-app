@@ -225,7 +225,7 @@ function applyCard(state: TableState, type: string, d: Obj): TableState {
       split: asSplit(d.split),
     };
     if (existing) {
-      return existing.claimedBy === claim.claimedBy
+      return existing.claimedBy === claim.claimedBy && existing.claimedFor === claim.claimedFor
         ? state
         : { ...state, cards: patchCard(state.cards, id, claim) };
     }
@@ -244,6 +244,7 @@ function newCard(state: TableState, id: string, kind: TableCard['kind'], d: Obj)
         kind,
         title,
         quantity: Number(d.quantity ?? 1),
+        ...(typeof d.description === 'string' ? { description: d.description } : {}),
         ...(d.kind === 'coin' ? { coin: true } : {}),
         ...(typeof d.itemType === 'string' ? { itemType: d.itemType as ItemType } : {}),
         rarity: typeof d.rarity === 'string' ? (d.rarity as Rarity) : null,

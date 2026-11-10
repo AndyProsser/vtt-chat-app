@@ -22,7 +22,7 @@ export function ChatView({ selfId }: { selfId: string | null }) {
           e.type === 'line' ? (
             <ChatMessage key={e.line.id} line={e.line} members={members} selfId={selfId} />
           ) : (
-            <ChatCard key={e.card.id} card={e.card} members={members} />
+            <ChatCard key={e.card.id} card={e.card} members={members} selfId={selfId} />
           ),
         )}
         <div ref={end} />

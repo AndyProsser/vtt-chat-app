@@ -67,6 +67,7 @@ export interface AppDeps {
         id: string;
         campaignId: string;
         name: string;
+        description?: string;
         quantity: number;
         claimedBy: string | null;
         kind: 'item' | 'coin';
