@@ -900,7 +900,7 @@ export class Hub {
   }
 
   private async snapshot(campaignId: string, viewerIsDm: boolean, viewerId: string) {
-    const { store, replay } = this.options;
+    const { replay } = this.options;
     const members = await this.rosterMembers(campaignId, viewerIsDm);
 
     const recent = await replay.recent(campaignId, 50);

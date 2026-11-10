@@ -133,9 +133,13 @@ function parseCreateFlags(flags: string[]): {
   let admin = false;
   for (const flag of flags) {
     if (flag === '--name') collecting = true;
-    else if (flag === '--accept-consent') ((collecting = false), (acceptConsent = true));
-    else if (flag === '--admin') ((collecting = false), (admin = true));
-    else if (flag.startsWith('--')) throw new SettingError(`unknown option ${flag}`);
+    else if (flag === '--accept-consent') {
+      collecting = false;
+      acceptConsent = true;
+    } else if (flag === '--admin') {
+      collecting = false;
+      admin = true;
+    } else if (flag.startsWith('--')) throw new SettingError(`unknown option ${flag}`);
     else if (collecting) words.push(flag);
   }
   return { name: words.join(' ').trim(), acceptConsent, admin };
