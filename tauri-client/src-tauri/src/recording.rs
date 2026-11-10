@@ -82,6 +82,8 @@ impl Coordinator {
 
     /// Whether this player's audio may be captured right now. The user's own mute state is separate
     /// and independent: audio flows only if both allow it.
+    // Not read outside tests yet: the capture gate is not wired to the audio engine.
+    #[cfg_attr(not(test), allow(dead_code))]
     pub fn capture_allowed(&self) -> bool {
         self.pending.is_none()
     }

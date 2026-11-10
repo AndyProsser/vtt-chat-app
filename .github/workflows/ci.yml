@@ -64,5 +64,10 @@ jobs:
             libssl-dev \
             libasound2-dev \
             patchelf
+      # tauri::generate_context! fails the build if the frontend folder named in tauri.conf.json is
+      # missing (CI failed this way 2026-11-10: "frontendDist ... doesn't exist"). Linting only needs
+      # the folder to exist, not the built panels, so an empty one is enough here.
+      - name: Create the empty frontend folder Tauri expects
+        run: mkdir -p panels-ui/dist
       - run: cargo fmt --all -- --check
       - run: cargo clippy --workspace --all-targets --all-features -- -D warnings
