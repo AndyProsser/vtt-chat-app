@@ -1387,6 +1387,11 @@ body,
   pointer-events: none;
 }
 
+.vtt-tool.vtt-status-trigger {
+  border-color: transparent;
+  min-width: 24px;
+  padding: 0 4px;
+}
 .vtt-status-dot {
   display: inline-block;
   width: 9px;

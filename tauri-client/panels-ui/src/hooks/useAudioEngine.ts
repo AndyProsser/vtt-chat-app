@@ -1,10 +1,15 @@
 import { useEffect, useState } from 'react';
 
 import { isPageVisible, watchPageVisibility } from '../lib/pageVisibility.js';
+import { useConnected } from './useConnected.js';
 import { audioEngine, micLevel, type AudioEngineState } from '../lib/tauriBridge.js';
 
-/** The chosen and running audio engine, read once when the component appears. */
+/**
+ * The chosen and running audio engine. Read when the component appears and again whenever voice is
+ * joined or left, because the running engine (`active`) is only known once a call has started.
+ */
 export function useAudioEngine(): AudioEngineState | undefined {
+  const connected = useConnected();
   const [state, setState] = useState<AudioEngineState>();
   useEffect(() => {
     let cancelled = false;
@@ -15,7 +20,7 @@ export function useAudioEngine(): AudioEngineState | undefined {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [connected]);
   return state;
 }
 

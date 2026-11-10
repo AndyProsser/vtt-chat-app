@@ -140,6 +140,8 @@ pub fn refresh_tray(app: &AppHandle) {
     };
     let mic_closed = app.state::<MicGate>().effective();
     tray::apply(app, tray::tray_state(connected, mic_closed, indicator));
+    // The menu's Mute / Unmute label follows the same state.
+    tray::refresh_menu(app);
 }
 
 /// `https://host` → `wss://host/ws`, `http://host:4000` → `ws://host:4000/ws`.
