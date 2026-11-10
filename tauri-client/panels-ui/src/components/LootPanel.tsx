@@ -12,6 +12,7 @@ import { accountErrorMessage, campaignApi } from '../lib/tauriBridge.js';
 import type { LootItem } from '../types/index.js';
 import { ItemIcon } from './ItemIcon.js';
 import { LootActions } from './LootActions.js';
+import { PlayerList } from './PlayerList.js';
 import { LootWorkbench } from './LootWorkbench.js';
 import { ToolButton } from './ToolButton.js';
 
@@ -131,21 +132,14 @@ export function LootPanel() {
                 <legend>
                   Split {item.quantity} {item.name} equally among
                 </legend>
-                {players.map((p) => (
-                  <label key={p.userId}>
-                    <input
-                      type="checkbox"
-                      checked={chosen.includes(p.userId)}
-                      onChange={(e) =>
-                        setChosen((c) =>
-                          e.target.checked ? [...c, p.userId] : c.filter((id) => id !== p.userId),
-                        )
-                      }
-                    />
-                    {p.character?.name ?? p.displayName}
-                    {!p.online && <span className="vtt-muted"> (offline)</span>}
-                  </label>
-                ))}
+                <PlayerList
+                  mode="multi"
+                  label="Split among"
+                  players={players}
+                  selected={chosen}
+                  onChange={setChosen}
+                  hint={(p) => (p.online ? undefined : 'offline')}
+                />
                 <div className="vtt-drawer-row">
                   <ToolButton
                     label={`Split among ${chosen.length}`}

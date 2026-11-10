@@ -1689,3 +1689,73 @@ body,
     transition: none;
   }
 }
+
+/* Choosing players: a row each (portrait, character, person), six rows tall, then it scrolls. */
+.vtt-pick {
+  --pick-row: 44px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: calc(var(--pick-rows) * var(--pick-row) + (var(--pick-rows) - 1) * 4px);
+  overflow-y: auto;
+}
+.vtt-pick-row {
+  all: unset;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: var(--pick-row);
+  padding: 0 10px;
+  border: 1px solid var(--vtt-edge);
+  border-radius: var(--vtt-radius-control);
+  background: var(--vtt-bubble);
+  cursor: pointer;
+}
+.vtt-pick-row:hover,
+.vtt-pick-row:focus-visible {
+  border-color: var(--vtt-gold);
+}
+.vtt-pick-row[aria-checked='true'] {
+  border-color: var(--vtt-gold);
+  background: color-mix(in srgb, var(--vtt-gold) 12%, var(--vtt-bubble));
+}
+.vtt-pick-names {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+  line-height: 1.2;
+}
+.vtt-pick-names b,
+.vtt-pick-names span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.vtt-pick-check {
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  border: 1px solid var(--vtt-gold);
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+.vtt-pick-check[data-on='true'] {
+  background: var(--vtt-gold);
+  color: var(--vtt-bubble);
+}
+.vtt-select-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+.vtt-pick-none {
+  margin-bottom: 4px;
+}

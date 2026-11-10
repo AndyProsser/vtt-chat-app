@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { ACTION_LABEL, lootActions, type LootAction } from '../lib/lootActions.js';
 import { accountErrorMessage, campaignApi } from '../lib/tauriBridge.js';
 import type { Member } from '../types/index.js';
+import { PlayerList } from './PlayerList.js';
 import { ToolButton } from './ToolButton.js';
 
 const ICON = { take: Hand, store: Users, return: Undo2, give: UserPlus } as const;
@@ -81,21 +82,14 @@ export function LootActions({
         })}
       </div>
       {giveOpen && (
-        <div className="vtt-form-row" role="group" aria-label="Give to">
-          {players.map((p) => (
-            <ToolButton
-              key={p.userId}
-              label={`Give it to ${p.character?.name ?? p.displayName}`}
-              text={p.character?.name ?? p.displayName}
-              onClick={() =>
-                void run(() => campaignApi('POST', `loot/${item.id}/assign`, { userId: p.userId }))
-              }
-            >
-              <UserPlus size={13} />
-            </ToolButton>
-          ))}
-          {players.length === 0 && <span className="vtt-muted">No players yet.</span>}
-        </div>
+        <PlayerList
+          mode="pick"
+          label="Give to"
+          players={players}
+          onPick={(userId) =>
+            void run(() => campaignApi('POST', `loot/${item.id}/assign`, { userId }))
+          }
+        />
       )}
       {error && (
         <div className="vtt-composer-error" role="alert" style={{ position: 'static' }}>

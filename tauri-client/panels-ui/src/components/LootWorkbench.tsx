@@ -12,6 +12,7 @@ import {
 import { accountErrorMessage, campaignApi } from '../lib/tauriBridge.js';
 import type { ItemType, LootDraft, Member, Rarity, SrdItem } from '../types/index.js';
 import { ItemIcon } from './ItemIcon.js';
+import { PlayerSelect } from './PlayerSelect.js';
 import { ToolButton } from './ToolButton.js';
 
 /**
@@ -137,20 +138,13 @@ export function LootWorkbench({
                 {d.kind === 'item' && d.quantity > 1 ? ` ×${d.quantity}` : ''}
                 {d.rarity ? <span className="vtt-muted"> · {rarityLabel(d.rarity)}</span> : null}
               </span>
-              <select
-                className="vtt-select"
-                aria-label={`Give ${d.name} to`}
-                title="Give it straight to a player, or leave it in the pool"
+              <PlayerSelect
+                label={`Give ${d.name} to`}
+                noneLabel="Pool"
+                players={players}
                 value={d.assignTo ?? ''}
-                onChange={(e) => setDrafts((l) => replaceAt(l, i, withAssignee(d, e.target.value)))}
-              >
-                <option value="">Pool</option>
-                {players.map((p) => (
-                  <option key={p.userId} value={p.userId}>
-                    {p.character?.name ?? p.displayName}
-                  </option>
-                ))}
-              </select>
+                onChange={(userId) => setDrafts((l) => replaceAt(l, i, withAssignee(d, userId)))}
+              />
               <ToolButton
                 label="Re-roll this one"
                 disabled={busy}
