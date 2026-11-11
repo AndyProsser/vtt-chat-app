@@ -59,50 +59,45 @@ The app is called **VTT Chat** and has its icon in the application menu, the tas
 ### AppImage: menu entry and icon
 
 An AppImage is a single file, so the desktop does not know it exists: with nothing else, GNOME and KDE show a
-generic icon in the dock and the app is missing from the application menu. There are two ways to fix that, and
-you only need one. Or skip all of this and use the `.deb` or `.rpm`.
+generic icon in the dock and the app is missing from the application menu. One command fixes that. Or skip all
+of this and use the `.deb` or `.rpm`.
 
-**1. A helper app (works for every AppImage, not just this one).** Either one adds the entry and icon when you
-open the file. **AppImageLauncher is the one to try first**: you install it once and every AppImage you open
-after that is handled the same way.
-
-|                  | AppImageLauncher                                                                                                                                                                 | Gear Lever                                                                                     |
-| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| What it is       | A small system service. Opening any AppImage asks "Integrate and run" or "Run once"; integrating moves the file to `~/Applications` and adds the entry and icon.                 | A window that lists your AppImages and manages each one (integrate, update, remove).           |
-| Install          | Download the `.deb` (Ubuntu, Debian) or `.rpm` (Fedora) from the [releases page](https://github.com/TheAssassin/AppImageLauncher/releases) and install it as in the table above. | `flatpak install flathub it.mijorus.gearlever`, or search "Gear Lever" in the App Center.      |
-| After installing | Double-click the VTT Chat AppImage and choose **Integrate and run**.                                                                                                             | Open Gear Lever, drop the AppImage on it, and click **Unlock**, then **Move to the app menu**. |
-| Good to know     | Its newest builds are labelled beta (3.0), but they are what the project publishes for current Ubuntu and Fedora. Log out and in once after installing.                          | Comes from Flathub, so it updates with your system and needs no `sudo`.                        |
-
-**2. A script (no extra software).** Do not combine this with AppImageLauncher: it watches `~/Applications` and
-adds its own entry for every AppImage it finds there, so you would get two icons. This script keeps the file in
-`~/.local/opt` instead and writes only inside your home folder (no `sudo`).
+Download the AppImage (it lands in `~/Downloads`), then run:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/AndyProsser/vtt-chat-app/main/tauri-client/scripts/install-appimage.sh -o install-appimage.sh
-less install-appimage.sh          # read it first if you like
-bash install-appimage.sh          # uses the newest VTT.Chat*.AppImage in ~/Downloads, or pass its path
+curl -fsSL https://raw.githubusercontent.com/AndyProsser/vtt-chat-app/main/tauri-client/scripts/install-appimage.sh | bash
 ```
 
-It copies the AppImage to `~/.local/opt/VTT.Chat.AppImage`, pulls the real icon out of it, and writes
-`~/.local/share/applications/vtt-chat-app.desktop` with the icon given by full path (so no icon cache can hide it).
-Log out and back in once, then open **VTT Chat** from the menu. To update by hand, run the script again with the
-new file. (The app's own updater replaces the file in place and the entry keeps working.)
+Log out and back in once, then open **VTT Chat** from the menu.
 
-**Undo it:** `bash install-appimage.sh --remove`.
+> **"curl: command not found"?** Minimal installs of Ubuntu and Debian do not include `curl`. Install it with
+> `sudo apt install curl` (Fedora: `sudo dnf install curl`), or use `wget`, which is often already there:
+> `wget -qO- https://raw.githubusercontent.com/AndyProsser/vtt-chat-app/main/tauri-client/scripts/install-appimage.sh | bash`
 
-**Two icons, or no icon?** Look at what is in your own applications folder:
+What it does, all inside your home folder (no `sudo`): copies the newest `VTT.Chat*.AppImage` in `~/Downloads` to
+`~/.local/opt/VTT.Chat.AppImage`, pulls the real icon out of it, and writes
+`~/.local/share/applications/vtt-chat-app.desktop` with the icon given by full path, so no icon cache can hide it.
+The script is short and readable if you would rather check it first (download it with `curl -fsSL URL -o install-appimage.sh`,
+look at it, then `bash install-appimage.sh`).
+
+| To…                                 | Run                                                                                      |
+| ----------------------------------- | ---------------------------------------------------------------------------------------- |
+| Use an AppImage from somewhere else | add `-s -- /path/to/VTT.Chat.AppImage` after `bash` (so `… \| bash -s -- /path/to/file`) |
+| Update to a newer AppImage by hand  | download it and run the same command again                                               |
+| Remove it                           | add `-s -- --remove` after `bash`                                                        |
+
+The app's own updater replaces the file in place, and the entry keeps working.
+
+**No icon, or a generic one?** Check what is in your applications folder:
 
 ```bash
-ls ~/.local/share/applications | grep -i -E 'vtt|appimagekit'
+ls ~/.local/share/applications | grep -i vtt
 ```
 
-- Entries starting `appimagekit_` were made by AppImageLauncher; `vtt-chat-app.desktop` is the manual one.
-  `vtt-chat-app-handler.desktop` is the app's own link handler and is hidden; leave it. Keep one of the other
-  two and delete the rest. With AppImageLauncher, remove its entry properly with `ail-cli unintegrate <the AppImage>`
-  (or its settings window), not by deleting files.
-- If an icon still shows as a generic gear after you fixed the files, the desktop is showing an old cached
-  picture. Run `gtk-update-icon-cache -f -t ~/.local/share/icons/hicolor` (ignore an error if that folder does
-  not exist), then log out and back in. A running GNOME session on Wayland cannot reload its icons any other way.
+`vtt-chat-app.desktop` is the entry the script made. `vtt-chat-app-handler.desktop` is the app's own hidden link
+handler; leave it. If an icon still looks generic after that, the desktop is showing an old cached picture. Run
+`gtk-update-icon-cache -f -t ~/.local/share/icons/hicolor` (ignore an error if that folder does not exist), then
+log out and back in. A running GNOME session on Wayland cannot reload its icons any other way.
 
 ### Linux: I cannot see the tray icon
 

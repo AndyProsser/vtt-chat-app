@@ -6,7 +6,7 @@
 #   install-appimage.sh [path/to/VTT.Chat_x.y.z_amd64.AppImage]   (default: the newest one in ~/Downloads)
 #   install-appimage.sh --remove                                  (undo everything this script did)
 #
-# Do not use it together with AppImageLauncher or Gear Lever: pick one.
+# One line, from anywhere:  curl -fsSL <raw URL of this file> | bash          (add  -s -- --remove  to undo)
 set -euo pipefail
 
 data="${XDG_DATA_HOME:-$HOME/.local/share}"
