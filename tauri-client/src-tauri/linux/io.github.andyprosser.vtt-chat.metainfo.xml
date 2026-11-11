@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- AppStream data: what software centres (GNOME Software, KDE Discover, Ubuntu's App Center) show for the
+     app. Installed with the .deb and .rpm. Keep the description in step with README.md. -->
+<component type="desktop-application">
+  <id>io.github.andyprosser.vtt-chat</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>AGPL-3.0-only</project_license>
+  <name>VTT Chat</name>
+  <summary>Voice, chat and session records for tabletop groups</summary>
+  <developer id="io.github.andyprosser">
+    <name>Andy Prosser</name>
+  </developer>
+  <description>
+    <p>
+      VTT Chat is a small system-tray app for tabletop groups. It gives you open-mic group voice, chat and
+      whispers, handouts and loot, and a searchable record of every session with summaries.
+    </p>
+    <p>
+      It connects to a server that your own group hosts, so nothing depends on a company's cloud.
+    </p>
+  </description>
+  <launchable type="desktop-id">VTT Chat.desktop</launchable>
+  <icon type="stock">vtt-chat-app</icon>
+  <url type="homepage">https://github.com/AndyProsser/vtt-chat-app</url>
+  <url type="bugtracker">https://github.com/AndyProsser/vtt-chat-app/issues</url>
+  <provides>
+    <binary>vtt-chat-app</binary>
+  </provides>
+  <categories>
+    <category>Network</category>
+    <category>Chat</category>
+  </categories>
+  <content_rating type="oars-1.1" />
+</component>

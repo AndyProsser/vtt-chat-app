@@ -47,3 +47,22 @@ fn every_bundle_icon_exists_and_each_platform_has_its_format() {
 fn linux_launchers_file_it_under_a_menu_category() {
     assert!(conf()["bundle"]["category"].is_string());
 }
+
+#[test]
+fn linux_packages_ship_their_appstream_data() {
+    // Software centres take the display name, icon and publisher from this file, not from the package name.
+    let conf = conf();
+    for kind in ["deb", "rpm"] {
+        let files = conf["bundle"]["linux"][kind]["files"].as_object().unwrap();
+        let (target, source) = files.iter().next().unwrap();
+        assert!(
+            target.starts_with("/usr/share/metainfo/"),
+            "{kind}: {target}"
+        );
+        let text = std::fs::read_to_string(
+            Path::new(env!("CARGO_MANIFEST_DIR")).join(source.as_str().unwrap()),
+        )
+        .unwrap();
+        assert!(text.contains("<name>VTT Chat</name>"));
+    }
+}

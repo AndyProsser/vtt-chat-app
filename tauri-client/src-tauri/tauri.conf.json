@@ -43,7 +43,21 @@
     "copyright": "Copyright (c) 2026 Andy Prosser",
     "targets": "all",
     "windows": {
-      "nsis": { "installMode": "both" }
+      "nsis": {
+        "installMode": "both"
+      }
+    },
+    "linux": {
+      "deb": {
+        "files": {
+          "/usr/share/metainfo/io.github.andyprosser.vtt-chat.metainfo.xml": "linux/io.github.andyprosser.vtt-chat.metainfo.xml"
+        }
+      },
+      "rpm": {
+        "files": {
+          "/usr/share/metainfo/io.github.andyprosser.vtt-chat.metainfo.xml": "linux/io.github.andyprosser.vtt-chat.metainfo.xml"
+        }
+      }
     }
   }
 }

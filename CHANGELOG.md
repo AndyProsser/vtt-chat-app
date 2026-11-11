@@ -22,6 +22,8 @@ the GitHub release notes and refuses to build a release without one. How to writ
   (in your own `~/.local/share`, nothing system-wide), so the dock and menu show the VTT Chat icon. Move the
   AppImage and it updates the entry the next time it starts. If AppImageLauncher, Gear Lever or similar has
   already added it, VTT Chat leaves their entry alone. The install guide covers those helper apps and doing it by hand.
+- The `.deb` and `.rpm` ship AppStream data, so software centres (GNOME Software, KDE Discover) can show the
+  name "VTT Chat", its icon and publisher once the app is installed.
 - Linux packages now carry a description, publisher, homepage and license, so software centres show them
   instead of "(none)" and "unknown".
 - Linux: the app is filed under a menu category and ships icons at several sizes; the macOS build now carries a
