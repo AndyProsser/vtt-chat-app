@@ -62,7 +62,7 @@ export function ConnectApp({ server }: { server: string }) {
 
   return (
     <Flex direction="column" gap="2" className="connect" align="start">
-      <Button asChild size="3">
+      <Button asChild size="3" style={{ width: '100%' }}>
         <a href={link}>Open VTT Chat</a>
       </Button>
       <Button
