@@ -454,6 +454,94 @@ body,
   height: 92px;
   font-size: 30px;
 }
+/* The avatar is the "change picture" control: a soft overlay with a camera fades in on hover or focus. */
+.vtt-profile-pic {
+  position: relative;
+  flex: none;
+}
+.vtt-profile-av-btn {
+  position: relative;
+  display: inline-flex;
+  cursor: pointer;
+  border-radius: var(--vtt-avatar-radius);
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.vtt-profile-av-over {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--vtt-avatar-radius);
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+}
+.vtt-profile-av-btn:hover,
+.vtt-profile-av-btn:focus-visible {
+  transform: scale(1.03);
+  box-shadow: 0 0 0 3px var(--vtt-gold);
+  outline: none;
+}
+.vtt-profile-av-btn:hover .vtt-profile-av-over,
+.vtt-profile-av-btn:focus-visible .vtt-profile-av-over {
+  opacity: 1;
+}
+.vtt-profile-pic-x {
+  position: absolute;
+  right: -6px;
+  bottom: -6px;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--vtt-bg);
+  border: 1px solid var(--vtt-edge);
+}
+@media (prefers-reduced-motion: reduce) {
+  .vtt-profile-av-btn,
+  .vtt-profile-av-over {
+    transition: none;
+  }
+  .vtt-profile-av-btn:hover,
+  .vtt-profile-av-btn:focus-visible {
+    transform: none;
+  }
+}
+/* Settings sections: heading + muted description, then a rounded card of rows split by hairlines. */
+.vtt-settings-section {
+  margin-top: 22px;
+}
+.vtt-section-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 8px;
+}
+.vtt-card {
+  display: flex;
+  flex-direction: column;
+  padding: 2px 14px;
+  border: 1px solid var(--vtt-edge);
+  border-radius: var(--vtt-radius-bubble);
+  background: var(--vtt-bubble);
+}
+.vtt-card .vtt-setting-row {
+  min-height: 52px;
+  padding-block: 8px;
+}
+.vtt-card > * + * {
+  border-top: 1px solid color-mix(in srgb, var(--vtt-edge) 55%, transparent);
+}
+.vtt-card .vtt-muted,
+.vtt-card-note {
+  padding-block: 8px;
+}
 /* The player name: a button styled as text, a dotted underline says "click to edit". */
 .vtt-name-edit {
   align-self: flex-start;

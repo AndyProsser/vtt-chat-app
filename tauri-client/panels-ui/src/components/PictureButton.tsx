@@ -1,11 +1,23 @@
 import { ImagePlus } from 'lucide-react';
-import { useState } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 
 import { shrinkToSquare } from '../lib/avatarImages.js';
 import { accountErrorMessage, avatarUpload } from '../lib/tauriBridge.js';
 
 /** Pick a picture; it is shrunk to a 256-pixel square here, uploaded, and its id handed back. */
-export function PictureButton({ onPicked }: { onPicked: (id: string) => void }) {
+export function PictureButton({
+  onPicked,
+  children,
+  label = 'Upload a picture',
+  className,
+}: {
+  onPicked: (id: string) => void;
+  /** When given, these (an avatar, say) are the click target instead of the "Picture" button. */
+  children?: ReactNode;
+  label?: string;
+  className?: string;
+}) {
+  const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
   async function pick(file: File | undefined) {
@@ -23,10 +35,31 @@ export function PictureButton({ onPicked }: { onPicked: (id: string) => void }) 
   }
   return (
     <>
-      <label className="vtt-tool" title="Upload a picture">
-        <ImagePlus size={14} aria-hidden />
-        <span>{busy ? 'Uploading…' : 'Picture'}</span>
+      <label
+        className={children ? (className ?? '') : 'vtt-tool'}
+        title={label}
+        {...(children
+          ? {
+              role: 'button',
+              tabIndex: 0,
+              'aria-label': label,
+              onKeyDown: (e: React.KeyboardEvent) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  input.current?.click();
+                }
+              },
+            }
+          : {})}
+      >
+        {children ?? (
+          <>
+            <ImagePlus size={14} aria-hidden />
+            <span>{busy ? 'Uploading…' : 'Picture'}</span>
+          </>
+        )}
         <input
+          ref={input}
           type="file"
           accept="image/png,image/jpeg,image/webp,image/gif"
           hidden

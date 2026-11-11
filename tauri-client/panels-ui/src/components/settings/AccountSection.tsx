@@ -1,5 +1,5 @@
 import { Badge, Button, Callout, Flex, Heading, Text, TextField } from '@radix-ui/themes';
-import { Check, LogOut, X } from 'lucide-react';
+import { Camera, Check, LogOut, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { useAccount } from '../../hooks/useAccount.js';
@@ -59,24 +59,34 @@ export function AccountSection() {
     return (
       <Flex direction="column" gap="3">
         <Flex align="start" gap="4">
-          <span className="vtt-av vtt-profile-av">
-            <Portrait avatarUrl={status.avatarUrl} fallback={initials(status.displayName ?? '?')} />
-          </span>
+          <div className="vtt-profile-pic">
+            <PictureButton
+              label="Change your picture"
+              className="vtt-profile-av-btn"
+              onPicked={(id) => void accountSetAvatar(avatarValue(id)).catch(console.error)}
+            >
+              <span className="vtt-av vtt-profile-av">
+                <Portrait
+                  avatarUrl={status.avatarUrl}
+                  fallback={initials(status.displayName ?? '?')}
+                />
+              </span>
+              <span className="vtt-profile-av-over" aria-hidden>
+                <Camera size={22} />
+              </span>
+            </PictureButton>
+            {status.avatarUrl && (
+              <ToolButton
+                label="Remove your picture"
+                className="vtt-profile-pic-x"
+                onClick={() => void accountSetAvatar(null).catch(console.error)}
+              >
+                <X size={12} />
+              </ToolButton>
+            )}
+          </div>
           <Flex direction="column" gap="2" style={{ flex: 1, minWidth: 0 }}>
             <PlayerName name={status.displayName ?? 'Signed in'} />
-            <Flex align="center" gap="2">
-              <PictureButton
-                onPicked={(id) => void accountSetAvatar(avatarValue(id)).catch(console.error)}
-              />
-              {status.avatarUrl && (
-                <ToolButton
-                  label="Remove your picture"
-                  onClick={() => void accountSetAvatar(null).catch(console.error)}
-                >
-                  <X size={14} />
-                </ToolButton>
-              )}
-            </Flex>
           </Flex>
           <ToolButton
             label="Sign out"

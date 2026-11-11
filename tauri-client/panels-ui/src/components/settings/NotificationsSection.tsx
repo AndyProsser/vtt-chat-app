@@ -11,6 +11,7 @@ import {
 } from '../../lib/notifyPrefs.js';
 import { TIME_OPTIONS } from '../../lib/schedule.js';
 import { notifyPrefsGet, notifyPrefsSet } from '../../lib/tauriBridge.js';
+import { SectionHeading } from './SectionHeading.js';
 import { SettingRow } from './SettingRow.js';
 
 const KINDS: { key: 'chat' | 'whispers' | 'table' | 'sessions'; label: string; hint: string }[] = [
@@ -50,39 +51,44 @@ export function NotificationsSection() {
   };
   const quiet = prefs.quiet;
   return (
-    <Flex direction="column" gap="1">
-      <Text weight="medium">Notifications</Text>
-      {KINDS.map((k) => (
-        <SettingRow key={k.key} label={k.label} hint={k.hint}>
+    <Flex direction="column" className="vtt-settings-section">
+      <SectionHeading
+        title="Notifications"
+        hint="What to be told about while the window is closed, and when not to be disturbed."
+      />
+      <div className="vtt-card">
+        {KINDS.map((k) => (
+          <SettingRow key={k.key} label={k.label} hint={k.hint}>
+            <Switch
+              aria-label={k.label}
+              checked={prefs[k.key]}
+              onCheckedChange={(on) => change({ ...prefs, [k.key]: on })}
+            />
+          </SettingRow>
+        ))}
+        <SettingRow label="Quiet hours" hint="No pop-ups in this window. The tray dot still shows.">
           <Switch
-            aria-label={k.label}
-            checked={prefs[k.key]}
-            onCheckedChange={(on) => change({ ...prefs, [k.key]: on })}
+            aria-label="Quiet hours"
+            checked={quiet !== null}
+            onCheckedChange={(on) => change(on ? withQuiet(prefs) : withoutQuiet(prefs))}
           />
         </SettingRow>
-      ))}
-      <SettingRow label="Quiet hours" hint="No pop-ups in this window. The tray dot still shows.">
-        <Switch
-          aria-label="Quiet hours"
-          checked={quiet !== null}
-          onCheckedChange={(on) => change(on ? withQuiet(prefs) : withoutQuiet(prefs))}
-        />
-      </SettingRow>
-      {quiet && (
-        <Flex align="center" gap="2" justify="end">
-          <TimePick
-            label="Quiet from"
-            value={quiet.from}
-            onChange={(from) => change({ ...prefs, quiet: { ...quiet, from } })}
-          />
-          <Text size="2">to</Text>
-          <TimePick
-            label="Quiet until"
-            value={quiet.to}
-            onChange={(to) => change({ ...prefs, quiet: { ...quiet, to } })}
-          />
-        </Flex>
-      )}
+        {quiet && (
+          <Flex align="center" gap="2" justify="end" className="vtt-card-note">
+            <TimePick
+              label="Quiet from"
+              value={quiet.from}
+              onChange={(from) => change({ ...prefs, quiet: { ...quiet, from } })}
+            />
+            <Text size="2">to</Text>
+            <TimePick
+              label="Quiet until"
+              value={quiet.to}
+              onChange={(to) => change({ ...prefs, quiet: { ...quiet, to } })}
+            />
+          </Flex>
+        )}
+      </div>
       {error && (
         <div className="vtt-composer-error" role="alert" style={{ position: 'static' }}>
           {error}

@@ -27,6 +27,7 @@ import {
   NOISE_FILTER_LEVELS,
   type NoiseFilterLevel,
 } from '../../lib/noiseFilter.js';
+import { SectionHeading } from './SectionHeading.js';
 import { SettingRow } from './SettingRow.js';
 
 const DEFAULT = '__default__';
@@ -85,111 +86,119 @@ export function AudioSection() {
   );
 
   return (
-    <Flex direction="column">
-      {list && (
-        <>
-          <SettingRow label="Microphone">
-            <Flex align="center" gap="2">
-              <Mic size={14} aria-hidden />
-              {picker('input', 'Microphone', list.inputs, list.chosenInput)}
-            </Flex>
-          </SettingRow>
-          <SettingRow label="Speaker">
-            <Flex align="center" gap="2">
-              <Volume2 size={14} aria-hidden />
-              {picker('output', 'Speaker', list.outputs, list.chosenOutput)}
-            </Flex>
-          </SettingRow>
-        </>
-      )}
-      {engine && (
-        <>
-          <SettingRow label="New audio engine (experimental)">
-            <Switch
-              aria-label="Use the new audio engine"
-              checked={(chosen ?? engine.engine) === 'mixer'}
-              onCheckedChange={(on) => {
-                const next = on ? 'mixer' : 'platform';
-                setChosen(next);
-                void audioEngineSet(next).catch((e: unknown) => setError(accountErrorMessage(e)));
-              }}
-            />
-          </SettingRow>
-          <span className="vtt-muted">
-            {(chosen ?? engine.engine) === (engine.active ?? engine.engine)
-              ? 'Per-person volume, microphone volume, a live level, and echo cancellation for character voices.'
-              : 'Takes effect the next time you join voice (leave and join again).'}
-          </span>
-          <SettingRow label="Background noise">
-            <Select.Root
-              value={filter ?? engine.noiseFilter}
-              onValueChange={(v) => {
-                if (!isNoiseFilterLevel(v)) return;
-                setFilter(v);
-                void noiseFilterSet(v).catch((e: unknown) => setError(accountErrorMessage(e)));
-              }}
-            >
-              <Select.Trigger aria-label="Background noise filter" style={{ minWidth: 130 }} />
-              <Select.Content position="popper" sideOffset={4} className="vtt-dropdown">
-                {NOISE_FILTER_LEVELS.map((level) => (
-                  <Select.Item key={level} value={level}>
-                    {NOISE_FILTER_LABEL[level]}
-                  </Select.Item>
-                ))}
-              </Select.Content>
-            </Select.Root>
-          </SettingRow>
-          <span className="vtt-muted">{NOISE_FILTER_HINT[filter ?? engine.noiseFilter]}</span>
-          <SettingRow label="Adjust microphone volume automatically">
-            <Switch
-              aria-label="Adjust microphone volume automatically"
-              checked={auto ?? engine.autoGain}
-              onCheckedChange={(on) => {
-                setAuto(on);
-                void autoGainSet(on).catch((e: unknown) => setError(accountErrorMessage(e)));
-              }}
-            />
-          </SettingRow>
-          <span className="vtt-muted">
-            Keeps quiet and loud talkers at a similar level. Switch it off to set the volume
-            yourself. Takes effect the next time you join voice.
-          </span>
-          {running && (
-            <SettingRow label="Microphone volume">
-              <Flex align="center" gap="3" style={{ width: 220 }}>
-                <Slider
-                  aria-label="Microphone volume"
-                  min={0}
-                  max={4}
-                  step={0.05}
-                  value={[gain ?? engine.micGain]}
-                  onValueChange={([v]) => setGain(v ?? 1)}
-                  onValueCommit={([v]) =>
-                    void micGainSet(v ?? 1).catch((e: unknown) => setError(accountErrorMessage(e)))
-                  }
-                />
-                <LevelMeter level={level} dim={false} />
+    <Flex direction="column" className="vtt-settings-section">
+      <SectionHeading
+        title="Audio"
+        hint="Your microphone and speaker, saved at once and applied if you are in voice."
+      />
+      <div className="vtt-card">
+        {list && (
+          <>
+            <SettingRow label="Microphone">
+              <Flex align="center" gap="2">
+                <Mic size={14} aria-hidden />
+                {picker('input', 'Microphone', list.inputs, list.chosenInput)}
               </Flex>
             </SettingRow>
-          )}
-        </>
-      )}
-      {dm && (
-        <SettingRow
-          label="Hear sound effects myself"
-          hint="Everyone else hears them through the call. Turn off if you use speakers."
-        >
-          <Switch
-            aria-label="Hear sound effects on my own speakers"
-            checked={monitor}
-            onCheckedChange={(next) => {
-              setMonitor(next);
-              writeMonitorPref(next);
-              void soundboardMonitorSet(next).catch(() => undefined);
-            }}
-          />
-        </SettingRow>
-      )}
+            <SettingRow label="Speaker">
+              <Flex align="center" gap="2">
+                <Volume2 size={14} aria-hidden />
+                {picker('output', 'Speaker', list.outputs, list.chosenOutput)}
+              </Flex>
+            </SettingRow>
+          </>
+        )}
+        {engine && (
+          <>
+            <SettingRow label="New audio engine (experimental)">
+              <Switch
+                aria-label="Use the new audio engine"
+                checked={(chosen ?? engine.engine) === 'mixer'}
+                onCheckedChange={(on) => {
+                  const next = on ? 'mixer' : 'platform';
+                  setChosen(next);
+                  void audioEngineSet(next).catch((e: unknown) => setError(accountErrorMessage(e)));
+                }}
+              />
+            </SettingRow>
+            <span className="vtt-muted">
+              {(chosen ?? engine.engine) === (engine.active ?? engine.engine)
+                ? 'Per-person volume, microphone volume, a live level, and echo cancellation for character voices.'
+                : 'Takes effect the next time you join voice (leave and join again).'}
+            </span>
+            <SettingRow label="Background noise">
+              <Select.Root
+                value={filter ?? engine.noiseFilter}
+                onValueChange={(v) => {
+                  if (!isNoiseFilterLevel(v)) return;
+                  setFilter(v);
+                  void noiseFilterSet(v).catch((e: unknown) => setError(accountErrorMessage(e)));
+                }}
+              >
+                <Select.Trigger aria-label="Background noise filter" style={{ minWidth: 130 }} />
+                <Select.Content position="popper" sideOffset={4} className="vtt-dropdown">
+                  {NOISE_FILTER_LEVELS.map((level) => (
+                    <Select.Item key={level} value={level}>
+                      {NOISE_FILTER_LABEL[level]}
+                    </Select.Item>
+                  ))}
+                </Select.Content>
+              </Select.Root>
+            </SettingRow>
+            <span className="vtt-muted">{NOISE_FILTER_HINT[filter ?? engine.noiseFilter]}</span>
+            <SettingRow label="Adjust microphone volume automatically">
+              <Switch
+                aria-label="Adjust microphone volume automatically"
+                checked={auto ?? engine.autoGain}
+                onCheckedChange={(on) => {
+                  setAuto(on);
+                  void autoGainSet(on).catch((e: unknown) => setError(accountErrorMessage(e)));
+                }}
+              />
+            </SettingRow>
+            <span className="vtt-muted">
+              Keeps quiet and loud talkers at a similar level. Switch it off to set the volume
+              yourself. Takes effect the next time you join voice.
+            </span>
+            {running && (
+              <SettingRow label="Microphone volume">
+                <Flex align="center" gap="3" style={{ width: 220 }}>
+                  <Slider
+                    aria-label="Microphone volume"
+                    min={0}
+                    max={4}
+                    step={0.05}
+                    value={[gain ?? engine.micGain]}
+                    onValueChange={([v]) => setGain(v ?? 1)}
+                    onValueCommit={([v]) =>
+                      void micGainSet(v ?? 1).catch((e: unknown) =>
+                        setError(accountErrorMessage(e)),
+                      )
+                    }
+                  />
+                  <LevelMeter level={level} dim={false} />
+                </Flex>
+              </SettingRow>
+            )}
+          </>
+        )}
+        {dm && (
+          <SettingRow
+            label="Hear sound effects myself"
+            hint="Everyone else hears them through the call. Turn off if you use speakers."
+          >
+            <Switch
+              aria-label="Hear sound effects on my own speakers"
+              checked={monitor}
+              onCheckedChange={(next) => {
+                setMonitor(next);
+                writeMonitorPref(next);
+                void soundboardMonitorSet(next).catch(() => undefined);
+              }}
+            />
+          </SettingRow>
+        )}
+      </div>
       {!list && !error && <span className="vtt-muted">Looking for audio devices…</span>}
       {error && (
         <div className="vtt-composer-error" role="alert" style={{ position: 'static' }}>

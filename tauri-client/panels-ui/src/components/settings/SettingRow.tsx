@@ -12,7 +12,7 @@ export function SettingRow({
   children: ReactNode;
 }) {
   return (
-    <Flex align="center" justify="between" gap="4" py="2">
+    <Flex align="center" justify="between" gap="4" py="2" className="vtt-setting-row">
       <Flex direction="column" gap="1" style={{ minWidth: 0 }}>
         <Text size="2">{label}</Text>
         {hint && (
