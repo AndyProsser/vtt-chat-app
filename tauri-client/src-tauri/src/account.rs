@@ -369,6 +369,31 @@ pub struct LoginOutcome {
     pub user_id: String,
 }
 
+/// A browser-approved sign-in in progress: show `user_code`, open `approve_url`, poll with the secret.
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct DeviceStart {
+    pub request_id: String,
+    pub user_code: String,
+    pub poll_secret: String,
+    pub expires_at: String,
+    pub approve_url: String,
+}
+
+/// Link and device codes: 8 characters from this alphabet (no 0/1/I/L/O/U), shown as `ABCD-2345`.
+const CODE_ALPHABET: &str = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+
+/// The canonical 8-character form of a typed or linked code (upper case, no `-` or spaces), or `None`
+/// if it is not exactly 8 alphabet characters.
+pub fn normalise_link_code(input: &str) -> Option<String> {
+    let code: String = input
+        .chars()
+        .filter(|c| *c != '-' && !c.is_whitespace())
+        .map(|c| c.to_ascii_uppercase())
+        .collect();
+    (code.len() == 8 && code.chars().all(|c| CODE_ALPHABET.contains(c))).then_some(code)
+}
+
 /// A failure shown to the player: a stable `code` the panel can branch on and a readable message.
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 pub struct AccountError {
@@ -475,6 +500,63 @@ impl AccountClient {
             .await
             .map_err(Self::unreachable)?;
         Self::outcome(Self::read(response).await?)
+    }
+
+    /// Starts a device sign-in: the server hands back a short code to approve in a browser.
+    pub async fn device_start(&self) -> Result<DeviceStart, AccountError> {
+        let response = self
+            .http
+            .post(format!("{}/api/auth/device", self.base))
+            .json(&json!({ "deviceLabel": device_label() }))
+            .send()
+            .await
+            .map_err(Self::unreachable)?;
+        let body = Self::read(response).await?;
+        let field = |name: &str| {
+            body.get(name)
+                .and_then(Value::as_str)
+                .map(str::to_string)
+                .ok_or_else(|| AccountError::new("bad_response", "the server sent no device code"))
+        };
+        let user_code = field("userCode")?;
+        Ok(DeviceStart {
+            request_id: field("requestId")?,
+            poll_secret: field("pollSecret")?,
+            expires_at: field("expiresAt")?,
+            approve_url: format!("{}/connect?c={user_code}", self.base),
+            user_code,
+        })
+    }
+
+    /// `None` while the browser has not approved yet; the login once it has (delivered exactly once).
+    /// Any failure (unknown, expired, wrong secret, already delivered) is the single error `expired`.
+    pub async fn device_poll(
+        &self,
+        request_id: &str,
+        poll_secret: &str,
+    ) -> Result<Option<LoginOutcome>, AccountError> {
+        let response = self
+            .http
+            .post(format!("{}/api/auth/device/poll", self.base))
+            .json(&json!({ "requestId": request_id, "pollSecret": poll_secret }))
+            .send()
+            .await
+            .map_err(Self::unreachable)?;
+        let pending = response.status() == reqwest::StatusCode::ACCEPTED;
+        let body = match Self::read(response).await {
+            Ok(body) => body,
+            Err(err) if err.code == "invalid_token" => {
+                return Err(AccountError::new(
+                    "expired",
+                    "that sign-in request has expired — start again",
+                ))
+            }
+            Err(err) => return Err(err),
+        };
+        if pending || body.get("pending").and_then(Value::as_bool) == Some(true) {
+            return Ok(None);
+        }
+        Self::outcome(body).map(Some)
     }
 
     /// The session and profile out of a login or code-redeem reply.
@@ -966,6 +1048,88 @@ mod tests {
             String::from_utf8_lossy(&received).to_string()
         });
         (base, task)
+    }
+
+    #[test]
+    fn link_codes_are_normalised_and_validated() {
+        assert_eq!(normalise_link_code("abcd-2345"), Some("ABCD2345".into()));
+        assert_eq!(normalise_link_code(" ab cd 2345 "), Some("ABCD2345".into()));
+        assert_eq!(
+            normalise_link_code("ABCD-234I"),
+            None,
+            "I is not in the alphabet"
+        );
+        assert_eq!(normalise_link_code("ABCD-234"), None);
+        assert_eq!(normalise_link_code("ABCD-23456"), None);
+        assert_eq!(normalise_link_code(""), None);
+    }
+
+    #[tokio::test]
+    async fn device_start_posts_the_label_and_parses_the_reply() {
+        let (base, request) = one_shot_server(
+            "201 Created",
+            "application/json",
+            br#"{"requestId":"r1","userCode":"ABCD-2345","pollSecret":"sec","expiresAt":"2026-11-11T00:00:00Z"}"#.to_vec(),
+        )
+        .await;
+        let start = AccountClient::new(&base).device_start().await.unwrap();
+        assert_eq!(start.request_id, "r1");
+        assert_eq!(start.user_code, "ABCD-2345");
+        assert_eq!(start.poll_secret, "sec");
+        assert_eq!(start.approve_url, format!("{base}/connect?c=ABCD-2345"));
+        let request = request.await.unwrap();
+        assert!(request.starts_with("POST /api/auth/device "), "{request}");
+        assert!(request.contains("deviceLabel"));
+    }
+
+    #[tokio::test]
+    async fn device_poll_is_none_while_pending_and_expired_on_404() {
+        let (base, request) = one_shot_server(
+            "202 Accepted",
+            "application/json",
+            br#"{"pending":true}"#.to_vec(),
+        )
+        .await;
+        let out = AccountClient::new(&base).device_poll("r1", "sec").await;
+        assert_eq!(out.unwrap(), None);
+        let request = request.await.unwrap();
+        assert!(
+            request.starts_with("POST /api/auth/device/poll "),
+            "{request}"
+        );
+        assert!(
+            request.contains(r#""requestId":"r1""#) && request.contains(r#""pollSecret":"sec""#)
+        );
+
+        let (base, _r) = one_shot_server(
+            "404 Not Found",
+            "application/json",
+            br#"{"error":"invalid_token"}"#.to_vec(),
+        )
+        .await;
+        let err = AccountClient::new(&base)
+            .device_poll("r1", "sec")
+            .await
+            .unwrap_err();
+        assert_eq!(err.code, "expired");
+    }
+
+    #[tokio::test]
+    async fn device_poll_returns_the_login_when_approved() {
+        let (base, _r) = one_shot_server(
+            "200 OK",
+            "application/json",
+            br#"{"user":{"id":"u1","displayName":"Ann"},"sessionToken":"T","needsConsent":false}"#
+                .to_vec(),
+        )
+        .await;
+        let out = AccountClient::new(&base)
+            .device_poll("r1", "sec")
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(out.session_token, "T");
+        assert_eq!(out.user_id, "u1");
     }
 
     #[tokio::test]

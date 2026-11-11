@@ -5,8 +5,8 @@ use serde_json::Value;
 use tauri::{AppHandle, Emitter, Manager, State};
 
 use crate::account::{
-    data_dir, normalise_server, relay_path, status_json, AccountClient, AccountError, CampaignItem,
-    LoginOutcome, Saved,
+    data_dir, normalise_link_code, normalise_server, relay_path, status_json, AccountClient,
+    AccountError, CampaignItem, DeviceStart, LoginOutcome, Saved,
 };
 use crate::session::{end_session, start_session, SessionState};
 
@@ -64,6 +64,36 @@ async fn go_live(
     Ok(())
 }
 
+/// Env switch for the password / email-code / SSO forms, which are developer tools: players connect
+/// through the browser (APP-SIGN-IN.md).
+const DEV_SIGNIN_ENV: &str = "VTT_DEV_SIGNIN";
+
+/// Dev mode is on only for exactly `1`. The reader is a parameter so it can be tested.
+fn dev_signin_from(value: Option<&str>) -> bool {
+    value == Some("1")
+}
+
+fn dev_signin_enabled_now() -> bool {
+    dev_signin_from(std::env::var(DEV_SIGNIN_ENV).ok().as_deref())
+}
+
+/// The gate every password-path command passes before touching the network.
+fn require_dev(enabled: bool) -> Result<(), AccountError> {
+    if enabled {
+        Ok(())
+    } else {
+        Err(error(
+            "dev_only",
+            "password sign-in is only available in developer mode",
+        ))
+    }
+}
+
+#[tauri::command]
+pub fn dev_signin_enabled() -> bool {
+    dev_signin_enabled_now()
+}
+
 #[tauri::command]
 pub async fn account_status(state: State<'_, AccountState>) -> Result<Value, AccountError> {
     let inner = state.0.lock().await;
@@ -79,6 +109,7 @@ pub async fn account_sign_in(
     email: String,
     password: String,
 ) -> Result<Value, AccountError> {
+    require_dev(dev_signin_enabled_now())?;
     let server = normalise_server(&server).map_err(|m| error("invalid_server", &m))?;
     let client = AccountClient::new(&server);
     let login = client.login(&email, &password).await?;
@@ -97,6 +128,7 @@ pub async fn auth_providers(server: String) -> Result<Value, AccountError> {
 #[tauri::command]
 pub async fn account_open_sso(app: AppHandle, server: String) -> Result<(), AccountError> {
     use tauri_plugin_opener::OpenerExt;
+    require_dev(dev_signin_enabled_now())?;
     let server = normalise_server(&server).map_err(|m| error("invalid_server", &m))?;
     app.opener()
         .open_url(format!("{server}/api/auth/oidc/"), None::<&str>)
@@ -107,6 +139,7 @@ pub async fn account_open_sso(app: AppHandle, server: String) -> Result<(), Acco
 /// whether the address has an account, or the server can send mail, is not revealed.
 #[tauri::command]
 pub async fn account_request_code(server: String, email: String) -> Result<(), AccountError> {
+    require_dev(dev_signin_enabled_now())?;
     let server = normalise_server(&server).map_err(|m| error("invalid_server", &m))?;
     AccountClient::new(&server).request_code(&email).await
 }
@@ -120,9 +153,55 @@ pub async fn account_sign_in_code(
     server: String,
     code: String,
 ) -> Result<Value, AccountError> {
+    require_dev(dev_signin_enabled_now())?;
     let server = normalise_server(&server).map_err(|m| error("invalid_server", &m))?;
     let login = AccountClient::new(&server).redeem_code(&code).await?;
     finish_sign_in(&app, &state, &sessions, server, login).await
+}
+
+/// Connects with a short link code (from the join page or a connect link). Works in every mode.
+#[tauri::command]
+pub async fn account_connect_with_code(
+    app: AppHandle,
+    state: State<'_, AccountState>,
+    sessions: State<'_, SessionState>,
+    server: String,
+    code: String,
+) -> Result<Value, AccountError> {
+    let server = normalise_server(&server).map_err(|m| error("invalid_server", &m))?;
+    let code = normalise_link_code(&code)
+        .ok_or_else(|| error("invalid_code", "that code is not the right shape"))?;
+    let login = AccountClient::new(&server).redeem_code(&code).await?;
+    finish_sign_in(&app, &state, &sessions, server, login).await
+}
+
+/// Starts a browser-approved sign-in; the panel shows the code, opens `approveUrl`, and polls.
+#[tauri::command]
+pub async fn account_device_start(server: String) -> Result<DeviceStart, AccountError> {
+    let server = normalise_server(&server).map_err(|m| error("invalid_server", &m))?;
+    AccountClient::new(&server).device_start().await
+}
+
+/// One poll of a device sign-in: `null` while pending, the account status once approved.
+#[tauri::command]
+pub async fn account_device_poll(
+    app: AppHandle,
+    state: State<'_, AccountState>,
+    sessions: State<'_, SessionState>,
+    server: String,
+    request_id: String,
+    poll_secret: String,
+) -> Result<Option<Value>, AccountError> {
+    let server = normalise_server(&server).map_err(|m| error("invalid_server", &m))?;
+    let Some(login) = AccountClient::new(&server)
+        .device_poll(&request_id, &poll_secret)
+        .await?
+    else {
+        return Ok(None);
+    };
+    finish_sign_in(&app, &state, &sessions, server, login)
+        .await
+        .map(Some)
 }
 
 /// Saves the new session, lists the campaigns, and goes live in the only one (if there is just one).
@@ -739,5 +818,29 @@ mod switch_tests {
         );
         assert!(!switch_blocked(Some("player"), true), "players come and go");
         assert!(!switch_blocked(None, true), "no current campaign");
+    }
+}
+
+#[cfg(test)]
+mod dev_tests {
+    use super::{dev_signin_from, require_dev};
+
+    #[test]
+    fn dev_mode_is_only_on_for_exactly_one() {
+        assert!(dev_signin_from(Some("1")));
+        for off in [Some("0"), None, Some("true"), Some("")] {
+            assert!(!dev_signin_from(off), "{off:?}");
+        }
+    }
+
+    #[test]
+    fn password_paths_say_dev_only_when_dev_mode_is_off() {
+        let err = require_dev(false).unwrap_err();
+        assert_eq!(err.code, "dev_only");
+        assert_eq!(
+            err.message,
+            "password sign-in is only available in developer mode"
+        );
+        assert!(require_dev(true).is_ok());
     }
 }

@@ -110,7 +110,7 @@ pub fn run() {
         .manage(session::SessionState::default())
         .manage(account_commands::AccountState::default())
         .manage(bridge::PanelFeed::default())
-        .manage(deeplink::PendingServer::default())
+        .manage(deeplink::PendingConnect::default())
         .manage(updater::PendingUpdate::default())
         .manage(soundboard::Soundboard::default())
         .manage(std::sync::Mutex::new(session::TrayModel::default()))
@@ -129,7 +129,7 @@ pub fn run() {
             windows::panel_open,
             windows::handout_view_open,
             windows::window_ready,
-            deeplink::take_pending_server,
+            deeplink::take_pending_connect,
             updater::update_check,
             updater::update_install,
             updater::update_dev_builds_get,
@@ -158,6 +158,10 @@ pub fn run() {
             account_commands::account_open_sso,
             account_commands::account_request_code,
             account_commands::account_sign_in_code,
+            account_commands::account_connect_with_code,
+            account_commands::account_device_start,
+            account_commands::account_device_poll,
+            account_commands::dev_signin_enabled,
             account_commands::ddb_api,
             account_commands::records_search,
             account_commands::account_set_avatar,
