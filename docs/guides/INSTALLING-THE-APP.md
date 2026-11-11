@@ -35,13 +35,15 @@ Intel Macs are not supported yet.
 
 ## Linux
 
-Pick the one that suits your system. All three are the same app.
+Pick the one that suits your system. All three are the same app. **If you can, use the `.deb` or `.rpm`**: they
+add the menu entry, the icon and the tray library for you. The AppImage runs anywhere, but you have to give it
+its menu entry and icon yourself (see [below](#appimage-menu-entry-and-icon)).
 
-| File        | Use it on                         | How                                                                                                           |
-| ----------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `.AppImage` | Any distribution. Updates itself. | `chmod +x *.AppImage`, then run it. If it will not start, install `libfuse2` (`libfuse2t64` on Ubuntu 24.04). |
-| `.deb`      | Debian, Ubuntu, Mint, Pop!_OS     | `sudo apt install ./VTT.Chat_*.deb`                                                                           |
-| `.rpm`      | Fedora, RHEL, openSUSE            | `sudo dnf install ./VTT.Chat-*.rpm` (`sudo zypper install` on openSUSE)                                       |
+| File        | Use it on                                                             | How                                                                                                           |
+| ----------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `.AppImage` | Any distribution. Updates itself. Needs its menu entry added by hand. | `chmod +x *.AppImage`, then run it. If it will not start, install `libfuse2` (`libfuse2t64` on Ubuntu 24.04). |
+| `.deb`      | Debian, Ubuntu, Mint, Pop!_OS                                         | `sudo apt install ./VTT.Chat_*.deb`                                                                           |
+| `.rpm`      | Fedora, RHEL, openSUSE                                                | `sudo dnf install ./VTT.Chat-*.rpm` (`sudo zypper install` on openSUSE)                                       |
 
 The AppImage needs a menu entry and icon of its own: see [AppImage: menu entry and icon](#appimage-menu-entry-and-icon).
 
@@ -57,15 +59,12 @@ The app is called **VTT Chat** and has its icon in the application menu, the tas
 ### AppImage: menu entry and icon
 
 An AppImage is a single file, so the desktop does not know it exists: with nothing else, GNOME and KDE show a
-generic icon in the dock and the app is missing from the application menu. There are three ways to fix that.
+generic icon in the dock and the app is missing from the application menu. There are two ways to fix that, and
+you only need one. Or skip all of this and use the `.deb` or `.rpm`.
 
-**1. Do nothing (version 0.3.2 and later).** The first time it runs, VTT Chat adds its own menu entry and icon
-under `~/.local/share` (nothing system-wide). Keep the file somewhere permanent first, for example
-`~/Applications`. If you move it, start it once from its new place and the entry follows. If one of the helper
-apps below has already added it, VTT Chat leaves theirs alone, so you never get two entries.
-
-**2. A helper app (works for every AppImage, not just this one).** Either one adds the entry and icon when you
-open the file.
+**1. A helper app (works for every AppImage, not just this one).** Either one adds the entry and icon when you
+open the file. **AppImageLauncher is the one to try first**: you install it once and every AppImage you open
+after that is handled the same way.
 
 |                  | AppImageLauncher                                                                                                                                                                 | Gear Lever                                                                                     |
 | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
@@ -74,7 +73,7 @@ open the file.
 | After installing | Double-click the VTT Chat AppImage and choose **Integrate and run**.                                                                                                             | Open Gear Lever, drop the AppImage on it, and click **Unlock**, then **Move to the app menu**. |
 | Good to know     | Its newest builds are labelled beta (3.0), but they are what the project publishes for current Ubuntu and Fedora. Log out and in once after installing.                          | Comes from Flathub, so it updates with your system and needs no `sudo`.                        |
 
-**3. By hand.** For when you would rather not install anything:
+**2. By hand.** For when you would rather not install anything:
 
 ```bash
 mkdir -p ~/Applications ~/.local/share/applications ~/.local/share/icons/hicolor/256x256/apps
@@ -101,8 +100,6 @@ EOF
 
 Log out and back in (or restart the shell) so the menu and dock notice. If you move the AppImage later, edit
 the `Exec=` line to match. To undo it, delete `~/.local/share/applications/vtt-chat-app.desktop` and the icon.
-
-Use only one of the three: with a helper app or the manual entry in place, the built-in one (way 1) steps aside.
 
 ### Linux: I cannot see the tray icon
 

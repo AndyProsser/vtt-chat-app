@@ -18,10 +18,6 @@ the GitHub release notes and refuses to build a release without one. How to writ
   side by side.
   On Linux the package is now named `vtt-chat` (it was `vtt-chat-app`); remove the old one first with
   `sudo apt remove vtt-chat-app` (or `sudo dnf remove vtt-chat-app`), or the two will fight over the same files.
-- Linux AppImage: the first time it runs, the app adds itself to your application menu and gives itself its icon
-  (in your own `~/.local/share`, nothing system-wide), so the dock and menu show the VTT Chat icon. Move the
-  AppImage and it updates the entry the next time it starts. If AppImageLauncher, Gear Lever or similar has
-  already added it, VTT Chat leaves their entry alone. The install guide covers those helper apps and doing it by hand.
 - The `.deb` and `.rpm` ship AppStream data, so software centres (GNOME Software, KDE Discover) can show the
   name "VTT Chat", its icon and publisher once the app is installed.
 - Linux packages now carry a description, publisher, homepage and license, so software centres show them
