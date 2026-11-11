@@ -106,7 +106,7 @@ The server is shipped as OCI images built by CI from the same tag as the client.
 
 ## 4. Onboarding and sign‑in through the web app (intent only, needs a design pass)
 
-Recorded so the direction is not lost; do **not** build from this section.
+Recorded so the direction is not lost; do **not** build from this section. The sign-in half is now designed in [APP-SIGN-IN.md](APP-SIGN-IN.md) (decided 2026-11-11: the app has no sign-in form; proposal awaiting approval).
 
 - **Invite link → web page** guides a new player through creating an account, then shows install instructions for
   their OS (detected in the page) and a download from the server's chosen source (§2).
