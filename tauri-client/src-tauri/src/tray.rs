@@ -161,7 +161,7 @@ pub fn render_icon_with(state: TrayState, unread: bool) -> Vec<u8> {
 
 // --- Tauri glue --------------------------------------------------------------------------------
 
-const TRAY_ID: &str = "main";
+const TRAY_ID: &str = "vtt-chat"; // shown by KDE's tray settings, so a readable name
 const MENU_TOGGLE_MUTE: &str = "toggle_mute";
 const MENU_QUIT: &str = "quit";
 const MENU_SHOW: &str = "show";

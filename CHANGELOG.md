@@ -10,6 +10,15 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ## [Unreleased]
 
+### Changed
+
+- The app is now called **VTT Chat** everywhere the system shows a name: Windows Task Manager, the Linux
+  application menu and the macOS Dock. (It was "VTT Chat App".) Installer files are named `VTT.Chat_…` to match.
+  Anyone who already installed 0.3.1 on Windows should uninstall "VTT Chat App" first, so the two do not sit
+  side by side.
+- Linux: the app is filed under a menu category and ships icons at several sizes; the macOS build now carries a
+  proper `.icns` icon. The KDE tray lists the app as "vtt-chat".
+
 ## [0.3.1] - 2026-11-11
 
 The first release. (0.3.0 was built but never published; everything in it is here.)

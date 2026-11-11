@@ -28,7 +28,7 @@ The warning goes away on its own as more people install the same file.
 4. If **Open Anyway** never appears, run this once in Terminal, then open the app again:
 
    ```bash
-   xattr -dr com.apple.quarantine "/Applications/VTT Chat App.app"
+   xattr -dr com.apple.quarantine "/Applications/VTT Chat.app"
    ```
 
 Intel Macs are not supported yet.
@@ -40,13 +40,17 @@ Pick the one that suits your system. All three are the same app.
 | File        | Use it on                         | How                                                                                                           |
 | ----------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------- |
 | `.AppImage` | Any distribution. Updates itself. | `chmod +x *.AppImage`, then run it. If it will not start, install `libfuse2` (`libfuse2t64` on Ubuntu 24.04). |
-| `.deb`      | Debian, Ubuntu, Mint, Pop!_OS     | `sudo apt install ./VTT.Chat.App_*.deb`                                                                       |
-| `.rpm`      | Fedora, RHEL, openSUSE            | `sudo dnf install ./VTT.Chat.App-*.rpm` (`sudo zypper install` on openSUSE)                                   |
+| `.deb`      | Debian, Ubuntu, Mint, Pop!_OS     | `sudo apt install ./VTT.Chat_*.deb`                                                                           |
+| `.rpm`      | Fedora, RHEL, openSUSE            | `sudo dnf install ./VTT.Chat-*.rpm` (`sudo zypper install` on openSUSE)                                       |
 
 The `.deb` and `.rpm` do not update themselves; install the newer file when a new version is announced.
 
-The app lives in the system tray. GNOME needs the **AppIndicator** extension to show a tray icon, and on Wayland
-the global hotkeys may not work; the app tells you when that is the case.
+The app is called **VTT Chat** and has its icon in the application menu, the taskbar or dock, and the tray.
+
+- **KDE Plasma:** the tray icon appears in the system tray by itself. The app is filed under Internet.
+- **GNOME:** the tray icon needs the **AppIndicator** extension (Ubuntu ships it on; on Fedora install
+  `gnome-shell-extension-appindicator` and enable it). Without it the app still runs and opens from the menu.
+- On Wayland, global hotkeys may not work; the app tells you when that is the case.
 
 ## Updates
 
