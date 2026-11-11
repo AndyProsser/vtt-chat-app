@@ -123,6 +123,10 @@ export const accountDeviceStart = (server: string) =>
 export const accountDevicePoll = (server: string, requestId: string, pollSecret: string) =>
   invoke<AccountStatus | null>('account_device_poll', { server, requestId, pollSecret });
 
+/** Opens the approval page for a code in the system browser; Rust builds the address (`account_open_connect`). */
+export const accountOpenConnect = (server: string, userCode: string) =>
+  invoke<void>('account_open_connect', { server, userCode });
+
 /** Connects with the short code the join page showed (any server mode). */
 export const accountConnectWithCode = (server: string, code: string) =>
   invoke<AccountStatus>('account_connect_with_code', { server, code });

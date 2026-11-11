@@ -15,3 +15,5 @@ export type PanelName = (typeof PANEL_NAMES)[number];
 export const DEVICE_POLL_INTERVAL_MS = 2000;
 /** The server keeps a request 5 minutes; stop 5 s early, by the client's own clock (skew-proof). */
 export const DEVICE_REQUEST_TTL_MS = 5 * 60_000 - 5000;
+/** Consecutive failed polls (network blips) tolerated before the sign-in gives up. */
+export const DEVICE_POLL_MAX_FAILURES = 5;

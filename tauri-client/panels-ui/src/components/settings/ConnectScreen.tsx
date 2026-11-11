@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 
 import { useDeviceConnect } from '../../hooks/useDeviceConnect.js';
 import { useNow } from '../../hooks/useNow.js';
+import { accountErrorMessage, accountOpenConnect } from '../../lib/tauriBridge.js';
 import { serverHost } from '../../lib/serverHost.js';
 import type { AccountStatus, ConnectLink } from '../../types/index.js';
 import { QrCode } from '../QrCode.js';
@@ -36,6 +37,7 @@ export function ConnectScreen(props: Props) {
   const device = useDeviceConnect(props.onStatus);
   const now = useNow(device.phase === 'waiting');
   const [copied, setCopied] = useState(false);
+  const [openError, setOpenError] = useState<string>();
   const host = serverHost(server);
 
   const { link } = props;
@@ -94,10 +96,26 @@ export function ConnectScreen(props: Props) {
           <Text size="2" color="gray" role="timer">
             Expires in {mmss((device.deadline ?? now) - now)}
           </Text>
+          <Button
+            size="3"
+            onClick={() => {
+              setOpenError(undefined);
+              accountOpenConnect(server, device.userCode ?? '').catch((e) =>
+                setOpenError(accountErrorMessage(e)),
+              );
+            }}
+          >
+            Open in browser
+          </Button>
+          {openError && (
+            <Text size="2" color="red" role="alert">
+              {openError}
+            </Text>
+          )}
           <QrCode text={device.approveUrl} label="QR code to approve this sign-in on a phone" />
           <Flex direction="column" gap="1">
             <Text size="1" color="gray">
-              Or open this link in a browser:
+              Or open this link yourself:
             </Text>
             <Text size="2" className="vtt-connect-url">
               {device.approveUrl}

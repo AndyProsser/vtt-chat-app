@@ -156,6 +156,7 @@ pub fn run() {
             commands::player_volume_set,
             account_commands::auth_providers,
             account_commands::account_open_sso,
+            account_commands::account_open_connect,
             account_commands::account_request_code,
             account_commands::account_sign_in_code,
             account_commands::account_connect_with_code,

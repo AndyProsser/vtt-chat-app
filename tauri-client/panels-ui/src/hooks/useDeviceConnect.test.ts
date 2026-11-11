@@ -154,4 +154,44 @@ describe('createDeviceConnect', () => {
     setVisible(true);
     expect(ctl.getState().phase).toBe('expired');
   });
+
+  it('rides out 4 failed polls, then signs in', async () => {
+    const { ctl, deps } = setup();
+    const down = { code: 'network', message: 'Could not reach the server.' };
+    deps.poll
+      .mockRejectedValueOnce(down)
+      .mockRejectedValueOnce(down)
+      .mockRejectedValueOnce(down)
+      .mockRejectedValueOnce(down)
+      .mockResolvedValueOnce(STATUS);
+    await ctl.start('https://play.example.com');
+    await vi.advanceTimersByTimeAsync(8000);
+    expect(ctl.getState().phase).toBe('waiting');
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(deps.onStatus).toHaveBeenCalledWith(STATUS);
+  });
+
+  it('a success between failures resets the count', async () => {
+    const { ctl, deps } = setup();
+    const down = { code: 'network', message: 'down' };
+    for (let i = 0; i < 4; i++) deps.poll.mockRejectedValueOnce(down);
+    deps.poll.mockResolvedValueOnce(null);
+    for (let i = 0; i < 4; i++) deps.poll.mockRejectedValueOnce(down);
+    await ctl.start('https://play.example.com');
+    await vi.advanceTimersByTimeAsync(18_000);
+    expect(ctl.getState().phase).toBe('waiting');
+    ctl.cancel();
+  });
+
+  it('5 consecutive failed polls end in the error phase with the last message', async () => {
+    const { ctl, deps } = setup();
+    for (let i = 1; i <= 5; i++)
+      deps.poll.mockRejectedValueOnce({ code: 'network', message: `down ${i}` });
+    await ctl.start('https://play.example.com');
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(ctl.getState()).toMatchObject({ phase: 'error', error: 'down 5' });
+    const calls = deps.poll.mock.calls.length;
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(deps.poll.mock.calls.length).toBe(calls);
+  });
 });

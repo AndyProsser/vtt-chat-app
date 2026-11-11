@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useRef, useSyncExternalStore } from 'react';
 
-import { DEVICE_POLL_INTERVAL_MS, DEVICE_REQUEST_TTL_MS } from '../consts/index.js';
+import {
+  DEVICE_POLL_INTERVAL_MS,
+  DEVICE_POLL_MAX_FAILURES,
+  DEVICE_REQUEST_TTL_MS,
+} from '../consts/index.js';
 import { isPageVisible, watchPageVisibility } from '../lib/pageVisibility.js';
 import { accountDevicePoll, accountDeviceStart, accountErrorMessage } from '../lib/tauriBridge.js';
 import type { AccountStatus, DeviceStart } from '../types/index.js';
@@ -40,6 +44,7 @@ export function createDeviceConnect(deps: DeviceConnectDeps) {
   let timer: ReturnType<typeof setInterval> | undefined;
   let unwatch: (() => void) | undefined;
   let inFlight = false;
+  let failures = 0;
   let request: { server: string; requestId: string; pollSecret: string } | undefined;
 
   const set = (next: DeviceConnectState) => {
@@ -57,6 +62,7 @@ export function createDeviceConnect(deps: DeviceConnectDeps) {
     unwatch = undefined;
     request = undefined;
     inFlight = false;
+    failures = 0;
   };
 
   const expire = () => {
@@ -72,6 +78,7 @@ export function createDeviceConnect(deps: DeviceConnectDeps) {
     try {
       const status = await deps.poll(server, requestId, pollSecret);
       if (gen !== generation) return;
+      failures = 0;
       if (status) {
         teardown();
         set(IDLE);
@@ -81,9 +88,13 @@ export function createDeviceConnect(deps: DeviceConnectDeps) {
       if (gen !== generation) return;
       const code =
         typeof e === 'object' && e !== null && 'code' in e ? (e as { code: unknown }).code : '';
-      teardown();
-      if (code === 'expired') set({ phase: 'expired' });
-      else set({ phase: 'error', error: accountErrorMessage(e) });
+      if (code === 'expired') {
+        teardown();
+        set({ phase: 'expired' });
+      } else if (++failures >= DEVICE_POLL_MAX_FAILURES) {
+        teardown();
+        set({ phase: 'error', error: accountErrorMessage(e) });
+      }
     } finally {
       if (gen === generation) inFlight = false;
     }

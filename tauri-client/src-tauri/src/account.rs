@@ -394,6 +394,20 @@ pub fn normalise_link_code(input: &str) -> Option<String> {
     (code.len() == 8 && code.chars().all(|c| CODE_ALPHABET.contains(c))).then_some(code)
 }
 
+/// Percent-encodes a URL query component: everything but unreserved characters becomes `%XX`, so
+/// nothing in a value can add a parameter (`&`) or a fragment (`#`).
+pub fn percent_encode_component(input: &str) -> String {
+    let mut out = String::with_capacity(input.len());
+    for b in input.bytes() {
+        if b.is_ascii_alphanumeric() || matches!(b, b'-' | b'_' | b'.' | b'~') {
+            out.push(b as char);
+        } else {
+            out.push_str(&format!("%{b:02X}"));
+        }
+    }
+    out
+}
+
 /// A failure shown to the player: a stable `code` the panel can branch on and a readable message.
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 pub struct AccountError {
@@ -523,7 +537,11 @@ impl AccountClient {
             request_id: field("requestId")?,
             poll_secret: field("pollSecret")?,
             expires_at: field("expiresAt")?,
-            approve_url: format!("{}/connect?c={user_code}", self.base),
+            approve_url: format!(
+                "{}/connect?c={}",
+                self.base,
+                percent_encode_component(&user_code)
+            ),
             user_code,
         })
     }

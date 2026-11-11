@@ -5,8 +5,8 @@ use serde_json::Value;
 use tauri::{AppHandle, Emitter, Manager, State};
 
 use crate::account::{
-    data_dir, normalise_link_code, normalise_server, relay_path, status_json, AccountClient,
-    AccountError, CampaignItem, DeviceStart, LoginOutcome, Saved,
+    data_dir, normalise_link_code, normalise_server, percent_encode_component, relay_path,
+    status_json, AccountClient, AccountError, CampaignItem, DeviceStart, LoginOutcome, Saved,
 };
 use crate::session::{end_session, start_session, SessionState};
 
@@ -132,6 +132,34 @@ pub async fn account_open_sso(app: AppHandle, server: String) -> Result<(), Acco
     let server = normalise_server(&server).map_err(|m| error("invalid_server", &m))?;
     app.opener()
         .open_url(format!("{server}/api/auth/oidc/"), None::<&str>)
+        .map_err(|_| error("open_failed", "could not open your browser"))
+}
+
+/// The page where a signed-in browser approves a device code. Built from the typed server and a
+/// code that must have the code shape, with the code percent-encoded: no other page can be named.
+fn connect_page_url(server: &str, user_code: &str) -> Result<String, AccountError> {
+    let server = normalise_server(server).map_err(|m| error("invalid_server", &m))?;
+    let code = normalise_link_code(user_code)
+        .ok_or_else(|| error("invalid_code", "that code is not the right shape"))?;
+    let shown = format!("{}-{}", &code[..4], &code[4..]);
+    Ok(format!(
+        "{server}/connect?c={}",
+        percent_encode_component(&shown)
+    ))
+}
+
+/// Opens the browser approval page for a device code in the system browser. Works in every mode;
+/// the address is built here, so the webview cannot ask for any other page to be opened.
+#[tauri::command]
+pub async fn account_open_connect(
+    app: AppHandle,
+    server: String,
+    user_code: String,
+) -> Result<(), AccountError> {
+    use tauri_plugin_opener::OpenerExt;
+    let url = connect_page_url(&server, &user_code)?;
+    app.opener()
+        .open_url(url, None::<&str>)
         .map_err(|_| error("open_failed", "could not open your browser"))
 }
 
@@ -842,5 +870,50 @@ mod dev_tests {
             "password sign-in is only available in developer mode"
         );
         assert!(require_dev(true).is_ok());
+    }
+}
+
+#[cfg(test)]
+mod connect_page_tests {
+    use super::connect_page_url;
+    use crate::account::percent_encode_component;
+
+    #[test]
+    fn builds_the_connect_page_from_server_and_code() {
+        assert_eq!(
+            connect_page_url("play.example.com", "abcd2345").unwrap(),
+            "https://play.example.com/connect?c=ABCD-2345"
+        );
+    }
+
+    #[test]
+    fn a_trailing_slash_on_the_server_is_dropped() {
+        assert_eq!(
+            connect_page_url("http://localhost:3000/", "ABCD-2345").unwrap(),
+            "http://localhost:3000/connect?c=ABCD-2345"
+        );
+    }
+
+    #[test]
+    fn a_code_of_the_wrong_shape_is_rejected() {
+        for bad in [
+            "",
+            "ABCD",
+            "ABCD-2345&x=1",
+            "ABCD-2345#frag",
+            "ABCD-234O",
+            "../../x",
+        ] {
+            let err = connect_page_url("play.example.com", bad).unwrap_err();
+            assert_eq!(err.code, "invalid_code", "{bad:?}");
+        }
+    }
+
+    #[test]
+    fn encoding_leaves_no_way_to_add_a_parameter_or_fragment() {
+        let encoded = percent_encode_component("a&b#c d/?=");
+        assert!(!encoded.contains(['&', '#', ' ', '/', '?', '=']));
+        assert_eq!(encoded, "a%26b%23c%20d%2F%3F%3D");
+        assert_eq!(percent_encode_component("ABCD-2345"), "ABCD-2345");
     }
 }
