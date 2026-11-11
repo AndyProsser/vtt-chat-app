@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 
 import { useAccount } from '../hooks/useAccount.js';
 import { usePanelBridge } from '../hooks/usePanelBridge.js';
+import { useJoinFeed } from '../hooks/useJoinFeed.js';
 import { useTableFeed } from '../hooks/useTableFeed.js';
 import { gateState } from '../lib/gate.js';
 import { readMonitorPref } from '../lib/monitorPref.js';
@@ -14,6 +15,7 @@ import { BottomBar } from './BottomBar.js';
 import { SoundDrawer } from './deck/SoundDrawer.js';
 import { SignInGate } from './SignInGate.js';
 import { TopBar } from './TopBar.js';
+import { JoinNotice } from './JoinNotice.js';
 import { UpdateBanner } from './UpdateBanner.js';
 import { VersionBanner } from './VersionBanner.js';
 
@@ -29,6 +31,7 @@ export function MainWindow() {
 function Table({ selfId }: { selfId: string | null }) {
   usePanelBridge();
   useTableFeed();
+  useJoinFeed();
   const members = useTableStore((s) => s.members);
   const dm = isDm(members, selfId);
   const [drawer, setDrawer] = useState(false);
@@ -41,6 +44,7 @@ function Table({ selfId }: { selfId: string | null }) {
       <TopBar dm={dm} effectsOpen={drawer} onToggleEffects={() => setDrawer((d) => !d)} />
       <VersionBanner />
       <UpdateBanner />
+      <JoinNotice />
       <div className="vtt-body">
         <AvatarRail dm={dm} selfId={selfId} />
         <div className="vtt-chat-col">

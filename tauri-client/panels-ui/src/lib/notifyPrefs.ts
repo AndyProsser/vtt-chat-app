@@ -10,6 +10,8 @@ export interface NotifyPrefs {
   whispers: boolean;
   table: boolean;
   sessions: boolean;
+  joinRequests: boolean;
+  joinDecisions: boolean;
   quiet: QuietHours | null;
 }
 
@@ -18,6 +20,8 @@ export const DEFAULT_NOTIFY_PREFS: NotifyPrefs = {
   whispers: true,
   table: true,
   sessions: true,
+  joinRequests: true,
+  joinDecisions: true,
   quiet: null,
 };
 

@@ -12,6 +12,7 @@ import { Portrait } from '../Portrait.js';
 import { ToolButton } from '../ToolButton.js';
 import { ConnectScreen } from './ConnectScreen.js';
 import { DevSignIn } from './DevSignIn.js';
+import { OpenCampaigns } from './OpenCampaigns.js';
 
 /**
  * Connect (device approval in a browser, docs/architecture/APP-SIGN-IN.md), then the signed-in views.
@@ -104,6 +105,7 @@ export function AccountSection() {
           {status.server}
         </Text>
         {errorBox}
+        {!campaign && <OpenCampaigns />}
       </Flex>
     );
   }

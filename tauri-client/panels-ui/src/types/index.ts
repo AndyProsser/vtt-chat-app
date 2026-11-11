@@ -252,3 +252,43 @@ export interface ConnectLink {
   server: string;
   code: string | null;
 }
+
+/** The person's own request on an open table (`GET /api/campaigns/open`); times are epoch ms. */
+export interface MyJoinRequest {
+  id: string;
+  status: 'pending' | 'declined';
+  createdAt: number;
+  /** Declined only: when they may ask again. */
+  retryAfter?: number;
+}
+
+export interface OpenCampaignCard {
+  id: string;
+  name: string;
+  dmName: string;
+  playerCount: number;
+  myRequest: MyJoinRequest | null;
+}
+
+/** One row of the DM's list of requests. */
+export interface JoinRequestRow {
+  id: string;
+  campaignId: string;
+  userId: string;
+  displayName: string;
+  avatarUrl: string | null;
+  message: string;
+  status: 'pending' | 'approved' | 'declined';
+  createdAt: number;
+  decidedAt: number | null;
+  decidedBy: string | null;
+  /** Allow join is off: the request is kept but cannot be approved. */
+  closed: boolean;
+}
+
+/** The DM's view of the current campaign's join requests. */
+export interface JoinInbox {
+  campaignId: string | null;
+  allowJoin: boolean;
+  requests: JoinRequestRow[];
+}

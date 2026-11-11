@@ -16,6 +16,8 @@ describe('notification preferences', () => {
       whispers: true,
       table: true,
       sessions: true,
+      joinRequests: true,
+      joinDecisions: true,
       quiet: null,
     });
   });

@@ -14,7 +14,11 @@ import { notifyPrefsGet, notifyPrefsSet } from '../../lib/tauriBridge.js';
 import { SectionHeading } from './SectionHeading.js';
 import { SettingRow } from './SettingRow.js';
 
-const KINDS: { key: 'chat' | 'whispers' | 'table' | 'sessions'; label: string; hint: string }[] = [
+const KINDS: {
+  key: 'chat' | 'whispers' | 'table' | 'sessions' | 'joinRequests' | 'joinDecisions';
+  label: string;
+  hint: string;
+}[] = [
   {
     key: 'chat',
     label: 'Chat',
@@ -34,6 +38,16 @@ const KINDS: { key: 'chat' | 'whispers' | 'table' | 'sessions'; label: string; h
     key: 'sessions',
     label: 'Sessions',
     hint: 'Reminders, schedule changes and “summary ready”, even when you are not in a game.',
+  },
+  {
+    key: 'joinRequests',
+    label: 'Join requests',
+    hint: 'For a DM: a pop-up when someone asks to join your campaign.',
+  },
+  {
+    key: 'joinDecisions',
+    label: 'Answers to your requests',
+    hint: 'A pop-up when a DM lets you in or turns you down.',
   },
 ];
 

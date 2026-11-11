@@ -17,6 +17,8 @@ import type {
   ConnectLink,
   DeviceStart,
   Hydration,
+  JoinRequestRow,
+  OpenCampaignCard,
   RecordingAction,
   SyncEvent,
 } from '../types/index.js';
@@ -180,6 +182,31 @@ type Method = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 /** A REST call relayed by Rust (`campaign_api`); `path` is relative to the campaign, e.g. `loot`. */
 export const campaignApi = <T = unknown>(method: Method, path: string, body?: unknown) =>
   invoke<T>('campaign_api', { method, path, body });
+
+/**
+ * Asking to join a campaign (`join_api`, docs/architecture/CAMPAIGN-JOIN-REQUESTS.md). Not scoped to the
+ * current campaign: `joinOpen` is for someone in none. Rejections are `{ code, message }`.
+ */
+export const joinOpen = () =>
+  invoke<{ campaigns: OpenCampaignCard[] }>('join_api', { action: 'open' });
+export const joinRequest = (campaignId: string, message?: string) =>
+  invoke<{ status: 'pending' }>('join_api', { action: 'request', campaignId, message });
+export const joinWithdraw = (campaignId: string) =>
+  invoke<null>('join_api', { action: 'withdraw', campaignId });
+export const joinList = (campaignId: string) =>
+  invoke<{ allowJoin: boolean; requests: JoinRequestRow[] }>('join_api', {
+    action: 'list',
+    campaignId,
+  });
+export const joinDecide = (campaignId: string, requestId: string, approve: boolean) =>
+  invoke<{ joined: boolean }>('join_api', {
+    action: 'decide',
+    campaignId,
+    requestId,
+    flag: approve,
+  });
+export const joinAllow = (campaignId: string, allow: boolean) =>
+  invoke<unknown>('join_api', { action: 'allow', campaignId, flag: allow });
 
 /** Adds a picture to a picture handout (`handout_add_image`); `data` is the file as base64. */
 export const handoutAddImage = (handoutId: string, name: string, data: string) =>

@@ -2151,3 +2151,77 @@ body,
   background: var(--vtt-bar);
   color: var(--vtt-ink);
 }
+/* Asking to join: open-table rows, the DM's request rows, and the unseen-request markers. */
+.vtt-join-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+.vtt-join-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-block: 10px;
+}
+.vtt-join-name {
+  overflow-wrap: anywhere;
+}
+.vtt-join-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.vtt-join-person {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 10px;
+}
+.vtt-join-av {
+  --vtt-rail-av: 32px;
+  flex: none;
+}
+.vtt-join-who {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.vtt-card .vtt-join-who .vtt-muted {
+  padding-block: 0;
+}
+.vtt-join-msg {
+  overflow-wrap: anywhere;
+  font-size: 13px;
+}
+.vtt-join-actions {
+  display: flex;
+  gap: 6px;
+  flex: none;
+}
+.vtt-cog {
+  position: relative;
+}
+.vtt-cog-dot {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--vtt-gold);
+  border: 1px solid var(--vtt-bar);
+}
+.vtt-tab-badge {
+  margin-left: 6px;
+  min-width: 16px;
+  padding: 0 5px;
+  border-radius: 8px;
+  background: var(--vtt-gold);
+  color: var(--vtt-bar);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+}

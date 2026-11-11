@@ -1,6 +1,8 @@
 import { Popover } from '@radix-ui/themes';
 import { AudioLines, Backpack, FileText, ScrollText, Settings } from 'lucide-react';
 
+import { pendingCount } from '../lib/joinRequests.js';
+import { useJoinStore } from '../lib/joinStore.js';
 import { panelOpen } from '../lib/tauriBridge.js';
 import { CampaignSwitcher } from './CampaignSwitcher.js';
 import { GroupsMenu } from './GroupsMenu.js';
@@ -18,6 +20,7 @@ interface Props {
 
 /** Record state and timer on the left; on the right, icon buttons (with tip text) for the rest. */
 export function TopBar({ dm, effectsOpen, onToggleEffects }: Props) {
+  const waiting = useJoinStore((s) => pendingCount(s.inbox));
   return (
     <header className="vtt-top">
       <CampaignSwitcher />
@@ -44,8 +47,16 @@ export function TopBar({ dm, effectsOpen, onToggleEffects }: Props) {
       </ToolButton>
       <Popover.Root>
         <Popover.Trigger>
-          <ToolButton label="Settings">
+          <ToolButton
+            label={
+              waiting > 0
+                ? `Settings (${waiting} join request${waiting === 1 ? '' : 's'})`
+                : 'Settings'
+            }
+            className="vtt-cog"
+          >
             <Settings size={15} />
+            {waiting > 0 && <span className="vtt-cog-dot" aria-hidden />}
           </ToolButton>
         </Popover.Trigger>
         <Popover.Content size="1" align="end" className="vtt-settings-pop">
