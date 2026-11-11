@@ -1,6 +1,6 @@
 # Chat commands: in character, out of character, whispers and quick messages
 
-Decided with Andy 2026-11-11. **Status: designed, not built.** Items marked _(my call)_ are my choices, made where
+Decided with Andy 2026-11-11. **Status: built 2026-11-11** (shared parser, server, web app and desktop app; unit-tested, **not yet seen in a browser or a running window**). Items marked _(my call)_ are my choices, made where
 Andy's decisions left a gap; they are the first things to correct. This is the "power of the chat system": one
 composer, in the desktop app and in the web app (`/app`), where a leading `/` opens an autocompleting list of commands.
 

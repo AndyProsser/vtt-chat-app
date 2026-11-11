@@ -76,6 +76,7 @@ Recording people is a trust matter before it is a technical one. The design is:
 - **Whispers and private channels are never recorded, transcribed or summarised into a shared
   artifact.** This is enforced where the audio is routed (a private group's track is excluded from
   Egress), not by filtering transcripts afterwards.
+- **Out-of-character chat (`/ooc` and the quick commands) is never recorded.** Typed public chat during a recording goes into the transcript, except lines of kind `ooc`, which the server filters out where chat reaches the recording and search (see [CHAT-COMMANDS.md](CHAT-COMMANDS.md)).
 - **DM-only summaries are DM-only** at the API level, not just hidden in the UI.
 - **Nothing leaves the server by default.** Transcription and summarisation are local. A cloud
   provider (OpenAI Whisper API, a cloud LLM) is an explicit, operator-enabled adapter, and the UI

@@ -97,16 +97,29 @@ item in the tray menu, and **Settings → Profile → Status**.
 
 ## 5. Chat and whispers
 
-Type in the message box and press Enter. Slash commands:
+Type in the message box and press Send (Ctrl or Cmd + Enter in the web app). **Type `/` to see the commands**:
+a list opens above the box. Up and Down move, Tab or Enter completes, Esc closes (or tap a row). A plain line is
+**in character**; the commands are for the exceptions and for style.
 
-| Type                    | What it does                                                            |
-| ----------------------- | ----------------------------------------------------------------------- |
-| `/w name message`       | Whisper to one person (their character or real name; a start is enough) |
-| `/dm message`           | Whisper to the DM (players)                                             |
-| `/me waves`             | An emote: shows as _waves_                                              |
-| `/loot`, `/take`        | Open the party inventory                                                |
-| `/voice name` (DM only) | Change your character voice                                             |
+| Type                         | What it does                                                                                                                                                    |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/say words`                 | What your character says aloud: shown in quotes in a serif face                                                                                                 |
+| `/say-elvish words`          | The same, in a language (Elvish, Dwarvish, Draconic and the rest of the D&D set): styled to suit, with a small "in Elvish" caption. The words are never changed |
+| `/do action` (or `/me`)      | What your character does: shown as _Thorin raises his axe_                                                                                                      |
+| `/ooc words`                 | Out of character: small and muted with an OOC tag. **Never recorded**                                                                                           |
+| `/tell name words` (or `/w`) | Whisper to one person at the table. The name completes as you type                                                                                              |
+| `/dm words`                  | Whisper to the DM                                                                                                                                               |
+| `/late [note]`               | Posts "running late" (OOC) **and** marks you late for the next session                                                                                          |
+| `/cant [note]`               | Posts "can't make it" (OOC) **and** marks you as not coming                                                                                                     |
+| `/work`                      | Posts "still at work" (OOC) and marks you late                                                                                                                  |
+| `/brb`, `/afk`, `/back`      | A ready-made OOC note. No RSVP change                                                                                                                           |
+| `/loot`, `/take`             | Open the party inventory (desktop app)                                                                                                                          |
+| `/voice name` (DM only)      | Change your character voice (desktop app)                                                                                                                       |
 
+- A line starting with `/` that is not a command is sent as plain text; if it looks like a typo you are warned
+  first, and pressing send again posts it as text.
+- Out-of-character lines stay visible to the table but are **never recorded, never in a transcript or a
+  summary, and never found by search**. Everything else you type in public is part of the story.
 - Your own messages are on the right with a warm tint; the DM's public messages have a gold edge and a
   "DM" tag. Whispers are coloured differently and say who they are between.
 - **Whispers are private** to the two people. The server stores them for those two only, they are never

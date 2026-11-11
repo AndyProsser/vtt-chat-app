@@ -131,3 +131,12 @@ A single-node install (the default) works with no Redis-compatible server for th
 - Max frame size and rate limits per connection.
 - Whether chat history paging uses WS or REST.
 - Exact `stats.report` fields once measured in the Stage 2 spike.
+
+## Chat kinds and languages
+
+A chat line carries `kind` (`chat`, `say`, `do`, `ooc`; missing means `chat`) and, on `say` only, an optional `lang` key
+from the built-in language table in `shared/`. The client frame is `chat.message {campaignId, text, kind?, lang?}`
+(a whisper adds `to` and carries no kind); the public `chat.message` event, `snapshot.recentChat` and the REST chat
+listing carry the fields back. The server validates both and answers `error` frames `invalid_kind` / `invalid_lang`.
+Out-of-character lines are filtered out of the recording timeline and search on the server. The fields are additive, so
+the 0.4 line needed no protocol bump. Rust only carries them; commands are parsed in `shared/` (TypeScript).
