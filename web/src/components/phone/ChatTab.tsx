@@ -15,6 +15,7 @@ import { chatHistory } from '../../lib/phone/phoneApi.js';
 import { usePhoneStore } from '../../lib/phone/phoneStore.js';
 import type { ChatLine } from '../../types/phone.js';
 import { Composer } from './Composer.js';
+import { MembersRail } from './MembersRail.js';
 
 const PAGE = 50;
 
@@ -55,41 +56,46 @@ export function ChatTab({
   }
 
   return (
-    <Flex direction="column" className="phone-chat">
-      <div
-        className="phone-chat-scroll"
-        onScroll={(e) => {
-          const el = e.currentTarget;
-          stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
-        }}
-      >
-        {lines.length >= PAGE && more !== 'done' && (
-          <Button
-            variant="ghost"
-            size="1"
-            loading={more === 'loading'}
-            onClick={() => void earlier()}
-          >
-            Earlier messages
-          </Button>
-        )}
-        {lines.length === 0 && (
-          <Text color="gray" align="center" mt="6">
-            Nothing here yet. Say something to your table.
+    <div className="phone-chat">
+      <MembersRail members={members} />
+      <div className="phone-chat-body">
+        <div
+          className="phone-chat-scroll"
+          onScroll={(e) => {
+            const el = e.currentTarget;
+            stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+          }}
+        >
+          {lines.length >= PAGE && more !== 'done' && (
+            <Button
+              variant="ghost"
+              size="1"
+              loading={more === 'loading'}
+              onClick={() => void earlier()}
+            >
+              Earlier messages
+            </Button>
+          )}
+          {lines.length === 0 && (
+            <Text color="gray" align="center" mt="6">
+              Nothing here yet. Say something to your table.
+            </Text>
+          )}
+          {lines.map((line) => (
+            <Line key={line.id} line={line} userId={userId} names={names} now={now} />
+          ))}
+          <div ref={bottom} />
+        </div>
+        {live !== 'live' && (
+          <Text size="1" color="amber" className="phone-live-note" role="status">
+            {live === 'connecting'
+              ? 'Connecting…'
+              : 'Offline. Reconnecting when you have a signal.'}
           </Text>
         )}
-        {lines.map((line) => (
-          <Line key={line.id} line={line} userId={userId} names={names} now={now} />
-        ))}
-        <div ref={bottom} />
+        <Composer campaignId={campaignId} selfId={userId} members={members} say={say} />
       </div>
-      {live !== 'live' && (
-        <Text size="1" color="amber" className="phone-live-note" role="status">
-          {live === 'connecting' ? 'Connecting…' : 'Offline. Reconnecting when you have a signal.'}
-        </Text>
-      )}
-      <Composer campaignId={campaignId} selfId={userId} members={members} say={say} />
-    </Flex>
+    </div>
   );
 }
 

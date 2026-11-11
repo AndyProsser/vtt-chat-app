@@ -8,8 +8,18 @@ export interface Member {
   userId: string;
   displayName: string;
   role: Role;
-  character: { name: string } | null;
+  /** The person's own portrait, used when their character has none. */
+  avatarUrl?: string | null;
+  character: {
+    name: string;
+    avatarUrl?: string | null;
+    race?: string | null;
+    className?: string | null;
+    level?: number | null;
+  } | null;
   online: boolean;
+  /** Their own choice (online, away, or offline = out of voice, chat still on). Absent from old servers. */
+  status?: 'online' | 'away' | 'offline';
 }
 
 export interface CampaignItem {

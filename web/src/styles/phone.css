@@ -57,6 +57,55 @@ body,
   background: var(--vtt-bar);
   border-bottom: 1px solid var(--vtt-edge);
 }
+.phone-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+}
+.phone-burger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-3);
+  background: transparent;
+  color: var(--vtt-ink);
+  cursor: pointer;
+}
+.phone-burger:hover {
+  background: var(--gray-a3);
+}
+.phone-promo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--vtt-edge);
+  border-radius: 999px;
+  color: var(--vtt-ink);
+  font-size: var(--font-size-1);
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.phone-promo:hover {
+  background: var(--gray-a3);
+}
+@media (max-width: 379px) {
+  .phone-promo {
+    width: 32px;
+    padding: 0;
+    justify-content: center;
+  }
+  .phone-promo-text {
+    display: none;
+  }
+}
 .phone-header-row {
   display: flex;
   align-items: center;
@@ -148,6 +197,15 @@ body,
 /* Chat */
 .phone-chat {
   height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.phone-chat-body {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
 }
 .phone-chat-scroll {
   flex: 1;
@@ -379,4 +437,127 @@ button.phone-picture-button {
 }
 .phone-top .site-header {
   max-width: none;
+}
+
+/* Members: a strip under the header on a phone, a slim rail beside the chat on a wide screen. Fixed sizes,
+   so a presence change recolours a dot and never moves anything. */
+.phone-rail {
+  flex: none;
+  background: var(--vtt-rail);
+  border-bottom: 1px solid var(--vtt-edge);
+}
+.phone-rail-list {
+  display: flex;
+  gap: 10px;
+  margin: 0;
+  padding: 8px max(16px, env(safe-area-inset-right)) 8px max(16px, env(safe-area-inset-left));
+  list-style: none;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.phone-rail-item {
+  flex: none;
+}
+.phone-av {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 2px solid var(--vtt-edge);
+  border-radius: 50%;
+  background: var(--vtt-avatar);
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.phone-av:focus-visible {
+  outline: 2px solid var(--vtt-gold);
+  outline-offset: 2px;
+}
+.phone-av-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.phone-av-dm {
+  border-color: var(--vtt-gold);
+}
+.phone-av-offline,
+.phone-av-disconnected {
+  opacity: 0.5;
+}
+.phone-av-dmtag {
+  position: absolute;
+  top: -5px;
+  left: -4px;
+  padding: 0 4px;
+  border-radius: 6px;
+  background: var(--vtt-gold);
+  color: var(--vtt-bg);
+  font-size: 9px;
+  line-height: 14px;
+  font-weight: 700;
+}
+.phone-av-dot {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  box-sizing: border-box;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--vtt-rail);
+  border-radius: 50%;
+}
+.phone-av-dot-inline {
+  position: static;
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 6px;
+  border-color: transparent;
+}
+.phone-av-dot-online {
+  background: var(--green-9);
+}
+.phone-av-dot-away {
+  background: var(--amber-9);
+}
+.phone-av-dot-offline {
+  background: var(--gray-9);
+}
+.phone-av-dot-disconnected {
+  background: var(--vtt-rail);
+  border-color: var(--gray-9);
+}
+.phone-av-dot-inline.phone-av-dot-disconnected {
+  border-color: var(--gray-9);
+}
+.phone-rail-card {
+  background: var(--vtt-bubble);
+  color: var(--vtt-ink);
+  border: 1px solid var(--vtt-edge);
+}
+.phone-rail-status {
+  margin-top: 6px;
+}
+@media (min-width: 700px) {
+  .phone-chat {
+    flex-direction: row;
+  }
+  .phone-rail {
+    border-bottom: 0;
+    border-right: 1px solid var(--vtt-edge);
+    overflow-y: auto;
+    scrollbar-width: none;
+  }
+  .phone-rail-list {
+    flex-direction: column;
+    padding: 12px 10px;
+    overflow-x: visible;
+  }
 }

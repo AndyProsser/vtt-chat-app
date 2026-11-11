@@ -4,6 +4,8 @@ import { type ReactNode, useCallback, useEffect, useState } from 'react';
 import { TABS } from '../../consts/phone.js';
 import { useLiveChat } from '../../hooks/useLiveChat.js';
 import { takeHandoffToken } from '../../lib/handoff.js';
+import { appPromoHref } from '../../lib/phone/promo.js';
+import { isMobile } from '../../lib/platform.js';
 import { campaigns, logout, me, redeemCode } from '../../lib/phone/phoneApi.js';
 import { type Tab, usePhoneStore } from '../../lib/phone/phoneStore.js';
 import { forgetLegacyToken, saveCampaign, savedCampaign } from '../../lib/phone/storage.js';
@@ -142,40 +144,71 @@ function Shell({ campaignId, onSignOut }: { campaignId: string; onSignOut: () =>
               <img src="/app-icon-192.png" alt="" width="36" height="36" />
               VTT Chat
             </a>
-            <DropdownMenu.Root>
-              <DropdownMenu.Trigger>
-                <Button variant="ghost" aria-label="Menu">
-                  Menu
-                </Button>
-              </DropdownMenu.Trigger>
-              <DropdownMenu.Content align="end">
-                {many && (
-                  <DropdownMenu.Item
-                    onSelect={() => {
-                      saveCampaign(undefined);
-                      usePhoneStore.getState().pickCampaign(undefined);
-                    }}
-                  >
-                    Switch table
+            <div className="phone-header-actions">
+              <a
+                className="phone-promo"
+                href={appPromoHref(isMobile(navigator.userAgent, navigator.maxTouchPoints))}
+                aria-label="Get the full app"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  width="18"
+                  height="18"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <rect x="3" y="4" width="18" height="12" rx="2" />
+                  <path d="M8 20h8M12 16v4" />
+                </svg>
+                <span className="phone-promo-text">Get the app</span>
+              </a>
+              <DropdownMenu.Root>
+                <DropdownMenu.Trigger>
+                  <button type="button" className="phone-burger" aria-label="Menu">
+                    <svg
+                      viewBox="0 0 24 24"
+                      width="22"
+                      height="22"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M4 7h16M4 12h16M4 17h16" />
+                    </svg>
+                  </button>
+                </DropdownMenu.Trigger>
+                <DropdownMenu.Content align="end">
+                  {many && (
+                    <DropdownMenu.Item
+                      onSelect={() => {
+                        saveCampaign(undefined);
+                        usePhoneStore.getState().pickCampaign(undefined);
+                      }}
+                    >
+                      Switch table
+                    </DropdownMenu.Item>
+                  )}
+                  <DropdownMenu.Item asChild>
+                    <a href="/">Home</a>
                   </DropdownMenu.Item>
-                )}
-                <DropdownMenu.Item asChild>
-                  <a href="/">Home</a>
-                </DropdownMenu.Item>
-                <DropdownMenu.Item asChild>
-                  <a href="/download">Download</a>
-                </DropdownMenu.Item>
-                <DropdownMenu.Item asChild>
-                  <a href="/status">Status</a>
-                </DropdownMenu.Item>
-                <DropdownMenu.Item asChild>
-                  <a href="/full-app">Get the full app</a>
-                </DropdownMenu.Item>
-                <DropdownMenu.Item color="red" onSelect={onSignOut}>
-                  Sign out
-                </DropdownMenu.Item>
-              </DropdownMenu.Content>
-            </DropdownMenu.Root>
+                  <DropdownMenu.Item asChild>
+                    <a href="/download">Download</a>
+                  </DropdownMenu.Item>
+                  <DropdownMenu.Item asChild>
+                    <a href="/status">Status</a>
+                  </DropdownMenu.Item>
+                  <DropdownMenu.Item color="red" onSelect={onSignOut}>
+                    Sign out
+                  </DropdownMenu.Item>
+                </DropdownMenu.Content>
+              </DropdownMenu.Root>
+            </div>
           </div>
           <Flex align="center" gap="2" style={{ minWidth: 0 }}>
             <span
