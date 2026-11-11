@@ -73,33 +73,53 @@ after that is handled the same way.
 | After installing | Double-click the VTT Chat AppImage and choose **Integrate and run**.                                                                                                             | Open Gear Lever, drop the AppImage on it, and click **Unlock**, then **Move to the app menu**. |
 | Good to know     | Its newest builds are labelled beta (3.0), but they are what the project publishes for current Ubuntu and Fedora. Log out and in once after installing.                          | Comes from Flathub, so it updates with your system and needs no `sudo`.                        |
 
-**2. By hand.** For when you would rather not install anything:
+**2. By hand.** For when you would rather not install anything. Do not combine this with AppImageLauncher:
+it watches `~/Applications` and adds its own entry for every AppImage it finds there, so you would get two icons.
+This script keeps the file in `~/.local/opt` instead.
 
 ```bash
-mkdir -p ~/Applications ~/.local/share/applications ~/.local/share/icons/hicolor/256x256/apps
-mv ~/Downloads/VTT.Chat_*.AppImage ~/Applications/VTT.Chat.AppImage
-chmod +x ~/Applications/VTT.Chat.AppImage
+mkdir -p ~/.local/opt ~/.local/share/applications ~/.local/share/icons
+mv ~/Downloads/VTT.Chat_*.AppImage ~/.local/opt/VTT.Chat.AppImage
+chmod +x ~/.local/opt/VTT.Chat.AppImage
 
-# pull the icon out of the AppImage
-cd /tmp && ~/Applications/VTT.Chat.AppImage --appimage-extract vtt-chat-app.png
-mv /tmp/squashfs-root/vtt-chat-app.png ~/.local/share/icons/hicolor/256x256/apps/ && rm -r /tmp/squashfs-root
+# pull the icon out of the AppImage (this path is a real file, unlike the shortcut at its top level)
+cd "$(mktemp -d)" && ~/.local/opt/VTT.Chat.AppImage --appimage-extract 'usr/share/icons/hicolor/256x256/apps/vtt-chat-app.png'
+cp squashfs-root/usr/share/icons/hicolor/256x256/apps/vtt-chat-app.png ~/.local/share/icons/vtt-chat-app.png
+cd ~ && file ~/.local/share/icons/vtt-chat-app.png   # should say: PNG image data, 256 x 256
 
-# the menu entry
+# the menu entry (the icon is given by full path, so no icon cache can get in the way)
 cat > ~/.local/share/applications/vtt-chat-app.desktop <<EOF
 [Desktop Entry]
 Type=Application
 Name=VTT Chat
 Comment=Voice, chat and session records for tabletop groups
-Exec=$HOME/Applications/VTT.Chat.AppImage %u
-Icon=vtt-chat-app
+Exec=$HOME/.local/opt/VTT.Chat.AppImage %u
+Icon=$HOME/.local/share/icons/vtt-chat-app.png
 Terminal=false
 Categories=Network;Chat;
 StartupWMClass=vtt-chat-app
 EOF
+update-desktop-database ~/.local/share/applications
 ```
 
-Log out and back in (or restart the shell) so the menu and dock notice. If you move the AppImage later, edit
-the `Exec=` line to match. To undo it, delete `~/.local/share/applications/vtt-chat-app.desktop` and the icon.
+Log out and back in so the menu and dock notice. If you move the AppImage later, edit the `Exec=` line to match.
+
+**Undo it:** delete `~/.local/share/applications/vtt-chat-app.desktop`, `~/.local/share/icons/vtt-chat-app.png`
+and `~/.local/opt/VTT.Chat.AppImage`.
+
+**Two icons, or no icon?** Look at what is in your own applications folder:
+
+```bash
+ls ~/.local/share/applications | grep -i -E 'vtt|appimagekit'
+```
+
+- Entries starting `appimagekit_` were made by AppImageLauncher; `vtt-chat-app.desktop` is the manual one.
+  `vtt-chat-app-handler.desktop` is the app's own link handler and is hidden; leave it. Keep one of the other
+  two and delete the rest. With AppImageLauncher, remove its entry properly with `ail-cli unintegrate <the AppImage>`
+  (or its settings window), not by deleting files.
+- If an icon still shows as a generic gear after you fixed the files, the desktop is showing an old cached
+  picture. Run `gtk-update-icon-cache -f -t ~/.local/share/icons/hicolor` (ignore an error if that folder does
+  not exist), then log out and back in. A running GNOME session on Wayland cannot reload its icons any other way.
 
 ### Linux: I cannot see the tray icon
 
