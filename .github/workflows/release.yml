@@ -120,9 +120,12 @@ jobs:
         working-directory: tauri-client
         shell: bash
         run: |
-          # An MSI cannot carry a pre-release label like -dev.1, so a Windows dev build is the NSIS installer only.
+          # A dev build's version has a -dev.N label, which an MSI and an RPM cannot carry, so dev builds
+          # skip those: Windows gets the NSIS installer, Linux the AppImage and .deb. Releases build everything.
           if [ "$CHANNEL" = dev ] && [ "$RUNNER_OS" = Windows ]; then
             npx tauri build --bundles nsis
+          elif [ "$CHANNEL" = dev ] && [ "$RUNNER_OS" = Linux ]; then
+            npx tauri build --bundles appimage deb
           else
             npx tauri build
           fi

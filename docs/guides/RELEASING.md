@@ -50,7 +50,7 @@ flowchart LR
 
 1. `git tag v0.4.0-dev.1 && git push origin v0.4.0-dev.1`. No version commit is needed.
 2. The three builds attach their files to a public **pre-release**. Windows ships the NSIS `-setup.exe`
-   only (an MSI cannot carry a `-dev.1` label).
+   only and Linux the `.AppImage` and `.deb` (an MSI and an RPM cannot carry a `-dev.1` label, so those two are for releases only).
 3. To put it in front of testers on a server: `infra/fetch-release.sh v0.4.0-dev.1 ./release`, then
    `vtt-admin updates publish ./release --version 0.4.0-dev.1 --base-url https://play.example.com/updates`.
    The `-dev` version sends it to the dev channel on its own; `vtt-admin updates status` shows both.
