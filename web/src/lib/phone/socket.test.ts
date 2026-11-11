@@ -79,12 +79,28 @@ describe('LiveSocket', () => {
     s.open();
     s.say('auth.ok');
     expect(t.live.say('hello')).toBe(true);
-    expect(t.live.say('psst', 'u2')).toBe(true);
+    expect(t.live.say('psst', { to: 'u2' })).toBe(true);
     expect(s.sent.at(-2)).toMatchObject({
       t: 'chat.message',
       d: { campaignId: 'c1', text: 'hello' },
     });
     expect(s.sent.at(-1)).toMatchObject({ d: { to: 'u2', text: 'psst' } });
+  });
+  it('carries kind and lang, and leaves them off an ordinary line', () => {
+    const t = setup();
+    t.live.start();
+    const s = t.sockets[0]!;
+    s.open();
+    s.say('auth.ok');
+    t.live.say('hi', { kind: 'chat' });
+    expect(s.sent.at(-1)?.d).toEqual({ campaignId: 'c1', text: 'hi' });
+    t.live.say('Hail', { kind: 'say', lang: 'elvish' });
+    expect(s.sent.at(-1)?.d).toEqual({
+      campaignId: 'c1',
+      text: 'Hail',
+      kind: 'say',
+      lang: 'elvish',
+    });
   });
   it('reconnects after a drop, waiting longer each time, and starts over once signed in', () => {
     const t = setup();

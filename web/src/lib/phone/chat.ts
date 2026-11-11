@@ -1,3 +1,5 @@
+import { isChatKind, isChatLanguageKey } from '@vtt-chat-app/shared';
+
 import type { ChatLine } from '../../types/phone.js';
 
 /** How many lines the phone keeps in memory; older ones are a scroll-up fetch away. */
@@ -10,6 +12,14 @@ interface HistoryRow {
   recipientId: string | null;
   text: string;
   at: number;
+  kind?: unknown;
+  lang?: unknown;
+}
+
+/** `kind` and `lang` as the phone keeps them: a missing or unknown kind is `chat`; `lang` only rides on `say`. */
+export function kindFields(kind: unknown, lang: unknown): Pick<ChatLine, 'kind' | 'lang'> {
+  const k = isChatKind(kind) ? kind : 'chat';
+  return k === 'say' && isChatLanguageKey(lang) ? { kind: k, lang: lang as string } : { kind: k };
 }
 
 /** A row of `GET /api/campaigns/:id/chat`. */
@@ -20,6 +30,7 @@ export const lineFromHistory = (m: HistoryRow): ChatLine => ({
   fromName: m.senderName,
   toId: m.recipientId,
   text: m.text,
+  ...kindFields(m.kind, m.lang),
 });
 
 interface FrameData {
@@ -28,6 +39,8 @@ interface FrameData {
   text?: unknown;
   from?: { userId?: unknown; name?: unknown } | null;
   to?: { userId?: unknown } | null;
+  kind?: unknown;
+  lang?: unknown;
 }
 
 /** The data of a live `chat.message` or `chat.whisper` frame (or an entry of a snapshot's lists). */
@@ -43,6 +56,7 @@ export function lineFromFrame(d: unknown): ChatLine | undefined {
     fromName: typeof f.from?.name === 'string' ? f.from.name : 'unknown',
     toId: typeof f.to?.userId === 'string' ? f.to.userId : null,
     text: f.text,
+    ...kindFields(f.kind, f.lang),
   };
 }
 

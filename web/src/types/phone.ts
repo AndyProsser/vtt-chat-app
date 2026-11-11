@@ -1,3 +1,5 @@
+import type { ChatKind } from '@vtt-chat-app/shared';
+
 /** What the phone app reads from the server. Only the fields it uses. */
 
 export type Role = 'dm' | 'player';
@@ -25,6 +27,10 @@ export interface ChatLine {
   /** Set for a whisper: who it was sent to. */
   toId: string | null;
   text: string;
+  /** What kind of line: a missing kind from the server (old rows, old servers) is `chat`. */
+  kind: ChatKind;
+  /** Only on a `say` line: the language key (see CHAT_LANGUAGES). */
+  lang?: string;
 }
 
 export type RsvpStatus = 'yes' | 'late' | 'no';

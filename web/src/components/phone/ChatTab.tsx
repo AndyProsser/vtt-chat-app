@@ -1,7 +1,15 @@
-import { Button, Flex, Text } from '@radix-ui/themes';
+import { Button, Flex, Text, VisuallyHidden } from '@radix-ui/themes';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { whisperPeer } from '../../lib/phone/chat.js';
+import {
+  KIND_CLASS,
+  languageCaption,
+  languageStyle,
+  lineKind,
+  lineText,
+} from '../../lib/phone/lineStyle.js';
+import type { SayOptions } from '../../lib/phone/socket.js';
 import { lineTime } from '../../lib/phone/format.js';
 import { chatHistory } from '../../lib/phone/phoneApi.js';
 import { usePhoneStore } from '../../lib/phone/phoneStore.js';
@@ -16,7 +24,7 @@ export function ChatTab({
   say,
 }: {
   campaignId: string;
-  say: (text: string, to?: string) => boolean;
+  say: (text: string, o?: SayOptions) => boolean;
 }) {
   const lines = usePhoneStore((s) => s.lines);
   const members = usePhoneStore((s) => s.members);
@@ -80,7 +88,7 @@ export function ChatTab({
           {live === 'connecting' ? 'Connecting…' : 'Offline. Reconnecting when you have a signal.'}
         </Text>
       )}
-      <Composer members={members.filter((m) => m.userId !== userId)} say={say} />
+      <Composer campaignId={campaignId} selfId={userId} members={members} say={say} />
     </Flex>
   );
 }
@@ -99,10 +107,10 @@ function Line({
   const mine = line.fromId === userId;
   const peer = whisperPeer(line, userId);
   const whisper = line.toId !== null;
+  const kind = lineKind(line);
+  const caption = languageCaption(line.lang);
   return (
-    <div
-      className={`phone-line ${mine ? 'phone-line-mine' : ''} ${whisper ? 'phone-line-whisper' : ''}`}
-    >
+    <div className={`phone-line ${KIND_CLASS[kind]} ${mine ? 'phone-line-mine' : ''}`}>
       <Flex gap="2" align="baseline" className="phone-line-head">
         <Text size="1" weight="medium">
           {mine ? 'You' : line.fromName}
@@ -112,11 +120,26 @@ function Line({
             whisper to {mine ? (names.get(peer ?? '') ?? 'someone') : 'you'}
           </Text>
         )}
+        {kind === 'ooc' && (
+          <>
+            <span className="phone-ooc-tag" aria-hidden="true">
+              OOC
+            </span>
+            <VisuallyHidden>out of character</VisuallyHidden>
+          </>
+        )}
         <Text size="1" color="gray">
           {lineTime(line.at, now)}
         </Text>
       </Flex>
-      <div className="phone-bubble">{line.text}</div>
+      <div className="phone-bubble" style={kind === 'say' ? languageStyle(line.lang) : undefined}>
+        {lineText(line)}
+      </div>
+      {caption && (
+        <Text size="1" color="gray" className="phone-line-caption">
+          {caption}
+        </Text>
+      )}
     </div>
   );
 }

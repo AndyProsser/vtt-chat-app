@@ -1,3 +1,5 @@
+import type { ChatKind } from '@vtt-chat-app/shared';
+
 import type { LiveState } from '../../types/phone.js';
 
 /** Just enough of the browser's WebSocket for this class, so a test can stand in for it. */
@@ -23,6 +25,13 @@ export interface LiveSocketOptions {
   /** Waits before a reconnect; tests pass their own. */
   schedule?: (fn: () => void, ms: number) => unknown;
   cancel?: (handle: unknown) => void;
+}
+
+/** The extras of a chat line; all optional. */
+export interface SayOptions {
+  to?: string;
+  kind?: ChatKind;
+  lang?: string;
 }
 
 const OPEN = 1;
@@ -60,12 +69,17 @@ export class LiveSocket {
     }
   }
 
-  /** Sends a chat line; false when the connection is not up (the caller keeps the text). */
-  say(text: string, to?: string): boolean {
+  /**
+   * Sends a chat line (a whisper when `to` is set); false when the connection is not up (the caller keeps the
+   * text). `kind` and `lang` are left off for an ordinary line, so old servers see what they always saw.
+   */
+  say(text: string, o: SayOptions = {}): boolean {
     return this.send('chat.message', {
       campaignId: this.o.campaignId,
       text,
-      ...(to === undefined ? {} : { to }),
+      ...(o.to === undefined ? {} : { to: o.to }),
+      ...(o.kind === undefined || o.kind === 'chat' ? {} : { kind: o.kind }),
+      ...(o.lang === undefined ? {} : { lang: o.lang }),
     });
   }
 

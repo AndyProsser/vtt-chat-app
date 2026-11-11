@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 
 import { chatHistory } from '../lib/phone/phoneApi.js';
 import { usePhoneStore } from '../lib/phone/phoneStore.js';
-import { LiveSocket, socketUrl } from '../lib/phone/socket.js';
+import { type SayOptions, LiveSocket, socketUrl } from '../lib/phone/socket.js';
 
 /**
  * Keeps the open campaign's chat live: loads the recent history, opens the connection, and hands its
@@ -46,5 +46,5 @@ export function useLiveChat(campaignId: string, onRevoked: () => void) {
     };
   }, [campaignId]);
 
-  return (text: string, to?: string): boolean => socket.current?.say(text, to) ?? false;
+  return (text: string, o?: SayOptions): boolean => socket.current?.say(text, o) ?? false;
 }

@@ -52,4 +52,13 @@ describe('phone store', () => {
     expect(s.authed).toBe(false);
     expect(s.lines).toEqual([]);
   });
+  it('keeps a refused kind or language as an inline error, and ignores other errors', () => {
+    const { onFrame } = usePhoneStore.getState();
+    onFrame('error', { code: 'other' });
+    expect(usePhoneStore.getState().chatError).toBeUndefined();
+    onFrame('error', { code: 'invalid_lang' });
+    expect(usePhoneStore.getState().chatError).toMatch(/language/);
+    usePhoneStore.getState().clearChatError();
+    expect(usePhoneStore.getState().chatError).toBeUndefined();
+  });
 });

@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { lineFromFrame, lineFromHistory, MAX_LINES, mergeLines, whisperPeer } from './chat.js';
+import {
+  kindFields,
+  lineFromFrame,
+  lineFromHistory,
+  MAX_LINES,
+  mergeLines,
+  whisperPeer,
+} from './chat.js';
 
 const line = (id: string, at: number, over = {}) => ({
   id,
@@ -9,6 +16,7 @@ const line = (id: string, at: number, over = {}) => ({
   fromName: 'Aria',
   toId: null,
   text: id,
+  kind: 'chat' as const,
   ...over,
 });
 
@@ -59,5 +67,38 @@ describe('chat lines', () => {
     expect(whisperPeer(w, 'a')).toBe('b');
     expect(whisperPeer(w, 'b')).toBe('a');
     expect(whisperPeer(line('p', 1), 'a')).toBeNull();
+  });
+});
+
+describe('kind and language', () => {
+  it('defaults a missing or unknown kind to chat and keeps lang only on say', () => {
+    expect(kindFields(undefined, undefined)).toEqual({ kind: 'chat' });
+    expect(kindFields('shout', 'elvish')).toEqual({ kind: 'chat' });
+    expect(kindFields('ooc', 'elvish')).toEqual({ kind: 'ooc' });
+    expect(kindFields('say', 'elvish')).toEqual({ kind: 'say', lang: 'elvish' });
+    expect(kindFields('say', 'klingon')).toEqual({ kind: 'say' });
+  });
+  it('carries them through live frames and history rows', () => {
+    expect(
+      lineFromFrame({
+        id: '1',
+        at: 5,
+        text: 'Hail',
+        kind: 'say',
+        lang: 'elvish',
+        from: { userId: 'a', name: 'A' },
+      }),
+    ).toMatchObject({ kind: 'say', lang: 'elvish' });
+    expect(
+      lineFromHistory({
+        id: '1',
+        senderId: 'a',
+        senderName: 'A',
+        recipientId: null,
+        text: 'x',
+        at: 1,
+        kind: 'do',
+      }),
+    ).toMatchObject({ kind: 'do' });
   });
 });

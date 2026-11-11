@@ -195,6 +195,79 @@ body,
   border: 1px dashed var(--vtt-whisper-edge);
   font-style: italic;
 }
+/* Kinds: told apart by shape and type, never by colour alone. */
+.phone-line-say .phone-bubble {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 1.08em;
+}
+.phone-line-do .phone-bubble,
+.phone-line-mine.phone-line-do .phone-bubble {
+  background: none;
+  border-color: transparent;
+  color: var(--vtt-ink);
+  font-style: italic;
+  padding-inline: 4px;
+}
+.phone-line-ooc .phone-bubble,
+.phone-line-mine.phone-line-ooc .phone-bubble {
+  background: none;
+  border: 1px dashed var(--vtt-edge);
+  color: var(--vtt-ink);
+  opacity: 0.8;
+  font-size: 0.85em;
+  padding: 4px 10px;
+}
+.phone-ooc-tag {
+  border: 1px solid var(--vtt-edge);
+  border-radius: 4px;
+  padding: 0 4px;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--vtt-ink);
+  opacity: 0.8;
+}
+.phone-line-caption {
+  padding: 0 4px;
+}
+
+/* Autocomplete above the composer */
+.phone-compose-wrap {
+  position: relative;
+}
+.phone-suggest {
+  position: absolute;
+  inset: auto 0 100% 0;
+  margin: 0 0 6px;
+  padding: 4px;
+  list-style: none;
+  max-height: 40vh;
+  overflow-y: auto;
+  background: var(--vtt-bubble);
+  color: var(--vtt-ink);
+  border: 1px solid var(--vtt-edge);
+  border-radius: 12px;
+  box-shadow: 0 6px 24px rgb(0 0 0 / 0.2);
+  z-index: 5;
+}
+.phone-suggest-item {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.phone-suggest-item.is-active {
+  background: var(--vtt-bar);
+  outline: 1px solid var(--vtt-edge);
+}
+.phone-suggest-label {
+  font-weight: 600;
+}
+.phone-suggest-desc {
+  font-size: 0.8em;
+  opacity: 0.75;
+}
 .phone-live-note {
   padding: 4px 16px;
   text-align: center;
