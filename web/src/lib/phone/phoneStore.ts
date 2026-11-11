@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import type { CampaignItem, ChatLine, LiveState, Member } from '../../types/phone.js';
 import { lineFromFrame, mergeLines } from './chat.js';
 import { ERROR_FRAME_MESSAGES } from './compose.js';
+import { applyJoinRequestFrame, type Decided, parseDecided } from './joinRequests.js';
 
 export type Tab = 'chat' | 'sessions' | 'handouts' | 'history';
 
@@ -20,6 +21,10 @@ interface PhoneState {
   unread: number;
   /** The server refused the last line's kind or language; the composer shows it under the box. */
   chatError: string | undefined;
+  /** The DM's open join-request ids for the current campaign (empty for a player). */
+  joinPending: readonly string[];
+  /** The latest answer to a request this person made, until they dismiss the banner. */
+  decision: Decided | undefined;
 
   signedIn(userId: string | undefined): void;
   signedOut(): void;
@@ -27,6 +32,8 @@ interface PhoneState {
   pickCampaign(id: string | undefined): void;
   setTab(tab: Tab): void;
   setLive(live: LiveState): void;
+  setJoinPending(ids: readonly string[]): void;
+  dismissDecision(): void;
   clearChatError(): void;
   addLines(lines: ChatLine[]): void;
   /** One frame from the live stream. */
@@ -38,6 +45,7 @@ const FRESH = {
   lines: [],
   unread: 0,
   chatError: undefined,
+  joinPending: [] as readonly string[],
   live: 'offline' as LiveState,
 };
 
@@ -47,15 +55,25 @@ export const usePhoneStore = create<PhoneState>((set, get) => ({
   campaigns: [],
   campaignId: undefined,
   tab: 'chat',
+  decision: undefined,
   ...FRESH,
 
   signedIn: (userId) => set({ authed: true, userId }),
   signedOut: () =>
-    set({ authed: false, userId: undefined, campaigns: [], campaignId: undefined, ...FRESH }),
+    set({
+      authed: false,
+      decision: undefined,
+      userId: undefined,
+      campaigns: [],
+      campaignId: undefined,
+      ...FRESH,
+    }),
   setCampaigns: (campaigns) => set({ campaigns }),
   pickCampaign: (campaignId) => set({ campaignId, tab: 'chat', ...FRESH }),
   setTab: (tab) => set({ tab, ...(tab === 'chat' ? { unread: 0 } : {}) }),
   setLive: (live) => set({ live }),
+  setJoinPending: (joinPending) => set({ joinPending }),
+  dismissDecision: () => set({ decision: undefined }),
   clearChatError: () => set({ chatError: undefined }),
   addLines: (lines) => set((s) => ({ lines: mergeLines(s.lines, lines) })),
 
@@ -88,6 +106,18 @@ export const usePhoneStore = create<PhoneState>((set, get) => ({
           lines: mergeLines(s.lines, [line]),
           unread: s.tab === 'chat' || mine ? s.unread : s.unread + 1,
         });
+        return;
+      }
+      case 'join.request': {
+        const next = s.campaignId
+          ? applyJoinRequestFrame(s.joinPending, s.campaignId, data)
+          : s.joinPending;
+        if (next !== s.joinPending) set({ joinPending: next });
+        return;
+      }
+      case 'join.decided': {
+        const decision = parseDecided(data);
+        if (decision) set({ decision });
         return;
       }
       case 'error': {

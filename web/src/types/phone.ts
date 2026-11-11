@@ -26,6 +26,8 @@ export interface CampaignItem {
   id: string;
   name: string;
   role: Role;
+  /** DM view of the campaign: it takes requests to join. Absent from an older server. */
+  allowJoin?: boolean;
 }
 
 /** One line of the chat, public or whisper, from history or from the live stream. */

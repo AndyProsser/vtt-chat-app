@@ -1,4 +1,4 @@
-import { Badge, Button, DropdownMenu, Flex, Spinner, Text } from '@radix-ui/themes';
+import { Badge, Button, DropdownMenu, Flex, Heading, Spinner, Text } from '@radix-ui/themes';
 import { type ReactNode, useCallback, useEffect, useState } from 'react';
 
 import { Icon } from '../icons/index.js';
@@ -7,15 +7,19 @@ import { useLiveChat } from '../../hooks/useLiveChat.js';
 import { takeHandoffToken } from '../../lib/handoff.js';
 import { appPromoHref } from '../../lib/phone/promo.js';
 import { isMobile } from '../../lib/platform.js';
-import { campaigns, logout, me, redeemCode } from '../../lib/phone/phoneApi.js';
+import { campaigns, joinRequests, logout, me, redeemCode } from '../../lib/phone/phoneApi.js';
 import { type Tab, usePhoneStore } from '../../lib/phone/phoneStore.js';
 import { forgetLegacyToken, saveCampaign, savedCampaign } from '../../lib/phone/storage.js';
 import { markSignedIn, markSignedOut } from '../../lib/session.js';
 import { SiteHeader } from '../SiteHeader.js';
+import { pendingIds } from '../../lib/phone/joinRequests.js';
 import { CampaignPicker } from './CampaignPicker.js';
+import { DecisionBanner } from './DecisionBanner.js';
 import { ChatTab } from './ChatTab.js';
 import { HandoutsTab } from './HandoutsTab.js';
 import { HistoryTab } from './HistoryTab.js';
+import { JoinRequestsScreen } from './JoinRequestsScreen.js';
+import { OpenTables } from './OpenTables.js';
 import { SessionsTab } from './SessionsTab.js';
 import { SignIn } from './SignIn.js';
 
@@ -136,6 +140,25 @@ function Shell({ campaignId, onSignOut }: { campaignId: string; onSignOut: () =>
   const campaign = usePhoneStore((s) => s.campaigns.find((c) => c.id === campaignId));
   const many = usePhoneStore((s) => s.campaigns.length > 1);
   const say = useLiveChat(campaignId, onSignOut);
+  const isDm = campaign?.role === 'dm';
+  const pending = usePhoneStore((s) => s.joinPending.length);
+  const [screen, setScreen] = useState<'tables' | 'requests'>();
+
+  // A DM's pending count: loaded once here, then kept by live `join.request` frames.
+  useEffect(() => {
+    if (!isDm) return;
+    let current = true;
+    joinRequests(campaignId)
+      .then((res) => {
+        if (current) usePhoneStore.getState().setJoinPending(pendingIds(res.requests));
+      })
+      .catch(() => undefined);
+    return () => {
+      current = false;
+    };
+  }, [campaignId, isDm]);
+  // Another table has its own screens.
+  useEffect(() => setScreen(undefined), [campaignId]);
   return (
     <div className="phone-page phone-page-app">
       <div className="phone-shell">
@@ -169,7 +192,11 @@ function Shell({ campaignId, onSignOut }: { campaignId: string; onSignOut: () =>
               </a>
               <DropdownMenu.Root>
                 <DropdownMenu.Trigger>
-                  <button type="button" className="phone-burger" aria-label="Menu">
+                  <button
+                    type="button"
+                    className="phone-burger"
+                    aria-label={pending > 0 ? `Menu, ${pending} join requests waiting` : 'Menu'}
+                  >
                     <svg
                       viewBox="0 0 24 24"
                       width="22"
@@ -182,6 +209,9 @@ function Shell({ campaignId, onSignOut }: { campaignId: string; onSignOut: () =>
                     >
                       <path d="M4 7h16M4 12h16M4 17h16" />
                     </svg>
+                    {isDm && pending > 0 && (
+                      <span className="phone-burger-dot" aria-hidden="true" />
+                    )}
                   </button>
                 </DropdownMenu.Trigger>
                 <DropdownMenu.Content align="end">
@@ -195,6 +225,20 @@ function Shell({ campaignId, onSignOut }: { campaignId: string; onSignOut: () =>
                       Switch table
                     </DropdownMenu.Item>
                   )}
+                  <DropdownMenu.Item onSelect={() => setScreen('tables')}>
+                    Find another table
+                  </DropdownMenu.Item>
+                  {isDm && (
+                    <DropdownMenu.Item onSelect={() => setScreen('requests')}>
+                      Join requests
+                      {pending > 0 && (
+                        <Badge color="violet" variant="solid" radius="full" ml="2">
+                          {pending}
+                        </Badge>
+                      )}
+                    </DropdownMenu.Item>
+                  )}
+                  <DropdownMenu.Separator />
                   <DropdownMenu.Item asChild>
                     <a href="/">Home</a>
                   </DropdownMenu.Item>
@@ -222,11 +266,22 @@ function Shell({ campaignId, onSignOut }: { campaignId: string; onSignOut: () =>
             </Text>
           </Flex>
         </header>
+        <DecisionBanner />
         <main className="phone-main">
-          {tab === 'chat' && <ChatTab campaignId={campaignId} say={say} />}
-          {tab === 'sessions' && <SessionsTab campaignId={campaignId} />}
-          {tab === 'handouts' && <HandoutsTab campaignId={campaignId} />}
-          {tab === 'history' && <HistoryTab campaignId={campaignId} />}
+          {screen === 'tables' && (
+            <SubScreen title="Find another table" onBack={() => setScreen(undefined)}>
+              <OpenTables />
+            </SubScreen>
+          )}
+          {screen === 'requests' && isDm && (
+            <SubScreen title="Join requests" onBack={() => setScreen(undefined)}>
+              <JoinRequestsScreen campaignId={campaignId} />
+            </SubScreen>
+          )}
+          {!screen && tab === 'chat' && <ChatTab campaignId={campaignId} say={say} />}
+          {!screen && tab === 'sessions' && <SessionsTab campaignId={campaignId} />}
+          {!screen && tab === 'handouts' && <HandoutsTab campaignId={campaignId} />}
+          {!screen && tab === 'history' && <HistoryTab campaignId={campaignId} />}
         </main>
         <nav className="phone-tabs" aria-label="Sections">
           {TABS.map((t) => (
@@ -235,7 +290,10 @@ function Shell({ campaignId, onSignOut }: { campaignId: string; onSignOut: () =>
               type="button"
               className={`phone-tab ${tab === t.id ? 'phone-tab-on' : ''}`}
               aria-current={tab === t.id ? 'page' : undefined}
-              onClick={() => usePhoneStore.getState().setTab(t.id as Tab)}
+              onClick={() => {
+                setScreen(undefined);
+                usePhoneStore.getState().setTab(t.id as Tab);
+              }}
             >
               <span className="phone-tab-icon">
                 <Icon name={t.icon} size={20} />
@@ -251,6 +309,31 @@ function Shell({ campaignId, onSignOut }: { campaignId: string; onSignOut: () =>
         </nav>
       </div>
     </div>
+  );
+}
+
+/** A page that replaces the tab content: a Back button and a title over the content. */
+function SubScreen({
+  title,
+  onBack,
+  children,
+}: {
+  title: string;
+  onBack: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <section className="phone-pad phone-subscreen" aria-label={title}>
+      <Flex align="center" gap="2" mb="3">
+        <Button variant="ghost" color="gray" onClick={onBack} aria-label="Back">
+          ‹ Back
+        </Button>
+        <Heading size="5" as="h2">
+          {title}
+        </Heading>
+      </Flex>
+      {children}
+    </section>
   );
 }
 

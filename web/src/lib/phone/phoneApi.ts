@@ -10,6 +10,7 @@ import type {
   Utterance,
 } from '../../types/phone.js';
 import { lineFromHistory } from './chat.js';
+import type { DmRequest, OpenTable } from './joinRequests.js';
 
 interface Login {
   signedIn?: boolean;
@@ -46,10 +47,45 @@ export const logout = () => request('POST', '/api/auth/logout').catch(() => unde
 
 export async function campaigns(): Promise<CampaignItem[]> {
   const res = await request<{
-    campaigns: { campaign: { id: string; name: string }; role: 'dm' | 'player' }[];
+    campaigns: {
+      campaign: { id: string; name: string; allowJoin?: boolean };
+      role: 'dm' | 'player';
+    }[];
   }>('GET', '/api/campaigns');
-  return res.campaigns.map((c) => ({ id: c.campaign.id, name: c.campaign.name, role: c.role }));
+  return res.campaigns.map((c) => ({
+    id: c.campaign.id,
+    name: c.campaign.name,
+    role: c.role,
+    ...(c.campaign.allowJoin === undefined ? {} : { allowJoin: c.campaign.allowJoin }),
+  }));
 }
+
+/** Tables that take requests to join (empty when the operator's directory is off). */
+export const openTables = () =>
+  request<{ campaigns: OpenTable[] }>('GET', '/api/campaigns/open').then((r) => r.campaigns);
+
+export const requestToJoin = (campaignId: string, message: string) =>
+  request('POST', `/api/campaigns/${campaignId}/join-requests`, {
+    body: message ? { message } : {},
+  });
+
+export const withdrawJoinRequest = (campaignId: string) =>
+  request('DELETE', `/api/campaigns/${campaignId}/join-requests/mine`);
+
+/** The DM's view: the switch and every request (pending and recent decisions). */
+export const joinRequests = (campaignId: string) =>
+  request<{ allowJoin: boolean; requests: DmRequest[] }>(
+    'GET',
+    `/api/campaigns/${campaignId}/join-requests`,
+  );
+
+export const decideJoinRequest = (campaignId: string, requestId: string, approve: boolean) =>
+  request('POST', `/api/campaigns/${campaignId}/join-requests/${requestId}/decision`, {
+    body: { approve },
+  });
+
+export const setAllowJoin = (campaignId: string, allowJoin: boolean) =>
+  request('PATCH', `/api/campaigns/${campaignId}`, { body: { allowJoin } });
 
 export async function chatHistory(campaignId: string, before?: number) {
   const query = before === undefined ? '?limit=50' : `?limit=50&before=${before}`;

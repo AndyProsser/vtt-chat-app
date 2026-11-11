@@ -599,3 +599,66 @@ button.phone-picture-button {
     overflow-x: visible;
   }
 }
+
+/* Asking to join a campaign */
+.phone-plain-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.phone-subscreen {
+  overflow-y: auto;
+  height: 100%;
+}
+.phone-banner {
+  margin: 8px max(16px, env(safe-area-inset-right)) 0 max(16px, env(safe-area-inset-left));
+}
+.phone-burger {
+  position: relative;
+}
+.phone-burger-dot {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--vtt-gold);
+  border: 2px solid var(--vtt-bar);
+}
+.phone-join-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.phone-join-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.phone-join-count {
+  align-self: flex-end;
+}
+.phone-join-avatar {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: var(--gray-a4);
+  color: var(--vtt-ink);
+  font-weight: 600;
+  font-size: var(--font-size-2);
+}
+.phone-join-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.phone-join-message {
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
