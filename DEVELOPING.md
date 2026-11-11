@@ -58,7 +58,7 @@ It connects two clients to one room under two identities against a real LiveKit 
 
 1. **Dev server** — a VM (or the machine itself) running the services above under systemd. Voice between two machines needs the LiveKit UDP range reachable; on a LAN dev VM that is just `livekit-server --dev --bind 0.0.0.0` behind a systemd unit with `Restart=on-failure`.
 2. **Backend** — `cd backend && npm run build && npm start`; configure via env vars (`LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`, …). Documented properly in Stage 3.
-3. **Tray client** — `cd tauri-client && cargo run`. It starts hidden in the tray; panels open from the tray menu.
+3. **Tray client** — `npm run app` from the repo root: builds the panels (`panels-ui`), then runs the app (`cargo run -p src-tauri`). It starts hidden in the tray; panels open from the tray menu. Close any installed copy first (the app is single-instance, so a second launch is forwarded to the first). Prefix `VTT_DEV_SIGNIN=1` for the developer sign-in forms.
 4. **Records pipeline** — `ai/` worker against a recording from Egress (Stage 5).
 
 `npm run dev` will be rewritten to orchestrate this in Stage 1/3.

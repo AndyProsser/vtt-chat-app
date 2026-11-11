@@ -26,6 +26,7 @@
     "test": "npm run test --workspaces --if-present",
     "dev": "node scripts/dev.ts",
     "dev:seed": "node scripts/dev/seed.ts",
+    "app": "npm run build -w @vtt-chat-app/panels-ui && cargo run --manifest-path tauri-client/Cargo.toml -p src-tauri",
     "dev:mock": "node scripts/dev/mock-table.ts",
     "srd:build": "node scripts/srd/build.ts",
     "sounds:import": "node scripts/sounds/import.ts"

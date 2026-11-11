@@ -42,6 +42,33 @@ sequenceDiagram
 - **Plain-text mail through the operator's own SMTP server** (`SMTP_URL`, e.g. `smtps://user:pass@mail.example.com:465`, `MAIL_FROM`). No tracking, nothing to click.
 - **Footprint:** SMTP adds the `nodemailer` library (pure JS); SSO adds nothing beyond `jose`, which the backend already used.
 
+## Visitor sign-up requests
+
+A person with no invite can ask the operator for an account. It is **off by default** (`signup.requests`) because it adds a public write endpoint; the operator opts in, and approves in the Admin CLI (there is no admin web UI, §7 of CLAUDE.md).
+
+```mermaid
+sequenceDiagram
+  participant V as Visitor (front page)
+  participant S as Server
+  participant O as Operator (vtt-admin)
+  V->>S: POST /api/signup-requests {email, name, message}
+  S-->>V: 202 {ok:true} (same whether or not the address is known)
+  O->>S: signup list / signup approve
+  S->>S: create account (no password, notice not accepted), issue 8-character code
+  O-->>V: code, on a side channel
+  V->>S: redeem code (front page, "I have a sign-in code")
+  S-->>V: session, needsConsent: true
+  V->>S: accept the recording notice
+```
+
+Why it is shaped this way:
+
+- **The operator hands the code over, nothing is emailed.** Approval needs no SMTP, and handing the code to the person on a channel the operator already trusts is what ties the request to a real human. It reuses the one-time code path (`user code`), so there is no new way to sign in.
+- **No enumeration.** A repeat request, or one for an address that already has an account, gets the same `202`; a request for a new address stores a row. The only visible refusals are rate limiting, the open-request cap (200), bad input, and `404` when the feature is off.
+- **Consent is never accepted on the person's behalf.** The account is created with no accepted notice, so the first sign-in shows the recording notice (the same screen a changed notice uses).
+- **Bounded and cleaned.** Name 1-80 characters and message at most 500, control and bidirectional-override characters stripped (as for device labels), 5 requests per address per hour, at most 200 pending, one pending per address.
+- **Version:** this adds a public endpoint and a field in `/api/auth/providers`; 0.4 is still unreleased, so no version bump.
+
 ## Not verified
 
-SSO was tested against a fake provider in the test suite (signing, PKCE, nonce, expiry, replay, unverified email), **not against a real Authelia or Keycloak**. SMTP is tested against a fake mailer, not a live mail server. Both need a first real run.
+SSO was tested against a fake provider in the test suite (signing, PKCE, nonce, expiry, replay, unverified email), **not against a real Authelia or Keycloak**. SMTP is tested against a fake mailer, not a live mail server. Both need a first real run. Sign-up requests are unit and HTTP tested (memory store and Postgres), and have not been exercised in a browser.

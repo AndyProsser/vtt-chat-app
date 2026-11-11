@@ -62,6 +62,11 @@ flowchart LR
   starts offering it. Patches are bug fixes, and waiting for an operator to approve each one would leave players on
   known bugs. A new MAJOR.MINOR is never offered automatically: it is a deliberate server upgrade by the operator,
   and it comes with its own matching server image.
+- **The same sync records the human-installable download per platform** (Windows setup/MSI, macOS `.dmg`, Linux
+  AppImage plus `.deb`/`.rpm`) of the release it offers in `$UPDATES_DIR/downloads.json`, which feeds
+  `GET /api/downloads`, the invite preview and the status page (explicit `CLIENT_URL_*` env values win). These are
+  always GitHub URLs, even in `mirror` mode: the mirror holds only the signed updater files, mirroring every
+  installer would cost disk for no verification gain, and the installers are public there anyway.
 - The player still decides _when_ to install (the app offers, it never restarts mid‑session). The signature check
   in the app is unchanged and remains the trust anchor, so the server and the transport need not be trusted.
 

@@ -30,6 +30,14 @@ Design: [APP-SIGN-IN.md](architecture/APP-SIGN-IN.md). Built from the join page 
 
 Not built: the Devices list with revoke on the web (roadmap item 8).
 
+## Built 2026-11-11: visitor sign-up requests (0.4, no version bump)
+
+Design: [SIGN-IN-OPTIONS.md](architecture/SIGN-IN-OPTIONS.md#visitor-sign-up-requests). Setting `signup.requests` (off by default), migration 0026, `SignupService`, `POST /api/signup-requests`, `vtt-admin signup list|approve|reject`, the landing-page form.
+
+- **Built and unit-tested:** store contract (memory and Postgres), service, HTTP (including 404 when off, no enumeration, rate limit), CLI, web API helpers.
+- **Not exercised in a browser:** the landing-page form and the first-sign-in notice for an approved account (the notice screen's wording says "has changed"; accurate enough for a new account, not reworded).
+- **Not done:** deleting old decided requests (they stay listed; homelab volume).
+
 ## Built 2026-11-10 and not yet verified in a real window or on a real server
 
 | Feature                                                                                                                                                           | Verified how                                                                                                                                                                               | Still needs                                                                                                                   |

@@ -92,7 +92,9 @@ give your players.
 **Behind NAT?** Pass your public IP: `./setup.sh vtt.example.com 203.0.113.7`, and forward the ports above.
 
 **To try it on one machine first**: `./setup.sh localhost`. Caddy then uses its own certificate, so a
-browser warns once; the desktop app may refuse it, so test the app against a real domain.
+browser warns once. The desktop app uses the system certificate store, so install Caddy's CA there first:
+`./trust-local-ca.sh` (Linux; asks for sudo once), then restart the app. On Windows or macOS, import the
+CA's `root.crt` (`docker compose cp caddy:/data/caddy/pki/authorities/local/root.crt .`) as a trusted root.
 
 ## 4. Install natively (advanced)
 
@@ -131,16 +133,36 @@ LXC containers are possible but unsupported ([DEPLOYMENT-AND-TRANSPORT.md](../ar
 
 2. **Decide who may create campaigns:** `./vtt-admin settings set campaign-creation closed` (only Admins) or
    `open` (any signed-in player). Default is set when the instance is created; `settings show` lists it.
-3. **Give players a download.** The join page shows download links for Windows, macOS and Linux if you set
-   `CLIENT_URL_WINDOWS`, `CLIENT_URL_MACOS`, `CLIENT_URL_LINUX` in `.env` (any of them). Build the installers
-   with `npx tauri build` on each OS ([CLIENT-UPDATES.md](../architecture/CLIENT-UPDATES.md)) and host them
-   anywhere (a release page, the server itself).
+3. **Give players a download.** Nothing to do on a stock install: the update sync (below) records the installers
+   of the release it offers (Windows setup, macOS `.dmg`, Linux AppImage plus `.deb`/`.rpm`) in
+   `$UPDATES_DIR/downloads.json`, and the front page, join page and status page show them (a button for the visitor's
+   OS, the others as links). Always GitHub links, in both `github` and `mirror` mode (the mirror holds only the
+   signed updater files). To send players somewhere else, set `CLIENT_URL_WINDOWS`, `CLIENT_URL_MACOS`,
+   `CLIENT_URL_LINUX` in `.env` (any of them): if any is set, those are used **instead of** the synced file. Until
+   the first sync finishes (or with `UPDATES_SOURCE=off`) and with no `CLIENT_URL_*`, the page says to ask the DM.
 4. **Invite a table.** In the app, the DM creates an invite (an emailed link, a code, or a QR code). Anyone
    with the code joins; invites expire (default set by `invite-expiry-days`) and can be used by the whole
    group. See [JOIN-FLOW.md](../architecture/JOIN-FLOW.md).
 5. **No email server?** That is fine. When someone forgets a password or needs a first sign-in code:
    `./vtt-admin user code them@example.com signin` (or `reset`). The code is valid for a short time;
    pass it on by chat or phone.
+
+6. **Let visitors ask for an account (optional, off by default).** People without an invite can request one from the front page:
+
+   ```bash
+   ./vtt-admin settings set signup.requests on
+   ./vtt-admin signup list                      # pending requests: id, time, name, email, message
+   ./vtt-admin signup approve <id|email>        # makes the account, prints a one-time code (ABCD-EFGH)
+   ./vtt-admin signup reject <id|email>
+   ```
+
+   Approving creates the account (no password, not an Admin) and prints a code valid for about 15 minutes. **Hand it over
+   on a side channel** (a message, in person), not by replying to the address on the request: the code is the proof that
+   the person you contacted is the person who asked. They enter it under "I have a sign-in code" on the front page or in the app's
+   Connect screen and accept the recording notice then. If the code expires first, `user code <email> signin` issues another.
+   `status` shows how many requests are waiting. At most 200 stay open at once and each address gets 5 submissions an hour,
+   so the form cannot be flooded; turn the setting back off to close it (existing requests stay listed). See
+   [SIGN-IN-OPTIONS.md](../architecture/SIGN-IN-OPTIONS.md).
 
 Sign-in options (password, emailed code, single sign-on) are in [SIGN-IN-OPTIONS.md](../architecture/SIGN-IN-OPTIONS.md).
 
@@ -195,7 +217,7 @@ natively. Restart the backend after changing them (`docker compose up -d`, or
 | `SMTP_URL`, `MAIL_FROM`                                                   | off                                             | Send sign-in codes by email (optional; the CLI can hand out codes without it)                                                                                                                                                                                                                                                                                                                                                              |
 | `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`                     | off                                             | Sign in through your own identity provider (Authelia and similar)                                                                                                                                                                                                                                                                                                                                                                          |
 | `DDB_SYNC`, `DDB_SYNC_HOURS`                                              | off, 12                                         | `1`: keep linked D&D Beyond characters fresh (contacts dndbeyond.com)                                                                                                                                                                                                                                                                                                                                                                      |
-| `CLIENT_URL_WINDOWS` / `_MACOS` / `_LINUX`                                | none                                            | Download links on the join page                                                                                                                                                                                                                                                                                                                                                                                                            |
+| `CLIENT_URL_WINDOWS` / `_MACOS` / `_LINUX`                                | none (the update sync supplies them)            | Download links on the front, join and status pages; when any is set, it replaces the synced list                                                                                                                                                                                                                                                                                                                                           |
 | `UPDATES_DIR`                                                             | (set for you)                                   | Where signed app updates are published                                                                                                                                                                                                                                                                                                                                                                                                     |
 | `UPDATES_SOURCE`                                                          | `github`                                        | `github`, `mirror` or `off`: where app updates come from (see "Updating players' apps")                                                                                                                                                                                                                                                                                                                                                    |
 | `UPDATES_INCLUDE_DEV`                                                     | (off)                                           | `1` or `true` also offers dev builds of your release line to players who opted in                                                                                                                                                                                                                                                                                                                                                          |
@@ -209,17 +231,18 @@ Runtime settings (no restart) live in the database: `./vtt-admin settings show`.
 
 **The admin command** (`./vtt-admin` in `infra/compose`; natively `node backend/dist/cli/main.js`):
 
-| Command                                                       | Use                                                                                                |
-| ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| `status`                                                      | Is everything up? Exits 1 if not (good for monitoring)                                             |
-| `settings show` / `keys` / `set <key> <value>`                | Campaign creation, offline limit, invite expiry, AI backends                                       |
-| `user list`, `user admin <email> grant\|revoke`               | See accounts; make or remove an Admin                                                              |
-| `user code <email> [signin\|reset]`                           | One-time code for someone locked out                                                               |
-| `user revoke-sessions <email>`                                | Sign a person out everywhere (lost laptop)                                                         |
-| `jobs list [state]`, `jobs retry <id>`                        | Look at the summary queue; retry a failed job                                                      |
-| `recording list`, `recording reprocess <id> [--retranscribe]` | Redo a recording's summaries (or transcript) from the kept audio                                   |
-| `recording purge <id>` or `--older-than <days>`               | Delete the raw audio of processed recordings (transcript and summaries stay)                       |
-| `updates sync`, `updates status`, `updates publish …`         | Sync the update feed from GitHub now; see the source and what players are offered; publish by hand |
+| Command                                                                          | Use                                                                                                |
+| -------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `status`                                                                         | Is everything up? Exits 1 if not (good for monitoring)                                             |
+| `settings show` / `keys` / `set <key> <value>`                                   | Campaign creation, offline limit, invite expiry, AI backends                                       |
+| `user list`, `user admin <email> grant\|revoke`                                  | See accounts; make or remove an Admin                                                              |
+| `user code <email> [signin\|reset]`                                              | One-time code for someone locked out                                                               |
+| `signup list [state]`, `signup approve <id\|email>`, `signup reject <id\|email>` | Handle visitor account requests (needs `signup.requests on`); approve prints a code to hand over   |
+| `user revoke-sessions <email>`                                                   | Sign a person out everywhere (lost laptop)                                                         |
+| `jobs list [state]`, `jobs retry <id>`                                           | Look at the summary queue; retry a failed job                                                      |
+| `recording list`, `recording reprocess <id> [--retranscribe]`                    | Redo a recording's summaries (or transcript) from the kept audio                                   |
+| `recording purge <id>` or `--older-than <days>`                                  | Delete the raw audio of processed recordings (transcript and summaries stay)                       |
+| `updates sync`, `updates status`, `updates publish …`                            | Sync the update feed from GitHub now; see the source and what players are offered; publish by hand |
 
 **Logs:** Compose: `docker compose logs -f backend` (also `livekit`, `egress`, `worker`, `caddy`).
 Native: `journalctl -u vtt-backend -f` (also `vtt-livekit`, `vtt-worker`, `caddy`).

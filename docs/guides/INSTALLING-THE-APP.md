@@ -157,9 +157,10 @@ browser (the link, code or QR your DM gave you), then connect the app from there
 1. On the join page, after you have joined the campaign, you reach the **Connect** step.
 2. Install and open the app, then do **one** of these:
    - click **Open VTT Chat** on the page (the browser asks to open the app: allow it); or
-   - type the short code (like `ABCD-2345`) into the app's Connect screen, in **Have a code? Type it here**. Use
-     this if the button does nothing, which can happen with the Linux AppImage.
-3. Codes last 5 minutes. If one expires, the page shows a new one.
+   - if the button does nothing (which can happen with the Linux AppImage), click **Can't open the app? Show a
+     code** under it, then type the short code (like `ABCD-2345`) into the app's Connect screen, under **Have a
+     code instead?**.
+3. The link and the code last 5 minutes. If they expire, the page offers a new one.
 
 Or start from the app: press **Connect** and it shows a code of its own with a QR code. Scan the QR with your
 phone (or open the address it shows in any browser), sign in there if asked, and press **Approve**. If the recording notice changed since you last accepted it, the page shows

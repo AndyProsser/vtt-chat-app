@@ -26,9 +26,9 @@ And it means the server can add or change sign-in methods (password, emailed cod
 ```mermaid
 flowchart TD
   W[Join page, signed in] -->|"POST /api/auth/link-codes"| S[Server]
-  S -->|"{code, expiresAt}, 5 min"| W
-  W -->|1 Open VTT Chat| D["vtt-chat://connect?server=…&code=…"]
-  W -->|3 shows a short code| T[Player types it in the app]
+  S -->|"{linkToken, code, expiresAt}, 5 min"| W
+  W -->|"1 Open VTT Chat (long linkToken)"| D["vtt-chat://connect?server=…&code=<linkToken>"]
+  W -->|"3 'Can't open the app?' reveals the short code"| T[Player types it in the app]
   D & T --> A[App: redeem code]
   A -->|"POST /api/auth/magic-link/redeem"| S
   S -->|session + profile| A
@@ -38,15 +38,20 @@ flowchart TD
   A2 -->|"POST /api/auth/device/poll"| S
 ```
 
-1. **Open VTT Chat button** on the join page (deep link carrying a link code). The common case on Windows and
-   macOS.
+1. **Open VTT Chat button** on the join page: a deep link carrying a **long link token** (43 base64url characters,
+   the same kind of secret as an emailed magic link). Nobody types a deep link, so it carries the unguessable
+   credential, not the 8-character one. The common case on Windows and macOS.
 2. **The app's own device flow.** The app's Connect button starts a device request and shows a code, a QR of
    `{server}/connect?c=…` and an Open in browser button. A phone or browser that is signed in (or signs in there)
    scans the QR or opens the link and approves. This is the path for a PC whose browser has no session, and for
    the Linux AppImage where deep links are unreliable.
-3. **Typed code** (`ABCD-2345`, grouped, no look-alike characters) from the join page, into the app's "Have a
-   code? Type it here" box. Works on every OS with no OS integration at all. The box also takes any other
-   one-time sign-in code (emailed, `vtt-admin user code`, the SSO page's).
+3. **Typed code** (`ABCD-2345`, grouped, no look-alike characters) as a **hidden fallback**. The join page shows
+   it only after the player expands "Can't open the app? Show a code", and the app's typed-code box sits behind
+   "Have a code instead?" (collapsed by default; it opens by itself if a deep-link connect fails, so the prefilled
+   fields are visible). Works on every OS with no OS integration at all. The box also takes any other one-time
+   sign-in code (emailed, `vtt-admin user code`, the SSO page's). A long token that arrived by deep link is
+   never rendered in the box: the app keeps it for a **Retry** button (our call; a 43-character string in a text
+   box helps nobody).
 
 The join page has **no QR**: its link is a `vtt-chat://` deep link, which a phone has no app to open, and the app
 has no scanner. Every OS has at least one path that works without OS-specific code (2 and 3).
@@ -75,6 +80,12 @@ sign-in is the human proof.
 
 ## Security rules
 
+- `POST /api/auth/link-codes` issues **two independent single-use credentials** for the same already-signed-in
+  person: the long `linkToken` (deep link) and the short `code` (typed). Redeeming one does not void the other;
+  both expire in 5 minutes and both only ever sign in the person who asked for them, so the extra credential adds
+  nothing an attacker without that browser session could use. (`linkToken` is additive to the response, so no wire
+  break; 0.4 is unreleased and needed no version bump. The app accepts either form in the deep link: the short code
+  as before, or `[A-Za-z0-9_-]{20,128}` passed through unchanged, anything else voids the link.)
 - Codes are single-use, expire in 5 minutes, are stored hashed, rate-limited, and never logged. The poll secret
   is separate from the user code, so someone who sees the code on a screen cannot collect the session.
 - **Approval always names the device** (the app's label and the address it asked from, e.g. "Tray app (linux) ·
@@ -98,14 +109,14 @@ sign-in is the human proof.
 
 ## What was built (final names)
 
-| Area         | What exists                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Backend      | `POST /api/auth/link-codes` (signed in) returns `{code, expiresAt}`, 5 minutes, 8 characters shown as `ABCD-2345`, redeemed at the existing `/magic-link/redeem`. `POST /api/auth/device` (public, returns `requestId`, `userCode`, `pollSecret`, expiry), `POST /api/auth/device/poll`, `GET /api/auth/device/:userCode` (signed in; describes the device for the approval screen), `POST /api/auth/device/approve` (signed in, 204). Migration `0025_device_requests`. Code in `backend/src/lib/auth/deviceFlow.ts`, `deviceLabel.ts`, `http/authRoutes.ts`. |
-| Web          | The last join step is **Connect**: Open VTT Chat (deep link), the typed code and a countdown (no QR, see above). `/connect?c=…` is the approval page, served by the backend's join routes, usable from a phone.                                                                                                                                                                                                                                                                                                                                                |
-| App (Rust)   | `account_device_start`, `account_device_poll`, `account_connect_with_code`, `account_open_connect`, `dev_signin_enabled`, `take_pending_connect`; event `deeplink:connect {server, code}`.                                                                                                                                                                                                                                                                                                                                                                     |
-| App (panels) | A **Connect** screen replaces the sign-in form. In dev mode only (`VTT_DEV_SIGNIN=1`, `DevSignIn.tsx`) it also has a collapsed Developer sign-in block with a "paste a connect link" box.                                                                                                                                                                                                                                                                                                                                                                      |
-| Protocol     | `PROTOCOL_VERSION` 2 and a MINOR bump (0.4), per [VERSIONING-AND-DEPLOYMENT.md](VERSIONING-AND-DEPLOYMENT.md). From 0.4 on, apps send `x-vtt-protocol` and are stopped with `426 update_required` when the protocol differs. Releases before it (0.3.2 and earlier) never sent the header, so a 0.4 server does not stop them (their old sign-in calls keep working server-side); a 0.4 app on a 0.3 server gets a 404 from `POST /api/auth/device` and tells the player the server is too old (`server_too_old`).                                             |
-| Admin        | `vtt-admin user code <email>` stays: it signs in someone with no mail and no browser access, and a `signin` code works in the app's typed-code box too (the box takes any one-time code).                                                                                                                                                                                                                                                                                                                                                                      |
+| Area         | What exists                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Backend      | `POST /api/auth/link-codes` (signed in) returns `{code, linkToken, expiresAt}`, 5 minutes, `code` 8 characters shown as `ABCD-2345`, `linkToken` 43 characters for the deep link, both redeemed at the existing `/magic-link/redeem`. `POST /api/auth/device` (public, returns `requestId`, `userCode`, `pollSecret`, expiry), `POST /api/auth/device/poll`, `GET /api/auth/device/:userCode` (signed in; describes the device for the approval screen), `POST /api/auth/device/approve` (signed in, 204). Migration `0025_device_requests`. Code in `backend/src/lib/auth/deviceFlow.ts`, `deviceLabel.ts`, `http/authRoutes.ts`. |
+| Web          | The last join step is **Connect**: Open VTT Chat (deep link with the long token) and, behind a "Can't open the app? Show a code" disclosure, the typed code and a countdown (no QR, see above). `/connect?c=…` is the approval page, served by the backend's join routes, usable from a phone.                                                                                                                                                                                                                                                                                                                                     |
+| App (Rust)   | `account_device_start`, `account_device_poll`, `account_connect_with_code`, `account_open_connect`, `dev_signin_enabled`, `take_pending_connect`; event `deeplink:connect {server, code}`.                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| App (panels) | A **Connect** screen replaces the sign-in form. In dev mode only (`VTT_DEV_SIGNIN=1`, `DevSignIn.tsx`) it also has a collapsed Developer sign-in block with a "paste a connect link" box.                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| Protocol     | `PROTOCOL_VERSION` 2 and a MINOR bump (0.4), per [VERSIONING-AND-DEPLOYMENT.md](VERSIONING-AND-DEPLOYMENT.md). From 0.4 on, apps send `x-vtt-protocol` and are stopped with `426 update_required` when the protocol differs. Releases before it (0.3.2 and earlier) never sent the header, so a 0.4 server does not stop them (their old sign-in calls keep working server-side); a 0.4 app on a 0.3 server gets a 404 from `POST /api/auth/device` and tells the player the server is too old (`server_too_old`).                                                                                                                 |
+| Admin        | `vtt-admin user code <email>` stays: it signs in someone with no mail and no browser access, and a `signin` code works in the app's typed-code box too (the box takes any one-time code).                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 
 ## The dev switch: `VTT_DEV_SIGNIN`
 
@@ -132,8 +143,14 @@ a browser round trip every time. See [DEVELOPING.md](../../DEVELOPING.md).
   and display, because the label is attacker-influenced text shown on the approval screen. A longer label in
   the body or the `x-device-label` header is shortened, not refused.
 - **A waiting Connect screen stays bound to the server it started on**; a deep link for a different server
-  never silently redirects it, and a deep link never signs in by itself: it fills the screen and the player
-  confirms.
+  never silently redirects a waiting request.
+- **A deep link with a code signs the app in at once, with no prompt** (changed 2026-11-11 at Andy's request;
+  the first build made the player press Connect). The link opens the **main** window, which holds sign-in; it
+  no longer opens a second Settings window. The risk accepted: anyone who can get a victim to open a link can
+  sign that app in to _their own_ account on a server they name (login CSRF). It is limited to a signed-out
+  app (the Connect screen only exists then, so a link can never swap an account in use), the code is
+  single-use and 5 minutes, and the signed-in name is then shown in the app. Revisit if links are ever
+  shared outside the join page.
 
 ## My calls (kept)
 
