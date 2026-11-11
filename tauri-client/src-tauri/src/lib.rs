@@ -25,6 +25,26 @@ mod tray;
 mod updater;
 mod windows;
 
+/// What the window-state plugin remembers for the main window. On Linux it remembers nothing about size,
+/// position or maximised state: Wayland ignores a program's requests for a position, the saved size grew by
+/// the title bar on each reopen, and a remembered "maximised" put the narrow chat column full screen. There the
+/// window always opens at the default from `main_layout`.
+fn window_state_flags() -> tauri_plugin_window_state::StateFlags {
+    use tauri_plugin_window_state::StateFlags;
+    #[cfg(target_os = "linux")]
+    {
+        StateFlags::all()
+            - StateFlags::SIZE
+            - StateFlags::POSITION
+            - StateFlags::MAXIMIZED
+            - StateFlags::FULLSCREEN
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        StateFlags::all()
+    }
+}
+
 /// Passed to the app when the OS starts it at login.
 const AUTOSTART_FLAG: &str = "--hidden";
 
@@ -71,6 +91,7 @@ pub fn run() {
             // position can be on a monitor that is gone or span two, so they always open centred
             // over the main window instead (windows.rs).
             tauri_plugin_window_state::Builder::default()
+                .with_state_flags(window_state_flags())
                 .with_denylist(&[
                     "panel-settings",
                     "panel-handouts",

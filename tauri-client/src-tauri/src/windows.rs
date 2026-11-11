@@ -123,6 +123,9 @@ fn layout_log(app: &AppHandle, line: &str) {
 fn apply_default(app: &AppHandle, window: &tauri::WebviewWindow, screen: &Screen) {
     use crate::main_layout::default_rect;
     let want = default_rect(screen.area, screen.bars_unknown);
+    // A restored maximised or full-screen state would swallow the size below.
+    let _ = window.unmaximize();
+    let _ = window.set_fullscreen(false);
     let _ = window.set_position(tauri::LogicalPosition::new(want.x, want.y));
     let (mut extra_w, mut extra_h) = (0.0, 0.0);
     if let (Ok(o), Ok(i)) = (window.outer_size(), window.inner_size()) {
@@ -178,7 +181,12 @@ fn place_main(app: &AppHandle, window: &tauri::WebviewWindow) {
             screen.area, screen.scale, screen.bars_unknown
         ),
     );
-    if saved_version == Some(LAYOUT_VERSION) && current.is_some_and(|c| fits(c, screen.area)) {
+    // On Linux nothing is remembered (see `window_state_flags`), so the default is always applied.
+    let remembers = !cfg!(target_os = "linux");
+    if remembers
+        && saved_version == Some(LAYOUT_VERSION)
+        && current.is_some_and(|c| fits(c, screen.area))
+    {
         layout_log(app, "kept the remembered placement");
         return;
     }

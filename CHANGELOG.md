@@ -18,6 +18,8 @@ the GitHub release notes and refuses to build a release without one. How to writ
   panels, so there the window leaves a little more room at the bottom. The first launch of this version forgets
   any remembered size and position once; after that your own changes are remembered again, unless the window
   would no longer fit on the screen.
+  On Linux the window always opens at that default: Wayland ignores programs' requests to place a window, and a
+  remembered size grew and a remembered "maximised" state opened the narrow window full screen.
   The app also checks again once the window is showing and corrects it if the system moved or resized it, and
   keeps a short `window-layout.log` in its data folder (the numbers it saw and chose) to help diagnose a window
   that opens in the wrong place.
