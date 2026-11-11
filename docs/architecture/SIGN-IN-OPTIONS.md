@@ -1,10 +1,12 @@
 # Sign-in options: password, emailed code, single sign-on
 
-Three ways in, all ending in the same long-lived, revocable session ([CLAUDE.md §11](../../.claude/CLAUDE.md)). **Only the password works with no setup.** The other two are optional and the app offers only what the server reports (`GET /api/auth/providers` → `{ oidc, mail }`).
+Three ways in, all ending in the same long-lived, revocable session ([CLAUDE.md §11](../../.claude/CLAUDE.md)). **Only the password works with no setup.** The other two are optional and the page offers only what the server reports (`GET /api/auth/providers` → `{ oidc, mail }`).
+
+> **Changed 2026-11-11 (0.4):** all three now happen **in the browser** (the join page or `/connect`), never in the app. The app only _connects_: it takes a one-time link code (deep link, QR or typed) or has a device request approved in a signed-in browser ([APP-SIGN-IN.md](APP-SIGN-IN.md)). The app's typed-code box accepts **link codes**, and also an emailed or `vtt-admin user code` code. The password, code and SSO forms in the app exist only behind `VTT_DEV_SIGNIN=1` ([DEVELOPING.md](../../DEVELOPING.md)). The "in the app" wording below describes how those methods work, and how the dev forms behave.
 
 | Method         | Needs                                                                                   | How the player uses it                                                                     |
 | -------------- | --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| Password       | nothing                                                                                 | email + password in the app                                                                |
+| Password       | nothing                                                                                 | email + password (browser; in the app only with `VTT_DEV_SIGNIN`)                          |
 | Code           | nothing to issue by hand (`vtt-admin user code <email>`); `SMTP_URL` to have it emailed | "Use a code instead" → **Email me a code**, paste it                                       |
 | Single sign-on | `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, `PUBLIC_URL`                     | "Use a code instead" → **Sign in with single sign-on** → browser → paste the code it shows |
 

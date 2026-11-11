@@ -49,6 +49,20 @@ token is **not** put in the URL (it would land in proxy logs). Revoked or expire
 `auth.revoked` frame and close; the client then returns to the sign-in screen. This is the
 remote-revocation path ([CLAUDE.md §11](../../.claude/CLAUDE.md)).
 
+### Connecting the app (REST, protocol 2)
+
+The app gets its session without a sign-in form ([APP-SIGN-IN.md](APP-SIGN-IN.md)). All are REST, none touch the WebSocket.
+
+| Endpoint                         | Auth                       | Purpose                                                                                                                                                   |
+| -------------------------------- | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POST /api/auth/link-codes`      | signed in                  | returns `{code, expiresAt}`: a 5-minute code for the app, redeemed at `POST /api/auth/magic-link/redeem`                                                  |
+| `POST /api/auth/device`          | none (rate-limited)        | the app starts a device request: `{requestId, userCode, pollSecret, expiresAt}`; optional `deviceLabel` (capped at 80 chars, control characters stripped) |
+| `POST /api/auth/device/poll`     | `requestId` + `pollSecret` | `202 {pending}`, then `200 {user, sessionToken, needsConsent}` once, then `404`. Own limiter: 200 per 5 minutes                                           |
+| `GET /api/auth/device/:userCode` | signed in                  | what the approval page shows: the device label, address and age                                                                                           |
+| `POST /api/auth/device/approve`  | signed in                  | `204`; the request is approved once, atomically                                                                                                           |
+
+**`PROTOCOL_VERSION` is 2** (was 1): these endpoints and the removal of the app's password, code and SSO path are a wire change, so a 0.3 app is refused by a 0.4 server with `426 update_required` and the reverse. The WebSocket frame protocol in `backend/src/lib/realtime/protocol.ts` carries its own `v` and is unchanged.
+
 ## Reconnect and replay
 
 1. Client reconnects and sends `resume { campaignId, lastSeq, epoch }`.

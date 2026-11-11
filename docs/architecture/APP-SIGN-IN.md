@@ -1,31 +1,32 @@
 # Signing the desktop app in through the browser
 
-Decided with Andy 2026-11-11 (the principle); **the details below are a proposal awaiting approval. Nothing is built.**
+Decided with Andy 2026-11-11. **Status: built 2026-11-11 (server, join page, `/connect` page, app commands, Connect screen) and tested piece by piece; not yet run end to end in a real app window.** See [BUILD-STATUS.md](../BUILD-STATUS.md) for what is unverified. Ships as 0.4 with `PROTOCOL_VERSION` 2.
 Supersedes the "app signs in with the same email and password" step of [JOIN-FLOW.md](JOIN-FLOW.md).
 
 ## Decision
 
 **The desktop app has no sign-in form.** It never sees a password, an emailed code or an SSO redirect. The only
-thing it does is *connect*: it is handed a one-time **link code** by a browser page the player is already signed
+thing it does is _connect_: it is handed a one-time **link code** by a browser page the player is already signed
 in on, and trades it for its own long-lived, revocable session.
 
 Why this is acceptable: the app cannot sign in without its server anyway, so an in-app form buys nothing offline.
 And it means the server can add or change sign-in methods (password, emailed code, OIDC) with no client release
 ([SIGN-IN-OPTIONS.md](SIGN-IN-OPTIONS.md)), and there is one sign-in UI to build and keep accessible.
 
-## What already exists (so this is small)
+## What it reused (so this stayed small)
 
-- `POST /api/auth/magic-link/redeem` already trades a single-use, 15-minute code for a session
-  (`account.rs::redeem_code`). A *link code* is the same mechanism, issued to an already signed-in browser session
-  instead of an email.
-- `vtt-chat://connect?server=…` already opens the app with the server pre-filled (`deeplink.rs`).
+- `POST /api/auth/magic-link/redeem` already traded a single-use code for a session
+  (`account.rs::redeem_code`). A _link code_ is the same mechanism (migration `0024_link_purpose` adds a purpose
+  to the stored code), issued to an already signed-in browser session instead of an email.
+- `vtt-chat://connect?server=…` already opened the app with the server pre-filled (`deeplink.rs`); it now also
+  carries `code`, and the app emits `deeplink:connect {server, code}`.
 
 ## Three ways to connect, one server-side primitive
 
 ```mermaid
 flowchart TD
   W[Browser page, signed in] -->|"POST /api/auth/link-codes<br/>(session cookie/token)"| S[Server]
-  S -->|one-time code, 5 min| W
+  S -->|"{code, expiresAt}, 5 min"| W
   W -->|1 Open VTT Chat| D["vtt-chat://connect?server=…&code=…"]
   W -->|2 QR of the same link| Q[Phone scans, opens link]
   W -->|3 shows a short code| T[Player types it in the app]
@@ -46,7 +47,7 @@ All three end in the same redeem call, so every OS has at least one path that wo
 ### The app with no code yet (first run, or signed out)
 
 The app shows one screen: the server address (pre-filled by a deep link, or typed) and a **Connect** button. That
-starts a *device request*:
+starts a _device request_:
 
 ```mermaid
 sequenceDiagram
@@ -54,11 +55,11 @@ sequenceDiagram
   participant S as Server
   participant P as Phone or browser (signed in)
   A->>S: POST /api/auth/device (deviceLabel)
-  S-->>A: deviceId, user code ABCD-2345, poll secret
+  S-->>A: requestId, user code ABCD-2345, poll secret
   Note over A: shows the code, a QR of {server}/connect?c=ABCD-2345,<br/>and a button that opens that page in the browser
   P->>S: open /connect?c=ABCD-2345, sign in if needed, "Approve this device"
-  A->>S: poll (poll secret)
-  S-->>A: session + profile once approved (single delivery)
+  A->>S: POST /api/auth/device/poll (requestId, poll secret)
+  S-->>A: 202 pending ... then 200 session + profile once approved (404 afterwards: single delivery)
 ```
 
 This is the standard device-authorisation pattern (as `gh auth login` and TV apps do). It needs a **configured
@@ -70,33 +71,77 @@ sign-in is the human proof.
 - Codes are single-use, expire in 5 minutes, are stored hashed, rate-limited, and never logged. The poll secret
   is separate from the user code, so someone who sees the code on a screen cannot collect the session.
 - **Approval always names the device** ("Linux, Andy-PC, from 203.0.113.4") and the player must press Approve. A
-  stranger's link can therefore never sign the app in as someone else: the code is issued to *their own* signed-in
+  stranger's link can therefore never sign the app in as someone else: the code is issued to _their own_ signed-in
   session, and the approval screen is explicit.
 - A deep-link code is bound to the server it names; the app refuses a code for a server other than the one shown.
-- The session the app receives is the existing long-lived, remotely revocable one, listed in the account page's
-  "Devices" with a revoke button (new, small).
-- Consent-version changes (`needsConsent`) are accepted on the web page before a code can be issued.
+- The session the app receives is the existing long-lived, remotely revocable one. `GET /api/auth/sessions` and
+  `DELETE /api/auth/sessions/:id` already exist; the Devices list that uses them waits for the web account page
+  ([ROADMAP.md](../../ROADMAP.md) item 8). Until then `vtt-admin user revoke-sessions <email>` is the revoke.
+- **Consent.** The app has no consent screen. If the recording-notice version changed, sign-in succeeds with
+  `needsConsent`; the app then tells the player to accept the new notice in the browser (the join page) and
+  connect again, rather than showing the text itself. The consent wording therefore lives only in the web page.
 
-## What changes
+## What was built (final names)
 
-| Area | Change |
-| --- | --- |
-| Backend | `POST /api/auth/link-codes` (signed in); `POST /api/auth/device`, `POST /api/auth/device/poll`, `POST /api/auth/device/approve`; reuse redeem. A small table (or Valkey keys with TTL) for pending codes. |
-| Web | Last join step becomes "Open VTT Chat" + QR + short code; a `/connect` approval page; account page lists devices. |
-| App | Remove the email/password and email-code forms; add the Connect screen, code entry, deep-link `code` param, QR render. Keep session storage and refresh as is. |
-| Protocol | New endpoints and a removed client path: a **MINOR** bump and `PROTOCOL_VERSION` 2, per [VERSIONING-AND-DEPLOYMENT.md](VERSIONING-AND-DEPLOYMENT.md). |
-| Admin | `vtt-admin user code <email>` stays: it is how an operator signs in someone with no mail and no browser access. |
+| Area         | What exists                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Backend      | `POST /api/auth/link-codes` (signed in) returns `{code, expiresAt}`, 5 minutes, 8 characters shown as `ABCD-2345`, redeemed at the existing `/magic-link/redeem`. `POST /api/auth/device` (public, returns `requestId`, `userCode`, `pollSecret`, expiry), `POST /api/auth/device/poll`, `GET /api/auth/device/:userCode` (signed in; describes the device for the approval screen), `POST /api/auth/device/approve` (signed in, 204). Migration `0025_device_requests`. Code in `backend/src/lib/auth/deviceFlow.ts`, `deviceLabel.ts`, `http/authRoutes.ts`. |
+| Web          | The last join step is **Connect**: Open VTT Chat (deep link), a QR of the same link, the typed code and a countdown. `/connect?c=…` is the approval page, served by the backend's join routes, usable from a phone.                                                                                                                                                                                                                                                                                                                                            |
+| App (Rust)   | `account_device_start`, `account_device_poll`, `account_connect_with_code`, `account_open_connect`, `dev_signin_enabled`, `take_pending_connect`; event `deeplink:connect {server, code}`.                                                                                                                                                                                                                                                                                                                                                                     |
+| App (panels) | A **Connect** screen replaces the sign-in form, with a "paste a connect link" box and a collapsed Developer sign-in block.                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| Protocol     | `PROTOCOL_VERSION` 2 and a MINOR bump (0.4), per [VERSIONING-AND-DEPLOYMENT.md](VERSIONING-AND-DEPLOYMENT.md). An old app is stopped by `426 update_required`.                                                                                                                                                                                                                                                                                                                                                                                                 |
+| Admin        | `vtt-admin user code <email>` stays: it signs in someone with no mail and no browser access, and works in the app's typed-code box too.                                                                                                                                                                                                                                                                                                                                                                                                                        |
 
-## My calls (change any of these)
+## The dev switch: `VTT_DEV_SIGNIN`
 
-- Link code lifetime 5 minutes (shorter than the 15-minute emailed code, because it is handed over on screen).
-- Typed code format: 8 characters from an unambiguous alphabet, shown as two groups of four.
-- QR rendered in the app by a small pure-JS library in the panel UI (no Rust or native dependency).
-- No PKCE on the deep link: the code is single-use, short, and bound to the server; the device flow has its own
-  poll secret. (Adding PKCE later does not change the wire shape much.)
+Started with `VTT_DEV_SIGNIN=1`, the app also honours the old password, emailed-code and SSO commands and shows
+the collapsed Developer sign-in block. Without it those Rust commands return `dev_only`, so a normal build has
+no password path at all, not merely a hidden one. It exists so development against a scratch server does not need
+a browser round trip every time. See [DEVELOPING.md](../../DEVELOPING.md).
 
-## Not decided
+## Decisions made while building (and why)
 
-- Whether the existing in-app forms are removed in the same release or after one release of overlap. Since this is
-  a MINOR bump and the app and server must match anyway, I recommend removing them at once.
-- Mobile account and profile pages ([MOBILE-WEB-APP.md](MOBILE-WEB-APP.md)) are roadmap item 8 and stay separate.
+- **Expiry is judged by the client's own deadline**, computed from the remaining lifetime the server reports, not
+  by comparing the server's timestamp to the local clock, so a skewed PC clock cannot show a code as expired
+  (or alive) wrongly.
+- **`account_open_connect` is a narrow command**: it opens only the server's own `/connect` page for the current
+  request, never an arbitrary URL, so the panel cannot be turned into a link launcher.
+- **Polling has its own limiter** (200 per 5 minutes per request id and IP) so a waiting app polling every couple
+  of seconds is never locked out by the stricter budget that guards code guessing. Polling rides out short
+  network drops instead of failing the request.
+- **Approval is atomic**: one request is approved once, by one user, and delivered once, even if two browsers
+  race.
+- **Device labels are capped at 80 characters and stripped of control characters** before storage and display,
+  because the label is attacker-influenced text shown on the approval screen.
+- **A waiting Connect screen stays bound to the server it started on**; a deep link for a different server
+  never silently redirects it, and a deep link never signs in by itself: it fills the screen and the player
+  confirms.
+- **Known gap:** bidirectional-text control characters (U+202A to U+202E, U+2066 to U+2069) are not stripped from
+  device labels, so a label can render oddly on the approval page. It cannot change what is approved.
+
+## Security rules
+
+- Codes are single-use, expire in 5 minutes, are stored hashed, rate-limited, and never logged. The poll secret
+  is separate from the user code, so someone who sees the code on a screen cannot collect the session.
+- **Approval always names the device** and the player must press Approve. A stranger's link can therefore never
+  sign the app in as someone else: the code is issued to _their own_ signed-in session, and the approval screen
+  is explicit.
+- A deep-link code is bound to the server it names; the app refuses a code for a server other than the one shown.
+- The join page's browser session is held in memory only and signed out when the page closes.
+
+## My calls (kept)
+
+- Link code lifetime 5 minutes (shorter than the 15-minute emailed code, because it is handed over on screen);
+  device requests share it.
+- Typed code: 8 characters from an unambiguous alphabet, two groups of four; the typed code and the device user
+  code share one alphabet and format.
+- QR rendered by the web page and the panel with a small pure-JS library (no Rust or native dependency).
+- No PKCE on the deep link: the code is single-use, short and bound to the server; the device flow has its own
+  poll secret.
+- The in-app forms were removed at once, not after an overlap release, since app and server must match on
+  MAJOR.MINOR anyway.
+
+## Not done
+
+- The Devices list with revoke on the web (needs the web account page, roadmap item 8).
+- Real-app verification: see [BUILD-STATUS.md](../BUILD-STATUS.md).

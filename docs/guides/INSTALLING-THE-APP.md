@@ -149,6 +149,23 @@ without any extension.
 - Still stuck? Tell your operator your distribution and desktop (`echo $XDG_CURRENT_DESKTOP`) and whether you
   used the AppImage, `.deb` or `.rpm`.
 
+## First run: connect the app
+
+The app has no sign-in form and never asks for your password. You create your account on the **join page** in a
+browser (the link, code or QR your DM gave you), then connect the app from there:
+
+1. On the join page, after you have joined the campaign, you reach the **Connect** step.
+2. Install and open the app, then do **one** of these:
+   - click **Open VTT Chat** on the page (the browser asks to open the app: allow it); or
+   - scan the **QR code** with your phone and approve "Connect VTT Chat" there; or
+   - type the short code (like `ABCD-2345`) into the app's Connect screen. Use this if the button does nothing,
+     which can happen with the Linux AppImage.
+3. Codes last 5 minutes. If one expires, the page shows a new one.
+
+If the app shows a code of its own instead, open the address it shows (or scan its QR) in any browser where you
+are signed in, and press **Approve**. If the app says the recording notice changed, accept it on the join page
+first, then connect again.
+
 ## Updates
 
 After the first install the app updates itself (a banner offers "Restart to update"). Updates are signed with

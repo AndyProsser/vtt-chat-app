@@ -1,6 +1,6 @@
 # Versioning and server‑controlled deployment
 
-Decided with Andy 2026‑11‑11. **Status: the rules are in force. Built 2026‑11‑11: the image workflow (`images.yml`, untried until the next tag) and the REST protocol handshake (`PROTOCOL_VERSION`, `x-vtt-protocol`, `426 update_required`, `GET /api/version`). Also built and unit-tested (not yet run from a deployed server against live GitHub): the server‑chosen client build and the mirror (`UPDATES_SOURCE`, `updates sync`, minisign verification of mirrored files, cleanup). Not built: the WebSocket check and the CI contract guard.** The web onboarding / app sign‑in direction is recorded at
+Decided with Andy 2026‑11‑11. **Status: the rules are in force. Built 2026‑11‑11: the image workflow (`images.yml`, untried until the next tag) and the REST protocol handshake (`PROTOCOL_VERSION`, `x-vtt-protocol`, `426 update_required`, `GET /api/version`). Also built and unit-tested (not yet run from a deployed server against live GitHub): the server‑chosen client build and the mirror (`UPDATES_SOURCE`, `updates sync`, minisign verification of mirrored files, cleanup). Not built: the WebSocket check and the CI contract guard. Built 2026‑11‑11 (the sign-in half of web onboarding, [APP-SIGN-IN.md](APP-SIGN-IN.md)): browser-only app sign-in, the first change to bump `PROTOCOL_VERSION` (1 → 2, for 0.4).** The web onboarding / app sign‑in direction is recorded at
 the end as intent only; it needs its own design pass.
 
 ## 1. Version numbers (in force now)

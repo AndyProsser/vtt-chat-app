@@ -13,10 +13,10 @@ sequenceDiagram
     DM->>P: link https://host/join/CODE (or code / QR)
     P->>S: GET /api/invites/CODE → campaign name, consent version, download links
     P->>S: register (or login) + POST /campaigns/join
-    P->>S: logout (the browser session only existed to join)
-    P->>P: shown the download for their OS + instructions
-    P->>A: install, open, sign in with the same email + password
-    A->>S: session + WebSocket; campaign appears
+    P->>P: shown the download for their OS + the Connect step
+    P->>A: install, then Open VTT Chat (deep link), scan the QR, or type the code
+    A->>S: redeems the code for its own session + WebSocket; campaign appears
+    P->>S: logout (the browser session only existed to join and connect)
 ```
 
 ## Why a browser first
@@ -25,15 +25,18 @@ sequenceDiagram
   place, and it works from a phone (QR code at the table) even though the app is desktop-only.
 - Account creation, the recording-consent notice and the download link are one page, not a
   chicken-and-egg inside an app they don't have.
-- The app stays small: it only needs a sign-in screen, never a sign-up flow.
+- The app stays small: it has a Connect screen, never a sign-up or sign-in form.
 
 ## What the page may learn and do
 
 - `GET /api/invites/:code` is public and rate-limited (shares the join endpoint's budget). It returns
   the campaign **name**, the instance's consent version and the configured download links — nothing
   else. A bad, expired or revoked code is the same `invite_invalid` as when joining.
-- The page creates the account (or signs in to an existing one), joins, then **logs out**: no token
-  is left in the browser. The app signs in for itself with the credentials.
+- The page creates the account (or signs in to an existing one), joins, then offers the **Connect**
+  step: _Open VTT Chat_ (a `vtt-chat://connect?server=…&code=…` link), a QR of the same link and the code to
+  type, with a countdown (5 minutes). The session is held in memory only and signed out when the page closes, so
+  no token is left in the browser. The app never sees the password: it trades the one-time code for its own
+  session. Design and rationale: [APP-SIGN-IN.md](APP-SIGN-IN.md).
 - Consent wording lives in the page (`web/src/consts`); the server only checks the version string.
 
 ## Serving
@@ -49,6 +52,6 @@ allows only the page's own script and styles. Without `WEB_DIR` the invite API s
 
 ## Open
 
-- The app registers a `vtt-chat://connect?server=…` link so "Open the app" can pre-fill the server
-  address. Registering the scheme is app work (Stage 4); until then the page also shows the address.
+- Deep links are unreliable on the Linux AppImage; there the typed code (or the QR approved from a phone) is
+  the path. None of the three has been run on a real OS yet ([BUILD-STATUS.md](../BUILD-STATUS.md)).
 - Password reset by magic link needs SMTP; without it the DM/operator issues a one-time code.

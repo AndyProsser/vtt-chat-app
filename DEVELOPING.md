@@ -78,9 +78,24 @@ npm run dev:seed                                               # a DM account, f
 npm run dev:mock                                               # the four players come online, join voice, talk and chat (Ctrl+C to stop)
 ```
 
-Then run the app (`cd tauri-client && cargo run -p src-tauri`) and sign in to `http://localhost:3000` as **`dm@vtt.test`**. Every account's password is generated into `.dev/accounts.json` (git-ignored, mode 0600) and never printed. `livekit-server` is a static binary: put it in `~/.local/bin` (releases at github.com/livekit/livekit). Resetting the database (`docker compose … down`) is fine: `dev:seed` signs in or re-creates everything with the same passwords.
+Then run the app **with the developer sign-in on** (`cd tauri-client && VTT_DEV_SIGNIN=1 cargo run -p src-tauri`) and sign in to `http://localhost:3000` as **`dm@vtt.test`**. Every account's password is generated into `.dev/accounts.json` (git-ignored, mode 0600) and never printed. `livekit-server` is a static binary: put it in `~/.local/bin` (releases at github.com/livekit/livekit). Resetting the database (`docker compose … down`) is fine: `dev:seed` signs in or re-creates everything with the same passwords.
 
 The mock players are real LiveKit participants publishing synthetic "speech", so the speaking glow and the link-quality screen are driven by the real paths. They do not exercise Egress/recording (no Egress server in this setup).
+
+### `VTT_DEV_SIGNIN`: the app's developer sign-in
+
+A normal build has no sign-in form: the player connects through the browser (a link code or an approved device
+request, [APP-SIGN-IN.md](docs/architecture/APP-SIGN-IN.md)). That is right for players and slow for a developer
+who restarts against a scratch server all day, and the seeded accounts have passwords, not browsers. So with
+`VTT_DEV_SIGNIN=1` in the app's environment:
+
+- the Connect screen gains a collapsed **Developer sign-in** block (email and password, emailed code, SSO) and a
+  box to paste a connect link;
+- the matching Rust commands work. Without the variable they return `dev_only`, so a release build has no
+  password path at all (it is not merely hidden in the UI).
+
+Launch it as `VTT_DEV_SIGNIN=1 cargo run -p src-tauri`. Never set it for players. To try the real flow, leave it
+off, press Connect and approve the code at `http://localhost:3000/connect?c=…`.
 
 ### Upgrading the LiveKit SDK
 

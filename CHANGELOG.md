@@ -12,9 +12,21 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ### Added
 
+- **Connect the app through the browser.** After joining on the web page, press **Open VTT Chat**, scan the **QR code** with your phone, or type the short code into the app. Or start from the app: it shows a code, and any signed-in browser (a phone is fine) approves it at `/connect`. Codes last 5 minutes. The app never sees your password, and the server can change its sign-in methods without a new app.
 - **Server images are published** to GHCR on every release (`vtt-chat-backend`, `vtt-chat-worker`), so a server pulls a release instead of building it. `setup.sh` pins the stack to its release line (MAJOR.MINOR), so `docker compose pull` takes bug-fix patches and never a new minor. `docker compose up --build` still builds from source.
 - **The server keeps the app update feed current by itself.** It watches the GitHub releases and offers players the newest patch of its own MAJOR.MINOR, with nothing to approve. `UPDATES_SOURCE=github` (the Compose default) sends players to GitHub; `mirror` makes the server download, verify (against the app's update key) and serve the installers itself, keeping only the newest patch plus one previous. `vtt-admin updates sync` runs it now and `updates status` shows the source and what the mirror holds. `vtt-admin updates publish` still works for air-gapped servers.
 - **Protocol check between app and server.** The app now sends the protocol version it speaks on every request, and `GET /api/version` reports the server's version and protocol. A server and app on different protocols no longer half-work: the app is told clearly to update. Normal patch releases never change the protocol.
+
+### Changed
+
+- **The app no longer has a sign-in form.** Password, emailed-code and single sign-on sign-in now happen in the browser. **Wire change: this needs a matching 0.4 server and app (`PROTOCOL_VERSION` 2).** An older app is told to update. For development only, `VTT_DEV_SIGNIN=1` brings the old forms back in a collapsed Developer sign-in block.
+- `vtt-admin user code` also signs the app in when no browser is available.
+
+### Known limits
+
+- Deep links (Open VTT Chat) may not work on the Linux AppImage; type the code instead.
+- If the recording notice changed since you joined, accept it on the join page, then connect the app again.
+- The web has no Devices list yet; an operator can sign a player out everywhere with `vtt-admin user revoke-sessions`.
 
 ## [0.3.2] - 2026-11-11
 
