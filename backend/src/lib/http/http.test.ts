@@ -554,6 +554,19 @@ describe('device requests over HTTP', () => {
     expect(wrong).toEqual(unknown);
   });
 
+  it('lets the app poll every couple of seconds, and stops a flood', async () => {
+    const started = await api.call('POST', '/api/auth/device', { body: {} });
+    const poll = { requestId: started.body.requestId, pollSecret: started.body.pollSecret };
+    for (let i = 0; i < 50; i++) {
+      expect((await api.call('POST', '/api/auth/device/poll', { body: poll })).status).toBe(202);
+    }
+    let last = 0;
+    for (let i = 0; i < 160; i++) {
+      last = (await api.call('POST', '/api/auth/device/poll', { body: poll })).status;
+    }
+    expect(last).toBe(429);
+  });
+
   it('rate-limits starting requests by address', async () => {
     let last = 0;
     for (let i = 0; i < 12; i++) {

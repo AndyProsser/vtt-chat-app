@@ -102,7 +102,10 @@ export class DeviceFlow {
   /** The signed-in user says "yes, that is my app". The caller has already authenticated them. */
   async approve(userId: string, userCode: string): Promise<void> {
     const request = await this.openByCode(userCode);
-    await this.store.putDeviceRequest({ ...request, approvedUserId: userId });
+    // Conditional in the store, so two approvals racing (or a later one) cannot overwrite the first.
+    if (!(await this.store.markDeviceRequestApproved(request.id, userId, this.clock.now()))) {
+      throw new DomainError('invalid_token');
+    }
   }
 
   /** The app asks whether it has been approved. A session is handed over once, then never again. */
@@ -121,6 +124,8 @@ export class DeviceFlow {
     if (!(await this.store.markDeviceRequestDelivered(request.id, this.clock.now()))) {
       throw new DomainError('invalid_token');
     }
+    // Known limit: if creating the session fails after delivery is marked, the delivery is spent
+    // and the app must start a new request (deliberate; the alternative risks delivering twice).
     const user: User | undefined = await this.store.getUser(request.approvedUserId);
     if (!user) throw new DomainError('invalid_token');
     return this.accounts.signInUser(user, request.deviceLabel ?? undefined);

@@ -301,6 +301,15 @@ export class PostgresStore implements Store {
     await this.db.query('DELETE FROM device_requests WHERE expires_at <= $1', [now]);
   }
 
+  async markDeviceRequestApproved(id: string, userId: string, now: number): Promise<boolean> {
+    const result = await this.db.query(
+      `UPDATE device_requests SET approved_user_id = $2
+       WHERE id = $1 AND approved_user_id IS NULL AND expires_at > $3`,
+      [id, userId, now],
+    );
+    return result.rowCount === 1;
+  }
+
   async markDeviceRequestDelivered(id: string, now: number): Promise<boolean> {
     const result = await this.db.query(
       'UPDATE device_requests SET delivered_at = $2 WHERE id = $1 AND delivered_at IS NULL',

@@ -120,6 +120,22 @@ describe('device requests', () => {
     expect(await errorCode(flow.approve(ann.id, second.userCode))).toBe('invalid_token');
   });
 
+  it('keeps the first approver when a second user approves the same code', async () => {
+    const ann = await signUp('ann');
+    const bob = await signUp('bob');
+    const started = await flow.start({});
+    const results = await Promise.allSettled([
+      flow.approve(ann.id, started.userCode),
+      flow.approve(bob.id, started.userCode),
+    ]);
+    expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
+    const winner = results[0]?.status === 'fulfilled' ? ann : bob;
+    expect(await errorCode(flow.approve(ann.id, started.userCode))).toBe('invalid_token');
+    const done = await flow.poll(started.requestId, started.pollSecret);
+    if ('pending' in done) throw new Error('expected a session');
+    expect(done.user.id).toBe(winner.id);
+  });
+
   it('sweeps expired requests when a new one starts', async () => {
     const old = await flow.start({});
     clock.advance(LINK_CODE_TTL_MINUTES * MINUTE_MS + 1);

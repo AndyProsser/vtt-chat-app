@@ -201,6 +201,7 @@ export function createApp({
       sender: sender ?? new NoMailTransport(),
       loginLimiter: new RateLimiter(10, 15 * MINUTE),
       linkLimiter: new RateLimiter(10, 15 * MINUTE),
+      pollLimiter: new RateLimiter(200, 5 * MINUTE),
       ...(realtime ? { onSessionRevoked: (id: string) => realtime.revokeSession(id) } : {}),
       ...(realtime
         ? {

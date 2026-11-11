@@ -93,6 +93,12 @@ export class MemoryStore implements Store {
       if (r.expiresAt <= now) this.data.deviceRequests.delete(id);
     }
   };
+  markDeviceRequestApproved = async (id: string, userId: string, now: number): Promise<boolean> => {
+    const row = this.data.deviceRequests.get(id);
+    if (!row || row.approvedUserId !== null || row.expiresAt <= now) return false;
+    row.approvedUserId = userId;
+    return true;
+  };
   markDeviceRequestDelivered = async (id: string, now: number): Promise<boolean> => {
     const row = this.data.deviceRequests.get(id);
     if (!row || row.deliveredAt !== null) return false;

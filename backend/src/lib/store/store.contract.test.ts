@@ -94,6 +94,28 @@ describe(`Store contract (${backend.kind})`, () => {
     expect(await store.getDeviceRequest(old.id)).toBeUndefined();
     expect(await store.getDeviceRequest(live.id)).toEqual(live);
 
+    const ann = backend.newId();
+    const bob = backend.newId();
+    for (const [id, name] of [
+      [ann, 'ann'],
+      [bob, 'bob'],
+    ] as const) {
+      await store.putUser({
+        id,
+        email: `${name}@x.test`,
+        displayName: name,
+        passwordHash: null,
+        isAdmin: false,
+        consentVersion: '1',
+        consentAt: 1,
+        createdAt: 1,
+      });
+    }
+    expect(await store.markDeviceRequestApproved(live.id, ann, 2000)).toBe(false); // expired
+    expect(await store.markDeviceRequestApproved(live.id, ann, 50)).toBe(true);
+    expect(await store.markDeviceRequestApproved(live.id, bob, 51)).toBe(false);
+    expect((await store.getDeviceRequest(live.id))?.approvedUserId).toBe(ann);
+
     expect(await store.markDeviceRequestDelivered(live.id, 50)).toBe(true);
     expect(await store.markDeviceRequestDelivered(live.id, 60)).toBe(false);
     expect((await store.getDeviceRequest(live.id))?.deliveredAt).toBe(50);

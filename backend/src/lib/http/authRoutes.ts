@@ -47,6 +47,8 @@ export interface AuthRouteDeps {
   loginLimiter: RateLimiter;
   /** Slows magic-link requests and redemptions. Keyed by client address. */
   linkLimiter: RateLimiter;
+  /** The desktop app polls every couple of seconds for the request's life; keyed by request + address. */
+  pollLimiter: RateLimiter;
   /** Called after a session is revoked, so a live socket on it can be dropped at once. */
   onSessionRevoked?: (sessionId: string) => void;
   /** Called after someone changes their name, so live rosters can show it at once. */
@@ -75,6 +77,7 @@ export function authRoutes({
   sender,
   loginLimiter,
   linkLimiter,
+  pollLimiter,
   onSessionRevoked,
   onProfileChanged,
 }: AuthRouteDeps): Router {
@@ -165,7 +168,7 @@ export function authRoutes({
 
   router.post('/device/poll', async (req, res) => {
     const body = devicePollBody.parse(req.body);
-    if (!linkLimiter.allow(`device-poll:${req.ip}`)) {
+    if (!pollLimiter.allow(`device-poll:${body.requestId}:${req.ip}`)) {
       res
         .status(429)
         .json({ error: 'rate_limited', message: 'too many requests; try again later' });

@@ -38,6 +38,8 @@ export interface Store {
   getDeviceRequest(id: string): Promise<DeviceRequest | undefined>;
   getDeviceRequestByCodeHash(userCodeHash: string): Promise<DeviceRequest | undefined>;
   deleteExpiredDeviceRequests(now: number): Promise<void>;
+  /** Records the approver if the request is still unexpired and unapproved; true for exactly one caller. */
+  markDeviceRequestApproved(id: string, userId: string, now: number): Promise<boolean>;
   /** Marks the request delivered if it was not already; true for exactly one caller. */
   markDeviceRequestDelivered(id: string, now: number): Promise<boolean>;
 
