@@ -185,19 +185,26 @@ someone else's phone.
 
 ## 10. Your character and settings
 
-Open **Settings** (the cog):
+Open **Settings** (the cog). It has five tabs:
 
-- **Profile**: your **status** and when to go Away; your name; your picture; signing in and out.
+- **Profile**: your photo and player name. **Click your photo to change it** (a small X on its corner removes it).
+  **Click your name**, which has a dotted underline, to rename it: Enter saves, Escape cancels. The sign-out icon is
+  at the top right. Below are your **status** and when to go Away, your **theme** (light or dark follows your
+  computer), and an **App** section at the bottom with the app and server versions, **updates** (with the
+  include-dev-builds switch) and **start with the computer**.
 - **Campaign**: leave the campaign; create invites (DM); **hand over the DM role** (DM: you and a player swap
   places in one step); your **character**: name, picture, and an optional **D&D Beyond link**. Paste your
   public character's link and the app keeps your name, race, class, level and portrait up to date (only if the
   server's operator turned this on). **Sync now** forces a refresh.
-- **Sessions**: upcoming sessions and your answer.
-- **General**: **Appearance** (five themes; light or dark follows your computer), **Audio** (devices, engine,
-  noise, volume), **start with the computer**, and **updates**.
+- **Sessions**: upcoming sessions and your answer. The DM schedules a session with the calendar-plus icon at the
+  top right.
+- **Audio**: microphone, speakers, engine, noise filter, volume, and, for the DM, **hear sound effects myself**.
+- **Notifications**: what you are told about (chat, whispers, handouts and loot, sessions) and **quiet hours**.
 
-By default you only get finished releases. To try early versions, turn on **Settings → General → Include dev builds**; they may be rough. When a new version is available a banner says so; it installs only when you click "Restart to update", and
-never in the middle of a game on its own.
+By default you only get finished releases. To try early versions, turn on **Settings → Profile → App → Include dev
+builds**; they may be rough. When a new version is available a banner says so; it installs only when you click
+"Restart to update", and never in the middle of a game on its own. If a banner says the app and your server are on
+different versions, update the app, or ask your DM to update the server if the app is the newer one.
 
 ## 11. For the DM
 
