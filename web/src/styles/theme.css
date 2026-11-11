@@ -43,7 +43,7 @@ body {
 .site-header,
 .site-column {
   width: 100%;
-  max-width: 520px;
+  max-width: 640px;
 }
 .site-header {
   display: flex;

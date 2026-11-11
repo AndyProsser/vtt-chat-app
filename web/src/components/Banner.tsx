@@ -20,7 +20,7 @@ export function Banner({
 }) {
   return (
     <div className={`banner banner-${size}`}>
-      <img src={src} srcSet={srcSet} sizes="(min-width: 560px) 520px, 100vw" alt="" />
+      <img src={src} srcSet={srcSet} sizes="(min-width: 700px) 640px, 100vw" alt="" />
       {video && <video src={video} poster={src} autoPlay muted loop playsInline aria-hidden />}
       {children && <div className="banner-caption">{children}</div>}
     </div>
