@@ -81,10 +81,10 @@ item in the tray menu, and **Settings → Profile → Status**.
 ## 4. Voice
 
 - **Mute and unmute**: click the microphone button, or press **Ctrl+Shift+M**. While muted, **hold Left
-  Ctrl to talk** (push to talk). The tray icon and the button show whether your microphone is live. With the new audio engine (Settings → General → Audio), muting also lets go of your microphone, so your computer's "microphone in use" light goes out.
+  Ctrl to talk** (push to talk). The tray icon and the button show whether your microphone is live. With the new audio engine (Settings → Audio), muting also lets go of your microphone, so your computer's "microphone in use" light goes out.
 - **Meter**: green is normal talking, amber is loud, red is too loud. It shows what the table hears after
   the app has cleaned your sound, so typing and fans you have filtered out do not show.
-- **Echo and noise**: if people hear an echo of themselves, wear headphones. In **Settings → General → Audio**
+- **Echo and noise**: if people hear an echo of themselves, wear headphones. In **Settings → Audio**
   you can pick your microphone and speakers, turn on **the new audio engine** (gives you a volume for each
   person, a microphone volume and echo removal for everything the app plays), and choose a **Background
   noise** level: Off, Light, Standard (removes fans and air conditioning), or Strong (also hides typing and
@@ -172,7 +172,7 @@ you hear it first.
 ## 9. Sessions and reminders
 
 The DM schedules sessions (date, time, length). You see the next one in **Settings → Sessions**, and you can
-answer **Can make it / Late / Can't**. The server sends reminders 24 hours and 1 hour before. They also show as a desktop notification, even when the app is hidden. Choose what you want to hear about, and set **quiet hours** (no pop-ups, for example overnight), in **Settings → General → Notifications**.
+answer **Can make it / Late / Can't**. The server sends reminders 24 hours and 1 hour before. They also show as a desktop notification, even when the app is hidden. Choose what you want to hear about, and set **quiet hours** (no pop-ups, for example overnight), in **Settings → Notifications**.
 
 ### On your phone
 
@@ -248,9 +248,9 @@ different versions, update the app, or ask your DM to update the server if the a
 
 | Problem                                    | Try                                                                                                             |
 | ------------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
-| I cannot hear anyone / they cannot hear me | Check your status is **Online** and you are not muted; choose the right devices in Settings → General → Audio   |
+| I cannot hear anyone / they cannot hear me | Check your status is **Online** and you are not muted; choose the right devices in Settings → Audio   |
 | There is an echo                           | Wear headphones; turn on the new audio engine                                                                   |
-| Typing or fan noise is heard               | Settings → General → Audio → Background noise (Standard or Strong)                                              |
+| Typing or fan noise is heard               | Settings → Audio → Background noise (Standard or Strong)                                              |
 | I cannot connect at all                    | Check the server address; ask your operator whether the server is up (`/status` page)                           |
 | Voice works for others but not me          | Your network may block voice; try another network or a phone hotspot                                            |
 | I cannot see the tray icon (Linux)         | Install and turn on the AppIndicator extension: [steps](INSTALLING-THE-APP.md#linux-i-cannot-see-the-tray-icon) |

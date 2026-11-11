@@ -25,7 +25,7 @@ flowchart TD
   3 seconds, so a burst of whispers is one pop-up. Text is cut to one short line.
 - **Defaults I chose, easy to change in `classify`:** public chat gives a dot but never a pop-up (it is constant);
   loot gives a dot only; "someone answered an invitation" is silent.
-- **Settings → General → Notifications (built 2026-11-10):** a switch each for chat (the dot), whispers,
+- **Settings → Notifications (built 2026-11-10):** a switch each for chat (the dot), whispers,
   handouts and loot, and sessions (reminders, changes, "summary ready"), plus **quiet hours** (a daily window
   that may cross midnight, 22:00 to 08:00 by default). Quiet hours silence pop-ups only; the dot still shows,
   because it never interrupts. Stored in `notifications.json` beside the account file, read for each event

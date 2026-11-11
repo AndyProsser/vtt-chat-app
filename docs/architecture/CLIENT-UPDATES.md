@@ -14,7 +14,7 @@ sequenceDiagram
   Note over S: installers + latest.json in UPDATES_DIR
   P->>S: GET /updates/latest.json  (15 s after start, then every 6 h)
   S-->>P: version, notes, per-platform URL + signature
-  P->>P: newer than me? show a banner (Settings → General has a button too)
+  P->>P: newer than me? show a banner (Settings → Profile → App has a button too)
   P->>S: GET installer (only when the player clicks "Restart to update")
   P->>P: verify the signature against the public key compiled into the app
   P->>P: install, then restart (the supervisor restarts it at once)
@@ -45,7 +45,7 @@ below `0.4.0`).
 | Feed on the server         | Holds                                                        | Read by                                                           |
 | -------------------------- | ------------------------------------------------------------ | ----------------------------------------------------------------- |
 | `/updates/latest.json`     | the latest release                                           | every player, by default                                          |
-| `/updates/dev/latest.json` | the **newer of** the latest dev build and the latest release | players who turned on Settings → General → **Include dev builds** |
+| `/updates/dev/latest.json` | the **newer of** the latest dev build and the latest release | players who turned on Settings → Profile → App → **Include dev builds** |
 
 Why the dev feed includes the release: a player testing `0.4.0-dev.3` must still be offered `0.4.0` when it
 ships, and Tauri's updater reads one feed, so the server does the merge when you publish. `vtt-admin updates
@@ -81,7 +81,7 @@ The steps below are the manual path. **CI now builds all three platforms from a 
    (Compose: `docker compose cp <folder> backend:/tmp/rel && docker compose exec backend node backend/dist/cli/main.js updates publish /tmp/rel …`).
    An installer without a `.sig` is refused, not skipped.
 4. `vtt-admin updates status` shows what players are being offered. Players see the banner within hours,
-   or immediately via Settings → General → Check for updates.
+   or immediately via Settings → Profile → App → Check for updates.
 
 ## Status
 

@@ -159,7 +159,7 @@ crossfades, hotkeys, and a public broadcast link (players hear it in the app).
   learns "am I the DM" from the roster (`self_is_dm`), fetches the take (cached on disk by take id), decodes
   it with symphonia to **48 kHz mono** and hands it to `rust-livekit/src/sound/`: a mixer on its own 10 ms
   clock that feeds two places — the **sink** (the published `soundboard` track, via a `NativeAudioSource`)
-  and the **monitor** (the DM's own speakers, optional: Settings → General). The monitor output is opened
+  and the **monitor** (the DM's own speakers, optional: Settings → Audio). The monitor output is opened
   only while something plays and released ~3 s after the last sound. A stop that arrives while a clip is
   still downloading cancels that play; `sound.state` after a reconnect rebuilds from the server's truth.
 - **Why this shape (the echo):** a player's own speaker-playback of effects was invisible to WebRTC's echo
