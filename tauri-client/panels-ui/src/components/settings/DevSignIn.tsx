@@ -81,7 +81,7 @@ function DevForms({ account, server, onServer, onCode }: Props) {
   }
 
   return (
-    <Flex direction="column" gap="3" px="4" pb="4">
+    <Flex direction="column" gap="3" pb="4">
       <details>
         <summary>
           <Text size="2" color="gray">

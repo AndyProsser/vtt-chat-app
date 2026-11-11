@@ -18,7 +18,7 @@ export function AppearanceSection() {
     </span>
   );
   return (
-    <Flex direction="column" px="4" pt="3">
+    <Flex direction="column" mt="2">
       <SettingRow label="Theme" hint="Light or dark follows your system setting">
         <DropdownMenu.Root>
           <DropdownMenu.Trigger>

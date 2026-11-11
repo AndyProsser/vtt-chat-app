@@ -1,10 +1,9 @@
 import { Badge, Button, Callout, Flex, Heading, Text, TextField } from '@radix-ui/themes';
-import { Check, Pencil, X } from 'lucide-react';
+import { Check, LogOut, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { useAccount } from '../../hooks/useAccount.js';
 import { useConnectLink } from '../../hooks/useConnectLink.js';
-import { useVersionCheck } from '../../hooks/useVersionCheck.js';
 import { avatarValue } from '../../lib/avatars.js';
 import { initials } from '../../lib/rail.js';
 import { accountErrorMessage, accountRename, accountSetAvatar } from '../../lib/tauriBridge.js';
@@ -25,7 +24,6 @@ export function AccountSection() {
   const [server, setServer] = useState<string>();
   const [code, setCode] = useState('');
   const link = useConnectLink();
-  const version = useVersionCheck();
   const address = server ?? status?.server ?? '';
 
   if (!status) return null;
@@ -38,7 +36,7 @@ export function AccountSection() {
 
   if (status.signedIn && status.campaignId === null && status.campaigns.length > 0) {
     return (
-      <Flex direction="column" gap="3" p="4">
+      <Flex direction="column" gap="3">
         <Heading size="4">Choose a campaign</Heading>
         {status.campaigns.map((c) => (
           <Button
@@ -59,12 +57,12 @@ export function AccountSection() {
   if (status.signedIn) {
     const campaign = status.campaigns.find((c) => c.id === status.campaignId);
     return (
-      <Flex direction="column" gap="3" p="4">
-        <Flex align="center" gap="3">
-          <span className="vtt-av vtt-char-av">
+      <Flex direction="column" gap="3">
+        <Flex align="start" gap="4">
+          <span className="vtt-av vtt-profile-av">
             <Portrait avatarUrl={status.avatarUrl} fallback={initials(status.displayName ?? '?')} />
           </span>
-          <Flex direction="column" gap="2">
+          <Flex direction="column" gap="2" style={{ flex: 1, minWidth: 0 }}>
             <PlayerName name={status.displayName ?? 'Signed in'} />
             <Flex align="center" gap="2">
               <PictureButton
@@ -80,6 +78,13 @@ export function AccountSection() {
               )}
             </Flex>
           </Flex>
+          <ToolButton
+            label="Sign out"
+            disabled={account.busy}
+            onClick={() => void account.signOut()}
+          >
+            <LogOut size={16} />
+          </ToolButton>
         </Flex>
         <Text color="gray" size="2">
           {campaign
@@ -88,21 +93,7 @@ export function AccountSection() {
           <br />
           {status.server}
         </Text>
-        {version && (
-          <Text color="gray" size="1">
-            App {version.appVersion}
-            {version.serverVersion && ` · Server ${version.serverVersion}`}
-          </Text>
-        )}
         {errorBox}
-        <Button
-          variant="outline"
-          color="gray"
-          loading={account.busy}
-          onClick={() => void account.signOut()}
-        >
-          Sign out
-        </Button>
       </Flex>
     );
   }
@@ -125,7 +116,7 @@ export function AccountSection() {
   );
 }
 
-/** Your player name, as the table sees it. Click the pencil to change it; Enter saves, Escape cancels. */
+/** Your player name, as the table sees it. Click the name (dotted underline) to change it; Enter saves, Escape cancels. */
 function PlayerName({ name }: { name: string }) {
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState(name);
@@ -142,12 +133,17 @@ function PlayerName({ name }: { name: string }) {
   }
   if (!editing) {
     return (
-      <Flex align="center" gap="2">
-        <Heading size="4">{name}</Heading>
-        <ToolButton label="Change your player name" onClick={() => setEditing(true)}>
-          <Pencil size={14} />
-        </ToolButton>
-      </Flex>
+      <button
+        type="button"
+        className="vtt-name-edit"
+        title="Click to edit"
+        aria-label={`Player name: ${name}. Click to edit`}
+        onClick={() => setEditing(true)}
+      >
+        <Text size="5" weight="bold">
+          {name}
+        </Text>
+      </button>
     );
   }
   return (

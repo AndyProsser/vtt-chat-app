@@ -50,7 +50,7 @@ export function NotificationsSection() {
   };
   const quiet = prefs.quiet;
   return (
-    <Flex direction="column" gap="1" mt="4">
+    <Flex direction="column" gap="1">
       <Text weight="medium">Notifications</Text>
       {KINDS.map((k) => (
         <SettingRow key={k.key} label={k.label} hint={k.hint}>

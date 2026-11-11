@@ -2,7 +2,11 @@ import { Flex, Select, Slider, Switch } from '@radix-ui/themes';
 import { Mic, Volume2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
+import { useAccount } from '../../hooks/useAccount.js';
 import { useAudioEngine, useMicLevel } from '../../hooks/useAudioEngine.js';
+import { readMonitorPref, writeMonitorPref } from '../../lib/monitorPref.js';
+import { isDm } from '../../lib/tableModel.js';
+import { useTableStore } from '../../lib/tableStore.js';
 import { LevelMeter } from '../LevelMeter.js';
 
 import {
@@ -12,6 +16,7 @@ import {
   audioEngineSet,
   autoGainSet,
   micGainSet,
+  soundboardMonitorSet,
   noiseFilterSet,
   type AudioDeviceList,
 } from '../../lib/tauriBridge.js';
@@ -40,6 +45,10 @@ export function AudioSection() {
   const [gain, setGain] = useState<number>();
   const [auto, setAuto] = useState<boolean>();
   const [filter, setFilter] = useState<NoiseFilterLevel>();
+  const [monitor, setMonitor] = useState(readMonitorPref);
+  const { status } = useAccount();
+  const members = useTableStore((st) => st.members);
+  const dm = isDm(members, status?.userId ?? null);
   const running = engine?.active === 'mixer';
   const level = useMicLevel(running);
   useEffect(() => {
@@ -76,7 +85,7 @@ export function AudioSection() {
   );
 
   return (
-    <Flex direction="column" px="4" pt="2">
+    <Flex direction="column">
       {list && (
         <>
           <SettingRow label="Microphone">
@@ -164,6 +173,22 @@ export function AudioSection() {
             </SettingRow>
           )}
         </>
+      )}
+      {dm && (
+        <SettingRow
+          label="Hear sound effects myself"
+          hint="Everyone else hears them through the call. Turn off if you use speakers."
+        >
+          <Switch
+            aria-label="Hear sound effects on my own speakers"
+            checked={monitor}
+            onCheckedChange={(next) => {
+              setMonitor(next);
+              writeMonitorPref(next);
+              void soundboardMonitorSet(next).catch(() => undefined);
+            }}
+          />
+        </SettingRow>
       )}
       {!list && !error && <span className="vtt-muted">Looking for audio devices…</span>}
       {error && (

@@ -1,45 +1,60 @@
 import { Tabs } from '@radix-ui/themes';
 
 import { useTableFeed } from '../hooks/useTableFeed.js';
+import { normalizeSettingsTab, SETTINGS_TABS } from '../lib/settingsTabs.js';
 
 import { AccountSection } from './settings/AccountSection.js';
-import { AudioSection } from './settings/AudioSection.js';
 import { AppearanceSection } from './settings/AppearanceSection.js';
+import { AppSection } from './settings/AppSection.js';
+import { AudioSection } from './settings/AudioSection.js';
 import { CampaignTab } from './settings/CampaignTab.js';
-import { GeneralSection } from './settings/GeneralSection.js';
 import { NotificationsSection } from './settings/NotificationsSection.js';
-import { StatusSetting } from './settings/StatusSetting.js';
 import { SessionsSection } from './settings/SessionsSection.js';
+import { StatusSetting } from './settings/StatusSetting.js';
 
 /**
- * Everything done occasionally: you, the campaign and your character, sessions, and the app itself.
- * It reads the table store, which the main window keeps fed, so it holds no feed of its own.
+ * Everything done occasionally: you (and the app itself, at the bottom of Profile), the campaign and
+ * your character, sessions, audio, and notifications. It reads the table store, which the main window
+ * keeps fed, so it holds no feed of its own. `initialTab` accepts old tab ids (`general` is `audio`).
  */
-export function SettingsContent() {
+export function SettingsContent({ initialTab }: { initialTab?: string }) {
   return (
     <div className="vtt-settings">
-      <Tabs.Root defaultValue="profile">
+      <Tabs.Root defaultValue={normalizeSettingsTab(initialTab)}>
         <Tabs.List>
-          <Tabs.Trigger value="profile">Profile</Tabs.Trigger>
-          <Tabs.Trigger value="campaign">Campaign</Tabs.Trigger>
-          <Tabs.Trigger value="sessions">Sessions</Tabs.Trigger>
-          <Tabs.Trigger value="general">General</Tabs.Trigger>
+          {SETTINGS_TABS.map((t) => (
+            <Tabs.Trigger key={t.id} value={t.id}>
+              {t.label}
+            </Tabs.Trigger>
+          ))}
         </Tabs.List>
         <Tabs.Content value="profile">
-          <AccountSection />
-          <StatusSetting />
+          <div className="vtt-settings-page">
+            <AccountSection />
+            <StatusSetting />
+            <AppearanceSection />
+            <AppSection />
+          </div>
         </Tabs.Content>
         <Tabs.Content value="campaign">
-          <CampaignTab />
+          <div className="vtt-settings-page">
+            <CampaignTab />
+          </div>
         </Tabs.Content>
         <Tabs.Content value="sessions">
-          <SessionsSection />
+          <div className="vtt-settings-page">
+            <SessionsSection />
+          </div>
         </Tabs.Content>
-        <Tabs.Content value="general">
-          <AppearanceSection />
-          <AudioSection />
-          <NotificationsSection />
-          <GeneralSection />
+        <Tabs.Content value="audio">
+          <div className="vtt-settings-page">
+            <AudioSection />
+          </div>
+        </Tabs.Content>
+        <Tabs.Content value="notifications">
+          <div className="vtt-settings-page">
+            <NotificationsSection />
+          </div>
         </Tabs.Content>
       </Tabs.Root>
     </div>
