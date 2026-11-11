@@ -540,6 +540,7 @@ doc in the same change as the code it describes — don't batch documentation fo
 - `docs/architecture/DEPLOYMENT-AND-TRANSPORT.md` — self‑host topology, ports, TURN options, optional cloud adapters
 - `docs/architecture/AUDIO-SPIKE-RESULTS.md` — Stage 2 measured audio findings (running log)
 - `docs/architecture/SYNC-PROTOCOL.md` — WebSocket/REST split, envelope, auth, replay, presence tiers
+- `docs/architecture/VERSIONING-AND-DEPLOYMENT.md` — version-number rules, server-chosen client builds, update mirror, container workflow
 - `docs/architecture/STATE-AND-RESILIENCE.md` — client state boundaries, leaf isolation, and recovery rules
 - `docs/CONVENTIONS.md` — folder/style conventions, detailed version of §4
 - `docs/archive/` — the previous design; add to it, never edit it to look current
@@ -567,6 +568,14 @@ Rules Claude must follow:
 - **Publishing the draft release is a separate, explicit step** (`gh release edit vX.Y.Z --draft=false --latest`):
   do it only when Andy has said to, after checking the draft's notes and file list. Rolling out to servers
   (`vtt-admin updates publish`) is the operator's step, not Claude's.
+- **Version numbers carry meaning** (full rules and rationale: [`docs/architecture/VERSIONING-AND-DEPLOYMENT.md`](../docs/architecture/VERSIONING-AND-DEPLOYMENT.md)).
+  One version covers server and client together. **MAJOR** = significant breaking, architectural change;
+  **MINOR** = any change to the API or signalling between server and client (a `shared/` wire-contract change
+  always bumps it, and `PROTOCOL_VERSION` with it); **PATCH** = no wire change. Client and server **must match on
+  MAJOR.MINOR** and may drift on PATCH. While on `0.y.z`, `y` acts as the MAJOR tier. Never reuse or move a tag.
+- **The server chooses the client build** (designed, not built): it offers the newest patch of its own MAJOR.MINOR,
+  patches auto-approved, from GitHub or an operator-enabled local mirror. A new MAJOR.MINOR is a deliberate operator
+  upgrade of the whole stack, never automatic.
 - **Never print or commit the updater signing key.** It lives in the `TAURI_SIGNING_PRIVATE_KEY` repository secret
   and the owner's password manager.
 - Windows and macOS builds are unsigned by choice; the first-run workarounds live in

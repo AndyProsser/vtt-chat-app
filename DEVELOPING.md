@@ -113,6 +113,14 @@ Findings from the previous design that still hold, because they are about the OS
 
 - **Linux, NVIDIA GPU, Wayland: the app dies on the first window** with `Gdk-Message: Error 71 (Protocol error) dispatching to Wayland display`. This is WebKitGTK's dmabuf renderer. The client sets `WEBKIT_DISABLE_DMABUF_RENDERER=1` itself at startup (`src-tauri/src/platform.rs`) unless you already set it. If a window still crashes on your machine, try `GDK_BACKEND=x11`.
 
+## Version numbers
+
+One version covers the server and the client. **MAJOR** is a significant breaking, architectural change. **MINOR**
+is any change to the API or signalling between server and client: if you change a contract in `shared/`, bump MINOR
+(and `PROTOCOL_VERSION`) in the same change. **PATCH** is everything that does not touch the wire. Client and server
+must match on MAJOR.MINOR and may differ on PATCH; while we are on `0.y.z`, `y` plays the MAJOR role. Rationale and
+the planned server-chosen update flow: [docs/architecture/VERSIONING-AND-DEPLOYMENT.md](docs/architecture/VERSIONING-AND-DEPLOYMENT.md).
+
 ## Releasing
 
 Two kinds of build, told apart by the tag name: a **release** (`v0.4.0`, built into a draft you review and

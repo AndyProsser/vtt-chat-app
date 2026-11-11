@@ -1,5 +1,7 @@
 # Client updates
 
+> Direction change 2026-11-11: the server will pick the client build itself (newest patch of its MAJOR.MINOR, auto-approved) and can mirror installers from GitHub. See [VERSIONING-AND-DEPLOYMENT.md](VERSIONING-AND-DEPLOYMENT.md). This page describes what is built today.
+
 The tray app updates itself from **the server the player is signed in to** — the same self-hosted
 box that runs their table. Decided with Andy 2026-11-08: auto-update **yes**; installs only on a click.
 

@@ -113,6 +113,11 @@ Update this file as threads open, progress, or close — stale entries here are 
 - **License/IP notice** in `README.md` was reworded (no longer embeds or scrapes DDB). Worth a
   glance from Andy.
 
+- **Deployment buildout (decided 2026-11-11, not built):** version rules (in force), server-chosen client builds with
+  optional local mirror, container build workflow, and web-app-owned onboarding/auth (intent only; needs its own design).
+  See [docs/architecture/VERSIONING-AND-DEPLOYMENT.md](../docs/architecture/VERSIONING-AND-DEPLOYMENT.md). Order: Wayland
+  window fix, then server-controlled updates + container workflow, then web onboarding/auth, then the mobile flow.
+
 ## Resolved
 
 - **WebKitGTK/NVIDIA homepage crash and blank-render investigation** (two bugs found and patched
