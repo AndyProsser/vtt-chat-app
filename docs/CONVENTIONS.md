@@ -65,3 +65,10 @@ Rules:
 - Types/interfaces: `PascalCase`, no `I` prefix (e.g. `RecordingState`, not `IRecordingState`).
 - Line endings: LF everywhere (`.gitattributes` + `.editorconfig`).
 - Constants: `SCREAMING_SNAKE_CASE` for true constants; `camelCase` for config objects.
+
+### Web colours
+
+Colour for the web pages (`web/`, `status/`) comes from `palette.css`, which holds the desktop app's `default` theme
+tokens (`--vtt-*`). Its values must stay identical to `tauri-client/panels-ui/src/lib/themes.ts`, and
+`web/src/styles/palette.test.ts` enforces that. Radix variables are overridden once, in `theme.css`; the shared
+`site-*` frame CSS in `theme.css` is kept identical in web and status.

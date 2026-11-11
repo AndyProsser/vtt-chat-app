@@ -44,6 +44,9 @@ JSON text frames, versioned from day one:
 
 ## Auth handshake
 
+A browser's WebSocket is signed in from its session cookie at upgrade, only when `Origin` matches the server, and
+sends no `auth` frame. Other clients (the desktop app) send `auth {token}` as below.
+
 Connect, then send the first frame `auth` with the session token within 5 s or be dropped. The
 token is **not** put in the URL (it would land in proxy logs). Revoked or expired sessions get an
 `auth.revoked` frame and close; the client then returns to the sign-in screen. This is the

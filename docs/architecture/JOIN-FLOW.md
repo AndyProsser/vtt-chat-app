@@ -35,8 +35,8 @@ sequenceDiagram
 - The page creates the account (or signs in to an existing one), joins, then offers the **Connect**
   step: _Open VTT Chat_ (a `vtt-chat://connect?server=…&code=…` link) and the code to type, with a countdown
   (5 minutes). There is no QR on this page: a phone has no app to open the deep link, and the app has no
-  scanner. (The app's own Connect screen shows a QR, which a signed-in phone scans to approve at `/connect`.) The session is held in memory only and signed out when the page closes, so
-  no token is left in the browser. The app never sees the password: it trades the one-time code for its own
+  scanner. (The app's own Connect screen shows a QR, which a signed-in phone scans to approve at `/connect`.) The session is an HttpOnly cookie that stays signed in for weeks (see APP-SIGN-IN.md) until Sign out or the operator's offline limit.
+  The app never sees the password: it trades the one-time code for its own
   session. Design and rationale: [APP-SIGN-IN.md](APP-SIGN-IN.md).
 - Consent wording lives in the page (`web/src/consts`); the server only checks the version string.
 
@@ -56,3 +56,14 @@ allows only the page's own script and styles. Without `WEB_DIR` the invite API s
 - Deep links are unreliable on the Linux AppImage; there the typed code (or the app's own QR, approved from a
   signed-in phone) is the path. None of the three has been run on a real OS yet ([BUILD-STATUS.md](../BUILD-STATUS.md)).
 - Password reset by magic link needs SMTP; without it the DM/operator issues a one-time code.
+
+## After joining
+
+Mobile devices continue into `/app` automatically. Desktops see Download, "Open VTT Chat" and "Open the web
+version instead".
+
+## The signed-in view
+
+The session is a cookie, so Home → Download → Home, and returning after installing the app, keep the signed-in
+view. On a computer the order is Open VTT Chat, then the web version, then "Don't have the app yet?" →
+Download, then Sign out. The app's presence cannot be detected from a browser, so none is attempted.

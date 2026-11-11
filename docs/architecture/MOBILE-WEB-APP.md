@@ -70,3 +70,25 @@ gesture code.
 
 A real phone, iOS Safari, a long-running connection across sleep and wake, a very long chat, and the first load
 over a slow connection (the JavaScript is about 140 KB compressed, most of it Radix).
+
+## Reaching it, and the full app
+
+The web app is the phone app: after signing in on the landing page, phones and tablets are handed straight into
+`/app` already signed in (see the hand-off in [APP-SIGN-IN.md](APP-SIGN-IN.md)), and a computer can choose "Open
+the web version instead". The public `/full-app` page explains what the desktop app adds (voice, the recording cue,
+the soundboard, tray controls) and how to get it, with a copyable link to send to a computer; the phone menu links
+to it.
+
+## Look
+
+The web app at `/app` is the same app on phones and desktop browsers. It has no voice or audio options; voice is
+desktop-app-only. It shares the Home pages' look: the same header (logo and brand), page gradient and rounded card
+column (max 640px, centred on wide screens), and a faint theme-tinted watermark of the desktop app's chat artwork
+behind the content. Light and dark follow the OS; there is no theme choice in the web, because themes are a
+desktop-app feature.
+
+The pages' sign-in is tab-scoped and survives navigation. The phone hand-off still redeems a single-use link token
+into the app's own session. The Download link appears in the nav only while signed in.
+
+`/app` uses the same session cookie as the site, with nothing in `localStorage`. The `#connect=` link token is still
+redeemed once and now sets the cookie. If the session ends the app returns to sign-in.

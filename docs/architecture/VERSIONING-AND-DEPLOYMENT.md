@@ -42,6 +42,14 @@ When they disagree:
 - **Client newer than the server:** the app says the server needs updating and tells the player to ask their
   operator. It does not guess.
 
+### The app warns about a mismatch
+
+After sign-in, and again whenever voice reconnects, the desktop app reads the public `GET /api/version` and compares
+MAJOR.MINOR with its own (pre-release suffixes ignored, so 0.4.0 and 0.4.0-dev.2 do not warn). If the app is older it
+shows a banner with an Update now button; if it is newer, it tells the player to ask their DM to update the server.
+A server too old to have `/api/version`, or an unreachable one, shows no warning. The Settings account section also
+shows "App x · Server y". This is advisory and sits beside, not in place of, the protocol-integer enforcement (426).
+
 ## 2. The server decides which client build players use (built 2026-11-11)
 
 Today the operator runs `vtt-admin updates publish` by hand ([CLIENT-UPDATES.md](CLIENT-UPDATES.md)). The target is

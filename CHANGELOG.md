@@ -12,6 +12,11 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ### Added
 
+- **The app warns when it and the server are on different versions** (MAJOR.MINOR), and shows both versions in Settings, Account. If the app is older it offers Update now; if it is newer it tells the player to ask their DM to update the server. Patch differences never warn.
+- **The web app is the phone app, and the choice after sign-in depends on your device.** Phones and tablets go straight into the web app, already signed in, with no download options. Computers keep the desktop app as the default, with a secondary "Open the web version instead" button that signs you in to the web app without a second login.
+- **A public `/full-app` page** explains what the desktop app adds over the web version (voice with echo cancellation and noise filtering, the recording consent cue, the DM soundboard and audio controls, tray quick-mute and hotkeys) and how to get it. The address is copyable, with a share button where the browser supports it, and the phone app's menu links to it.
+- **A starter campaign for the first Admin.** If the first account has no campaign and the instance has none at all, one is created with a randomly chosen dry-humour name (for example "Several Goblins Short of a Plan") and the Admin becomes its DM. It happens at sign-in, so an existing first account gets one the next time it signs in, and `vtt-admin user create` does the same for a new first Admin. It can be renamed. How later accounts get into campaigns is unchanged.
+- **A download page at `/download`** with a tab per system (Windows, macOS, Linux), each with its own step-by-step instructions and download button. Linux has a switch for `.deb`, `.rpm` and AppImage, each with its own commands. It opens on the visitor's own system and ends with the server address to type into the app. The landing page and the post-sign-in step link to it.
 - **A landing page at the server's address**, with the app logo, a short "what is this" and the three ways in (invite code, sign in, request an account), and the same page frame, logo and phone-friendly layout on the join, connect and status pages. The landing page shows the dragon artwork, and a short looping clip on wide screens (never on phones, in data-saver, or with reduced motion).
 - **A new Default theme** for the app: violet surfaces to match the web pages, an ember-orange highlight, a teal glow and a pink whisper edge, in light and dark. It is now what new installs start on; the other themes stay as they were, and nobody's chosen theme changes.
 - **A faint watermark behind the chat** (tinted by the theme) and a small picture on the empty History, Handouts and Loot lists.
@@ -24,6 +29,11 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ### Changed
 
+- **Browser sign-in is now a secure, long-lived cookie.** The site and the web app (`/app`) keep you signed in for weeks: the cookie is HttpOnly (page script cannot read it) and refreshes each time you open the app, and only expires after the operator's offline limit (30 days by default) without you opening it. Pressing **Sign out** ends it. After signing in on a computer, **Open VTT Chat** comes first, then the web version, then a "Don't have the app yet?" download section. The header menu is now **Chat** (opens `/app`), **Download** and **Status**; Chat and Download show only while signed in, and the Home link is gone (the logo goes Home).
+- `/app` now shares the Home pages' look and the app's Default colours, and is a centred card on desktop browsers.
+- The app's version is now 0.4.0, matching the server.
+- **Downloading the app needs a signed-in account.** The download page and `GET /api/downloads` require a session (visiting `/download` signed out shows a sign-in form first), and the home page's signed-in view shows the download steps in the page. Download links are no longer on the public status page, `/api/status` or the invite preview. The app's update feed (`/updates`) is unchanged.
+- The app's signed-out screen now matches the web home page (hero artwork, server card). **Connect** opens the server's web app in your browser, and the app signs in by itself when you press **Open VTT Chat**. The code, QR and typed-code options moved under **Other ways to connect**.
 - **Open VTT Chat now signs the app in straight away** (when it is signed out), with no extra button, and a link opens the main window instead of a second Settings window.
 - **The app trusts the system's certificate store**, so a server on a private CA or an internal certificate (such as the local Caddy one) works once that CA is installed on the machine. `infra/compose/trust-local-ca.sh` does it on Linux for a local try-out. Servers with public certificates are unaffected.
 - **The app no longer has a sign-in form.** Password, emailed-code and single sign-on sign-in now happen in the browser. **Wire change: this needs a matching 0.4 server and app (`PROTOCOL_VERSION` 2).** For development only, `VTT_DEV_SIGNIN=1` brings the old forms back in a collapsed Developer sign-in block.
@@ -31,6 +41,7 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ### Fixed
 
+- Long install commands on the download page scroll inside their block instead of widening the page, and each has a Copy button.
 - The server's update sync honours `UPDATES_INCLUDE_DEV=true` as well as `1`.
 - The macOS updater archive is named with its architecture, so the server offers an Apple-silicon build only to Apple-silicon Macs (it was listed as Intel).
 - **Under Docker Compose the server now sees each player's real address.** Caddy reaches the backend over the Compose network, which the backend did not trust, so every player shared one rate-limit bucket (one busy table could lock everyone out of sign-in for a few minutes). The new `TRUST_PROXY` setting (default `loopback`, `loopback, uniquelocal` in the Compose file) fixes it; the device-approval page shows the right address too.

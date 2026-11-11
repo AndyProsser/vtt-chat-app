@@ -69,6 +69,22 @@ Why it is shaped this way:
 - **Bounded and cleaned.** Name 1-80 characters and message at most 500, control and bidirectional-override characters stripped (as for device labels), 5 requests per address per hour, at most 200 pending, one pending per address.
 - **Version:** this adds a public endpoint and a field in `/api/auth/providers`; 0.4 is still unreleased, so no version bump.
 
+## First account: a starter campaign
+
+Why: a brand-new instance has no campaigns, and a fresh account would otherwise land on "Not in a campaign yet"
+with nowhere to go. Rule: only when the user is an Admin, belongs to no campaign, and the instance has no campaigns
+at all, one campaign is created with a randomly chosen dry-humour name and that account is its DM. It is idempotent
+and applies to no one else. It is hooked into `AccountService.signInUser`, which every sign-in path uses (so an
+existing first account gets one the next time it signs in), and into `vtt-admin user create`. How later accounts
+find or request a campaign is a separate, undecided design.
+
+## Sessions in the browser, and OIDC
+
+Whatever the sign-in method, the result is the same opaque server session, and the browser holds it as an HttpOnly
+cookie (see [APP-SIGN-IN.md](APP-SIGN-IN.md)). A future web OIDC callback would call the same session-creation code,
+set that cookie and redirect home, with no token in a URL. The desktop app keeps the one-time-code page, because it
+cannot take a redirect.
+
 ## Not verified
 
 SSO was tested against a fake provider in the test suite (signing, PKCE, nonce, expiry, replay, unverified email), **not against a real Authelia or Keycloak**. SMTP is tested against a fake mailer, not a live mail server. Both need a first real run. Sign-up requests are unit and HTTP tested (memory store and Postgres), and have not been exercised in a browser.

@@ -23,6 +23,14 @@ And it means the server can add or change sign-in methods (password, emailed cod
 
 ## Three ways to connect
 
+The signed-out screen leads with the web app: **Connect** opens the server's home page in the browser (the
+`account_open_home` command, which builds `{server}/` itself and accepts only an http(s) address with no path).
+The player signs in or joins there and presses **Open VTT Chat**, and the `vtt-chat://connect` deep link signs the
+waiting app in at once. The device request (code, QR, approve link) and the typed one-time code are fallbacks
+behind a single "Other ways to connect" disclosure, which opens by itself when a device request is running or a
+deep-link connect fails. Why: the browser page is where an account, an invite or a session already lives, so the
+app needs no sign-in form of its own.
+
 ```mermaid
 flowchart TD
   W[Join page, signed in] -->|"POST /api/auth/link-codes"| S[Server]
@@ -78,6 +86,16 @@ This is the standard device-authorisation pattern (as `gh auth login` and TV app
 server** on the app, as Andy noted, and nothing else: no deep link, no clipboard, no OS registration. The phone
 sign-in is the human proof.
 
+## Hand-off to the web version
+
+The landing page's signed-in view asks for a single-use link token (`POST /api/auth/link-codes`) and goes to
+`/app#connect=<token>`. The fragment is never sent to the server. The phone app strips it from the address bar
+before anything else, redeems it once through `POST /api/auth/magic-link/redeem`, and adopts the session like a
+normal phone sign-in, including the changed-recording-notice step. A bad or expired token falls back to the
+normal sign-in screen with a short message. The landing page's own in-memory session is separate and is signed
+out on pagehide. `isMobile` (user agent plus a touch-point check for iPadOS) decides whether a visitor is sent
+straight into the web app or offered the desktop app first.
+
 ## Security rules
 
 - `POST /api/auth/link-codes` issues **two independent single-use credentials** for the same already-signed-in
@@ -94,7 +112,18 @@ sign-in is the human proof.
   own_ signed-in session, and the approval screen is explicit. The address is only right if the backend trusts
   its proxy (`TRUST_PROXY`, see the Operator Guide).
 - A deep-link code is bound to the server it names; the app refuses a code for a server other than the one shown.
-- The join page's browser session is held in memory only and signed out when the page closes.
+- **Browser sessions are an HttpOnly cookie**, not a token in page script. A page signs in with the header
+  `X-VTT-Client: web`; the server then sets `__Host-vtt_session` (`Secure` over HTTPS; plain `vtt_session` over
+  http for local use), `HttpOnly; SameSite=Lax; Path=/`, and leaves the session token out of the response body, so
+  script never holds it (an XSS can still act as the user while the page is open, but cannot steal the session).
+  The cookie lasts as long as the operator's offline limit (`offlineLimitDays`, default 30) and slides forward each
+  time a page is opened (`GET /api/auth/me`, and at most hourly otherwise), so a player stays signed in for weeks and
+  is only asked again after being away that long; the server-side idle expiry is the real limit and a dead cookie is
+  cleared on the next 401. Cookie-authenticated writes (POST/PUT/PATCH/DELETE) must carry an `Origin` (or `Referer`)
+  matching the server, otherwise 403 `csrf`; the WebSocket upgrade has the same check. The desktop app is unchanged:
+  it still uses a Bearer token. Pages learn whether they are signed in from `GET /api/auth/me`; nothing is kept in
+  `sessionStorage` or `localStorage`. This replaced an interim `sessionStorage` token (and, before that,
+  memory-only).
 - The session the app receives is the existing long-lived, remotely revocable one. `GET /api/auth/sessions` and
   `DELETE /api/auth/sessions/:id` already exist; the Devices list that uses them waits for the web account page
   ([ROADMAP.md](../../ROADMAP.md) item 8). Until then `vtt-admin user revoke-sessions <email>` is the revoke.

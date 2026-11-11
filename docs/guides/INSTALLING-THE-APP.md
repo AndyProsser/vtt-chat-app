@@ -5,6 +5,9 @@ year and this project is run by a group of friends, not a company. Your computer
 time. The warning is about who published the app, not about anything found inside it. Only install it from
 the link your DM or server operator gave you.
 
+Your server also has a download page at `/download` (for example `https://your-server/download`) with the same
+steps, one tab per system, and the download buttons.
+
 ## Windows
 
 1. Download the `.exe` installer (the `.msi` does the same job and suits managed PCs) and run it.
@@ -149,10 +152,26 @@ without any extension.
 - Still stuck? Tell your operator your distribution and desktop (`echo $XDG_CURRENT_DESKTOP`) and whether you
   used the AppImage, `.deb` or `.rpm`.
 
+## If a banner says the versions differ
+
+The app and the server must be on the same MAJOR.MINOR (0.4.x with 0.4.x). If a banner says they differ, update the
+app (**Update now**) or, if the app is the newer one, ask your DM to update the server. Patch differences (0.4.0 and
+0.4.2) are normal and never warn.
+
+## On a phone
+
+Phones use the web app (sign in on the server's home page and you are taken into it). For voice and the rest of the
+desktop app, open `/full-app` on the phone for a link to send to your computer. Downloads need a signed-in
+session, so they happen on the computer.
+
 ## First run: connect the app
 
 The app has no sign-in form and never asks for your password. You create your account on the **join page** in a
-browser (the link, code or QR your DM gave you), then connect the app from there:
+browser (the link, code or QR your DM gave you), then connect the app from there. On first launch the app shows
+the table artwork and a Server field: enter your server and press **Connect**, and your browser opens the
+server's page. Sign in or join there, then press **Open VTT Chat** and the app signs in by itself. If that does
+not work, open **Other ways to connect** in the app to approve a code it shows, or type a code from the web page.
+The steps in detail:
 
 1. On the join page, after you have joined the campaign, you reach the **Connect** step.
 2. Install and open the app, then do **one** of these:
