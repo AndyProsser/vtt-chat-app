@@ -71,6 +71,9 @@ jobs:
           - { name: Windows, os: windows-latest }
           - { name: macOS (Apple silicon), os: macos-latest }
     runs-on: ${{ matrix.os }}
+    # A hung step must fail the build, not sit for the default six hours (the Linux apt step hung for three
+    # tags in a row on 2026-11-11 and left every release without its Linux installers).
+    timeout-minutes: 75
     env:
       TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
       TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
@@ -105,17 +108,25 @@ jobs:
           workspaces: tauri-client
       - name: Linux build dependencies
         if: runner.os == 'Linux'
+        timeout-minutes: 15
+        env:
+          DEBIAN_FRONTEND: noninteractive
+          NEEDRESTART_MODE: a
         run: |
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev \
-            libxdo-dev libssl-dev libasound2-dev patchelf
+          sudo -E apt-get -o Acquire::Retries=3 update
+          sudo -E apt-get -o Acquire::Retries=3 install -y libwebkit2gtk-4.1-dev libappindicator3-dev \
+            librsvg2-dev libxdo-dev libssl-dev libasound2-dev patchelf
       # libwebrtc (the LiveKit client) is built against its own libc++, which needs clang 21 or later;
       # the runner image ships clang 18 and the build panics without this.
       - name: Install clang 21
         if: runner.os == 'Linux'
+        timeout-minutes: 15
+        env:
+          DEBIAN_FRONTEND: noninteractive
+          NEEDRESTART_MODE: a
         run: |
           curl -fsSL https://apt.llvm.org/llvm.sh -o llvm.sh
-          sudo bash llvm.sh 21
+          sudo -E bash llvm.sh 21
           echo "CC=clang-21" >> "$GITHUB_ENV"
           echo "CXX=clang++-21" >> "$GITHUB_ENV"
       - run: npm ci
