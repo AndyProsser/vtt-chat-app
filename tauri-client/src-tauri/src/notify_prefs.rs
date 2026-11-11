@@ -26,6 +26,10 @@ pub struct NotifyPrefs {
     pub table: bool,
     /// Session reminders, changes and "summary ready" pop-ups.
     pub sessions: bool,
+    /// For a DM: someone asked to join the campaign (a pop-up).
+    pub join_requests: bool,
+    /// For a player: the DM answered a request to join (a pop-up).
+    pub join_decisions: bool,
     /// No pop-ups during these hours (the dot still shows). `None` is no quiet hours.
     pub quiet: Option<QuietHours>,
 }
@@ -37,6 +41,8 @@ impl Default for NotifyPrefs {
             whispers: true,
             table: true,
             sessions: true,
+            join_requests: true,
+            join_decisions: true,
             quiet: None,
         }
     }
@@ -118,6 +124,7 @@ mod tests {
     fn everything_is_on_with_no_quiet_hours_by_default() {
         let p = NotifyPrefs::default();
         assert!(p.chat && p.whispers && p.table && p.sessions);
+        assert!(p.join_requests && p.join_decisions);
         assert!(!p.is_quiet(3 * 60));
     }
 
@@ -151,7 +158,7 @@ mod tests {
     fn an_old_or_partial_file_keeps_the_defaults_for_what_it_lacks() {
         let p: NotifyPrefs = serde_json::from_str(r#"{"whispers":false}"#).unwrap();
         assert!(!p.whispers);
-        assert!(p.chat && p.table && p.sessions);
+        assert!(p.chat && p.table && p.sessions && p.join_requests && p.join_decisions);
     }
 
     #[test]

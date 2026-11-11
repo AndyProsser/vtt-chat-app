@@ -187,6 +187,62 @@ pub fn ddb_call(
     Ok(("POST", path, Some(body)))
 }
 
+/// The join-request calls a panel may make (docs/architecture/CAMPAIGN-JOIN-REQUESTS.md):
+/// `(method, path, body)`. They are not scoped to the campaign the app is in (the list of open tables is
+/// for someone in none), so each id is checked as a plain segment and the message travels as data.
+pub fn join_call(
+    action: &str,
+    campaign_id: Option<&str>,
+    request_id: Option<&str>,
+    message: Option<&str>,
+    flag: Option<bool>,
+) -> Result<(&'static str, String, Option<Value>), AccountError> {
+    let bad = || AccountError::new("bad_path", "that request is not allowed");
+    let plain = |s: &str| {
+        !s.is_empty()
+            && s.len() <= 64
+            && s.chars()
+                .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+    };
+    if action == "open" {
+        return Ok(("GET", "/api/campaigns/open".into(), None));
+    }
+    let id = campaign_id.filter(|c| plain(c)).ok_or_else(bad)?;
+    let base = format!("/api/campaigns/{id}");
+    Ok(match action {
+        "request" => {
+            let body = match message.map(str::trim).filter(|m| !m.is_empty()) {
+                Some(m) if m.chars().count() > 280 => {
+                    return Err(AccountError::new(
+                        "invalid_input",
+                        "keep the message to 280 characters",
+                    ))
+                }
+                Some(m) => serde_json::json!({ "message": m }),
+                None => serde_json::json!({}),
+            };
+            ("POST", format!("{base}/join-requests"), Some(body))
+        }
+        "withdraw" => ("DELETE", format!("{base}/join-requests/mine"), None),
+        "list" => ("GET", format!("{base}/join-requests"), None),
+        "decide" => {
+            let request = request_id.filter(|r| plain(r)).ok_or_else(bad)?;
+            let approve = flag.ok_or_else(bad)?;
+            (
+                "POST",
+                format!("{base}/join-requests/{request}/decision"),
+                Some(serde_json::json!({ "approve": approve })),
+            )
+        }
+        "allow" => (
+            "PATCH",
+            base,
+            Some(serde_json::json!({ "allowJoin": flag.ok_or_else(bad)? })),
+        ),
+        _ => return Err(bad()),
+    })
+}
+
 /// `/api/campaigns/<id>/recordings/search?q=…&limit=20`, with the search text percent-encoded. A
 /// separate builder because [`relay_path`] allows plain path segments only, never a query string.
 pub fn records_search_path(campaign_id: &str, query: &str) -> Result<String, AccountError> {
@@ -835,6 +891,40 @@ mod tests {
         assert!(records_search_path("c1", "a").is_err());
         assert!(records_search_path("c/1", "dragon").is_err());
         assert!(super::relay_path("c1", "recordings/abc/transcript").is_ok());
+    }
+
+    #[test]
+    fn join_calls_are_fixed_paths_with_checked_ids() {
+        use super::join_call;
+        assert_eq!(
+            join_call("open", None, None, None, None).unwrap().1,
+            "/api/campaigns/open"
+        );
+        let (m, p, b) = join_call("request", Some("c1"), None, Some("  hi  "), None).unwrap();
+        assert_eq!((m, p.as_str()), ("POST", "/api/campaigns/c1/join-requests"));
+        assert_eq!(b.unwrap()["message"], "hi");
+        let (_, _, b) = join_call("request", Some("c1"), None, Some("  "), None).unwrap();
+        assert_eq!(b.unwrap(), serde_json::json!({}));
+        let long = "x".repeat(281);
+        assert!(join_call("request", Some("c1"), None, Some(&long), None).is_err());
+        let (m, p, _) = join_call("withdraw", Some("c1"), None, None, None).unwrap();
+        assert_eq!(
+            (m, p.as_str()),
+            ("DELETE", "/api/campaigns/c1/join-requests/mine")
+        );
+        let (m, p, b) = join_call("decide", Some("c1"), Some("r-2"), None, Some(true)).unwrap();
+        assert_eq!(
+            (m, p.as_str()),
+            ("POST", "/api/campaigns/c1/join-requests/r-2/decision")
+        );
+        assert_eq!(b.unwrap()["approve"], true);
+        let (m, p, b) = join_call("allow", Some("c1"), None, None, Some(false)).unwrap();
+        assert_eq!((m, p.as_str()), ("PATCH", "/api/campaigns/c1"));
+        assert_eq!(b.unwrap()["allowJoin"], false);
+        assert!(join_call("list", Some("../x"), None, None, None).is_err());
+        assert!(join_call("decide", Some("c1"), Some("a/b"), None, Some(true)).is_err());
+        assert!(join_call("decide", Some("c1"), Some("r"), None, None).is_err());
+        assert!(join_call("delete", Some("c1"), None, None, None).is_err());
     }
 
     #[test]

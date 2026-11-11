@@ -114,6 +114,9 @@ fn classify_kinds(event: &ServerEvent, ctx: &Context<'_>) -> Attention {
             "notification" => match text(data, "kind").as_str() {
                 // Who has answered an invitation is the DM's business, not worth a pop-up.
                 "rsvp.changed" => Attention::default(),
+                // Asking to join a campaign: a pop-up for the DM, and for the person who asked.
+                "join_request" if !prefs.join_requests => Attention::default(),
+                "join_decision" if !prefs.join_decisions => Attention::default(),
                 _ if !prefs.sessions => Attention::default(),
                 _ => Attention {
                     unread: false,
@@ -222,6 +225,8 @@ mod tests {
         whispers: true,
         table: true,
         sessions: true,
+        join_requests: true,
+        join_decisions: true,
         quiet: None,
     };
     fn away(in_game: bool) -> Context<'static> {
@@ -341,6 +346,35 @@ mod tests {
             sessions: false,
             ..DEFAULTS
         };
+        static NO_JOIN_REQUESTS: NotifyPrefs = NotifyPrefs {
+            join_requests: false,
+            ..DEFAULTS
+        };
+        static NO_JOIN_DECISIONS: NotifyPrefs = NotifyPrefs {
+            join_decisions: false,
+            ..DEFAULTS
+        };
+        let ask = table(
+            "notification",
+            json!({ "kind": "join_request", "title": "Pip asked to join", "body": "Hi" }),
+        );
+        let answer = table(
+            "notification",
+            json!({ "kind": "join_decision", "title": "You're in" }),
+        );
+        assert!(classify(&ask, &away(false)).notify.is_some());
+        assert!(classify(&answer, &away(false)).notify.is_some());
+        assert_eq!(
+            classify(&ask, &with_prefs(false, &NO_JOIN_REQUESTS)),
+            Attention::default()
+        );
+        assert!(classify(&ask, &with_prefs(false, &NO_JOIN_DECISIONS))
+            .notify
+            .is_some());
+        assert_eq!(
+            classify(&answer, &with_prefs(false, &NO_JOIN_DECISIONS)),
+            Attention::default()
+        );
         assert_eq!(
             classify(&public("them"), &with_prefs(false, &NO_CHAT)),
             Attention::default()

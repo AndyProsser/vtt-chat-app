@@ -176,6 +176,8 @@ pub fn is_table_frame(t: &str) -> bool {
             | "scene.stopped"
             | "party.state"
             | "roster.update"
+            | "join.request"
+            | "join.decided"
     ) || t.starts_with("loot.")
 }
 
@@ -473,6 +475,8 @@ mod tests {
             "party.state",
             "loot.dropped",
             "notification",
+            "join.request",
+            "join.decided",
         ] {
             let (e, _) = parse_server_frame(&server(t, json!({ "x": 1 }), None)).unwrap();
             assert_eq!(
