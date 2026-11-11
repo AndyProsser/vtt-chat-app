@@ -233,3 +233,18 @@ export interface SessionView {
   counts: Record<RsvpStatus, number>;
   mine: RsvpStatus | null;
 }
+
+/** What `account_device_start` answers (`expiresAt` is the server's clock: informational only). */
+export interface DeviceStart {
+  requestId: string;
+  userCode: string;
+  pollSecret: string;
+  expiresAt: number;
+  approveUrl: string;
+}
+
+/** A `vtt-chat://connect` link the OS handed to the app: it fills the form, never signs in. */
+export interface ConnectLink {
+  server: string;
+  code: string | null;
+}

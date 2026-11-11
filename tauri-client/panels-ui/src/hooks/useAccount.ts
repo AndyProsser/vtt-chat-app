@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 
 import {
   accountAddCampaign,
+  accountConnectWithCode,
   accountErrorMessage,
   accountSelectCampaign,
   accountSignIn,
@@ -17,6 +18,9 @@ export interface AccountApi {
   status: AccountStatus | undefined;
   busy: boolean;
   error: string | undefined;
+  connectWithCode: (server: string, code: string) => Promise<void>;
+  /** Set the status from an action that ran outside `run` (the device sign-in poll). */
+  applyStatus: (status: AccountStatus) => void;
   signIn: (server: string, email: string, password: string) => Promise<void>;
   signInWithCode: (server: string, code: string) => Promise<void>;
   selectCampaign: (id: string) => Promise<void>;
@@ -61,6 +65,8 @@ export function useAccount(): AccountApi {
     status,
     busy,
     error,
+    connectWithCode: (server, code) => run(() => accountConnectWithCode(server, code)),
+    applyStatus: setStatus,
     signIn: (server, email, password) => run(() => accountSignIn(server, email, password)),
     signInWithCode: (server, code) => run(() => accountSignInCode(server, code)),
     selectCampaign: (id) => run(() => accountSelectCampaign(id)),

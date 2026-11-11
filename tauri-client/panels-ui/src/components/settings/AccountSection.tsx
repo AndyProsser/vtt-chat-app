@@ -3,50 +3,28 @@ import { Check, Pencil, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { useAccount } from '../../hooks/useAccount.js';
-import { useLinkedServer } from '../../hooks/useLinkedServer.js';
+import { useConnectLink } from '../../hooks/useConnectLink.js';
 import { avatarValue } from '../../lib/avatars.js';
 import { initials } from '../../lib/rail.js';
-import {
-  accountErrorMessage,
-  accountOpenSso,
-  accountRename,
-  accountRequestCode,
-  accountSetAvatar,
-  authProviders,
-} from '../../lib/tauriBridge.js';
+import { accountErrorMessage, accountRename, accountSetAvatar } from '../../lib/tauriBridge.js';
 import { PictureButton } from '../PictureButton.js';
 import { Portrait } from '../Portrait.js';
 import { ToolButton } from '../ToolButton.js';
+import { ConnectScreen } from './ConnectScreen.js';
+import { DevSignIn } from './DevSignIn.js';
 
 /**
- * Sign-in only. Accounts are created on the browser join page from an invite
- * (docs/architecture/JOIN-FLOW.md); the app never needs a sign-up flow.
+ * Connect (device approval in a browser, docs/architecture/APP-SIGN-IN.md), then the signed-in views.
+ * Accounts are created on the browser join page from an invite; the app never needs a sign-up flow.
+ * The password/code/SSO forms live in `DevSignIn`, shown only in dev mode.
  */
 export function AccountSection() {
   const account = useAccount();
   const { status } = account;
   const [server, setServer] = useState<string>();
-  const linked = useLinkedServer();
-  useEffect(() => {
-    if (linked) setServer(linked);
-  }, [linked]);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [useCode, setUseCode] = useState(false);
   const [code, setCode] = useState('');
-  const [codeNote, setCodeNote] = useState<string>();
-  const [providers, setProviders] = useState<{ oidc: boolean; mail: boolean }>();
-  const typedServer = server ?? status?.server ?? '';
-  useEffect(() => {
-    if (!useCode || typedServer.trim() === '') return;
-    let cancelled = false;
-    authProviders(typedServer)
-      .then((p) => !cancelled && setProviders(p))
-      .catch(() => !cancelled && setProviders(undefined));
-    return () => {
-      cancelled = true;
-    };
-  }, [useCode, typedServer]);
+  const link = useConnectLink();
+  const address = server ?? status?.server ?? '';
 
   if (!status) return null;
 
@@ -121,104 +99,21 @@ export function AccountSection() {
     );
   }
 
-  const address = server ?? status.server ?? '';
-
-  async function sendCode() {
-    try {
-      await accountRequestCode(address, email);
-      setCodeNote('If that address has an account, a code is on its way. Paste it below.');
-    } catch (e) {
-      setCodeNote(accountErrorMessage(e));
-    }
-  }
-
   return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        if (useCode) void account.signInWithCode(address, code);
-        else void account.signIn(address, email, password);
-      }}
-    >
-      <Flex direction="column" gap="3" p="4">
-        <Heading size="4">Sign in</Heading>
-        <Text size="2" color="gray">
-          Use the email and password from your invite link. No account yet? Open the invite link in
-          a browser first.
-        </Text>
-        <TextField.Root
-          aria-label="Server"
-          placeholder="Server (play.example.com, or http://localhost:3000)"
-          value={address}
-          onChange={(e) => setServer(e.target.value)}
-        />
-        <TextField.Root
-          type="email"
-          aria-label="Email"
-          placeholder="Email"
-          autoComplete="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        {useCode ? (
-          <>
-            <Flex gap="2" wrap="wrap">
-              {providers?.oidc && (
-                <Button type="button" variant="soft" onClick={() => void accountOpenSso(address)}>
-                  Sign in with single sign-on
-                </Button>
-              )}
-              {providers?.mail !== false && (
-                <Button
-                  type="button"
-                  variant="soft"
-                  disabled={address.trim() === '' || email === ''}
-                  onClick={() => void sendCode()}
-                >
-                  Email me a code
-                </Button>
-              )}
-            </Flex>
-            {codeNote && (
-              <Text size="2" color="gray">
-                {codeNote}
-              </Text>
-            )}
-            <TextField.Root
-              aria-label="Sign-in code"
-              placeholder="Code (from email, single sign-on, or your DM)"
-              autoComplete="one-time-code"
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-            />
-          </>
-        ) : (
-          <TextField.Root
-            type="password"
-            aria-label="Password"
-            placeholder="Password"
-            autoComplete="current-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-        )}
-        {errorBox}
-        <Button
-          type="submit"
-          size="3"
-          loading={account.busy}
-          disabled={
-            address.trim() === '' ||
-            (useCode ? code.trim() === '' : email === '' || password === '')
-          }
-        >
-          Sign in
-        </Button>
-        <Button type="button" variant="ghost" size="1" onClick={() => setUseCode((v) => !v)}>
-          {useCode ? 'Use a password instead' : 'Use a code instead (no password)'}
-        </Button>
-      </Flex>
-    </form>
+    <>
+      <ConnectScreen
+        link={link}
+        busy={account.busy}
+        error={account.error}
+        onStatus={account.applyStatus}
+        onConnectWithCode={account.connectWithCode}
+        server={address}
+        onServer={setServer}
+        code={code}
+        onCode={setCode}
+      />
+      <DevSignIn account={account} server={address} onServer={setServer} onCode={setCode} />
+    </>
   );
 }
 

@@ -1857,3 +1857,29 @@ body,
   background: var(--accent-9);
   color: var(--accent-contrast);
 }
+
+/* Connect screen. The QR is always black on white, even in dark mode: an inverted code will not scan. */
+.vtt-qr {
+  width: 168px;
+  height: 168px;
+  box-sizing: border-box;
+  flex: none;
+  padding: 8px;
+  border-radius: var(--radius-3);
+  overflow: hidden;
+  background: #fff;
+}
+.vtt-qr svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.vtt-connect-code {
+  font-family: var(--code-font-family, ui-monospace, monospace);
+  letter-spacing: 0.08em;
+  user-select: all;
+}
+.vtt-connect-url {
+  overflow-wrap: anywhere;
+  user-select: all;
+}

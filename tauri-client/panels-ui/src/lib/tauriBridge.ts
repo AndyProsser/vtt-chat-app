@@ -14,6 +14,8 @@ import type { UpdateInfo } from './updateInfo.js';
 import type {
   AccountError,
   AccountStatus,
+  ConnectLink,
+  DeviceStart,
   Hydration,
   RecordingAction,
   SyncEvent,
@@ -113,6 +115,21 @@ export const accountRequestCode = (server: string, email: string) =>
 export const accountSignInCode = (server: string, code: string) =>
   invoke<AccountStatus>('account_sign_in_code', { server, code });
 
+/** Starts a browser-approved sign-in: show `userCode`, offer `approveUrl`, then poll. */
+export const accountDeviceStart = (server: string) =>
+  invoke<DeviceStart>('account_device_start', { server });
+
+/** One poll: `null` while pending; rejects with code `expired` when the request is gone. */
+export const accountDevicePoll = (server: string, requestId: string, pollSecret: string) =>
+  invoke<AccountStatus | null>('account_device_poll', { server, requestId, pollSecret });
+
+/** Connects with the short code the join page showed (any server mode). */
+export const accountConnectWithCode = (server: string, code: string) =>
+  invoke<AccountStatus>('account_connect_with_code', { server, code });
+
+/** Whether the developer sign-in forms are on (the app was started with VTT_DEV_SIGNIN). */
+export const devSigninEnabled = () => invoke<boolean>('dev_signin_enabled');
+
 export const accountSelectCampaign = (campaignId: string) =>
   invoke<AccountStatus>('account_select_campaign', { campaignId });
 
@@ -175,11 +192,12 @@ export const campaignFile = (path: string) => invoke<string>('campaign_file', { 
 /** Tells Rust this window has painted, so it can be shown (windows start hidden to avoid a blank flash). */
 export const windowReady = () => invoke<void>('window_ready');
 
-/** The server a `vtt-chat://connect?server=…` link supplied, once (`take_pending_server`). */
-export const takePendingServer = () => invoke<string | null>('take_pending_server');
+/** The `vtt-chat://connect` link that opened the app, once (`take_pending_connect`). */
+export const takePendingConnect = () => invoke<ConnectLink | null>('take_pending_connect');
 
-export function onLinkedServer(handler: (server: string) => void): Promise<UnlistenFn> {
-  return listen<string>('deeplink:server', (event) => handler(event.payload));
+/** A connect link arrived while the app was running. It fills the form; it never signs in. */
+export function onConnectLink(handler: (link: ConnectLink) => void): Promise<UnlistenFn> {
+  return listen<ConnectLink>('deeplink:connect', (event) => handler(event.payload));
 }
 
 /** Asks the signed-in server for a newer client; `null` is up to date (`update_check`). */
