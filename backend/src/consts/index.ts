@@ -17,6 +17,7 @@ export const DEV_LIVEKIT_API_SECRET = 'secret';
 export const DEFAULT_INSTANCE_SETTINGS: InstanceSettings = {
   campaignCreation: 'closed',
   signupRequests: 'off',
+  campaignDirectory: 'on',
   offlineLimitDays: 30,
   inviteExpiryDays: 7,
   consentVersion: '1',
@@ -90,3 +91,11 @@ export const STARTER_CAMPAIGN_NAMES: readonly string[] = [
   'Heroes Pending Approval',
   'Another Fine Mess in the Crypt',
 ];
+
+/** Asking to join a campaign (docs/architecture/CAMPAIGN-JOIN-REQUESTS.md). */
+export const MAX_JOIN_MESSAGE = 280;
+export const MAX_OPEN_JOIN_REQUESTS = 5;
+/** A declined request may be repeated after this long, so a "no" is not nagged. */
+export const JOIN_REPEAT_AFTER_MS = 7 * DAY_MS;
+/** The DM still sees a decided request for this long. */
+export const JOIN_DECIDED_VISIBLE_MS = 30 * DAY_MS;

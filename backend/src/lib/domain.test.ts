@@ -603,7 +603,7 @@ describe('MemoryStore transactions', () => {
     const store = new MemoryStore();
     await expect(
       store.transaction(async (tx) => {
-        await tx.putCampaign({ id: 'c', name: 'x', createdAt: 1 });
+        await tx.putCampaign({ id: 'c', name: 'x', createdAt: 1, allowJoin: true });
         throw new Error('boom');
       }),
     ).rejects.toThrow('boom');

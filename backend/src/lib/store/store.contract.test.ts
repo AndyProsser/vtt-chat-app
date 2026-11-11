@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import pg from 'pg';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 
-import type { Campaign, Membership, SignupRequest } from '../../types/index.js';
+import type { Campaign, JoinRequest, Membership, SignupRequest } from '../../types/index.js';
 import { migrate } from './migrate.js';
 import { createPool } from './postgresStore.js';
 import type { Store } from './store.js';
@@ -18,7 +18,12 @@ beforeEach(async () => {
   store = await backend.reset();
 });
 
-const campaign = (): Campaign => ({ id: backend.newId(), name: 'Curse of Strahd', createdAt: 1 });
+const campaign = (): Campaign => ({
+  id: backend.newId(),
+  name: 'Curse of Strahd',
+  createdAt: 1,
+  allowJoin: true,
+});
 const membership = (c: Campaign, userId: string, role: 'dm' | 'player'): Membership => ({
   campaignId: c.id,
   userId,
@@ -28,7 +33,98 @@ const membership = (c: Campaign, userId: string, role: 'dm' | 'player'): Members
   joinedAt: 1,
 });
 
+const person = (id: string, displayName: string) => ({
+  id,
+  email: `${displayName.toLowerCase()}@x.test`,
+  displayName,
+  passwordHash: null,
+  isAdmin: false,
+  consentVersion: '1',
+  consentAt: 1,
+  createdAt: 1,
+});
+const joinRequest = (campaignId: string, userId: string, at = 1): JoinRequest => ({
+  id: backend.newId(),
+  campaignId,
+  userId,
+  message: 'hello',
+  status: 'pending',
+  createdAt: at,
+  decidedAt: null,
+  decidedBy: null,
+});
+
 describe(`Store contract (${backend.kind})`, () => {
+  it('lists open campaigns with the DM name and player count, never member names', async () => {
+    const [dm, p1, p2] = [backend.newId(), backend.newId(), backend.newId()];
+    for (const [id, name] of [
+      [dm, 'Dana'],
+      [p1, 'Pat'],
+      [p2, 'Quinn'],
+    ] as const) {
+      await store.putUser(person(id, name));
+    }
+    const open = campaign();
+    const closed = { ...campaign(), name: 'Closed table', allowJoin: false };
+    for (const c of [open, closed]) {
+      await store.putCampaign(c);
+      await store.putMembership(membership(c, dm, 'dm'));
+      await store.putMembership(membership(c, p1, 'player'));
+    }
+    await store.putMembership(membership(open, p2, 'player'));
+    expect(await store.listOpenCampaigns()).toEqual([
+      { id: open.id, name: 'Curse of Strahd', dmName: 'Dana', playerCount: 2 },
+    ]);
+    expect(await store.setCampaignAllowJoin(closed.id, true)).toBe(true);
+    expect(await store.setCampaignAllowJoin(open.id, false)).toBe(true);
+    expect((await store.listOpenCampaigns()).map((c) => c.id)).toEqual([closed.id]);
+    expect((await store.getCampaign(open.id))?.allowJoin).toBe(false);
+    expect(await store.setCampaignAllowJoin(backend.newId(), true)).toBe(false);
+  });
+
+  it('defaults a new campaign to Allow join on', async () => {
+    const c = campaign();
+    await store.putCampaign(c);
+    expect((await store.getCampaign(c.id))?.allowJoin).toBe(true);
+  });
+
+  it('keeps one pending join request per person per campaign, and lists them by campaign and user', async () => {
+    const [u1, u2] = [backend.newId(), backend.newId()];
+    await store.putUser(person(u1, 'One'));
+    await store.putUser(person(u2, 'Two'));
+    const c1 = campaign();
+    const c2 = campaign();
+    await store.putCampaign(c1);
+    await store.putCampaign(c2);
+    const first = joinRequest(c1.id, u1, 1);
+    expect(await store.createJoinRequest(first)).toBe(true);
+    expect(await store.createJoinRequest(joinRequest(c1.id, u1, 2))).toBe(false);
+    expect(await store.createJoinRequest(joinRequest(c2.id, u1, 3))).toBe(true);
+    expect(await store.createJoinRequest(joinRequest(c1.id, u2, 4))).toBe(true);
+
+    expect(await store.getJoinRequest(first.id)).toEqual(first);
+    expect(await store.getJoinRequest(backend.newId())).toBeUndefined();
+    expect((await store.listJoinRequestsForCampaign(c1.id)).map((r) => r.userId)).toEqual([u1, u2]);
+    expect((await store.listJoinRequestsForUser(u1)).map((r) => r.campaignId)).toEqual([
+      c1.id,
+      c2.id,
+    ]);
+    expect(await store.countOpenJoinRequestsByUser(u1)).toBe(2);
+
+    expect(await store.decideJoinRequest(first.id, 'declined', u2, 9)).toBe(true);
+    expect(await store.decideJoinRequest(first.id, 'approved', u2, 10)).toBe(false);
+    expect(await store.getJoinRequest(first.id)).toMatchObject({
+      status: 'declined',
+      decidedBy: u2,
+      decidedAt: 9,
+    });
+    expect(await store.listJoinRequestsForCampaign(c1.id, 'pending')).toHaveLength(1);
+    expect(await store.listJoinRequestsForUser(u1, 'declined')).toHaveLength(1);
+    expect(await store.countOpenJoinRequestsByUser(u1)).toBe(1);
+    // A decided request frees the slot for a new one.
+    expect(await store.createJoinRequest(joinRequest(c1.id, u1, 11))).toBe(true);
+  });
+
   it('rolls back every write in a failed transaction', async () => {
     const c = campaign();
     await expect(
@@ -359,6 +455,7 @@ describe.skipIf(TEST_DATABASE_URL === undefined)('migrate', () => {
         '0025_device_requests.sql',
         '0026_signup_requests.sql',
         '0027_chat_kind.sql',
+        '0028_join_requests.sql',
       ]);
       expect(await migrate(pool)).toEqual([]);
     } finally {

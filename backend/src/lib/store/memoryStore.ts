@@ -5,6 +5,9 @@ import type {
   Character,
   Invite,
   InstanceSettings,
+  JoinRequest,
+  JoinRequestStatus,
+  OpenCampaign,
   DeviceRequest,
   SignupRequest,
   SignupRequestStatus,
@@ -25,6 +28,7 @@ interface Data {
   deviceRequests: Map<string, DeviceRequest>;
   signupRequests: Map<string, SignupRequest>;
   campaigns: Map<string, Campaign>;
+  joinRequests: Map<string, JoinRequest>;
   memberships: Map<string, Membership>;
   characters: Map<string, Character>;
   avatarFiles: Map<string, { userId: string; createdAt: number }>;
@@ -41,6 +45,7 @@ function emptyData(): Data {
     deviceRequests: new Map(),
     signupRequests: new Map(),
     campaigns: new Map(),
+    joinRequests: new Map(),
     memberships: new Map(),
     characters: new Map(),
     avatarFiles: new Map(),
@@ -126,6 +131,75 @@ export class MemoryStore implements Store {
   putCampaign = async (campaign: Campaign): Promise<void> => {
     this.data.campaigns.set(campaign.id, copy(campaign));
   };
+
+  setCampaignAllowJoin = async (campaignId: string, allowJoin: boolean): Promise<boolean> => {
+    const row = this.data.campaigns.get(campaignId);
+    if (!row) return false;
+    row.allowJoin = allowJoin;
+    return true;
+  };
+
+  listOpenCampaigns = async (): Promise<OpenCampaign[]> =>
+    [...this.data.campaigns.values()]
+      .filter((c) => c.allowJoin)
+      .sort((a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id))
+      .map((c) => {
+        const members = [...this.data.memberships.values()].filter((m) => m.campaignId === c.id);
+        const dm = members.find((m) => m.role === 'dm');
+        return {
+          id: c.id,
+          name: c.name,
+          dmName: (dm && this.data.users.get(dm.userId)?.displayName) ?? '',
+          playerCount: members.filter((m) => m.role === 'player').length,
+        };
+      });
+
+  createJoinRequest = async (request: JoinRequest): Promise<boolean> => {
+    const clash = [...this.data.joinRequests.values()].some(
+      (r) =>
+        r.status === 'pending' &&
+        r.campaignId === request.campaignId &&
+        r.userId === request.userId,
+    );
+    if (clash && request.status === 'pending') return false;
+    this.data.joinRequests.set(request.id, copy(request));
+    return true;
+  };
+  getJoinRequest = async (id: string): Promise<JoinRequest | undefined> =>
+    copyOrUndefined(this.data.joinRequests.get(id));
+  listJoinRequestsForCampaign = async (
+    campaignId: string,
+    status?: JoinRequestStatus,
+  ): Promise<JoinRequest[]> =>
+    [...this.data.joinRequests.values()]
+      .filter((r) => r.campaignId === campaignId && (status === undefined || r.status === status))
+      .sort((a, b) => a.createdAt - b.createdAt || a.id.localeCompare(b.id))
+      .map(copy);
+  listJoinRequestsForUser = async (
+    userId: string,
+    status?: JoinRequestStatus,
+  ): Promise<JoinRequest[]> =>
+    [...this.data.joinRequests.values()]
+      .filter((r) => r.userId === userId && (status === undefined || r.status === status))
+      .sort((a, b) => a.createdAt - b.createdAt || a.id.localeCompare(b.id))
+      .map(copy);
+  decideJoinRequest = async (
+    id: string,
+    status: Exclude<JoinRequestStatus, 'pending'>,
+    decidedBy: string | null,
+    at: number,
+  ): Promise<boolean> => {
+    const row = this.data.joinRequests.get(id);
+    if (!row || row.status !== 'pending') return false;
+    row.status = status;
+    row.decidedAt = at;
+    row.decidedBy = decidedBy;
+    return true;
+  };
+  countOpenJoinRequestsByUser = async (userId: string): Promise<number> =>
+    [...this.data.joinRequests.values()].filter(
+      (r) => r.userId === userId && r.status === 'pending',
+    ).length;
 
   countCampaigns = async (): Promise<number> => this.data.campaigns.size;
 

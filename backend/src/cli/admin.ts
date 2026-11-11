@@ -59,6 +59,8 @@ const SIMPLE_SETTINGS = {
   'campaign-creation': 'closed | open  (who may create campaigns)',
   'signup.requests':
     'on | off  (let visitors request an account; you approve in `signup`; default off)',
+  'campaign-directory':
+    'on | off  (list campaigns that allow it to every signed-in account so people can ask to join; off = invites only; default on)',
   'offline-limit-days': 'whole days a device may stay unseen before it must sign in again',
   'invite-expiry-days': 'whole days a new invite code stays valid',
   'consent-version':
@@ -119,6 +121,9 @@ export function applySetting(
     case 'signup.requests':
       if (value !== 'on' && value !== 'off') throw new SettingError('must be "on" or "off"');
       return { ...settings, signupRequests: value };
+    case 'campaign-directory':
+      if (value !== 'on' && value !== 'off') throw new SettingError('must be "on" or "off"');
+      return { ...settings, campaignDirectory: value };
     case 'offline-limit-days':
       return { ...settings, offlineLimitDays: positiveInt(value, 'offline-limit-days') };
     case 'invite-expiry-days':
@@ -136,6 +141,7 @@ function settingsLines(s: InstanceSettings): string[] {
   return [
     `campaign-creation          ${s.campaignCreation}`,
     `signup.requests            ${s.signupRequests}`,
+    `campaign-directory         ${s.campaignDirectory}`,
     `offline-limit-days         ${s.offlineLimitDays}`,
     `invite-expiry-days         ${s.inviteExpiryDays}`,
     `consent-version            ${s.consentVersion}`,

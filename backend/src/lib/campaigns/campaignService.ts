@@ -47,7 +47,7 @@ export class CampaignService {
     }
 
     const now = this.clock.now();
-    const campaign: Campaign = { id: this.newId(), name: trimmed, createdAt: now };
+    const campaign: Campaign = { id: this.newId(), name: trimmed, createdAt: now, allowJoin: true };
     await this.store.transaction(async (tx) => {
       await tx.putCampaign(campaign);
       await tx.putMembership(newMembership(campaign.id, actor.id, 'dm', now));

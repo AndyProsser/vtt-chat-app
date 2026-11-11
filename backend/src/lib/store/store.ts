@@ -4,6 +4,9 @@ import type {
   Character,
   Invite,
   InstanceSettings,
+  JoinRequest,
+  JoinRequestStatus,
+  OpenCampaign,
   DeviceRequest,
   SignupRequest,
   SignupRequestStatus,
@@ -54,6 +57,33 @@ export interface Store {
   putCampaign(campaign: Campaign): Promise<void>;
   /** How many campaigns the instance has, of any kind. */
   countCampaigns(): Promise<number>;
+
+  /** The DM's Allow-join switch. False when the campaign does not exist. */
+  setCampaignAllowJoin(campaignId: string, allowJoin: boolean): Promise<boolean>;
+  /**
+   * Campaigns whose DM allows joining, by name: the DM's display name and how many players, nothing
+   * about who they are. The instance master switch is the caller's to check.
+   */
+  listOpenCampaigns(): Promise<OpenCampaign[]>;
+
+  /** Stores a new pending request; false (nothing stored) if that person already has one pending there. */
+  createJoinRequest(request: JoinRequest): Promise<boolean>;
+  getJoinRequest(id: string): Promise<JoinRequest | undefined>;
+  /** Oldest first; every status when none is given. */
+  listJoinRequestsForCampaign(
+    campaignId: string,
+    status?: JoinRequestStatus,
+  ): Promise<JoinRequest[]>;
+  /** Oldest first; every status when none is given. */
+  listJoinRequestsForUser(userId: string, status?: JoinRequestStatus): Promise<JoinRequest[]>;
+  /** Moves a still-pending request to `status`; true for exactly one caller, so a double click decides once. */
+  decideJoinRequest(
+    id: string,
+    status: Exclude<JoinRequestStatus, 'pending'>,
+    decidedBy: string | null,
+    at: number,
+  ): Promise<boolean>;
+  countOpenJoinRequestsByUser(userId: string): Promise<number>;
 
   getMembership(campaignId: string, userId: string): Promise<Membership | undefined>;
   listMemberships(campaignId: string): Promise<Membership[]>;

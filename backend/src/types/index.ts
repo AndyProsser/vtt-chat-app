@@ -29,6 +29,8 @@ export interface Campaign {
   id: string;
   name: string;
   createdAt: number;
+  /** The DM's switch: while true the campaign is listed in the directory and takes join requests. */
+  allowJoin: boolean;
 }
 
 /** Roles are per campaign: one account can be DM in one campaign and a player in another. */
@@ -138,6 +140,31 @@ export type CampaignCreation = 'closed' | 'open';
 
 export type SignupRequestsSetting = 'on' | 'off';
 
+export type CampaignDirectorySetting = 'on' | 'off';
+
+export type JoinRequestStatus = 'pending' | 'approved' | 'declined' | 'withdrawn';
+
+/** Someone's ask to join a campaign; the campaign's current DM decides. */
+export interface JoinRequest {
+  id: string;
+  campaignId: string;
+  userId: string;
+  /** Up to 280 characters, control and bidirectional characters stripped. */
+  message: string;
+  status: JoinRequestStatus;
+  createdAt: number;
+  decidedAt: number | null;
+  decidedBy: string | null;
+}
+
+/** What the directory may show of a campaign: never a member's name beyond the DM's. */
+export interface OpenCampaign {
+  id: string;
+  name: string;
+  dmName: string;
+  playerCount: number;
+}
+
 export type SignupRequestStatus = 'pending' | 'approved' | 'rejected';
 
 /** A visitor's request for an account; the operator approves or rejects it in the Admin CLI. */
@@ -158,6 +185,8 @@ export interface InstanceSettings {
   campaignCreation: CampaignCreation;
   /** `on`: visitors may ask for an account (the operator approves in the CLI). Off by default. */
   signupRequests: SignupRequestsSetting;
+  /** `on`: campaigns whose DM allows it are listed to every signed-in account. `off`: invites only. */
+  campaignDirectory: CampaignDirectorySetting;
   /** A device unseen for this long must sign in again. */
   offlineLimitDays: number;
   inviteExpiryDays: number;

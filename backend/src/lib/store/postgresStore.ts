@@ -7,6 +7,9 @@ import type {
   ChatMessage,
   Character,
   InstanceSettings,
+  JoinRequest,
+  JoinRequestStatus,
+  OpenCampaign,
   Invite,
   DeviceRequest,
   SignupRequest,
@@ -102,6 +105,18 @@ const toCampaign = (r: Row): Campaign => ({
   id: r.id as string,
   name: r.name as string,
   createdAt: r.created_at as number,
+  allowJoin: r.allow_join as boolean,
+});
+
+const toJoinRequest = (r: Row): JoinRequest => ({
+  id: r.id as string,
+  campaignId: r.campaign_id as string,
+  userId: r.user_id as string,
+  message: r.message as string,
+  status: r.status as JoinRequestStatus,
+  createdAt: r.created_at as number,
+  decidedAt: nullable(r.decided_at as number | null),
+  decidedBy: nullable(r.decided_by as string | null),
 });
 
 const toMembership = (r: Row): Membership => ({
@@ -197,6 +212,7 @@ export class PostgresStore implements Store {
     return {
       campaignCreation: r.campaign_creation as InstanceSettings['campaignCreation'],
       signupRequests: r.signup_requests as InstanceSettings['signupRequests'],
+      campaignDirectory: r.campaign_directory as InstanceSettings['campaignDirectory'],
       offlineLimitDays: r.offline_limit_days as number,
       inviteExpiryDays: r.invite_expiry_days as number,
       consentVersion: r.consent_version as string,
@@ -206,10 +222,11 @@ export class PostgresStore implements Store {
 
   async putSettings(s: InstanceSettings): Promise<void> {
     await this.db.query(
-      `INSERT INTO instance_settings (id, campaign_creation, offline_limit_days, invite_expiry_days, consent_version, ai, signup_requests)
-       VALUES (1, $1, $2, $3, $4, $5, $6)
+      `INSERT INTO instance_settings (id, campaign_creation, offline_limit_days, invite_expiry_days, consent_version, ai, signup_requests, campaign_directory)
+       VALUES (1, $1, $2, $3, $4, $5, $6, $7)
        ON CONFLICT (id) DO UPDATE SET campaign_creation = $1, offline_limit_days = $2,
-         invite_expiry_days = $3, consent_version = $4, ai = $5, signup_requests = $6`,
+         invite_expiry_days = $3, consent_version = $4, ai = $5, signup_requests = $6,
+         campaign_directory = $7`,
       [
         s.campaignCreation,
         s.offlineLimitDays,
@@ -217,6 +234,7 @@ export class PostgresStore implements Store {
         s.consentVersion,
         JSON.stringify(s.ai),
         s.signupRequests,
+        s.campaignDirectory,
       ],
     );
   }
@@ -361,10 +379,86 @@ export class PostgresStore implements Store {
 
   async putCampaign(c: Campaign): Promise<void> {
     await this.db.query(
-      `INSERT INTO campaigns (id, name, created_at) VALUES ($1, $2, $3)
-       ON CONFLICT (id) DO UPDATE SET name = $2, created_at = $3`,
-      [c.id, c.name, c.createdAt],
+      `INSERT INTO campaigns (id, name, created_at, allow_join) VALUES ($1, $2, $3, $4)
+       ON CONFLICT (id) DO UPDATE SET name = $2, created_at = $3, allow_join = $4`,
+      [c.id, c.name, c.createdAt, c.allowJoin],
     );
+  }
+
+  async setCampaignAllowJoin(campaignId: string, allowJoin: boolean): Promise<boolean> {
+    const result = await this.db.query('UPDATE campaigns SET allow_join = $2 WHERE id = $1', [
+      campaignId,
+      allowJoin,
+    ]);
+    return result.rowCount === 1;
+  }
+
+  listOpenCampaigns = (): Promise<OpenCampaign[]> =>
+    this.many(
+      (r) => ({
+        id: r.id as string,
+        name: r.name as string,
+        dmName: (r.dm_name as string | null) ?? '',
+        playerCount: Number(r.player_count),
+      }),
+      `SELECT c.id, c.name,
+         (SELECT u.display_name FROM memberships m JOIN users u ON u.id = m.user_id
+            WHERE m.campaign_id = c.id AND m.role = 'dm' LIMIT 1) AS dm_name,
+         (SELECT count(*) FROM memberships m WHERE m.campaign_id = c.id AND m.role = 'player') AS player_count
+       FROM campaigns c WHERE c.allow_join ORDER BY c.name, c.id`,
+    );
+
+  async createJoinRequest(r: JoinRequest): Promise<boolean> {
+    const result = await this.db.query(
+      `INSERT INTO join_requests (id, campaign_id, user_id, message, status, created_at, decided_at, decided_by)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) ON CONFLICT DO NOTHING`,
+      [r.id, r.campaignId, r.userId, r.message, r.status, r.createdAt, r.decidedAt, r.decidedBy],
+    );
+    return result.rowCount === 1;
+  }
+
+  getJoinRequest = (id: string): Promise<JoinRequest | undefined> =>
+    this.one(toJoinRequest, 'SELECT * FROM join_requests WHERE id = $1', [id]);
+
+  listJoinRequestsForCampaign = (
+    campaignId: string,
+    status?: JoinRequestStatus,
+  ): Promise<JoinRequest[]> =>
+    this.many(
+      toJoinRequest,
+      `SELECT * FROM join_requests WHERE campaign_id = $1 AND ($2::text IS NULL OR status = $2)
+       ORDER BY created_at, id`,
+      [campaignId, status ?? null],
+    );
+
+  listJoinRequestsForUser = (userId: string, status?: JoinRequestStatus): Promise<JoinRequest[]> =>
+    this.many(
+      toJoinRequest,
+      `SELECT * FROM join_requests WHERE user_id = $1 AND ($2::text IS NULL OR status = $2)
+       ORDER BY created_at, id`,
+      [userId, status ?? null],
+    );
+
+  async decideJoinRequest(
+    id: string,
+    status: Exclude<JoinRequestStatus, 'pending'>,
+    decidedBy: string | null,
+    at: number,
+  ): Promise<boolean> {
+    const result = await this.db.query(
+      `UPDATE join_requests SET status = $2, decided_by = $3, decided_at = $4
+       WHERE id = $1 AND status = 'pending'`,
+      [id, status, decidedBy, at],
+    );
+    return result.rowCount === 1;
+  }
+
+  async countOpenJoinRequestsByUser(userId: string): Promise<number> {
+    const { rows } = await this.db.query<{ n: string }>(
+      "SELECT count(*) AS n FROM join_requests WHERE user_id = $1 AND status = 'pending'",
+      [userId],
+    );
+    return Number(rows[0]?.n ?? 0);
   }
 
   async countCampaigns(): Promise<number> {

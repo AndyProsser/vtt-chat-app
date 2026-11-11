@@ -508,6 +508,21 @@ describe('storage', () => {
   });
 });
 
+describe('campaign directory setting', () => {
+  it('defaults to on, validates, and shows in settings show and keys', async () => {
+    expect((await store.getSettings()).campaignDirectory).toBe('on');
+    expect(await run('settings set campaign-directory maybe')).toBe(1);
+    expect(await run('settings set campaign-directory off')).toBe(0);
+    expect((await store.getSettings()).campaignDirectory).toBe('off');
+    out.length = 0;
+    await run('settings show');
+    expect(out.join('\n')).toContain('campaign-directory         off');
+    out.length = 0;
+    await run('settings keys');
+    expect(out.join('\n')).toContain('campaign-directory');
+  });
+});
+
 describe('signup requests', () => {
   const ask = (email: string, name = 'Visitor', message = '') =>
     signups.submit({ email, displayName: name, message });
