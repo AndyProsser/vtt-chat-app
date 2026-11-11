@@ -1,22 +1,3 @@
-/* Always black on white, even in dark mode: an inverted QR will not scan. */
-.qr-code {
-  width: 156px;
-  height: 156px;
-  box-sizing: border-box;
-  flex: none;
-  padding: 8px;
-  border-radius: var(--radius-3);
-  overflow: hidden;
-  background: #fff;
-  color: #000;
-}
-
-.qr-code svg {
-  display: block;
-  width: 100%;
-  height: 100%;
-}
-
 .connect-code {
   letter-spacing: 0.08em;
   user-select: all;

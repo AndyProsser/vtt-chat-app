@@ -4,11 +4,11 @@ import { useLinkCode } from '../hooks/useLinkCode.js';
 import { useSessionEnd } from '../hooks/useSessionEnd.js';
 import { connectLink } from '../lib/connect.js';
 import { formatCode, formatCountdown } from '../lib/linkCode.js';
-import { QrCode } from './QrCode.js';
 
 /**
- * Hands this signed-in browser session over to the app: a deep link, a QR of the same link, and
- * the typed code. The code is shown only here and never logged. The session itself is signed out
+ * Hands this signed-in browser session over to the app: a deep link and the typed code. (No QR
+ * here: a phone has no app to open the deep link, and the app has no scanner. The working QR is the
+ * app's own, which a signed-in phone scans to approve at `/connect`.) The code is shown only here and never logged. The session itself is signed out
  * when the page closes or after ten minutes.
  */
 export function ConnectApp({ token, server }: { token: string; server: string }) {
@@ -61,25 +61,22 @@ export function ConnectApp({ token, server }: { token: string; server: string })
         <a href={link}>Open VTT Chat</a>
       </Button>
       <Text size="2" color="gray">
-        If the button does nothing, scan this from the app&apos;s Connect screen, or type the code
-        there.
+        If the button does nothing, type this code into the app&apos;s Connect screen (“Have a code?
+        Type it here”).
       </Text>
-      <Flex gap="4" align="center" wrap="wrap">
-        <QrCode text={link} label="QR code that connects the VTT Chat app to this server" />
-        <Flex direction="column" gap="1">
-          <Text size="1" color="gray">
-            Code
-          </Text>
-          <Code size="6" className="connect-code">
-            {shown}
-          </Code>
-          <Text size="1" color="gray">
-            Works once. Expires in {formatCountdown(state.secondsLeft)}
-          </Text>
-          <Button variant="soft" size="1" onClick={refresh}>
-            New code
-          </Button>
-        </Flex>
+      <Flex direction="column" gap="1" align="start">
+        <Text size="1" color="gray">
+          Code
+        </Text>
+        <Code size="6" className="connect-code">
+          {shown}
+        </Code>
+        <Text size="1" color="gray">
+          Works once. Expires in {formatCountdown(state.secondsLeft)}
+        </Text>
+        <Button variant="soft" size="1" onClick={refresh}>
+          New code
+        </Button>
       </Flex>
     </Flex>
   );

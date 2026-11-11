@@ -21,28 +21,35 @@ And it means the server can add or change sign-in methods (password, emailed cod
 - `vtt-chat://connect?server=…` already opened the app with the server pre-filled (`deeplink.rs`); it now also
   carries `code`, and the app emits `deeplink:connect {server, code}`.
 
-## Three ways to connect, one server-side primitive
+## Three ways to connect
 
 ```mermaid
 flowchart TD
-  W[Browser page, signed in] -->|"POST /api/auth/link-codes<br/>(session cookie/token)"| S[Server]
+  W[Join page, signed in] -->|"POST /api/auth/link-codes"| S[Server]
   S -->|"{code, expiresAt}, 5 min"| W
   W -->|1 Open VTT Chat| D["vtt-chat://connect?server=…&code=…"]
-  W -->|2 QR of the same link| Q[Phone scans, opens link]
   W -->|3 shows a short code| T[Player types it in the app]
-  D & Q & T --> A[App: redeem code]
+  D & T --> A[App: redeem code]
   A -->|"POST /api/auth/magic-link/redeem"| S
   S -->|session + profile| A
+  A2[App: Connect] -->|"2 POST /api/auth/device"| S
+  A2 -->|"shows code + QR of /connect?c=…"| P[Signed-in phone or browser approves]
+  P -->|"POST /api/auth/device/approve"| S
+  A2 -->|"POST /api/auth/device/poll"| S
 ```
 
-1. **Open VTT Chat button** on the page (deep link). The common case on Windows and macOS.
-2. **QR code** on the page. Scanned by a phone that is already signed in, it asks "Connect VTT Chat on your
-   computer?"; approving issues the code to the app (see below). This is the path for a PC where the browser has
-   no session, and for Linux AppImage where deep links are unreliable.
-3. **Typed short code** as the last resort (`ABCD-2345`, grouped, no look-alike characters). Works on every OS
-   with no OS integration at all.
+1. **Open VTT Chat button** on the join page (deep link carrying a link code). The common case on Windows and
+   macOS.
+2. **The app's own device flow.** The app's Connect button starts a device request and shows a code, a QR of
+   `{server}/connect?c=…` and an Open in browser button. A phone or browser that is signed in (or signs in there)
+   scans the QR or opens the link and approves. This is the path for a PC whose browser has no session, and for
+   the Linux AppImage where deep links are unreliable.
+3. **Typed code** (`ABCD-2345`, grouped, no look-alike characters) from the join page, into the app's "Have a
+   code? Type it here" box. Works on every OS with no OS integration at all. The box also takes any other
+   one-time sign-in code (emailed, `vtt-admin user code`, the SSO page's).
 
-All three end in the same redeem call, so every OS has at least one path that works without OS-specific code.
+The join page has **no QR**: its link is a `vtt-chat://` deep link, which a phone has no app to open, and the app
+has no scanner. Every OS has at least one path that works without OS-specific code (2 and 3).
 
 ### The app with no code yet (first run, or signed out)
 
@@ -91,7 +98,7 @@ sign-in is the human proof.
 | Area         | What exists                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Backend      | `POST /api/auth/link-codes` (signed in) returns `{code, expiresAt}`, 5 minutes, 8 characters shown as `ABCD-2345`, redeemed at the existing `/magic-link/redeem`. `POST /api/auth/device` (public, returns `requestId`, `userCode`, `pollSecret`, expiry), `POST /api/auth/device/poll`, `GET /api/auth/device/:userCode` (signed in; describes the device for the approval screen), `POST /api/auth/device/approve` (signed in, 204). Migration `0025_device_requests`. Code in `backend/src/lib/auth/deviceFlow.ts`, `deviceLabel.ts`, `http/authRoutes.ts`. |
-| Web          | The last join step is **Connect**: Open VTT Chat (deep link), a QR of the same link, the typed code and a countdown. `/connect?c=…` is the approval page, served by the backend's join routes, usable from a phone.                                                                                                                                                                                                                                                                                                                                            |
+| Web          | The last join step is **Connect**: Open VTT Chat (deep link), the typed code and a countdown (no QR, see above). `/connect?c=…` is the approval page, served by the backend's join routes, usable from a phone.                                                                                                                                                                                                                                                                                                                                                |
 | App (Rust)   | `account_device_start`, `account_device_poll`, `account_connect_with_code`, `account_open_connect`, `dev_signin_enabled`, `take_pending_connect`; event `deeplink:connect {server, code}`.                                                                                                                                                                                                                                                                                                                                                                     |
 | App (panels) | A **Connect** screen replaces the sign-in form, with a "paste a connect link" box and a collapsed Developer sign-in block.                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | Protocol     | `PROTOCOL_VERSION` 2 and a MINOR bump (0.4), per [VERSIONING-AND-DEPLOYMENT.md](VERSIONING-AND-DEPLOYMENT.md). An old app is stopped by `426 update_required`.                                                                                                                                                                                                                                                                                                                                                                                                 |
@@ -140,7 +147,8 @@ a browser round trip every time. See [DEVELOPING.md](../../DEVELOPING.md).
   device requests share it.
 - Typed code: 8 characters from an unambiguous alphabet, two groups of four; the typed code and the device user
   code share one alphabet and format.
-- QR rendered by the web page and the panel with a small pure-JS library (no Rust or native dependency).
+- The app's QR is rendered by the panel with a small pure-JS library (no Rust or native dependency). The join
+  page had one too and dropped it (nothing could use it).
 - No PKCE on the deep link: the code is single-use, short and bound to the server; the device flow has its own
   poll secret.
 - The in-app forms were removed at once, not after an overlap release, since app and server must match on

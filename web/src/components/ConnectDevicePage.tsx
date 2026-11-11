@@ -113,7 +113,8 @@ export function ConnectDevicePage() {
           <Heading size="6">Connect the app</Heading>
           {code === undefined ? (
             <Text color="gray">
-              Open the VTT Chat app, choose Connect, and scan its QR code or open the link it shows.
+              Open the VTT Chat app and press Connect. Then scan its QR code with a signed-in phone,
+              or open the link it shows.
             </Text>
           ) : token === undefined ? (
             <>
