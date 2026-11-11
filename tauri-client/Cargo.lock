@@ -4457,7 +4457,7 @@ dependencies = [
 
 [[package]]
 name = "rust-livekit"
-version = "0.3.1"
+version = "0.3.2"
 dependencies = [
  "cpal",
  "futures-util",
@@ -4470,7 +4470,7 @@ dependencies = [
 
 [[package]]
 name = "rust-sync"
-version = "0.3.1"
+version = "0.3.2"
 dependencies = [
  "futures-util",
  "serde",
@@ -5091,7 +5091,7 @@ dependencies = [
 
 [[package]]
 name = "src-tauri"
-version = "0.3.1"
+version = "0.3.2"
 dependencies = [
  "arboard",
  "base64 0.22.1",

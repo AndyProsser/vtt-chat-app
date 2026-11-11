@@ -6,7 +6,7 @@
 //! All numbers here are logical pixels, so they scale with the display.
 
 /// The default width of the main window.
-pub const WIDTH: f64 = 480.0;
+pub const WIDTH: f64 = 600.0;
 /// The narrowest it is ever opened at (a small screen).
 const MIN_WIDTH: f64 = 380.0;
 /// Air left above and below the window, inside the usable area.
@@ -14,12 +14,12 @@ const BUFFER: f64 = 50.0;
 /// Linux on Wayland cannot report the top bar or a dock, so the whole screen looks usable. Assume a
 /// GNOME-style bar on top (which the 50 px buffer already clears) and make the bottom buffer large enough
 /// for a bottom dock.
-const UNKNOWN_BOTTOM_BUFFER: f64 = 90.0;
+const UNKNOWN_BOTTOM_BUFFER: f64 = 120.0;
 /// Never opened shorter or taller than this, however small or large the screen.
 const MIN_HEIGHT: f64 = 480.0;
 const MAX_HEIGHT: f64 = 1400.0;
 /// Bump this when the default changes and old remembered sizes should be dropped once.
-pub const LAYOUT_VERSION: u32 = 2;
+pub const LAYOUT_VERSION: u32 = 3;
 
 /// A rectangle in logical pixels.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -74,12 +74,12 @@ mod tests {
     };
 
     #[test]
-    fn it_opens_480_wide_with_50_px_above_and_below() {
+    fn it_opens_600_wide_with_50_px_above_and_below() {
         let r = default_rect(FHD, false);
-        assert_eq!(r.w, 480.0);
+        assert_eq!(r.w, 600.0);
         assert_eq!(r.y, 50.0);
         assert_eq!(r.h, 1080.0 - 100.0);
-        assert_eq!(r.x, (1920.0 - 480.0) / 2.0);
+        assert_eq!(r.x, (1920.0 - 600.0) / 2.0);
     }
 
     #[test]
@@ -155,7 +155,7 @@ mod tests {
     fn when_the_system_cannot_say_where_the_panels_are_it_leaves_more_room_below() {
         let r = default_rect(FHD, true);
         assert_eq!(r.y, 50.0);
-        assert_eq!(r.h, 1080.0 - 50.0 - 90.0);
+        assert_eq!(r.h, 1080.0 - 50.0 - 120.0);
     }
 
     #[test]

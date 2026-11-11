@@ -10,19 +10,25 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-11-11
+
+Window placement and the app's name and packaging. No change to how the app talks to the server: it works with
+any 0.3.x server.
+
 ### Changed
 
-- The main window opens **480 px wide** and fills the screen from top to bottom with about 50 px of space above
+- The main window opens **600 px wide** and fills the screen from top to bottom with about 50 px of space above
   and below, centred across the usable area. It works from the space the system says is free (so a taskbar,
-  dock or menu bar is left alone, on any side) and scales with the display. Wayland desktops cannot report their
-  panels, so there the window leaves a little more room at the bottom. The first launch of this version forgets
-  any remembered size and position once; after that your own changes are remembered again, unless the window
-  would no longer fit on the screen.
-  On Linux the window always opens at that default: Wayland ignores programs' requests to place a window, and a
-  remembered size grew and a remembered "maximised" state opened the narrow window full screen.
-  The app also checks again once the window is showing and corrects it if the system moved or resized it, and
-  keeps a short `window-layout.log` in its data folder (the numbers it saw and chose) to help diagnose a window
-  that opens in the wrong place.
+  dock or menu bar is left alone, on any side) and scales with the display. The first launch of this version
+  forgets any remembered size and position once; after that your own changes are remembered again, unless the
+  window would no longer fit on the screen.
+  On Linux (Wayland) the desktop does not tell programs where its panels are, so the window leaves **120 px** at
+  the bottom for a dock or taskbar. The app sets only the window's width and height, before it appears, and
+  leaves the position to the desktop, which centres it on the screen you are using. The window always opens at
+  that default, because a remembered size grew on each reopen and a remembered "maximised" state opened the
+  narrow window full screen.
+  The app keeps a short `window-layout.log` in its data folder (the numbers it saw and chose) to help diagnose
+  a window that opens in the wrong place.
 - The app is now called **VTT Chat** everywhere the system shows a name: Windows Task Manager, the Linux
   application menu and the macOS Dock. (It was "VTT Chat App".) Installer files are named `VTT.Chat_…` to match.
   Anyone who already installed 0.3.1 on Windows should uninstall "VTT Chat App" first, so the two do not sit

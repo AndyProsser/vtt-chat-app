@@ -75,7 +75,14 @@ fn main_screen(app: &AppHandle, window: &tauri::WebviewWindow) -> Option<Screen>
         .current_monitor()
         .ok()
         .flatten()
-        .or_else(|| app.primary_monitor().ok().flatten())?;
+        .or_else(|| app.primary_monitor().ok().flatten())
+        // Wayland reports no monitor for a window that is not showing yet. The compositor opens a new window on
+        // the monitor the pointer is on, so size it for that one (then it can centre the window itself).
+        .or_else(|| {
+            let p = app.cursor_position().ok()?;
+            app.monitor_from_point(p.x, p.y).ok().flatten()
+        })
+        .or_else(|| app.available_monitors().ok()?.into_iter().next())?;
     let scale = monitor.scale_factor();
     let work = monitor.work_area();
     Some(Screen {
@@ -117,7 +124,7 @@ fn layout_log(app: &AppHandle, line: &str) {
     }
 }
 
-/// Puts the main window at its default size and position for `screen`: 480 wide, the usable height less the
+/// Puts the main window at its default size and position for `screen`: 600 wide, the usable height less the
 /// buffer at each end, centred. Position first, then size (moving a window onto a monitor with a different scale
 /// can resize it), then a read-back to correct for the title bar and borders.
 fn apply_default(app: &AppHandle, window: &tauri::WebviewWindow, screen: &Screen) {
@@ -126,17 +133,29 @@ fn apply_default(app: &AppHandle, window: &tauri::WebviewWindow, screen: &Screen
     // A restored maximised or full-screen state would swallow the size below.
     let _ = window.unmaximize();
     let _ = window.set_fullscreen(false);
+    // Wayland: the compositor owns placement. A position request is at best ignored and here it was seen to push
+    // the window to another monitor, so on Linux only the size is requested.
+    #[cfg(not(target_os = "linux"))]
     let _ = window.set_position(tauri::LogicalPosition::new(want.x, want.y));
+    // `want` is the whole visible window. The outer size the system reports includes invisible shadow margins on
+    // Linux (client-side decorations), so the title bar is the height difference minus the width difference.
     let (mut extra_w, mut extra_h) = (0.0, 0.0);
     if let (Ok(o), Ok(i)) = (window.outer_size(), window.inner_size()) {
         extra_w = (o.width as f64 - i.width as f64) / screen.scale;
         extra_h = (o.height as f64 - i.height as f64) / screen.scale;
     }
+    #[cfg(target_os = "linux")]
+    let (extra_w, extra_h) = (0.0, (extra_h - extra_w).max(0.0));
+    layout_log(
+        app,
+        &format!("sizing: want {want:?}, decoration extra w {extra_w} h {extra_h}"),
+    );
     let _ = window.set_size(tauri::LogicalSize::new(
         (want.w - extra_w).max(300.0),
         (want.h - extra_h).max(300.0),
     ));
-    // Read back: if the system gave a different size than asked for, correct once by the difference.
+    // Elsewhere, read back and correct once if the system gave a different size.
+    #[cfg(not(target_os = "linux"))]
     if let Some(got) = outer_rect(window, screen.scale) {
         let (dw, dh) = (want.w - got.w, want.h - got.h);
         if dw.abs() > 2.0 || dh.abs() > 2.0 {
@@ -151,8 +170,9 @@ fn apply_default(app: &AppHandle, window: &tauri::WebviewWindow, screen: &Screen
     layout_log(
         app,
         &format!(
-            "applied default: want {want:?}, now {:?}",
-            outer_rect(window, screen.scale)
+            "applied default: want {want:?}, now {:?} inner {:?}",
+            outer_rect(window, screen.scale),
+            window.inner_size().ok()
         ),
     );
 }
@@ -205,8 +225,30 @@ fn verify_main(app: AppHandle, window: tauri::WebviewWindow) {
             return;
         };
         let now = outer_rect(&window, screen.scale);
-        layout_log(&app, &format!("after show: window {now:?}"));
-        if now.is_some_and(|r| !crate::main_layout::fits(r, screen.area)) {
+        layout_log(
+            &app,
+            &format!(
+                "after show: window {now:?}, monitor {:?}, usable area {:?}",
+                window
+                    .current_monitor()
+                    .ok()
+                    .flatten()
+                    .map(|m| m.name().cloned()),
+                screen.area
+            ),
+        );
+        // Linux/Wayland reports every window at (0,0), so only the size can be judged there.
+        let wrong = now.is_some_and(|r| {
+            if cfg!(target_os = "linux") {
+                let want = crate::main_layout::default_rect(screen.area, screen.bars_unknown);
+                // Wayland adds invisible shadow and title-bar space to the size it reports (about +52 wide,
+                // +89 tall), so judge with that much allowance.
+                r.h < want.h - 20.0 || r.h > want.h + 110.0 || r.w > want.w + 110.0
+            } else {
+                !crate::main_layout::fits(r, screen.area)
+            }
+        });
+        if wrong {
             layout_log(
                 &app,
                 "it does not fit the usable area; applying the default again",
