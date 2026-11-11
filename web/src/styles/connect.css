@@ -1,26 +1,20 @@
+/* Always black on white, even in dark mode: an inverted QR will not scan. */
 .qr-code {
-  width: 148px;
-  height: 148px;
+  width: 156px;
+  height: 156px;
+  box-sizing: border-box;
   flex: none;
+  padding: 8px;
   border-radius: var(--radius-3);
   overflow: hidden;
-  /* The library emits black-on-white paths; recolour them from the theme. */
-  color: var(--gray-12);
-  background: var(--color-panel-solid);
+  background: #fff;
+  color: #000;
 }
 
 .qr-code svg {
   display: block;
   width: 100%;
   height: 100%;
-}
-
-.qr-code svg path[fill='#ffffff'] {
-  fill: var(--color-panel-solid);
-}
-
-.qr-code svg path[stroke='#000000'] {
-  stroke: currentColor;
 }
 
 .connect-code {

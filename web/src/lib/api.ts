@@ -13,7 +13,7 @@ export class ApiError extends Error {
 export async function request<T>(
   method: string,
   path: string,
-  options: { body?: unknown; token?: string } = {},
+  options: { body?: unknown; token?: string; keepalive?: boolean } = {},
 ): Promise<T> {
   const response = await fetch(path, {
     method,
@@ -22,6 +22,7 @@ export async function request<T>(
       ...(options.token ? { Authorization: `Bearer ${options.token}` } : {}),
     },
     ...(options.body === undefined ? {} : { body: JSON.stringify(options.body) }),
+    ...(options.keepalive ? { keepalive: true } : {}),
   });
   const text = await response.text();
   const data = text ? (JSON.parse(text) as Record<string, unknown>) : {};
@@ -79,7 +80,7 @@ export const joinCampaign = (token: string, code: string) =>
 
 /** Ends the browser session (the join page signs out when it closes or after a while). */
 export const signOut = (token: string) =>
-  request('POST', '/api/auth/logout', { token }).catch(() => undefined);
+  request('POST', '/api/auth/logout', { token, keepalive: true }).catch(() => undefined);
 
 export interface LinkCode {
   code: string;

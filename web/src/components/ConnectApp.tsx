@@ -3,7 +3,7 @@ import { Button, Callout, Code, Flex, Text } from '@radix-ui/themes';
 import { useLinkCode } from '../hooks/useLinkCode.js';
 import { useSessionEnd } from '../hooks/useSessionEnd.js';
 import { connectLink } from '../lib/connect.js';
-import { formatCode } from '../lib/linkCode.js';
+import { formatCode, formatCountdown } from '../lib/linkCode.js';
 import { QrCode } from './QrCode.js';
 
 /**
@@ -26,10 +26,16 @@ export function ConnectApp({ token, server }: { token: string; server: string })
     return (
       <Callout.Root color="orange">
         <Callout.Text>
-          Couldn&apos;t get a connect code. Sign in from the app&apos;s own screen instead.{' '}
-          <Button variant="ghost" onClick={refresh}>
-            Try again
-          </Button>
+          {state.sessionEnded ? (
+            'Your sign-in here has ended — reload the page to sign in again.'
+          ) : (
+            <>
+              Couldn&apos;t get a connect code. Sign in from the app&apos;s own screen instead.{' '}
+              <Button variant="ghost" onClick={refresh}>
+                Try again
+              </Button>
+            </>
+          )}
         </Callout.Text>
       </Callout.Root>
     );
@@ -68,7 +74,7 @@ export function ConnectApp({ token, server }: { token: string; server: string })
             {shown}
           </Code>
           <Text size="1" color="gray">
-            Works once, for 5 minutes.
+            Works once. Expires in {formatCountdown(state.secondsLeft)}
           </Text>
           <Button variant="soft" size="1" onClick={refresh}>
             New code

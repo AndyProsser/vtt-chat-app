@@ -1,17 +1,22 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import { createLinkCode, type LinkCode } from '../lib/api.js';
-import { isExpired } from '../lib/linkCode.js';
+import { ApiError, createLinkCode } from '../lib/api.js';
+import { deadlineFor, isExpired, secondsLeft } from '../lib/linkCode.js';
 
 export type LinkCodeState =
   | { status: 'loading' }
-  | { status: 'ready'; code: string; expiresAt: number; expired: boolean }
-  | { status: 'error' };
+  | { status: 'ready'; code: string; expired: boolean; secondsLeft: number }
+  | { status: 'error'; sessionEnded: boolean };
+
+interface Issued {
+  code: string;
+  deadline: number;
+}
 
 /** Issues a connect code for this session; `refresh` replaces it (also used after expiry). */
 export function useLinkCode(token: string): { state: LinkCodeState; refresh: () => void } {
-  const [issued, setIssued] = useState<LinkCode>();
-  const [failed, setFailed] = useState(false);
+  const [issued, setIssued] = useState<Issued>();
+  const [failure, setFailure] = useState<{ sessionEnded: boolean }>();
   const [now, setNow] = useState(() => Date.now());
   const [attempt, setAttempt] = useState(0);
 
@@ -20,12 +25,13 @@ export function useLinkCode(token: string): { state: LinkCodeState; refresh: () 
     createLinkCode(token).then(
       (res) => {
         if (cancelled) return;
-        setFailed(false);
-        setIssued(res);
-        setNow(Date.now());
+        const received = Date.now();
+        setFailure(undefined);
+        setIssued({ code: res.code, deadline: deadlineFor(received) });
+        setNow(received);
       },
-      () => {
-        if (!cancelled) setFailed(true);
+      (e: unknown) => {
+        if (!cancelled) setFailure({ sessionEnded: e instanceof ApiError && e.status === 401 });
       },
     );
     return () => {
@@ -33,8 +39,8 @@ export function useLinkCode(token: string): { state: LinkCodeState; refresh: () 
     };
   }, [token, attempt]);
 
-  // Tick only while a live code is showing.
-  const live = issued !== undefined && !isExpired(issued.expiresAt, now);
+  // Tick only while a live code is showing; cleared on expiry and unmount.
+  const live = issued !== undefined && !isExpired(issued.deadline, now);
   useEffect(() => {
     if (!live) return;
     const id = setInterval(() => setNow(Date.now()), 1000);
@@ -43,7 +49,7 @@ export function useLinkCode(token: string): { state: LinkCodeState; refresh: () 
 
   const refresh = useCallback(() => {
     setIssued(undefined);
-    setFailed(false);
+    setFailure(undefined);
     setAttempt((n) => n + 1);
   }, []);
 
@@ -51,11 +57,11 @@ export function useLinkCode(token: string): { state: LinkCodeState; refresh: () 
     ? {
         status: 'ready',
         code: issued.code,
-        expiresAt: issued.expiresAt,
-        expired: isExpired(issued.expiresAt, now),
+        expired: isExpired(issued.deadline, now),
+        secondsLeft: secondsLeft(issued.deadline, now),
       }
-    : failed
-      ? { status: 'error' }
+    : failure
+      ? { status: 'error', sessionEnded: failure.sessionEnded }
       : { status: 'loading' };
   return { state, refresh };
 }

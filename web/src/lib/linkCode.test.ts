@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { formatCode, isExpired, secondsLeft } from './linkCode.js';
+import { LINK_CODE_TTL_MS } from '../consts/index.js';
+import { deadlineFor, formatCode, formatCountdown, isExpired, secondsLeft } from './linkCode.js';
 
 describe('formatCode', () => {
   it('groups in fours with a dash', () => {
@@ -22,5 +23,19 @@ describe('secondsLeft / isExpired', () => {
   it('expires exactly at the deadline', () => {
     expect(isExpired(10_000, 9_999)).toBe(false);
     expect(isExpired(10_000, 10_000)).toBe(true);
+  });
+});
+
+describe('deadlineFor', () => {
+  it('is the client receive time plus the TTL minus a 5s safety margin', () => {
+    expect(deadlineFor(1_000)).toBe(1_000 + LINK_CODE_TTL_MS - 5_000);
+  });
+});
+
+describe('formatCountdown', () => {
+  it('shows m:ss', () => {
+    expect(formatCountdown(295)).toBe('4:55');
+    expect(formatCountdown(65)).toBe('1:05');
+    expect(formatCountdown(0)).toBe('0:00');
   });
 });
