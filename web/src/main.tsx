@@ -7,6 +7,7 @@ import { createRoot } from 'react-dom/client';
 
 import { useSystemAppearance } from './hooks/useSystemAppearance.js';
 
+import { ConnectDevicePage } from './components/ConnectDevicePage.js';
 import { JoinPage } from './components/JoinPage.js';
 
 const container = document.getElementById('root');
@@ -17,7 +18,11 @@ function Root() {
   const appearance = useSystemAppearance();
   return (
     <Theme appearance={appearance} accentColor="violet" radius="large">
-      <JoinPage />
+      {window.location.pathname.replace(/\/+$/, '') === '/connect' ? (
+        <ConnectDevicePage />
+      ) : (
+        <JoinPage />
+      )}
     </Theme>
   );
 }

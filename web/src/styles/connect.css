@@ -21,3 +21,8 @@
   letter-spacing: 0.08em;
   user-select: all;
 }
+
+/* Device text is untrusted: keep any bidi override from leaking outside its own span. */
+.isolated {
+  unicode-bidi: isolate;
+}

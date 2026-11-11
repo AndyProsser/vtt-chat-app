@@ -90,3 +90,28 @@ export interface LinkCode {
 /** A single-use, 5-minute code that lets the app sign in as this session's account. */
 export const createLinkCode = (token: string) =>
   request<LinkCode>('POST', '/api/auth/link-codes', { token });
+
+/** Password sign-in for the /connect page: no campaign, no consent step. */
+export async function signInPlain(email: string, password: string): Promise<string> {
+  const res = await request<Session>('POST', '/api/auth/login', {
+    body: { email, password, deviceLabel: 'Browser (connect page)' },
+  });
+  if (!res.sessionToken) throw new ApiError('no_session', 'sign-in failed', 401);
+  return res.sessionToken;
+}
+
+/** Whether this server can email codes (SMTP configured). */
+export const mailAvailable = () =>
+  request<{ mail?: boolean }>('GET', '/api/auth/providers').then(
+    (p) => p.mail === true,
+    () => false,
+  );
+
+export const emailSignInCode = (email: string) =>
+  request('POST', '/api/auth/magic-link', { body: { email, purpose: 'signin' } });
+
+export async function redeemEmailCode(token: string): Promise<string> {
+  const res = await request<Session>('POST', '/api/auth/magic-link/redeem', { body: { token } });
+  if (!res.sessionToken) throw new ApiError('no_session', 'sign-in failed', 401);
+  return res.sessionToken;
+}
