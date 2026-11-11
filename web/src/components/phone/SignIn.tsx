@@ -18,13 +18,23 @@ import { acceptConsent, login, providers, redeemCode } from '../../lib/phone/pho
 type Mode = 'password' | 'code';
 
 /** Email and password, or a one-time code. A changed recording notice is accepted here once. */
-export function SignIn({ onSignedIn }: { onSignedIn: (token: string, userId?: string) => void }) {
+export function SignIn({
+  onSignedIn,
+  notice,
+  initialPending,
+}: {
+  onSignedIn: (userId?: string) => void;
+  /** Shown above the form, e.g. why a hand-off link did not sign you in. */
+  notice?: string;
+  /** A session already issued (by a hand-off link) that only needs the changed recording notice accepted. */
+  initialPending?: { userId?: string };
+}) {
   const [mode, setMode] = useState<Mode>('password');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
   const [consent, setConsent] = useState(false);
-  const [pending, setPending] = useState<{ token: string; userId?: string }>();
+  const [pending, setPending] = useState<{ userId?: string } | undefined>(initialPending);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
 
@@ -34,16 +44,14 @@ export function SignIn({ onSignedIn }: { onSignedIn: (token: string, userId?: st
     try {
       if (pending) {
         const { consentVersion } = await providers();
-        await acceptConsent(pending.token, consentVersion);
-        onSignedIn(pending.token, pending.userId);
+        await acceptConsent(consentVersion);
+        onSignedIn(pending.userId);
         return;
       }
       const res = mode === 'password' ? await login(email, password) : await redeemCode(code);
-      if (!res.sessionToken)
-        throw new ApiError('no_session', 'The server did not sign you in.', 500);
-      if (res.needsConsent)
-        setPending({ token: res.sessionToken, ...(res.user?.id ? { userId: res.user.id } : {}) });
-      else onSignedIn(res.sessionToken, res.user?.id);
+      if (!res.signedIn) throw new ApiError('no_session', 'The server did not sign you in.', 500);
+      if (res.needsConsent) setPending(res.user?.id ? { userId: res.user.id } : {});
+      else onSignedIn(res.user?.id);
     } catch (e) {
       setError(
         e instanceof ApiError
@@ -76,6 +84,11 @@ export function SignIn({ onSignedIn }: { onSignedIn: (token: string, userId?: st
             Read the chat, answer an invitation, open a handout or catch up on a session.
           </Text>
         </Flex>
+        {notice && !pending && (
+          <Callout.Root color="amber">
+            <Callout.Text>{notice}</Callout.Text>
+          </Callout.Root>
+        )}
         {pending ? (
           <>
             <Callout.Root color="amber">

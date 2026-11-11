@@ -38,31 +38,31 @@ describe('deviceSummary', () => {
 });
 
 describe('describeDevice', () => {
-  it('returns the device on success, sending the bearer token', async () => {
+  it('returns the device on success, riding on the session cookie', async () => {
     const fn = mockFetch(200, { deviceLabel: 'Linux', requestIp: '203.0.113.4', createdAt: 1 });
-    const r = await describeDevice('tok', 'ABCD-2345');
+    const r = await describeDevice('ABCD-2345');
     expect(r).toEqual({
       status: 'ok',
       device: { deviceLabel: 'Linux', requestIp: '203.0.113.4', createdAt: 1 },
     });
     const [url, init] = fn.mock.calls[0] as unknown as [string, RequestInit];
     expect(url).toBe('/api/auth/device/ABCD-2345');
-    expect(init.headers).toMatchObject({ Authorization: 'Bearer tok' });
+    expect(init.credentials).toBe('same-origin');
   });
   it('maps 404 invalid_token to expired', async () => {
     mockFetch(404, { error: 'invalid_token' });
-    expect(await describeDevice('tok', 'ABCD-2345')).toEqual({ status: 'expired' });
+    expect(await describeDevice('ABCD-2345')).toEqual({ status: 'expired' });
   });
   it('maps other failures to error', async () => {
     mockFetch(500, { error: 'boom', message: 'bad' });
-    expect(await describeDevice('tok', 'X')).toEqual({ status: 'error', message: 'bad' });
+    expect(await describeDevice('X')).toEqual({ status: 'error', message: 'bad' });
   });
 });
 
 describe('approveDevice', () => {
   it('posts the code and reports approved on 204', async () => {
     const fn = mockFetch(204);
-    expect(await approveDevice('tok', 'ABCD-2345')).toEqual({ status: 'approved' });
+    expect(await approveDevice('ABCD-2345')).toEqual({ status: 'approved' });
     const [url, init] = fn.mock.calls[0] as unknown as [string, RequestInit];
     expect(url).toBe('/api/auth/device/approve');
     expect(init.method).toBe('POST');
@@ -70,7 +70,7 @@ describe('approveDevice', () => {
   });
   it('maps 404 invalid_token to expired', async () => {
     mockFetch(404, { error: 'invalid_token' });
-    expect(await approveDevice('tok', 'ABCD-2345')).toEqual({ status: 'expired' });
+    expect(await approveDevice('ABCD-2345')).toEqual({ status: 'expired' });
   });
   it('maps a network failure to error', async () => {
     vi.stubGlobal(
@@ -79,6 +79,6 @@ describe('approveDevice', () => {
         throw new TypeError('offline');
       }),
     );
-    expect((await approveDevice('tok', 'A')).status).toBe('error');
+    expect((await approveDevice('A')).status).toBe('error');
   });
 });

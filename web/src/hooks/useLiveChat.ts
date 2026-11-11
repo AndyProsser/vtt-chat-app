@@ -8,7 +8,7 @@ import { LiveSocket, socketUrl } from '../lib/phone/socket.js';
  * Keeps the open campaign's chat live: loads the recent history, opens the connection, and hands its
  * events to the store. Returns a sender that reports whether the line went out.
  */
-export function useLiveChat(token: string, campaignId: string, onRevoked: () => void) {
+export function useLiveChat(campaignId: string, onRevoked: () => void) {
   const socket = useRef<LiveSocket>(undefined);
   const revoked = useRef(onRevoked);
   revoked.current = onRevoked;
@@ -16,14 +16,13 @@ export function useLiveChat(token: string, campaignId: string, onRevoked: () => 
   useEffect(() => {
     const store = usePhoneStore.getState();
     let current = true;
-    chatHistory(token, campaignId)
+    chatHistory(campaignId)
       .then((lines) => {
         if (current) store.addLines(lines);
       })
       .catch(() => undefined);
     const live = new LiveSocket({
       url: socketUrl(window.location),
-      token,
       campaignId,
       onEvent: (t, d) => usePhoneStore.getState().onFrame(t, d),
       onState: (s) => usePhoneStore.getState().setLive(s),
@@ -45,7 +44,7 @@ export function useLiveChat(token: string, campaignId: string, onRevoked: () => 
       live.stop();
       socket.current = undefined;
     };
-  }, [token, campaignId]);
+  }, [campaignId]);
 
   return (text: string, to?: string): boolean => socket.current?.say(text, to) ?? false;
 }

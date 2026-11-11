@@ -15,7 +15,7 @@ interface Issued {
 }
 
 /** Issues connect credentials (long deep-link token + short typed code) for this session; `refresh` replaces it (also used after expiry). */
-export function useLinkCode(token: string): { state: LinkCodeState; refresh: () => void } {
+export function useLinkCode(): { state: LinkCodeState; refresh: () => void } {
   const [issued, setIssued] = useState<Issued>();
   const [failure, setFailure] = useState<{ sessionEnded: boolean }>();
   const [now, setNow] = useState(() => Date.now());
@@ -23,7 +23,7 @@ export function useLinkCode(token: string): { state: LinkCodeState; refresh: () 
 
   useEffect(() => {
     let cancelled = false;
-    createLinkCode(token).then(
+    createLinkCode().then(
       (res) => {
         if (cancelled) return;
         const received = Date.now();
@@ -43,7 +43,7 @@ export function useLinkCode(token: string): { state: LinkCodeState; refresh: () 
     return () => {
       cancelled = true;
     };
-  }, [token, attempt]);
+  }, [attempt]);
 
   // Tick only while a live code is showing; cleared on expiry and unmount.
   const live = issued !== undefined && !isExpired(issued.deadline, now);

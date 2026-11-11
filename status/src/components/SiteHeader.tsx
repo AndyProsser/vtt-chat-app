@@ -1,5 +1,14 @@
+import { useEffect, useState } from 'react';
+
+import { checkSignedIn } from '../lib/session.js';
+
 /** The page header every page shares: the app's logo, its name, and where to go next. */
-export function SiteHeader({ current }: { current: 'home' | 'status' | 'other' }) {
+export function SiteHeader({ current }: { current: 'chat' | 'download' | 'status' | 'other' }) {
+  // Chat and Download are for signed-in visitors only.
+  const [signedIn, setSignedIn] = useState(false);
+  useEffect(() => {
+    void checkSignedIn().then(setSignedIn);
+  }, []);
   return (
     <header className="site-header">
       <a className="site-brand" href="/">
@@ -7,9 +16,16 @@ export function SiteHeader({ current }: { current: 'home' | 'status' | 'other' }
         VTT Chat
       </a>
       <nav className="site-nav" aria-label="Site">
-        <a href="/" aria-current={current === 'home' ? 'page' : undefined}>
-          Home
-        </a>
+        {signedIn && (
+          <a href="/app" aria-current={current === 'chat' ? 'page' : undefined}>
+            Chat
+          </a>
+        )}
+        {signedIn && (
+          <a href="/download" aria-current={current === 'download' ? 'page' : undefined}>
+            Download
+          </a>
+        )}
         <a href="/status" aria-current={current === 'status' ? 'page' : undefined}>
           Status
         </a>

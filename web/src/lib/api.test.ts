@@ -12,13 +12,15 @@ import {
 afterEach(() => vi.unstubAllGlobals());
 
 describe('request keepalive', () => {
-  it('passes keepalive through and keeps the Authorization header', async () => {
+  it('passes keepalive through and rides on the cookie, never an Authorization header', async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response('{}', { status: 200 }));
     vi.stubGlobal('fetch', fetchMock);
-    await request('POST', '/api/auth/logout', { token: 't0k', keepalive: true });
+    await request('POST', '/api/auth/logout', { keepalive: true });
     const init = fetchMock.mock.calls[0]?.[1] as RequestInit;
     expect(init.keepalive).toBe(true);
-    expect((init.headers as Record<string, string>).Authorization).toBe('Bearer t0k');
+    expect(init.credentials).toBe('same-origin');
+    expect((init.headers as Record<string, string>)['X-VTT-Client']).toBe('web');
+    expect((init.headers as Record<string, string>).Authorization).toBeUndefined();
   });
 
   it('does not set keepalive by default', async () => {
@@ -36,18 +38,18 @@ describe('connect-page sign-in and the recording notice', () => {
   it('reports when the account has not accepted the current notice', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn(() => Promise.resolve(json({ user: {}, sessionToken: 'S', needsConsent: true }))),
+      vi.fn(() => Promise.resolve(json({ user: {}, signedIn: true, needsConsent: true }))),
     );
-    expect(await signInPlain('a@b.co', 'pw')).toEqual({ token: 'S', needsConsent: true });
-    expect(await redeemEmailCode('code')).toEqual({ token: 'S', needsConsent: true });
+    expect(await signInPlain('a@b.co', 'pw')).toEqual({ needsConsent: true });
+    expect(await redeemEmailCode('code')).toEqual({ needsConsent: true });
   });
 
   it('reports no consent step when the notice is current', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue(json({ user: {}, sessionToken: 'S', needsConsent: false })),
+      vi.fn().mockResolvedValue(json({ user: {}, signedIn: true, needsConsent: false })),
     );
-    expect(await signInPlain('a@b.co', 'pw')).toEqual({ token: 'S', needsConsent: false });
+    expect(await signInPlain('a@b.co', 'pw')).toEqual({ needsConsent: false });
   });
 
   it('accepts the version the server currently shows, with the session', async () => {
@@ -56,13 +58,14 @@ describe('connect-page sign-in and the recording notice', () => {
       .mockResolvedValueOnce(json({ consentVersion: '7', mail: false, oidc: false }))
       .mockResolvedValueOnce(json({ user: {} }));
     vi.stubGlobal('fetch', fetchMock);
-    await acceptCurrentConsent('S');
+    await acceptCurrentConsent();
     expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/auth/providers');
     const [path, init] = fetchMock.mock.calls[1] as [string, RequestInit];
     expect(path).toBe('/api/auth/consent');
     expect(init.method).toBe('POST');
     expect(JSON.parse(String(init.body))).toEqual({ version: '7' });
-    expect((init.headers as Record<string, string>).Authorization).toBe('Bearer S');
+    expect((init.headers as Record<string, string>).Authorization).toBeUndefined();
+    expect(init.credentials).toBe('same-origin');
   });
 });
 

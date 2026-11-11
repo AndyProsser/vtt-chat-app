@@ -7,22 +7,61 @@ body,
 .radix-themes {
   height: 100%;
 }
+/* The page behind the app: the same background and gradient as the Home pages. */
+.phone-page {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: radial-gradient(circle at 15% 0%, var(--accent-3), transparent 50%), var(--vtt-bg);
+  color: var(--vtt-ink);
+}
 .phone-shell {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
   max-width: 640px;
-  margin: 0 auto;
-  background: var(--color-background);
+}
+/* On a wide screen (a desktop browser) the app is a rounded card in the middle of the page, like the
+   Home pages' column, not a stretched phone layout. */
+@media (min-width: 700px) {
+  .phone-page {
+    padding-block: 16px;
+  }
+  .phone-shell {
+    border: 1px solid var(--gray-a5);
+    border-radius: var(--radius-5);
+    overflow: hidden;
+    background: var(--vtt-chat);
+    box-shadow: 0 8px 32px rgb(20 10 60 / 0.18);
+  }
+}
+.phone-top {
+  width: 100%;
+  max-width: 640px;
+  padding: max(10px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) 4px
+    max(16px, env(safe-area-inset-left));
+}
+@media (min-width: 700px) {
+  .phone-top {
+    padding-top: 0;
+  }
 }
 .phone-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px max(16px, env(safe-area-inset-right)) 10px max(16px, env(safe-area-inset-left));
+  background: var(--vtt-bar);
+  border-bottom: 1px solid var(--vtt-edge);
+}
+.phone-header-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: max(10px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) 10px
-    max(16px, env(safe-area-inset-left));
-  border-bottom: 1px solid var(--gray-5);
 }
 .phone-title {
   overflow: hidden;
@@ -42,11 +81,21 @@ body,
 .phone-dot-connecting {
   background: var(--amber-9);
 }
+/* A very faint picture behind the content (the same artwork as the desktop app's chat area): the theme's
+   chat colour sits over it at 94%, so it reads as a watermark tinted by the theme. */
 .phone-main {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
+  background:
+    linear-gradient(
+      color-mix(in srgb, var(--vtt-chat) 94%, transparent),
+      color-mix(in srgb, var(--vtt-chat) 94%, transparent)
+    ),
+    url('../assets/watermark-chat.webp') center / cover no-repeat,
+    var(--vtt-chat);
+  background-attachment: local, scroll, scroll;
 }
 .phone-pad {
   padding: 16px max(16px, env(safe-area-inset-right)) 24px max(16px, env(safe-area-inset-left));
@@ -54,15 +103,16 @@ body,
 .phone-tabs {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  border-top: 1px solid var(--gray-5);
-  background: var(--color-panel-solid);
+  border-top: 1px solid var(--vtt-edge);
+  background: var(--vtt-bar);
   padding-bottom: env(safe-area-inset-bottom);
 }
 .phone-tab {
   appearance: none;
   border: 0;
   background: none;
-  color: var(--gray-11);
+  color: var(--vtt-ink);
+  opacity: 0.85;
   font: inherit;
   font-size: 14px;
   padding: 14px 4px;
@@ -70,15 +120,17 @@ body,
   border-top: 2px solid transparent;
 }
 .phone-tab-on {
-  color: var(--accent-11);
+  color: var(--vtt-ink);
+  opacity: 1;
   font-weight: 600;
-  border-top-color: var(--accent-9);
+  border-top-color: var(--vtt-gold);
 }
 .phone-tab:focus-visible {
   outline: 2px solid var(--focus-8);
   outline-offset: -2px;
 }
 .phone-sign-in {
+  width: 100%;
   max-width: 420px;
   margin: 0 auto;
   padding: max(32px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) 32px
@@ -122,7 +174,9 @@ body,
   padding: 0 4px;
 }
 .phone-bubble {
-  background: var(--gray-3);
+  background: var(--vtt-bubble);
+  color: var(--vtt-ink);
+  border: 1px solid var(--vtt-edge);
   border-radius: 14px;
   padding: 8px 12px;
   white-space: pre-wrap;
@@ -130,17 +184,16 @@ body,
   line-height: 1.4;
 }
 .phone-line-mine .phone-bubble {
-  background: var(--accent-9);
-  color: var(--accent-contrast);
+  background: var(--vtt-avatar);
+  border-color: var(--vtt-avatar);
+  color: #fff;
 }
-.phone-line-whisper .phone-bubble {
-  background: var(--violet-3);
-  color: var(--violet-12);
-  border: 1px dashed var(--violet-8);
-  font-style: italic;
-}
+.phone-line-whisper .phone-bubble,
 .phone-line-whisper.phone-line-mine .phone-bubble {
-  background: var(--violet-4);
+  background: var(--vtt-whisper);
+  color: var(--vtt-ink);
+  border: 1px dashed var(--vtt-whisper-edge);
+  font-style: italic;
 }
 .phone-live-note {
   padding: 4px 16px;
@@ -148,7 +201,8 @@ body,
 }
 .phone-composer {
   padding: 8px max(16px, env(safe-area-inset-right)) 10px max(16px, env(safe-area-inset-left));
-  border-top: 1px solid var(--gray-5);
+  border-top: 1px solid var(--vtt-edge);
+  background: var(--vtt-bar);
 }
 
 /* Content */
@@ -200,6 +254,15 @@ body,
   padding-top: env(safe-area-inset-top, 0px);
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
+/* Pages without the tabs (sign-in, choosing a table) scroll inside the page frame. */
+.phone-page-body {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  max-width: 640px;
+  overflow-y: auto;
+}
+
 .phone-viewer-bar,
 .phone-viewer-nav {
   padding: 8px max(16px, env(safe-area-inset-left, 0px));
@@ -240,4 +303,7 @@ button.phone-picture-button {
   all: unset;
   display: block;
   cursor: zoom-in;
+}
+.phone-top .site-header {
+  max-width: none;
 }

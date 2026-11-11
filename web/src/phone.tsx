@@ -1,4 +1,5 @@
 import '@radix-ui/themes/styles.css';
+import './styles/palette.css';
 import './styles/theme.css';
 import './styles/phone.css';
 

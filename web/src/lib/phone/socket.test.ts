@@ -36,7 +36,6 @@ function setup() {
   let revoked = 0;
   const live = new LiveSocket({
     url: 'ws://x/ws',
-    token: 'tok',
     campaignId: 'c1',
     onEvent: (t, d) => events.push([t, d]),
     onState: (s) => states.push(s),
@@ -53,14 +52,14 @@ function setup() {
 }
 
 describe('LiveSocket', () => {
-  it('signs in first, then asks for the campaign, and reports live', () => {
+  it('waits for the cookie sign-in (no auth frame), then asks for the campaign, and reports live', () => {
     const t = setup();
     t.live.start();
     const s = t.sockets[0]!;
     s.open();
-    expect(s.sent[0]).toMatchObject({ t: 'auth', d: { token: 'tok' } });
+    expect(s.sent).toEqual([]);
     s.say('auth.ok', { userId: 'u' });
-    expect(s.sent[1]).toMatchObject({ t: 'resume', d: { campaignId: 'c1' } });
+    expect(s.sent[0]).toMatchObject({ t: 'resume', d: { campaignId: 'c1' } });
     expect(t.states).toEqual(['connecting', 'live']);
   });
   it('hands every later frame to the caller', () => {

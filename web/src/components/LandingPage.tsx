@@ -4,12 +4,11 @@ import { useEffect, useState } from 'react';
 import heroVideo from '../assets/hero.mp4';
 import hero1100 from '../assets/hero-1100.webp';
 import hero600 from '../assets/hero-600.webp';
+import { useSession } from '../hooks/useSession.js';
 import { useHeroMotion } from '../hooks/useHeroMotion.js';
-import { request, signupRequestsAvailable } from '../lib/api.js';
-import type { Downloads } from '../types/index.js';
+import { signupRequestsAvailable } from '../lib/api.js';
 import { Banner } from './Banner.js';
 import { CodeEntry } from './CodeEntry.js';
-import { DownloadLinks, hasDownloads } from './DownloadLinks.js';
 import { GetTheApp } from './GetTheApp.js';
 import { LoginForm } from './LoginForm.js';
 import { RequestAccount } from './RequestAccount.js';
@@ -22,13 +21,11 @@ type View = 'home' | 'signin';
  */
 export function LandingPage() {
   const [view, setView] = useState<View>('home');
-  const [token, setToken] = useState<string>();
-  const [downloads, setDownloads] = useState<Downloads>({});
+  const { signedIn, checked, onSignedIn } = useSession();
   const [canRequest, setCanRequest] = useState(false);
   const motion = useHeroMotion();
 
   useEffect(() => {
-    void request<Downloads>('GET', '/api/downloads').then(setDownloads, () => undefined);
     void signupRequestsAvailable().then(setCanRequest);
   }, []);
 
@@ -45,12 +42,12 @@ export function LandingPage() {
       </Banner>
       <Card className="join-card" size="4">
         <Flex direction="column" gap="4">
-          {token !== undefined ? (
-            <GetTheApp token={token} downloads={downloads} />
+          {!checked ? null : signedIn ? (
+            <GetTheApp />
           ) : view === 'signin' ? (
             <Flex direction="column" gap="3">
               <Heading size="3">Sign in</Heading>
-              <LoginForm onSignedIn={setToken} />
+              <LoginForm onSignedIn={onSignedIn} />
               <Button variant="ghost" onClick={() => setView('home')}>
                 Back
               </Button>
@@ -74,12 +71,6 @@ export function LandingPage() {
                   Sign in
                 </Button>
               </Flex>
-              {hasDownloads(downloads) && (
-                <Flex direction="column" gap="2">
-                  <Heading size="3">Get the app</Heading>
-                  <DownloadLinks downloads={downloads} />
-                </Flex>
-              )}
               {canRequest && (
                 <Flex direction="column" gap="2">
                   <Heading size="3">Request an account</Heading>

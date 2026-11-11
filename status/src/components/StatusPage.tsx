@@ -1,6 +1,6 @@
-import { Badge, Card, Flex, Heading, Link, Text } from '@radix-ui/themes';
+import { Badge, Card, Flex, Heading, Text } from '@radix-ui/themes';
 
-import { PLATFORM_LABELS, SERVICE_LABELS } from '../consts/index.js';
+import { SERVICE_LABELS } from '../consts/index.js';
 import poster from '../assets/poster-fumble.webp';
 import { PictureBanner } from './PictureBanner.js';
 import { SiteHeader } from './SiteHeader.js';
@@ -56,9 +56,6 @@ function Banner({
 
 function Body({ snapshot, stale = false }: { snapshot: StatusSnapshot; stale?: boolean }) {
   const h = headline(snapshot);
-  const downloads = (Object.keys(PLATFORM_LABELS) as (keyof typeof PLATFORM_LABELS)[]).filter(
-    (p) => snapshot.downloads[p],
-  );
   return (
     <>
       {!stale && <Banner tone={h.tone} text={h.text} />}
@@ -100,23 +97,6 @@ function Body({ snapshot, stale = false }: { snapshot: StatusSnapshot; stale?: b
           )}
         </Flex>
       </Card>
-      {downloads.length > 0 && (
-        <Card>
-          <Flex direction="column" gap="2">
-            <Heading size="3">Get the app</Heading>
-            <Text size="2" color="gray">
-              The tray app for voice, chat and session records.
-            </Text>
-            <Flex gap="3" wrap="wrap">
-              {downloads.map((p) => (
-                <Link key={p} href={snapshot.downloads[p]}>
-                  {PLATFORM_LABELS[p]}
-                </Link>
-              ))}
-            </Flex>
-          </Flex>
-        </Card>
-      )}
       <Text size="1" color="gray">
         Updated {ago(snapshot.at, Date.now())}. This page refreshes itself while it is open.
       </Text>

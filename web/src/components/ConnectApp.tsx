@@ -1,20 +1,23 @@
 import { Button, Callout, Code, Flex, Text } from '@radix-ui/themes';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { useLinkCode } from '../hooks/useLinkCode.js';
-import { useSessionEnd } from '../hooks/useSessionEnd.js';
 import { connectLink } from '../lib/connect.js';
 import { formatCode, formatCountdown } from '../lib/linkCode.js';
+import { markSignedOut } from '../lib/session.js';
 
 /**
  * Hands this signed-in browser session over to the app: a deep link (carrying a long single-use token) and, behind a disclosure, a short typed code. (No QR
  * here: a phone has no app to open the deep link, and the app has no scanner. The working QR is the
- * app's own, which a signed-in phone scans to approve at `/connect`.) The code is shown only here and never logged. The session itself is signed out
- * when the page closes or after ten minutes.
+ * app's own, which a signed-in phone scans to approve at `/connect`.) The code is shown only here and never logged. The session itself lasts until the
+ * server expires it (after the operator's offline limit without a visit) or the visitor signs out; a refusal is noted here so the page falls back to sign-in.
  */
-export function ConnectApp({ token, server }: { token: string; server: string }) {
-  useSessionEnd(token);
-  const { state, refresh } = useLinkCode(token);
+export function ConnectApp({ server }: { server: string }) {
+  const { state, refresh } = useLinkCode();
+  const ended = state.status === 'error' && state.sessionEnded;
+  useEffect(() => {
+    if (ended) markSignedOut();
+  }, [ended]);
   const [showCode, setShowCode] = useState(false);
 
   if (state.status === 'loading') {
@@ -29,7 +32,7 @@ export function ConnectApp({ token, server }: { token: string; server: string })
       <Callout.Root color="orange">
         <Callout.Text>
           {state.sessionEnded ? (
-            'Your sign-in here has ended — reload the page to sign in again.'
+            'Your sign-in here has ended. Sign in again to continue.'
           ) : (
             <>
               Couldn&apos;t get a connect link. Sign in from the app&apos;s own screen instead.{' '}

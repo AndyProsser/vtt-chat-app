@@ -1,0 +1,37 @@
+/* The "Default" theme's colours, shared by the web pages and the desktop app.
+   KEEP IDENTICAL to the `default` theme in tauri-client/panels-ui/src/lib/themes.ts (same hex values,
+   same token names). web/src/styles/palette.test.ts fails CI if they drift. status/src/styles/palette.css
+   is a copy of this file. Light is the base; dark follows the OS (CLAUDE.md §4). The web has no theme
+   choice: themes are a desktop-app feature. */
+:root {
+  --vtt-bg: #f1eefc;
+  --vtt-bar: #e2dcf8;
+  --vtt-rail: #e8e3fa;
+  --vtt-chat: #f8f6ff;
+  --vtt-bubble: #ffffff;
+  --vtt-edge: #a898e0;
+  --vtt-ink: #241a4a;
+  --vtt-gold: #b04a08;
+  --vtt-glow: #0b7f76;
+  --vtt-avatar: #6e56cf;
+  --vtt-whisper: #fbe4f1;
+  --vtt-whisper-edge: #be3d86;
+  --vtt-dm-msg: #ffecd2;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --vtt-bg: #14121f;
+    --vtt-bar: #1d1836;
+    --vtt-rail: #171325;
+    --vtt-chat: #100e1a;
+    --vtt-bubble: #261e42;
+    --vtt-edge: #4d3f85;
+    --vtt-ink: #ece9fb;
+    --vtt-gold: #ff9a3c;
+    --vtt-glow: #5fd3c4;
+    --vtt-avatar: #5b3fc4;
+    --vtt-whisper: #35193f;
+    --vtt-whisper-edge: #f472b6;
+    --vtt-dm-msg: #38240f;
+  }
+}

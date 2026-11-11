@@ -14,25 +14,17 @@ const STATUS_NOTE: Record<string, string> = {
 };
 
 /** Past sessions: the summaries first, the full transcript when you want it. */
-export function HistoryTab({ token, campaignId }: { token: string; campaignId: string }) {
-  const { data, error, loading } = useLoad(() => recordings(token, campaignId), campaignId);
+export function HistoryTab({ campaignId }: { campaignId: string }) {
+  const { data, error, loading } = useLoad(() => recordings(campaignId), campaignId);
   const [open, setOpen] = useState<RecordingItem>();
   if (open) {
-    return (
-      <RecordingView
-        item={open}
-        token={token}
-        campaignId={campaignId}
-        onBack={() => setOpen(undefined)}
-      />
-    );
+    return <RecordingView item={open} campaignId={campaignId} onBack={() => setOpen(undefined)} />;
   }
   const list = [...(data ?? [])].sort((a, b) => b.startedAt - a.startedAt);
   return (
     <Flex direction="column" gap="3" className="phone-pad">
       <Heading size="5">History</Heading>
       <HistorySearch
-        token={token}
         campaignId={campaignId}
         onOpen={(id) => {
           const found = list.find((r) => r.id === id);
@@ -73,19 +65,17 @@ export function HistoryTab({ token, campaignId }: { token: string; campaignId: s
 
 function RecordingView({
   item,
-  token,
   campaignId,
   onBack,
 }: {
   item: RecordingItem;
-  token: string;
   campaignId: string;
   onBack: () => void;
 }) {
-  const detail = useLoad(() => recording(token, campaignId, item.id), item.id);
+  const detail = useLoad(() => recording(campaignId, item.id), item.id);
   const [showTranscript, setShowTranscript] = useState(false);
   const lines = useLoad(
-    () => (showTranscript ? transcript(token, campaignId, item.id) : Promise.resolve([])),
+    () => (showTranscript ? transcript(campaignId, item.id) : Promise.resolve([])),
     `${item.id}:${showTranscript}`,
   );
   const summaries = detail.data?.summaries ?? [];
@@ -145,11 +135,9 @@ const TYPING_PAUSE_MS = 400;
 
 /** A search box over everything said, typed and summarised. Waits for a pause in typing before asking. */
 function HistorySearch({
-  token,
   campaignId,
   onOpen,
 }: {
-  token: string;
   campaignId: string;
   onOpen: (recordingId: string) => void;
 }) {
@@ -161,7 +149,7 @@ function HistorySearch({
   }, [text]);
   const active = query.length >= MIN_QUERY;
   const hits = useLoad(
-    () => (active ? searchHistory(token, campaignId, query) : Promise.resolve([])),
+    () => (active ? searchHistory(campaignId, query) : Promise.resolve([])),
     `${campaignId}:${active ? query : ''}`,
   );
   return (

@@ -21,11 +21,7 @@ const MESSAGES: Record<string, string> = {
   invite_invalid: 'This invite isn’t valid any more. Ask your DM for a new one.',
 };
 
-export function AccountForm(props: {
-  code: string;
-  consentVersion: string;
-  onJoined: (token: string) => void;
-}) {
+export function AccountForm(props: { code: string; consentVersion: string; onJoined: () => void }) {
   const [mode, setMode] = useState<Mode>('create');
   const [email, setEmail] = useState('');
   const [displayName, setDisplayName] = useState('');
@@ -52,21 +48,23 @@ export function AccountForm(props: {
     setBusy(true);
     setError(undefined);
     try {
-      const token = creating
-        ? await signUp({
-            email,
-            displayName: displayName.trim(),
-            password,
-            consentVersion: props.consentVersion,
-          })
-        : await signIn(email, password, props.consentVersion);
+      if (creating) {
+        await signUp({
+          email,
+          displayName: displayName.trim(),
+          password,
+          consentVersion: props.consentVersion,
+        });
+      } else {
+        await signIn(email, password, props.consentVersion);
+      }
       try {
-        await joinCampaign(token, props.code);
+        await joinCampaign(props.code);
       } catch (e) {
-        await signOut(token);
+        await signOut();
         throw e;
       }
-      props.onJoined(token);
+      props.onJoined();
     } catch (e) {
       const api = e instanceof ApiError ? e : undefined;
       setError(MESSAGES[api?.code ?? ''] ?? api?.message ?? 'Something went wrong. Try again.');

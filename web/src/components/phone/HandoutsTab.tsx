@@ -10,18 +10,11 @@ import { PictureViewer } from './PictureViewer.js';
 const KIND_LABEL = { text: 'Note', image: 'Pictures', map: 'Map', pdf: 'PDF' } as const;
 
 /** What the DM has shared with you. Tap one to read or look at it. */
-export function HandoutsTab({ token, campaignId }: { token: string; campaignId: string }) {
-  const { data, error, loading } = useLoad(() => handouts(token, campaignId), campaignId);
+export function HandoutsTab({ campaignId }: { campaignId: string }) {
+  const { data, error, loading } = useLoad(() => handouts(campaignId), campaignId);
   const [open, setOpen] = useState<HandoutItem>();
   if (open) {
-    return (
-      <HandoutView
-        item={open}
-        token={token}
-        campaignId={campaignId}
-        onBack={() => setOpen(undefined)}
-      />
-    );
+    return <HandoutView item={open} campaignId={campaignId} onBack={() => setOpen(undefined)} />;
   }
   return (
     <Flex direction="column" gap="3" className="phone-pad">
@@ -59,12 +52,10 @@ export function HandoutsTab({ token, campaignId }: { token: string; campaignId: 
 
 function HandoutView({
   item,
-  token,
   campaignId,
   onBack,
 }: {
   item: HandoutItem;
-  token: string;
   campaignId: string;
   onBack: () => void;
 }) {
@@ -78,23 +69,15 @@ function HandoutView({
       </Flex>
       {item.kind === 'text' && <div className="phone-note">{item.body}</div>}
       {(item.kind === 'image' || item.kind === 'map') && (
-        <Pictures item={item} token={token} campaignId={campaignId} />
+        <Pictures item={item} campaignId={campaignId} />
       )}
-      {item.kind === 'pdf' && <PdfLink item={item} token={token} campaignId={campaignId} />}
+      {item.kind === 'pdf' && <PdfLink item={item} campaignId={campaignId} />}
       {item.kind !== 'text' && item.body && <Text size="2">{item.body}</Text>}
     </Flex>
   );
 }
 
-function Pictures({
-  item,
-  token,
-  campaignId,
-}: {
-  item: HandoutItem;
-  token: string;
-  campaignId: string;
-}) {
+function Pictures({ item, campaignId }: { item: HandoutItem; campaignId: string }) {
   const [urls, setUrls] = useState<(string | undefined)[]>([]);
   const [error, setError] = useState<string>();
   const [viewing, setViewing] = useState<number>();
@@ -102,7 +85,7 @@ function Pictures({
     let current = true;
     setUrls([]);
     for (let i = 0; i < Math.max(1, item.fileCount); i += 1) {
-      handoutFile(token, campaignId, item.id, i)
+      handoutFile(campaignId, item.id, i)
         .then(blobToDataUrl)
         .then((url) => {
           if (current) setUrls((all) => Object.assign([...all], { [i]: url }));
@@ -112,7 +95,7 @@ function Pictures({
     return () => {
       current = false;
     };
-  }, [item.id, item.fileCount, token, campaignId]);
+  }, [item.id, item.fileCount, campaignId]);
   const ready = urls.filter((u): u is string => u !== undefined);
   return (
     <Flex direction="column" gap="3">
@@ -149,22 +132,14 @@ function Pictures({
 }
 
 /** A PDF opens in the phone's own viewer: fetch it with the sign-in, then open the result in a new tab. */
-function PdfLink({
-  item,
-  token,
-  campaignId,
-}: {
-  item: HandoutItem;
-  token: string;
-  campaignId: string;
-}) {
+function PdfLink({ item, campaignId }: { item: HandoutItem; campaignId: string }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
   async function open() {
     setBusy(true);
     setError(undefined);
     try {
-      const blob = await handoutFile(token, campaignId, item.id, 0);
+      const blob = await handoutFile(campaignId, item.id, 0);
       const url = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
       window.open(url, '_blank', 'noopener');
       setTimeout(() => URL.revokeObjectURL(url), 60_000);

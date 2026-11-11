@@ -13,13 +13,16 @@ export class ApiError extends Error {
 export async function request<T>(
   method: string,
   path: string,
-  options: { body?: unknown; token?: string; keepalive?: boolean } = {},
+  options: { body?: unknown; keepalive?: boolean } = {},
 ): Promise<T> {
   const response = await fetch(path, {
     method,
+    // The session is an HttpOnly cookie the browser attaches itself; this header is what asks the server to
+    // set it on sign-in (and keep the token out of the response body). Script never holds a token.
+    credentials: 'same-origin',
     headers: {
+      'X-VTT-Client': 'web',
       ...(options.body === undefined ? {} : { 'Content-Type': 'application/json' }),
-      ...(options.token ? { Authorization: `Bearer ${options.token}` } : {}),
     },
     ...(options.body === undefined ? {} : { body: JSON.stringify(options.body) }),
     ...(options.keepalive ? { keepalive: true } : {}),
@@ -39,12 +42,13 @@ export async function request<T>(
 export const previewInvite = (code: string) =>
   request<InvitePreview>('GET', `/api/invites/${encodeURIComponent(code)}`);
 
+/** A sign-in answer. A web client is signed in by the cookie the response set; there is no token in the body. */
 interface Session {
-  sessionToken: string | null;
+  signedIn?: boolean;
   needsConsent?: boolean;
 }
 
-export async function signUp(input: SignUpInput): Promise<string> {
+export async function signUp(input: SignUpInput): Promise<void> {
   const res = await request<Session>('POST', '/api/auth/register', {
     body: {
       email: input.email,
@@ -53,34 +57,36 @@ export async function signUp(input: SignUpInput): Promise<string> {
       acceptedConsentVersion: input.consentVersion,
     },
   });
-  if (!res.sessionToken) throw new ApiError('no_session', 'account created but not signed in', 500);
-  return res.sessionToken;
+  if (!res.signedIn) throw new ApiError('no_session', 'account created but not signed in', 500);
 }
 
 export async function signIn(
   email: string,
   password: string,
   consentVersion: string,
-): Promise<string> {
+): Promise<void> {
   const res = await request<Session>('POST', '/api/auth/login', {
     body: { email, password, deviceLabel: 'Browser (join page)' },
   });
-  if (!res.sessionToken) throw new ApiError('no_session', 'sign-in failed', 401);
+  if (!res.signedIn) throw new ApiError('no_session', 'sign-in failed', 401);
   if (res.needsConsent) {
-    await request('POST', '/api/auth/consent', {
-      token: res.sessionToken,
-      body: { version: consentVersion },
-    });
+    await request('POST', '/api/auth/consent', { body: { version: consentVersion } });
   }
-  return res.sessionToken;
 }
 
-export const joinCampaign = (token: string, code: string) =>
-  request('POST', '/api/campaigns/join', { token, body: { code } });
+export const joinCampaign = (code: string) =>
+  request('POST', '/api/campaigns/join', { body: { code } });
 
-/** Ends the browser session (the join page signs out when it closes or after a while). */
-export const signOut = (token: string) =>
-  request('POST', '/api/auth/logout', { token, keepalive: true }).catch(() => undefined);
+/**
+ * Whether the browser's session cookie is still good: resolves if the server knows it, rejects with a 401
+ * `ApiError` if not. Also what keeps a returning visitor signed in, since the server slides the cookie's
+ * expiry on this call.
+ */
+export const checkSession = () => request<{ user: { id: string } }>('GET', '/api/auth/me');
+
+/** Ends the browser session on the server and clears the cookie (the Sign out button). */
+export const signOut = () =>
+  request('POST', '/api/auth/logout', { keepalive: true }).catch(() => undefined);
 
 export interface LinkCode {
   /** The short typed fallback, `ABCD-2345`. */
@@ -91,18 +97,16 @@ export interface LinkCode {
 }
 
 /** Single-use, 5-minute credentials (a deep-link token and a typed code) that sign the app in as this session's account. */
-export const createLinkCode = (token: string) =>
-  request<LinkCode>('POST', '/api/auth/link-codes', { token });
+export const createLinkCode = () => request<LinkCode>('POST', '/api/auth/link-codes');
 
 /** A /connect sign-in: the session, and whether the recording notice must be accepted first. */
 export interface ConnectSignIn {
-  token: string;
   needsConsent: boolean;
 }
 
 function connectSignIn(res: Session): ConnectSignIn {
-  if (!res.sessionToken) throw new ApiError('no_session', 'sign-in failed', 401);
-  return { token: res.sessionToken, needsConsent: res.needsConsent === true };
+  if (!res.signedIn) throw new ApiError('no_session', 'sign-in failed', 401);
+  return { needsConsent: res.needsConsent === true };
 }
 
 /** Password sign-in for the /connect page: no campaign. A changed notice is accepted before approving. */
@@ -118,12 +122,12 @@ export async function signInPlain(email: string, password: string): Promise<Conn
  * Accepts the recording notice the server currently shows. The version comes from
  * `/api/auth/providers`, the same source the phone sign-in uses; the server refuses a stale one.
  */
-export async function acceptCurrentConsent(token: string): Promise<void> {
+export async function acceptCurrentConsent(): Promise<void> {
   const { consentVersion } = await request<{ consentVersion: string }>(
     'GET',
     '/api/auth/providers',
   );
-  await request('POST', '/api/auth/consent', { token, body: { version: consentVersion } });
+  await request('POST', '/api/auth/consent', { body: { version: consentVersion } });
 }
 
 /** Whether this server can email codes (SMTP configured). */

@@ -12,7 +12,7 @@ const frame = (id: string, from: string, over = {}) => ({
 
 beforeEach(() => {
   usePhoneStore.getState().signedOut();
-  usePhoneStore.getState().signedIn('tok', 'me');
+  usePhoneStore.getState().signedIn('me');
 });
 
 describe('phone store', () => {
@@ -49,7 +49,7 @@ describe('phone store', () => {
     usePhoneStore.getState().onFrame('chat.message', frame('1', 'a'));
     usePhoneStore.getState().signedOut();
     const s = usePhoneStore.getState();
-    expect(s.token).toBeUndefined();
+    expect(s.authed).toBe(false);
     expect(s.lines).toEqual([]);
   });
 });

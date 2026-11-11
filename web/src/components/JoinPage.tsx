@@ -2,6 +2,7 @@ import { Box, Callout, Card, Flex, Heading, Link, Spinner, Text } from '@radix-u
 import { useState } from 'react';
 
 import posterJoin from '../assets/poster-join.webp';
+import { useSession } from '../hooks/useSession.js';
 import { useInvite } from '../hooks/useInvite.js';
 import { codeFromPath } from '../lib/platform.js';
 import { AccountForm } from './AccountForm.js';
@@ -15,7 +16,10 @@ import { GetTheApp } from './GetTheApp.js';
  */
 export function JoinPage() {
   const [code, setCode] = useState(() => codeFromPath(window.location.pathname));
-  const [token, setToken] = useState<string>();
+  const session = useSession();
+  const [joined, setJoined] = useState(false);
+  // only the session this page just joined with; signing out (or a refused cookie) returns to the form
+  const done = joined && session.signedIn;
   const state = useInvite(code);
 
   return (
@@ -42,12 +46,8 @@ export function JoinPage() {
             <Callout.Root color="orange">
               <Callout.Text>{state.message}</Callout.Text>
             </Callout.Root>
-          ) : token !== undefined ? (
-            <GetTheApp
-              token={token}
-              campaignName={state.invite.campaignName}
-              downloads={state.invite.downloads}
-            />
+          ) : done ? (
+            <GetTheApp campaignName={state.invite.campaignName} />
           ) : (
             <Box>
               <Text as="p" mb="3" color="gray">
@@ -56,7 +56,10 @@ export function JoinPage() {
               <AccountForm
                 code={code}
                 consentVersion={state.invite.consentVersion}
-                onJoined={setToken}
+                onJoined={() => {
+                  setJoined(true);
+                  session.onSignedIn();
+                }}
               />
             </Box>
           )}

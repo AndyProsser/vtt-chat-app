@@ -1,4 +1,5 @@
 import '@radix-ui/themes/styles.css';
+import './styles/palette.css';
 import './styles/theme.css';
 import './styles/connect.css';
 
@@ -10,6 +11,8 @@ import { useSystemAppearance } from './hooks/useSystemAppearance.js';
 import { ConnectDevicePage } from './components/ConnectDevicePage.js';
 import { SiteHeader } from './components/SiteHeader.js';
 import { LandingPage } from './components/LandingPage.js';
+import { DownloadPage } from './components/DownloadPage.js';
+import { FullAppPage } from './components/FullAppPage.js';
 import { JoinPage } from './components/JoinPage.js';
 
 const container = document.getElementById('root');
@@ -22,10 +25,14 @@ function Root() {
   return (
     <Theme appearance={appearance} accentColor="violet" radius="large">
       <div className="site-shell">
-        <SiteHeader current={page === '' ? 'home' : 'other'} />
+        <SiteHeader current={page === '/download' ? 'download' : 'other'} />
         <main className="site-column">
           {page === '/connect' ? (
             <ConnectDevicePage />
+          ) : page === '/download' ? (
+            <DownloadPage />
+          ) : page === '/full-app' ? (
+            <FullAppPage />
           ) : page === '' ? (
             <LandingPage />
           ) : (

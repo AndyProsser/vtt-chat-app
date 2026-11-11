@@ -24,3 +24,12 @@ export function codeFromPath(pathname: string): string | undefined {
 export function appLink(scheme: string, serverUrl: string): string {
   return `${scheme}://connect?server=${encodeURIComponent(serverUrl)}`;
 }
+
+/**
+ * A phone or tablet. iPadOS asks for the desktop site and sends a Macintosh user agent, so a "Mac" that
+ * reports more than one touch point is an iPad (real Macs report none).
+ */
+export function isMobile(userAgent: string, maxTouchPoints = 0): boolean {
+  if (/android|iphone|ipad|ipod|mobile/i.test(userAgent)) return true;
+  return /macintosh/i.test(userAgent) && maxTouchPoints > 1;
+}

@@ -39,12 +39,11 @@ function toFailure(e: unknown): { status: 'expired' } | { status: 'error'; messa
   return { status: 'error', message };
 }
 
-export async function describeDevice(token: string, userCode: string): Promise<DescribeResult> {
+export async function describeDevice(userCode: string): Promise<DescribeResult> {
   try {
     const device = await request<DeviceRequest>(
       'GET',
       `/api/auth/device/${encodeURIComponent(userCode)}`,
-      { token },
     );
     return { status: 'ok', device };
   } catch (e) {
@@ -52,9 +51,9 @@ export async function describeDevice(token: string, userCode: string): Promise<D
   }
 }
 
-export async function approveDevice(token: string, userCode: string): Promise<ApproveResult> {
+export async function approveDevice(userCode: string): Promise<ApproveResult> {
   try {
-    await request('POST', '/api/auth/device/approve', { token, body: { userCode } });
+    await request('POST', '/api/auth/device/approve', { body: { userCode } });
     return { status: 'approved' };
   } catch (e) {
     return toFailure(e);

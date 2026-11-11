@@ -11,7 +11,6 @@ const snap = (services: [string, boolean][]): StatusSnapshot => ({
   recording: { active: 0 },
   pipeline: null,
   storage: null,
-  downloads: {},
 });
 
 describe('headline', () => {

@@ -6,7 +6,8 @@ import { lineFromFrame, mergeLines } from './chat.js';
 export type Tab = 'chat' | 'sessions' | 'handouts' | 'history';
 
 interface PhoneState {
-  token: string | undefined;
+  /** The server accepted this browser's session cookie (the cookie itself is never visible to script). */
+  authed: boolean;
   userId: string | undefined;
   campaigns: CampaignItem[];
   campaignId: string | undefined;
@@ -17,7 +18,7 @@ interface PhoneState {
   /** Chat lines that arrived while the Chat tab was not showing. */
   unread: number;
 
-  signedIn(token: string, userId: string | undefined): void;
+  signedIn(userId: string | undefined): void;
   signedOut(): void;
   setCampaigns(campaigns: CampaignItem[]): void;
   pickCampaign(id: string | undefined): void;
@@ -31,16 +32,16 @@ interface PhoneState {
 const FRESH = { members: [], lines: [], unread: 0, live: 'offline' as LiveState };
 
 export const usePhoneStore = create<PhoneState>((set, get) => ({
-  token: undefined,
+  authed: false,
   userId: undefined,
   campaigns: [],
   campaignId: undefined,
   tab: 'chat',
   ...FRESH,
 
-  signedIn: (token, userId) => set({ token, userId }),
+  signedIn: (userId) => set({ authed: true, userId }),
   signedOut: () =>
-    set({ token: undefined, userId: undefined, campaigns: [], campaignId: undefined, ...FRESH }),
+    set({ authed: false, userId: undefined, campaigns: [], campaignId: undefined, ...FRESH }),
   setCampaigns: (campaigns) => set({ campaigns }),
   pickCampaign: (campaignId) => set({ campaignId, tab: 'chat', ...FRESH }),
   setTab: (tab) => set({ tab, ...(tab === 'chat' ? { unread: 0 } : {}) }),

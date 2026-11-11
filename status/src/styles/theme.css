@@ -2,6 +2,30 @@ body {
   margin: 0;
 }
 
+/* The Default palette (palette.css) drives Radix: every page's background, surfaces, borders and text come
+   from the --vtt-* tokens, overridden here once instead of per component. Kept identical in web/ and
+   status/ theme.css. The doubled class beats Radix's own rule regardless of stylesheet order. */
+.radix-themes.radix-themes {
+  --color-background: var(--vtt-bg);
+  --color-panel-solid: var(--vtt-bubble);
+  --color-panel-translucent: color-mix(in srgb, var(--vtt-bubble) 85%, transparent);
+  --color-surface: color-mix(in srgb, var(--vtt-bubble) 80%, transparent);
+  --color-overlay: rgb(10 6 30 / 0.5);
+  --gray-1: var(--vtt-chat);
+  --gray-2: var(--vtt-rail);
+  --gray-3: var(--vtt-bar);
+  --gray-4: var(--vtt-bar);
+  --gray-5: color-mix(in srgb, var(--vtt-edge) 55%, var(--vtt-bg));
+  --gray-6: color-mix(in srgb, var(--vtt-edge) 70%, var(--vtt-bg));
+  --gray-7: var(--vtt-edge);
+  --gray-a3: color-mix(in srgb, var(--vtt-edge) 18%, transparent);
+  --gray-a5: color-mix(in srgb, var(--vtt-edge) 45%, transparent);
+  --gray-a6: color-mix(in srgb, var(--vtt-edge) 60%, transparent);
+  --gray-11: color-mix(in srgb, var(--vtt-ink) 80%, var(--vtt-bg));
+  --gray-12: var(--vtt-ink);
+  --focus-8: var(--vtt-gold);
+}
+
 /* The shared page frame: the same header, column width and background on every page (landing, join,
    connect, status). web/ and status/ are separate bundles, so this block is kept identical in both
    theme.css files. */
@@ -14,8 +38,7 @@ body {
   gap: 20px;
   padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
     max(24px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
-  background:
-    radial-gradient(circle at 15% 0%, var(--accent-3), transparent 50%), var(--color-background);
+  background: radial-gradient(circle at 15% 0%, var(--accent-3), transparent 50%), var(--vtt-bg);
 }
 .site-header,
 .site-column {

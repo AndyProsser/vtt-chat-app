@@ -25,7 +25,7 @@ export function RequestAccount() {
   if (sent) {
     return (
       <Callout.Root color="green" role="status">
-        <Callout.Text>Request sent. The operator will approve it and send you a code.</Callout.Text>
+        <Callout.Text>Request sent. Your DM will approve it and send you a code.</Callout.Text>
       </Callout.Root>
     );
   }

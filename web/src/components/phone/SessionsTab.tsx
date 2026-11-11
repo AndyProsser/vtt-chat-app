@@ -9,8 +9,8 @@ import type { RsvpStatus, SessionItem } from '../../types/phone.js';
 const ANSWERS: RsvpStatus[] = ['yes', 'late', 'no'];
 
 /** Upcoming sessions, and your answer to each. */
-export function SessionsTab({ token, campaignId }: { token: string; campaignId: string }) {
-  const { data, error, loading, reload } = useLoad(() => sessions(token, campaignId), campaignId);
+export function SessionsTab({ campaignId }: { campaignId: string }) {
+  const { data, error, loading, reload } = useLoad(() => sessions(campaignId), campaignId);
   const upcoming = (data ?? []).filter((s) => s.session.cancelledAt === null);
   return (
     <Flex direction="column" gap="3" className="phone-pad">
@@ -27,7 +27,6 @@ export function SessionsTab({ token, campaignId }: { token: string; campaignId: 
         <SessionCard
           key={item.session.id}
           item={item}
-          token={token}
           campaignId={campaignId}
           onAnswered={reload}
         />
@@ -38,12 +37,10 @@ export function SessionsTab({ token, campaignId }: { token: string; campaignId: 
 
 function SessionCard({
   item,
-  token,
   campaignId,
   onAnswered,
 }: {
   item: SessionItem;
-  token: string;
   campaignId: string;
   onAnswered: () => void;
 }) {
@@ -54,7 +51,7 @@ function SessionCard({
     setBusy(status);
     setError(undefined);
     try {
-      await answerRsvp(token, campaignId, session.id, status);
+      await answerRsvp(campaignId, session.id, status);
       onAnswered();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not save your answer.');

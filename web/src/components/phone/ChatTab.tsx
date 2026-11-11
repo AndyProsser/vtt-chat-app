@@ -12,11 +12,9 @@ const PAGE = 50;
 
 /** The table's chat, with your whispers in line. Newest at the bottom, like every chat. */
 export function ChatTab({
-  token,
   campaignId,
   say,
 }: {
-  token: string;
   campaignId: string;
   say: (text: string, to?: string) => boolean;
 }) {
@@ -40,7 +38,7 @@ export function ChatTab({
     if (!oldest) return;
     setMore('loading');
     try {
-      const older = await chatHistory(token, campaignId, oldest.at);
+      const older = await chatHistory(campaignId, oldest.at);
       usePhoneStore.getState().addLines(older);
       setMore(older.length < 50 ? 'done' : 'idle');
     } catch {

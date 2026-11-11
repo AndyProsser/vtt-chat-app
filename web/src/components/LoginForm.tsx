@@ -22,14 +22,14 @@ const MESSAGES: Record<string, string> = {
  * notice changed since the account last accepted it, it is shown and accepted here before
  * `onSignedIn`: the server refuses to approve a device (or issue a link code) until it is.
  */
-export function LoginForm({ onSignedIn }: { onSignedIn: (token: string) => void }) {
+export function LoginForm({ onSignedIn }: { onSignedIn: () => void }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [mail, setMail] = useState(false);
   const [codeSent, setCodeSent] = useState(false);
   const [haveCode, setHaveCode] = useState(false);
   const [emailCode, setEmailCode] = useState('');
-  const [pendingToken, setPendingToken] = useState<string>();
+  const [needsConsent, setNeedsConsent] = useState(false);
   const [consent, setConsent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
@@ -53,20 +53,20 @@ export function LoginForm({ onSignedIn }: { onSignedIn: (token: string) => void 
 
   const submit = () =>
     run(async () => {
-      if (pendingToken !== undefined) {
-        await acceptCurrentConsent(pendingToken);
-        onSignedIn(pendingToken);
+      if (needsConsent) {
+        await acceptCurrentConsent();
+        onSignedIn();
         return;
       }
       const signedIn =
         codeSent || haveCode
           ? await redeemEmailCode(emailCode.trim())
           : await signInPlain(email, password);
-      if (signedIn.needsConsent) setPendingToken(signedIn.token);
-      else onSignedIn(signedIn.token);
+      if (signedIn.needsConsent) setNeedsConsent(true);
+      else onSignedIn();
     });
 
-  if (pendingToken !== undefined) {
+  if (needsConsent) {
     return (
       <form
         onSubmit={(e) => {

@@ -13,7 +13,6 @@ export interface Downloads {
 export interface InvitePreview {
   campaignName: string;
   consentVersion: string;
-  downloads: Downloads;
 }
 
 export interface SignUpInput {
@@ -22,3 +21,4 @@ export interface SignUpInput {
   password: string;
   consentVersion: string;
 }
+export * from './installGuide.js';

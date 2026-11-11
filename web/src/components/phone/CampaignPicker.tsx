@@ -14,7 +14,7 @@ export function CampaignPicker({
       <Heading size="6">Choose a table</Heading>
       {campaigns.length === 0 && (
         <Text color="gray">
-          You are not in a campaign yet. Ask your DM for an invite link and open it on this phone.
+          You are not in a campaign yet. Ask your DM for an invite link and open it on this device.
         </Text>
       )}
       {campaigns.map((c) => (

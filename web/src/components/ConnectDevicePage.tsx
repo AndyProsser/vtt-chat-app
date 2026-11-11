@@ -1,10 +1,11 @@
 import { Button, Callout, Card, Code, Flex, Heading, Spinner, Text } from '@radix-ui/themes';
 import { useEffect, useState } from 'react';
 
-import { useSessionEnd } from '../hooks/useSessionEnd.js';
+import { useSession } from '../hooks/useSession.js';
 import { approveDevice, codeFromSearch, describeDevice, deviceSummary } from '../lib/device.js';
 import type { DescribeResult } from '../lib/device.js';
 import { LoginForm } from './LoginForm.js';
+import { SignOutButton } from './SignOutButton.js';
 
 const EXPIRED = 'That code has expired or was already used. Start again in the app.';
 
@@ -17,23 +18,22 @@ function Isolated({ children }: { children: string }) {
   );
 }
 
-function Approve({ token, code }: { token: string; code: string }) {
-  useSessionEnd(token);
+function Approve({ code }: { code: string }) {
   const [described, setDescribed] = useState<DescribeResult>();
   const [outcome, setOutcome] = useState<'done' | 'cancelled' | 'expired' | string>();
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     let live = true;
-    void describeDevice(token, code).then((r) => live && setDescribed(r));
+    void describeDevice(code).then((r) => live && setDescribed(r));
     return () => {
       live = false;
     };
-  }, [token, code]);
+  }, [code]);
 
   async function approve() {
     setBusy(true);
-    const r = await approveDevice(token, code);
+    const r = await approveDevice(code);
     setBusy(false);
     setOutcome(r.status === 'approved' ? 'done' : r.status === 'expired' ? 'expired' : r.message);
   }
@@ -104,7 +104,7 @@ function Approve({ token, code }: { token: string; code: string }) {
 /** `/connect?c=ABCD-2345`: approve the app's sign-in request from any signed-in browser or phone. */
 export function ConnectDevicePage() {
   const [code] = useState(() => codeFromSearch(window.location.search));
-  const [token, setToken] = useState<string>();
+  const { signedIn, checked, onSignedIn } = useSession();
 
   return (
     <Flex className="join-shell">
@@ -116,13 +116,18 @@ export function ConnectDevicePage() {
               Open the VTT Chat app and press Connect. Then scan its QR code with a signed-in phone,
               or open the link it shows.
             </Text>
-          ) : token === undefined ? (
+          ) : !checked ? null : !signedIn ? (
             <>
               <Text color="gray">Sign in to approve the app that is asking to connect.</Text>
-              <LoginForm onSignedIn={setToken} />
+              <LoginForm onSignedIn={onSignedIn} />
             </>
           ) : (
-            <Approve token={token} code={code} />
+            <>
+              <Approve code={code} />
+              <Flex justify="end">
+                <SignOutButton />
+              </Flex>
+            </>
           )}
         </Flex>
       </Card>

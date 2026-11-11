@@ -13,7 +13,6 @@ export interface SocketLike {
 
 export interface LiveSocketOptions {
   url: string;
-  token: string;
   campaignId: string;
   /** Every server frame after sign-in: its type and data. */
   onEvent: (type: string, data: unknown) => void;
@@ -31,7 +30,7 @@ const PROTOCOL_VERSION = 1;
 export const RETRY_MS = [1_000, 2_000, 5_000, 10_000, 30_000];
 
 /**
- * The phone's live connection: sign in, subscribe to one campaign, hand every event to the caller, and
+ * The phone's live connection: wait to be signed in by the cookie, subscribe to one campaign, hand every event to the caller, and
  * come back by itself after a drop. It always asks for a fresh snapshot rather than replaying a gap,
  * because a phone is often asleep for minutes and the snapshot carries the recent chat anyway.
  */
@@ -82,9 +81,9 @@ export class LiveSocket {
       this.o.url,
     );
     this.socket = socket;
-    socket.onopen = () => {
-      this.send('auth', { token: this.o.token });
-    };
+    // No `auth` frame: the browser's session cookie went with the upgrade request (which the server only
+    // honours from this site's own pages) and the server signs the connection in itself.
+    socket.onopen = () => undefined;
     socket.onmessage = (event) => {
       let frame: { t?: unknown; d?: unknown };
       try {

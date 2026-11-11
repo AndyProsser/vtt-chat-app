@@ -19,5 +19,4 @@ export interface StatusSnapshot {
   recording: { active: number };
   pipeline: Pipeline | null;
   storage: { freePercent: number; low: boolean } | null;
-  downloads: { windows?: string; macos?: string; linux?: string };
 }
