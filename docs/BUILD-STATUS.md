@@ -15,6 +15,31 @@ cd tauri-client && cargo fmt --check && cargo clippy --workspace --all-targets -
 
 Last run (2026-11-09, memory stores): backend 406 (+18 skipped without Postgres), panels-ui 213, ddb 9, status 3; Rust: src-tauri 88 (+2 ignored), rust-livekit and rust-sync as before, with the LiveKit live tests passing individually on SDK 0.10.1. `cargo clippy -D warnings` still fails on the old unused `capture_allowed`. Not run: anything in CI (the workflow exists, nothing has run it since the pivot).
 
+## Built 2026-11-11, later: the web app, chat commands, cookie sessions (0.4, dev.1 to dev.4)
+
+What exists, and **how far each piece has been checked** (U = unit tests, B = measured in headless Chromium against the
+local Compose stack, A = Andy tried it locally, none = not yet).
+
+| Piece                                                                                                          | Checked                                                                                                          |
+| -------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Landing page, `/download`, `/full-app`, shared 640px frame and Default palette (web and status)                | U, B (no horizontal overflow at 400, 640, 700, 1000px; light and dark); A (Home, download, web chat screenshots) |
+| Browser cookie sessions (`__Host-`, HttpOnly, sliding by the offline limit, Origin checks, WebSocket upgrade)  | U (backend, web); curl against the stack (cookie set, `/me`, CSRF 403, Bearer unchanged); A (sign-in, chat)      |
+| Visitor sign-up requests, short admin codes, starter campaign for the first Admin                              | U; curl for sign-up and approve; A (the starter campaign appeared)                                               |
+| Gated downloads; update sync records installers and waits for all three platforms                              | U; against live GitHub (found and fixed the half-uploaded-release case)                                          |
+| Chat commands: shared parser, server kind and language, OOC kept out of the record, both composers             | U (shared 66, backend, web, panels, Rust); **not seen in a running app or browser**                              |
+| Web chat: members rail, popout, burger menu, promo button, icon tabs, copy buttons                             | U (pure helpers), B (screenshots); hover and tap behaviour **not tried**                                         |
+| Desktop: connect screen in the web look, version warning, system CA store, Default theme, Settings reorganised | U; Andy ran the app from source and connected through the browser; the rest **not seen in a window**             |
+| App and server version check                                                                                   | U; Andy saw "App 0.4.0 · Server 0.4.0-dev.3" in Settings                                                         |
+
+**Not verified, in priority order:** a real phone and iOS Safari; deep links on Windows, macOS and the AppImage; voice over
+`https://localhost` with the trusted CA; the chat commands and the RSVP side effect against a live table; the members popout's
+hover and touch behaviour; tooltips; the 520 to 699px width range; the dev.3 and dev.4 Release workflows (installers).
+
+**Known gaps:** an expired cookie in an open web chat tab retries quietly and does not sign the tab out; two simultaneous
+first-Admin sign-ins in separate processes could in theory create two starter campaigns (an advisory lock would close it);
+`ai/` could also skip OOC events as defence in depth (the server already filters them); a request-to-join flow for
+people without a campaign is undecided.
+
 ## Built 2026-11-11: browser-only app sign-in (0.4, `PROTOCOL_VERSION` 2)
 
 Design: [APP-SIGN-IN.md](architecture/APP-SIGN-IN.md). Built from the join page to the app's Connect screen.

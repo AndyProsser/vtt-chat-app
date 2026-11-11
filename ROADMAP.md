@@ -18,7 +18,54 @@
 
 ## Where we are and what is next
 
-**As of 2026-11-09 the player experience is essentially complete:** sign in, join, talk, chat, whisper, loot, RSVP, hear the DM's scenes and stingers, browse past sessions, with recording and consent working end to end. What is left is **verification on real machines** (nothing below has been clicked through in a real window since it was built), a few UI/UX refinements, and release work.
+### Stock-take, 2026-11-11 (end of day)
+
+A long day: 83 commits, four dev builds (`v0.4.0-dev.1` to `-dev.4`), and the first real run of the deployment
+buildout. In short: **the system now deploys from published images, signs people in through the web, and the web app and
+the desktop app are two faces of one product.** Nothing below has been through a second person yet.
+
+**Completed from this roadmap (Stage 3b, the deployment buildout):**
+
+- Server **images on GHCR**, built by tag (`images.yml`), pulled by the Compose bundle by release line. Ran for four tags; the
+  Compose bundle was brought up locally from the published images ("first local deploy"), which found and fixed
+  four real bugs (`UPDATES_INCLUDE_DEV`, the macOS updater archive name, `TRUST_PROXY` under Compose, a missing
+  protocol check on the old sign-in calls).
+- **Version handshake** (REST) with `PROTOCOL_VERSION` 2, plus the desktop app now **warns when it and the server differ in
+  MAJOR.MINOR**. **Server-chosen client builds** and the **update feed sync** run against live GitHub, and the sync now also waits
+  until all three installers are uploaded before offering a release (found when it offered half a release).
+- **Web onboarding and app sign-in** (item 7): browser-only sign-in. Andy confirmed locally that the app connects through the
+  browser and the `vtt-chat://` link signs it in with no prompt.
+
+**Added since the roadmap was written (not on it):**
+
+| Area                        | What now exists                                                                                                                                                                                                           |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **One web app**             | A landing page at `/`, `/download` (per-OS steps, sign-in required), `/full-app`, and the chat web app at `/app` as the same product on phones and desktops; one 640px column, the Default look, light/dark               |
+| **Sessions in the browser** | A secure, long-lived cookie (HttpOnly, SameSite, `__Host-`) that slides with the operator's offline limit; Origin checks on cookie writes and the WebSocket; OIDC fits later without rework                               |
+| **Getting an account**      | Visitor sign-up requests (off by default, approved in `vtt-admin signup`), short typeable `ABCD-EFGH` codes, a starter campaign for the first Admin                                                                       |
+| **Chat commands**           | `/say`, `/say-<language>`, `/do`, `/ooc`, `/tell`, `/w`, `/dm`, `/late`, `/cant`, `/work`, `/brb`, `/afk`, `/back` with autocomplete in **both** apps; OOC never recorded; one shared parser                              |
+| **Web chat**                | Members rail with status and hover/tap details, burger menu and "Get the app" promo, icon tabs matching the desktop                                                                                                       |
+| **Desktop app**             | New Default theme (violet, ember, teal) matched in the web; connect screen in the web look; system certificate store trusted; Settings reorganised (Profile with theme, photo, version and updates; Audio; Notifications) |
+| **Design and tooling**      | Artwork banners and a faint chat watermark; `npm run app`; `trust-local-ca.sh`; a headless-browser layout check; a palette drift test between web and desktop                                                             |
+
+**Still to do, in the order I would take it:**
+
+1. **A second person, on a blank VM** (Stage 3b #6 and the Stage 3 "done when"): the real test of the images, the operator
+   guide, `wss://` through Caddy with a real certificate, LiveKit audio over UDP, and the new landing and download pages.
+2. **See it running.** Nothing from today's web work, the chat commands, the members rail, the Settings reorganisation or the
+   desktop connect screen has been looked at in a real app window by anyone but the author's screenshots; the web pages were
+   measured in headless Chromium (no overflow at 400 to 1000px). On the list: a real phone and iOS Safari, deep links on
+   Windows and macOS and the Linux AppImage, voice over `https://localhost` with the trusted CA, the Windows and macOS builds.
+3. **Close the version and sign-in gaps:** the WebSocket protocol check and the CI guard that fails a wire change without a
+   version bump (Stage 3b #3); the web **Devices list with revoke** (#8); an expired cookie in an open `/app` tab should sign
+   out instead of retrying quietly.
+4. **Decide the undecided:** how a signed-in person with **no campaign** gets into one (request-to-join from an opt-in list,
+   DM approves in the app); whether quick-reply commands should be customisable; per-character languages and polyglot
+   masking (needs server-side masking; only designed as a seam).
+5. **The old list below** (recording validation with the records profile, listening tests, the 4-hour soak, D&D Beyond on
+   real sheets, Windows and macOS away detection) still stands and is unchanged.
+
+**As of 2026-11-09 the player experience was essentially complete:** sign in, join, talk, chat, whisper, loot, RSVP, hear the DM's scenes and stingers, browse past sessions, with recording and consent working end to end. What was left then, and still is, is **verification on real machines**, a few UI/UX refinements, and release work.
 
 ```mermaid
 flowchart LR
@@ -167,16 +214,16 @@ The riskiest unknowns are all "does this actually work on real machines with ope
 
 **Deliverables, in build order:**
 
-| #   | Item                                                                                                                                                                                                                                                                    | Status                                                                                                                                          |
-| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | **Version rules** (MAJOR/MINOR/PATCH meaning, 0.y as the match tier) in CLAUDE.md, DEVELOPING.md and the design doc                                                                                                                                                     | 🟢 Done 2026-11-11                                                                                                                              |
-| 2   | **Container build workflow:** CI builds the backend and worker images on a release tag and pushes them to GHCR (full version + MAJOR.MINOR tags; dev tags never move `latest`); the Compose bundle pulls them by `VTT_VERSION` instead of building on the server        | 🟡 Built, untried (first run on the next tag)                                                                                                   |
-| 3   | **Protocol version handshake:** `PROTOCOL_VERSION` in `shared/`, sent by the client and answered by the server, with "update required" on both sides; a CI test fails if a wire contract changes without it                                                             | 🟡 REST built; WebSocket and CI guard still to do                                                                                               |
-| 4   | **Server-chosen client builds:** the server offers the newest patch of its own MAJOR.MINOR, patches auto-approved, from GitHub releases (`UPDATES_SOURCE=github`)                                                                                                       | 🟡 Built, unit-tested; untried against live GitHub                                                                                              |
-| 5   | **Update mirror:** `UPDATES_SOURCE=mirror` sync job (verify signatures, newest patch plus one previous, cleanup), `vtt-admin updates sync/status`                                                                                                                       | 🟡 Built, unit-tested; untried against live GitHub                                                                                              |
-| 6   | **Fresh-VM deploy test** from the images and the operator guide (the Stage 3 "done when"), with real LiveKit audio, `wss://` through Caddy and a Let's Encrypt certificate                                                                                              | ⚪ Needs a VM                                                                                                                                   |
-| 7   | **Web onboarding and app sign-in:** invite link → account → OS-specific install → "Open VTT Chat" hand-off (deep link, typed code, device code approved by scanning the app's QR or opening its link; no PKCE, see APP-SIGN-IN.md); the server owns the sign-in methods | 🟡 Sign-in half built 2026-11-11 (browser-only connect: link code, device code with the app's QR; protocol 2), untried end to end in a real app |
-| 8   | **Mobile account and install flow:** security and profile (name, avatar) in the browser; the **Devices list with revoke** (`GET`/`DELETE /api/auth/sessions` already exist); add-to-home-screen steps for Android and iOS, then how to install the desktop app          | ⚪ After 7                                                                                                                                      |
+| #   | Item                                                                                                                                                                                                                                                                    | Status                                                                                                                                                       |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1   | **Version rules** (MAJOR/MINOR/PATCH meaning, 0.y as the match tier) in CLAUDE.md, DEVELOPING.md and the design doc                                                                                                                                                     | 🟢 Done 2026-11-11                                                                                                                                           |
+| 2   | **Container build workflow:** CI builds the backend and worker images on a release tag and pushes them to GHCR (full version + MAJOR.MINOR tags; dev tags never move `latest`); the Compose bundle pulls them by `VTT_VERSION` instead of building on the server        | 🟢 Run for dev.1 to dev.4; brought up locally from the images (2026-11-11), four bugs found and fixed                                                        |
+| 3   | **Protocol version handshake:** `PROTOCOL_VERSION` in `shared/`, sent by the client and answered by the server, with "update required" on both sides; a CI test fails if a wire contract changes without it                                                             | 🟡 REST built; WebSocket and CI guard still to do                                                                                                            |
+| 4   | **Server-chosen client builds:** the server offers the newest patch of its own MAJOR.MINOR, patches auto-approved, from GitHub releases (`UPDATES_SOURCE=github`)                                                                                                       | 🟢 Run against live GitHub (dev builds); waits for all three installers before offering a release                                                            |
+| 5   | **Update mirror:** `UPDATES_SOURCE=mirror` sync job (verify signatures, newest patch plus one previous, cleanup), `vtt-admin updates sync/status`                                                                                                                       | 🟡 Built, unit-tested; untried against live GitHub                                                                                                           |
+| 6   | **Fresh-VM deploy test** from the images and the operator guide (the Stage 3 "done when"), with real LiveKit audio, `wss://` through Caddy and a Let's Encrypt certificate                                                                                              | ⚪ Needs a VM                                                                                                                                                |
+| 7   | **Web onboarding and app sign-in:** invite link → account → OS-specific install → "Open VTT Chat" hand-off (deep link, typed code, device code approved by scanning the app's QR or opening its link; no PKCE, see APP-SIGN-IN.md); the server owns the sign-in methods | 🟢 Built 2026-11-11 and tried locally by Andy: landing, sign-in (code, password), long link, the app connects with no prompt; other OSes and a phone untried |
+| 8   | **Mobile account and install flow:** security and profile (name, avatar) in the browser; the **Devices list with revoke** (`GET`/`DELETE /api/auth/sessions` already exist); add-to-home-screen steps for Android and iOS, then how to install the desktop app          | 🟡 Web app unified (see Stage 7); the Devices list with revoke and the profile and security pages are still to do                                            |
 
 **Done when:** an operator on a blank Ubuntu VM pulls the images, starts the stack, and a new player goes from an
 invite link to a signed-in, preconfigured app without typing a server address; a client of the wrong MAJOR.MINOR is
@@ -186,7 +233,7 @@ told clearly to update; and a recorded session runs through to its summary.
 
 ## Stage 4 — Tray Client
 
-**Status:** 🟢 Feature-complete for players as of 2026-11-09; 🟡 fine-tuning and verification remain. One compact RPG-themed main window (avatar rail with speaking glow, quality-coloured connection sparkline, group sections and hover cards; themed chat with whispers; record state and consent; mute and level meter; voice connect), Settings as a popover (Profile, Campaign, Sessions, General with audio devices and themes), Handouts and Party-inventory windows, the DM **Scene Deck** (Voice, Stinger and Scene panels with favourites, custom scenes and per-type levels), loot with the SRD catalogue and treasure generator, scheduling with RSVP, account and character avatars, sound through the call, signed auto-update, start-with-computer, crash recovery and the DM connection screen. Voice runs on **LiveKit Rust SDK 0.10.1** (Linux builds need `clang`; see [DEVELOPING.md](DEVELOPING.md)). **Built since, unverified in a real window:** the session history window, the keyboard way to move people between groups, four more DM voices, and the opt-in mixer audio engine (per-person volume, microphone volume, a real level meter). **Not built:** a recorded 4-hour soak (`tauri-client/scripts/soak.sh` is ready), and checking the D&D Beyond sync's extra stats against real sheets. **Needs a human:** listen-tests of effects, character voices and the mixer engine, and a pass through the real window (unmute, rail drag, portrait upload, device switching, scene editor). Back up the updater key (`~/.tauri/vtt-chat-updater.key`) and give it a password before real releases. Detail of what is built vs verified: [docs/BUILD-STATUS.md](docs/BUILD-STATUS.md). Design: [main-window spec](docs/superpowers/specs/2026-11-08-main-window-design.md).
+**Status:** 🟢 Feature-complete for players as of 2026-11-09; 🟡 fine-tuning and verification remain. One compact RPG-themed main window (avatar rail with speaking glow, quality-coloured connection sparkline, group sections and hover cards; themed chat with whispers; record state and consent; mute and level meter; voice connect), Settings as a popover (Profile with theme, photo, version and updates; Campaign; Sessions; Audio; Notifications; reorganised 2026-11-11), Handouts and Party-inventory windows, the DM **Scene Deck** (Voice, Stinger and Scene panels with favourites, custom scenes and per-type levels), loot with the SRD catalogue and treasure generator, scheduling with RSVP, account and character avatars, sound through the call, signed auto-update, start-with-computer, crash recovery and the DM connection screen. Voice runs on **LiveKit Rust SDK 0.10.1** (Linux builds need `clang`; see [DEVELOPING.md](DEVELOPING.md)). **Built since, unverified in a real window:** the session history window, the keyboard way to move people between groups, four more DM voices, and the opt-in mixer audio engine (per-person volume, microphone volume, a real level meter). **Not built:** a recorded 4-hour soak (`tauri-client/scripts/soak.sh` is ready), and checking the D&D Beyond sync's extra stats against real sheets. **Needs a human:** listen-tests of effects, character voices and the mixer engine, and a pass through the real window (unmute, rail drag, portrait upload, device switching, scene editor). Back up the updater key (`~/.tauri/vtt-chat-updater.key`) and give it a password before real releases. Detail of what is built vs verified: [docs/BUILD-STATUS.md](docs/BUILD-STATUS.md). Design: [main-window spec](docs/superpowers/specs/2026-11-08-main-window-design.md).
 **Depends on:** Stage 2 (audio engine), Stage 3 (server to connect to)
 
 **Deliverables:**
@@ -223,7 +270,7 @@ told clearly to update; and a recorded session runs through to its summary.
 
 ## Stage 6 — Table Features
 
-**Status:** 🟢 Built end to end for players (server 2026-11-07, client 2026-11-08 to 09); 🟡 the full-session test below is not yet run. Server: chat and private whispers, handouts/maps/images/text snippets, loot with atomic claims, the DM soundboard (a mini thaumaturgy.app), session schedule + RSVP + reminders + stored notifications, and party split — see [TABLE-FEATURES.md](docs/architecture/TABLE-FEATURES.md). Client: chat and whispers, handouts, loot and party inventory, the Scene Deck, scheduling and RSVP, and party split in the rail (Stage 4). **Not built:** voice whispers and the end-to-end "full session" test below.
+**Status:** 🟢 Built end to end for players (server 2026-11-07, client 2026-11-08 to 09); 🟡 the full-session test below is not yet run. Server: chat and private whispers, handouts/maps/images/text snippets, loot with atomic claims, the DM soundboard (a mini thaumaturgy.app), session schedule + RSVP + reminders + stored notifications, and party split — see [TABLE-FEATURES.md](docs/architecture/TABLE-FEATURES.md). Client: chat and whispers, handouts, loot and party inventory, the Scene Deck, scheduling and RSVP, and party split in the rail (Stage 4). **Built 2026-11-11:** chat commands (in character, out of character, language styles, whispers by name, quick late/can't). **Not built:** voice whispers and the end-to-end "full session" test below.
 **Depends on:** Stage 5
 
 **Deliverables:**
@@ -241,7 +288,7 @@ told clearly to update; and a recorded session runs through to its summary.
 
 ## Stage 7 — Mobile SPA
 
-**Status:** 🟡 First cut built 2026-11-10 ([MOBILE-WEB-APP.md](docs/architecture/MOBILE-WEB-APP.md)): sign-in, chat with whispers, sessions with RSVP, handouts, history with summaries, transcripts and search, a handout viewer, and an install manifest. Exercised in a phone-sized headless browser; **not tried on a real phone**. No voice, by decision (the tray app owns audio)
+**Status:** 🟡 Now **the web app on any device** (2026-11-11): the same app on phones and in desktop browsers, reached from the site's Chat link, sharing the Home look and the desktop's Default palette, with a members rail, chat commands and a secure cookie session. First cut built 2026-11-10 ([MOBILE-WEB-APP.md](docs/architecture/MOBILE-WEB-APP.md)): sign-in, chat with whispers, sessions with RSVP, handouts, history with summaries, transcripts and search, a handout viewer, and an install manifest. Exercised in a phone-sized headless browser; **not tried on a real phone**. No voice, by decision (the tray app owns audio)
 **Depends on:** Stage 3 (API), Stage 6 (content)
 
 `web/`: a basic mobile-first SPA designed more for messages than gaming — messages, RSVP, handouts, history/summaries, and possibly basic listen/talk (open question). Served by the box by default; Cloudflare Pages is an optional adapter.
