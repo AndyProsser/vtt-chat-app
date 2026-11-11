@@ -51,6 +51,10 @@ services:
     volumes: [media:/data/media]
     environment:
       DATABASE_URL: postgres://vtt:${POSTGRES_PASSWORD}@postgres:5432/vtt
+      # Caddy reaches the backend over the Compose bridge network (a private address), so trust it for the
+      # client's address; without this every player shares one rate-limit bucket and the device-approval page
+      # shows Caddy's address. Safe: the backend port below is published on loopback only, never the LAN.
+      TRUST_PROXY: 'loopback, uniquelocal'
       VALKEY_URL: redis://valkey:6379
       # Uploaded handouts and soundboard clips (type- and size-checked, served only to those allowed).
       MEDIA_DIR: /data/media

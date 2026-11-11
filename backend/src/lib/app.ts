@@ -4,7 +4,7 @@ import express, { type Express } from 'express';
 import { AccountService } from './auth/accountService.js';
 import { DeviceFlow } from './auth/deviceFlow.js';
 import { CampaignService } from './campaigns/campaignService.js';
-import type { BackendConfig } from './config.js';
+import { DEFAULT_TRUST_PROXY, type BackendConfig } from './config.js';
 import { inviteRoutes, webPages } from './http/joinRoutes.js';
 import type { DdbSyncService } from './ddb/ddbSyncService.js';
 import { avatarRoutes } from './http/avatarRoutes.js';
@@ -128,8 +128,9 @@ export function createApp({
   const campaigns = new CampaignService({ store });
 
   const app = express();
-  // Behind Caddy on the same host; trust it for the real client address (used by the rate limiters).
-  app.set('trust proxy', 'loopback');
+  // Trust Caddy (by default on the same host) for the real client address, used by the per-IP rate
+  // limits and shown when approving a device. Compose needs `TRUST_PROXY=loopback, uniquelocal`.
+  app.set('trust proxy', config.trustProxy ?? DEFAULT_TRUST_PROXY);
   app.disable('x-powered-by');
   app.use((_req, res, next) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');

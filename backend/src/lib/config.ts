@@ -5,6 +5,8 @@ import {
   DEV_LIVEKIT_URL,
 } from '../consts/index.js';
 
+import { isIP } from 'node:net';
+
 import { UPDATER_PUBLIC_KEY } from '../consts/index.js';
 import type { OidcConfig } from './auth/oidc.js';
 
@@ -22,8 +24,20 @@ export interface UpdatesSyncConfig {
   publicKey: string;
 }
 
+/** Express's `trust proxy`: a number of hops, or addresses/subnets/named ranges to trust. */
+export type TrustProxy = number | string[];
+
+export const DEFAULT_TRUST_PROXY: TrustProxy = ['loopback'];
+
 export interface BackendConfig {
   port: number;
+  /**
+   * Which proxies may tell the backend the client's address (`X-Forwarded-For`), used by the per-IP
+   * rate limits and the address shown when approving a device. `TRUST_PROXY`, default `loopback`
+   * (Caddy on the same host). Under Docker Compose, Caddy reaches the backend over the bridge network,
+   * so it needs `loopback, uniquelocal`. Optional so tests and tools can omit it.
+   */
+  trustProxy?: TrustProxy;
   liveKitUrl: string;
   liveKitApiKey: string;
   liveKitApiSecret: string;
@@ -85,8 +99,11 @@ export interface BackendConfig {
  * own (see ROADMAP Stage 3, which also adds session secrets once accounts exist).
  */
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): BackendConfig {
+  const proxy = parseTrustProxy(env.TRUST_PROXY);
+  if (proxy.error) console.warn(`[backend] ${proxy.error}`);
   return {
     port: env.PORT ? Number(env.PORT) : DEFAULT_PORT,
+    trustProxy: proxy.value,
     liveKitUrl: env.LIVEKIT_URL ?? DEV_LIVEKIT_URL,
     liveKitApiKey: env.LIVEKIT_API_KEY ?? DEV_LIVEKIT_API_KEY,
     liveKitApiSecret: env.LIVEKIT_API_SECRET ?? DEV_LIVEKIT_API_SECRET,
@@ -125,6 +142,37 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): BackendConfig 
       env.LIVEKIT_API_URL ??
       env.LIVEKIT_HEALTH_URL ??
       (env.LIVEKIT_URL ?? DEV_LIVEKIT_URL).replace(/^ws/, 'http'),
+  };
+}
+
+const NAMED_RANGES = new Set(['loopback', 'linklocal', 'uniquelocal']);
+
+function isAddressOrSubnet(entry: string): boolean {
+  if (NAMED_RANGES.has(entry)) return true;
+  const [address, prefix, extra] = entry.split('/');
+  if (extra !== undefined || !address) return false;
+  const family = isIP(address);
+  if (family === 0) return false;
+  if (prefix === undefined) return true;
+  if (!/^\d{1,3}$/.test(prefix)) return false;
+  return Number(prefix) <= (family === 4 ? 32 : 128);
+}
+
+/**
+ * `TRUST_PROXY`: unset or empty means `loopback`; a whole number is a count of proxy hops; otherwise
+ * a comma-separated list of `loopback`, `linklocal`, `uniquelocal`, IP addresses or CIDR subnets.
+ * Anything else (including `true`, which would trust every client's own `X-Forwarded-For`) falls back
+ * to `loopback` and returns an error to log, so a typo can never widen trust.
+ */
+export function parseTrustProxy(raw: string | undefined): { value: TrustProxy; error?: string } {
+  const text = raw?.trim() ?? '';
+  if (text === '') return { value: DEFAULT_TRUST_PROXY };
+  if (/^\d+$/.test(text)) return { value: Number(text) };
+  const entries = text.split(',').map((e) => e.trim().toLowerCase());
+  if (entries.every((e) => e !== '' && isAddressOrSubnet(e))) return { value: entries };
+  return {
+    value: DEFAULT_TRUST_PROXY,
+    error: `TRUST_PROXY "${text}" is not a hop count or a list of loopback, linklocal, uniquelocal, addresses or subnets; using loopback`,
   };
 }
 
