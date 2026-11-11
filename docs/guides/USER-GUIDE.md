@@ -201,6 +201,20 @@ Open **Settings** (the cog). It has five tabs:
 - **Audio**: microphone, speakers, engine, noise filter, volume, and, for the DM, **hear sound effects myself**.
 - **Notifications**: what you are told about (chat, whispers, handouts and loot, sessions) and **quiet hours**.
 
+**Finding a table.** If you are not in a campaign yet, or want to join another, open Settings, then Campaign, then
+**Find another table** (it also shows on the Profile tab when you are in no campaign). Tables that are open to requests
+are listed with their DM and player count. Choose **Request to join**, add a short note if you like (up to 280
+characters) and send it. The card then reads **Request sent**, and you can **Withdraw** until the DM answers. If the DM
+says no, the card reads **Not this time** and shows the date you can ask again, a week later. You get a pop-up when
+the DM answers, and if you are already in another campaign a strip appears with a **Switch** button. An invite link
+still works as before.
+
+**Letting people ask (DM).** In Settings, then Campaign, the **Join requests** section has an **Allow join** switch.
+When it is off your table is hidden from the list and takes no requests. Waiting requests show the person's name, their
+note and how long ago they asked; **Approve** adds them as a player and **Decline** sends a no. A number on the Campaign
+tab and a dot on the settings cog show that someone is waiting. Turn the pop-ups on or off in Settings, then
+Notifications.
+
 By default you only get finished releases. To try early versions, turn on **Settings → Profile → App → Include dev
 builds**; they may be rough. When a new version is available a banner says so; it installs only when you click
 "Restart to update", and never in the middle of a game on its own. If a banner says the app and your server are on
