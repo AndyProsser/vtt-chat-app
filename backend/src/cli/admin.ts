@@ -78,7 +78,7 @@ const USAGE = `vtt-admin — system operations for this instance (gameplay is ma
                                          redo the summaries (and with the flag, the transcripts) from the kept audio
   updates publish <dir> --version <v> --base-url <url> [--notes <text>]
                                          publish a signed client release (the bundler's output) to UPDATES_DIR
-  updates status                         the version players are currently offered
+  updates status                         what players are offered, on the release and dev-build channels
 `;
 
 const isSimpleKey = (key: string): key is keyof typeof SIMPLE_SETTINGS => key in SIMPLE_SETTINGS;
@@ -413,6 +413,7 @@ async function updates(
       if (!from || from.startsWith('--') || !version || !baseUrl) {
         deps.err(
           'usage: updates publish <dir> --version <v> --base-url <url> [--notes <text>]\n' +
+            '  a version with a suffix (0.4.0-dev.2, 0.4.0-rc.1) is a dev build and goes to the dev channel\n' +
             '  <dir> is the bundler output (installers with .sig files); --base-url is where this server\n' +
             '  serves /updates, e.g. https://play.example.com/updates',
         );
@@ -433,7 +434,9 @@ async function updates(
           version,
           ...(notes ? { notes } : {}),
         });
-        deps.out(`published ${version} for ${result.platforms.join(', ')} to ${dir}`);
+        deps.out(
+          `published ${version} (${result.channel === 'dev' ? 'dev build: only players who opted in to dev builds are offered it' : 'release: every player is offered it'}) for ${result.platforms.join(', ')} to ${dir}`,
+        );
         return 0;
       } catch (error) {
         deps.err(`error: ${error instanceof Error ? error.message : String(error)}`);
@@ -445,18 +448,27 @@ async function updates(
         deps.err('error: UPDATES_DIR is not set');
         return 1;
       }
-      try {
-        const latest = JSON.parse(await readFile(path.join(dir, 'latest.json'), 'utf8')) as {
-          version: string;
-          pub_date: string;
-          platforms: Record<string, unknown>;
-        };
-        deps.out(
-          `offering ${latest.version} (${latest.pub_date}) for ${Object.keys(latest.platforms).join(', ')}`,
-        );
-      } catch {
-        deps.out('no update published');
+      const feeds: [string, string][] = [
+        ['releases', path.join(dir, 'latest.json')],
+        ['dev builds', path.join(dir, 'dev', 'latest.json')],
+      ];
+      let any = false;
+      for (const [name, file] of feeds) {
+        try {
+          const latest = JSON.parse(await readFile(file, 'utf8')) as {
+            version: string;
+            pub_date: string;
+            platforms: Record<string, unknown>;
+          };
+          deps.out(
+            `${name}: offering ${latest.version} (${latest.pub_date}) for ${Object.keys(latest.platforms).join(', ')}`,
+          );
+          any = true;
+        } catch {
+          // this channel has nothing yet
+        }
       }
+      if (!any) deps.out('no update published');
       return 0;
     }
     default:

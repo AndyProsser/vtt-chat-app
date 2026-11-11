@@ -16,6 +16,8 @@ import {
   autostartEnabled,
   autostartSet,
   soundboardMonitorSet,
+  updateDevBuildsGet,
+  updateDevBuildsSet,
 } from '../../lib/tauriBridge.js';
 
 /** Start with the computer. Off until chosen; started at login it opens to the tray only. */
@@ -29,6 +31,10 @@ export function GeneralSection() {
   const members = useTableStore((st) => st.members);
   const dm = isDm(members, status?.userId ?? null);
   const [checked, setChecked] = useState(false);
+  const [devBuilds, setDevBuilds] = useState<boolean>();
+  useEffect(() => {
+    void updateDevBuildsGet().then(setDevBuilds, () => undefined);
+  }, []);
   useEffect(() => {
     void getVersion().then(setVersion, () => undefined);
   }, []);
@@ -83,6 +89,24 @@ export function GeneralSection() {
             </Button>
           )}
         </Flex>
+      </SettingRow>
+      <SettingRow
+        label="Include dev builds"
+        hint="Early versions that are still being tested. Off means you only get finished releases."
+      >
+        <Switch
+          aria-label="Include dev builds"
+          disabled={devBuilds === undefined}
+          checked={devBuilds ?? false}
+          onCheckedChange={(next) => {
+            setError(undefined);
+            setChecked(false);
+            updateDevBuildsSet(next).then(
+              () => setDevBuilds(next),
+              (err: unknown) => setError(accountErrorMessage(err)),
+            );
+          }}
+        />
       </SettingRow>
       {update.available && <Text size="2">{updateMessage(update.available)}</Text>}
       {checked && !update.available && !update.error && (

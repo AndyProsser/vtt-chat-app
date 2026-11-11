@@ -110,6 +110,8 @@ pub fn run() {
             deeplink::take_pending_server,
             updater::update_check,
             updater::update_install,
+            updater::update_dev_builds_get,
+            updater::update_dev_builds_set,
             autostart::autostart_enabled,
             autostart::autostart_set,
             account_commands::account_status,

@@ -184,6 +184,10 @@ export function onLinkedServer(handler: (server: string) => void): Promise<Unlis
 
 /** Asks the signed-in server for a newer client; `null` is up to date (`update_check`). */
 export const updateCheck = () => invoke<UpdateInfo | null>('update_check');
+/** Whether this player also wants dev builds (off by default: releases only). */
+export const updateDevBuildsGet = () => invoke<boolean>('update_dev_builds_get');
+export const updateDevBuildsSet = (enabled: boolean) =>
+  invoke<void>('update_dev_builds_set', { enabled });
 /** Installs what `updateCheck` found, then the app restarts itself (`update_install`). */
 export const updateInstall = () => invoke<void>('update_install');
 

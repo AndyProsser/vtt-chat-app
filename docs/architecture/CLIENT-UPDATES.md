@@ -34,6 +34,24 @@ sequenceDiagram
 - **With crash recovery:** after installing, the app exits with code 75; the supervisor
   (`supervisor.rs`) treats that as "start the new build now", not a crash.
 
+## Channels: releases and dev builds (decided 2026-11-11)
+
+Everyone is on the **release** channel unless they opt in. The channel is carried by the version name:
+`0.4.0` is a release, `0.4.0-dev.2` / `-rc.1` is a dev build (semver pre-release, so `0.4.0-dev.9` sorts
+below `0.4.0`).
+
+| Feed on the server         | Holds                                                        | Read by                                                           |
+| -------------------------- | ------------------------------------------------------------ | ----------------------------------------------------------------- |
+| `/updates/latest.json`     | the latest release                                           | every player, by default                                          |
+| `/updates/dev/latest.json` | the **newer of** the latest dev build and the latest release | players who turned on Settings → General → **Include dev builds** |
+
+Why the dev feed includes the release: a player testing `0.4.0-dev.3` must still be offered `0.4.0` when it
+ships, and Tauri's updater reads one feed, so the server does the merge when you publish. `vtt-admin updates
+publish` picks the channel from the version and keeps the files apart (`dev/` holds dev installers). The choice is
+a per-machine preference (`updates.json` in the app's data folder), off by default, and turning it off does not
+downgrade anyone: they simply stop seeing newer dev builds. How tags become builds is in
+[RELEASING.md](../guides/RELEASING.md).
+
 ## Keys (do this once; do not lose it)
 
 ```bash

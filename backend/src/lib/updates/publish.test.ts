@@ -93,4 +93,45 @@ describe('publishUpdates', () => {
     ).rejects.toThrow(/base URL/);
     expect(file).toBeTruthy();
   });
+
+  const read = (p: string) => JSON.parse(readFileSync(p, 'utf8'));
+  const pub = (r: { from: string; to: string }, version: string) =>
+    publishUpdates({ from: r.from, to: r.to, baseUrl: 'https://h/updates', version });
+
+  it('keeps dev builds in a dev/ folder and leaves the release feed alone', async () => {
+    const r = release('0.4.0-dev.1');
+    const result = await pub(r, '0.4.0-dev.1');
+    expect(result.channel).toBe('dev');
+    expect(existsSync(path.join(r.to, 'dev', r.file))).toBe(true);
+    expect(existsSync(path.join(r.to, 'latest.json'))).toBe(false);
+    const feed = read(path.join(r.to, 'dev', 'latest.json'));
+    expect(feed.version).toBe('0.4.0-dev.1');
+    expect(feed.platforms['linux-x86_64'].url).toBe(
+      `https://h/updates/dev/${encodeURIComponent(r.file)}`,
+    );
+  });
+
+  it('offers dev-channel players the newer of the latest dev build and the latest release', async () => {
+    const r = release('0.4.0-dev.2');
+    await pub(r, '0.4.0-dev.2');
+    const rel = release('0.4.0');
+    rel.to = r.to;
+    expect((await pub(rel, '0.4.0')).channel).toBe('release');
+    expect(read(path.join(r.to, 'latest.json')).version).toBe('0.4.0');
+    expect(read(path.join(r.to, 'dev', 'latest.json')).version).toBe('0.4.0'); // the release outranks its dev builds
+    const next = release('0.5.0-dev.1');
+    next.to = r.to;
+    await pub(next, '0.5.0-dev.1');
+    expect(read(path.join(r.to, 'dev', 'latest.json')).version).toBe('0.5.0-dev.1');
+    expect(read(path.join(r.to, 'latest.json')).version).toBe('0.4.0'); // releases-only players are untouched
+  });
+
+  it('does not let an older dev build replace what dev players are offered', async () => {
+    const r = release('0.4.0');
+    await pub(r, '0.4.0');
+    const old = release('0.4.0-dev.1');
+    old.to = r.to;
+    await pub(old, '0.4.0-dev.1');
+    expect(read(path.join(r.to, 'dev', 'latest.json')).version).toBe('0.4.0');
+  });
 });

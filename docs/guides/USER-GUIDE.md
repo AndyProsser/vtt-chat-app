@@ -183,7 +183,7 @@ Open **Settings** (the cog):
 - **General**: **Appearance** (five themes; light or dark follows your computer), **Audio** (devices, engine,
   noise, volume), **start with the computer**, and **updates**.
 
-When a new version is available a banner says so; it installs only when you click "Restart to update", and
+By default you only get finished releases. To try early versions, turn on **Settings → General → Include dev builds**; they may be rough. When a new version is available a banner says so; it installs only when you click "Restart to update", and
 never in the middle of a game on its own.
 
 ## 11. For the DM

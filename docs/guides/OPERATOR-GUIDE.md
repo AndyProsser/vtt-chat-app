@@ -303,7 +303,7 @@ backup first** and do not roll the code back to an older version afterwards. Nat
 `sudo infra/install.sh --domain …` again (it is safe to re-run).
 
 **Updating players' apps:** build signed installers, then `vtt-admin updates publish <folder> --version
-X.Y.Z --base-url https://your-domain/updates --notes "…"`. Players see a banner ("Version X.Y.Z is
+X.Y.Z --base-url https://your-domain/updates --notes "…"`. A version like `0.4.0-dev.2` is a dev build: only players who turned on "Include dev builds" are offered it, and a plain `0.4.0` goes to everyone ([RELEASING.md](RELEASING.md)). Players see a banner ("Version X.Y.Z is
 ready") and update when they click; the app never restarts by itself mid-game. Keep the signing key
 (`~/.tauri/vtt-chat-updater.key`) safe and backed up: if it is lost, installed apps can never update again
 ([CLIENT-UPDATES.md](../architecture/CLIENT-UPDATES.md)).

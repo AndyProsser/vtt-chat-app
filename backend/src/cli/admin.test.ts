@@ -451,6 +451,21 @@ describe('updates', () => {
     );
   });
 
+  it('sends a dev build to the dev channel and shows both channels in status', async () => {
+    updatesDir = mkdtempSync(path.join(tmpdir(), 'upd-'));
+    await run(`updates publish ${signedRelease()} --version 0.3.0 --base-url https://h/updates`);
+    expect(
+      await run(
+        `updates publish ${signedRelease()} --version 0.4.0-dev.1 --base-url https://h/updates`,
+      ),
+    ).toBe(0);
+    expect(out.join('\n')).toContain('dev build');
+    out.length = 0;
+    await run('updates status');
+    expect(out.join('\n')).toMatch(/releases: offering 0\.3\.0/);
+    expect(out.join('\n')).toMatch(/dev builds: offering 0\.4\.0-dev\.1/);
+  });
+
   it('explains what is missing instead of guessing', async () => {
     expect(await run('updates publish somewhere --version 1 --base-url https://h')).toBe(1);
     expect(err.join('\n')).toContain('UPDATES_DIR');
