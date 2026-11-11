@@ -59,6 +59,11 @@ EOF
 
 command -v desktop-file-validate >/dev/null && desktop-file-validate "$entry"
 command -v update-desktop-database >/dev/null && update-desktop-database "$data/applications" || true
+# Refreshing the icon cache made the icon appear at once on GNOME (Ubuntu 24.04) without logging out. It is
+# harmless if the folder has no cache yet.
+if command -v gtk-update-icon-cache >/dev/null && [ -d "$data/icons/hicolor" ]; then
+  gtk-update-icon-cache -f -t "$data/icons/hicolor" >/dev/null 2>&1 || true
+fi
 
 echo "Done. VTT Chat is installed at $target"
-echo "Log out and back in once so the menu and dock pick up the new entry, then open VTT Chat from the menu."
+echo "Open VTT Chat from your application menu. If the icon looks generic, log out and back in once."

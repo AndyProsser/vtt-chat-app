@@ -68,7 +68,8 @@ Download the AppImage (it lands in `~/Downloads`), then run:
 curl -fsSL https://raw.githubusercontent.com/AndyProsser/vtt-chat-app/main/tauri-client/scripts/install-appimage.sh | bash
 ```
 
-Log out and back in once, then open **VTT Chat** from the menu.
+Then open **VTT Chat** from your application menu. If the icon looks generic, run the icon-cache command under
+"No icon, or a generic one?" below, or log out and back in once.
 
 > **"curl: command not found"?** Minimal installs of Ubuntu and Debian do not include `curl`. Install it with
 > `sudo apt install curl` (Fedora: `sudo dnf install curl`), or use `wget`, which is often already there:
@@ -95,9 +96,10 @@ ls ~/.local/share/applications | grep -i vtt
 ```
 
 `vtt-chat-app.desktop` is the entry the script made. `vtt-chat-app-handler.desktop` is the app's own hidden link
-handler; leave it. If an icon still looks generic after that, the desktop is showing an old cached picture. Run
-`gtk-update-icon-cache -f -t ~/.local/share/icons/hicolor` (ignore an error if that folder does not exist), then
-log out and back in. A running GNOME session on Wayland cannot reload its icons any other way.
+handler; leave it. If the icon looks generic, the desktop is showing an old cached picture. Run
+`gtk-update-icon-cache -f -t ~/.local/share/icons/hicolor` (ignore an error if that folder does not exist). On
+Ubuntu 24.04 that was enough to show the icon straight away; the install script now runs it for you. If the icon is
+still generic, log out and back in.
 
 ### Linux: I cannot see the tray icon
 
