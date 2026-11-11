@@ -9,7 +9,7 @@ pub const SPEAKERS_STATE_EVENT: &str = "livekit:speakers";
 /// The wire-protocol version this app speaks. Mirrors `PROTOCOL_VERSION` in `shared/src/consts/index.ts`
 /// (a test below fails if they differ). Bump both in the same change that alters a REST or WebSocket contract;
 /// that is also a MINOR version bump (docs/architecture/VERSIONING-AND-DEPLOYMENT.md).
-pub const PROTOCOL_VERSION: u32 = 1;
+pub const PROTOCOL_VERSION: u32 = 2;
 /// Sent on every request to the server, which answers `426 update_required` if it speaks another version.
 pub const PROTOCOL_HEADER: &str = "x-vtt-protocol";
 
