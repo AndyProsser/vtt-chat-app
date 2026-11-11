@@ -513,6 +513,21 @@ body,
     transform: none;
   }
 }
+/* A page header: the title on the left, icon actions at the top right. */
+.vtt-page-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.vtt-page-head .vtt-section-head {
+  margin-bottom: 0;
+}
+.vtt-page-head-actions {
+  display: flex;
+  gap: 6px;
+  flex: none;
+}
 /* Settings sections: heading + muted description, then a rounded card of rows split by hairlines. */
 .vtt-settings-section {
   margin-top: 22px;

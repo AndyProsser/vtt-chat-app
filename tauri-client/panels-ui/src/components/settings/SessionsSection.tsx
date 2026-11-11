@@ -1,5 +1,5 @@
 import { TextField } from '@radix-ui/themes';
-import { Check, History, Plus, X } from 'lucide-react';
+import { CalendarPlus, Check, History, X } from 'lucide-react';
 import { useState } from 'react';
 
 import { useAccount } from '../../hooks/useAccount.js';
@@ -17,6 +17,7 @@ import { isDm } from '../../lib/tableModel.js';
 import { useTableStore } from '../../lib/tableStore.js';
 import { accountErrorMessage, campaignApi } from '../../lib/tauriBridge.js';
 import type { SessionView } from '../../types/index.js';
+import { SectionHeading } from './SectionHeading.js';
 import { SessionCard, durationLabel } from './SessionCard.js';
 import { Dropdown } from '../Dropdown.js';
 import { DatePicker } from '../DatePicker.js';
@@ -62,14 +63,29 @@ export function SessionsSection() {
           {error ?? actionError}
         </div>
       )}
-      <div>
-        <ToolButton
-          label={showPast ? 'Hide previous sessions' : 'Show previous sessions'}
-          pressed={showPast}
-          onClick={() => setShowPast((v) => !v)}
-        >
-          <History size={14} />
-        </ToolButton>
+      <div className="vtt-page-head">
+        <SectionHeading
+          title="Sessions"
+          hint={
+            showPast
+              ? 'Previous sessions.'
+              : 'Upcoming sessions. Tap to say whether you can make it.'
+          }
+        />
+        <div className="vtt-page-head-actions">
+          <ToolButton
+            label={showPast ? 'Hide previous sessions' : 'Show previous sessions'}
+            pressed={showPast}
+            onClick={() => setShowPast((v) => !v)}
+          >
+            <History size={16} />
+          </ToolButton>
+          {dm && !adding && (
+            <ToolButton label="Schedule a session" onClick={() => setAdding(true)}>
+              <CalendarPlus size={16} />
+            </ToolButton>
+          )}
+        </div>
       </div>
       {data && upcoming.length === 0 && <span className="vtt-muted">No session is scheduled.</span>}
       {upcoming.map((v) => (
@@ -84,13 +100,6 @@ export function SessionsSection() {
           onDelete={() => void run(() => campaignApi('DELETE', `sessions/${v.session.id}`))}
         />
       ))}
-      {dm && !adding && (
-        <div>
-          <ToolButton label="Schedule a session" onClick={() => setAdding(true)} text="Schedule">
-            <Plus size={14} />
-          </ToolButton>
-        </div>
-      )}
       {dm && adding && (
         <form
           className="vtt-session"
