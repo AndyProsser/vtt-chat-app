@@ -36,7 +36,7 @@ button if you see it.
 The app lives in your **system tray** (the little icons by your clock). Click its icon to open the window; the
 icon shows whether you are connected and whether the table is being recorded. On some Linux desktops the
 tray needs an extension (GNOME: "AppIndicator"); without it the app still works, you just open it from your
-applications menu.
+applications menu. [Fixing a missing tray icon](INSTALLING-THE-APP.md#linux-i-cannot-see-the-tray-icon).
 
 ## 2. Your first minutes
 
@@ -226,15 +226,16 @@ never in the middle of a game on its own.
 
 ## 12. When something is wrong
 
-| Problem                                    | Try                                                                                                           |
-| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
-| I cannot hear anyone / they cannot hear me | Check your status is **Online** and you are not muted; choose the right devices in Settings → General → Audio |
-| There is an echo                           | Wear headphones; turn on the new audio engine                                                                 |
-| Typing or fan noise is heard               | Settings → General → Audio → Background noise (Standard or Strong)                                            |
-| I cannot connect at all                    | Check the server address; ask your operator whether the server is up (`/status` page)                         |
-| Voice works for others but not me          | Your network may block voice; try another network or a phone hotspot                                          |
-| I forgot my password                       | Ask the server's operator for a one-time code                                                                 |
-| The window is blank for a second           | Windows open with a "Loading…" screen and fill in; if it never does, close and reopen it                      |
-| A picture or map is too small to read      | Click its card, then use zoom                                                                                 |
+| Problem                                    | Try                                                                                                             |
+| ------------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
+| I cannot hear anyone / they cannot hear me | Check your status is **Online** and you are not muted; choose the right devices in Settings → General → Audio   |
+| There is an echo                           | Wear headphones; turn on the new audio engine                                                                   |
+| Typing or fan noise is heard               | Settings → General → Audio → Background noise (Standard or Strong)                                              |
+| I cannot connect at all                    | Check the server address; ask your operator whether the server is up (`/status` page)                           |
+| Voice works for others but not me          | Your network may block voice; try another network or a phone hotspot                                            |
+| I cannot see the tray icon (Linux)         | Install and turn on the AppIndicator extension: [steps](INSTALLING-THE-APP.md#linux-i-cannot-see-the-tray-icon) |
+| I forgot my password                       | Ask the server's operator for a one-time code                                                                   |
+| The window is blank for a second           | Windows open with a "Loading…" screen and fill in; if it never does, close and reopen it                        |
+| A picture or map is too small to read      | Click its card, then use zoom                                                                                   |
 
 If something looks broken, tell your DM or operator what you were doing and what you saw.

@@ -52,6 +52,54 @@ The app is called **VTT Chat** and has its icon in the application menu, the tas
   `gnome-shell-extension-appindicator` and enable it). Without it the app still runs and opens from the menu.
 - On Wayland, global hotkeys may not work; the app tells you when that is the case.
 
+### Linux: I cannot see the tray icon
+
+The app still works without it: open **VTT Chat** from your application menu. The tray icon is only a shortcut
+that shows whether you are live, muted or being recorded, so it is worth fixing.
+
+**Why it happens.** GNOME removed its built-in tray. A small extension, **AppIndicator and
+KStatusNotifierItem Support**, brings tray icons back to the top bar. Ubuntu includes it and turns it on. Plain
+GNOME, Fedora, Debian and minimal installs often do not. KDE Plasma and most other desktops show tray icons
+without any extension.
+
+**Fix it (GNOME, including Ubuntu):**
+
+1. Check whether it is installed and on:
+
+   ```bash
+   gnome-extensions list | grep -i appindicator
+   ```
+
+2. If nothing is printed, install it, then **log out and back in** (GNOME only loads new extensions at login):
+
+   | Your system   | Install with                                             |
+   | ------------- | -------------------------------------------------------- |
+   | Ubuntu        | `sudo apt install gnome-shell-ubuntu-extensions`         |
+   | Debian        | `sudo apt install gnome-shell-extension-appindicator`    |
+   | Fedora        | `sudo dnf install gnome-shell-extension-appindicator`    |
+   | Arch, Manjaro | `sudo pacman -S gnome-shell-extension-appindicator`      |
+   | openSUSE      | `sudo zypper install gnome-shell-extension-appindicator` |
+
+3. Turn it on. Either open the **Extensions** app and switch on "AppIndicator and KStatusNotifierItem
+   Support", or run one of these (the name differs by distribution; use whichever `list` showed):
+
+   ```bash
+   gnome-extensions enable ubuntu-appindicators@ubuntu.com        # Ubuntu
+   gnome-extensions enable appindicatorsupport@rgcjonas.gmail.com # Fedora, Debian, others
+   ```
+
+4. Quit VTT Chat (if it is running, use the tray menu or `pkill vtt-chat-app`) and start it again.
+
+**Still nothing?**
+
+- **AppImage only:** the tray also needs the AppIndicator library. Install `libayatana-appindicator3-1`
+  (Ubuntu, Debian) or `libappindicator-gtk3` (Fedora). The `.deb` and `.rpm` bring it along.
+- **KDE Plasma:** open **System Tray Settings** and make sure "vtt-chat" is set to **Always shown** (it can be
+  hidden in the overflow arrow).
+- **In a virtual machine** the top bar can be slow to show new icons. Log out and in, then try again.
+- Still stuck? Tell your operator your distribution and desktop (`echo $XDG_CURRENT_DESKTOP`) and whether you
+  used the AppImage, `.deb` or `.rpm`.
+
 ## Updates
 
 After the first install the app updates itself (a banner offers "Restart to update"). Updates are signed with
