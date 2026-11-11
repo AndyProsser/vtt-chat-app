@@ -6,7 +6,14 @@ import { useAudioEngine } from '../hooks/useAudioEngine.js';
 import { playerVolumeSet } from '../lib/tauriBridge.js';
 import { useIsSpeaking } from '../hooks/useIsSpeaking.js';
 import { avatarColor } from '../lib/avatarColor.js';
-import { initials, memberAvatar, memberCard, railState } from '../lib/rail.js';
+import {
+  initials,
+  memberAvatar,
+  memberCard,
+  railAvatarLabel,
+  railState,
+  RAIL_ICON_PX,
+} from '../lib/rail.js';
 import type { Member } from '../types/index.js';
 import { Portrait } from './Portrait.js';
 
@@ -39,11 +46,20 @@ export const RailAvatar = memo(function RailAvatar({
   return (
     <HoverCard.Root openDelay={250}>
       <HoverCard.Trigger>
-        <span className={classes} aria-label={card.title} role="img">
-          <Portrait avatarUrl={memberAvatar(member)} fallback={initials(card.title)} />
+        <span className={classes} aria-label={railAvatarLabel(member)} role="img">
+          <Portrait
+            avatarUrl={memberAvatar(member)}
+            fallback={initials(card.title)}
+            size={RAIL_ICON_PX}
+          />
+          {member.role === 'dm' && (
+            <span className="vtt-av-dmtag" aria-hidden>
+              DM
+            </span>
+          )}
           {muted && (
             <span className="vtt-av-mute" role="img" aria-label="Muted" title="Muted">
-              <MicOff size={11} aria-hidden />
+              <MicOff size={12} aria-hidden />
             </span>
           )}
           {partyId && (

@@ -5,6 +5,9 @@ import {
   initials,
   memberAvatar,
   memberCard,
+  RAIL_AVATAR_PX,
+  RAIL_ICON_PX,
+  railAvatarLabel,
   railOrder,
   railState,
   speakingMembers,
@@ -123,5 +126,16 @@ describe('railState', () => {
     expect(railState({ online: true, inVoice: true, status: 'away' })).toBe('away');
     expect(railState({ online: true, inVoice: false, status: 'online' })).toBe('online');
     expect(railState({ online: true, inVoice: true, status: 'online' })).toBe('voice');
+  });
+});
+
+describe('rail avatar', () => {
+  it('names the DM in the accessible label, not players', () => {
+    expect(railAvatarLabel(m('a', { role: 'dm', displayName: 'Ann' }))).toBe('Ann, DM');
+    expect(railAvatarLabel(m('b', { displayName: 'Bo' }))).toBe('Bo');
+  });
+  it('keeps the emblem about half the avatar', () => {
+    expect(RAIL_AVATAR_PX).toBeGreaterThanOrEqual(44);
+    expect(RAIL_ICON_PX).toBe(Math.round(RAIL_AVATAR_PX / 2));
   });
 });

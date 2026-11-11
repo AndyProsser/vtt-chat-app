@@ -93,7 +93,10 @@ body,
   flex: none;
 }
 .vtt-rail {
-  width: 52px;
+  /* Avatar diameter (RAIL_AVATAR_PX in lib/rail.ts); the rail is the avatar plus room for the DM tag,
+     the status badges and the speaking glow. */
+  --vtt-rail-av: 46px;
+  width: calc(var(--vtt-rail-av) + 18px);
   flex: none;
   overflow-y: auto;
   overflow-x: hidden;
@@ -113,7 +116,7 @@ body,
   position: relative;
 }
 .vtt-rail-sep {
-  width: 30px;
+  width: calc(var(--vtt-rail-av) - 6px);
   border: 0;
   border-top: 2px solid var(--vtt-edge);
   margin: 0;
@@ -123,19 +126,37 @@ body,
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
+  width: var(--vtt-rail-av, 34px);
+  height: var(--vtt-rail-av, 34px);
   border-radius: var(--vtt-avatar-radius);
   background: var(--vtt-avatar);
   color: #fff;
   border: 2px solid var(--vtt-edge);
   font-family: var(--vtt-font-head);
-  font-size: 12px;
+  font-size: calc(var(--vtt-rail-av, 34px) * 0.36);
   user-select: none;
 }
 .vtt-av-dm {
   border-color: var(--vtt-gold);
+}
+/* Small DM avatars (chat lines) have no tag, so they keep the soft glow. */
+.vtt-av-sm.vtt-av-dm {
   box-shadow: 0 0 6px color-mix(in srgb, var(--vtt-gold) 60%, transparent);
+}
+/* The DM's tag, as on the web chat's rail: a small gold pill over the avatar's top-left corner. */
+.vtt-av-dmtag {
+  position: absolute;
+  top: -5px;
+  left: -6px;
+  padding: 0 4px;
+  border-radius: 6px;
+  background: var(--vtt-gold);
+  color: var(--vtt-bar);
+  font-family: var(--vtt-font-body, inherit);
+  font-size: 9px;
+  line-height: 14px;
+  font-weight: 700;
+  pointer-events: none;
 }
 .vtt-av-speaking {
   border-color: var(--vtt-glow);
@@ -149,10 +170,10 @@ body,
 }
 .vtt-av-badge {
   position: absolute;
-  right: -3px;
-  bottom: -3px;
-  width: 12px;
-  height: 12px;
+  right: -2px;
+  bottom: -2px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
   background: #e0a12b;
   border: 2px solid var(--vtt-rail);
@@ -1187,8 +1208,8 @@ body,
   outline: 1px dashed var(--vtt-gold);
 }
 .vtt-rail-empty {
-  width: 30px;
-  height: 30px;
+  width: calc(var(--vtt-rail-av) - 8px);
+  height: calc(var(--vtt-rail-av) - 8px);
   border: 1px dashed var(--vtt-edge);
   border-radius: 50%;
 }
@@ -1199,8 +1220,8 @@ body,
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
+  width: calc(var(--vtt-rail-av) - 6px);
+  height: calc(var(--vtt-rail-av) - 6px);
   border: 1px dashed var(--vtt-gold);
   border-radius: 50%;
   color: var(--vtt-gold);
@@ -1550,8 +1571,8 @@ body,
   position: absolute;
   right: -4px;
   bottom: -4px;
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   border: 2px solid var(--vtt-rail);
   background: #e53935;

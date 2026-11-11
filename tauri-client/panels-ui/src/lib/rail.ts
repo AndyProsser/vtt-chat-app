@@ -61,3 +61,14 @@ export function railState(m: Pick<Member, 'online' | 'inVoice' | 'status'>): Rai
   if (m.status === 'away') return 'away';
   return m.inVoice ? 'voice' : 'online';
 }
+
+/** Rail avatar diameter in px; mirrored by `--vtt-rail-av` in main.css (the web chat's rail is 40). */
+export const RAIL_AVATAR_PX = 46;
+/** Emblem size inside a rail avatar, about half its diameter. */
+export const RAIL_ICON_PX = Math.round(RAIL_AVATAR_PX / 2);
+
+/** The rail avatar's accessible name: the DM's tag is visual only, so the name carries "DM". */
+export function railAvatarLabel(m: Pick<Member, 'role' | 'displayName' | 'character'>): string {
+  const title = m.character?.name ?? m.displayName;
+  return m.role === 'dm' ? `${title}, DM` : title;
+}
