@@ -52,8 +52,13 @@ jobs:
           CHANNEL: ${{ steps.channel.outputs.channel }}
         run: |
           gh release view "$TAG" >/dev/null 2>&1 && exit 0
-          if [ "$CHANNEL" = release ]; then kind=--draft; else kind=--prerelease; fi
-          gh release create "$TAG" "$kind" --verify-tag --title "$TAG" --generate-notes
+          if [ "$CHANNEL" = release ]; then
+            # The notes are the CHANGELOG.md section for this version; no section, no release.
+            tauri-client/scripts/changelog-notes.sh "${TAG#v}" > "$RUNNER_TEMP/notes.md"
+            gh release create "$TAG" --draft --verify-tag --title "$TAG" --notes-file "$RUNNER_TEMP/notes.md"
+          else
+            gh release create "$TAG" --prerelease --verify-tag --title "$TAG" --generate-notes
+          fi
 
   build:
     name: Build (${{ matrix.name }})

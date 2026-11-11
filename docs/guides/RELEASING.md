@@ -57,13 +57,18 @@ flowchart LR
 
 ## Cutting a release
 
+0. **Write the changelog.** In [CHANGELOG.md](../../CHANGELOG.md) turn what is under `## [Unreleased]` into
+   `## [X.Y.Z] - YYYY-MM-DD` and make it complete: Added, Changed, Fixed, Security and Known limits, written for
+   players and operators. Check `git log vLAST..HEAD` so nothing user-visible is missing. The section becomes the
+   release notes, and the workflow refuses a release without one (`tauri-client/scripts/changelog-notes.sh X.Y.Z`
+   prints it so you can read it first).
 1. Set the same version in `tauri-client/src-tauri/tauri.conf.json` and `tauri-client/Cargo.toml`
    (`[workspace.package]`), run `cargo update --workspace` in `tauri-client/`, commit.
    `tauri-client/scripts/release-version.sh vX.Y.Z` checks all three agree; the workflow runs it first.
 2. `git tag vX.Y.Z && git push origin vX.Y.Z`. (To rebuild an existing tag: Actions → Release → Run workflow.)
 3. Wait for the three builds. They attach `.AppImage`, `.deb`, `.rpm`, `-setup.exe`, `.msi`, `.dmg`,
    `.app.tar.gz` and a `.sig` beside each updater artifact to a **draft** release. Open it, check the
-   notes and the file list, and publish it (tick "Set as the latest release").
+   notes and the file list, and publish it (tick "Set as the latest release", or `gh release edit vX.Y.Z --draft=false --latest`).
 4. On each server: `infra/fetch-release.sh vX.Y.Z ./release` then
    `vtt-admin updates publish ./release --version X.Y.Z --base-url https://play.example.com/updates --notes "…"`.
 5. For the join page's download buttons, point `CLIENT_URL_WINDOWS`, `CLIENT_URL_MACOS`, `CLIENT_URL_LINUX`

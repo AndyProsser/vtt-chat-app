@@ -113,6 +113,31 @@ Findings from the previous design that still hold, because they are about the OS
 
 - **Linux, NVIDIA GPU, Wayland: the app dies on the first window** with `Gdk-Message: Error 71 (Protocol error) dispatching to Wayland display`. This is WebKitGTK's dmabuf renderer. The client sets `WEBKIT_DISABLE_DMABUF_RENDERER=1` itself at startup (`src-tauri/src/platform.rs`) unless you already set it. If a window still crashes on your machine, try `GDK_BACKEND=x11`.
 
+## Releasing
+
+Two kinds of build, told apart by the tag name: a **release** (`v0.4.0`, built into a draft you review and
+publish, offered to every player) and a **dev build** (`v0.4.0-dev.2`, `-rc.1`; published at once as a GitHub
+pre-release, offered only to players who opted in). The full steps are in
+[docs/guides/RELEASING.md](docs/guides/RELEASING.md); the short version:
+
+- **Dev build:** `git tag v0.4.0-dev.1 && git push origin v0.4.0-dev.1`. No commit needed; the version comes from the tag.
+- **Release:**
+  1. Write the release's section in [CHANGELOG.md](CHANGELOG.md): move what is under `## [Unreleased]` into a new
+     `## [X.Y.Z] - YYYY-MM-DD` section, and fill it out (Added, Changed, Fixed, Security, Known limits). It becomes the
+     release notes, so write it for players and operators, not as a commit list.
+  2. Set `X.Y.Z` in `tauri-client/src-tauri/tauri.conf.json` and `tauri-client/Cargo.toml` (`[workspace.package]`),
+     run `cargo update --workspace` in `tauri-client/`.
+  3. `tauri-client/scripts/release-version.sh vX.Y.Z` and `tauri-client/scripts/changelog-notes.sh X.Y.Z` must both pass.
+  4. Commit, push, then `git tag vX.Y.Z && git push origin vX.Y.Z`.
+  5. When the three builds finish, review the draft release on GitHub (notes and file list), then publish it
+     (`gh release edit vX.Y.Z --draft=false --latest`).
+  6. Roll it out: `infra/fetch-release.sh vX.Y.Z ./release`, then `vtt-admin updates publish` on each server.
+- The workflow refuses a release tag whose version files disagree with it, or that has no CHANGELOG section.
+  CI also checks on every push that `tauri.conf.json` and `Cargo.toml` agree.
+
+Keep adding to `## [Unreleased]` in CHANGELOG.md as you merge user-visible changes, so the release section is
+mostly written before release day.
+
 ## Code Style
 
 - TypeScript: ESLint + Prettier + EditorConfig (`npm run lint`, `npm run format` at the root). LF line endings. `npm test` runs Vitest for any workspace that has tests.

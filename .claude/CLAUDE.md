@@ -530,7 +530,9 @@ doc in the same change as the code it describes — don't batch documentation fo
 
 - `README.md` — project overview, quick start, links
 - `CONTRIBUTING.md` — how to contribute, PR process, code style
-- `DEVELOPING.md` — local dev environment setup
+- `DEVELOPING.md` — local dev environment setup, and the short release procedure
+- `CHANGELOG.md` — one section per release (Keep a Changelog). **Add user-visible changes under `## [Unreleased]` in the same change that makes them.**
+- `docs/guides/RELEASING.md` — the release cycle in full: channels, tags, signing key, what the workflow does
 - `ROADMAP.md` — staged build order, dependencies, and definition-of-done per stage
 - `docs/BUILD-STATUS.md` — what is built vs verified, what needs the dev box, unconfirmed assumptions (update with the work)
 - `docs/architecture/OVERVIEW.md` — system diagram + module responsibilities
@@ -544,6 +546,31 @@ doc in the same change as the code it describes — don't batch documentation fo
 
 Keep docs lean and current over exhaustive. A short doc that matches reality beats a long one that
 has drifted.
+
+## **17a. Releasing**
+
+Full procedure: [`docs/guides/RELEASING.md`](../docs/guides/RELEASING.md); short version in `DEVELOPING.md`.
+Rules Claude must follow:
+
+- **The tag name decides the channel.** `vX.Y.Z` is a **release** (draft GitHub release, offered to every
+  player); `vX.Y.Z-dev.N` / `-rc.N` is a **dev build** (public pre-release, offered only to players who turned on
+  "Include dev builds"). Never tag a release without being asked; a dev tag is also outward-facing, so say so
+  when pushing one.
+- **Every release needs a full CHANGELOG.md section** before the tag: `## [X.Y.Z] - YYYY-MM-DD` with Added /
+  Changed / Fixed / Security / Known limits as they apply, written for players and operators (what changes for
+  them, and any limit they will hit), not a commit list. Build it from `## [Unreleased]` and the git log since the
+  last release tag, and check that nothing user-visible in `git log vLAST..HEAD` is missing. The workflow uses
+  this section as the release notes and fails without it.
+- **Version files:** a release's version is committed in `tauri-client/src-tauri/tauri.conf.json` and
+  `tauri-client/Cargo.toml` (+ `Cargo.lock`) and must equal the tag (`release-version.sh`). Dev builds are
+  stamped from the tag and need no commit.
+- **Publishing the draft release is a separate, explicit step** (`gh release edit vX.Y.Z --draft=false --latest`):
+  do it only when Andy has said to, after checking the draft's notes and file list. Rolling out to servers
+  (`vtt-admin updates publish`) is the operator's step, not Claude's.
+- **Never print or commit the updater signing key.** It lives in the `TAURI_SIGNING_PRIVATE_KEY` repository secret
+  and the owner's password manager.
+- Windows and macOS builds are unsigned by choice; the first-run workarounds live in
+  `docs/guides/INSTALLING-THE-APP.md` and must stay current.
 
 ## **18. Strategic Goal**
 

@@ -12,6 +12,9 @@ the link your DM or server operator gave you.
 3. If your browser says the file is "not commonly downloaded", keep it: in Edge choose **Keep**, then
    **Keep anyway**; in Chrome choose **Keep**.
 
+4. The installer asks whether to install for **just you** (no administrator rights needed) or for **all users**
+   of the PC (asks for administrator permission). If you are not sure, choose just you. The `.msi` always installs for all users.
+
 The warning goes away on its own as more people install the same file.
 
 ## macOS (Apple silicon: M1 and later)

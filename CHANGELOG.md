@@ -1,0 +1,68 @@
+# Changelog
+
+All notable changes to the desktop app and the server, one section per **release**. Dev builds
+(`-dev.N`, `-rc.N`) are not listed here; they are collected into the release they lead up to. The format
+follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow [semver](https://semver.org/).
+
+**Every release must have its section here before it is tagged.** The release workflow uses that section as
+the GitHub release notes and refuses to build a release without one. How to write it:
+[docs/guides/RELEASING.md](docs/guides/RELEASING.md).
+
+## [Unreleased]
+
+## [0.3.1] - 2026-11-11
+
+The first release. (0.3.0 was built but never published; everything in it is here.)
+
+### Added
+
+- **Voice and chat for a table.** Open-mic group voice from a system-tray app (Rust audio engine: echo
+  cancellation, RNNoise background-noise filter with four levels, mains-hum notch filters), DM and player
+  whispers, party splits, and a DM soundboard with scenes, loops and a character voice effect.
+- **Session records.** Server-side recording per speaker with a spoken consent cue, then transcription,
+  summaries (session, chapter, character, DM-only) and search that also finds typed chat, never whispers.
+  Typed public chat during a recording goes into its transcript. A grace period keeps a recording going when
+  the DM drops out.
+- **Table content.** Handouts (notes, up to twelve pictures with flip and zoom, PDFs, captions) that open in a
+  viewer from chat; loot cards, a party stash, SRD item search and CR-based loot rolls; session scheduling with
+  RSVP and reminders; notifications with per-kind switches and quiet hours.
+- **Accounts and campaigns.** Local accounts with a first-account Admin, invites by link, code or QR, per-campaign
+  DM and player roles with a one-action DM swap, characters with portraits, and optional D&D Beyond
+  character sync that shows ability scores, max HP, AC and passive perception.
+- **Phone app** at `/app`: chat and whispers, sessions with RSVP, handouts with a flip-and-zoom viewer, history
+  with search, and an install-to-home-screen manifest.
+- **Retention and cleanup.** Raw audio can be deleted after a set number of days or on demand. The DM can
+  delete a session's audio from the History window once the summary is good, and the server warns the DM
+  3 days before it clears the oldest audio itself when free disk space is low (`AUDIO_DISK_PURGE=0` turns that off).
+- **Operations.** `vtt-admin` for system tasks (first account, storage, backups, recordings, updates), backup
+  and restore scripts, a public status page with disk use, Docker Compose and native installs.
+- **Updates and releases.** The app updates from the player's own server, only when they click. Dev builds are
+  a separate channel: **Settings → General → Include dev builds** (off by default).
+- **Windows installer:** choose to install for **just you** or for **all users**.
+- A styled dropdown, date picker, text fields and checkbox everywhere; no operating-system form controls.
+- `.AppImage`, `.deb` and `.rpm` for Linux, an installer and an `.msi` for Windows, a `.dmg` for Apple-silicon Macs.
+
+### Changed
+
+- The Settings **Profile** tab leads with your account; status and idle settings follow in a tidier card.
+- Dropdown lists open under their control and never run off the window.
+
+### Fixed
+
+- **Security:** a player who leaves a campaign is now cut off from its live chat and removed from its voice room
+  at once. Every campaign route is covered by an access test.
+- **Recording:** a server restart in the middle of a recording no longer leaves it recording invisibly and loses
+  the audio; on start-up the leftover recordings are stopped, kept and processed.
+- **Windows:** a black command window no longer opens beside the app.
+- **D&D Beyond numbers:** hit points that grow per level and armor class that adds an ability (Draconic
+  Resilience, Barbarian and Monk Unarmored Defense) are now counted.
+- The History transcript no longer breaks on the speaker's name.
+
+### Known limits
+
+- Windows and macOS builds are not signed with a paid certificate, so first launch shows a warning
+  ([how to get past it](docs/guides/INSTALLING-THE-APP.md)). Intel Macs are not built.
+- Mage Armor and other spell effects are not counted in the D&D Beyond armor class.
+
+[Unreleased]: https://github.com/AndyProsser/vtt-chat-app/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/AndyProsser/vtt-chat-app/releases/tag/v0.3.1
