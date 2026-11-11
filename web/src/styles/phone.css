@@ -9,7 +9,9 @@ body,
   height: 100%;
   overflow: hidden;
 }
-.radix-themes {
+/* Only the ROOT theme is page height: Radix wraps every popup (menus, popovers) in its own `.radix-themes`
+   element, and giving those a full height made them page-sized. */
+.radix-themes[data-is-root-theme='true'] {
   height: 100%;
   min-height: 0;
 }
@@ -17,7 +19,7 @@ body,
   html,
   body,
   #root,
-  .radix-themes {
+  .radix-themes[data-is-root-theme='true'] {
     height: 100dvh;
   }
 }
