@@ -43,12 +43,7 @@ Pick the one that suits your system. All three are the same app.
 | `.deb`      | Debian, Ubuntu, Mint, Pop!_OS     | `sudo apt install ./VTT.Chat_*.deb`                                                                           |
 | `.rpm`      | Fedora, RHEL, openSUSE            | `sudo dnf install ./VTT.Chat-*.rpm` (`sudo zypper install` on openSUSE)                                       |
 
-**AppImage menu entry and icon.** An AppImage is one file, so the desktop does not know it exists. VTT Chat
-adds its own menu entry and icon (under `~/.local/share`) the first time it runs, so after the first launch it
-appears in your application menu with its icon and the dock shows it too. Keep the file somewhere permanent
-(for example `~/Applications`) before you run it; if you move it, start it once from its new place and the entry
-follows. Versions before 0.3.2 do not do this: use the `.deb`/`.rpm`, or an integrator such as AppImageLauncher
-or Gear Lever, which add the entry when you open the file.
+The AppImage needs a menu entry and icon of its own: see [AppImage: menu entry and icon](#appimage-menu-entry-and-icon).
 
 The `.deb` and `.rpm` do not update themselves; install the newer file when a new version is announced.
 
@@ -58,6 +53,56 @@ The app is called **VTT Chat** and has its icon in the application menu, the tas
 - **GNOME:** the tray icon needs the **AppIndicator** extension (Ubuntu ships it on; on Fedora install
   `gnome-shell-extension-appindicator` and enable it). Without it the app still runs and opens from the menu.
 - On Wayland, global hotkeys may not work; the app tells you when that is the case.
+
+### AppImage: menu entry and icon
+
+An AppImage is a single file, so the desktop does not know it exists: with nothing else, GNOME and KDE show a
+generic icon in the dock and the app is missing from the application menu. There are three ways to fix that.
+
+**1. Do nothing (version 0.3.2 and later).** The first time it runs, VTT Chat adds its own menu entry and icon
+under `~/.local/share` (nothing system-wide). Keep the file somewhere permanent first, for example
+`~/Applications`. If you move it, start it once from its new place and the entry follows. If one of the helper
+apps below has already added it, VTT Chat leaves theirs alone, so you never get two entries.
+
+**2. A helper app (works for every AppImage, not just this one).** Either one adds the entry and icon when you
+open the file.
+
+|                  | AppImageLauncher                                                                                                                                                                 | Gear Lever                                                                                     |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| What it is       | A small system service. Opening any AppImage asks "Integrate and run" or "Run once"; integrating moves the file to `~/Applications` and adds the entry and icon.                 | A window that lists your AppImages and manages each one (integrate, update, remove).           |
+| Install          | Download the `.deb` (Ubuntu, Debian) or `.rpm` (Fedora) from the [releases page](https://github.com/TheAssassin/AppImageLauncher/releases) and install it as in the table above. | `flatpak install flathub it.mijorus.gearlever`, or search "Gear Lever" in the App Center.      |
+| After installing | Double-click the VTT Chat AppImage and choose **Integrate and run**.                                                                                                             | Open Gear Lever, drop the AppImage on it, and click **Unlock**, then **Move to the app menu**. |
+| Good to know     | Its newest builds are labelled beta (3.0), but they are what the project publishes for current Ubuntu and Fedora. Log out and in once after installing.                          | Comes from Flathub, so it updates with your system and needs no `sudo`.                        |
+
+**3. By hand.** For when you would rather not install anything:
+
+```bash
+mkdir -p ~/Applications ~/.local/share/applications ~/.local/share/icons/hicolor/256x256/apps
+mv ~/Downloads/VTT.Chat_*.AppImage ~/Applications/VTT.Chat.AppImage
+chmod +x ~/Applications/VTT.Chat.AppImage
+
+# pull the icon out of the AppImage
+cd /tmp && ~/Applications/VTT.Chat.AppImage --appimage-extract vtt-chat-app.png
+mv /tmp/squashfs-root/vtt-chat-app.png ~/.local/share/icons/hicolor/256x256/apps/ && rm -r /tmp/squashfs-root
+
+# the menu entry
+cat > ~/.local/share/applications/vtt-chat-app.desktop <<EOF
+[Desktop Entry]
+Type=Application
+Name=VTT Chat
+Comment=Voice, chat and session records for tabletop groups
+Exec=$HOME/Applications/VTT.Chat.AppImage %u
+Icon=vtt-chat-app
+Terminal=false
+Categories=Network;Chat;
+StartupWMClass=vtt-chat-app
+EOF
+```
+
+Log out and back in (or restart the shell) so the menu and dock notice. If you move the AppImage later, edit
+the `Exec=` line to match. To undo it, delete `~/.local/share/applications/vtt-chat-app.desktop` and the icon.
+
+Use only one of the three: with a helper app or the manual entry in place, the built-in one (way 1) steps aside.
 
 ### Linux: I cannot see the tray icon
 

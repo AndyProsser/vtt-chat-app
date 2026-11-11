@@ -20,7 +20,8 @@ the GitHub release notes and refuses to build a release without one. How to writ
   `sudo apt remove vtt-chat-app` (or `sudo dnf remove vtt-chat-app`), or the two will fight over the same files.
 - Linux AppImage: the first time it runs, the app adds itself to your application menu and gives itself its icon
   (in your own `~/.local/share`, nothing system-wide), so the dock and menu show the VTT Chat icon. Move the
-  AppImage and it updates the entry the next time it starts.
+  AppImage and it updates the entry the next time it starts. If AppImageLauncher, Gear Lever or similar has
+  already added it, VTT Chat leaves their entry alone. The install guide covers those helper apps and doing it by hand.
 - Linux packages now carry a description, publisher, homepage and license, so software centres show them
   instead of "(none)" and "unknown".
 - Linux: the app is filed under a menu category and ships icons at several sizes; the macOS build now carries a

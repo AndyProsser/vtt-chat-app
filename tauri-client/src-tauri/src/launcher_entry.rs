@@ -38,8 +38,31 @@ pub fn desktop_entry(appimage: &str) -> String {
     )
 }
 
+/// Whether another tool (AppImageLauncher, Gear Lever, appimaged) has already given this AppImage a menu
+/// entry: some other `.desktop` file in the user's applications folder launches it. Adding ours as well
+/// would put the app in the menu twice.
+fn integrated_elsewhere(applications: &Path, appimage: &str) -> bool {
+    let ours = format!("{NAME}.desktop");
+    let Ok(entries) = std::fs::read_dir(applications) else {
+        return false;
+    };
+    entries.flatten().any(|e| {
+        let name = e.file_name().to_string_lossy().into_owned();
+        name.ends_with(".desktop")
+            && name != ours
+            && !name.ends_with("-handler.desktop")
+            && std::fs::read_to_string(e.path()).is_ok_and(|text| {
+                text.lines()
+                    .any(|l| l.starts_with("Exec=") && l.contains(appimage))
+            })
+    })
+}
+
 /// Writes the entry and icon under `data_dir` (`~/.local/share`). Returns whether anything changed.
 pub fn install(data_dir: &Path, appimage: &str, icon_png: &[u8]) -> io::Result<bool> {
+    if integrated_elsewhere(&data_dir.join("applications"), appimage) {
+        return Ok(false);
+    }
     let entry = data_dir
         .join("applications")
         .join(format!("{NAME}.desktop"));
@@ -83,6 +106,23 @@ mod tests {
     #[test]
     fn awkward_characters_in_the_path_are_escaped() {
         assert!(desktop_entry("/a/$b\"c").contains("Exec=\"/a/\\$b\\\"c\" %u"));
+    }
+
+    #[test]
+    fn it_steps_aside_when_another_tool_already_added_the_appimage() {
+        let dir = temp("other");
+        let apps = dir.join("applications");
+        std::fs::create_dir_all(&apps).unwrap();
+        std::fs::write(
+            apps.join("appimagekit_abc123-VTT_Chat.desktop"),
+            "[Desktop Entry]\nName=VTT Chat\nExec=\"/home/me/Applications/VTT.Chat.AppImage\" %u\n",
+        )
+        .unwrap();
+        assert!(!install(&dir, "/home/me/Applications/VTT.Chat.AppImage", b"png").unwrap());
+        assert!(!apps.join("vtt-chat-app.desktop").exists());
+        // a different AppImage (or an unrelated entry) does not count
+        assert!(install(&dir, "/elsewhere/VTT.Chat.AppImage", b"png").unwrap());
+        std::fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
