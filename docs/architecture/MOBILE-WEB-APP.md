@@ -92,3 +92,18 @@ into the app's own session. The Download link appears in the nav only while sign
 
 `/app` uses the same session cookie as the site, with nothing in `localStorage`. The `#connect=` link token is still
 redeemed once and now sets the cookie. If the session ends the app returns to sign-in.
+
+## Chat screen
+
+- **Composer:** there is no recipient picker. Whispers are typed with `/tell`, `/w` or `/dm` (see
+  [CHAT-COMMANDS.md](CHAT-COMMANDS.md)); every line goes through the shared parser.
+- **Who is here:** the Chat tab shows who is at the table: a scrolling avatar strip under the header on a phone, a slim
+  vertical rail beside the chat from 700px up. The data is the WebSocket roster (`snapshot` and `roster.update`), the
+  same as the desktop rail. Avatars show an uploaded portrait or initials, a status dot (online, away, offline or
+  disconnected) and a DM tag. There is no voice or speaking state: voice is desktop-only. Hovering with a mouse, or
+  clicking or tapping, opens a details popout (DM mark, character, race, class and level, account name, status).
+  Escape or an outside press closes it, and only one is open at a time.
+- **Header:** a burger menu and a "Get the app" button, which goes to `/download` on a computer and `/full-app` on a
+  phone or tablet.
+- **Height:** the page never scrolls; the chat scrolls inside it (dynamic viewport height, so a phone's address bar
+  does not push the bottom off screen).

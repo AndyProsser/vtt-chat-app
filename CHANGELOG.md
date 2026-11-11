@@ -12,6 +12,7 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ### Added
 
+- **Who is at the table, in the web chat.** An avatar strip (a rail on wide screens) shows everyone in the campaign with an online, away or offline dot and a DM tag. Hover with a mouse, or click or tap, for their character, race, class and level. The web chat's header now has a burger menu and a "Get the app" button, and the "To:" picker is gone (whisper with `/tell`, `/w` or `/dm`).
 - **Chat commands, with autocomplete, in the desktop app and the web app.** Type `/` for the list. A plain line is in character; `/say` (quoted, serif), `/do` or `/me` (a stage direction) and `/ooc` (small, muted, tagged OOC) set how a line looks; `/tell name` or `/w name` whisper to one person (names complete as you type) and `/dm` whispers to the DM. `/say-elvish`, `/say-dwarvish` and the other D&D languages style the line to suit with a small "in Elvish" caption, and never change the words. `/late`, `/cant` and `/work` post an out-of-character note and set your RSVP for the next session; `/brb`, `/afk` and `/back` post a ready-made note. **Out-of-character lines are never recorded**, and stay out of transcripts, summaries and search. Chat lines carry a kind and an optional language (additive wire fields, so no protocol bump in 0.4).
 - **The app warns when it and the server are on different versions** (MAJOR.MINOR), and shows both versions in Settings, Account. If the app is older it offers Update now; if it is newer it tells the player to ask their DM to update the server. Patch differences never warn.
 - **The web app is the phone app, and the choice after sign-in depends on your device.** Phones and tablets go straight into the web app, already signed in, with no download options. Computers keep the desktop app as the default, with a secondary "Open the web version instead" button that signs you in to the web app without a second login.
@@ -42,6 +43,8 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ### Fixed
 
+- The web chat no longer scrolls 10-20px past the bottom of the page.
+- Home, Download, Status and the web chat share one 640px column.
 - Long install commands on the download page scroll inside their block instead of widening the page, and each has a Copy button.
 - The server's update sync honours `UPDATES_INCLUDE_DEV=true` as well as `1`.
 - The macOS updater archive is named with its architecture, so the server offers an Apple-silicon build only to Apple-silicon Macs (it was listed as Intel).
