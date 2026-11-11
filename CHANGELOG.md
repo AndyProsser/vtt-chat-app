@@ -18,6 +18,9 @@ the GitHub release notes and refuses to build a release without one. How to writ
   panels, so there the window leaves a little more room at the bottom. The first launch of this version forgets
   any remembered size and position once; after that your own changes are remembered again, unless the window
   would no longer fit on the screen.
+  The app also checks again once the window is showing and corrects it if the system moved or resized it, and
+  keeps a short `window-layout.log` in its data folder (the numbers it saw and chose) to help diagnose a window
+  that opens in the wrong place.
 - The app is now called **VTT Chat** everywhere the system shows a name: Windows Task Manager, the Linux
   application menu and the macOS Dock. (It was "VTT Chat App".) Installer files are named `VTT.Chat_…` to match.
   Anyone who already installed 0.3.1 on Windows should uninstall "VTT Chat App" first, so the two do not sit

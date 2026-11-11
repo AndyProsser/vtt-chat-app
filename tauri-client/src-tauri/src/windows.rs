@@ -62,66 +62,150 @@ pub fn open_main(app: &AppHandle) -> Result<(), String> {
     Ok(())
 }
 
-/// Sets the main window's size and position for this screen. The window-state plugin has already put back
-/// where the player left it; that is kept only if it is still on screen and was saved under the current
-/// layout version, otherwise the window gets the default (480 wide, the full usable height less 50 px at
-/// each end, centred across the usable area). See `main_layout`.
-fn place_main(app: &AppHandle, window: &tauri::WebviewWindow) {
-    use crate::main_layout::{default_rect, fits, Rect, LAYOUT_VERSION};
-    let Some(monitor) = window
+/// What the main window has to fit into: the monitor's usable area and its scale.
+struct Screen {
+    area: crate::main_layout::Rect,
+    bars_unknown: bool,
+    scale: f64,
+}
+
+fn main_screen(app: &AppHandle, window: &tauri::WebviewWindow) -> Option<Screen> {
+    use crate::main_layout::Rect;
+    let monitor = window
         .current_monitor()
         .ok()
         .flatten()
-        .or_else(|| app.primary_monitor().ok().flatten())
-    else {
-        return;
-    };
+        .or_else(|| app.primary_monitor().ok().flatten())?;
     let scale = monitor.scale_factor();
-    let logical = |p: &tauri::PhysicalPosition<i32>, s: &tauri::PhysicalSize<u32>| Rect {
+    let work = monitor.work_area();
+    Some(Screen {
+        area: Rect {
+            x: work.position.x as f64 / scale,
+            y: work.position.y as f64 / scale,
+            w: work.size.width as f64 / scale,
+            h: work.size.height as f64 / scale,
+        },
+        // On Linux the work area equals the monitor when the system cannot report its panels (Wayland).
+        bars_unknown: cfg!(target_os = "linux") && work.size == *monitor.size(),
+        scale,
+    })
+}
+
+fn outer_rect(window: &tauri::WebviewWindow, scale: f64) -> Option<crate::main_layout::Rect> {
+    let (p, s) = (window.outer_position().ok()?, window.outer_size().ok()?);
+    Some(crate::main_layout::Rect {
         x: p.x as f64 / scale,
         y: p.y as f64 / scale,
         w: s.width as f64 / scale,
         h: s.height as f64 / scale,
-    };
-    let work = monitor.work_area();
-    let area = logical(&work.position, &work.size);
-    // On Linux the work area equals the monitor when the system cannot report its panels (Wayland).
-    let bars_unknown = cfg!(target_os = "linux") && work.size == *monitor.size();
+    })
+}
 
-    let current = match (window.outer_position(), window.outer_size()) {
-        (Ok(p), Ok(s)) => Some(logical(&p, &s)),
-        _ => None,
+/// A short record of what the layout code saw and did, kept in the app's data folder
+/// (`window-layout.log`) so a window that opens in the wrong place can be diagnosed from real numbers.
+fn layout_log(app: &AppHandle, line: &str) {
+    use std::io::Write;
+    if let Some(dir) = crate::account::data_dir(app) {
+        let _ = std::fs::create_dir_all(&dir);
+        if let Ok(mut f) = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(dir.join("window-layout.log"))
+        {
+            let _ = writeln!(f, "{line}");
+        }
+    }
+}
+
+/// Puts the main window at its default size and position for `screen`: 480 wide, the usable height less the
+/// buffer at each end, centred. Position first, then size (moving a window onto a monitor with a different scale
+/// can resize it), then a read-back to correct for the title bar and borders.
+fn apply_default(app: &AppHandle, window: &tauri::WebviewWindow, screen: &Screen) {
+    use crate::main_layout::default_rect;
+    let want = default_rect(screen.area, screen.bars_unknown);
+    let _ = window.set_position(tauri::LogicalPosition::new(want.x, want.y));
+    let (mut extra_w, mut extra_h) = (0.0, 0.0);
+    if let (Ok(o), Ok(i)) = (window.outer_size(), window.inner_size()) {
+        extra_w = (o.width as f64 - i.width as f64) / screen.scale;
+        extra_h = (o.height as f64 - i.height as f64) / screen.scale;
+    }
+    let _ = window.set_size(tauri::LogicalSize::new(
+        (want.w - extra_w).max(300.0),
+        (want.h - extra_h).max(300.0),
+    ));
+    // Read back: if the system gave a different size than asked for, correct once by the difference.
+    if let Some(got) = outer_rect(window, screen.scale) {
+        let (dw, dh) = (want.w - got.w, want.h - got.h);
+        if dw.abs() > 2.0 || dh.abs() > 2.0 {
+            if let Ok(inner) = window.inner_size() {
+                let _ = window.set_size(tauri::LogicalSize::new(
+                    (inner.width as f64 / screen.scale + dw).max(300.0),
+                    (inner.height as f64 / screen.scale + dh).max(300.0),
+                ));
+            }
+        }
+    }
+    layout_log(
+        app,
+        &format!(
+            "applied default: want {want:?}, now {:?}",
+            outer_rect(window, screen.scale)
+        ),
+    );
+}
+
+/// Decides, when the main window is created, whether to keep where the window-state plugin put it (the player's
+/// own size and position, if still on screen and saved under the current layout version) or apply the default.
+fn place_main(app: &AppHandle, window: &tauri::WebviewWindow) {
+    use crate::main_layout::{fits, LAYOUT_VERSION};
+    let Some(screen) = main_screen(app, window) else {
+        layout_log(
+            app,
+            "no monitor reported; left the window where the system put it",
+        );
+        return;
     };
+    let current = outer_rect(window, screen.scale);
     let version_file = crate::account::data_dir(app).map(|d| d.join("window-layout.json"));
     let saved_version = version_file
         .as_ref()
         .and_then(|f| std::fs::read_to_string(f).ok())
         .and_then(|t| t.trim().parse::<u32>().ok());
-    if saved_version == Some(LAYOUT_VERSION) && current.is_some_and(|c| fits(c, area)) {
+    layout_log(
+        app,
+        &format!(
+            "open: usable area {:?}, scale {}, bars unknown {}, window {current:?}, saved layout {saved_version:?}",
+            screen.area, screen.scale, screen.bars_unknown
+        ),
+    );
+    if saved_version == Some(LAYOUT_VERSION) && current.is_some_and(|c| fits(c, screen.area)) {
+        layout_log(app, "kept the remembered placement");
         return;
     }
-
-    let want = default_rect(area, bars_unknown);
-    // `want` is the inner size; the title bar and borders come on top of it, so take them off the height to
-    // make the whole window (not just its page) fit.
-    let (extra_h, extra_w) = match (window.outer_size(), window.inner_size()) {
-        (Ok(o), Ok(i)) => (
-            (o.height as f64 - i.height as f64) / scale,
-            (o.width as f64 - i.width as f64) / scale,
-        ),
-        _ => (0.0, 0.0),
-    };
-    let _ = window.set_size(tauri::LogicalSize::new(
-        (want.w - extra_w).max(300.0),
-        (want.h - extra_h).max(300.0),
-    ));
-    let _ = window.set_position(tauri::LogicalPosition::new(want.x, want.y));
+    apply_default(app, window, &screen);
     if let Some(file) = version_file {
-        if let Some(dir) = file.parent() {
-            let _ = std::fs::create_dir_all(dir);
-        }
         let _ = std::fs::write(file, LAYOUT_VERSION.to_string());
     }
+}
+
+/// Called once the page has painted and the window is showing: the system may have moved or resized it while
+/// it was being shown (a different scale on another monitor, say). If it no longer fits, apply the default again.
+fn verify_main(app: AppHandle, window: tauri::WebviewWindow) {
+    tauri::async_runtime::spawn(async move {
+        tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+        let Some(screen) = main_screen(&app, &window) else {
+            return;
+        };
+        let now = outer_rect(&window, screen.scale);
+        layout_log(&app, &format!("after show: window {now:?}"));
+        if now.is_some_and(|r| !crate::main_layout::fits(r, screen.area)) {
+            layout_log(
+                &app,
+                "it does not fit the usable area; applying the default again",
+            );
+            apply_default(&app, &window, &screen);
+        }
+    });
 }
 
 /// The window colour behind a page that is still loading; it matches the loading screen in index.html.
@@ -177,6 +261,9 @@ pub fn window_ready(window: tauri::WebviewWindow) -> Result<(), String> {
     }
     window.show().map_err(|e| e.to_string())?;
     let _ = window.set_focus();
+    if window.label() == MAIN_LABEL {
+        verify_main(window.app_handle().clone(), window.clone());
+    }
     Ok(())
 }
 
