@@ -526,6 +526,14 @@ impl AccountClient {
             .send()
             .await
             .map_err(Self::unreachable)?;
+        // Servers before 0.4 have no device sign-in, and they never stop an app by protocol (the header
+        // is new in 0.4), so a 404 here is the only sign the server is the older side.
+        if response.status() == reqwest::StatusCode::NOT_FOUND {
+            return Err(AccountError::new(
+                "server_too_old",
+                "this server is older than the app — ask the person who runs it to update the server",
+            ));
+        }
         let body = Self::read(response).await?;
         let field = |name: &str| {
             body.get(name)
@@ -1117,6 +1125,23 @@ mod tests {
         let request = request.await.unwrap();
         assert!(request.starts_with("POST /api/auth/device "), "{request}");
         assert!(request.contains("deviceLabel"));
+    }
+
+    #[tokio::test]
+    async fn a_server_without_device_sign_in_is_reported_as_too_old() {
+        // What a 0.3 server's Express answers for an unknown route.
+        let (base, _r) = one_shot_server(
+            "404 Not Found",
+            "text/html; charset=utf-8",
+            b"<!DOCTYPE html><pre>Cannot POST /api/auth/device</pre>".to_vec(),
+        )
+        .await;
+        let err = AccountClient::new(&base).device_start().await.unwrap_err();
+        assert_eq!(err.code, "server_too_old");
+        assert_eq!(
+            err.message,
+            "this server is older than the app — ask the person who runs it to update the server"
+        );
     }
 
     #[tokio::test]

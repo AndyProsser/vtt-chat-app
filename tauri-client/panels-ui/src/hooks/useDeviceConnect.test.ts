@@ -134,6 +134,18 @@ describe('createDeviceConnect', () => {
     expect(ctl.getState()).toMatchObject({ phase: 'error', error: 'Could not reach the server.' });
   });
 
+  it('a server too old for device sign-in shows the bridge message', async () => {
+    const message =
+      'this server is older than the app — ask the person who runs it to update the server';
+    const { ctl } = setup({
+      start: vi.fn(async () => {
+        throw { code: 'server_too_old', message };
+      }),
+    });
+    await ctl.start('https://old.example.com');
+    expect(ctl.getState()).toEqual({ phase: 'error', error: message });
+  });
+
   it('does not poll while hidden, and polls again when shown', async () => {
     const { ctl, deps, setVisible } = setup();
     await ctl.start('https://play.example.com');

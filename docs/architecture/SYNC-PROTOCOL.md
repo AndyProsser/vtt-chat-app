@@ -61,7 +61,7 @@ The app gets its session without a sign-in form ([APP-SIGN-IN.md](APP-SIGN-IN.md
 | `GET /api/auth/device/:userCode` | signed in                  | what the approval page shows: the device label, address and age                                                                                           |
 | `POST /api/auth/device/approve`  | signed in                  | `204`; the request is approved once, atomically                                                                                                           |
 
-**`PROTOCOL_VERSION` is 2** (was 1): these endpoints and the removal of the app's password, code and SSO path are a wire change, so a 0.3 app is refused by a 0.4 server with `426 update_required` and the reverse. The WebSocket frame protocol in `backend/src/lib/realtime/protocol.ts` carries its own `v` and is unchanged.
+**`PROTOCOL_VERSION` is 2** (was 1): these endpoints and the removal of the app's password, code and SSO path are a wire change, but the check only works from 0.4 on. A 0.4+ app sends `x-vtt-protocol` and is refused with `426 update_required` by a server on another protocol. Apps up to 0.3.2 never sent the header, so a 0.4 server serves them as it serves a browser (their password and code sign-in still work server-side). A 0.4 app on a 0.3 server gets a 404 from `POST /api/auth/device`, which the app reports as `server_too_old` ("this server is older than the app"). The WebSocket frame protocol in `backend/src/lib/realtime/protocol.ts` carries its own `v` and is unchanged.
 
 ## Reconnect and replay
 

@@ -32,7 +32,7 @@ client's handshake and returned by the server. It is bumped in the same change t
 CI test fails if `shared/` contracts change while it (and therefore MINOR) stays put. Semver MINOR is then derived
 from it, not remembered by a human.
 
-**Built so far:** the app sends `x-vtt-protocol` on every REST call; the server answers `426 update_required` (with its version and protocol) on a mismatch and serves `GET /api/version` to anyone. Callers that send no header (browser pages, the admin CLI) are always served. The WebSocket is not yet checked, but the app signs in over REST first, so a mismatched app is stopped before it connects. The CI guard described above is not built: wire contracts live in the backend and `rust-sync` separately, not in `shared/`, so there is nothing single to hash yet; until then bumping `PROTOCOL_VERSION` is a code-review rule (CONTRIBUTING / DEVELOPING).
+**Built so far:** the app sends `x-vtt-protocol` on every REST call; the server answers `426 update_required` (with its version and protocol) on a mismatch and serves `GET /api/version` to anyone. Callers that send no header (browser pages, the admin CLI, and apps released before 0.4, which predate the header) are always served, so the check stops mismatched apps only from 0.4 on. The WebSocket is not yet checked, but the app signs in over REST first, so a mismatched app is stopped before it connects. The CI guard described above is not built: wire contracts live in the backend and `rust-sync` separately, not in `shared/`, so there is nothing single to hash yet; until then bumping `PROTOCOL_VERSION` is a code-review rule (CONTRIBUTING / DEVELOPING).
 
 When they disagree:
 

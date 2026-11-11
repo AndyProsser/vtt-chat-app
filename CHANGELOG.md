@@ -15,11 +15,11 @@ the GitHub release notes and refuses to build a release without one. How to writ
 - **Connect the app through the browser.** After joining on the web page, press **Open VTT Chat**, or type the short code it shows into the app. Or start from the app: press Connect, then scan its QR code with your phone (or open its link in any browser), sign in and approve at `/connect`. Codes last 5 minutes. The app never sees your password, and the server can change its sign-in methods without a new app.
 - **Server images are published** to GHCR on every release (`vtt-chat-backend`, `vtt-chat-worker`), so a server pulls a release instead of building it. `setup.sh` pins the stack to its release line (MAJOR.MINOR), so `docker compose pull` takes bug-fix patches and never a new minor. `docker compose up --build` still builds from source.
 - **The server keeps the app update feed current by itself.** It watches the GitHub releases and offers players the newest patch of its own MAJOR.MINOR, with nothing to approve. `UPDATES_SOURCE=github` (the Compose default) sends players to GitHub; `mirror` makes the server download, verify (against the app's update key) and serve the installers itself, keeping only the newest patch plus one previous. `vtt-admin updates sync` runs it now and `updates status` shows the source and what the mirror holds. `vtt-admin updates publish` still works for air-gapped servers.
-- **Protocol check between app and server.** The app now sends the protocol version it speaks on every request, and `GET /api/version` reports the server's version and protocol. A server and app on different protocols no longer half-work: the app is told clearly to update. Normal patch releases never change the protocol.
+- **Protocol check between app and server.** The app now sends the protocol version it speaks on every request, and `GET /api/version` reports the server's version and protocol. From this release on, an app on a different protocol from its server is stopped with a clear "update" message instead of half-working. Normal patch releases never change the protocol.
 
 ### Changed
 
-- **The app no longer has a sign-in form.** Password, emailed-code and single sign-on sign-in now happen in the browser. **Wire change: this needs a matching 0.4 server and app (`PROTOCOL_VERSION` 2).** An older app is told to update. For development only, `VTT_DEV_SIGNIN=1` brings the old forms back in a collapsed Developer sign-in block.
+- **The app no longer has a sign-in form.** Password, emailed-code and single sign-on sign-in now happen in the browser. **Wire change: this needs a matching 0.4 server and app (`PROTOCOL_VERSION` 2).** For development only, `VTT_DEV_SIGNIN=1` brings the old forms back in a collapsed Developer sign-in block.
 - The app's **Have a code? Type it here** box takes any one-time sign-in code: a link code from the web page, an emailed code, a `vtt-admin user code` code (for a player with no browser at hand), or the code the single sign-on page shows.
 
 ### Fixed
@@ -29,6 +29,7 @@ the GitHub release notes and refuses to build a release without one. How to writ
 ### Known limits
 
 - Deep links (Open VTT Chat) may not work on the Linux AppImage; type the code instead.
+- The protocol check starts with this release. Apps up to 0.3.2 never sent it, so a 0.4 server does not tell them to update: their old sign-in keeps working until the player installs 0.4. A 0.4 app on a 0.3 server says the server is older than the app and should be updated.
 - If the recording notice changed since you last accepted it, the web page asks you to accept it before it connects the app. The app itself cannot show the notice.
 - The web has no Devices list yet; an operator can sign a player out everywhere with `vtt-admin user revoke-sessions`.
 
