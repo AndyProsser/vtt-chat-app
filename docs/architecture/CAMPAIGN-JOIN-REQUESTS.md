@@ -1,6 +1,6 @@
 # Asking to join a campaign
 
-Decided with Andy 2026-11-12. **Status: designed, not built.** Items marked _(my call)_ are my choices where the
+Decided with Andy 2026-11-12. **Status: built 2026-11-12** (server, web app and desktop app; unit-tested, **not yet seen in a real window or browser**). Items marked _(my call)_ are my choices where the
 decisions left a gap; correct them first.
 
 ## What was decided

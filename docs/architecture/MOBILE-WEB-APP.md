@@ -118,3 +118,13 @@ redeemed once and now sets the cookie. If the session ends the app returns to si
   beneath. The icon paths live in `web/src/components/icons/paths.ts` (lucide, ISC licence).
 - **Copy buttons** (`Command`) are icon-only, stretched to the height of the code box, with a tooltip ("Copy", then
   "Copied") and a tick for two seconds after copying.
+
+## Asking to join a table
+
+A signed-in person with no campaign sees, under the invite hint, the tables that take join requests (name, DM, player
+count) with a Request to join button and an optional 280-character message. A person who already has campaigns reaches
+the same list from the menu's "Find another table". A request shows as "Request sent" with Withdraw, and a refusal as
+"Not this time" with the date they can ask again. The list refreshes every 20 seconds while visible, and `join.decided`
+frames update it live for anyone with a campaign open; an approval shows a "You're in {table}" banner with a Switch
+button. The DM of the open campaign gets a "Join requests" menu item with a pending-count badge (and a dot on the menu
+icon), listing requests with Approve and Decline, recent decisions, and the Allow join switch.

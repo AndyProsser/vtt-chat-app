@@ -140,3 +140,11 @@ from the built-in language table in `shared/`. The client frame is `chat.message
 listing carry the fields back. The server validates both and answers `error` frames `invalid_kind` / `invalid_lang`.
 Out-of-character lines are filtered out of the recording timeline and search on the server. The fields are additive, so
 the 0.4 line needed no protocol bump. Rust only carries them; commands are parsed in `shared/` (TypeScript).
+
+## Join requests
+
+Server events: `join.request` (to the campaign's DM) `{campaignId, requestId, status: 'pending' | 'withdrawn', userId,
+displayName?, message?, createdAt?}`, a new or withdrawn ask; `join.decided` (to the requester) `{campaignId, requestId,
+approved}`, after which the client refetches `GET /api/campaigns`. Notification kinds `join_request` (DM) and
+`join_decision` (requester) arrive through the normal notification frame. A person with no campaign has no socket
+(the socket opens once a campaign is), so the web app polls the open-tables list while it is visible.

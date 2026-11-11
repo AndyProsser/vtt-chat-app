@@ -244,3 +244,11 @@ Loot and handout events become inline **cards** in chat (`loot.dropped/claimed/r
 `handout.shown/removed`), each placed after the chat line it followed; the "taken by" text is the
 grabbed indicator. Cards are live notices (retained in the bounded event tail, lost across a full
 re-snapshot); the Party inventory window is the source of truth.
+
+## Asking to join a table (built 2026-11-12)
+
+Design and rationale: [CAMPAIGN-JOIN-REQUESTS.md](CAMPAIGN-JOIN-REQUESTS.md). **Allow join** is on by default; a DM turns
+it off in campaign settings and the table disappears from the list and takes no requests. A person can have up to 5
+open requests, a message up to 280 characters, and may ask again 7 days after a decline. The DM at the moment of the
+decision decides; a DM swap moves pending requests to the new DM. The operator can hide all listings with
+`campaign-directory off`.

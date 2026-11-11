@@ -149,7 +149,12 @@ LXC containers are possible but unsupported ([DEPLOYMENT-AND-TRANSPORT.md](../ar
    `./vtt-admin user code them@example.com signin` (or `reset`). The code is valid for a short time;
    pass it on by chat or phone.
 
-6. **Let visitors ask for an account (optional, off by default).** People without an invite can request one from the front page:
+6. **Which tables people can ask to join (on by default).** A signed-in person can see the campaigns whose DM has
+   **Allow join** on (name, DM name, player count, nothing inside) and ask to join; the **DM** approves, not you. To
+   hide every listing and allow invites only: `./vtt-admin settings set campaign-directory off`. Pending requests stay
+   visible to the DM, marked closed, until it is on again.
+
+7. **Let visitors ask for an account (optional, off by default).** People without an invite can request one from the front page:
 
    ```bash
    ./vtt-admin settings set signup.requests on
