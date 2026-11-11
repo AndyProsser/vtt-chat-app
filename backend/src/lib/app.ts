@@ -5,6 +5,8 @@ import { AccountService } from './auth/accountService.js';
 import { SignupService } from './auth/signupService.js';
 import { DeviceFlow } from './auth/deviceFlow.js';
 import { CampaignService } from './campaigns/campaignService.js';
+import { JoinRequestService } from './campaigns/joinRequests.js';
+import { joinRequestRoutes } from './http/joinRequestRoutes.js';
 import { DEFAULT_TRUST_PROXY, type BackendConfig } from './config.js';
 import { signupRoutes } from './http/signupRoutes.js';
 import { inviteRoutes, webPages } from './http/joinRoutes.js';
@@ -52,6 +54,8 @@ export interface AppDeps {
   realtime?: {
     revokeSession(sessionId: string): void;
     announceRosterChanged(campaignId: string): void | Promise<void>;
+    /** Sends a frame to every live socket of a person. */
+    sendToUser?(userId: string, type: string, data: unknown): void;
     announceRecording(change: RecordingChange): void;
     /** How long the campaign's DM has had no connection (0 while connected). */
     dmAwayMs?(campaignId: string): Promise<number>;
@@ -130,6 +134,19 @@ export function createApp({
   const devices = new DeviceFlow({ store, accounts });
   const signups = new SignupService({ store, accounts });
   const campaigns = new CampaignService({ store });
+  const scheduleService = schedule
+    ? new ScheduleService({ store, schedule, ...(onNotified ? { onNotified } : {}) })
+    : undefined;
+  const joins = new JoinRequestService({
+    store,
+    hooks: {
+      ...(scheduleService ? { notify: (ids, n) => scheduleService.notify(ids, n) } : {}),
+      ...(realtime?.sendToUser
+        ? { sendToUser: (id, type, data) => realtime.sendToUser?.(id, type, data) }
+        : {}),
+      ...(realtime ? { rosterChanged: (id) => realtime.announceRosterChanged(id) } : {}),
+    },
+  });
 
   const app = express();
   // Trust Caddy (by default on the same host) for the real client address, used by the per-IP rate
@@ -235,6 +252,10 @@ export function createApp({
   );
   app.use(
     '/api/campaigns',
+    joinRequestRoutes({ accounts, joins, requestLimiter: new RateLimiter(10, 60 * MINUTE) }),
+  );
+  app.use(
+    '/api/campaigns',
     campaignRoutes({
       accounts,
       campaigns,
@@ -323,8 +344,8 @@ export function createApp({
     app.use('/api/campaigns/:campaignId/sounds', soundPlaybackRoutes({ accounts, library }));
   }
 
-  if (schedule) {
-    const service = new ScheduleService({ store, schedule, ...(onNotified ? { onNotified } : {}) });
+  if (scheduleService) {
+    const service = scheduleService;
     app.use('/api/campaigns/:campaignId/sessions', sessionRoutes({ accounts, schedule: service }));
     app.use('/api/notifications', notificationRoutes({ accounts, schedule: service }));
   }
