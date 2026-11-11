@@ -901,10 +901,16 @@ mod connect_page_tests {
     #[test]
     fn any_other_one_time_code_is_sent_as_typed_for_the_server_to_check() {
         // Shaped like `vtt-admin user code` and the SSO callback's code: 43 base64url characters.
-        let long = "q2Xw8Jr0bK4mN6pV1sT3uY5zA7cE9gH0iL2oP4r-6tQ";
+        let long = "one-time-code-test-fixture-not-a-real-code";
         assert_eq!(typed_connect_code(&format!("  {long}\n")).unwrap(), long);
         // Not the short alphabet (has an O), so it is not rewritten either.
         assert_eq!(typed_connect_code("abcd-234o").unwrap(), "abcd-234o");
+    }
+
+    #[test]
+    fn a_long_link_token_is_sent_exactly_as_it_came_in_the_deep_link() {
+        let token = "Zm9vYmFyLV9iYXo0NTY3ODkwQUJDREVGR0hJSktMTU4";
+        assert_eq!(typed_connect_code(token).unwrap(), token);
     }
 
     #[test]

@@ -44,6 +44,7 @@ import type { Handout } from '../types/index.js';
 import { MarkdownEditor } from './MarkdownEditor.js';
 import { MarkdownView } from './MarkdownView.js';
 import { ToolButton } from './ToolButton.js';
+import { EmptyState } from './EmptyState.js';
 
 /** The first picture of a handout, small, in the handouts list (the viewer window flips and zooms). */
 function Picture({ id, title, count }: { id: string; title: string; count: number }) {
@@ -463,11 +464,13 @@ export function HandoutsPanel() {
           />
         </div>
       )}
-      {data && shown.length === 0 && (
-        <span className="vtt-muted">
-          {data.handouts.length === 0 ? 'Nothing has been shared yet.' : 'No handout matches.'}
-        </span>
-      )}
+      {data &&
+        shown.length === 0 &&
+        (data.handouts.length === 0 ? (
+          <EmptyState>Nothing has been shared yet.</EmptyState>
+        ) : (
+          <span className="vtt-muted">No handout matches.</span>
+        ))}
       {shown.map((h) => (
         <Item key={h.id} h={h} dm={dm} act={(p) => void act(p)} remove={(x) => void remove(x)} />
       ))}

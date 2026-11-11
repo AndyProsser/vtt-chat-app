@@ -1,16 +1,17 @@
 import { Box, Button, Callout, Flex, Heading, Text, TextField } from '@radix-ui/themes';
 import { Copy } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { useDeviceConnect } from '../../hooks/useDeviceConnect.js';
 import { useNow } from '../../hooks/useNow.js';
 import { accountErrorMessage, accountOpenConnect } from '../../lib/tauriBridge.js';
 import { serverHost } from '../../lib/serverHost.js';
+import { isTypeableCode } from '../../lib/typedCode.js';
 import type { AccountStatus, ConnectLink } from '../../types/index.js';
 import { QrCode } from '../QrCode.js';
 
 interface Props {
-  /** A connect link the OS passed in: fills the fields, never signs in by itself. */
+  /** A connect link the OS passed in: fills the fields and, if it carries a code, connects with it. */
   link: ConnectLink | undefined;
   busy: boolean;
   error: string | undefined;
@@ -30,8 +31,8 @@ function mmss(ms: number): string {
 
 /**
  * Signed out: type the server, press Connect, then approve the code shown here in any browser
- * (or scan the QR with a phone). Any one-time code (join page, emailed, SSO page, or from the
- * operator) can be typed instead.
+ * (or scan the QR with a phone). A deep link from the web page connects at once; any one-time code (web
+ * page, emailed, SSO page, or from the operator) can be typed instead, behind "Have a code instead?".
  */
 export function ConnectScreen(props: Props) {
   const { server, onServer, code, onCode } = props;
@@ -39,22 +40,39 @@ export function ConnectScreen(props: Props) {
   const now = useNow(device.phase === 'waiting');
   const [copied, setCopied] = useState(false);
   const [openError, setOpenError] = useState<string>();
+  // The typed-code box is a fallback: collapsed until asked for, or until a link's connect attempt fails.
+  const [codeOpen, setCodeOpen] = useState(false);
   const host = serverHost(server);
 
   const { link } = props;
   const { cancel } = device;
+  // Kept in a ref so a new function identity on a re-render cannot start a second sign-in.
+  const connectWithCode = useRef(props.onConnectWithCode);
+  connectWithCode.current = props.onConnectWithCode;
+  const followed = useRef<ConnectLink | undefined>(undefined);
   useEffect(() => {
-    if (!link) return;
-    // A link never carries on a waiting request: drop it, then prefill; the player presses Connect.
+    if (!link || followed.current === link) return;
+    followed.current = link;
+    // A link replaces any waiting request. It fills the fields (so a failure leaves them ready to retry)
+    // and, when it carries a code, connects at once: this screen only exists while signed out, so
+    // it can never swap an account the player is using.
     cancel();
     onServer(link.server);
-    if (link.code) onCode(link.code);
+    if (link.code) {
+      onCode(link.code);
+      void connectWithCode.current(link.server, link.code);
+    }
   }, [link, cancel, onServer, onCode]);
+
+  useEffect(() => {
+    if (props.error && followed.current?.code) setCodeOpen(true);
+  }, [props.error]);
 
   const waiting = device.phase === 'waiting';
   const starting = device.phase === 'starting';
   const waitingHost = serverHost(device.server ?? '');
   const canStart = server.trim() !== '';
+  const typeable = isTypeableCode(code);
   const error = device.phase === 'error' ? device.error : props.error;
 
   return (
@@ -157,38 +175,68 @@ export function ConnectScreen(props: Props) {
         </Callout.Root>
       )}
 
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          device.cancel();
-          void props.onConnectWithCode(server, code);
-        }}
-      >
-        <Flex direction="column" gap="2">
-          <Text size="2" color="gray">
-            Have a code? Type it here.
-          </Text>
-          <Flex gap="2">
-            <Box flexGrow="1">
-              <TextField.Root
-                aria-label="One-time code"
-                placeholder="ABCD-2345"
-                autoComplete="one-time-code"
-                value={code}
-                onChange={(e) => onCode(e.target.value)}
-              />
-            </Box>
-            <Button
-              type="submit"
-              variant="soft"
-              loading={props.busy}
-              disabled={!canStart || code.trim() === ''}
-            >
-              Connect{host ? ` to ${host}` : ''}
-            </Button>
-          </Flex>
-        </Flex>
-      </form>
+      <Flex direction="column" gap="2" align="start">
+        <Button
+          variant="ghost"
+          size="1"
+          aria-expanded={codeOpen}
+          aria-controls="connect-typed-code"
+          onClick={() => setCodeOpen((v) => !v)}
+        >
+          Have a code instead?
+        </Button>
+        {codeOpen && (
+          <form
+            id="connect-typed-code"
+            style={{ width: '100%' }}
+            onSubmit={(e) => {
+              e.preventDefault();
+              device.cancel();
+              void props.onConnectWithCode(server, code);
+            }}
+          >
+            <Flex direction="column" gap="2">
+              <Text size="2" color="gray">
+                Type the code from the web page here.
+              </Text>
+              {typeable ? (
+                <Flex gap="2">
+                  <Box flexGrow="1">
+                    <TextField.Root
+                      aria-label="One-time code"
+                      placeholder="ABCD-2345"
+                      autoComplete="one-time-code"
+                      value={code}
+                      onChange={(e) => onCode(e.target.value)}
+                    />
+                  </Box>
+                  <Button
+                    type="submit"
+                    variant="soft"
+                    loading={props.busy}
+                    disabled={!canStart || code.trim() === ''}
+                  >
+                    Connect{host ? ` to ${host}` : ''}
+                  </Button>
+                </Flex>
+              ) : (
+                // Our call: a long link token is kept for a retry but never shown as a giant string.
+                <Flex gap="2" align="center">
+                  <Text size="2" color="gray">
+                    The link brought a sign-in code.
+                  </Text>
+                  <Button type="submit" variant="soft" loading={props.busy} disabled={!canStart}>
+                    Retry
+                  </Button>
+                  <Button type="button" variant="ghost" size="1" onClick={() => onCode('')}>
+                    Type a code instead
+                  </Button>
+                </Flex>
+              )}
+            </Flex>
+          </form>
+        )}
+      </Flex>
     </Flex>
   );
 }

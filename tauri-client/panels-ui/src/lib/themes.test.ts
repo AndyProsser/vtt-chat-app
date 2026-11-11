@@ -5,15 +5,16 @@ import { DEFAULT_THEME, resolveTheme, THEMES, themeCss } from './themes.js';
 import { followThemeChangesFromOtherWindows, useThemeStore } from './themeStore.js';
 
 describe('themes', () => {
-  it('ships the five launch themes, Dragonfire first', () => {
+  it('ships the launch themes, the colourful Default first', () => {
     expect(THEMES.map((t) => t.id)).toEqual([
+      'default',
       'dragonfire',
       'arcane',
       'dungeon',
       'verdant',
       'frostbound',
     ]);
-    expect(DEFAULT_THEME).toBe('dragonfire');
+    expect(DEFAULT_THEME).toBe('default');
   });
 
   for (const theme of THEMES) {
@@ -28,10 +29,10 @@ describe('themes', () => {
     }
   }
 
-  it('falls back to Dragonfire for an unknown, empty or missing id', () => {
-    expect(resolveTheme('nope')).toBe('dragonfire');
-    expect(resolveTheme(null)).toBe('dragonfire');
-    expect(resolveTheme(undefined)).toBe('dragonfire');
+  it('falls back to the Default theme for an unknown, empty or missing id', () => {
+    expect(resolveTheme('nope')).toBe('default');
+    expect(resolveTheme(null)).toBe('default');
+    expect(resolveTheme(undefined)).toBe('default');
     expect(resolveTheme('arcane')).toBe('arcane');
   });
 
@@ -69,7 +70,7 @@ describe('theme sync between windows', () => {
     window.dispatchEvent(new StorageEvent('storage', { key: 'other', newValue: 'arcane' }));
     expect(document.documentElement.dataset.theme).toBe('frostbound');
     window.dispatchEvent(new StorageEvent('storage', { key: 'vtt.theme', newValue: 'garbage' }));
-    expect(document.documentElement.dataset.theme).toBe('dragonfire');
+    expect(document.documentElement.dataset.theme).toBe('default');
     stop();
   });
 });

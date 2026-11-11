@@ -23,6 +23,7 @@ import { useTableStore } from '../lib/tableStore.js';
 import { accountErrorMessage, campaignApi, recordsSearch } from '../lib/tauriBridge.js';
 import { MarkdownView } from './MarkdownView.js';
 import { ToolButton } from './ToolButton.js';
+import { EmptyState } from './EmptyState.js';
 
 const statusWord = (status: string): string =>
   ({
@@ -79,10 +80,10 @@ export function HistoryPanel() {
         </div>
       )}
       {data && recordings.length === 0 && (
-        <span className="vtt-muted">
+        <EmptyState>
           No recorded sessions yet. When the DM records a session, its summary appears here once it
           has been processed.
-        </span>
+        </EmptyState>
       )}
       {recordings.map((r) => (
         <Recording

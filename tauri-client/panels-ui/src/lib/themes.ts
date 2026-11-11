@@ -7,6 +7,42 @@ import type { Palette, Theme, ThemeId } from '../types/theme.js';
  */
 export const THEMES: readonly Theme[] = [
   {
+    // The colourful one, matching the web pages: violet surfaces (the web accent), an ember-orange
+    // highlight (the dragon artwork), a teal glow and a pink whisper edge. The others are mono-colour.
+    id: 'default',
+    name: 'Default',
+    dark: {
+      bg: '#14121f',
+      bar: '#1d1836',
+      rail: '#171325',
+      chat: '#100e1a',
+      bubble: '#261e42',
+      edge: '#4d3f85',
+      ink: '#ece9fb',
+      gold: '#ff9a3c',
+      glow: '#5fd3c4',
+      avatar: '#5b3fc4',
+      whisper: '#35193f',
+      whisperEdge: '#f472b6',
+      dmMsg: '#38240f',
+    },
+    light: {
+      bg: '#f1eefc',
+      bar: '#e2dcf8',
+      rail: '#e8e3fa',
+      chat: '#f8f6ff',
+      bubble: '#ffffff',
+      edge: '#a898e0',
+      ink: '#241a4a',
+      gold: '#b04a08',
+      glow: '#0b7f76',
+      avatar: '#6e56cf',
+      whisper: '#fbe4f1',
+      whisperEdge: '#be3d86',
+      dmMsg: '#ffecd2',
+    },
+  },
+  {
     id: 'dragonfire',
     name: 'Dragonfire',
     dark: {
@@ -178,7 +214,7 @@ export const THEMES: readonly Theme[] = [
   },
 ];
 
-export const DEFAULT_THEME: ThemeId = 'dragonfire';
+export const DEFAULT_THEME: ThemeId = 'default';
 
 /** A stored or typed theme id → a real one; anything unknown becomes the default. */
 export function resolveTheme(id: string | null | undefined): ThemeId {

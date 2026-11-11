@@ -176,7 +176,27 @@ body,
   display: flex;
   flex-direction: column;
   gap: 8px;
-  background: var(--vtt-chat);
+  /* A very faint picture behind the conversation: the theme's own chat colour sits over it at 94%, so it
+     reads as a watermark tinted by the theme. It stays put while the messages scroll over it. */
+  background:
+    linear-gradient(
+      color-mix(in srgb, var(--vtt-chat) 94%, transparent),
+      color-mix(in srgb, var(--vtt-chat) 94%, transparent)
+    ),
+    url('../assets/watermark-chat.webp') center / cover no-repeat,
+    var(--vtt-chat);
+}
+.vtt-empty {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.vtt-empty img {
+  width: 100%;
+  aspect-ratio: 21 / 9;
+  object-fit: cover;
+  border-radius: var(--vtt-radius-bubble);
+  opacity: 0.85;
 }
 .vtt-msg {
   display: flex;

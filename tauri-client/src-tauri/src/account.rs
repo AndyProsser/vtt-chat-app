@@ -1099,7 +1099,7 @@ mod tests {
     // Fixtures below copy the exact shapes the backend sends (backend/src/lib/auth/deviceFlow.ts,
     // backend/src/lib/http/authRoutes.ts and `publicUser` in middleware.ts): `expiresAt` is epoch
     // milliseconds (a JSON number), `user` carries every public field, `avatarUrl` may be null.
-    const REAL_DEVICE_START: &[u8] = br#"{"requestId":"5f0c8a52-3f0e-4b7e-9d6a-0c1f2e3d4b5a","userCode":"ABCD-2345","pollSecret":"q2Xw8Jr0bK4mN6pV1sT3uY5zA7cE9gH0iL2oP4rW6tQ","expiresAt":1762820100000}"#;
+    const REAL_DEVICE_START: &[u8] = br#"{"requestId":"5f0c8a52-3f0e-4b7e-9d6a-0c1f2e3d4b5a","userCode":"ABCD-2345","pollSecret":"poll-secret-test-fixture-not-a-real-secret","expiresAt":1762820100000}"#;
     const REAL_SIGNED_IN: &[u8] = br#"{"user":{"id":"8d2b1c3e-0a4f-4e6b-9c7d-1e2f3a4b5c6d","email":"ann@example.com","displayName":"Ann","avatarUrl":null,"isAdmin":false,"consentVersion":"1"},"sessionToken":"T","needsConsent":false}"#;
 
     #[tokio::test]
@@ -1115,7 +1115,7 @@ mod tests {
         assert_eq!(start.user_code, "ABCD-2345");
         assert_eq!(
             start.poll_secret,
-            "q2Xw8Jr0bK4mN6pV1sT3uY5zA7cE9gH0iL2oP4rW6tQ"
+            "poll-secret-test-fixture-not-a-real-secret"
         );
         assert_eq!(start.expires_at, 1_762_820_100_000);
         assert_eq!(start.approve_url, format!("{base}/connect?c=ABCD-2345"));

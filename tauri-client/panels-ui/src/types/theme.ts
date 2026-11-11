@@ -1,4 +1,4 @@
-export type ThemeId = 'dragonfire' | 'arcane' | 'dungeon' | 'verdant' | 'frostbound';
+export type ThemeId = 'default' | 'dragonfire' | 'arcane' | 'dungeon' | 'verdant' | 'frostbound';
 
 /** Every colour a theme decides; all `#rrggbb`. Shape (radii, spacing, fonts) is shared by themes. */
 export interface Palette {

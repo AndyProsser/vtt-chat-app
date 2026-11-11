@@ -15,6 +15,7 @@ import { LootActions } from './LootActions.js';
 import { PlayerList } from './PlayerList.js';
 import { LootWorkbench } from './LootWorkbench.js';
 import { ToolButton } from './ToolButton.js';
+import { EmptyState } from './EmptyState.js';
 
 const FILTER_ICON = { all: List, unassigned: Inbox, assigned: UserCheck, mine: User } as const;
 const FILTER_LABEL: Record<LootFilter, string> = {
@@ -88,11 +89,13 @@ export function LootPanel() {
           );
         })}
       </div>
-      {data && shown.length === 0 && (
-        <p className="vtt-muted">
-          {data.loot.length === 0 ? 'Nothing in the pool yet.' : 'Nothing matches this filter.'}
-        </p>
-      )}
+      {data &&
+        shown.length === 0 &&
+        (data.loot.length === 0 ? (
+          <EmptyState>Nothing in the pool yet.</EmptyState>
+        ) : (
+          <p className="vtt-muted">Nothing matches this filter.</p>
+        ))}
       {shown.map((item) => {
         const open = !item.claimedBy;
         return (
