@@ -1,3 +1,7 @@
+// A release build on Windows is a GUI program: without this it is a console program and Windows opens a
+// black cmd window beside the app. Debug builds keep the console so `cargo run` still prints its logs.
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
 fn main() {
     use vtt_chat_app_lib::supervisor;
     let flag = |name: &str| std::env::var_os(name).is_some();
