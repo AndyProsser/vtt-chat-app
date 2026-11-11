@@ -10,6 +10,7 @@ mod commands;
 mod consts;
 mod deeplink;
 mod hotkeys;
+mod main_layout;
 mod mic_gate;
 mod notify_prefs;
 mod platform;

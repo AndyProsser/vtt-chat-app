@@ -47,34 +47,81 @@ pub fn open_main(app: &AppHandle) -> Result<(), String> {
         window.set_focus().map_err(|e| e.to_string())?;
         return Ok(());
     }
-    let screen = app.primary_monitor().ok().flatten().map(|mon| {
-        let scale = mon.scale_factor();
-        (
-            mon.size().width as f64 / scale,
-            mon.size().height as f64 / scale,
-        )
-    });
-    let size = main_size(screen);
     let mut builder =
         WebviewWindowBuilder::new(app, MAIN_LABEL, WebviewUrl::App("index.html#main".into()))
             .title("VTT Chat")
             .visible(false)
-            .inner_size(size.0, size.1)
+            .inner_size(crate::main_layout::WIDTH, 720.0)
             .min_inner_size(380.0, 420.0);
     if let Some(icon) = app.default_window_icon() {
         builder = builder.icon(icon.clone()).map_err(|e| e.to_string())?;
     }
     let window = builder.build().map_err(|e| e.to_string())?;
+    place_main(app, &window);
     show_when_ready(window);
     Ok(())
 }
 
-/// The first-open size of the main window: narrow, and tall enough to leave a little room above and below
-/// on the screen (88% of its height, between 640 and 1000). The window-state plugin remembers any size the
-/// player changes it to.
-fn main_size(screen: Option<(f64, f64)>) -> (f64, f64) {
-    let height = screen.map_or(720.0, |(_, h)| (h * 0.88).clamp(640.0, 1000.0));
-    (420.0, height)
+/// Sets the main window's size and position for this screen. The window-state plugin has already put back
+/// where the player left it; that is kept only if it is still on screen and was saved under the current
+/// layout version, otherwise the window gets the default (480 wide, the full usable height less 50 px at
+/// each end, centred across the usable area). See `main_layout`.
+fn place_main(app: &AppHandle, window: &tauri::WebviewWindow) {
+    use crate::main_layout::{default_rect, fits, Rect, LAYOUT_VERSION};
+    let Some(monitor) = window
+        .current_monitor()
+        .ok()
+        .flatten()
+        .or_else(|| app.primary_monitor().ok().flatten())
+    else {
+        return;
+    };
+    let scale = monitor.scale_factor();
+    let logical = |p: &tauri::PhysicalPosition<i32>, s: &tauri::PhysicalSize<u32>| Rect {
+        x: p.x as f64 / scale,
+        y: p.y as f64 / scale,
+        w: s.width as f64 / scale,
+        h: s.height as f64 / scale,
+    };
+    let work = monitor.work_area();
+    let area = logical(&work.position, &work.size);
+    // On Linux the work area equals the monitor when the system cannot report its panels (Wayland).
+    let bars_unknown = cfg!(target_os = "linux") && work.size == *monitor.size();
+
+    let current = match (window.outer_position(), window.outer_size()) {
+        (Ok(p), Ok(s)) => Some(logical(&p, &s)),
+        _ => None,
+    };
+    let version_file = crate::account::data_dir(app).map(|d| d.join("window-layout.json"));
+    let saved_version = version_file
+        .as_ref()
+        .and_then(|f| std::fs::read_to_string(f).ok())
+        .and_then(|t| t.trim().parse::<u32>().ok());
+    if saved_version == Some(LAYOUT_VERSION) && current.is_some_and(|c| fits(c, area)) {
+        return;
+    }
+
+    let want = default_rect(area, bars_unknown);
+    // `want` is the inner size; the title bar and borders come on top of it, so take them off the height to
+    // make the whole window (not just its page) fit.
+    let (extra_h, extra_w) = match (window.outer_size(), window.inner_size()) {
+        (Ok(o), Ok(i)) => (
+            (o.height as f64 - i.height as f64) / scale,
+            (o.width as f64 - i.width as f64) / scale,
+        ),
+        _ => (0.0, 0.0),
+    };
+    let _ = window.set_size(tauri::LogicalSize::new(
+        (want.w - extra_w).max(300.0),
+        (want.h - extra_h).max(300.0),
+    ));
+    let _ = window.set_position(tauri::LogicalPosition::new(want.x, want.y));
+    if let Some(file) = version_file {
+        if let Some(dir) = file.parent() {
+            let _ = std::fs::create_dir_all(dir);
+        }
+        let _ = std::fs::write(file, LAYOUT_VERSION.to_string());
+    }
 }
 
 /// The window colour behind a page that is still loading; it matches the loading screen in index.html.
@@ -271,26 +318,6 @@ mod tests {
         assert!(!is_plain_id("../x"));
         assert!(!is_plain_id("a b"));
         assert!(!is_plain_id(&"x".repeat(65)));
-    }
-
-    #[test]
-    fn the_main_window_opens_narrow_and_leaves_room_above_and_below() {
-        assert_eq!(
-            main_size(Some((1920.0, 1080.0))),
-            (420.0, 1000.0_f64.min(1080.0 * 0.88))
-        );
-        assert_eq!(main_size(Some((1366.0, 768.0))).1, 768.0 * 0.88);
-        assert_eq!(
-            main_size(Some((800.0, 600.0))).1,
-            640.0,
-            "never below the minimum"
-        );
-        assert_eq!(
-            main_size(Some((3840.0, 2160.0))).1,
-            1000.0,
-            "never absurdly tall"
-        );
-        assert_eq!(main_size(None), (420.0, 720.0));
     }
 
     #[test]

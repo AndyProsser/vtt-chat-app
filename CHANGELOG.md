@@ -12,6 +12,12 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ### Changed
 
+- The main window opens **480 px wide** and fills the screen from top to bottom with about 50 px of space above
+  and below, centred across the usable area. It works from the space the system says is free (so a taskbar,
+  dock or menu bar is left alone, on any side) and scales with the display. Wayland desktops cannot report their
+  panels, so there the window leaves a little more room at the bottom. The first launch of this version forgets
+  any remembered size and position once; after that your own changes are remembered again, unless the window
+  would no longer fit on the screen.
 - The app is now called **VTT Chat** everywhere the system shows a name: Windows Task Manager, the Linux
   application menu and the macOS Dock. (It was "VTT Chat App".) Installer files are named `VTT.Chat_…` to match.
   Anyone who already installed 0.3.1 on Windows should uninstall "VTT Chat App" first, so the two do not sit
