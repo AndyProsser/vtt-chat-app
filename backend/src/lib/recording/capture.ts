@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 
 import { PROCESS_RECORDING_JOB, type JobQueue, type RecordsStore } from '@vtt-chat-app/ai';
+import type { ChatKind } from '@vtt-chat-app/shared';
 
 import type { AckStore } from './ackStore.js';
 import type { RecordingChange } from './recordingState.js';
@@ -141,12 +142,21 @@ export class RecordingCapture {
 
   /**
    * A line typed into the public chat. While a recording is open (capturing or paused) it goes into the
-   * recording's timeline, so the transcript can show it among the spoken lines. Whispers never get here.
+   * recording's timeline, so the transcript can show it among the spoken lines. Whispers never get here, and
+   * out-of-character (`ooc`) lines are dropped here: this is the one filter that keeps them out of the
+   * transcript, summaries and search (CHAT-COMMANDS.md).
    */
   onChat(
     campaignId: string,
-    line: { senderId: string; senderName: string; text: string; at: number },
+    line: {
+      senderId: string;
+      senderName: string;
+      text: string;
+      at: number;
+      kind?: ChatKind;
+    },
   ): void {
+    if (line.kind === 'ooc') return;
     this.enqueue(campaignId, async () => {
       const live = this.live.get(campaignId);
       if (!live) return;

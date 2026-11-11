@@ -1,4 +1,4 @@
-import type { AiSettings } from '@vtt-chat-app/shared';
+import type { AiSettings, ChatKind } from '@vtt-chat-app/shared';
 
 /**
  * Domain types for accounts, campaigns and sessions. The shapes match
@@ -128,6 +128,10 @@ export interface ChatMessage {
   recipientId: string | null;
   text: string;
   at: number;
+  /** In character (`chat`, the default), `say`, `do`, or `ooc` (never recorded). Whispers are always `chat`. */
+  kind: ChatKind;
+  /** The language of a `say` line: a key from the shared language table. Only with kind `say`. */
+  lang?: string;
 }
 
 export type CampaignCreation = 'closed' | 'open';

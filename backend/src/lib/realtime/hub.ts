@@ -1,5 +1,7 @@
 import { randomUUID } from 'node:crypto';
 
+import { isChatKind, isChatLanguageKey, type ChatKind } from '@vtt-chat-app/shared';
+
 import { CHAT_RETENTION_MESSAGES } from '../../consts/index.js';
 import type { ChatMessage, Session, User } from '../../types/index.js';
 import type { AccountService } from '../auth/accountService.js';
@@ -67,7 +69,7 @@ export interface HubOptions {
   /** Told about every line typed into the public chat (never a whisper), for a recording's transcript. */
   onPublicChat?: (
     campaignId: string,
-    line: { senderId: string; senderName: string; text: string; at: number },
+    line: { senderId: string; senderName: string; text: string; at: number; kind: ChatKind },
   ) => void;
   /** The DM's sound library, to play from. Omit and the soundboard frames are refused. */
   sounds?: SoundStore;
@@ -611,6 +613,21 @@ export class Hub {
       await this.whisper(state, data.campaignId, data.to, { id, name, text: data.text, at });
       return;
     }
+    // Whispers ignore kind and lang (above). For a public line, a missing kind is `chat`; anything outside
+    // the shared lists is refused, and a language only makes sense on `say`.
+    const kind = data.kind ?? 'chat';
+    if (!isChatKind(kind)) {
+      this.send(state, 'error', { code: 'invalid_kind', message: 'unknown chat kind' });
+      return;
+    }
+    if (data.lang !== undefined && (kind !== 'say' || !isChatLanguageKey(data.lang))) {
+      this.send(state, 'error', {
+        code: 'invalid_lang',
+        message: kind === 'say' ? 'unknown language' : 'a language is only valid on a say line',
+      });
+      return;
+    }
+    const lang = data.lang;
     await this.options.store.putChatMessage({
       id,
       campaignId: data.campaignId,
@@ -619,6 +636,8 @@ export class Hub {
       recipientId: null,
       text: data.text,
       at,
+      kind,
+      ...(lang !== undefined ? { lang } : {}),
     });
     // `id` lets a client that sees the same line twice (replay + history) keep one copy.
     const event = await this.options.replay.append(data.campaignId, 'chat.message', {
@@ -627,6 +646,8 @@ export class Hub {
       from: { userId: auth.user.id, name },
       text: data.text,
       at,
+      kind,
+      ...(lang !== undefined ? { lang } : {}),
     });
     this.broadcast(data.campaignId, event.t, event.d, { seq: event.seq });
     this.options.onPublicChat?.(data.campaignId, {
@@ -634,6 +655,7 @@ export class Hub {
       senderName: name,
       text: data.text,
       at,
+      kind,
     });
     this.pruneChatSometimes(data.campaignId);
   }
@@ -673,6 +695,7 @@ export class Hub {
       recipientId: recipient.id,
       text: line.text,
       at: line.at,
+      kind: 'chat',
     });
     const payload = {
       id: line.id,

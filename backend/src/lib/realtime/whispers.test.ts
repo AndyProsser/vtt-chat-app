@@ -240,6 +240,7 @@ describe('table chat is durable and viewer-filtered', () => {
         recipientId: null,
         text: `m${i}`,
         at: i * 1000,
+        kind: 'chat',
       });
     }
     const page = await t.store.listChat(id, t.users.bob.id, { limit: 3, before: 8000 });

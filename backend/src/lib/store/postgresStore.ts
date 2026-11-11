@@ -136,6 +136,8 @@ const toChat = (r: Row): ChatMessage => ({
   recipientId: nullable(r.recipient_id as string | null),
   text: r.text as string,
   at: r.at as number,
+  kind: ((r.kind as ChatMessage['kind'] | null | undefined) ?? 'chat') as ChatMessage['kind'],
+  ...(typeof r.lang === 'string' ? { lang: r.lang } : {}),
 });
 
 const toInvite = (r: Row): Invite => ({
@@ -485,10 +487,20 @@ export class PostgresStore implements Store {
 
   async putChatMessage(m: ChatMessage): Promise<void> {
     await this.db.query(
-      `INSERT INTO chat_messages (id, campaign_id, sender_id, sender_name, recipient_id, text, at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `INSERT INTO chat_messages (id, campaign_id, sender_id, sender_name, recipient_id, text, at, kind, lang)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
        ON CONFLICT (id) DO NOTHING`,
-      [m.id, m.campaignId, m.senderId, m.senderName, m.recipientId, m.text, m.at],
+      [
+        m.id,
+        m.campaignId,
+        m.senderId,
+        m.senderName,
+        m.recipientId,
+        m.text,
+        m.at,
+        m.kind,
+        m.lang ?? null,
+      ],
     );
   }
 

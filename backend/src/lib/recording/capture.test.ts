@@ -268,6 +268,28 @@ describe('RecordingCapture', () => {
     expect(typed[0]?.detail).toEqual({ senderId: 'alice', senderName: 'Aria', text: 'during' });
   });
 
+  it('never puts an out-of-character line in the timeline, the transcript or search', async () => {
+    const line = (text: string, kind?: 'chat' | 'say' | 'do' | 'ooc') => ({
+      senderId: 'alice',
+      senderName: 'Aria',
+      text,
+      at: time,
+      ...(kind ? { kind } : {}),
+    });
+    capture.onRecordingChange(change('STARTED'));
+    await capture.idle();
+    capture.onChat(CAMPAIGN, line('Aria is running late zebra', 'ooc'));
+    capture.onChat(CAMPAIGN, line('plain zebra'));
+    capture.onChat(CAMPAIGN, line('spoken zebra', 'say'));
+    capture.onChat(CAMPAIGN, line('acts zebra', 'do'));
+    await capture.idle();
+    const typed = (await records.listRecordingEvents(REC)).filter((e) => e.event === 'chat');
+    expect(typed.map((e) => e.detail?.text)).toEqual(['plain zebra', 'spoken zebra', 'acts zebra']);
+    const hits = await records.search(CAMPAIGN, 'zebra', { includeDmOnly: true, limit: 20 });
+    expect(hits.map((h) => h.snippet).join(' ')).not.toContain('late');
+    expect(hits).toHaveLength(3);
+  });
+
   it('pause ends the files and resume starts new ones: a speaker gets one track per stretch', async () => {
     publish('alice');
     capture.onRecordingChange(change('STARTED'));

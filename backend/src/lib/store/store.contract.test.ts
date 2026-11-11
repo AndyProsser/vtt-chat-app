@@ -131,6 +131,39 @@ describe(`Store contract (${backend.kind})`, () => {
     expect(await store.getCampaign(c.id)).toEqual(c);
   });
 
+  it('stores a chat line\u2019s kind and language and gives them back', async () => {
+    const c = campaign();
+    await store.putCampaign(c);
+    const owner = backend.newId();
+    await store.putUser({
+      id: owner,
+      email: 'k@x.test',
+      displayName: 'K',
+      passwordHash: null,
+      isAdmin: false,
+      consentVersion: '1',
+      consentAt: 1,
+      createdAt: 1,
+    });
+    const base = { campaignId: c.id, senderId: owner, senderName: 'K', recipientId: null };
+    await store.putChatMessage({
+      ...base,
+      id: backend.newId(),
+      text: 'a',
+      at: 1,
+      kind: 'say',
+      lang: 'elvish',
+    });
+    await store.putChatMessage({ ...base, id: backend.newId(), text: 'b', at: 2, kind: 'ooc' });
+    await store.putChatMessage({ ...base, id: backend.newId(), text: 'c', at: 3, kind: 'chat' });
+    const lines = await store.listChat(c.id, owner, { limit: 10 });
+    expect(lines.map((m) => [m.kind, m.lang])).toEqual([
+      ['say', 'elvish'],
+      ['ooc', undefined],
+      ['chat', undefined],
+    ]);
+  });
+
   it('upserts: a second put replaces the first', async () => {
     const c = campaign();
     await store.putCampaign(c);
@@ -325,6 +358,7 @@ describe.skipIf(TEST_DATABASE_URL === undefined)('migrate', () => {
         '0024_link_purpose.sql',
         '0025_device_requests.sql',
         '0026_signup_requests.sql',
+        '0027_chat_kind.sql',
       ]);
       expect(await migrate(pool)).toEqual([]);
     } finally {

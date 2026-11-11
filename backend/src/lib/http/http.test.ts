@@ -496,6 +496,7 @@ describe('chat history over HTTP', () => {
         recipientId: to,
         text,
         at,
+        kind: 'chat',
       });
     await line(null, 'for everyone', 1000);
     await line(dm.id, 'for the DM', 2000);

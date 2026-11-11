@@ -1,3 +1,4 @@
+import { CHAT_TEXT_MAX } from '@vtt-chat-app/shared';
 import { z } from 'zod';
 
 /** Bumped only for a breaking change; the server refuses other majors (SYNC-PROTOCOL.md). */
@@ -43,8 +44,11 @@ export const clientData = {
   // `to` set = a whisper, private to the sender and that member; omitted = said to the whole table.
   'chat.message': z.object({
     campaignId,
-    text: z.string().min(1).max(4000),
+    text: z.string().min(1).max(CHAT_TEXT_MAX),
     to: z.string().min(1).max(64).optional(),
+    // Checked against the shared lists by the hub, so a bad value is a refused line (an `error`), not a bad frame.
+    kind: z.string().max(32).optional(),
+    lang: z.string().max(32).optional(),
   }),
   // The DM's soundboard (docs/architecture/TABLE-FEATURES.md). DM-only; the server checks.
   'sound.play': z.object({
