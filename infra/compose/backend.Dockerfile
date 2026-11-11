@@ -26,7 +26,10 @@ COPY backend backend
 RUN npm run build -w shared -w ai -w ddb -w backend
 
 FROM manifests AS web
-RUN npm ci -w web
+# The web pages share the chat command parser with the apps, so build `shared` first.
+RUN npm ci -w web -w shared
+COPY shared shared
+RUN npm run build -w shared
 COPY web web
 RUN npm run build -w web
 
