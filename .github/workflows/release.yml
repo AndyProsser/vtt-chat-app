@@ -139,6 +139,15 @@ jobs:
         run: |
           set -euo pipefail
           cd tauri-client/target/release/bundle
+          # Tauri names the macOS updater archive `VTT Chat.app.tar.gz` with no architecture, and the server picks the
+          # updater platform (darwin-aarch64 vs darwin-x86_64) from the file name: without this an Apple-silicon build
+          # is offered to Intel Macs and the other way round. The signature covers the contents, so renaming is safe.
+          case "$(uname -m)" in arm64 | aarch64) arch=aarch64 ;; *) arch=x86_64 ;; esac
+          while IFS= read -r f; do
+            dir="$(dirname "$f")"
+            mv "$f" "$dir/VTT.Chat_${TAG#v}_${arch}.app.tar.gz"
+            [ -f "$f.sig" ] && mv "$f.sig" "$dir/VTT.Chat_${TAG#v}_${arch}.app.tar.gz.sig"
+          done < <(find . -type f -name '*.app.tar.gz')
           files=()
           while IFS= read -r f; do files+=("$f"); done < <(
             find . -type f \( -name '*.AppImage' -o -name '*.deb' -o -name '*.rpm' -o -name '*-setup.exe' -o -name '*.msi' \
