@@ -19,6 +19,7 @@ import path from 'node:path';
 import { formatBytes, freePercent, isLow, measureDisk } from '../lib/status/storage.js';
 import { MAGIC_LINK_TTL_MINUTES } from '../consts/index.js';
 import type { AccountService } from '../lib/auth/accountService.js';
+import type { SignupService } from '../lib/auth/signupService.js';
 import type { Store } from '../lib/store/store.js';
 import { publishUpdates } from '../lib/updates/publish.js';
 import { mirrorUsage, type SyncResult } from '../lib/updates/sync.js';
@@ -33,6 +34,7 @@ export interface Probe {
 export interface AdminDeps {
   store: Store;
   accounts: AccountService;
+  signups: SignupService;
   /** The records pipeline's queue and store (the `ai/` worker consumes the queue). */
   jobs: JobQueue;
   records: RecordsStore;
@@ -55,6 +57,8 @@ export interface AdminDeps {
 
 const SIMPLE_SETTINGS = {
   'campaign-creation': 'closed | open  (who may create campaigns)',
+  'signup.requests':
+    'on | off  (let visitors request an account; you approve in `signup`; default off)',
   'offline-limit-days': 'whole days a device may stay unseen before it must sign in again',
   'invite-expiry-days': 'whole days a new invite code stays valid',
   'consent-version':
@@ -73,6 +77,10 @@ const USAGE = `vtt-admin — system operations for this instance (gameplay is ma
   user admin <email> grant|revoke        give or take away Admin (the last Admin cannot be removed)
   user code <email> [signin|reset]       issue a one-time code to hand over on a side channel (${MAGIC_LINK_TTL_MINUTES} min); a signin code also connects the app (its Connect screen's code box) when no browser is at hand
   user revoke-sessions <email>           sign that account out on every device
+  signup list [pending|approved|rejected]
+                                         sign-up requests from visitors (default: pending)
+  signup approve <id|email>              make the account and print a one-time code to hand over on a side channel
+  signup reject <id|email>               turn a request down (nothing is sent)
   storage                                disk use: recordings, free space, database size
   jobs list [queued|running|done|failed] records-pipeline jobs, newest last
   jobs retry <job-id>                    put a failed job back in the queue
@@ -108,6 +116,9 @@ export function applySetting(
       if (value !== 'closed' && value !== 'open')
         throw new SettingError('must be "closed" or "open"');
       return { ...settings, campaignCreation: value as CampaignCreation };
+    case 'signup.requests':
+      if (value !== 'on' && value !== 'off') throw new SettingError('must be "on" or "off"');
+      return { ...settings, signupRequests: value };
     case 'offline-limit-days':
       return { ...settings, offlineLimitDays: positiveInt(value, 'offline-limit-days') };
     case 'invite-expiry-days':
@@ -124,6 +135,7 @@ function settingsLines(s: InstanceSettings): string[] {
   const dash = (v: string | null): string => v ?? '(none)';
   return [
     `campaign-creation          ${s.campaignCreation}`,
+    `signup.requests            ${s.signupRequests}`,
     `offline-limit-days         ${s.offlineLimitDays}`,
     `invite-expiry-days         ${s.inviteExpiryDays}`,
     `consent-version            ${s.consentVersion}`,
@@ -184,6 +196,8 @@ export async function runAdmin(argv: string[], deps: AdminDeps): Promise<number>
         return await settings(deps, command, rest);
       case 'user':
         return await users(deps, command, rest);
+      case 'signup':
+        return await signupRequests(deps, command, rest);
       case 'jobs':
         return await jobs(deps, command, rest);
       case 'recording':
@@ -212,6 +226,13 @@ async function status(deps: AdminDeps): Promise<number> {
   let healthy = true;
   const probes: Probe[] = [
     { name: 'accounts', run: async () => `${await deps.store.countUsers()} account(s)` },
+    {
+      name: 'signups',
+      run: async () => {
+        const n = (await deps.store.listSignupRequests('pending')).length;
+        return `${n} pending sign-up request(s)${n > 0 ? ' (see: signup list)' : ''}`;
+      },
+    },
     ...(deps.probes ?? []),
   ];
   for (const probe of probes) {
@@ -305,13 +326,13 @@ async function users(
         return 2;
       }
       const user = await findUser(deps, email);
-      const issued = await deps.accounts.requestMagicLink(user.email, purposeArg);
+      const issued = await deps.accounts.requestMagicLink(user.email, purposeArg, { short: true });
       if (!issued) throw new SettingError('could not issue a code');
       const minutes = Math.round((issued.expiresAt - Date.now()) / 60_000);
       deps.out(
         `one-time ${purposeArg} code for ${user.email} (valid about ${minutes} min, works once):`,
       );
-      deps.out(issued.token);
+      deps.out(`${issued.token.slice(0, 4)}-${issued.token.slice(4)}`);
       return 0;
     }
     case 'create': {
@@ -357,6 +378,70 @@ async function users(
     default:
       deps.err(
         'usage: user list | create <email> --name <name> --accept-consent [--admin] | admin <email> grant|revoke | code <email> [signin|reset] | revoke-sessions <email>',
+      );
+      return 2;
+  }
+}
+
+const SIGNUP_STATES = ['pending', 'approved', 'rejected'] as const;
+
+async function signupRequests(
+  deps: AdminDeps,
+  command: string | undefined,
+  rest: string[],
+): Promise<number> {
+  const asSettingError = async <T>(work: Promise<T>): Promise<T> => {
+    try {
+      return await work;
+    } catch (error) {
+      throw new SettingError(error instanceof Error ? error.message : String(error));
+    }
+  };
+  switch (command) {
+    case 'list': {
+      const state = rest[0] ?? 'pending';
+      if (!(SIGNUP_STATES as readonly string[]).includes(state)) {
+        throw new SettingError(`state must be one of ${SIGNUP_STATES.join(', ')}`);
+      }
+      const list = await deps.signups.list(state as (typeof SIGNUP_STATES)[number]);
+      for (const r of list) {
+        const when = new Date(r.createdAt).toISOString().slice(0, 16).replace('T', ' ');
+        const note = r.message ? `  "${r.message.replace(/\s+/g, ' ')}"` : '';
+        deps.out(`${r.id}  ${when}  ${r.displayName}  <${r.email}>${note}`);
+      }
+      if (list.length === 0) deps.out(`no ${state} sign-up requests`);
+      return 0;
+    }
+    case 'approve': {
+      const [target] = rest;
+      if (!target) {
+        deps.err('usage: signup approve <id|email>');
+        return 2;
+      }
+      const { request, token, expiresAt } = await asSettingError(deps.signups.approve(target));
+      const minutes = Math.max(0, Math.round((expiresAt - Date.now()) / 60_000));
+      deps.out(`approved ${request.email}`);
+      deps.out(`sign-in code (valid about ${minutes} min, works once):`);
+      deps.out(`${token.slice(0, 4)}-${token.slice(4)}`);
+      deps.out(
+        'Hand it to them on a side channel (message, in person), not by replying to the request. ' +
+          `They enter it under "I have a sign-in code" and accept the recording notice. Need a new one: user code ${request.email}`,
+      );
+      return 0;
+    }
+    case 'reject': {
+      const [target] = rest;
+      if (!target) {
+        deps.err('usage: signup reject <id|email>');
+        return 2;
+      }
+      const request = await asSettingError(deps.signups.reject(target));
+      deps.out(`rejected ${request.email}`);
+      return 0;
+    }
+    default:
+      deps.err(
+        'usage: signup list [pending|approved|rejected] | approve <id|email> | reject <id|email>',
       );
       return 2;
   }

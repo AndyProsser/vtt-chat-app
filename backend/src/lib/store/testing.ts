@@ -64,7 +64,7 @@ export async function openTestBackend(): Promise<TestBackend> {
     reset: async () => {
       // CASCADE clears the dependants; the settings row is re-seeded by hand below.
       await pool.query(
-        `TRUNCATE invites, memberships, characters, campaigns, magic_links, device_requests, sessions, users,
+        `TRUNCATE invites, memberships, characters, campaigns, magic_links, device_requests, signup_requests, sessions, users,
            instance_settings CASCADE`,
       );
       await pool.query('INSERT INTO instance_settings (id) VALUES (1)');

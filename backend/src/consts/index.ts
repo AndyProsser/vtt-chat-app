@@ -16,11 +16,15 @@ export const DEV_LIVEKIT_API_SECRET = 'secret';
  */
 export const DEFAULT_INSTANCE_SETTINGS: InstanceSettings = {
   campaignCreation: 'closed',
+  signupRequests: 'off',
   offlineLimitDays: 30,
   inviteExpiryDays: 7,
   consentVersion: '1',
   ai: DEFAULT_AI_SETTINGS,
 };
+
+/** Open sign-up requests kept at once; beyond this new ones are refused so a flood cannot fill the table. */
+export const MAX_PENDING_SIGNUP_REQUESTS = 200;
 
 /** Chat history kept per campaign (whispers included); older lines are pruned. Bounded retention. */
 export const CHAT_RETENTION_MESSAGES = 5000;

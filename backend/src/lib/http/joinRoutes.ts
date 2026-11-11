@@ -9,7 +9,7 @@ import type { RateLimiter } from './rateLimit.js';
 
 export interface JoinRouteDeps {
   campaigns: CampaignService;
-  downloads: ClientDownloads;
+  downloads: () => Promise<ClientDownloads>;
   /** Slows guessing of invite codes; shared with the join endpoint so both draw on one budget. */
   inviteLimiter: RateLimiter;
 }
@@ -29,13 +29,13 @@ export function inviteRoutes({ campaigns, downloads, inviteLimiter }: JoinRouteD
       return;
     }
     const preview = await campaigns.previewInvite(String(req.params.code));
-    res.json({ ...preview, downloads });
+    res.json({ ...preview, downloads: await downloads() });
   });
   return router;
 }
 
 /**
- * Serves the built join page (`web/dist`) at `/join/*` and its assets. The page is the only browser
+ * Serves the built join page (`web/dist`) at `/` (landing), `/join/*` and `/connect`, and its assets. The page is the only browser
  * UI: first-run account creation and the app download. Everything after install happens in the app.
  * Returns undefined when the directory isn't there, so a backend without the page still starts.
  */
@@ -68,7 +68,7 @@ export function webPages(webDir: string): Router | undefined {
       fallthrough: false,
     }),
   );
-  router.get(['/join', '/join/:code', '/connect'], (_req, res) => {
+  router.get(['/', '/join', '/join/:code', '/connect'], (_req, res) => {
     res.sendFile(index);
   });
   // The phone app (web/app.html). Hash routes, so this one path is all the server needs to know.

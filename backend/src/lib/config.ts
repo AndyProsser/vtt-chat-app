@@ -14,6 +14,9 @@ export interface ClientDownloads {
   windows?: string;
   macos?: string;
   linux?: string;
+  /** Extra Linux formats, offered by the update sync only. */
+  linuxDeb?: string;
+  linuxRpm?: string;
 }
 
 export interface UpdatesSyncConfig {

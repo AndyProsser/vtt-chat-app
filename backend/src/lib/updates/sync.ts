@@ -4,6 +4,7 @@ import path from 'node:path';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 
+import { DOWNLOADS_FILE, pickDownloads } from './downloads.js';
 import { verifyMinisign } from './minisign.js';
 import { platformOf, type LatestJson } from './publish.js';
 import { compareVersions, isDevVersion } from './version.js';
@@ -91,6 +92,8 @@ export async function syncUpdates(options: SyncOptions): Promise<SyncResult> {
     : [];
 
   const manifests: { release?: LatestJson; dev?: LatestJson } = {};
+  let releaseAssets: GithubAsset[] = [];
+  let devAssets: GithubAsset[] = [];
   const kept = new Set<string>();
 
   // Newest first; the first one that can be offered in full wins, so a release missing an installer or failing
@@ -101,6 +104,8 @@ export async function syncUpdates(options: SyncOptions): Promise<SyncResult> {
         const manifest = await manifestFor(c.release, c.version, options, get, result);
         if (manifest) {
           manifests[channel] = manifest;
+          if (channel === 'release') releaseAssets = c.release.assets;
+          else devAssets = c.release.assets;
           return c.version;
         }
         result.skipped.push(`${c.version}: no signed installers`);
@@ -124,6 +129,14 @@ export async function syncUpdates(options: SyncOptions): Promise<SyncResult> {
 
   if (manifests.release)
     await writeAtomic(path.join(options.dir, 'latest.json'), manifests.release);
+  // Where a person installs the app from (the landing page's download buttons). GitHub links in both modes: the
+  // mirror holds only the signed updater files, and the installers are public there anyway.
+  // With no stable release yet (a line that only has dev builds, and the operator opted in), the dev build's
+  // installers are what a new player can get.
+  if (manifests.release || manifests.dev) {
+    const assets = manifests.release ? releaseAssets : devAssets;
+    await writeAtomic(path.join(options.dir, DOWNLOADS_FILE), pickDownloads(assets));
+  }
   const devFeed = manifests.dev ?? manifests.release;
   if (devFeed) await writeAtomic(path.join(options.dir, 'dev', 'latest.json'), devFeed);
 
@@ -227,7 +240,7 @@ async function exists(file: string): Promise<boolean> {
 }
 
 /** Write then rename, so a player never reads half a manifest. */
-async function writeAtomic(file: string, manifest: LatestJson): Promise<void> {
+async function writeAtomic(file: string, manifest: object): Promise<void> {
   await mkdir(path.dirname(file), { recursive: true });
   const temp = `${file}.tmp`;
   await writeFile(temp, `${JSON.stringify(manifest, null, 2)}\n`);

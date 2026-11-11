@@ -275,10 +275,20 @@ describe('magic links', () => {
       await rejects(w.accounts.redeemMagicLink(issued.code), 'invalid_token');
     });
 
+    it('also issue a long link token, an independent single-use credential', async () => {
+      const issued = await w.accounts.issueLinkCode(user.id);
+      expect(issued.linkToken).toMatch(/^[A-Za-z0-9_-]{43}$/);
+      expect((await w.accounts.redeemMagicLink(issued.linkToken)).user.id).toBe(user.id);
+      await rejects(w.accounts.redeemMagicLink(issued.linkToken), 'invalid_token');
+      // the short code is a separate credential and still works once
+      expect((await w.accounts.redeemMagicLink(issued.code)).user.id).toBe(user.id);
+    });
+
     it('expire after five minutes', async () => {
       const issued = await w.accounts.issueLinkCode(user.id);
       w.clock.advance(LINK_CODE_TTL_MINUTES * MINUTE_MS + 1);
       await rejects(w.accounts.redeemMagicLink(issued.code), 'invalid_token');
+      await rejects(w.accounts.redeemMagicLink(issued.linkToken), 'invalid_token');
     });
 
     it('are accepted in lower case with a hyphen', async () => {

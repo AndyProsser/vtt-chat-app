@@ -9,6 +9,8 @@ import type {
   InstanceSettings,
   Invite,
   DeviceRequest,
+  SignupRequest,
+  SignupRequestStatus,
   MagicLink,
   Membership,
   Session,
@@ -74,6 +76,16 @@ const toDeviceRequest = (r: Row): DeviceRequest => ({
   expiresAt: r.expires_at as number,
   approvedUserId: nullable(r.approved_user_id as string | null),
   deliveredAt: nullable(r.delivered_at as number | null),
+});
+
+const toSignupRequest = (r: Row): SignupRequest => ({
+  id: r.id as string,
+  email: r.email as string,
+  displayName: r.display_name as string,
+  message: r.message as string,
+  status: r.status as SignupRequestStatus,
+  createdAt: r.created_at as number,
+  decidedAt: nullable(r.decided_at as number | null),
 });
 
 const toMagicLink = (r: Row): MagicLink => ({
@@ -182,6 +194,7 @@ export class PostgresStore implements Store {
     if (r === undefined) return { ...DEFAULT_INSTANCE_SETTINGS };
     return {
       campaignCreation: r.campaign_creation as InstanceSettings['campaignCreation'],
+      signupRequests: r.signup_requests as InstanceSettings['signupRequests'],
       offlineLimitDays: r.offline_limit_days as number,
       inviteExpiryDays: r.invite_expiry_days as number,
       consentVersion: r.consent_version as string,
@@ -191,16 +204,17 @@ export class PostgresStore implements Store {
 
   async putSettings(s: InstanceSettings): Promise<void> {
     await this.db.query(
-      `INSERT INTO instance_settings (id, campaign_creation, offline_limit_days, invite_expiry_days, consent_version, ai)
-       VALUES (1, $1, $2, $3, $4, $5)
+      `INSERT INTO instance_settings (id, campaign_creation, offline_limit_days, invite_expiry_days, consent_version, ai, signup_requests)
+       VALUES (1, $1, $2, $3, $4, $5, $6)
        ON CONFLICT (id) DO UPDATE SET campaign_creation = $1, offline_limit_days = $2,
-         invite_expiry_days = $3, consent_version = $4, ai = $5`,
+         invite_expiry_days = $3, consent_version = $4, ai = $5, signup_requests = $6`,
       [
         s.campaignCreation,
         s.offlineLimitDays,
         s.inviteExpiryDays,
         s.consentVersion,
         JSON.stringify(s.ai),
+        s.signupRequests,
       ],
     );
   }
@@ -296,6 +310,28 @@ export class PostgresStore implements Store {
 
   getDeviceRequestByCodeHash = (hash: string): Promise<DeviceRequest | undefined> =>
     this.one(toDeviceRequest, 'SELECT * FROM device_requests WHERE user_code_hash = $1', [hash]);
+
+  async putSignupRequest(r: SignupRequest): Promise<void> {
+    await this.db.query(
+      `INSERT INTO signup_requests (id, email, display_name, message, status, created_at, decided_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       ON CONFLICT (id) DO UPDATE SET email = $2, display_name = $3, message = $4, status = $5,
+         created_at = $6, decided_at = $7`,
+      [r.id, r.email, r.displayName, r.message, r.status, r.createdAt, r.decidedAt],
+    );
+  }
+
+  getSignupRequest = (id: string): Promise<SignupRequest | undefined> =>
+    this.one(toSignupRequest, 'SELECT * FROM signup_requests WHERE id = $1', [id]);
+
+  listSignupRequests = (status?: SignupRequestStatus): Promise<SignupRequest[]> =>
+    status === undefined
+      ? this.many(toSignupRequest, 'SELECT * FROM signup_requests ORDER BY created_at, id')
+      : this.many(
+          toSignupRequest,
+          'SELECT * FROM signup_requests WHERE status = $1 ORDER BY created_at, id',
+          [status],
+        );
 
   async deleteExpiredDeviceRequests(now: number): Promise<void> {
     await this.db.query('DELETE FROM device_requests WHERE expires_at <= $1', [now]);

@@ -294,6 +294,42 @@ describe('accounts over HTTP', () => {
     expect(redeem.status).toBe(200);
     expect(redeem.body.sessionToken).not.toBe(ann.token);
     expect(redeem.body.user.id).toBe(ann.id);
+    // the long token for the deep link is a second, independent credential
+    expect(res.body.linkToken).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    const viaToken = await api.call('POST', '/api/auth/magic-link/redeem', {
+      body: { token: res.body.linkToken },
+    });
+    expect(viaToken.status).toBe(200);
+    expect(viaToken.body.user.id).toBe(ann.id);
+  });
+
+  it('serves GET /api/downloads from the synced file unless CLIENT_URL_* is set', async () => {
+    const { mkdtemp, writeFile } = await import('node:fs/promises');
+    const { tmpdir } = await import('node:os');
+    const dir = await mkdtemp(`${tmpdir()}/dl-`);
+    await writeFile(
+      `${dir}/downloads.json`,
+      JSON.stringify({ linux: 'https://dl.test/a.AppImage' }),
+    );
+    const serve = async (config: object) => {
+      const app = createApp({ config: { ...CONFIG, ...config } as never, store, sender });
+      const srv = await new Promise<Server>((resolve) => {
+        const s2 = app.listen(0, '127.0.0.1', () => resolve(s2));
+      });
+      try {
+        const port = (srv.address() as AddressInfo).port;
+        return (await fetch(`http://127.0.0.1:${port}/api/downloads`)).json();
+      } finally {
+        srv.close();
+      }
+    };
+    expect(await serve({ clientDownloads: {}, updatesDir: dir })).toEqual({
+      linux: 'https://dl.test/a.AppImage',
+    });
+    expect(
+      await serve({ clientDownloads: { windows: 'https://mine/w' }, updatesDir: dir }),
+    ).toEqual({ windows: 'https://mine/w' });
+    expect(await serve({ clientDownloads: {} })).toEqual({});
   });
 
   it('answers an unknown address exactly like a known one, and sends nothing', async () => {
@@ -636,6 +672,59 @@ describe('device requests over HTTP', () => {
     let last = 0;
     for (let i = 0; i < 12; i++) {
       last = (await api.call('POST', '/api/auth/device', { body: {} })).status;
+    }
+    expect(last).toBe(429);
+  });
+});
+
+describe('sign-up requests over HTTP', () => {
+  const ask = (body: unknown) => api.call('POST', '/api/signup-requests', { body });
+  const turnOn = async (): Promise<void> =>
+    store.putSettings({ ...(await store.getSettings()), signupRequests: 'on' });
+
+  it('is not there while the setting is off, and the providers say so', async () => {
+    expect((await api.call('GET', '/api/auth/providers')).body.signupRequests).toBe(false);
+    const { status, body } = await ask({ email: 'a@x.test', displayName: 'A' });
+    expect(status).toBe(404);
+    expect(body.error).toBe('not_found');
+    expect(await store.listSignupRequests()).toEqual([]);
+  });
+
+  it('takes a request when on, answering the same for a repeat or an existing account', async () => {
+    await turnOn();
+    expect((await api.call('GET', '/api/auth/providers')).body.signupRequests).toBe(true);
+    await api.call('POST', '/api/auth/register', {
+      body: {
+        email: 'have@x.test',
+        displayName: 'Have',
+        password: 'correct horse battery',
+        acceptedConsentVersion: '1',
+      },
+    });
+    const first = await ask({ email: 'new@x.test', displayName: 'New', message: 'hi' });
+    const repeat = await ask({ email: 'new@x.test', displayName: 'New' });
+    const existing = await ask({ email: 'have@x.test', displayName: 'Have' });
+    for (const r of [first, repeat, existing]) {
+      expect(r.status).toBe(202);
+      expect(r.body).toEqual({ ok: true });
+    }
+    expect((await store.listSignupRequests()).map((r) => r.email)).toEqual(['new@x.test']);
+  });
+
+  it('rejects bad input', async () => {
+    await turnOn();
+    expect((await ask({ email: 'nope', displayName: 'A' })).status).toBe(400);
+    expect((await ask({ email: 'a@x.test' })).status).toBe(400);
+    expect(
+      (await ask({ email: 'a@x.test', displayName: 'A', message: 'm'.repeat(501) })).status,
+    ).toBe(400);
+  });
+
+  it('limits requests per address', async () => {
+    await turnOn();
+    let last = 0;
+    for (let i = 0; i < 6; i += 1) {
+      last = (await ask({ email: `p${i}@x.test`, displayName: 'P' })).status;
     }
     expect(last).toBe(429);
   });

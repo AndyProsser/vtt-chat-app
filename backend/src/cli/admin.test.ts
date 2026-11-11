@@ -6,12 +6,14 @@ import path from 'node:path';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { AccountService } from '../lib/auth/accountService.js';
-import { hashSecret } from '../lib/auth/crypto.js';
+import { hashSecret, normaliseShortCode } from '../lib/auth/crypto.js';
+import { SignupService } from '../lib/auth/signupService.js';
 import { MemoryStore } from '../lib/store/memoryStore.js';
 import { runAdmin, type Probe } from './admin.js';
 
 let store: MemoryStore;
 let accounts: AccountService;
+let signups: SignupService;
 let jobs: MemoryJobQueue;
 let records: MemoryRecordsStore;
 let out: string[];
@@ -23,6 +25,7 @@ async function run(args: string, probes: Probe[] = []): Promise<number> {
   return runAdmin(args.split(' ').filter(Boolean), {
     store,
     accounts,
+    signups,
     jobs,
     records,
     now: () => 1_000,
@@ -46,6 +49,7 @@ const register = (name: string) =>
 beforeEach(() => {
   store = new MemoryStore();
   accounts = new AccountService({ store });
+  signups = new SignupService({ store, accounts });
   jobs = new MemoryJobQueue();
   records = new MemoryRecordsStore();
   out = [];
@@ -168,7 +172,8 @@ describe('users', () => {
     const alice = await register('alice');
     expect(await run('user code alice@example.com')).toBe(0);
     const token = out.at(-1) ?? '';
-    expect(await store.getMagicLinkByHash(hashSecret(token))).toBeDefined();
+    expect(token).toMatch(/^[A-Z2-9]{4}-[A-Z2-9]{4}$/);
+    expect(await store.getMagicLinkByHash(hashSecret(normaliseShortCode(token)))).toBeDefined();
     const signedIn = await accounts.redeemMagicLink(token);
     expect(signedIn.user.id).toBe(alice.id);
     await expect(accounts.redeemMagicLink(token)).rejects.toThrow();
@@ -491,5 +496,71 @@ describe('storage', () => {
   it('says plainly when recordings are not kept on this server', async () => {
     expect(await run('storage')).toBe(0);
     expect(out.join('\n')).toContain('recordings are not kept on this server');
+  });
+});
+
+describe('signup requests', () => {
+  const ask = (email: string, name = 'Visitor', message = '') =>
+    signups.submit({ email, displayName: name, message });
+
+  it('is off by default and the setting validates', async () => {
+    expect((await store.getSettings()).signupRequests).toBe('off');
+    await run('settings show');
+    expect(out.join('\n')).toContain('signup.requests            off');
+    expect(await run('settings set signup.requests maybe')).toBe(1);
+    expect(await run('settings set signup.requests on')).toBe(0);
+    expect((await store.getSettings()).signupRequests).toBe('on');
+    out.length = 0;
+    await run('settings keys');
+    expect(out.join('\n')).toContain('signup.requests');
+  });
+
+  it('lists pending requests, and shows the count in status', async () => {
+    await run('settings set signup.requests on');
+    await ask('Zed@Example.com', 'Zed', 'friend of Sam');
+    out.length = 0;
+    expect(await run('signup list')).toBe(0);
+    expect(out[0]).toContain('Zed');
+    expect(out[0]).toContain('<zed@example.com>');
+    expect(out[0]).toContain('friend of Sam');
+    out.length = 0;
+    await run('status');
+    expect(out.join('\n')).toContain('1 pending sign-up request(s)');
+    out.length = 0;
+    await run('signup list approved');
+    expect(out).toEqual(['no approved sign-up requests']);
+    expect(await run('signup list sideways')).toBe(1);
+  });
+
+  it('approves by email: makes the account without consent, prints a code that signs in', async () => {
+    await run('settings set signup.requests on');
+    await ask('zed@example.com', 'Zed');
+    out.length = 0;
+    expect(await run('signup approve ZED@example.com')).toBe(0);
+    expect(out[0]).toBe('approved zed@example.com');
+    const code = out.find((l) => /^[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(l));
+    expect(code).toBeDefined();
+    expect(out.join('\n')).toContain('side channel');
+    const user = await store.getUserByEmail('zed@example.com');
+    expect(user).toMatchObject({ isAdmin: false, passwordHash: null });
+    const signedIn = await accounts.redeemMagicLink(code!);
+    expect(signedIn.needsConsent).toBe(true);
+    expect(await store.listSignupRequests('pending')).toEqual([]);
+  });
+
+  it('approves by id, rejects by email, and only acts on pending requests', async () => {
+    await run('settings set signup.requests on');
+    await ask('a@example.com', 'A');
+    await ask('b@example.com', 'B');
+    const [a] = await store.listSignupRequests('pending');
+    expect(await run(`signup approve ${a!.id}`)).toBe(0);
+    expect(await run('signup reject b@example.com')).toBe(0);
+    expect(await run('signup approve a@example.com')).toBe(1);
+    expect(await run('signup reject b@example.com')).toBe(1);
+    expect(await run('signup approve')).toBe(2);
+    expect((await store.listSignupRequests('rejected')).map((r) => r.email)).toEqual([
+      'b@example.com',
+    ]);
+    expect(await store.getUserByEmail('b@example.com')).toBeUndefined();
   });
 });

@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import pg from 'pg';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 
-import type { Campaign, Membership } from '../../types/index.js';
+import type { Campaign, Membership, SignupRequest } from '../../types/index.js';
 import { migrate } from './migrate.js';
 import { createPool } from './postgresStore.js';
 import type { Store } from './store.js';
@@ -169,6 +169,39 @@ describe(`Store contract (${backend.kind})`, () => {
   });
 });
 
+describe('sign-up requests', () => {
+  const request = (email: string, createdAt: number): SignupRequest => ({
+    id: backend.newId(),
+    email,
+    displayName: 'Visitor',
+    message: '',
+    status: 'pending',
+    createdAt,
+    decidedAt: null,
+  });
+
+  it('stores, updates and lists requests oldest first, filtered by status', async () => {
+    const a = request('a@x.test', 2);
+    const b = request('b@x.test', 1);
+    await store.putSignupRequest(a);
+    await store.putSignupRequest(b);
+    expect((await store.listSignupRequests()).map((r) => r.email)).toEqual([
+      'b@x.test',
+      'a@x.test',
+    ]);
+    await store.putSignupRequest({ ...b, status: 'approved', decidedAt: 5 });
+    expect((await store.listSignupRequests('pending')).map((r) => r.email)).toEqual(['a@x.test']);
+    expect(await store.getSignupRequest(b.id)).toMatchObject({ status: 'approved', decidedAt: 5 });
+    expect(await store.getSignupRequest(backend.newId())).toBeUndefined();
+  });
+
+  it('keeps the signup-requests setting, off by default', async () => {
+    expect((await store.getSettings()).signupRequests).toBe('off');
+    await store.putSettings({ ...(await store.getSettings()), signupRequests: 'on' });
+    expect((await store.getSettings()).signupRequests).toBe('on');
+  });
+});
+
 // Constraints only a real database enforces — the point of running against one.
 describe.skipIf(backend.kind !== 'postgres')('Postgres constraints', () => {
   async function user(email: string): Promise<string> {
@@ -291,6 +324,7 @@ describe.skipIf(TEST_DATABASE_URL === undefined)('migrate', () => {
         '0023_audio_notice.sql',
         '0024_link_purpose.sql',
         '0025_device_requests.sql',
+        '0026_signup_requests.sql',
       ]);
       expect(await migrate(pool)).toEqual([]);
     } finally {

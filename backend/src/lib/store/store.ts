@@ -5,6 +5,8 @@ import type {
   Invite,
   InstanceSettings,
   DeviceRequest,
+  SignupRequest,
+  SignupRequestStatus,
   MagicLink,
   Membership,
   Session,
@@ -42,6 +44,11 @@ export interface Store {
   markDeviceRequestApproved(id: string, userId: string, now: number): Promise<boolean>;
   /** Marks the request delivered if it was not already; true for exactly one caller. */
   markDeviceRequestDelivered(id: string, now: number): Promise<boolean>;
+
+  putSignupRequest(request: SignupRequest): Promise<void>;
+  getSignupRequest(id: string): Promise<SignupRequest | undefined>;
+  /** Oldest first; every status when none is given. */
+  listSignupRequests(status?: SignupRequestStatus): Promise<SignupRequest[]>;
 
   getCampaign(id: string): Promise<Campaign | undefined>;
   putCampaign(campaign: Campaign): Promise<void>;

@@ -40,7 +40,7 @@ export interface StatusDeps {
   jobs?: JobQueue;
   /** Measures the disk that holds recordings; null when there is none to measure. */
   storage?: () => Promise<DiskUse | null>;
-  downloads: ClientDownloads;
+  downloads: () => Promise<ClientDownloads>;
   now?: () => number;
   /** How long a snapshot is reused, so a busy status page cannot hammer the services. */
   cacheMs?: number;
@@ -99,7 +99,7 @@ export class StatusService {
       recording: { active: this.deps.activeRecordings() },
       pipeline,
       storage,
-      downloads: this.deps.downloads,
+      downloads: await this.deps.downloads(),
     };
     this.cached = snapshot;
     return snapshot;

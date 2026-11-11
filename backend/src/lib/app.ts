@@ -2,9 +2,11 @@ import type { JobQueue, RecordsStore } from '@vtt-chat-app/ai';
 import express, { type Express } from 'express';
 
 import { AccountService } from './auth/accountService.js';
+import { SignupService } from './auth/signupService.js';
 import { DeviceFlow } from './auth/deviceFlow.js';
 import { CampaignService } from './campaigns/campaignService.js';
 import { DEFAULT_TRUST_PROXY, type BackendConfig } from './config.js';
+import { signupRoutes } from './http/signupRoutes.js';
 import { inviteRoutes, webPages } from './http/joinRoutes.js';
 import type { DdbSyncService } from './ddb/ddbSyncService.js';
 import { avatarRoutes } from './http/avatarRoutes.js';
@@ -35,6 +37,7 @@ import { RecordingState } from './recording/recordingState.js';
 import type { RecordingChange } from './recording/recordingState.js';
 import type { Store } from './store/store.js';
 import { protocolGate, serverVersion, versionRoutes } from './version.js';
+import { resolveDownloads } from './updates/downloads.js';
 
 export interface AppDeps {
   config: BackendConfig;
@@ -125,6 +128,7 @@ export function createApp({
 }: AppDeps): Express {
   const accounts = new AccountService({ store });
   const devices = new DeviceFlow({ store, accounts });
+  const signups = new SignupService({ store, accounts });
   const campaigns = new CampaignService({ store });
 
   const app = express();
@@ -149,11 +153,17 @@ export function createApp({
   app.use('/api/version', versionRoutes(version));
   app.use('/api', protocolGate(version));
 
+  const downloads = () => resolveDownloads(config.clientDownloads, config.updatesDir);
   const inviteLimiter = new RateLimiter(20, 15 * MINUTE);
+  app.use('/api/invites', inviteRoutes({ campaigns, downloads, inviteLimiter }));
   app.use(
-    '/api/invites',
-    inviteRoutes({ campaigns, downloads: config.clientDownloads, inviteLimiter }),
+    '/api/signup-requests',
+    signupRoutes({ signups, signupLimiter: new RateLimiter(5, 60 * MINUTE) }),
   );
+  // Where to get the app, for the landing page (the invite preview carries the same list for joiners).
+  app.get('/api/downloads', async (_req, res) => {
+    res.json(await downloads());
+  });
   if (status) app.use('/api/status', statusApi(status));
   if (config.statusDir) {
     const page = statusPage(config.statusDir);
@@ -183,11 +193,12 @@ export function createApp({
   // accept a changed notice. Public and harmless: the wording is in the apps, the version is just a label.
   app.get('/api/auth/providers', async (_req, res, next) => {
     try {
-      const { consentVersion } = await store.getSettings();
+      const { consentVersion, signupRequests } = await store.getSettings();
       res.json({
         oidc: config.oidc !== undefined,
         mail: config.smtp !== undefined,
         consentVersion,
+        signupRequests: signupRequests === 'on',
       });
     } catch (error) {
       next(error);

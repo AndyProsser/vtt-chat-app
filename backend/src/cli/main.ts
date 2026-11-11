@@ -4,6 +4,7 @@ import { Valkey } from 'iovalkey';
 import { PostgresJobQueue, PostgresRecordsStore } from '@vtt-chat-app/ai';
 
 import { AccountService } from '../lib/auth/accountService.js';
+import { SignupService } from '../lib/auth/signupService.js';
 import { loadConfig } from '../lib/config.js';
 import { migrate } from '../lib/store/migrate.js';
 import { createPool, PostgresStore } from '../lib/store/postgresStore.js';
@@ -70,9 +71,11 @@ async function main(): Promise<number> {
       },
     });
 
+    const accounts = new AccountService({ store });
     return await runAdmin(process.argv.slice(2), {
       store,
-      accounts: new AccountService({ store }),
+      accounts,
+      signups: new SignupService({ store, accounts }),
       jobs: new PostgresJobQueue(pool),
       records: new PostgresRecordsStore(pool),
       ...(config.updatesDir ? { updatesDir: config.updatesDir } : {}),

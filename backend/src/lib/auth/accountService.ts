@@ -182,11 +182,14 @@ export class AccountService {
   async requestMagicLink(
     email: string,
     purpose: MagicLinkPurpose,
+    options: { short?: boolean } = {},
   ): Promise<{ token: string; expiresAt: number } | undefined> {
     const normalised = normaliseEmail(email);
     if (!(await this.store.getUserByEmail(normalised))) return undefined;
 
-    const token = generateSecret();
+    // `short` is for codes a person reads out or types (the admin CLI): 8 characters, shown ABCD-EFGH.
+    // Emailed codes stay long, since nobody has to type them.
+    const token = options.short ? generateShortCode() : generateSecret();
     const now = this.clock.now();
     const expiresAt = now + MAGIC_LINK_TTL_MINUTES * MINUTE_MS;
     await this.store.putMagicLink({
@@ -202,27 +205,34 @@ export class AccountService {
   }
 
   /**
-   * Issues a short-lived code for a user who is already signed in (on the web), to be typed or
-   * scanned into the desktop app. Returned as 8 raw characters; callers format it for display.
-   * Redeemed through `redeemMagicLink`, so it is single-use and stored only as a hash.
+   * Issues two short-lived, independent, single-use credentials for a user who is already signed in (on the
+   * web), to hand to the desktop app: a long `linkToken` for the `vtt-chat://` deep link (nobody types it), and
+   * an 8-character `code` (raw; callers format it) as the typed fallback. Each is stored only as a hash and
+   * redeemed through `redeemMagicLink`; redeeming one does not void the other (both expire in minutes and only
+   * ever sign in the same already-authenticated person).
    */
-  async issueLinkCode(userId: string): Promise<{ code: string; expiresAt: number }> {
+  async issueLinkCode(
+    userId: string,
+  ): Promise<{ code: string; linkToken: string; expiresAt: number }> {
     const user = await this.store.getUser(userId);
     if (!user) throw new DomainError('invalid_input', 'unknown user');
     await this.requireCurrentConsent(user);
     const code = generateShortCode();
+    const linkToken = generateSecret();
     const now = this.clock.now();
     const expiresAt = now + LINK_CODE_TTL_MINUTES * MINUTE_MS;
-    await this.store.putMagicLink({
-      id: this.newId(),
-      email: user.email,
-      purpose: 'link',
-      tokenHash: hashSecret(code),
-      createdAt: now,
-      expiresAt,
-      usedAt: null,
-    });
-    return { code, expiresAt };
+    for (const secret of [code, linkToken]) {
+      await this.store.putMagicLink({
+        id: this.newId(),
+        email: user.email,
+        purpose: 'link',
+        tokenHash: hashSecret(secret),
+        createdAt: now,
+        expiresAt,
+        usedAt: null,
+      });
+    }
+    return { code, linkToken, expiresAt };
   }
 
   /** Redeems a magic link exactly once. A reset also sets a new password and signs out everywhere else. */

@@ -40,6 +40,14 @@ function fakeGithub(releases: FakeRelease[]): typeof fetch {
                 browser_download_url: `https://dl.test/${r.tag}/${asset(r)}`,
                 size: 1,
               },
+              // human installers: unsigned, never in the updater feed, but offered as downloads
+              ...['VTT.Chat_x64-setup.exe', 'VTT.Chat_aarch64.dmg', 'VTT.Chat_amd64.deb'].map(
+                (n) => ({
+                  name: n,
+                  browser_download_url: `https://dl.test/${r.tag}/${n}`,
+                  size: 1,
+                }),
+              ),
               {
                 name: `${asset(r)}.sig`,
                 browser_download_url: `https://dl.test/${r.tag}/${asset(r)}.sig`,
@@ -97,6 +105,27 @@ describe('syncUpdates, github source', () => {
       'https://dl.test/v0.3.3/VTT.Chat_0.3.3_amd64.AppImage',
     );
     expect(await readdir(dir)).not.toContain('v'); // nothing stored
+  });
+
+  it('records the installable download per platform for the release it offers', async () => {
+    await syncUpdates(base({ fetchImpl: fakeGithub([{ tag: 'v0.3.1' }, { tag: 'v0.3.3' }]) }));
+    expect(JSON.parse(await readFile(path.join(dir, 'downloads.json'), 'utf8'))).toEqual({
+      windows: 'https://dl.test/v0.3.3/VTT.Chat_x64-setup.exe',
+      macos: 'https://dl.test/v0.3.3/VTT.Chat_aarch64.dmg',
+      linux: 'https://dl.test/v0.3.3/VTT.Chat_0.3.3_amd64.AppImage',
+      linuxDeb: 'https://dl.test/v0.3.3/VTT.Chat_amd64.deb',
+    });
+  });
+
+  it("uses the dev build's installers for downloads when the line has no stable release yet", async () => {
+    await syncUpdates(
+      base({
+        fetchImpl: fakeGithub([{ tag: 'v0.3.3-dev.1', prerelease: true }]),
+        includeDev: true,
+      }),
+    );
+    const downloads = JSON.parse(await readFile(path.join(dir, 'downloads.json'), 'utf8'));
+    expect(downloads.linux).toContain('v0.3.3-dev.1');
   });
 
   it('leaves the current feed alone when GitHub has nothing on this line', async () => {

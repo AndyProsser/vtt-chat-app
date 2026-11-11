@@ -53,6 +53,7 @@ import {
 } from '@vtt-chat-app/ai';
 import type pg from 'pg';
 import { syncFromConfig } from './lib/updates/runSync.js';
+import { resolveDownloads } from './lib/updates/downloads.js';
 
 const isEntryPoint =
   process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href;
@@ -237,7 +238,7 @@ if (isEntryPoint) {
     ...(config.recordingsDir !== undefined
       ? { storage: () => measureDisk(config.recordingsDir as string) }
       : {}),
-    downloads: config.clientDownloads,
+    downloads: () => resolveDownloads(config.clientDownloads, config.updatesDir),
   });
   const server = createServer(
     createApp({

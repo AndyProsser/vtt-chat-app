@@ -219,11 +219,12 @@ export function authRoutes({
   });
 
   // The client calls this periodically; the ping inside `requireAuth` is what keeps it signed in.
-  // A signed-in browser hands a short code to the desktop app, which redeems it at /magic-link/redeem.
+  // A signed-in browser hands a long link token (deep link) and a short code (typed fallback) to the desktop app, which redeems it at /magic-link/redeem.
   router.post('/link-codes', async (_req, res) => {
     const issued = await accounts.issueLinkCode(authOf(res).user.id);
     res.json({
       code: `${issued.code.slice(0, 4)}-${issued.code.slice(4)}`,
+      linkToken: issued.linkToken,
       expiresAt: issued.expiresAt,
     });
   });

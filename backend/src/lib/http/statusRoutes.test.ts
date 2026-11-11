@@ -18,7 +18,7 @@ async function serve(): Promise<string> {
         probes: [{ name: 'database', run: async () => undefined }],
         onlinePlayers: () => 2,
         activeRecordings: () => 0,
-        downloads: {},
+        downloads: async () => ({}),
       }),
     ),
   );

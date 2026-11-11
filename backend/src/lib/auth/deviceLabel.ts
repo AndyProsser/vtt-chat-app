@@ -19,3 +19,15 @@ export function cleanDeviceLabel(raw?: string | null): string | undefined {
   const capped = [...cleaned].slice(0, MAX_DEVICE_LABEL).join('').trim();
   return capped === '' ? undefined : capped;
 }
+
+/**
+ * The same stripping for other unauthenticated free text (a sign-up request's name and message):
+ * unshowable characters removed, ends trimmed. With `keepNewlines`, line breaks and tabs survive
+ * (a multi-line message) while every other control character still goes.
+ */
+export function stripUnshowable(raw: string, keepNewlines = false): string {
+  const kept = keepNewlines ? raw.replace(/\r\n?/g, '\n') : raw;
+  return kept
+    .replace(UNSHOWABLE, (c) => (keepNewlines && (c === '\n' || c === '\t') ? c : ''))
+    .trim();
+}

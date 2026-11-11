@@ -6,6 +6,8 @@ import type {
   Invite,
   InstanceSettings,
   DeviceRequest,
+  SignupRequest,
+  SignupRequestStatus,
   MagicLink,
   Membership,
   Session,
@@ -21,6 +23,7 @@ interface Data {
   sessions: Map<string, Session>;
   magicLinks: Map<string, MagicLink>;
   deviceRequests: Map<string, DeviceRequest>;
+  signupRequests: Map<string, SignupRequest>;
   campaigns: Map<string, Campaign>;
   memberships: Map<string, Membership>;
   characters: Map<string, Character>;
@@ -36,6 +39,7 @@ function emptyData(): Data {
     sessions: new Map(),
     magicLinks: new Map(),
     deviceRequests: new Map(),
+    signupRequests: new Map(),
     campaigns: new Map(),
     memberships: new Map(),
     characters: new Map(),
@@ -105,6 +109,17 @@ export class MemoryStore implements Store {
     row.deliveredAt = now;
     return true;
   };
+
+  putSignupRequest = async (request: SignupRequest): Promise<void> => {
+    this.data.signupRequests.set(request.id, copy(request));
+  };
+  getSignupRequest = async (id: string): Promise<SignupRequest | undefined> =>
+    copyOrUndefined(this.data.signupRequests.get(id));
+  listSignupRequests = async (status?: SignupRequestStatus): Promise<SignupRequest[]> =>
+    [...this.data.signupRequests.values()]
+      .filter((r) => status === undefined || r.status === status)
+      .sort((a, b) => a.createdAt - b.createdAt)
+      .map(copy);
 
   getCampaign = async (id: string): Promise<Campaign | undefined> =>
     copyOrUndefined(this.data.campaigns.get(id));

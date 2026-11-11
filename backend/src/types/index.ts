@@ -132,10 +132,28 @@ export interface ChatMessage {
 
 export type CampaignCreation = 'closed' | 'open';
 
+export type SignupRequestsSetting = 'on' | 'off';
+
+export type SignupRequestStatus = 'pending' | 'approved' | 'rejected';
+
+/** A visitor's request for an account; the operator approves or rejects it in the Admin CLI. */
+export interface SignupRequest {
+  id: string;
+  /** Normalised (trimmed, lowercase). */
+  email: string;
+  displayName: string;
+  message: string;
+  status: SignupRequestStatus;
+  createdAt: number;
+  decidedAt: number | null;
+}
+
 /** Instance-wide settings; the Admin and the CLI change them. */
 export interface InstanceSettings {
   /** `closed`: only the Admin creates campaigns. `open`: anyone, including players. */
   campaignCreation: CampaignCreation;
+  /** `on`: visitors may ask for an account (the operator approves in the CLI). Off by default. */
+  signupRequests: SignupRequestsSetting;
   /** A device unseen for this long must sign in again. */
   offlineLimitDays: number;
   inviteExpiryDays: number;

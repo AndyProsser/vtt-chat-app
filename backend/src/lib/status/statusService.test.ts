@@ -6,7 +6,7 @@ import { StatusService } from './statusService.js';
 const base = {
   onlinePlayers: () => 3,
   activeRecordings: () => 1,
-  downloads: { linux: 'https://x/l' },
+  downloads: async () => ({ linux: 'https://x/l' }),
 };
 
 describe('StatusService', () => {
