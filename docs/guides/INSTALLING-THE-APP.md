@@ -73,39 +73,22 @@ after that is handled the same way.
 | After installing | Double-click the VTT Chat AppImage and choose **Integrate and run**.                                                                                                             | Open Gear Lever, drop the AppImage on it, and click **Unlock**, then **Move to the app menu**. |
 | Good to know     | Its newest builds are labelled beta (3.0), but they are what the project publishes for current Ubuntu and Fedora. Log out and in once after installing.                          | Comes from Flathub, so it updates with your system and needs no `sudo`.                        |
 
-**2. By hand.** For when you would rather not install anything. Do not combine this with AppImageLauncher:
-it watches `~/Applications` and adds its own entry for every AppImage it finds there, so you would get two icons.
-This script keeps the file in `~/.local/opt` instead.
+**2. A script (no extra software).** Do not combine this with AppImageLauncher: it watches `~/Applications` and
+adds its own entry for every AppImage it finds there, so you would get two icons. This script keeps the file in
+`~/.local/opt` instead and writes only inside your home folder (no `sudo`).
 
 ```bash
-mkdir -p ~/.local/opt ~/.local/share/applications ~/.local/share/icons
-mv ~/Downloads/VTT.Chat_*.AppImage ~/.local/opt/VTT.Chat.AppImage
-chmod +x ~/.local/opt/VTT.Chat.AppImage
-
-# pull the icon out of the AppImage (this path is a real file, unlike the shortcut at its top level)
-cd "$(mktemp -d)" && ~/.local/opt/VTT.Chat.AppImage --appimage-extract 'usr/share/icons/hicolor/256x256/apps/vtt-chat-app.png'
-cp squashfs-root/usr/share/icons/hicolor/256x256/apps/vtt-chat-app.png ~/.local/share/icons/vtt-chat-app.png
-cd ~ && file ~/.local/share/icons/vtt-chat-app.png   # should say: PNG image data, 256 x 256
-
-# the menu entry (the icon is given by full path, so no icon cache can get in the way)
-cat > ~/.local/share/applications/vtt-chat-app.desktop <<EOF
-[Desktop Entry]
-Type=Application
-Name=VTT Chat
-Comment=Voice, chat and session records for tabletop groups
-Exec=$HOME/.local/opt/VTT.Chat.AppImage %u
-Icon=$HOME/.local/share/icons/vtt-chat-app.png
-Terminal=false
-Categories=Network;Chat;
-StartupWMClass=vtt-chat-app
-EOF
-update-desktop-database ~/.local/share/applications
+curl -fsSL https://raw.githubusercontent.com/AndyProsser/vtt-chat-app/main/tauri-client/scripts/install-appimage.sh -o install-appimage.sh
+less install-appimage.sh          # read it first if you like
+bash install-appimage.sh          # uses the newest VTT.Chat*.AppImage in ~/Downloads, or pass its path
 ```
 
-Log out and back in so the menu and dock notice. If you move the AppImage later, edit the `Exec=` line to match.
+It copies the AppImage to `~/.local/opt/VTT.Chat.AppImage`, pulls the real icon out of it, and writes
+`~/.local/share/applications/vtt-chat-app.desktop` with the icon given by full path (so no icon cache can hide it).
+Log out and back in once, then open **VTT Chat** from the menu. To update by hand, run the script again with the
+new file. (The app's own updater replaces the file in place and the entry keeps working.)
 
-**Undo it:** delete `~/.local/share/applications/vtt-chat-app.desktop`, `~/.local/share/icons/vtt-chat-app.png`
-and `~/.local/opt/VTT.Chat.AppImage`.
+**Undo it:** `bash install-appimage.sh --remove`.
 
 **Two icons, or no icon?** Look at what is in your own applications folder:
 
