@@ -93,6 +93,10 @@ export function createDeviceConnect(deps: DeviceConnectDeps) {
       if (code === 'expired') {
         teardown();
         set({ phase: 'expired' });
+      } else if (code === 'consent_required') {
+        // The server spent the delivery; retrying can only end in "expired". Say what to do instead.
+        teardown();
+        set({ phase: 'error', error: accountErrorMessage(e) });
       } else if (++failures >= DEVICE_POLL_MAX_FAILURES) {
         teardown();
         set({ phase: 'error', error: accountErrorMessage(e) });

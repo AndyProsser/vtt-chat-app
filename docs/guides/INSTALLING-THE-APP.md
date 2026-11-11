@@ -163,8 +163,9 @@ browser (the link, code or QR your DM gave you), then connect the app from there
 3. Codes last 5 minutes. If one expires, the page shows a new one.
 
 If the app shows a code of its own instead, open the address it shows (or scan its QR) in any browser where you
-are signed in, and press **Approve**. If the app says the recording notice changed, accept it on the join page
-first, then connect again.
+are signed in, and press **Approve**. If the recording notice changed since you last accepted it, the page shows
+it first: accept it, then approve. (If the app itself says the notice changed, sign in on the web page, accept
+it, and connect again.)
 
 ## Updates
 

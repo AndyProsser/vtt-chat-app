@@ -209,6 +209,7 @@ export class AccountService {
   async issueLinkCode(userId: string): Promise<{ code: string; expiresAt: number }> {
     const user = await this.store.getUser(userId);
     if (!user) throw new DomainError('invalid_input', 'unknown user');
+    await this.requireCurrentConsent(user);
     const code = generateShortCode();
     const now = this.clock.now();
     const expiresAt = now + LINK_CODE_TTL_MINUTES * MINUTE_MS;
@@ -314,9 +315,27 @@ export class AccountService {
     }
   }
 
+  /** Whether `user` still has to accept the current recording notice (it changed, or never accepted). */
+  async needsConsent(user: User): Promise<boolean> {
+    const settings = await this.store.getSettings();
+    return user.consentVersion !== settings.consentVersion;
+  }
+
+  /**
+   * Refuses (`consent_required`) to hand a session to another device for a user who has not accepted
+   * the current notice: the app has no consent screen, so the browser must take it first.
+   */
+  async requireCurrentConsent(user: User): Promise<void> {
+    if (await this.needsConsent(user)) {
+      throw new DomainError(
+        'consent_required',
+        'the recording notice has changed — accept it on this page before connecting the app',
+      );
+    }
+  }
+
   /** Starts a session for a user who has already proved who they are (e.g. a device request approved in a browser). */
   async signInUser(user: User, deviceLabel?: string): Promise<SignedIn> {
-    const settings = await this.store.getSettings();
     const secret = generateSecret();
     const now = this.clock.now();
     const session: Session = {
@@ -332,7 +351,7 @@ export class AccountService {
     return {
       user,
       sessionToken: `${session.id}.${secret}`,
-      needsConsent: user.consentVersion !== settings.consentVersion,
+      needsConsent: await this.needsConsent(user),
     };
   }
 

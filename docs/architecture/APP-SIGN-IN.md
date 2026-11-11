@@ -77,9 +77,14 @@ sign-in is the human proof.
 - The session the app receives is the existing long-lived, remotely revocable one. `GET /api/auth/sessions` and
   `DELETE /api/auth/sessions/:id` already exist; the Devices list that uses them waits for the web account page
   ([ROADMAP.md](../../ROADMAP.md) item 8). Until then `vtt-admin user revoke-sessions <email>` is the revoke.
-- **Consent.** The app has no consent screen. If the recording-notice version changed, sign-in succeeds with
-  `needsConsent`; the app then tells the player to accept the new notice in the browser (the join page) and
-  connect again, rather than showing the text itself. The consent wording therefore lives only in the web page.
+- **Consent.** The app has no consent screen, so the browser takes it before anything reaches the app. The
+  `/connect` sign-in shows a changed recording notice and accepts it (version from `/api/auth/providers`, posted
+  to `/api/auth/consent`) before the approval screen, as the join and phone pages do. The server enforces it:
+  `POST /api/auth/link-codes` and `POST /api/auth/device/approve` answer `403 consent_required` for an account
+  whose accepted version is stale. If the notice changes in the seconds between approval and collection, the
+  poll still reports `needsConsent`; the app then stops with "the recording notice has changed — sign in on the
+  web page to accept it, then connect again" (final, because the delivery is spent). The consent wording
+  therefore lives only in the web page.
 
 ## What was built (final names)
 

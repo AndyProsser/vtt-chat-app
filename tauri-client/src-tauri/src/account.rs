@@ -590,10 +590,11 @@ impl AccountClient {
             .ok_or_else(|| AccountError::new("bad_response", "the server sent no session"))?
             .to_string();
         if body.get("needsConsent").and_then(Value::as_bool) == Some(true) {
-            // The consent text is shown in the browser at sign-up; a changed version is re-accepted there.
+            // The app has no consent screen: a changed notice is accepted on the web sign-in page
+            // (`/connect` shows it before approving). The delivery is spent, so this is final.
             return Err(AccountError::new(
                 "consent_required",
-                "the recording notice has changed — open your invite link in a browser to accept it",
+                "the recording notice has changed — sign in on the web page to accept it, then connect again",
             ));
         }
         let user = body.get("user").cloned().unwrap_or(Value::Null);
@@ -1163,6 +1164,24 @@ mod tests {
         assert_eq!(out.user_id, "8d2b1c3e-0a4f-4e6b-9c7d-1e2f3a4b5c6d");
         assert_eq!(out.display_name, "Ann");
         assert_eq!(out.avatar_url, None);
+    }
+
+    #[tokio::test]
+    async fn a_poll_for_an_account_with_a_stale_notice_is_consent_required() {
+        let reply = String::from_utf8(REAL_SIGNED_IN.to_vec())
+            .unwrap()
+            .replace(r#""needsConsent":false"#, r#""needsConsent":true"#);
+        let (base, _r) = one_shot_server("200 OK", "application/json", reply.into_bytes()).await;
+        let err = AccountClient::new(&base)
+            .device_poll("r1", "sec")
+            .await
+            .unwrap_err();
+        assert_eq!(err.code, "consent_required");
+        assert!(
+            err.message.contains("sign in on the web page to accept it"),
+            "{}",
+            err.message
+        );
     }
 
     #[tokio::test]

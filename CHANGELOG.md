@@ -25,7 +25,7 @@ the GitHub release notes and refuses to build a release without one. How to writ
 ### Known limits
 
 - Deep links (Open VTT Chat) may not work on the Linux AppImage; type the code instead.
-- If the recording notice changed since you joined, accept it on the join page, then connect the app again.
+- If the recording notice changed since you last accepted it, the web page asks you to accept it before it connects the app. The app itself cannot show the notice.
 - The web has no Devices list yet; an operator can sign a player out everywhere with `vtt-admin user revoke-sessions`.
 
 ## [0.3.2] - 2026-11-11

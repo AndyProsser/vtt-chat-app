@@ -91,13 +91,36 @@ export interface LinkCode {
 export const createLinkCode = (token: string) =>
   request<LinkCode>('POST', '/api/auth/link-codes', { token });
 
-/** Password sign-in for the /connect page: no campaign, no consent step. */
-export async function signInPlain(email: string, password: string): Promise<string> {
-  const res = await request<Session>('POST', '/api/auth/login', {
-    body: { email, password, deviceLabel: 'Browser (connect page)' },
-  });
+/** A /connect sign-in: the session, and whether the recording notice must be accepted first. */
+export interface ConnectSignIn {
+  token: string;
+  needsConsent: boolean;
+}
+
+function connectSignIn(res: Session): ConnectSignIn {
   if (!res.sessionToken) throw new ApiError('no_session', 'sign-in failed', 401);
-  return res.sessionToken;
+  return { token: res.sessionToken, needsConsent: res.needsConsent === true };
+}
+
+/** Password sign-in for the /connect page: no campaign. A changed notice is accepted before approving. */
+export async function signInPlain(email: string, password: string): Promise<ConnectSignIn> {
+  return connectSignIn(
+    await request<Session>('POST', '/api/auth/login', {
+      body: { email, password, deviceLabel: 'Browser (connect page)' },
+    }),
+  );
+}
+
+/**
+ * Accepts the recording notice the server currently shows. The version comes from
+ * `/api/auth/providers`, the same source the phone sign-in uses; the server refuses a stale one.
+ */
+export async function acceptCurrentConsent(token: string): Promise<void> {
+  const { consentVersion } = await request<{ consentVersion: string }>(
+    'GET',
+    '/api/auth/providers',
+  );
+  await request('POST', '/api/auth/consent', { token, body: { version: consentVersion } });
 }
 
 /** Whether this server can email codes (SMTP configured). */
@@ -110,8 +133,8 @@ export const mailAvailable = () =>
 export const emailSignInCode = (email: string) =>
   request('POST', '/api/auth/magic-link', { body: { email, purpose: 'signin' } });
 
-export async function redeemEmailCode(token: string): Promise<string> {
-  const res = await request<Session>('POST', '/api/auth/magic-link/redeem', { body: { token } });
-  if (!res.sessionToken) throw new ApiError('no_session', 'sign-in failed', 401);
-  return res.sessionToken;
+export async function redeemEmailCode(token: string): Promise<ConnectSignIn> {
+  return connectSignIn(
+    await request<Session>('POST', '/api/auth/magic-link/redeem', { body: { token } }),
+  );
 }

@@ -543,6 +543,31 @@ describe('device requests over HTTP', () => {
     expect(again.body.error).toBe('invalid_token');
   });
 
+  it('refuses a link code and a device approval until a changed notice is accepted', async () => {
+    const ann = await signUp('ann');
+    await store.putSettings({ ...(await store.getSettings()), consentVersion: '2' });
+    const link = await api.call('POST', '/api/auth/link-codes', { token: ann.token });
+    expect(link.status).toBe(403);
+    expect(link.body.error).toBe('consent_required');
+    expect(link.body.message).toMatch(/recording notice/);
+
+    const started = await api.call('POST', '/api/auth/device', { body: {} });
+    const approveBody = { userCode: started.body.userCode };
+    const refused = await api.call('POST', '/api/auth/device/approve', {
+      token: ann.token,
+      body: approveBody,
+    });
+    expect(refused.status).toBe(403);
+    expect(refused.body.error).toBe('consent_required');
+
+    await api.call('POST', '/api/auth/consent', { token: ann.token, body: { version: '2' } });
+    expect(
+      (await api.call('POST', '/api/auth/device/approve', { token: ann.token, body: approveBody }))
+        .status,
+    ).toBe(204);
+    expect((await api.call('POST', '/api/auth/link-codes', { token: ann.token })).status).toBe(200);
+  });
+
   it('answers a wrong secret and an unknown request identically', async () => {
     const started = await api.call('POST', '/api/auth/device', { body: {} });
     const wrong = await api.call('POST', '/api/auth/device/poll', {

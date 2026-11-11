@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { request } from './api.js';
+import { acceptCurrentConsent, redeemEmailCode, request, signInPlain } from './api.js';
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -19,5 +19,42 @@ describe('request keepalive', () => {
     vi.stubGlobal('fetch', fetchMock);
     await request('GET', '/x');
     expect((fetchMock.mock.calls[0]?.[1] as RequestInit).keepalive).toBeUndefined();
+  });
+});
+
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
+
+describe('connect-page sign-in and the recording notice', () => {
+  it('reports when the account has not accepted the current notice', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => Promise.resolve(json({ user: {}, sessionToken: 'S', needsConsent: true }))),
+    );
+    expect(await signInPlain('a@b.co', 'pw')).toEqual({ token: 'S', needsConsent: true });
+    expect(await redeemEmailCode('code')).toEqual({ token: 'S', needsConsent: true });
+  });
+
+  it('reports no consent step when the notice is current', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(json({ user: {}, sessionToken: 'S', needsConsent: false })),
+    );
+    expect(await signInPlain('a@b.co', 'pw')).toEqual({ token: 'S', needsConsent: false });
+  });
+
+  it('accepts the version the server currently shows, with the session', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(json({ consentVersion: '7', mail: false, oidc: false }))
+      .mockResolvedValueOnce(json({ user: {} }));
+    vi.stubGlobal('fetch', fetchMock);
+    await acceptCurrentConsent('S');
+    expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/auth/providers');
+    const [path, init] = fetchMock.mock.calls[1] as [string, RequestInit];
+    expect(path).toBe('/api/auth/consent');
+    expect(init.method).toBe('POST');
+    expect(JSON.parse(String(init.body))).toEqual({ version: '7' });
+    expect((init.headers as Record<string, string>).Authorization).toBe('Bearer S');
   });
 });

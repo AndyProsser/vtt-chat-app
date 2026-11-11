@@ -102,6 +102,10 @@ export class DeviceFlow {
 
   /** The signed-in user says "yes, that is my app". The caller has already authenticated them. */
   async approve(userId: string, userCode: string): Promise<void> {
+    const approver = await this.store.getUser(userId);
+    if (!approver) throw new DomainError('invalid_input', 'unknown user');
+    // The app never shows the notice, so a stale acceptance would only fail later at the poll.
+    await this.accounts.requireCurrentConsent(approver);
     const request = await this.openByCode(userCode);
     // Conditional in the store, so two approvals racing (or a later one) cannot overwrite the first.
     if (!(await this.store.markDeviceRequestApproved(request.id, userId, this.clock.now()))) {

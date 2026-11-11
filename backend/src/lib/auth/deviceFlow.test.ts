@@ -152,11 +152,25 @@ describe('device requests', () => {
     expect(await store.getDeviceRequest(old.requestId)).toBeUndefined();
   });
 
-  it('reports needsConsent when the consent text has moved on', async () => {
+  it('refuses approval until the approver accepts a changed notice, and keeps the request open', async () => {
     const ann = await signUp('ann');
     await store.putSettings({ ...(await store.getSettings()), consentVersion: '2' });
     const started = await flow.start({});
+    expect(await errorCode(flow.approve(ann.id, started.userCode))).toBe('consent_required');
+    expect(await flow.poll(started.requestId, started.pollSecret)).toEqual({ pending: true });
+
+    await accounts.acceptConsent(ann.id, '2');
     await flow.approve(ann.id, started.userCode);
+    const done = await flow.poll(started.requestId, started.pollSecret);
+    if ('pending' in done) throw new Error('expected a session');
+    expect(done.needsConsent).toBe(false);
+  });
+
+  it('still reports needsConsent if the notice changes between approval and collection', async () => {
+    const ann = await signUp('ann');
+    const started = await flow.start({});
+    await flow.approve(ann.id, started.userCode);
+    await store.putSettings({ ...(await store.getSettings()), consentVersion: '2' });
     const done = await flow.poll(started.requestId, started.pollSecret);
     if ('pending' in done) throw new Error('expected a session');
     expect(done.needsConsent).toBe(true);

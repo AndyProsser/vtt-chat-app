@@ -101,6 +101,18 @@ describe('createDeviceConnect', () => {
     ctl.cancel();
   });
 
+  it('a `consent_required` poll error ends at once in the error phase with its message', async () => {
+    const { ctl, deps } = setup();
+    const message =
+      'the recording notice has changed — sign in on the web page to accept it, then connect again';
+    deps.poll.mockRejectedValueOnce({ code: 'consent_required', message });
+    await ctl.start('https://play.example.com');
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(ctl.getState()).toMatchObject({ phase: 'error', error: message });
+    await vi.advanceTimersByTimeAsync(20_000);
+    expect(deps.poll).toHaveBeenCalledTimes(1);
+  });
+
   it('cancel() stops polling and returns to idle', async () => {
     const { ctl, deps } = setup();
     await ctl.start('https://play.example.com');

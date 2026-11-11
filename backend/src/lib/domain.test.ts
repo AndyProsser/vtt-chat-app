@@ -286,6 +286,13 @@ describe('magic links', () => {
       const typed = `${issued.code.slice(0, 4)}-${issued.code.slice(4)}`.toLowerCase();
       expect((await w.accounts.redeemMagicLink(typed)).user.id).toBe(user.id);
     });
+
+    it('are refused until a changed recording notice is accepted', async () => {
+      await w.store.putSettings({ ...(await w.store.getSettings()), consentVersion: '2' });
+      await rejects(w.accounts.issueLinkCode(user.id), 'consent_required');
+      await w.accounts.acceptConsent(user.id, '2');
+      expect((await w.accounts.issueLinkCode(user.id)).code).toHaveLength(8);
+    });
   });
 
   it('says nothing for an unknown address', async () => {
