@@ -166,9 +166,29 @@ html::-webkit-scrollbar {
 }
 .install-command-row {
   display: flex;
-  align-items: flex-start;
+  align-items: stretch;
   gap: 8px;
   min-width: 0;
+}
+.install-copy {
+  appearance: none;
+  border: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  padding: 0 8px;
+  border-radius: var(--radius-3);
+  background: var(--accent-a3);
+  color: var(--accent-a11);
+}
+.install-copy:hover {
+  background: var(--accent-a4);
+}
+.install-copy:focus-visible {
+  outline: 2px solid var(--focus-8);
+  outline-offset: 1px;
 }
 .install-command {
   flex: 1 1 0;

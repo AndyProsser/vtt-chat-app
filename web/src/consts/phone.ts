@@ -1,8 +1,8 @@
 export const TABS = [
-  { id: 'chat', label: 'Chat' },
-  { id: 'sessions', label: 'Sessions' },
-  { id: 'handouts', label: 'Handouts' },
-  { id: 'history', label: 'History' },
+  { id: 'chat', icon: 'chat', label: 'Chat' },
+  { id: 'sessions', icon: 'sessions', label: 'Sessions' },
+  { id: 'handouts', icon: 'handouts', label: 'Handouts' },
+  { id: 'history', icon: 'history', label: 'History' },
 ] as const;
 
 export const SIGN_IN_MESSAGES: Record<string, string> = {

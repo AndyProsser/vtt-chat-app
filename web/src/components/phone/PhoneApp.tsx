@@ -1,6 +1,7 @@
 import { Badge, Button, DropdownMenu, Flex, Spinner, Text } from '@radix-ui/themes';
 import { type ReactNode, useCallback, useEffect, useState } from 'react';
 
+import { Icon } from '../icons/index.js';
 import { TABS } from '../../consts/phone.js';
 import { useLiveChat } from '../../hooks/useLiveChat.js';
 import { takeHandoffToken } from '../../lib/handoff.js';
@@ -136,7 +137,7 @@ function Shell({ campaignId, onSignOut }: { campaignId: string; onSignOut: () =>
   const many = usePhoneStore((s) => s.campaigns.length > 1);
   const say = useLiveChat(campaignId, onSignOut);
   return (
-    <div className="phone-page">
+    <div className="phone-page phone-page-app">
       <div className="phone-shell">
         <header className="phone-header">
           <div className="phone-header-row">
@@ -236,12 +237,15 @@ function Shell({ campaignId, onSignOut }: { campaignId: string; onSignOut: () =>
               aria-current={tab === t.id ? 'page' : undefined}
               onClick={() => usePhoneStore.getState().setTab(t.id as Tab)}
             >
-              {t.label}
-              {t.id === 'chat' && unread > 0 && (
-                <Badge color="violet" variant="solid" radius="full" ml="1">
-                  {unread}
-                </Badge>
-              )}
+              <span className="phone-tab-icon">
+                <Icon name={t.icon} size={20} />
+                {t.id === 'chat' && unread > 0 && (
+                  <Badge color="violet" variant="solid" radius="full" className="phone-tab-badge">
+                    {unread}
+                  </Badge>
+                )}
+              </span>
+              <span className="phone-tab-label">{t.label}</span>
             </button>
           ))}
         </nav>

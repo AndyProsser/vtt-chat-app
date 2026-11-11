@@ -1,12 +1,13 @@
-import { Button, Code, Flex, Text, VisuallyHidden } from '@radix-ui/themes';
+import { Code, Flex, Text, Tooltip, VisuallyHidden } from '@radix-ui/themes';
 import { useEffect, useRef, useState } from 'react';
 
+import { Icon } from './icons/index.js';
 import { copyText } from '../lib/clipboard.js';
 import type { InstallGuide } from '../types/index.js';
 
 const COPIED_MS = 2000;
 
-/** One command (or any short text, such as an address)  in a block that scrolls sideways, with a Copy button (selects the text if copying is blocked). */
+/** One command (or any short text, such as an address)  in a block that scrolls sideways, with an icon-only copy button (selects the text if copying is blocked). */
 export function Command({ command }: { command: string }) {
   const block = useRef<HTMLDivElement>(null);
   const [copied, setCopied] = useState(false);
@@ -34,9 +35,16 @@ export function Command({ command }: { command: string }) {
           {command}
         </Code>
       </div>
-      <Button type="button" size="1" variant="soft" aria-label="Copy" onClick={() => void copy()}>
-        {copied ? 'Copied' : 'Copy'}
-      </Button>
+      <Tooltip content={copied ? 'Copied' : 'Copy'}>
+        <button
+          type="button"
+          className="install-copy"
+          aria-label="Copy"
+          onClick={() => void copy()}
+        >
+          <Icon name={copied ? 'check' : 'copy'} size={16} />
+        </button>
+      </Tooltip>
       <VisuallyHidden>
         <span role="status" aria-live="polite">
           {copied ? 'Copied' : ''}
