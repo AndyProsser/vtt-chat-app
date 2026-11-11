@@ -20,7 +20,7 @@ the GitHub release notes and refuses to build a release without one. How to writ
 ### Changed
 
 - **The app no longer has a sign-in form.** Password, emailed-code and single sign-on sign-in now happen in the browser. **Wire change: this needs a matching 0.4 server and app (`PROTOCOL_VERSION` 2).** An older app is told to update. For development only, `VTT_DEV_SIGNIN=1` brings the old forms back in a collapsed Developer sign-in block.
-- `vtt-admin user code` also signs the app in when no browser is available.
+- The app's **Have a code? Type it here** box takes any one-time sign-in code: a link code from the web page, an emailed code, a `vtt-admin user code` code (for a player with no browser at hand), or the code the single sign-on page shows.
 
 ### Known limits
 

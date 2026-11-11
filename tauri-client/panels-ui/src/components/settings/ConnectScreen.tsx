@@ -30,7 +30,8 @@ function mmss(ms: number): string {
 
 /**
  * Signed out: type the server, press Connect, then approve the code shown here in any browser
- * (or scan the QR with a phone). A code from the join page can be typed instead.
+ * (or scan the QR with a phone). Any one-time code (join page, emailed, SSO page, or from the
+ * operator) can be typed instead.
  */
 export function ConnectScreen(props: Props) {
   const { server, onServer, code, onCode } = props;
@@ -165,12 +166,12 @@ export function ConnectScreen(props: Props) {
       >
         <Flex direction="column" gap="2">
           <Text size="2" color="gray">
-            Have a code from the web page? Type it here.
+            Have a code? Type it here.
           </Text>
           <Flex gap="2">
             <Box flexGrow="1">
               <TextField.Root
-                aria-label="Code from the web page"
+                aria-label="One-time code"
                 placeholder="ABCD-2345"
                 autoComplete="one-time-code"
                 value={code}

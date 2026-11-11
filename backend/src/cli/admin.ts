@@ -71,7 +71,7 @@ const USAGE = `vtt-admin — system operations for this instance (gameplay is ma
   user create <email> --name <name> --accept-consent [--admin]
                                          make an account (no password; the first one is the Admin)
   user admin <email> grant|revoke        give or take away Admin (the last Admin cannot be removed)
-  user code <email> [signin|reset]       issue a one-time code to hand over on a side channel (${MAGIC_LINK_TTL_MINUTES} min); signs the app in too when no browser is at hand
+  user code <email> [signin|reset]       issue a one-time code to hand over on a side channel (${MAGIC_LINK_TTL_MINUTES} min); a signin code also connects the app (its Connect screen's code box) when no browser is at hand
   user revoke-sessions <email>           sign that account out on every device
   storage                                disk use: recordings, free space, database size
   jobs list [queued|running|done|failed] records-pipeline jobs, newest last

@@ -187,7 +187,23 @@ pub async fn account_sign_in_code(
     finish_sign_in(&app, &state, &sessions, server, login).await
 }
 
-/// Connects with a short link code (from the join page or a connect link). Works in every mode.
+/// The longest one-time code the server accepts at `/api/auth/magic-link/redeem`.
+const MAX_TYPED_CODE_BYTES: usize = 256;
+
+/// What the typed-code box sends. A short link code (`abcd 2345`, `ABCD-2345`) goes in its canonical
+/// 8-character form; anything else (a `vtt-admin user code` token, an emailed code, the SSO callback's
+/// code) goes as typed, trimmed, and the server decides. Only empty or over-long input is refused here.
+fn typed_connect_code(input: &str) -> Result<String, AccountError> {
+    let trimmed = input.trim();
+    if trimmed.is_empty() || trimmed.len() > MAX_TYPED_CODE_BYTES {
+        return Err(error("invalid_code", "that is not a code"));
+    }
+    Ok(normalise_link_code(trimmed).unwrap_or_else(|| trimmed.to_string()))
+}
+
+/// Connects with any one-time code: a link code from the join page or a connect link, a code from
+/// `vtt-admin user code`, an emailed code, or the code the SSO page shows. Works in every mode: it is
+/// not a password path, and the server validates the code.
 #[tauri::command]
 pub async fn account_connect_with_code(
     app: AppHandle,
@@ -197,8 +213,7 @@ pub async fn account_connect_with_code(
     code: String,
 ) -> Result<Value, AccountError> {
     let server = normalise_server(&server).map_err(|m| error("invalid_server", &m))?;
-    let code = normalise_link_code(&code)
-        .ok_or_else(|| error("invalid_code", "that code is not the right shape"))?;
+    let code = typed_connect_code(&code)?;
     let login = AccountClient::new(&server).redeem_code(&code).await?;
     finish_sign_in(&app, &state, &sessions, server, login).await
 }
@@ -875,7 +890,30 @@ mod dev_tests {
 
 #[cfg(test)]
 mod connect_page_tests {
-    use super::connect_page_url;
+    use super::{connect_page_url, typed_connect_code};
+
+    #[test]
+    fn a_typed_short_code_is_sent_in_its_canonical_form() {
+        assert_eq!(typed_connect_code(" abcd-2345 ").unwrap(), "ABCD2345");
+        assert_eq!(typed_connect_code("ab cd 2345").unwrap(), "ABCD2345");
+    }
+
+    #[test]
+    fn any_other_one_time_code_is_sent_as_typed_for_the_server_to_check() {
+        // Shaped like `vtt-admin user code` and the SSO callback's code: 43 base64url characters.
+        let long = "q2Xw8Jr0bK4mN6pV1sT3uY5zA7cE9gH0iL2oP4r-6tQ";
+        assert_eq!(typed_connect_code(&format!("  {long}\n")).unwrap(), long);
+        // Not the short alphabet (has an O), so it is not rewritten either.
+        assert_eq!(typed_connect_code("abcd-234o").unwrap(), "abcd-234o");
+    }
+
+    #[test]
+    fn empty_or_over_long_input_is_refused() {
+        for bad in ["".to_string(), "   ".to_string(), "x".repeat(257)] {
+            assert_eq!(typed_connect_code(&bad).unwrap_err().code, "invalid_code");
+        }
+        assert!(typed_connect_code(&"x".repeat(256)).is_ok());
+    }
     use crate::account::percent_encode_component;
 
     #[test]

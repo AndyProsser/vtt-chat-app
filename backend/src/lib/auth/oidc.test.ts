@@ -154,7 +154,11 @@ describe('the callback page', () => {
     const response = await fetch(`${s.origin}/oidc/callback?state=${state}&code=x`);
     expect(response.status).toBe(200);
     expect(response.headers.get('cache-control')).toBe('no-store');
-    expect(await response.text()).toMatch(/<code>[A-Za-z0-9_-]{20,}<\/code>/);
+    const html = await response.text();
+    expect(html).toMatch(/<code>[A-Za-z0-9_-]{20,}<\/code>/);
+    // The app's typed-code box is where it goes (account_connect_with_code takes any one-time code).
+    expect(html).toContain('Connect screen');
+    expect(html).toContain('Have a code? Type it here');
     s.close();
   });
 

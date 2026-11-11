@@ -77,7 +77,7 @@ export function oidcRoutes(oidc: OidcClient, accounts: AccountService): Router {
         res,
         200,
         'Your sign-in code',
-        `<p>Paste this into the app (“Use a code instead”). It works once and expires in ${MAGIC_LINK_TTL_MINUTES} minutes.</p><code>${escapeHtml(issued.token)}</code>`,
+        `<p>Paste this into the app’s Connect screen, in the “Have a code? Type it here” box. It works once and expires in ${MAGIC_LINK_TTL_MINUTES} minutes.</p><code>${escapeHtml(issued.token)}</code>`,
       );
     } catch (error) {
       const message = error instanceof OidcError ? error.message : 'something went wrong';
