@@ -9,10 +9,12 @@ import { isPageVisible, watchPageVisibility } from '../lib/pageVisibility.js';
 import { accountDevicePoll, accountDeviceStart, accountErrorMessage } from '../lib/tauriBridge.js';
 import type { AccountStatus, DeviceStart } from '../types/index.js';
 
-export type ConnectPhase = 'idle' | 'waiting' | 'expired' | 'error';
+export type ConnectPhase = 'idle' | 'starting' | 'waiting' | 'expired' | 'error';
 
 export interface DeviceConnectState {
   phase: ConnectPhase;
+  /** The server this request started on; everything shown while waiting must use it, not the field. */
+  server?: string;
   userCode?: string;
   approveUrl?: string;
   /** Client-clock time the code stops being offered (receipt + TTL); never the server's `expiresAt`. */
@@ -116,9 +118,10 @@ export function createDeviceConnect(deps: DeviceConnectDeps) {
       return () => listeners.delete(listener);
     },
     async start(server: string) {
+      if (state.phase === 'starting') return;
       teardown();
       const gen = generation;
-      set({ phase: 'idle' });
+      set({ phase: 'starting' });
       let started: DeviceStart;
       try {
         started = await deps.start(server);
@@ -130,6 +133,7 @@ export function createDeviceConnect(deps: DeviceConnectDeps) {
       request = { server, requestId: started.requestId, pollSecret: started.pollSecret };
       set({
         phase: 'waiting',
+        server,
         userCode: started.userCode,
         approveUrl: started.approveUrl,
         deadline: deps.now() + DEVICE_REQUEST_TTL_MS,

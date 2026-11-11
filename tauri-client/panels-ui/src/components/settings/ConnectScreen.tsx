@@ -41,13 +41,18 @@ export function ConnectScreen(props: Props) {
   const host = serverHost(server);
 
   const { link } = props;
+  const { cancel } = device;
   useEffect(() => {
     if (!link) return;
+    // A link never carries on a waiting request: drop it, then prefill; the player presses Connect.
+    cancel();
     onServer(link.server);
     if (link.code) onCode(link.code);
-  }, [link, onServer, onCode]);
+  }, [link, cancel, onServer, onCode]);
 
   const waiting = device.phase === 'waiting';
+  const starting = device.phase === 'starting';
+  const waitingHost = serverHost(device.server ?? '');
   const canStart = server.trim() !== '';
   const error = device.phase === 'error' ? device.error : props.error;
 
@@ -62,13 +67,18 @@ export function ConnectScreen(props: Props) {
         aria-label="Server"
         placeholder="Server (play.example.com, or http://localhost:3000)"
         value={server}
-        disabled={waiting}
+        disabled={waiting || starting}
         onChange={(e) => onServer(e.target.value)}
       />
 
       {!waiting && (
         <Flex align="center" gap="3" wrap="wrap">
-          <Button size="3" disabled={!canStart} onClick={() => void device.start(server)}>
+          <Button
+            size="3"
+            loading={starting}
+            disabled={!canStart || starting}
+            onClick={() => void device.start(server)}
+          >
             {device.phase === 'expired' ? 'New code' : 'Connect'}
           </Button>
           {host && (
@@ -88,7 +98,8 @@ export function ConnectScreen(props: Props) {
       {waiting && device.userCode && device.approveUrl && (
         <Flex direction="column" gap="3" align="start">
           <Text size="2" color="gray">
-            Approve {host ? <b>{host}</b> : 'this'} on the page that opens, and enter this code:
+            Approve {waitingHost ? <b>{waitingHost}</b> : 'this'} on the page that opens, and enter
+            this code:
           </Text>
           <Heading size="8" className="vtt-connect-code" aria-label="Your code">
             {device.userCode}
@@ -100,7 +111,7 @@ export function ConnectScreen(props: Props) {
             size="3"
             onClick={() => {
               setOpenError(undefined);
-              accountOpenConnect(server, device.userCode ?? '').catch((e) =>
+              accountOpenConnect(device.server ?? '', device.userCode ?? '').catch((e) =>
                 setOpenError(accountErrorMessage(e)),
               );
             }}

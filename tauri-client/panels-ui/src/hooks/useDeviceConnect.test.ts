@@ -194,4 +194,44 @@ describe('createDeviceConnect', () => {
     await vi.advanceTimersByTimeAsync(10_000);
     expect(deps.poll.mock.calls.length).toBe(calls);
   });
+
+  it('remembers the server the request started on', async () => {
+    const { ctl } = setup();
+    await ctl.start('https://a.example.com');
+    expect(ctl.getState().server).toBe('https://a.example.com');
+    ctl.cancel();
+  });
+
+  it('cancel() after a start on server A (a deep link to B) leaves idle and polls A no more', async () => {
+    const { ctl, deps } = setup();
+    await ctl.start('https://a.example.com');
+    await vi.advanceTimersByTimeAsync(2000);
+    const calls = deps.poll.mock.calls.length;
+    ctl.cancel();
+    await vi.advanceTimersByTimeAsync(20_000);
+    expect(deps.poll.mock.calls.length).toBe(calls);
+    expect(ctl.getState()).toEqual({ phase: 'idle' });
+  });
+
+  it('is `starting` until the server answers, and ignores a second start()', async () => {
+    let resolve!: (v: Awaited<ReturnType<DeviceConnectDeps['start']>>) => void;
+    const startFn = vi.fn(
+      () => new Promise<Awaited<ReturnType<DeviceConnectDeps['start']>>>((r) => (resolve = r)),
+    );
+    const { ctl } = setup({ start: startFn });
+    const first = ctl.start('https://play.example.com');
+    expect(ctl.getState().phase).toBe('starting');
+    await ctl.start('https://play.example.com');
+    expect(startFn).toHaveBeenCalledTimes(1);
+    resolve({
+      requestId: 'r',
+      userCode: 'ABCD-2345',
+      pollSecret: 's',
+      expiresAt: 0,
+      approveUrl: 'u',
+    });
+    await first;
+    expect(ctl.getState().phase).toBe('waiting');
+    ctl.cancel();
+  });
 });
