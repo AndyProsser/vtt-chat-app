@@ -107,7 +107,7 @@ jobs:
           cd tauri-client/target/release/bundle
           files=()
           while IFS= read -r f; do files+=("$f"); done < <(
-            find . -type f \( -name '*.AppImage' -o -name '*.deb' -o -name '*-setup.exe' -o -name '*.msi' \
+            find . -type f \( -name '*.AppImage' -o -name '*.deb' -o -name '*.rpm' -o -name '*-setup.exe' -o -name '*.msi' \
               -o -name '*.dmg' -o -name '*.app.tar.gz' -o -name '*.sig' \) )
           [ "${#files[@]}" -gt 0 ] || { echo "the bundler produced nothing" >&2; exit 1; }
           gh release upload "$TAG" "${files[@]}" --clobber

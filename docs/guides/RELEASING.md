@@ -45,10 +45,14 @@ flowchart LR
 
 ## What is not done yet
 
-- **Not run.** The workflow has never executed; the first tag is the test. Expect to fix something
-  (the Windows and macOS builds of the LiveKit Rust SDK are the likeliest).
-- **No OS-level code signing.** Windows will show SmartScreen's "unknown publisher" warning and macOS
-  Gatekeeper will block a first launch (right-click → Open) until an Authenticode certificate and an
-  Apple Developer ID are added. The updater signature is separate and is what protects updates.
+- **First run: v0.3.0 (2026-11-11).** It built on all three systems. The one fix needed was clang 21 on
+  Linux, because libwebrtc's own libc++ refuses clang 18 (the runner's default). No installer has been run on a clean machine yet.
+- **No OS-level code signing, by choice.** Windows shows SmartScreen's "unknown publisher" warning and
+  macOS blocks a first launch until an Authenticode certificate and an Apple Developer ID are added (both cost
+  money every year). Players get past it with the steps in
+  [INSTALLING-THE-APP.md](INSTALLING-THE-APP.md); give that page to anyone you invite. The updater
+  signature is separate and is what protects updates.
+- **Linux ships `.AppImage`, `.deb` and `.rpm`.** Only the AppImage self-updates through the server; the
+  `.deb` and `.rpm` are for people who prefer their package manager and are updated by installing the new file.
 - **macOS builds Apple silicon only** (the runner's architecture). Intel Macs need a second matrix entry.
 - **Linux builds on Ubuntu 24.04**, so the AppImage needs a glibc at least that new.

@@ -25,7 +25,7 @@ with your phone.
 1. **Open the invite link** in a browser. It shows the table's name and asks you to **agree to the recording
    notice** (the table may be recorded; see [section 8](#8-recording-and-summaries)), then create your account
    (or sign in, if you already have one).
-2. The page then shows a **download for your computer** (Windows, macOS or Linux). Install it and open it.
+2. The page then shows a **download for your computer** (Windows, macOS or Linux). Install it and open it (Windows and macOS warn about an unknown publisher the first time; [installing the app](INSTALLING-THE-APP.md) shows how to get past it).
 3. In the app, enter your server's address (the page shows it, for example `vtt.example.com`), and sign in with
    the same email and password. The table appears.
 

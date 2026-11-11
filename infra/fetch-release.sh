@@ -13,7 +13,7 @@ command -v gh >/dev/null || { echo "install the GitHub CLI (gh) first" >&2; exit
 mkdir -p "$dest"
 args=(release download "$tag" --dir "$dest" --clobber)
 [ -z "$repo" ] || args+=(--repo "$repo")
-for pattern in '*.AppImage' '*-setup.exe' '*.msi' '*.app.tar.gz' '*.sig' '*.deb' '*.dmg'; do
+for pattern in '*.AppImage' '*-setup.exe' '*.msi' '*.app.tar.gz' '*.sig' '*.deb' '*.rpm' '*.dmg'; do
   args+=(--pattern "$pattern")
 done
 gh "${args[@]}"
