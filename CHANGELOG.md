@@ -24,6 +24,8 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ### Fixed
 
+- The server's update sync honours `UPDATES_INCLUDE_DEV=true` as well as `1`.
+- The macOS updater archive is named with its architecture, so the server offers an Apple-silicon build only to Apple-silicon Macs (it was listed as Intel).
 - **Under Docker Compose the server now sees each player's real address.** Caddy reaches the backend over the Compose network, which the backend did not trust, so every player shared one rate-limit bucket (one busy table could lock everyone out of sign-in for a few minutes). The new `TRUST_PROXY` setting (default `loopback`, `loopback, uniquelocal` in the Compose file) fixes it; the device-approval page shows the right address too.
 
 ### Known limits
