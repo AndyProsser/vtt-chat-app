@@ -5,6 +5,7 @@ import type { DeviceRequest, User } from '../../types/index.js';
 import { DomainError } from '../errors.js';
 import type { Store } from '../store/store.js';
 import type { AccountService, Clock, SignedIn } from './accountService.js';
+import { cleanDeviceLabel } from './deviceLabel.js';
 import {
   equalHashes,
   generateSecret,
@@ -71,7 +72,7 @@ export class DeviceFlow {
       id: this.newId(),
       userCodeHash: hashSecret(code),
       pollSecretHash: hashSecret(pollSecret),
-      deviceLabel: input.deviceLabel?.trim() || null,
+      deviceLabel: cleanDeviceLabel(input.deviceLabel) ?? null,
       requestIp: input.requestIp ?? null,
       createdAt: now,
       expiresAt: now + LINK_CODE_TTL_MINUTES * MINUTE_MS,

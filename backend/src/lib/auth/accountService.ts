@@ -21,6 +21,7 @@ import {
   normaliseShortCode,
   verifyPassword,
 } from './crypto.js';
+import { cleanDeviceLabel } from './deviceLabel.js';
 
 export interface Clock {
   now(): number;
@@ -322,7 +323,7 @@ export class AccountService {
       id: this.newId(),
       userId: user.id,
       tokenHash: hashSecret(secret),
-      deviceLabel: deviceLabel ?? null,
+      deviceLabel: cleanDeviceLabel(deviceLabel) ?? null,
       createdAt: now,
       lastSeenAt: now,
       revokedAt: null,

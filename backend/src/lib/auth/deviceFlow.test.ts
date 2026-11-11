@@ -136,6 +136,15 @@ describe('device requests', () => {
     expect(done.user.id).toBe(winner.id);
   });
 
+  it('caps labels at 80 characters and strips control characters', async () => {
+    const long = await flow.start({ deviceLabel: 'x'.repeat(5000) });
+    expect((await store.getDeviceRequest(long.requestId))?.deviceLabel).toBe('x'.repeat(80));
+    const dirty = await flow.start({ deviceLabel: 'Des\nk\u0000 PC' });
+    expect((await store.getDeviceRequest(dirty.requestId))?.deviceLabel).toBe('Desk PC');
+    const plain = await flow.start({ deviceLabel: 'Andy’s laptop' });
+    expect((await store.getDeviceRequest(plain.requestId))?.deviceLabel).toBe('Andy’s laptop');
+  });
+
   it('sweeps expired requests when a new one starts', async () => {
     const old = await flow.start({});
     clock.advance(LINK_CODE_TTL_MINUTES * MINUTE_MS + 1);

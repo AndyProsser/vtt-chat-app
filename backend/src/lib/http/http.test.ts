@@ -42,6 +42,7 @@ afterAll(() => backend.close());
 let store: Store;
 let sender: CapturingSender;
 let api: Api;
+let base: string;
 
 beforeEach(async () => {
   store = await backend.reset();
@@ -50,7 +51,7 @@ beforeEach(async () => {
   await new Promise<void>((resolve) => {
     server = app.listen(0, '127.0.0.1', resolve);
   });
-  const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+  base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
   api = {
     async call(method, path, options = {}) {
       const response = await fetch(`${base}${path}`, {
@@ -565,6 +566,17 @@ describe('device requests over HTTP', () => {
       last = (await api.call('POST', '/api/auth/device/poll', { body: poll })).status;
     }
     expect(last).toBe(429);
+  });
+
+  it('caps a long x-device-label header, here and on sign-in sessions', async () => {
+    const response = await fetch(`${base}/api/auth/device`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-device-label': 'y'.repeat(5000) },
+      body: '{}',
+    });
+    const started = (await response.json()) as Json;
+    const row = await store.getDeviceRequest(started.requestId);
+    expect(row?.deviceLabel).toBe('y'.repeat(80));
   });
 
   it('rate-limits starting requests by address', async () => {
