@@ -248,9 +248,9 @@ different versions, update the app, or ask your DM to update the server if the a
 
 | Problem                                    | Try                                                                                                             |
 | ------------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
-| I cannot hear anyone / they cannot hear me | Check your status is **Online** and you are not muted; choose the right devices in Settings → Audio   |
+| I cannot hear anyone / they cannot hear me | Check your status is **Online** and you are not muted; choose the right devices in Settings → Audio             |
 | There is an echo                           | Wear headphones; turn on the new audio engine                                                                   |
-| Typing or fan noise is heard               | Settings → Audio → Background noise (Standard or Strong)                                              |
+| Typing or fan noise is heard               | Settings → Audio → Background noise (Standard or Strong)                                                        |
 | I cannot connect at all                    | Check the server address; ask your operator whether the server is up (`/status` page)                           |
 | Voice works for others but not me          | Your network may block voice; try another network or a phone hotspot                                            |
 | I cannot see the tray icon (Linux)         | Install and turn on the AppIndicator extension: [steps](INSTALLING-THE-APP.md#linux-i-cannot-see-the-tray-icon) |

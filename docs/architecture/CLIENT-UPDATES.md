@@ -42,9 +42,9 @@ Everyone is on the **release** channel unless they opt in. The channel is carrie
 `0.4.0` is a release, `0.4.0-dev.2` / `-rc.1` is a dev build (semver pre-release, so `0.4.0-dev.9` sorts
 below `0.4.0`).
 
-| Feed on the server         | Holds                                                        | Read by                                                           |
-| -------------------------- | ------------------------------------------------------------ | ----------------------------------------------------------------- |
-| `/updates/latest.json`     | the latest release                                           | every player, by default                                          |
+| Feed on the server         | Holds                                                        | Read by                                                                 |
+| -------------------------- | ------------------------------------------------------------ | ----------------------------------------------------------------------- |
+| `/updates/latest.json`     | the latest release                                           | every player, by default                                                |
 | `/updates/dev/latest.json` | the **newer of** the latest dev build and the latest release | players who turned on Settings → Profile → App → **Include dev builds** |
 
 Why the dev feed includes the release: a player testing `0.4.0-dev.3` must still be offered `0.4.0` when it
