@@ -43,6 +43,13 @@ Pick the one that suits your system. All three are the same app.
 | `.deb`      | Debian, Ubuntu, Mint, Pop!_OS     | `sudo apt install ./VTT.Chat_*.deb`                                                                           |
 | `.rpm`      | Fedora, RHEL, openSUSE            | `sudo dnf install ./VTT.Chat-*.rpm` (`sudo zypper install` on openSUSE)                                       |
 
+**AppImage menu entry and icon.** An AppImage is one file, so the desktop does not know it exists. VTT Chat
+adds its own menu entry and icon (under `~/.local/share`) the first time it runs, so after the first launch it
+appears in your application menu with its icon and the dock shows it too. Keep the file somewhere permanent
+(for example `~/Applications`) before you run it; if you move it, start it once from its new place and the entry
+follows. Versions before 0.3.2 do not do this: use the `.deb`/`.rpm`, or an integrator such as AppImageLauncher
+or Gear Lever, which add the entry when you open the file.
+
 The `.deb` and `.rpm` do not update themselves; install the newer file when a new version is announced.
 
 The app is called **VTT Chat** and has its icon in the application menu, the taskbar or dock, and the tray.

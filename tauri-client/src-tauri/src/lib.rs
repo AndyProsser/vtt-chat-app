@@ -10,6 +10,8 @@ mod commands;
 mod consts;
 mod deeplink;
 mod hotkeys;
+#[cfg(target_os = "linux")]
+mod launcher_entry;
 mod mic_gate;
 mod notify_prefs;
 mod platform;
@@ -29,6 +31,7 @@ const AUTOSTART_FLAG: &str = "--hidden";
 
 /// Registers the `vtt-chat://` scheme and listens for links (also one that launched us).
 fn register_links(app: &mut tauri::App) {
+    use tauri::Manager;
     use tauri_plugin_deep_link::DeepLinkExt;
     let handle = app.handle().clone();
     app.deep_link().on_open_url(move |event| {
@@ -38,6 +41,16 @@ fn register_links(app: &mut tauri::App) {
     #[cfg(any(target_os = "linux", all(debug_assertions, windows)))]
     if let Err(err) = app.deep_link().register_all() {
         eprintln!("[src-tauri] could not register the vtt-chat:// link: {err}");
+    }
+    // An AppImage has no installer, so give it a menu entry and icon of its own (Linux launchers need both).
+    #[cfg(target_os = "linux")]
+    if let Some(appimage) = app.env().appimage {
+        if let Ok(data) = app.path().data_dir() {
+            let icon = include_bytes!("../icons/icon-256.png");
+            if let Err(err) = launcher_entry::install(&data, &appimage.to_string_lossy(), icon) {
+                eprintln!("[src-tauri] could not add the AppImage to the menu: {err}");
+            }
+        }
     }
     if let Ok(Some(urls)) = app.deep_link().get_current() {
         deeplink::handle(app.handle(), urls.iter().map(|u| u.to_string()));

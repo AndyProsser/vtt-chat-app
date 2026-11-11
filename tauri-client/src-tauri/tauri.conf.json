@@ -36,6 +36,11 @@
     ],
     "category": "SocialNetworking",
     "shortDescription": "Voice, chat and session records for tabletop groups",
+    "longDescription": "A small system-tray app for tabletop groups: open-mic group voice, chat and whispers, handouts and loot, and a searchable record of every session with summaries. It connects to a server your group hosts yourselves.",
+    "publisher": "Andy Prosser",
+    "homepage": "https://github.com/AndyProsser/vtt-chat-app",
+    "license": "AGPL-3.0-only",
+    "copyright": "Copyright (c) 2026 Andy Prosser",
     "targets": "all",
     "windows": {
       "nsis": { "installMode": "both" }
