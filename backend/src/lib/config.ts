@@ -189,7 +189,7 @@ function updatesSync(env: NodeJS.ProcessEnv): UpdatesSyncConfig | undefined {
   return {
     source,
     repo: env.UPDATES_GITHUB_REPO || 'AndyProsser/vtt-chat-app',
-    includeDev: env.UPDATES_INCLUDE_DEV === '1',
+    includeDev: ['1', 'true'].includes((env.UPDATES_INCLUDE_DEV ?? '').trim().toLowerCase()),
     publicUrl: env.PUBLIC_URL || undefined,
     publicKey: env.UPDATER_PUBLIC_KEY || UPDATER_PUBLIC_KEY,
   };

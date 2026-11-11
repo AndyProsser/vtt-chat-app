@@ -35,4 +35,16 @@ describe('update sync wiring', () => {
         .updatesSync,
     ).toMatchObject({ source: 'mirror', includeDev: false, publicUrl: 'https://p' });
   });
+
+  it('takes 1 or true (any case) as "also offer dev builds", anything else as off', () => {
+    const dev = (value: string | undefined) =>
+      loadConfig({ UPDATES_SOURCE: 'github', UPDATES_DIR: '/u', UPDATES_INCLUDE_DEV: value })
+        .updatesSync?.includeDev;
+    expect(dev('1')).toBe(true);
+    expect(dev('true')).toBe(true);
+    expect(dev(' TRUE ')).toBe(true);
+    expect(dev('0')).toBe(false);
+    expect(dev('')).toBe(false);
+    expect(dev(undefined)).toBe(false);
+  });
 });
