@@ -56,8 +56,10 @@ jobs:
       # once glib-2.0 was fixed — added together this time rather than one apt-get pass per crate.
       - name: Install Tauri Linux build dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y \
+          # Canonical's archive, not the runner's Azure mirror, which timed out on 2026-11-11 (see release.yml).
+          sudo sed -i 's|mirror+file:/etc/apt/apt-mirrors.txt|http://archive.ubuntu.com/ubuntu/|' /etc/apt/sources.list.d/ubuntu.sources
+          sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 update
+          sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 install -y \
             libwebkit2gtk-4.1-dev \
             libappindicator3-dev \
             librsvg2-dev \

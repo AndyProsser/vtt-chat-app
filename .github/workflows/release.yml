@@ -113,8 +113,12 @@ jobs:
           DEBIAN_FRONTEND: noninteractive
           NEEDRESTART_MODE: a
         run: |
-          sudo -E apt-get -o Acquire::Retries=3 update
-          sudo -E apt-get -o Acquire::Retries=3 install -y libwebkit2gtk-4.1-dev libappindicator3-dev \
+          # The runner's default package mirror (azure.archive.ubuntu.com) timed out on every download on
+          # 2026-11-11 and hung four release builds. Use Canonical's own archive, with short timeouts.
+          sudo sed -i 's|mirror+file:/etc/apt/apt-mirrors.txt|http://archive.ubuntu.com/ubuntu/|' /etc/apt/sources.list.d/ubuntu.sources
+          APT="-o Acquire::Retries=3 -o Acquire::http::Timeout=30"
+          sudo -E apt-get $APT update
+          sudo -E apt-get $APT install -y libwebkit2gtk-4.1-dev libappindicator3-dev \
             librsvg2-dev libxdo-dev libssl-dev libasound2-dev patchelf
       # libwebrtc (the LiveKit client) is built against its own libc++, which needs clang 21 or later;
       # the runner image ships clang 18 and the build panics without this.
