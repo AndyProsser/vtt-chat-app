@@ -1,15 +1,30 @@
 /* The phone app: one column, a header, a scrolling middle and a tab bar that clears the home indicator. */
+/* The page itself never scrolls here: the chat scrolls inside it. Radix gives the root theme `min-height: 100vh`,
+   and on a phone 100vh is taller than the visible area (the browser's address bar), and the wide-screen
+   card adds vertical padding on top of a 100% height: either pushed the bottom 10-20px off the screen. So:
+   dynamic viewport height where supported, border-box everywhere, and no page-level overflow. */
 html,
 body,
 #root {
   height: 100%;
+  overflow: hidden;
 }
 .radix-themes {
   height: 100%;
+  min-height: 0;
+}
+@supports (height: 100dvh) {
+  html,
+  body,
+  #root,
+  .radix-themes {
+    height: 100dvh;
+  }
 }
 /* The page behind the app: the same background and gradient as the Home pages. */
 .phone-page {
   height: 100%;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   align-items: center;
