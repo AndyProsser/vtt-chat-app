@@ -195,6 +195,15 @@ describe('users', () => {
     expect(signedIn.user.id).toBe(created?.id);
   });
 
+  it('gives the first Admin a starter campaign as DM, and no one else', async () => {
+    await run('user create first@example.com --name First --accept-consent');
+    await run('user create second@example.com --name Second --accept-consent');
+    const [first, second] = await store.listUsers();
+    expect(await store.countCampaigns()).toBe(1);
+    expect(await store.listMembershipsForUser(first?.id ?? '')).toMatchObject([{ role: 'dm' }]);
+    expect(await store.listMembershipsForUser(second?.id ?? '')).toHaveLength(0);
+  });
+
   it('makes a later account a plain user unless --admin is given, and can add another Admin', async () => {
     await run('user create a@example.com --name A --accept-consent');
     await run('user create b@example.com --name B --accept-consent');

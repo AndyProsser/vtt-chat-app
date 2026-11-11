@@ -53,7 +53,6 @@ import {
 } from '@vtt-chat-app/ai';
 import type pg from 'pg';
 import { syncFromConfig } from './lib/updates/runSync.js';
-import { resolveDownloads } from './lib/updates/downloads.js';
 
 const isEntryPoint =
   process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href;
@@ -238,29 +237,26 @@ if (isEntryPoint) {
     ...(config.recordingsDir !== undefined
       ? { storage: () => measureDisk(config.recordingsDir as string) }
       : {}),
-    downloads: () => resolveDownloads(config.clientDownloads, config.updatesDir),
   });
-  const server = createServer(
-    createApp({
-      config,
-      store,
-      ddb,
-      status,
-      ...(config.smtp
-        ? { sender: createSmtpMailTransport(config.smtp.url, config.smtp.from) }
-        : {}),
-      realtime: hub,
-      recording: hub.recording,
-      records,
-      ...(pool ? { jobs: new PostgresJobQueue(pool) } : {}),
-      table,
-      sounds,
-      schedule,
-      onNotified: () => void relay.flush().catch(() => undefined),
-      ...(media ? { media } : {}),
-    }),
-  );
-  attachWebSocketServer(server, hub);
+  const app = createApp({
+    config,
+    store,
+    ddb,
+    status,
+    ...(config.smtp ? { sender: createSmtpMailTransport(config.smtp.url, config.smtp.from) } : {}),
+    realtime: hub,
+    recording: hub.recording,
+    records,
+    ...(pool ? { jobs: new PostgresJobQueue(pool) } : {}),
+    table,
+    sounds,
+    schedule,
+    onNotified: () => void relay.flush().catch(() => undefined),
+    ...(media ? { media } : {}),
+  });
+  const server = createServer(app);
+  const trusted = app.get('trust proxy fn') as (address: string, hop: number) => boolean;
+  attachWebSocketServer(server, hub, { trustProxy: (address) => trusted(address, 0) });
 
   server.listen(config.port, () => {
     console.log(`backend listening on :${config.port} (REST /api, WebSocket /ws)`);

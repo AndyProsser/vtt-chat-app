@@ -9,6 +9,8 @@ import {
 } from '../../consts/index.js';
 import type { MagicLinkPurpose, Session, User } from '../../types/index.js';
 import { OWN_AVATAR_VALUE } from '../avatarValue.js';
+import { CampaignService } from '../campaigns/campaignService.js';
+import { StarterCampaigns } from '../campaigns/starterCampaign.js';
 import { DomainError } from '../errors.js';
 import type { Store } from '../store/store.js';
 import {
@@ -31,6 +33,11 @@ export interface AccountDeps {
   store: Store;
   clock?: Clock;
   newId?: () => string;
+  /**
+   * Gives the first Admin a starter campaign when they sign in with none. Defaults to the normal
+   * campaign service over the same store; pass `null` to turn it off.
+   */
+  starterCampaigns?: Pick<StarterCampaigns, 'ensureStarterCampaign'> | null;
 }
 
 export interface SignedIn {
@@ -70,11 +77,28 @@ export class AccountService {
   private readonly store: Store;
   private readonly clock: Clock;
   private readonly newId: () => string;
+  private readonly starter: Pick<StarterCampaigns, 'ensureStarterCampaign'> | null;
 
   constructor(deps: AccountDeps) {
     this.store = deps.store;
     this.clock = deps.clock ?? { now: () => Date.now() };
     this.newId = deps.newId ?? randomUUID;
+    this.starter =
+      deps.starterCampaigns === undefined
+        ? new StarterCampaigns({
+            store: deps.store,
+            campaigns: new CampaignService({
+              store: deps.store,
+              clock: this.clock,
+              newId: this.newId,
+            }),
+          })
+        : deps.starterCampaigns;
+  }
+
+  /** The first Admin's starter campaign (see `StarterCampaigns`); a no-op for everyone else and when off. */
+  async ensureStarterCampaign(user: User): Promise<void> {
+    await this.starter?.ensureStarterCampaign(user);
   }
 
   /**
@@ -275,7 +299,7 @@ export class AccountService {
   async authenticate(
     sessionToken: string,
     options: { ping?: boolean } = {},
-  ): Promise<{ user: User; session: Session }> {
+  ): Promise<{ user: User; session: Session; previousSeenAt: number }> {
     const [sessionId, secret] = sessionToken.split('.');
     if (!sessionId || !secret) throw new DomainError('session_invalid');
 
@@ -300,9 +324,14 @@ export class AccountService {
     if (options.ping) {
       const touched = { ...session, lastSeenAt: now };
       await this.store.putSession(touched);
-      return { user, session: touched };
+      return { user, session: touched, previousSeenAt: session.lastSeenAt };
     }
-    return { user, session };
+    return { user, session, previousSeenAt: session.lastSeenAt };
+  }
+
+  /** How long a browser cookie should live: the operator's offline limit, the same idle window a session is held to. */
+  async cookieMaxAgeSeconds(): Promise<number> {
+    return (await this.store.getSettings()).offlineLimitDays * 86_400;
   }
 
   async listSessions(userId: string): Promise<Session[]> {
@@ -346,6 +375,7 @@ export class AccountService {
 
   /** Starts a session for a user who has already proved who they are (e.g. a device request approved in a browser). */
   async signInUser(user: User, deviceLabel?: string): Promise<SignedIn> {
+    await this.ensureStarterCampaign(user);
     const secret = generateSecret();
     const now = this.clock.now();
     const session: Session = {

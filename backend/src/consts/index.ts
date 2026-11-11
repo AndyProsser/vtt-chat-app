@@ -62,3 +62,31 @@ export const MINUTE_MS = 60 * 1000;
  */
 export const UPDATER_PUBLIC_KEY =
   'dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDU1RTNGMDc0MjU0OTg1ODkKUldTSmhVa2xkUERqVmRWUXJhazNaQ2IvQjVYQTk0UmRZNnJhUWd0QUNKcDdNWWhacmZia3YrQmsK';
+
+/**
+ * Names for the starter campaign made for the first Admin (see `ensureStarterCampaign`). Dry, a
+ * little self-deprecating, and no one's trademark; each fits well inside the name limit. The Admin
+ * can rename it, so the joke is only ever the starting point.
+ */
+export const STARTER_CAMPAIGN_NAMES: readonly string[] = [
+  'The Mildly Concerning Expedition',
+  'Several Goblins Short of a Plan',
+  'A Moderate Amount of Dungeon',
+  'Taverns and Poor Decisions',
+  'The Adequate Adventurers',
+  'Quest for Slightly Better Loot',
+  'An Unexpected Inconvenience',
+  'The Reasonably Priced Apocalypse',
+  'Tolerable Heroes of Middling Renown',
+  'A Dragon, Allegedly',
+  'The Long Walk to a Short Fight',
+  'Minor Quests and Major Snacks',
+  'The Cursed Spreadsheet of Doom',
+  'Rolling for Mild Disappointment',
+  'The Fellowship of Roughly Five',
+  'Dungeons, Mostly Damp',
+  'A Few Unfortunate Skeletons',
+  'The Party Has Questions',
+  'Heroes Pending Approval',
+  'Another Fine Mess in the Crypt',
+];

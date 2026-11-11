@@ -79,9 +79,9 @@ interface Client {
   waitFor(t: string): Promise<any>;
 }
 
-function open(path = '/ws'): Promise<Client> {
+function open(path = '/ws', headers: Record<string, string> = {}): Promise<Client> {
   return new Promise((resolve, reject) => {
-    const ws = new WebSocket(`ws://${base}${path}`);
+    const ws = new WebSocket(`ws://${base}${path}`, { headers });
     const frames: any[] = [];
     const waiters: Array<{ t: string; resolve: (f: any) => void }> = [];
     const closed = new Promise<{ code: number }>((res) => ws.on('close', (code) => res({ code })));
@@ -121,6 +121,30 @@ describe('WebSocket transport', () => {
     const snapshot = await client.waitFor('snapshot');
     expect(snapshot.d.members[0]).toMatchObject({ role: 'dm', online: true });
     client.ws.close();
+  });
+
+  it('signs a browser in from its session cookie when the upgrade comes from our own origin', async () => {
+    const login = await fetch(`http://${base}/api/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-VTT-Client': 'web' },
+      body: JSON.stringify({
+        email: 'web@example.com',
+        displayName: 'web',
+        password: PASSWORD,
+        acceptedConsentVersion: '1',
+      }),
+    });
+    const cookie = login.headers.getSetCookie()[0]!.split(';')[0]!;
+    const client = await open('/ws', { Cookie: cookie, Origin: `http://${base}` });
+    expect((await client.waitFor('auth.ok')).d.userId).toBeTruthy(); // no auth frame was sent
+    client.ws.close();
+
+    for (const origin of [{ Origin: 'https://evil.example' }, {}]) {
+      const foreign = await open('/ws', { Cookie: cookie, ...origin });
+      foreign.send('resume', { campaignId: 'x' });
+      expect((await foreign.closed).code).toBe(4401);
+      expect(foreign.frames.some((f) => f.t === 'auth.ok')).toBe(false);
+    }
   });
 
   it('relays chat between two real sockets', async () => {

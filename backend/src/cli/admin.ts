@@ -363,6 +363,7 @@ async function users(
         user = { ...user, isAdmin: true };
         await deps.store.putUser(user);
       }
+      await deps.accounts.ensureStarterCampaign(user);
       deps.out(
         `created ${user.email}${user.isAdmin ? ' (Admin)' : ''}; it has no password. ` +
           `Hand over a sign-in code with: user code ${user.email}`,

@@ -18,7 +18,7 @@ import type { StatusService } from './status/statusService.js';
 import { authRoutes } from './http/authRoutes.js';
 import { campaignRoutes } from './http/campaignRoutes.js';
 import { NoMailTransport, type MagicLinkSender } from './http/delivery.js';
-import { errorHandler } from './http/middleware.js';
+import { errorHandler, requireAuth } from './http/middleware.js';
 import { RateLimiter } from './http/rateLimit.js';
 import { handoutRoutes } from './http/handoutRoutes.js';
 import { lootRoutes } from './http/lootRoutes.js';
@@ -155,13 +155,13 @@ export function createApp({
 
   const downloads = () => resolveDownloads(config.clientDownloads, config.updatesDir);
   const inviteLimiter = new RateLimiter(20, 15 * MINUTE);
-  app.use('/api/invites', inviteRoutes({ campaigns, downloads, inviteLimiter }));
+  app.use('/api/invites', inviteRoutes({ campaigns, inviteLimiter }));
   app.use(
     '/api/signup-requests',
     signupRoutes({ signups, signupLimiter: new RateLimiter(5, 60 * MINUTE) }),
   );
-  // Where to get the app, for the landing page (the invite preview carries the same list for joiners).
-  app.get('/api/downloads', async (_req, res) => {
+  // Where to get the app. Signed-in accounts only: the links are not on the public status page or the invite preview.
+  app.get('/api/downloads', requireAuth(accounts), async (_req, res) => {
     res.json(await downloads());
   });
   if (status) app.use('/api/status', statusApi(status));

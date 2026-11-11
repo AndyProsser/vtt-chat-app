@@ -4,22 +4,20 @@ import { resolve } from 'node:path';
 import express, { Router } from 'express';
 
 import type { CampaignService } from '../campaigns/campaignService.js';
-import type { ClientDownloads } from '../config.js';
 import type { RateLimiter } from './rateLimit.js';
 
 export interface JoinRouteDeps {
   campaigns: CampaignService;
-  downloads: () => Promise<ClientDownloads>;
   /** Slows guessing of invite codes; shared with the join endpoint so both draw on one budget. */
   inviteLimiter: RateLimiter;
 }
 
 /**
  * `GET /api/invites/:code` — the public half of the browser join page: is this invite good, which
- * campaign is it for, and where is the app. Deliberately tiny: the campaign name is the only thing a
+ * campaign is it for. Deliberately tiny: the campaign name is the only thing a
  * code holder learns before signing up, and the app's own sign-in takes over after that.
  */
-export function inviteRoutes({ campaigns, downloads, inviteLimiter }: JoinRouteDeps): Router {
+export function inviteRoutes({ campaigns, inviteLimiter }: JoinRouteDeps): Router {
   const router = Router();
   router.get('/:code', async (req, res) => {
     if (!inviteLimiter.allow(`invite:${req.ip}`)) {
@@ -29,13 +27,13 @@ export function inviteRoutes({ campaigns, downloads, inviteLimiter }: JoinRouteD
       return;
     }
     const preview = await campaigns.previewInvite(String(req.params.code));
-    res.json({ ...preview, downloads: await downloads() });
+    res.json(preview);
   });
   return router;
 }
 
 /**
- * Serves the built join page (`web/dist`) at `/` (landing), `/join/*` and `/connect`, and its assets. The page is the only browser
+ * Serves the built join page (`web/dist`) at `/` (landing), `/download`, `/join/*` and `/connect`, and its assets. The page is the only browser
  * UI: first-run account creation and the app download. Everything after install happens in the app.
  * Returns undefined when the directory isn't there, so a backend without the page still starts.
  */
@@ -68,7 +66,7 @@ export function webPages(webDir: string): Router | undefined {
       fallthrough: false,
     }),
   );
-  router.get(['/', '/join', '/join/:code', '/connect'], (_req, res) => {
+  router.get(['/', '/join', '/join/:code', '/connect', '/download', '/full-app'], (_req, res) => {
     res.sendFile(index);
   });
   // The phone app (web/app.html). Hash routes, so this one path is all the server needs to know.

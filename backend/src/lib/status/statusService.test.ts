@@ -6,7 +6,6 @@ import { StatusService } from './statusService.js';
 const base = {
   onlinePlayers: () => 3,
   activeRecordings: () => 1,
-  downloads: async () => ({ linux: 'https://x/l' }),
 };
 
 describe('StatusService', () => {
@@ -23,7 +22,7 @@ describe('StatusService', () => {
     ]);
     expect(snap.players.online).toBe(3);
     expect(snap.recording.active).toBe(1);
-    expect(snap.downloads.linux).toBe('https://x/l');
+    expect(snap).not.toHaveProperty('downloads');
     expect(snap.pipeline).toBeNull();
   });
 

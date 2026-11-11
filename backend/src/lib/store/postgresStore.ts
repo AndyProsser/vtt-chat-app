@@ -365,6 +365,11 @@ export class PostgresStore implements Store {
     );
   }
 
+  async countCampaigns(): Promise<number> {
+    const { rows } = await this.db.query<{ n: string }>('SELECT count(*) AS n FROM campaigns');
+    return Number(rows[0]?.n ?? 0);
+  }
+
   getMembership = (campaignId: string, userId: string): Promise<Membership | undefined> =>
     this.one(toMembership, 'SELECT * FROM memberships WHERE campaign_id = $1 AND user_id = $2', [
       campaignId,

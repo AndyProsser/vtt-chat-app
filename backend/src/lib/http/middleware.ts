@@ -4,6 +4,14 @@ import { ZodError } from 'zod';
 import type { Session, User } from '../../types/index.js';
 import type { AccountService } from '../auth/accountService.js';
 import { DomainError, type ErrorCode } from '../errors.js';
+import {
+  clearSessionCookie,
+  expectedOrigin,
+  COOKIE_REFRESH_AFTER_MS,
+  sameOrigin,
+  sessionTokenFromCookie,
+  setSessionCookie,
+} from './sessionCookie.js';
 
 const STATUS: Record<ErrorCode, number> = {
   invalid_input: 400,
@@ -26,15 +34,58 @@ export interface AuthContext {
   session: Session;
 }
 
-/** Reads `Authorization: Bearer <token>`, checks it, and records a ping (keeping the device signed in). */
+/**
+ * Authenticates a request and records a ping (keeping the device signed in). The credential is
+ * `Authorization: Bearer <token>` (desktop app, CLI) or, when there is no such header, the browser session
+ * cookie. Bearer wins when both are present. A cookie is sent by the browser on its own, so a cookie-
+ * authenticated request that is not a safe method must also come from this server's own origin (CSRF);
+ * a Bearer token is never sent ambiently and needs no such check.
+ */
 export function requireAuth(accounts: AccountService) {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    const header = req.header('authorization') ?? '';
-    const match = /^Bearer (.+)$/.exec(header);
-    if (!match?.[1]) throw new DomainError('session_invalid');
-    res.locals.auth = await accounts.authenticate(match[1], { ping: true });
+    const match = /^Bearer (.+)$/.exec(req.header('authorization') ?? '');
+    if (match?.[1]) {
+      res.locals.auth = await accounts.authenticate(match[1], { ping: true });
+      return next();
+    }
+    const cookie = sessionTokenFromCookie(req);
+    if (!cookie) throw new DomainError('session_invalid');
+    if (!sameOrigin(req.method, req.header('origin'), req.header('referer'), expectedOrigin(req))) {
+      res.status(403).json({ error: 'csrf', message: 'cross-origin request refused' });
+      return;
+    }
+    try {
+      const result = await accounts.authenticate(cookie, { ping: true });
+      res.locals.auth = result;
+      res.locals.viaCookie = cookie;
+      // Slide the cookie's expiry, but not on every request: once the session was last seen long enough ago.
+      if (Date.now() - result.previousSeenAt > COOKIE_REFRESH_AFTER_MS) {
+        await refreshSessionCookie(accounts, req, res);
+      }
+    } catch (error) {
+      // A dead session: stop the browser sending it.
+      if (error instanceof DomainError && error.code === 'session_invalid') {
+        clearSessionCookie(req, res);
+      }
+      throw error;
+    }
     next();
   };
+}
+
+/**
+ * Re-issues the session cookie with a fresh lifetime, if this request was cookie-authenticated (a Bearer
+ * client has no cookie to slide) and it has not already been done for this response.
+ */
+export async function refreshSessionCookie(
+  accounts: AccountService,
+  req: Request,
+  res: Response,
+): Promise<void> {
+  const token = res.locals.viaCookie as string | undefined;
+  if (!token || res.locals.cookieRefreshed) return;
+  res.locals.cookieRefreshed = true;
+  setSessionCookie(req, res, token, await accounts.cookieMaxAgeSeconds());
 }
 
 export const authOf = (res: Response): AuthContext => res.locals.auth as AuthContext;

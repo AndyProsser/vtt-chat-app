@@ -52,6 +52,8 @@ export interface Store {
 
   getCampaign(id: string): Promise<Campaign | undefined>;
   putCampaign(campaign: Campaign): Promise<void>;
+  /** How many campaigns the instance has, of any kind. */
+  countCampaigns(): Promise<number>;
 
   getMembership(campaignId: string, userId: string): Promise<Membership | undefined>;
   listMemberships(campaignId: string): Promise<Membership[]>;

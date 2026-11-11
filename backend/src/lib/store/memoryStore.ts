@@ -127,6 +127,8 @@ export class MemoryStore implements Store {
     this.data.campaigns.set(campaign.id, copy(campaign));
   };
 
+  countCampaigns = async (): Promise<number> => this.data.campaigns.size;
+
   getMembership = async (campaignId: string, userId: string): Promise<Membership | undefined> =>
     copyOrUndefined(this.data.memberships.get(membershipKey(campaignId, userId)));
   listMemberships = async (campaignId: string): Promise<Membership[]> =>

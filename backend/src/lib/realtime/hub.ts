@@ -30,6 +30,11 @@ export interface Connection {
   readonly id: string;
   send(data: string): void;
   close(code: number, reason: string): void;
+  /**
+   * A session token the transport already holds (the browser's session cookie, read at the upgrade).
+   * When set, the hub signs the connection in itself and the client sends no `auth` frame.
+   */
+  readonly credential?: string;
 }
 
 /** Close codes (4000–4999 is the application range). */
@@ -159,6 +164,11 @@ export class Hub {
       if (!state.auth) conn.close(CloseCode.AuthTimeout, 'authentication timed out');
     }, this.authTimeoutMs);
     this.connections.set(conn.id, state);
+    if (conn.credential) {
+      state.queue = state.queue
+        .then(() => this.authenticate(state, conn.credential as string, undefined))
+        .catch((error: unknown) => console.error('[realtime] unhandled error', error));
+    }
   }
 
   /** Feeds one text frame from a socket. Resolves once it has been handled. */
@@ -362,7 +372,7 @@ export class Hub {
         state.conn.close(CloseCode.Unauthorized, 'not authenticated');
         return;
       }
-      await this.authenticate(state, frame);
+      await this.authenticate(state, (frame.data as ClientData<'auth'>).token, frame.id);
       return;
     }
 
@@ -405,14 +415,22 @@ export class Hub {
     }
   }
 
-  private async authenticate(state: ConnState, frame: ClientFrame): Promise<void> {
-    const { token } = frame.data as ClientData<'auth'>;
+  private async authenticate(
+    state: ConnState,
+    token: string,
+    frameId: ClientFrame['id'] | undefined,
+  ): Promise<void> {
     try {
       const { user, session } = await this.options.accounts.authenticate(token, { ping: true });
       if (state.authTimer) clearTimeout(state.authTimer);
       state.authTimer = null;
       state.auth = { user, session, token };
-      this.send(state, 'auth.ok', { userId: user.id }, { id: frame.id });
+      this.send(
+        state,
+        'auth.ok',
+        { userId: user.id },
+        frameId === undefined ? {} : { id: frameId },
+      );
     } catch (error) {
       if (!(error instanceof DomainError)) throw error;
       this.send(state, 'auth.revoked', { code: error.code });

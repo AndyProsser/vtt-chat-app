@@ -82,14 +82,13 @@ async function makeInvite(): Promise<string> {
 }
 
 describe('the join page backend', () => {
-  it('previews a good invite with only the campaign name and the download links', async () => {
+  it('previews a good invite with only the campaign name', async () => {
     const code = await makeInvite();
     const res = await json('GET', `/api/invites/${code}`);
     expect(res.status).toBe(200);
     expect(res.body).toEqual({
       campaignName: 'Lost Mine',
       consentVersion: expect.any(String),
-      downloads: { linux: 'https://dl.test/app.AppImage' },
     });
   });
 

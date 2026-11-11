@@ -311,6 +311,7 @@ describe('accounts over HTTP', () => {
       `${dir}/downloads.json`,
       JSON.stringify({ linux: 'https://dl.test/a.AppImage' }),
     );
+    const ann = await signUp('ann');
     const serve = async (config: object) => {
       const app = createApp({ config: { ...CONFIG, ...config } as never, store, sender });
       const srv = await new Promise<Server>((resolve) => {
@@ -318,7 +319,11 @@ describe('accounts over HTTP', () => {
       });
       try {
         const port = (srv.address() as AddressInfo).port;
-        return (await fetch(`http://127.0.0.1:${port}/api/downloads`)).json();
+        const url = `http://127.0.0.1:${port}/api/downloads`;
+        expect((await fetch(url)).status).toBe(401);
+        const res = await fetch(url, { headers: { Authorization: `Bearer ${ann.token}` } });
+        expect(res.status).toBe(200);
+        return res.json();
       } finally {
         srv.close();
       }
@@ -414,7 +419,11 @@ describe('campaigns over HTTP', () => {
     ).toBe(403);
 
     const mine = await api.call('GET', '/api/campaigns', { token: dm.token });
-    expect(mine.body.campaigns[0].role).toBe('player');
+    // The first Admin also has a starter campaign, so look the campaign up by id.
+    const swapped = mine.body.campaigns.find(
+      (c: { campaign: { id: string } }) => c.campaign.id === campaignId,
+    );
+    expect(swapped.role).toBe('player');
   });
 
   it('refuses a voice token to anyone outside the campaign', async () => {

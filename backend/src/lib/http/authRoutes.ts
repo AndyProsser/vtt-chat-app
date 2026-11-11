@@ -5,8 +5,9 @@ import type { AccountService } from '../auth/accountService.js';
 import type { DeviceFlow } from '../auth/deviceFlow.js';
 import { DomainError } from '../errors.js';
 import type { MagicLinkSender } from './delivery.js';
-import { authOf, publicUser, requireAuth } from './middleware.js';
+import { authOf, publicUser, refreshSessionCookie, requireAuth } from './middleware.js';
 import type { RateLimiter } from './rateLimit.js';
+import { clearSessionCookie, sendSession } from './sessionCookie.js';
 
 // Device labels are capped by `cleanDeviceLabel` (80 characters), the same as the header; the schema only
 // bounds the work, so a long label is shortened rather than refused.
@@ -95,7 +96,13 @@ export function authRoutes({
     const signedIn = body.password
       ? await accounts.signInWithPassword(body.email, body.password, req.header('x-device-label'))
       : undefined;
-    res.status(201).json({ user: publicUser(user), sessionToken: signedIn?.sessionToken ?? null });
+    sendSession(
+      req,
+      res,
+      { user: publicUser(user), sessionToken: signedIn?.sessionToken ?? null },
+      await accounts.cookieMaxAgeSeconds(),
+      201,
+    );
   });
 
   router.post('/login', async (req, res) => {
@@ -109,11 +116,16 @@ export function authRoutes({
     }
     const result = await accounts.signInWithPassword(body.email, body.password, body.deviceLabel);
     loginLimiter.reset(key);
-    res.json({
-      user: publicUser(result.user),
-      sessionToken: result.sessionToken,
-      needsConsent: result.needsConsent,
-    });
+    sendSession(
+      req,
+      res,
+      {
+        user: publicUser(result.user),
+        sessionToken: result.sessionToken,
+        needsConsent: result.needsConsent,
+      },
+      await accounts.cookieMaxAgeSeconds(),
+    );
   });
 
   // Always answers the same way, whether or not the address has an account.
@@ -149,11 +161,16 @@ export function authRoutes({
       ...(body.newPassword === undefined ? {} : { newPassword: body.newPassword }),
       ...(body.deviceLabel === undefined ? {} : { deviceLabel: body.deviceLabel }),
     });
-    res.json({
-      user: publicUser(result.user),
-      sessionToken: result.sessionToken,
-      needsConsent: result.needsConsent,
-    });
+    sendSession(
+      req,
+      res,
+      {
+        user: publicUser(result.user),
+        sessionToken: result.sessionToken,
+        needsConsent: result.needsConsent,
+      },
+      await accounts.cookieMaxAgeSeconds(),
+    );
   });
 
   // The desktop app signs in without a form: it shows a code, a signed-in browser approves it.
@@ -183,11 +200,16 @@ export function authRoutes({
       res.status(202).json({ pending: true });
       return;
     }
-    res.json({
-      user: publicUser(result.user),
-      sessionToken: result.sessionToken,
-      needsConsent: result.needsConsent,
-    });
+    sendSession(
+      req,
+      res,
+      {
+        user: publicUser(result.user),
+        sessionToken: result.sessionToken,
+        needsConsent: result.needsConsent,
+      },
+      await accounts.cookieMaxAgeSeconds(),
+    );
   });
 
   router.use(auth);
@@ -229,7 +251,10 @@ export function authRoutes({
     });
   });
 
-  router.get('/me', (_req, res) => {
+  // Opening a page asks this first, so it is also what keeps a returning browser signed in: every call
+  // slides the cookie's expiry (other calls only do so about hourly).
+  router.get('/me', async (req, res) => {
+    await refreshSessionCookie(accounts, req, res);
     res.json({ user: publicUser(authOf(res).user) });
   });
 
@@ -272,10 +297,11 @@ export function authRoutes({
     res.status(204).end();
   });
 
-  router.post('/logout', async (_req, res) => {
+  router.post('/logout', async (req, res) => {
     const { user, session } = authOf(res);
     await accounts.revokeSession(user.id, session.id);
     onSessionRevoked?.(session.id);
+    clearSessionCookie(req, res);
     res.status(204).end();
   });
 
