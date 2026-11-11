@@ -8,6 +8,7 @@ const line = (id: string, at: number): ChatLine => ({
   from: { userId: 'u', name: 'U' },
   text: id,
   at,
+  kind: 'chat',
 });
 const card = (id: string, after: string | null, over: Partial<TableCard> = {}): TableCard => ({
   id,

@@ -164,7 +164,9 @@ export const accountSignOut = () => invoke<AccountStatus>('account_sign_out');
 
 export const panelHydrate = () => invoke<Hydration>('panel_hydrate');
 
-export const chatSend = (text: string, to?: string) => invoke<void>('chat_send', { text, to });
+/** Sends a line (`chat_send`): a whisper when `to` is set, else public with an optional `kind` and `lang`. */
+export const chatSend = (text: string, to?: string, kind?: string, lang?: string) =>
+  invoke<void>('chat_send', { text, to, kind, lang });
 
 /** A DM soundboard or voice-group command (`sync_command`); the server checks the sender is the DM. */
 export const syncCommand = (t: string, data: Record<string, unknown>) =>

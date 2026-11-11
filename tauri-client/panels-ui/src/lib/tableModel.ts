@@ -1,4 +1,5 @@
 import { CHAT_LIMIT } from '../consts/index.js';
+import { kindOf } from './chatStyle.js';
 import type {
   ChatLine,
   Member,
@@ -41,6 +42,8 @@ function toLine(raw: unknown): ChatLine | undefined {
       : {}),
     text: o.text,
     at: Number(o.at ?? 0),
+    kind: kindOf(o.kind),
+    ...(typeof o.lang === 'string' && o.lang !== '' ? { lang: o.lang } : {}),
   };
 }
 

@@ -56,7 +56,13 @@ describe('tableModel', () => {
   });
 
   it('keeps one copy of a line seen twice and orders by time', () => {
-    const a = { id: 'a', from: { userId: 'x', name: 'X' }, text: 't', at: 5 };
+    const a = {
+      id: 'a',
+      from: { userId: 'x', name: 'X' },
+      text: 't',
+      at: 5,
+      kind: 'chat' as const,
+    };
     const b = { ...a, id: 'b', at: 2 };
     expect(mergeChat([a], [b, a]).map((l) => l.id)).toEqual(['b', 'a']);
   });

@@ -1,5 +1,6 @@
 import { memo } from 'react';
 
+import { languageOf, languageStyle } from '../lib/chatStyle.js';
 import { lineKind } from '../lib/commands.js';
 import { Portrait } from './Portrait.js';
 import { initials, memberAvatar } from '../lib/rail.js';
@@ -19,6 +20,9 @@ export const ChatMessage = memo(function ChatMessage({ line, members, selfId }: 
   const fromDm = sender?.role === 'dm';
   const name = mine ? 'You' : line.from.name;
   const emote = line.text.startsWith('* ');
+  // A whisper keeps its own look whatever its kind; only public lines are styled by kind.
+  const style = kind === 'public' ? line.kind : 'chat';
+  const language = style === 'say' ? languageOf(line.lang) : undefined;
   const label =
     kind === 'public'
       ? null
@@ -39,16 +43,38 @@ export const ChatMessage = memo(function ChatMessage({ line, members, selfId }: 
         />
       </span>
       <div
-        className={`vtt-bubble vtt-bubble-${kind}${fromDm && kind === 'public' ? ' vtt-bubble-from-dm' : ''}${mine ? ' vtt-bubble-mine' : ''}`}
+        className={`vtt-bubble vtt-bubble-${kind}${style === 'chat' ? '' : ` vtt-kind-${style}`}${fromDm && kind === 'public' ? ' vtt-bubble-from-dm' : ''}${mine ? ' vtt-bubble-mine' : ''}`}
       >
-        <div className="vtt-msg-meta">
-          <b>{name}</b>
-          {fromDm && !mine && <span className="vtt-dm-tag">DM</span>}
-          {label && <span className="vtt-msg-label">{label}</span>}
-        </div>
-        <div className={emote ? 'vtt-emote' : undefined}>
-          {emote ? line.text.slice(2) : line.text}
-        </div>
+        {style === 'do' ? (
+          <div className="vtt-do-text">
+            * {line.from.name} {line.text}
+          </div>
+        ) : (
+          <>
+            <div className="vtt-msg-meta">
+              <b>{name}</b>
+              {fromDm && !mine && <span className="vtt-dm-tag">DM</span>}
+              {label && <span className="vtt-msg-label">{label}</span>}
+              {style === 'ooc' && (
+                <span className="vtt-ooc-tag" role="img" aria-label="out of character">
+                  OOC
+                </span>
+              )}
+            </div>
+            {style === 'say' ? (
+              <div className="vtt-say-text" style={languageStyle(line.lang)}>
+                {'\u201c'}
+                {line.text}
+                {'\u201d'}
+              </div>
+            ) : (
+              <div className={emote ? 'vtt-emote' : undefined}>
+                {emote ? line.text.slice(2) : line.text}
+              </div>
+            )}
+            {language && <div className="vtt-lang-caption">in {language.name}</div>}
+          </>
+        )}
       </div>
     </div>
   );

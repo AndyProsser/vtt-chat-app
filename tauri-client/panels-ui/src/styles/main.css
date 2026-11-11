@@ -259,6 +259,40 @@ body,
 .vtt-emote {
   font-style: italic;
 }
+/* Kinds (CHAT-COMMANDS.md): told apart by shape and type, not colour alone; colours are theme variables. */
+.vtt-bubble.vtt-kind-say .vtt-say-text {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 1.08em;
+}
+.vtt-lang-caption {
+  font-size: 10px;
+  opacity: 0.7;
+}
+.vtt-bubble.vtt-kind-do {
+  background: transparent;
+  border-color: transparent;
+}
+.vtt-do-text {
+  font-style: italic;
+}
+.vtt-bubble.vtt-kind-ooc {
+  background: transparent;
+  border: 1px dashed var(--vtt-edge);
+  font-size: 0.88em;
+  opacity: 0.8;
+}
+.vtt-ooc-tag {
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  padding: 0 5px;
+  border-radius: 6px;
+  border: 1px solid var(--vtt-edge);
+}
+.vtt-composer-note {
+  font-size: 12px;
+  opacity: 0.85;
+  padding: 2px 8px;
+}
 .vtt-composer {
   position: relative;
   flex: 1;
@@ -306,6 +340,9 @@ body,
   padding: 3px 8px;
   border-radius: 6px;
   cursor: pointer;
+}
+.vtt-palette li > span {
+  opacity: 0.75;
 }
 .vtt-palette-on {
   background: color-mix(in srgb, var(--vtt-gold) 20%, transparent);

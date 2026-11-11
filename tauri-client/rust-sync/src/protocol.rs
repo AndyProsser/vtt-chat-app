@@ -375,11 +375,18 @@ pub fn recording_ack_frame(campaign_id: &str, recording_id: &str) -> String {
     )
 }
 
-pub fn chat_frame(campaign_id: &str, text: &str) -> String {
-    frame(
-        "chat.message",
-        json!({ "campaignId": campaign_id, "text": text }),
-    )
+/// A public chat line. `kind` (`say`, `do`, `ooc`; absent means plain `chat`) and `lang` (only on
+/// `say`) are optional and sent only when set. The server validates both; the client never parses
+/// commands here (CHAT-COMMANDS.md).
+pub fn chat_frame(campaign_id: &str, text: &str, kind: Option<&str>, lang: Option<&str>) -> String {
+    let mut data = json!({ "campaignId": campaign_id, "text": text });
+    if let Some(kind) = kind.filter(|k| !k.is_empty()) {
+        data["kind"] = json!(kind);
+    }
+    if let Some(lang) = lang.filter(|l| !l.is_empty()) {
+        data["lang"] = json!(lang);
+    }
+    frame("chat.message", data)
 }
 
 #[cfg(test)]
@@ -488,6 +495,51 @@ mod tests {
         assert!(command_frame("chat.message", json!({})).is_none());
         let w = whisper_frame("c", "u2", "psst");
         assert!(w.contains("\"to\":\"u2\""));
+    }
+
+    fn data_of(frame: &str) -> Value {
+        serde_json::from_str::<Value>(frame).unwrap()["d"].clone()
+    }
+
+    #[test]
+    fn plain_chat_frame_has_no_kind_or_lang() {
+        let d = data_of(&chat_frame("c", "hi", None, None));
+        assert_eq!(d, json!({ "campaignId": "c", "text": "hi" }));
+    }
+
+    #[test]
+    fn chat_frame_carries_kind_and_lang_when_set() {
+        let d = data_of(&chat_frame("c", "Hail", Some("say"), Some("elvish")));
+        assert_eq!(
+            d,
+            json!({ "campaignId": "c", "text": "Hail", "kind": "say", "lang": "elvish" })
+        );
+        let d = data_of(&chat_frame("c", "late", Some("ooc"), Some("")));
+        assert_eq!(d["kind"], "ooc");
+        assert!(d.get("lang").is_none());
+    }
+
+    #[test]
+    fn whisper_frame_has_no_kind() {
+        let d = data_of(&whisper_frame("c", "u2", "psst"));
+        assert!(d.get("kind").is_none() && d.get("lang").is_none());
+    }
+
+    #[test]
+    fn incoming_chat_keeps_kind_and_lang_for_the_panels() {
+        let (e, _) = parse_server_frame(&server(
+            "chat.message",
+            json!({ "campaignId": "c", "text": "x", "kind": "say", "lang": "dwarvish" }),
+            Some(3),
+        ))
+        .unwrap();
+        match e {
+            ServerEvent::ChatMessage { data, .. } => {
+                assert_eq!(data["kind"], "say");
+                assert_eq!(data["lang"], "dwarvish");
+            }
+            other => panic!("unexpected {other:?}"),
+        }
     }
 
     #[test]

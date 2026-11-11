@@ -304,12 +304,15 @@ pub fn sync_command(
     })
 }
 
-/// Sends chat, or a whisper when `to` is given.
+/// Sends chat, or a whisper when `to` is given. `kind` (say/do/ooc) and `lang` ride along on a
+/// public line; the panels parse commands, Rust only carries the result. Whispers ignore both.
 #[tauri::command]
 pub fn chat_send(
     state: State<'_, crate::session::SessionState>,
     text: String,
     to: Option<String>,
+    kind: Option<String>,
+    lang: Option<String>,
 ) -> Result<(), String> {
     let text = text.trim().to_string();
     if text.is_empty() {
@@ -318,7 +321,7 @@ pub fn chat_send(
     crate::session::send_for_campaign(&state, |campaign_id| {
         Some(match &to {
             Some(to) => rust_sync::whisper_frame(campaign_id, to, &text),
-            None => rust_sync::chat_frame(campaign_id, &text),
+            None => rust_sync::chat_frame(campaign_id, &text, kind.as_deref(), lang.as_deref()),
         })
     })
 }

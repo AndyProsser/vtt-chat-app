@@ -100,6 +100,7 @@ describe('lineKind', () => {
     from: { userId: 'u2', name: 'Bob' },
     text: 'x',
     at: 1,
+    kind: 'chat',
     ...over,
   });
   it('tells public, whisper and DM-private lines apart', () => {

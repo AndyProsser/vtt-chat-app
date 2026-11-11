@@ -41,6 +41,10 @@ export interface ChatLine {
   to?: { userId: string; name: string };
   text: string;
   at: number;
+  /** What the line is (CHAT-COMMANDS.md); a line from a server that predates kinds is `chat`. */
+  kind: 'chat' | 'say' | 'do' | 'ooc';
+  /** The language key of a `say` line. */
+  lang?: string;
 }
 
 /** One forwarded server event (`sync:event`). */
