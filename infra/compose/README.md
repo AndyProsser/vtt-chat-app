@@ -6,9 +6,18 @@ Rationale and the other tiers (native, LXC): [DEPLOYMENT-AND-TRANSPORT.md](../..
 ```bash
 cd infra/compose
 ./setup.sh vtt.example.com            # or: ./setup.sh localhost   to try it on one machine
-docker compose up -d --build --wait
+docker compose pull                   # the published images for this release line (see below)
+docker compose up -d --wait
 curl -k https://vtt.example.com/api/health
 ```
+
+**Images.** Each release tag publishes `ghcr.io/andyprosser/vtt-chat-backend` and `vtt-chat-worker` (CI: `.github/workflows/images.yml`).
+`setup.sh` writes `VTT_VERSION=<MAJOR.MINOR>` into `.env` (for example `0.3`), so `docker compose pull` takes the newest **patch** of
+your line and never a new minor: a new minor changes the client/server protocol and is a deliberate upgrade of the whole stack
+([versioning rules](../../docs/architecture/VERSIONING-AND-DEPLOYMENT.md)). Pin an exact version (`VTT_VERSION=0.3.2`) to hold still.
+To build from this checkout instead (development, or an unreleased commit): `docker compose up -d --build`.
+Dev builds (`v0.4.0-dev.N`) publish only their exact tag. If the pull is refused, the GitHub package is still private: the owner
+sets it to public once under the repository's Packages settings.
 
 `setup.sh` writes `.env` and `livekit.yaml` (mode 600, git-ignored) with fresh random secrets and never prints them. Re-running leaves them alone; `--force` regenerates — and because Postgres keeps the password it first started with, that also means `docker compose down -v` (which **deletes the database**).
 

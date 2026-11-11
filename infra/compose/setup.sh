@@ -36,6 +36,8 @@ lk_secret="$(rand 32)"
   echo "LIVEKIT_API_KEY=$lk_key"
   echo "LIVEKIT_API_SECRET=$lk_secret"
   echo "VALKEY_HOST_PORT=$valkey_port"
+  # The release line of this checkout (MAJOR.MINOR): the images follow its newest patch, never a new minor.
+  echo "VTT_VERSION=$(sed -n 's/^version = "\([0-9]*\.[0-9]*\)\.[0-9]*.*"/\1/p' ../../tauri-client/Cargo.toml | head -1)"
 } > .env
 
 use_external_ip=false
@@ -55,6 +57,6 @@ redis:
 keys:
   $lk_key: $lk_secret
 YAML
-echo "Wrote .env and livekit.yaml for $site. Next: docker compose up -d --build"
+echo "Wrote .env and livekit.yaml for $site. Next: docker compose pull && docker compose up -d --wait"
 [[ $force -eq 1 ]] && echo "NOTE: Postgres keeps the password it was first started with. If the stack has run before, regenerating means \`docker compose down -v\`, which DELETES the database."
 echo "Open to the internet: 80/tcp, 443/tcp+udp, 7881/tcp, 50000-50200/udp."

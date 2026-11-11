@@ -1,5 +1,6 @@
 # VTT Chat App — the primary deployment (Docker Compose on a VM or server).
-# Start with ./setup.sh (generates .env and livekit.yaml), then:  docker compose up -d --build
+# Start with ./setup.sh (generates .env and livekit.yaml), then:  docker compose pull && docker compose up -d --wait
+# (to build from this checkout instead of pulling the published images:  docker compose up -d --build)
 # Design and rationale: docs/architecture/DEPLOYMENT-AND-TRANSPORT.md
 name: vtt
 services:
@@ -34,6 +35,10 @@ services:
     volumes: [media:/data/media]
 
   backend:
+    # Pulled from the registry by default (`docker compose pull`); `docker compose up --build` builds it from
+    # this checkout instead and tags it with the same name. VTT_VERSION is a release line (e.g. 0.3: newest
+    # patch, never a new minor) or an exact version; setup.sh writes the line this checkout belongs to.
+    image: ${VTT_REGISTRY:-ghcr.io/andyprosser}/vtt-chat-backend:${VTT_VERSION:-latest}
     build:
       context: ../..
       dockerfile: infra/compose/backend.Dockerfile
@@ -185,6 +190,7 @@ services:
   # as the operator's AI settings say (vtt-admin settings), falling back to the local services above.
   worker:
     profiles: [records]
+    image: ${VTT_REGISTRY:-ghcr.io/andyprosser}/vtt-chat-worker:${VTT_VERSION:-latest}
     build:
       context: ../..
       dockerfile: infra/compose/backend.Dockerfile

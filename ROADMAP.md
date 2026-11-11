@@ -55,6 +55,8 @@ flowchart LR
 
 **Next steps, in order:**
 
+0. **Deployment buildout ([Stage 3b](#stage-3b--deployment-buildout-added-2026-11-11)):** published images, version handshake, server-chosen client builds, then web onboarding. This comes first: the goal is a deployable system to test end to end before refining.
+
 1. **On the dev PC:** run the app and try everything listed above plus unmute, rail drag, portrait upload, device switching and the scene editor. Link a real public D&D Beyond sheet and read what comes back. Point SMTP and an Authelia at the backend once.
 2. **UI/UX fine-tuning** from what step 1 turns up, starting with **listening to the four new voices** and the importer's ambience and music loops (run `npm run sounds:import -- --from <dir> --category ambience`).
 3. **Purge rules (built 2026-11-10):** age-based retention, the DM's "delete the audio" button, and a disk-low rule with a 3-day warning. Not built: purge at the next session start. Then the recorded 4-hour soak (Stage 9). The server-restart-mid-recording drill is done (2026-11-10).
@@ -151,6 +153,34 @@ The riskiest unknowns are all "does this actually work on real machines with ope
 - UDP port documentation and an operator checklist, tested by a **second person** deploying from the docs
 
 **Done when:** someone other than Andy can `docker compose up` on a blank Ubuntu VM (and, separately, run the native install script), bootstrap a campaign, and have two clients join its voice room.
+
+---
+
+## Stage 3b — Deployment Buildout (added 2026-11-11)
+
+**Status:** 🟡 In Progress
+**Depends on:** Stage 3 (the Compose bundle), Stage 4 (the tray client and its updater)
+**Design:** [VERSIONING-AND-DEPLOYMENT.md](docs/architecture/VERSIONING-AND-DEPLOYMENT.md)
+
+**Goal:** the whole system deploys to a server from published images, so the full system can be tested end to end
+(recording, summaries, real players), and only then refined. Versions, updates and onboarding are server-driven.
+
+**Deliverables, in build order:**
+
+| #   | Item                                                                                                                                                                                       | Status                            |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------- |
+| 1   | **Version rules** (MAJOR/MINOR/PATCH meaning, 0.y as the match tier) in CLAUDE.md, DEVELOPING.md and the design doc                                                                      | 🟢 Done 2026-11-11                |
+| 2   | **Container build workflow:** CI builds the backend and worker images on a release tag and pushes them to GHCR (full version + MAJOR.MINOR tags; dev tags never move `latest`); the Compose bundle pulls them by `VTT_VERSION` instead of building on the server | ⚪ Next                           |
+| 3   | **Protocol version handshake:** `PROTOCOL_VERSION` in `shared/`, sent by the client and answered by the server, with "update required" on both sides; a CI test fails if a wire contract changes without it | ⚪                                |
+| 4   | **Server-chosen client builds:** the server offers the newest patch of its own MAJOR.MINOR, patches auto-approved, from GitHub releases (`UPDATES_SOURCE=github`)                         | ⚪                                |
+| 5   | **Update mirror:** `UPDATES_SOURCE=mirror` sync job (verify signatures, newest patch plus one previous, cleanup), `vtt-admin updates sync/status`                                         | ⚪                                |
+| 6   | **Fresh-VM deploy test** from the images and the operator guide (the Stage 3 "done when"), with real LiveKit audio, `wss://` through Caddy and a Let's Encrypt certificate                 | ⚪ Needs a VM                     |
+| 7   | **Web onboarding and app sign-in:** invite link → account → OS-specific install → "Open VTT Chat" hand-off (deep link with PKCE, device-code fallback); the server owns the sign-in methods | ⚪ **Needs a design pass first**  |
+| 8   | **Mobile account and install flow:** security and profile (name, avatar) in the browser; add-to-home-screen steps for Android and iOS, then how to install the desktop app                  | ⚪ After 7                        |
+
+**Done when:** an operator on a blank Ubuntu VM pulls the images, starts the stack, and a new player goes from an
+invite link to a signed-in, preconfigured app without typing a server address; a client of the wrong MAJOR.MINOR is
+told clearly to update; and a recorded session runs through to its summary.
 
 ---
 
