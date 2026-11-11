@@ -101,6 +101,17 @@ export async function syncUpdates(options: SyncOptions): Promise<SyncResult> {
   const pick = async (candidates: typeof onLine, channel: 'release' | 'dev') => {
     for (const c of candidates) {
       try {
+        // A release is created on GitHub before the last platform's build has uploaded its files. Offering it then
+        // would hide the update (and the download) from whoever is still missing, so wait until all three
+        // installers exist; the previous release stays offered meanwhile.
+        const found = pickDownloads(c.release.assets);
+        const missing = (['windows', 'macos', 'linux'] as const).filter((k) => !found[k]);
+        if (missing.length > 0) {
+          result.skipped.push(
+            `${c.version}: still uploading (no ${missing.join(', ')} installer yet)`,
+          );
+          continue;
+        }
         const manifest = await manifestFor(c.release, c.version, options, get, result);
         if (manifest) {
           manifests[channel] = manifest;

@@ -18,6 +18,8 @@ interface FakeRelease {
   /** Serve a file that the signature does not cover. */
   tampered?: boolean;
   noInstaller?: boolean;
+  /** Only the Linux files are up (the other platforms' builds have not finished uploading yet). */
+  partial?: boolean;
 }
 
 /** A GitHub that lists the given releases, each with one Linux installer and its signature. */
@@ -41,13 +43,14 @@ function fakeGithub(releases: FakeRelease[]): typeof fetch {
                 size: 1,
               },
               // human installers: unsigned, never in the updater feed, but offered as downloads
-              ...['VTT.Chat_x64-setup.exe', 'VTT.Chat_aarch64.dmg', 'VTT.Chat_amd64.deb'].map(
-                (n) => ({
-                  name: n,
-                  browser_download_url: `https://dl.test/${r.tag}/${n}`,
-                  size: 1,
-                }),
-              ),
+              ...(r.partial
+                ? ['VTT.Chat_amd64.deb']
+                : ['VTT.Chat_x64-setup.exe', 'VTT.Chat_aarch64.dmg', 'VTT.Chat_amd64.deb']
+              ).map((n) => ({
+                name: n,
+                browser_download_url: `https://dl.test/${r.tag}/${n}`,
+                size: 1,
+              })),
               {
                 name: `${asset(r)}.sig`,
                 browser_download_url: `https://dl.test/${r.tag}/${asset(r)}.sig`,
@@ -126,6 +129,15 @@ describe('syncUpdates, github source', () => {
     );
     const downloads = JSON.parse(await readFile(path.join(dir, 'downloads.json'), 'utf8'));
     expect(downloads.linux).toContain('v0.3.3-dev.1');
+  });
+
+  it('does not offer a release whose other platforms are still uploading, and keeps the previous one', async () => {
+    const result = await syncUpdates(
+      base({ fetchImpl: fakeGithub([{ tag: 'v0.3.2' }, { tag: 'v0.3.3', partial: true }]) }),
+    );
+    expect(result.release).toBe('0.3.2');
+    expect(result.skipped.join(' ')).toContain('still uploading');
+    expect((await manifest()).version).toBe('0.3.2');
   });
 
   it('leaves the current feed alone when GitHub has nothing on this line', async () => {
