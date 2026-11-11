@@ -103,8 +103,13 @@ Update this file as threads open, progress, or close — stale entries here are 
   and `vtt-chat-app-state-resilience-and-overlay-gotchas`, which describe the old design. Andy
   wants to review before they're dropped. (A `vtt-chat-app-pivot-decisions-2026-11` record has been
   written to the hub alongside; supersede the old ones only on Andy's say-so.)
-- **Naming.** The repo is still `vtt-chat-app` and the package is still "VTT Chat App" though it's
-  no longer tied to any VTT. Not urgent; flag if a rename is wanted before a public release.
+- **Naming.** The app is now **"VTT Chat"** (renamed 2026-11-11: Task Manager, Linux menu, macOS bundle, installer
+  files, the Linux package `vtt-chat`). The repo and the internal binary are still `vtt-chat-app`; the repo name is
+  not urgent, flag if a rename is wanted before a public release. Treat release file names as an interface
+  (see PACKAGE-DISTRIBUTION.md).
+- **Package-manager distribution** (winget, AUR, Homebrew tap, signed APT/DNF repos) is a **future idea, not
+  decided**: [docs/architecture/PACKAGE-DISTRIBUTION.md](../docs/architecture/PACKAGE-DISTRIBUTION.md). Don't build
+  any of it unprompted.
 - **License/IP notice** in `README.md` was reworded (no longer embeds or scrapes DDB). Worth a
   glance from Andy.
 
