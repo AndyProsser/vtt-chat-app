@@ -27,8 +27,14 @@ fn every_bundle_icon_exists_and_each_platform_has_its_format() {
         let file = Path::new(env!("CARGO_MANIFEST_DIR")).join(icon);
         assert!(file.exists(), "{icon} is listed but missing");
     }
-    assert!(icons.iter().any(|i| i.ends_with(".ico")), "Windows needs an .ico");
-    assert!(icons.iter().any(|i| i.ends_with(".icns")), "macOS needs an .icns");
+    assert!(
+        icons.iter().any(|i| i.ends_with(".ico")),
+        "Windows needs an .ico"
+    );
+    assert!(
+        icons.iter().any(|i| i.ends_with(".icns")),
+        "macOS needs an .icns"
+    );
     assert!(
         icons.iter().any(|i| i.contains("128x128")),
         "Linux launchers need PNGs of several sizes"
