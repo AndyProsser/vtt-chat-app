@@ -9,6 +9,8 @@ export const THEMES: readonly Theme[] = [
   {
     // The colourful one, matching the web pages: violet surfaces (the web accent), an ember-orange
     // highlight (the dragon artwork), a teal glow and a pink whisper edge. The others are mono-colour.
+    // KEEP IDENTICAL to web/src/styles/palette.css (and status/src/styles/palette.css): the web pages use
+    // these exact values. web/src/styles/palette.test.ts fails if they drift.
     id: 'default',
     name: 'Default',
     dark: {

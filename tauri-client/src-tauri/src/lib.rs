@@ -23,6 +23,7 @@ mod status_commands;
 pub mod supervisor;
 mod tray;
 mod updater;
+mod version_check;
 mod windows;
 
 /// What the window-state plugin remembers for the main window. On Linux it remembers nothing about size,
@@ -131,6 +132,7 @@ pub fn run() {
             windows::window_ready,
             deeplink::take_pending_connect,
             updater::update_check,
+            version_check::server_version_check,
             updater::update_install,
             updater::update_dev_builds_get,
             updater::update_dev_builds_set,
@@ -157,6 +159,7 @@ pub fn run() {
             account_commands::auth_providers,
             account_commands::account_open_sso,
             account_commands::account_open_connect,
+            account_commands::account_open_home,
             account_commands::account_request_code,
             account_commands::account_sign_in_code,
             account_commands::account_connect_with_code,

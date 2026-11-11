@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 
 import { useAccount } from '../../hooks/useAccount.js';
 import { useConnectLink } from '../../hooks/useConnectLink.js';
+import { useVersionCheck } from '../../hooks/useVersionCheck.js';
 import { avatarValue } from '../../lib/avatars.js';
 import { initials } from '../../lib/rail.js';
 import { accountErrorMessage, accountRename, accountSetAvatar } from '../../lib/tauriBridge.js';
@@ -24,6 +25,7 @@ export function AccountSection() {
   const [server, setServer] = useState<string>();
   const [code, setCode] = useState('');
   const link = useConnectLink();
+  const version = useVersionCheck();
   const address = server ?? status?.server ?? '';
 
   if (!status) return null;
@@ -86,6 +88,12 @@ export function AccountSection() {
           <br />
           {status.server}
         </Text>
+        {version && (
+          <Text color="gray" size="1">
+            App {version.appVersion}
+            {version.serverVersion && ` · Server ${version.serverVersion}`}
+          </Text>
+        )}
         {errorBox}
         <Button
           variant="outline"

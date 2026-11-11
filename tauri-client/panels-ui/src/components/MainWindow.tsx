@@ -15,6 +15,7 @@ import { SoundDrawer } from './deck/SoundDrawer.js';
 import { SignInGate } from './SignInGate.js';
 import { TopBar } from './TopBar.js';
 import { UpdateBanner } from './UpdateBanner.js';
+import { VersionBanner } from './VersionBanner.js';
 
 /** The one window used during play. It is the sign-in screen until there is a table to show. */
 export function MainWindow() {
@@ -38,6 +39,7 @@ function Table({ selfId }: { selfId: string | null }) {
   return (
     <div className="vtt-main">
       <TopBar dm={dm} effectsOpen={drawer} onToggleEffects={() => setDrawer((d) => !d)} />
+      <VersionBanner />
       <UpdateBanner />
       <div className="vtt-body">
         <AvatarRail dm={dm} selfId={selfId} />

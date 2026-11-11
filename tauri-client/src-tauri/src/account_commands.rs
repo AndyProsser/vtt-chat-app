@@ -163,6 +163,32 @@ pub async fn account_open_connect(
         .map_err(|_| error("open_failed", "could not open your browser"))
 }
 
+/// The web app's home page for a typed server: `{origin}/` and nothing else. A server address that
+/// carries a path is refused, so this can only ever name the root page of an http(s) server.
+fn home_page_url(server: &str) -> Result<String, AccountError> {
+    let server = normalise_server(server).map_err(|m| error("invalid_server", &m))?;
+    let after_scheme = server.split_once("://").map_or("", |(_, rest)| rest);
+    if after_scheme.contains('/') {
+        return Err(error(
+            "invalid_server",
+            "enter just the server address, without a page path",
+        ));
+    }
+    Ok(format!("{server}/"))
+}
+
+/// Opens the server's web app home page in the system browser, where the player signs in or joins
+/// and then presses "Open VTT Chat". Built here from the typed server, so the webview cannot ask for
+/// any other page to be opened.
+#[tauri::command]
+pub async fn account_open_home(app: AppHandle, server: String) -> Result<(), AccountError> {
+    use tauri_plugin_opener::OpenerExt;
+    let url = home_page_url(&server)?;
+    app.opener()
+        .open_url(url, None::<&str>)
+        .map_err(|_| error("open_failed", "could not open your browser"))
+}
+
 /// Emails a one-time sign-in code. Always succeeds from the player's side when the server is reachable:
 /// whether the address has an account, or the server can send mail, is not revealed.
 #[tauri::command]
@@ -959,5 +985,39 @@ mod connect_page_tests {
         assert!(!encoded.contains(['&', '#', ' ', '/', '?', '=']));
         assert_eq!(encoded, "a%26b%23c%20d%2F%3F%3D");
         assert_eq!(percent_encode_component("ABCD-2345"), "ABCD-2345");
+    }
+}
+
+#[cfg(test)]
+mod home_tests {
+    use super::home_page_url;
+
+    #[test]
+    fn builds_only_the_root_page_of_an_http_server() {
+        assert_eq!(
+            home_page_url(" play.example.com/ ").unwrap(),
+            "https://play.example.com/"
+        );
+        assert_eq!(
+            home_page_url("http://localhost:3000").unwrap(),
+            "http://localhost:3000/"
+        );
+    }
+
+    #[test]
+    fn refuses_other_schemes_junk_and_paths() {
+        for bad in [
+            "",
+            "ftp://x.example",
+            "javascript:alert(1)",
+            "file:///etc/passwd",
+            "a b",
+            "user@host",
+            "https://",
+            "https://play.example.com/admin",
+            "play.example.com/connect?c=ABCD-2345",
+        ] {
+            assert!(home_page_url(bad).is_err(), "{bad}");
+        }
     }
 }

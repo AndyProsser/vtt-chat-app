@@ -127,6 +127,9 @@ export const accountDevicePoll = (server: string, requestId: string, pollSecret:
 export const accountOpenConnect = (server: string, userCode: string) =>
   invoke<void>('account_open_connect', { server, userCode });
 
+/** Opens the server's web app home page in the system browser; Rust builds the address (`account_open_home`). */
+export const accountOpenHome = (server: string) => invoke<void>('account_open_home', { server });
+
 /** Connects with the short code the join page showed (any server mode). */
 export const accountConnectWithCode = (server: string, code: string) =>
   invoke<AccountStatus>('account_connect_with_code', { server, code });
@@ -296,3 +299,14 @@ export const avatarImage = (id: string) => invoke<string>('avatar_image', { id }
 /** The DM's volume for stingers and for scenes (0 to 1 each), applied as each sound starts. */
 export const soundboardLevelsSet = (stingers: number, scenes: number) =>
   invoke<void>('soundboard_levels_set', { stingers, scenes });
+
+/** How this app's version relates to the server's, by MAJOR.MINOR. Never rejects: failure is `unknown`. */
+export type VersionRelation = 'match' | 'patchDiffers' | 'appOlder' | 'appNewer' | 'unknown';
+export interface VersionCheck {
+  appVersion: string;
+  serverVersion: string | null;
+  relation: VersionRelation;
+}
+/** Asks the saved server (or `server`, on the signed-out screen) for its version (`server_version_check`). */
+export const serverVersionCheck = (server?: string) =>
+  invoke<VersionCheck>('server_version_check', { server: server ?? null });

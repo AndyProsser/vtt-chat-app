@@ -1903,3 +1903,55 @@ body,
   overflow-wrap: anywhere;
   user-select: all;
 }
+
+/* Signed-out screen: hero picture over a dark gradient (the caption stays white in every theme), then a card. */
+.vtt-hero {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  border-radius: calc(var(--vtt-radius-bubble) + 4px);
+  border: 1px solid var(--vtt-edge);
+  background: var(--vtt-bar);
+}
+.vtt-hero img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.vtt-hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgb(0 0 0 / 0.72), transparent 65%);
+  pointer-events: none;
+}
+.vtt-hero-caption {
+  position: absolute;
+  z-index: 1;
+  left: 16px;
+  right: 16px;
+  bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: #fff;
+  text-shadow: 0 1px 6px rgb(0 0 0 / 0.6);
+}
+.vtt-hero-caption h1,
+.vtt-hero-caption h2,
+.vtt-hero-caption h3,
+.vtt-hero-caption h4,
+.vtt-hero-caption h5,
+.vtt-hero-caption span {
+  color: #fff;
+  margin: 0;
+}
+.vtt-connect-card {
+  padding: 16px;
+  border-radius: calc(var(--vtt-radius-bubble) + 4px);
+  border: 1px solid var(--vtt-edge);
+  background: var(--vtt-bar);
+  color: var(--vtt-ink);
+}

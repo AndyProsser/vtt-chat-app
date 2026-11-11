@@ -463,6 +463,20 @@ impl AccountClient {
         Err(AccountError::new(code, message))
     }
 
+    /// The server's own version from the public `GET /api/version`. `None` on any failure, including a
+    /// server old enough to lack the route: the check is advice, so it must never raise an error.
+    pub async fn server_version(&self) -> Option<String> {
+        let response = self
+            .http
+            .get(format!("{}/api/version", self.base))
+            .timeout(std::time::Duration::from_secs(5))
+            .send()
+            .await
+            .ok()?;
+        let body = Self::read(response).await.ok()?;
+        body.get("version")?.as_str().map(str::to_string)
+    }
+
     fn unreachable(err: reqwest::Error) -> AccountError {
         AccountError::new(
             "unreachable",
