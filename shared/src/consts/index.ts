@@ -1,3 +1,5 @@
+export * from './chat.js';
+
 /**
  * Tauri event names emitted by `src-tauri` and listened for in `panels-ui`.
  *
@@ -20,3 +22,6 @@ export const PANEL_TOGGLE_EVENT = 'panel:toggle';
 export const PROTOCOL_VERSION = 2;
 /** The header the app sends on every request so the server can refuse a client it cannot talk to. */
 export const PROTOCOL_HEADER = 'x-vtt-protocol';
+
+/** The longest chat line (public or whisper), in characters. The server enforces it; composers check it first. */
+export const CHAT_TEXT_MAX = 4000;
