@@ -4,6 +4,7 @@ import type {
   Character,
   Invite,
   InstanceSettings,
+  DeviceRequest,
   MagicLink,
   Membership,
   Session,
@@ -32,6 +33,13 @@ export interface Store {
 
   getMagicLinkByHash(tokenHash: string): Promise<MagicLink | undefined>;
   putMagicLink(link: MagicLink): Promise<void>;
+
+  putDeviceRequest(request: DeviceRequest): Promise<void>;
+  getDeviceRequest(id: string): Promise<DeviceRequest | undefined>;
+  getDeviceRequestByCodeHash(userCodeHash: string): Promise<DeviceRequest | undefined>;
+  deleteExpiredDeviceRequests(now: number): Promise<void>;
+  /** Marks the request delivered if it was not already; true for exactly one caller. */
+  markDeviceRequestDelivered(id: string, now: number): Promise<boolean>;
 
   getCampaign(id: string): Promise<Campaign | undefined>;
   putCampaign(campaign: Campaign): Promise<void>;

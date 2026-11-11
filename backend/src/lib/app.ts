@@ -2,6 +2,7 @@ import type { JobQueue, RecordsStore } from '@vtt-chat-app/ai';
 import express, { type Express } from 'express';
 
 import { AccountService } from './auth/accountService.js';
+import { DeviceFlow } from './auth/deviceFlow.js';
 import { CampaignService } from './campaigns/campaignService.js';
 import type { BackendConfig } from './config.js';
 import { inviteRoutes, webPages } from './http/joinRoutes.js';
@@ -123,6 +124,7 @@ export function createApp({
   onNotified,
 }: AppDeps): Express {
   const accounts = new AccountService({ store });
+  const devices = new DeviceFlow({ store, accounts });
   const campaigns = new CampaignService({ store });
 
   const app = express();
@@ -195,6 +197,7 @@ export function createApp({
     '/api/auth',
     authRoutes({
       accounts,
+      devices,
       sender: sender ?? new NoMailTransport(),
       loginLimiter: new RateLimiter(10, 15 * MINUTE),
       linkLimiter: new RateLimiter(10, 15 * MINUTE),

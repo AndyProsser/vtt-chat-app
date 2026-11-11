@@ -61,6 +61,13 @@ export function hashSecret(secret: string): string {
   return createHash('sha256').update(secret).digest('hex');
 }
 
+/** Constant-time comparison of two hashes. */
+export function equalHashes(a: string, b: string): boolean {
+  const left = Buffer.from(a);
+  const right = Buffer.from(b);
+  return left.length === right.length && timingSafeEqual(left, right);
+}
+
 /** Short, speakable invite/one-time codes for the side channel: no look-alike characters. */
 const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 

@@ -61,6 +61,44 @@ describe(`Store contract (${backend.kind})`, () => {
     expect(await store.listUnusedAvatarFiles(100)).toEqual([]);
   });
 
+  it('stores device requests: lookup by id and code hash, expiry cleanup, one delivery', async () => {
+    const base = {
+      deviceLabel: 'Laptop',
+      requestIp: '10.0.0.1',
+      createdAt: 1,
+      approvedUserId: null,
+      deliveredAt: null,
+    };
+    const live = {
+      ...base,
+      id: backend.newId(),
+      userCodeHash: 'h-live',
+      pollSecretHash: 's1',
+      expiresAt: 1000,
+    };
+    const old = {
+      ...base,
+      id: backend.newId(),
+      userCodeHash: 'h-old',
+      pollSecretHash: 's2',
+      expiresAt: 10,
+    };
+    await store.putDeviceRequest(live);
+    await store.putDeviceRequest(old);
+    expect(await store.getDeviceRequest(live.id)).toEqual(live);
+    expect(await store.getDeviceRequestByCodeHash('h-old')).toEqual(old);
+    expect(await store.getDeviceRequest(backend.newId())).toBeUndefined();
+    expect(await store.getDeviceRequestByCodeHash('nope')).toBeUndefined();
+
+    await store.deleteExpiredDeviceRequests(100);
+    expect(await store.getDeviceRequest(old.id)).toBeUndefined();
+    expect(await store.getDeviceRequest(live.id)).toEqual(live);
+
+    expect(await store.markDeviceRequestDelivered(live.id, 50)).toBe(true);
+    expect(await store.markDeviceRequestDelivered(live.id, 60)).toBe(false);
+    expect((await store.getDeviceRequest(live.id))?.deliveredAt).toBe(50);
+  });
+
   it('commits a successful transaction and returns its value', async () => {
     const c = campaign();
     const result = await store.transaction(async (tx) => {
@@ -230,6 +268,7 @@ describe.skipIf(TEST_DATABASE_URL === undefined)('migrate', () => {
         '0022_character_sheet.sql',
         '0023_audio_notice.sql',
         '0024_link_purpose.sql',
+        '0025_device_requests.sql',
       ]);
       expect(await migrate(pool)).toEqual([]);
     } finally {

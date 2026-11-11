@@ -1,7 +1,8 @@
-import { Router } from 'express';
+import { Router, type Response } from 'express';
 import { z } from 'zod';
 
 import type { AccountService } from '../auth/accountService.js';
+import type { DeviceFlow } from '../auth/deviceFlow.js';
 import { DomainError } from '../errors.js';
 import type { MagicLinkSender } from './delivery.js';
 import { authOf, publicUser, requireAuth } from './middleware.js';
@@ -33,10 +34,14 @@ const profileBody = z
     avatarUrl: z.string().max(100).nullable().optional(),
   })
   .refine((b) => b.displayName !== undefined || b.avatarUrl !== undefined, 'nothing to change');
+const deviceStartBody = z.object({ deviceLabel: z.string().max(80).optional() });
+const deviceApproveBody = z.object({ userCode: z.string().max(32) });
+const devicePollBody = z.object({ requestId: z.string().max(64), pollSecret: z.string().max(256) });
 const consentBody = z.object({ version: z.string() });
 
 export interface AuthRouteDeps {
   accounts: AccountService;
+  devices: DeviceFlow;
   sender: MagicLinkSender;
   /** Slows online guessing of passwords. Keyed by client address + email. */
   loginLimiter: RateLimiter;
@@ -48,8 +53,25 @@ export interface AuthRouteDeps {
   onProfileChanged?: (userId: string) => void;
 }
 
+/**
+ * Device-request failures all mean "no such request" and are answered as one 404, whatever the
+ * cause, so a caller cannot tell an unknown id from a wrong secret or an expiry.
+ */
+async function orNotFound<T>(res: Response, work: Promise<T>): Promise<T | undefined> {
+  try {
+    return await work;
+  } catch (error) {
+    if (error instanceof DomainError && error.code === 'invalid_token') {
+      res.status(404).json({ error: 'invalid_token', message: 'invalid_token' });
+      return undefined;
+    }
+    throw error;
+  }
+}
+
 export function authRoutes({
   accounts,
+  devices,
   sender,
   loginLimiter,
   linkLimiter,
@@ -128,7 +150,67 @@ export function authRoutes({
     });
   });
 
+  // The desktop app signs in without a form: it shows a code, a signed-in browser approves it.
+  router.post('/device', async (req, res) => {
+    const body = deviceStartBody.parse(req.body);
+    if (!linkLimiter.allow(`device:${req.ip}`)) {
+      res
+        .status(429)
+        .json({ error: 'rate_limited', message: 'too many requests; try again later' });
+      return;
+    }
+    const label = body.deviceLabel ?? req.header('x-device-label');
+    res.status(201).json(await devices.start({ deviceLabel: label, requestIp: req.ip }));
+  });
+
+  router.post('/device/poll', async (req, res) => {
+    const body = devicePollBody.parse(req.body);
+    if (!linkLimiter.allow(`device-poll:${req.ip}`)) {
+      res
+        .status(429)
+        .json({ error: 'rate_limited', message: 'too many requests; try again later' });
+      return;
+    }
+    const result = await orNotFound(res, devices.poll(body.requestId, body.pollSecret));
+    if (!result) return;
+    if ('pending' in result) {
+      res.status(202).json({ pending: true });
+      return;
+    }
+    res.json({
+      user: publicUser(result.user),
+      sessionToken: result.sessionToken,
+      needsConsent: result.needsConsent,
+    });
+  });
+
   router.use(auth);
+
+  router.get('/device/:userCode', async (req, res) => {
+    if (!linkLimiter.allow(`device-approve:${req.ip}`)) {
+      res
+        .status(429)
+        .json({ error: 'rate_limited', message: 'too many attempts; try again later' });
+      return;
+    }
+    const info = await orNotFound(res, devices.describe(req.params.userCode ?? ''));
+    if (info) res.json(info);
+  });
+
+  router.post('/device/approve', async (req, res) => {
+    const body = deviceApproveBody.parse(req.body);
+    if (!linkLimiter.allow(`device-approve:${req.ip}`)) {
+      res
+        .status(429)
+        .json({ error: 'rate_limited', message: 'too many attempts; try again later' });
+      return;
+    }
+    const approved = await orNotFound(
+      res,
+      devices.approve(authOf(res).user.id, body.userCode).then(() => true),
+    );
+    if (approved) res.status(204).end();
+  });
 
   // The client calls this periodically; the ping inside `requireAuth` is what keeps it signed in.
   // A signed-in browser hands a short code to the desktop app, which redeems it at /magic-link/redeem.

@@ -104,6 +104,21 @@ export interface MagicLink {
   usedAt: number | null;
 }
 
+/** A desktop app waiting for a signed-in browser to approve it (docs/architecture/APP-SIGN-IN.md). */
+export interface DeviceRequest {
+  id: string;
+  /** Hash of the normalised user code the person types in the browser. */
+  userCodeHash: string;
+  /** Hash of the secret only the polling app knows. */
+  pollSecretHash: string;
+  deviceLabel: string | null;
+  requestIp: string | null;
+  createdAt: number;
+  expiresAt: number;
+  approvedUserId: string | null;
+  deliveredAt: number | null;
+}
+
 /** One line of table chat. `recipientId` set = a whisper, private to sender and recipient. */
 export interface ChatMessage {
   id: string;

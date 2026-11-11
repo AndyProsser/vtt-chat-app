@@ -5,6 +5,7 @@ import type {
   Character,
   Invite,
   InstanceSettings,
+  DeviceRequest,
   MagicLink,
   Membership,
   Session,
@@ -19,6 +20,7 @@ interface Data {
   users: Map<string, User>;
   sessions: Map<string, Session>;
   magicLinks: Map<string, MagicLink>;
+  deviceRequests: Map<string, DeviceRequest>;
   campaigns: Map<string, Campaign>;
   memberships: Map<string, Membership>;
   characters: Map<string, Character>;
@@ -33,6 +35,7 @@ function emptyData(): Data {
     users: new Map(),
     sessions: new Map(),
     magicLinks: new Map(),
+    deviceRequests: new Map(),
     campaigns: new Map(),
     memberships: new Map(),
     characters: new Map(),
@@ -76,6 +79,25 @@ export class MemoryStore implements Store {
     copyOrUndefined([...this.data.magicLinks.values()].find((l) => l.tokenHash === tokenHash));
   putMagicLink = async (link: MagicLink): Promise<void> => {
     this.data.magicLinks.set(link.id, copy(link));
+  };
+
+  putDeviceRequest = async (request: DeviceRequest): Promise<void> => {
+    this.data.deviceRequests.set(request.id, copy(request));
+  };
+  getDeviceRequest = async (id: string): Promise<DeviceRequest | undefined> =>
+    copyOrUndefined(this.data.deviceRequests.get(id));
+  getDeviceRequestByCodeHash = async (hash: string): Promise<DeviceRequest | undefined> =>
+    copyOrUndefined([...this.data.deviceRequests.values()].find((r) => r.userCodeHash === hash));
+  deleteExpiredDeviceRequests = async (now: number): Promise<void> => {
+    for (const [id, r] of this.data.deviceRequests) {
+      if (r.expiresAt <= now) this.data.deviceRequests.delete(id);
+    }
+  };
+  markDeviceRequestDelivered = async (id: string, now: number): Promise<boolean> => {
+    const row = this.data.deviceRequests.get(id);
+    if (!row || row.deliveredAt !== null) return false;
+    row.deliveredAt = now;
+    return true;
   };
 
   getCampaign = async (id: string): Promise<Campaign | undefined> =>

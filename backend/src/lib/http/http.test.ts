@@ -494,3 +494,71 @@ describe('RateLimiter', () => {
     expect(limiter.allow('k')).toBe(true);
   });
 });
+
+describe('device requests over HTTP', () => {
+  it('shows a code, a signed-in browser approves it, the app collects a session once', async () => {
+    const ann = await signUp('ann');
+    const started = await api.call('POST', '/api/auth/device', {
+      body: { deviceLabel: 'Desk PC' },
+    });
+    expect(started.status).toBe(201);
+    expect(started.body.userCode).toMatch(/^[A-Z2-9]{4}-[A-Z2-9]{4}$/);
+
+    const poll = { requestId: started.body.requestId, pollSecret: started.body.pollSecret };
+    const pending = await api.call('POST', '/api/auth/device/poll', { body: poll });
+    expect(pending.status).toBe(202);
+    expect(pending.body).toEqual({ pending: true });
+
+    const code = encodeURIComponent(started.body.userCode);
+    expect((await api.call('GET', `/api/auth/device/${code}`)).status).toBe(401);
+    const info = await api.call('GET', `/api/auth/device/${code}`, { token: ann.token });
+    expect(info.status).toBe(200);
+    expect(info.body.deviceLabel).toBe('Desk PC');
+    expect(typeof info.body.createdAt).toBe('number');
+    expect(info.body).toHaveProperty('requestIp');
+
+    const approveBody = { userCode: started.body.userCode };
+    expect((await api.call('POST', '/api/auth/device/approve', { body: approveBody })).status).toBe(
+      401,
+    );
+    expect(
+      (await api.call('POST', '/api/auth/device/approve', { token: ann.token, body: approveBody }))
+        .status,
+    ).toBe(204);
+    expect(
+      (await api.call('POST', '/api/auth/device/approve', { token: ann.token, body: approveBody }))
+        .status,
+    ).toBe(404);
+
+    const done = await api.call('POST', '/api/auth/device/poll', { body: poll });
+    expect(done.status).toBe(200);
+    expect(done.body.user.id).toBe(ann.id);
+    expect(done.body.needsConsent).toBe(false);
+    const me = await api.call('GET', '/api/auth/me', { token: done.body.sessionToken });
+    expect(me.body.user.id).toBe(ann.id);
+
+    const again = await api.call('POST', '/api/auth/device/poll', { body: poll });
+    expect(again.status).toBe(404);
+    expect(again.body.error).toBe('invalid_token');
+  });
+
+  it('answers a wrong secret and an unknown request identically', async () => {
+    const started = await api.call('POST', '/api/auth/device', { body: {} });
+    const wrong = await api.call('POST', '/api/auth/device/poll', {
+      body: { requestId: started.body.requestId, pollSecret: 'nope' },
+    });
+    const unknown = await api.call('POST', '/api/auth/device/poll', {
+      body: { requestId: '00000000-0000-4000-8000-000000000000', pollSecret: 'nope' },
+    });
+    expect(wrong.status).toBe(404);
+    expect(wrong).toEqual(unknown);
+  });
+
+  it('rate-limits starting requests by address', async () => {
+    let last = 0;
+    for (let i = 0; i < 12; i++) {
+      last = (await api.call('POST', '/api/auth/device', { body: {} })).status;
+    }
+    expect(last).toBe(429);
+  });
+});

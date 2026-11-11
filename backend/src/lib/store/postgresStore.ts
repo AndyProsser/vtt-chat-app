@@ -8,6 +8,7 @@ import type {
   Character,
   InstanceSettings,
   Invite,
+  DeviceRequest,
   MagicLink,
   Membership,
   Session,
@@ -61,6 +62,18 @@ const toSession = (r: Row): Session => ({
   createdAt: r.created_at as number,
   lastSeenAt: r.last_seen_at as number,
   revokedAt: nullable(r.revoked_at as number | null),
+});
+
+const toDeviceRequest = (r: Row): DeviceRequest => ({
+  id: r.id as string,
+  userCodeHash: r.user_code_hash as string,
+  pollSecretHash: r.poll_secret_hash as string,
+  deviceLabel: nullable(r.device_label as string | null),
+  requestIp: nullable(r.request_ip as string | null),
+  createdAt: r.created_at as number,
+  expiresAt: r.expires_at as number,
+  approvedUserId: nullable(r.approved_user_id as string | null),
+  deliveredAt: nullable(r.delivered_at as number | null),
 });
 
 const toMagicLink = (r: Row): MagicLink => ({
@@ -255,6 +268,45 @@ export class PostgresStore implements Store {
          created_at = $5, expires_at = $6, used_at = $7`,
       [l.id, l.email, l.purpose, l.tokenHash, l.createdAt, l.expiresAt, l.usedAt],
     );
+  }
+
+  async putDeviceRequest(d: DeviceRequest): Promise<void> {
+    await this.db.query(
+      `INSERT INTO device_requests (id, user_code_hash, poll_secret_hash, device_label, request_ip,
+         created_at, expires_at, approved_user_id, delivered_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+       ON CONFLICT (id) DO UPDATE SET user_code_hash = $2, poll_secret_hash = $3, device_label = $4,
+         request_ip = $5, created_at = $6, expires_at = $7, approved_user_id = $8, delivered_at = $9`,
+      [
+        d.id,
+        d.userCodeHash,
+        d.pollSecretHash,
+        d.deviceLabel,
+        d.requestIp,
+        d.createdAt,
+        d.expiresAt,
+        d.approvedUserId,
+        d.deliveredAt,
+      ],
+    );
+  }
+
+  getDeviceRequest = (id: string): Promise<DeviceRequest | undefined> =>
+    this.one(toDeviceRequest, 'SELECT * FROM device_requests WHERE id = $1', [id]);
+
+  getDeviceRequestByCodeHash = (hash: string): Promise<DeviceRequest | undefined> =>
+    this.one(toDeviceRequest, 'SELECT * FROM device_requests WHERE user_code_hash = $1', [hash]);
+
+  async deleteExpiredDeviceRequests(now: number): Promise<void> {
+    await this.db.query('DELETE FROM device_requests WHERE expires_at <= $1', [now]);
+  }
+
+  async markDeviceRequestDelivered(id: string, now: number): Promise<boolean> {
+    const result = await this.db.query(
+      'UPDATE device_requests SET delivered_at = $2 WHERE id = $1 AND delivered_at IS NULL',
+      [id, now],
+    );
+    return result.rowCount === 1;
   }
 
   getCampaign = (id: string): Promise<Campaign | undefined> =>

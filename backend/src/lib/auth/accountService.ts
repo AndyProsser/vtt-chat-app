@@ -1,4 +1,4 @@
-import { randomUUID, timingSafeEqual } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 
 import {
   DAY_MS,
@@ -12,6 +12,7 @@ import { OWN_AVATAR_VALUE } from '../avatarValue.js';
 import { DomainError } from '../errors.js';
 import type { Store } from '../store/store.js';
 import {
+  equalHashes,
   generateSecret,
   generateShortCode,
   hashPassword,
@@ -168,7 +169,7 @@ export class AccountService {
       ? await verifyPassword(password, user.passwordHash)
       : (await verifyPassword(password, DUMMY_HASH), false);
     if (!user || !ok) throw new DomainError('invalid_credentials');
-    return this.startSession(user, deviceLabel);
+    return this.signInUser(user, deviceLabel);
   }
 
   /**
@@ -251,7 +252,7 @@ export class AccountService {
       await this.store.putUser(current);
       await this.revokeAllSessions(user.id);
     }
-    return this.startSession(current, options.deviceLabel);
+    return this.signInUser(current, options.deviceLabel);
   }
 
   /**
@@ -312,7 +313,8 @@ export class AccountService {
     }
   }
 
-  private async startSession(user: User, deviceLabel?: string): Promise<SignedIn> {
+  /** Starts a session for a user who has already proved who they are (e.g. a device request approved in a browser). */
+  async signInUser(user: User, deviceLabel?: string): Promise<SignedIn> {
     const settings = await this.store.getSettings();
     const secret = generateSecret();
     const now = this.clock.now();
@@ -338,12 +340,6 @@ export class AccountService {
     if (!user) throw new DomainError('not_found');
     return user;
   }
-}
-
-function equalHashes(a: string, b: string): boolean {
-  const left = Buffer.from(a);
-  const right = Buffer.from(b);
-  return left.length === right.length && timingSafeEqual(left, right);
 }
 
 /** A well-formed hash of nothing in particular, used to equalise timing for unknown accounts. */
