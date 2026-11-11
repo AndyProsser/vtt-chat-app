@@ -2,7 +2,7 @@ import { Button, Callout, Card, Code, Flex, Heading, Spinner, Text } from '@radi
 import { useEffect, useState } from 'react';
 
 import { useSessionEnd } from '../hooks/useSessionEnd.js';
-import { approveDevice, codeFromSearch, describeDevice } from '../lib/device.js';
+import { approveDevice, codeFromSearch, describeDevice, deviceSummary } from '../lib/device.js';
 import type { DescribeResult } from '../lib/device.js';
 import { LoginForm } from './LoginForm.js';
 
@@ -62,12 +62,12 @@ function Approve({ token, code }: { token: string; code: string }) {
     );
   }
 
-  const { deviceLabel, requestIp } = described.device;
+  const { label, address } = deviceSummary(described.device);
   return (
     <Flex direction="column" gap="3">
       <Heading size="5">Connect this device?</Heading>
       <Text size="3">
-        <Isolated>{deviceLabel}</Isolated> · from <Isolated>{requestIp}</Isolated>
+        <Isolated>{label}</Isolated> · from <Isolated>{address}</Isolated>
       </Text>
       <Flex direction="column" gap="1">
         <Text size="1" color="gray">

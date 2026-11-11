@@ -8,6 +8,9 @@ import type { MagicLinkSender } from './delivery.js';
 import { authOf, publicUser, requireAuth } from './middleware.js';
 import type { RateLimiter } from './rateLimit.js';
 
+// Device labels are capped by `cleanDeviceLabel` (80 characters), the same as the header; the schema only
+// bounds the work, so a long label is shortened rather than refused.
+const deviceLabelField = z.string().max(1000).optional();
 const registerBody = z.object({
   email: z.string().max(254),
   displayName: z.string().max(80),
@@ -17,7 +20,7 @@ const registerBody = z.object({
 const loginBody = z.object({
   email: z.string().max(254),
   password: z.string().max(512),
-  deviceLabel: z.string().max(80).optional(),
+  deviceLabel: deviceLabelField,
 });
 const magicRequestBody = z.object({
   email: z.string().max(254),
@@ -26,7 +29,7 @@ const magicRequestBody = z.object({
 const magicRedeemBody = z.object({
   token: z.string().max(256),
   newPassword: z.string().max(512).optional(),
-  deviceLabel: z.string().max(80).optional(),
+  deviceLabel: deviceLabelField,
 });
 const profileBody = z
   .object({
@@ -34,7 +37,7 @@ const profileBody = z
     avatarUrl: z.string().max(100).nullable().optional(),
   })
   .refine((b) => b.displayName !== undefined || b.avatarUrl !== undefined, 'nothing to change');
-const deviceStartBody = z.object({ deviceLabel: z.string().max(80).optional() });
+const deviceStartBody = z.object({ deviceLabel: deviceLabelField });
 const deviceApproveBody = z.object({ userCode: z.string().max(32) });
 const devicePollBody = z.object({ requestId: z.string().max(64), pollSecret: z.string().max(256) });
 const consentBody = z.object({ version: z.string() });
@@ -47,7 +50,7 @@ export interface AuthRouteDeps {
   loginLimiter: RateLimiter;
   /** Slows magic-link requests and redemptions. Keyed by client address. */
   linkLimiter: RateLimiter;
-  /** The desktop app polls every couple of seconds for the request's life; keyed by request + address. */
+  /** The desktop app polls every couple of seconds for the request's life; keyed by address only. */
   pollLimiter: RateLimiter;
   /** Called after a session is revoked, so a live socket on it can be dropped at once. */
   onSessionRevoked?: (sessionId: string) => void;
@@ -168,7 +171,7 @@ export function authRoutes({
 
   router.post('/device/poll', async (req, res) => {
     const body = devicePollBody.parse(req.body);
-    if (!pollLimiter.allow(`device-poll:${body.requestId}:${req.ip}`)) {
+    if (!pollLimiter.allow(`device-poll:${req.ip}`)) {
       res
         .status(429)
         .json({ error: 'rate_limited', message: 'too many requests; try again later' });

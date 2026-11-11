@@ -202,7 +202,9 @@ export function createApp({
       sender: sender ?? new NoMailTransport(),
       loginLimiter: new RateLimiter(10, 15 * MINUTE),
       linkLimiter: new RateLimiter(10, 15 * MINUTE),
-      pollLimiter: new RateLimiter(200, 5 * MINUTE),
+      // Keyed by address only (a caller-chosen request id would let the key space grow without bound):
+      // about ten apps polling every 2 s behind one NAT for the full 5 minutes.
+      pollLimiter: new RateLimiter(1500, 5 * MINUTE),
       ...(realtime ? { onSessionRevoked: (id: string) => realtime.revokeSession(id) } : {}),
       ...(realtime
         ? {

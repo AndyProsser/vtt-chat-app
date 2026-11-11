@@ -6,7 +6,12 @@ import {
   DEVICE_REQUEST_TTL_MS,
 } from '../consts/index.js';
 import { isPageVisible, watchPageVisibility } from '../lib/pageVisibility.js';
-import { accountDevicePoll, accountDeviceStart, accountErrorMessage } from '../lib/tauriBridge.js';
+import {
+  accountDevicePoll,
+  accountDeviceStart,
+  accountErrorMessage,
+  accountStatus,
+} from '../lib/tauriBridge.js';
 import type { AccountStatus, DeviceStart } from '../types/index.js';
 
 export type ConnectPhase = 'idle' | 'starting' | 'waiting' | 'expired' | 'error';
@@ -25,6 +30,11 @@ export interface DeviceConnectState {
 export interface DeviceConnectDeps {
   start: (server: string) => Promise<DeviceStart>;
   poll: (server: string, requestId: string, pollSecret: string) => Promise<AccountStatus | null>;
+  /**
+   * The app's saved account. Read after a failed poll: the session may have been delivered and saved
+   * even though a later step (listing campaigns, going live) failed, and then the app IS signed in.
+   */
+  status: () => Promise<AccountStatus>;
   now: () => number;
   isVisible: () => boolean;
   watchVisibility: (onChange: (visible: boolean) => void) => () => void;
@@ -88,6 +98,14 @@ export function createDeviceConnect(deps: DeviceConnectDeps) {
       }
     } catch (e) {
       if (gen !== generation) return;
+      const saved = await deps.status().catch(() => undefined);
+      if (gen !== generation) return;
+      if (saved?.signedIn) {
+        teardown();
+        set(IDLE);
+        deps.onStatus(saved);
+        return;
+      }
       const code =
         typeof e === 'object' && e !== null && 'code' in e ? (e as { code: unknown }).code : '';
       if (code === 'expired') {
@@ -167,6 +185,7 @@ export function useDeviceConnect(onStatus: (status: AccountStatus) => void): Dev
       createDeviceConnect({
         start: accountDeviceStart,
         poll: accountDevicePoll,
+        status: accountStatus,
         now: () => Date.now(),
         isVisible: () => isPageVisible(),
         watchVisibility: (cb) => watchPageVisibility(document, cb),

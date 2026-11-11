@@ -580,17 +580,45 @@ describe('device requests over HTTP', () => {
     expect(wrong).toEqual(unknown);
   });
 
-  it('lets the app poll every couple of seconds, and stops a flood', async () => {
+  it('lets the app poll every couple of seconds, and stops a flood by address', async () => {
     const started = await api.call('POST', '/api/auth/device', { body: {} });
     const poll = { requestId: started.body.requestId, pollSecret: started.body.pollSecret };
     for (let i = 0; i < 50; i++) {
       expect((await api.call('POST', '/api/auth/device/poll', { body: poll })).status).toBe(202);
     }
-    let last = 0;
-    for (let i = 0; i < 160; i++) {
-      last = (await api.call('POST', '/api/auth/device/poll', { body: poll })).status;
+    // The budget is 1500 per 5 minutes per address, whatever request id is named (made-up ids
+    // count too, so they cannot grow the limiter's key space or dodge it).
+    const statuses: number[] = [];
+    for (let batch = 0; batch < 15; batch++) {
+      const replies = await Promise.all(
+        Array.from({ length: 100 }, (_, i) =>
+          api.call('POST', '/api/auth/device/poll', {
+            body: {
+              requestId: `00000000-0000-4000-8000-${String(batch * 100 + i).padStart(12, '0')}`,
+              pollSecret: 'x',
+            },
+          }),
+        ),
+      );
+      statuses.push(...replies.map((r) => r.status));
     }
-    expect(last).toBe(429);
+    expect(statuses.filter((s) => s === 429)).toHaveLength(50);
+    expect(statuses.filter((s) => s !== 429 && s !== 404)).toEqual([]);
+    expect((await api.call('POST', '/api/auth/device/poll', { body: poll })).status).toBe(429);
+  }, 60_000);
+
+  it('caps a long deviceLabel in the body instead of refusing it', async () => {
+    const started = await api.call('POST', '/api/auth/device', {
+      body: { deviceLabel: 'z'.repeat(500) },
+    });
+    expect(started.status).toBe(201);
+    const row = await store.getDeviceRequest(started.body.requestId);
+    expect(row?.deviceLabel).toBe('z'.repeat(80));
+    await signUp('ann');
+    const login = await api.call('POST', '/api/auth/login', {
+      body: { email: 'ann@example.com', password: PASSWORD, deviceLabel: 'w'.repeat(500) },
+    });
+    expect(login.status).toBe(200);
   });
 
   it('caps a long x-device-label header, here and on sign-in sessions', async () => {

@@ -145,6 +145,15 @@ describe('device requests', () => {
     expect((await store.getDeviceRequest(plain.requestId))?.deviceLabel).toBe('Andy’s laptop');
   });
 
+  it('strips invisible formatting and bidi overrides from labels', async () => {
+    // RLO would show "PC kseD" reversed; zero-width and isolate characters hide text or reorder it.
+    const sneaky = '\u202eDesk\u200b PC\u2066x\u2069\ufeff\u200f\u202a\u200e';
+    const started = await flow.start({ deviceLabel: sneaky });
+    expect((await store.getDeviceRequest(started.requestId))?.deviceLabel).toBe('Desk PCx');
+    const only = await flow.start({ deviceLabel: '\u202e\u200b\u2067' });
+    expect((await store.getDeviceRequest(only.requestId))?.deviceLabel).toBeNull();
+  });
+
   it('sweeps expired requests when a new one starts', async () => {
     const old = await flow.start({});
     clock.advance(LINK_CODE_TTL_MINUTES * MINUTE_MS + 1);

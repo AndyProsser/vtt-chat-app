@@ -24,6 +24,7 @@ function setup(overrides: Partial<DeviceConnectDeps> = {}) {
       approveUrl: 'https://play.example.com/connect?code=ABCD-2345',
     })),
     poll: vi.fn(async (..._args: [string, string, string]): Promise<AccountStatus | null> => null),
+    status: vi.fn(async (): Promise<AccountStatus> => ({ ...STATUS, signedIn: false })),
     onStatus: vi.fn(),
   };
   const deps: DeviceConnectDeps = {
@@ -111,6 +112,29 @@ describe('createDeviceConnect', () => {
     expect(ctl.getState()).toMatchObject({ phase: 'error', error: message });
     await vi.advanceTimersByTimeAsync(20_000);
     expect(deps.poll).toHaveBeenCalledTimes(1);
+  });
+
+  it('a failed poll after the session was saved (going live failed) still signs in', async () => {
+    const { ctl, deps } = setup();
+    deps.poll.mockRejectedValueOnce({ code: 'session', message: 'could not start the session' });
+    deps.status.mockResolvedValueOnce(STATUS);
+    await ctl.start('https://play.example.com');
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(deps.onStatus).toHaveBeenCalledWith(STATUS);
+    expect(ctl.getState()).toEqual({ phase: 'idle' });
+    await vi.advanceTimersByTimeAsync(20_000);
+    expect(deps.poll).toHaveBeenCalledTimes(1);
+  });
+
+  it('a failed poll with nothing saved carries on as before', async () => {
+    const { ctl, deps } = setup();
+    deps.poll.mockRejectedValueOnce({ code: 'network', message: 'down' });
+    await ctl.start('https://play.example.com');
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(deps.status).toHaveBeenCalledTimes(1);
+    expect(deps.onStatus).not.toHaveBeenCalled();
+    expect(ctl.getState().phase).toBe('waiting');
+    ctl.cancel();
   });
 
   it('cancel() stops polling and returns to idle', async () => {

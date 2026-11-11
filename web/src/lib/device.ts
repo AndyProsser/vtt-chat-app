@@ -1,9 +1,19 @@
+import { UNKNOWN_ADDRESS, UNKNOWN_DEVICE } from '../consts/connect.js';
 import { ApiError, request } from './api.js';
 
+/** As the server describes a waiting request: the app may send no label, and the address may be unknown. */
 export interface DeviceRequest {
-  deviceLabel: string;
-  requestIp: string;
+  deviceLabel: string | null;
+  requestIp: string | null;
   createdAt: number;
+}
+
+/** What the approval page shows, with a readable stand-in for anything the server left empty. */
+export function deviceSummary(device: DeviceRequest): { label: string; address: string } {
+  return {
+    label: device.deviceLabel || UNKNOWN_DEVICE,
+    address: device.requestIp || UNKNOWN_ADDRESS,
+  };
 }
 
 export type DescribeResult =

@@ -77,10 +77,13 @@ sign-in is the human proof.
 
 - Codes are single-use, expire in 5 minutes, are stored hashed, rate-limited, and never logged. The poll secret
   is separate from the user code, so someone who sees the code on a screen cannot collect the session.
-- **Approval always names the device** ("Linux, Andy-PC, from 203.0.113.4") and the player must press Approve. A
-  stranger's link can therefore never sign the app in as someone else: the code is issued to _their own_ signed-in
-  session, and the approval screen is explicit.
+- **Approval always names the device** (the app's label and the address it asked from, e.g. "Tray app (linux) ·
+  from 203.0.113.4"; "Unknown device" / "unknown address" when either is missing) and the player must press
+  Approve. A stranger's link can therefore never sign the app in as someone else: the code is issued to _their
+  own_ signed-in session, and the approval screen is explicit. The address is only right if the backend trusts
+  its proxy (`TRUST_PROXY`, see the Operator Guide).
 - A deep-link code is bound to the server it names; the app refuses a code for a server other than the one shown.
+- The join page's browser session is held in memory only and signed out when the page closes.
 - The session the app receives is the existing long-lived, remotely revocable one. `GET /api/auth/sessions` and
   `DELETE /api/auth/sessions/:id` already exist; the Devices list that uses them waits for the web account page
   ([ROADMAP.md](../../ROADMAP.md) item 8). Until then `vtt-admin user revoke-sessions <email>` is the revoke.
@@ -100,7 +103,7 @@ sign-in is the human proof.
 | Backend      | `POST /api/auth/link-codes` (signed in) returns `{code, expiresAt}`, 5 minutes, 8 characters shown as `ABCD-2345`, redeemed at the existing `/magic-link/redeem`. `POST /api/auth/device` (public, returns `requestId`, `userCode`, `pollSecret`, expiry), `POST /api/auth/device/poll`, `GET /api/auth/device/:userCode` (signed in; describes the device for the approval screen), `POST /api/auth/device/approve` (signed in, 204). Migration `0025_device_requests`. Code in `backend/src/lib/auth/deviceFlow.ts`, `deviceLabel.ts`, `http/authRoutes.ts`. |
 | Web          | The last join step is **Connect**: Open VTT Chat (deep link), the typed code and a countdown (no QR, see above). `/connect?c=…` is the approval page, served by the backend's join routes, usable from a phone.                                                                                                                                                                                                                                                                                                                                                |
 | App (Rust)   | `account_device_start`, `account_device_poll`, `account_connect_with_code`, `account_open_connect`, `dev_signin_enabled`, `take_pending_connect`; event `deeplink:connect {server, code}`.                                                                                                                                                                                                                                                                                                                                                                     |
-| App (panels) | A **Connect** screen replaces the sign-in form, with a "paste a connect link" box and a collapsed Developer sign-in block.                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| App (panels) | A **Connect** screen replaces the sign-in form. In dev mode only (`VTT_DEV_SIGNIN=1`, `DevSignIn.tsx`) it also has a collapsed Developer sign-in block with a "paste a connect link" box.                                                                                                                                                                                                                                                                                                                                                                      |
 | Protocol     | `PROTOCOL_VERSION` 2 and a MINOR bump (0.4), per [VERSIONING-AND-DEPLOYMENT.md](VERSIONING-AND-DEPLOYMENT.md). From 0.4 on, apps send `x-vtt-protocol` and are stopped with `426 update_required` when the protocol differs. Releases before it (0.3.2 and earlier) never sent the header, so a 0.4 server does not stop them (their old sign-in calls keep working server-side); a 0.4 app on a 0.3 server gets a 404 from `POST /api/auth/device` and tells the player the server is too old (`server_too_old`).                                             |
 | Admin        | `vtt-admin user code <email>` stays: it signs in someone with no mail and no browser access, and a `signin` code works in the app's typed-code box too (the box takes any one-time code).                                                                                                                                                                                                                                                                                                                                                                      |
 
@@ -113,33 +116,24 @@ a browser round trip every time. See [DEVELOPING.md](../../DEVELOPING.md).
 
 ## Decisions made while building (and why)
 
-- **Expiry is judged by the client's own deadline**, computed from the remaining lifetime the server reports, not
-  by comparing the server's timestamp to the local clock, so a skewed PC clock cannot show a code as expired
-  (or alive) wrongly.
+- **Expiry is judged by the client's own deadline**: the time the code arrived plus the known 5-minute lifetime
+  (less a 5-second margin). The server's `expiresAt` (epoch milliseconds) is informational only and never
+  compared to the local clock, so a skewed PC clock cannot show a code as expired (or alive) wrongly.
 - **`account_open_connect` is a narrow command**: it opens only the server's own `/connect` page for the current
   request, never an arbitrary URL, so the panel cannot be turned into a link launcher.
-- **Polling has its own limiter** (200 per 5 minutes per request id and IP) so a waiting app polling every couple
-  of seconds is never locked out by the stricter budget that guards code guessing. Polling rides out short
+- **Polling has its own limiter** (1500 per 5 minutes per client address: about ten apps polling every 2 seconds
+  behind one NAT) so a waiting app is never locked out by the stricter budget that guards code guessing. It is
+  keyed by address only, so made-up request ids cannot grow the limiter or dodge it. Polling rides out short
   network drops instead of failing the request.
 - **Approval is atomic**: one request is approved once, by one user, and delivered once, even if two browsers
   race.
-- **Device labels are capped at 80 characters and stripped of control characters** before storage and display,
-  because the label is attacker-influenced text shown on the approval screen.
+- **Device labels are capped at 80 characters and stripped of control characters, zero-width and direction
+  marks, and bidi overrides and isolates** (U+200B–U+200F, U+202A–U+202E, U+2066–U+2069, U+FEFF) before storage
+  and display, because the label is attacker-influenced text shown on the approval screen. A longer label in
+  the body or the `x-device-label` header is shortened, not refused.
 - **A waiting Connect screen stays bound to the server it started on**; a deep link for a different server
   never silently redirects it, and a deep link never signs in by itself: it fills the screen and the player
   confirms.
-- **Known gap:** bidirectional-text control characters (U+202A to U+202E, U+2066 to U+2069) are not stripped from
-  device labels, so a label can render oddly on the approval page. It cannot change what is approved.
-
-## Security rules
-
-- Codes are single-use, expire in 5 minutes, are stored hashed, rate-limited, and never logged. The poll secret
-  is separate from the user code, so someone who sees the code on a screen cannot collect the session.
-- **Approval always names the device** and the player must press Approve. A stranger's link can therefore never
-  sign the app in as someone else: the code is issued to _their own_ signed-in session, and the approval screen
-  is explicit.
-- A deep-link code is bound to the server it names; the app refuses a code for a server other than the one shown.
-- The join page's browser session is held in memory only and signed out when the page closes.
 
 ## My calls (kept)
 

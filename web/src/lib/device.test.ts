@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { approveDevice, codeFromSearch, describeDevice } from './device.js';
+import { approveDevice, codeFromSearch, describeDevice, deviceSummary } from './device.js';
 
 function mockFetch(status: number, body?: unknown) {
   const fn = vi.fn(
@@ -20,6 +20,20 @@ describe('codeFromSearch', () => {
     expect(codeFromSearch('')).toBeUndefined();
     expect(codeFromSearch('?c=')).toBeUndefined();
     expect(codeFromSearch('?c=%20')).toBeUndefined();
+  });
+});
+
+describe('deviceSummary', () => {
+  it('shows the label and address as sent', () => {
+    expect(
+      deviceSummary({ deviceLabel: 'Tray app (linux)', requestIp: '203.0.113.4', createdAt: 1 }),
+    ).toEqual({ label: 'Tray app (linux)', address: '203.0.113.4' });
+  });
+  it('falls back when the server has no label or address', () => {
+    expect(deviceSummary({ deviceLabel: null, requestIp: null, createdAt: 1 })).toEqual({
+      label: 'Unknown device',
+      address: 'unknown address',
+    });
   });
 });
 
