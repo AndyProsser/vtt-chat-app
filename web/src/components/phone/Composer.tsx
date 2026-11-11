@@ -1,4 +1,4 @@
-import { Button, Flex, Select, Text, TextArea } from '@radix-ui/themes';
+import { Button, Flex, Text, TextArea } from '@radix-ui/themes';
 import { CHAT_TEXT_MAX, looksLikeTypo, parseComposerInput, suggest } from '@vtt-chat-app/shared';
 import { useId, useMemo, useRef, useState } from 'react';
 
@@ -14,11 +14,9 @@ import { usePhoneStore } from '../../lib/phone/phoneStore.js';
 import type { SayOptions } from '../../lib/phone/socket.js';
 import type { Member } from '../../types/phone.js';
 
-const EVERYONE = '*';
-
 /**
- * The box under the chat. A leading "/" opens a list of commands (see CHAT-COMMANDS.md); the picker above
- * still whispers to one person. The text is kept if the line did not go out.
+ * The box under the chat. A leading "/" opens a list of commands (see CHAT-COMMANDS.md); whispers are typed
+ * as /tell, /w or /dm. The text is kept if the line did not go out.
  */
 export function Composer({
   campaignId,
@@ -33,7 +31,6 @@ export function Composer({
   say: (text: string, o?: SayOptions) => boolean;
 }) {
   const [text, setText] = useState('');
-  const [to, setTo] = useState(EVERYONE);
   const [failed, setFailed] = useState(false);
   const [problem, setProblem] = useState<string>();
   const [note, setNote] = useState<string>();
@@ -45,11 +42,7 @@ export function Composer({
   const serverError = usePhoneStore((s) => s.chatError);
 
   const ctx = useMemo(() => chatContext(selfId, members), [selfId, members]);
-  const whispering = to !== EVERYONE;
-  const items = useMemo(
-    () => (whispering ? [] : visibleSuggestions(suggest(text, ctx), text)),
-    [text, ctx, whispering],
-  );
+  const items = useMemo(() => visibleSuggestions(suggest(text, ctx), text), [text, ctx]);
   const open = items.length > 0 && closedFor !== text;
   const optionId = (i: number) => `${listId}-${i}`;
   const shown = problem ?? (armed === text ? TYPO_WARNING : undefined) ?? serverError;
@@ -84,12 +77,6 @@ export function Composer({
   function send() {
     const body = text.trim();
     if (body === '') return;
-    if (whispering) {
-      const sent = say(body, { to });
-      setFailed(!sent);
-      if (sent) edit('');
-      return;
-    }
     const parsed = parseComposerInput(body, ctx);
     if (parsed.type === 'error') {
       setProblem(parsed.message);
@@ -136,24 +123,6 @@ export function Composer({
 
   return (
     <Flex direction="column" gap="2" className="phone-composer">
-      <Flex gap="2" align="center">
-        <Text size="1" color="gray">
-          To
-        </Text>
-        <Select.Root value={to} onValueChange={setTo}>
-          <Select.Trigger aria-label="Who to send to" variant="soft" />
-          <Select.Content>
-            <Select.Item value={EVERYONE}>Everyone</Select.Item>
-            {members
-              .filter((m) => m.userId !== selfId)
-              .map((m) => (
-                <Select.Item key={m.userId} value={m.userId}>
-                  Whisper to {m.displayName}
-                </Select.Item>
-              ))}
-          </Select.Content>
-        </Select.Root>
-      </Flex>
       <div className="phone-compose-wrap">
         {open && (
           <ul id={listId} role="listbox" aria-label="Suggestions" className="phone-suggest">
@@ -183,7 +152,7 @@ export function Composer({
             aria-expanded={open}
             aria-controls={open ? listId : undefined}
             aria-activedescendant={open ? optionId(active) : undefined}
-            placeholder={whispering ? 'Whisper' : 'Message the table, or type / for commands'}
+            placeholder="Message the table, or type / for commands"
             size="3"
             rows={1}
             maxLength={CHAT_TEXT_MAX}
