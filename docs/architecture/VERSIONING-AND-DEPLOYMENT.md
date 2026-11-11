@@ -1,7 +1,6 @@
 # Versioning and server‑controlled deployment
 
-Decided with Andy 2026‑11‑11. **Status: the rules are in force; the mirror, the server‑chosen client build and
-the container workflow are designed but not built.** The web onboarding / app sign‑in direction is recorded at
+Decided with Andy 2026‑11‑11. **Status: the rules are in force. Built 2026‑11‑11: the image workflow (`images.yml`, untried until the next tag) and the REST protocol handshake (`PROTOCOL_VERSION`, `x-vtt-protocol`, `426 update_required`, `GET /api/version`). Not built: the WebSocket check, the CI contract guard, the server‑chosen client build and the mirror.** The web onboarding / app sign‑in direction is recorded at
 the end as intent only; it needs its own design pass.
 
 ## 1. Version numbers (in force now)
@@ -32,6 +31,8 @@ MAJOR.MINOR is for people. The machine check is a single integer, `PROTOCOL_VERS
 client's handshake and returned by the server. It is bumped in the same change that changes a wire contract, and a
 CI test fails if `shared/` contracts change while it (and therefore MINOR) stays put. Semver MINOR is then derived
 from it, not remembered by a human.
+
+**Built so far:** the app sends `x-vtt-protocol` on every REST call; the server answers `426 update_required` (with its version and protocol) on a mismatch and serves `GET /api/version` to anyone. Callers that send no header (browser pages, the admin CLI) are always served. The WebSocket is not yet checked, but the app signs in over REST first, so a mismatched app is stopped before it connects. The CI guard described above is not built: wire contracts live in the backend and `rust-sync` separately, not in `shared/`, so there is nothing single to hash yet; until then bumping `PROTOCOL_VERSION` is a code-review rule (CONTRIBUTING / DEVELOPING).
 
 When they disagree:
 

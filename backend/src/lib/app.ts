@@ -33,6 +33,7 @@ import type { TableStore } from './table/tableStore.js';
 import { RecordingState } from './recording/recordingState.js';
 import type { RecordingChange } from './recording/recordingState.js';
 import type { Store } from './store/store.js';
+import { protocolGate, serverVersion, versionRoutes } from './version.js';
 
 export interface AppDeps {
   config: BackendConfig;
@@ -138,6 +139,12 @@ export function createApp({
   app.get('/api/health', (_req, res) => {
     res.status(200).json({ status: 'ok' });
   });
+
+  // What this server is, readable by any client (even one the gate below refuses), then the gate itself:
+  // the desktop app sends its protocol version on every request and is told to update if it differs.
+  const version = serverVersion();
+  app.use('/api/version', versionRoutes(version));
+  app.use('/api', protocolGate(version));
 
   const inviteLimiter = new RateLimiter(20, 15 * MINUTE);
   app.use(

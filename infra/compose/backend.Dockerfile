@@ -63,6 +63,9 @@ USER node
 CMD ["node", "ai/dist/cli/worker.js"]
 
 FROM app AS backend
+# The release version, baked in by CI (--build-arg VTT_VERSION=0.3.2); GET /api/version reports it.
+ARG VTT_VERSION=
+ENV VTT_VERSION=$VTT_VERSION
 USER node
 EXPOSE 3000
 ENV PORT=3000 WEB_DIR=/app/web/dist STATUS_DIR=/app/status/dist

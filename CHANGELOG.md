@@ -13,6 +13,7 @@ the GitHub release notes and refuses to build a release without one. How to writ
 ### Added
 
 - **Server images are published** to GHCR on every release (`vtt-chat-backend`, `vtt-chat-worker`), so a server pulls a release instead of building it. `setup.sh` pins the stack to its release line (MAJOR.MINOR), so `docker compose pull` takes bug-fix patches and never a new minor. `docker compose up --build` still builds from source.
+- **Protocol check between app and server.** The app now sends the protocol version it speaks on every request, and `GET /api/version` reports the server's version and protocol. A server and app on different protocols no longer half-work: the app is told clearly to update. Normal patch releases never change the protocol.
 
 ## [0.3.2] - 2026-11-11
 

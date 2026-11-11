@@ -397,6 +397,12 @@ impl AccountClient {
             http: reqwest::Client::builder()
                 .timeout(std::time::Duration::from_secs(15))
                 .user_agent(concat!("vtt-chat-app/", env!("CARGO_PKG_VERSION")))
+                // Tells the server which protocol this app speaks; a mismatch comes back as 426 and
+                // surfaces as the `update_required` error (see `read`).
+                .default_headers(reqwest::header::HeaderMap::from_iter([(
+                    reqwest::header::HeaderName::from_static(crate::consts::PROTOCOL_HEADER),
+                    reqwest::header::HeaderValue::from(crate::consts::PROTOCOL_VERSION),
+                )]))
                 .build()
                 .expect("reqwest client"),
             base: base.trim_end_matches('/').to_string(),
