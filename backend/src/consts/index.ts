@@ -45,3 +45,11 @@ export const MAGIC_LINK_TTL_MINUTES = 15;
 export const MIN_PASSWORD_LENGTH = 10;
 export const DAY_MS = 24 * 60 * 60 * 1000;
 export const MINUTE_MS = 60 * 1000;
+
+/**
+ * The updater public key the desktop app trusts (the `pubkey` in `tauri-client/src-tauri/tauri.conf.json`; a test
+ * keeps the two equal). The server checks mirrored installers against it before storing them. Override with
+ * `UPDATER_PUBLIC_KEY` only for a fork that signs its own builds.
+ */
+export const UPDATER_PUBLIC_KEY =
+  'dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDU1RTNGMDc0MjU0OTg1ODkKUldTSmhVa2xkUERqVmRWUXJhazNaQ2IvQjVYQTk0UmRZNnJhUWd0QUNKcDdNWWhacmZia3YrQmsK';

@@ -5,12 +5,21 @@ import {
   DEV_LIVEKIT_URL,
 } from '../consts/index.js';
 
+import { UPDATER_PUBLIC_KEY } from '../consts/index.js';
 import type { OidcConfig } from './auth/oidc.js';
 
 export interface ClientDownloads {
   windows?: string;
   macos?: string;
   linux?: string;
+}
+
+export interface UpdatesSyncConfig {
+  source: 'github' | 'mirror';
+  repo: string;
+  includeDev: boolean;
+  publicUrl: string | undefined;
+  publicKey: string;
 }
 
 export interface BackendConfig {
@@ -49,6 +58,12 @@ export interface BackendConfig {
    * Unset: no update endpoint, and tray apps pointed at this server simply find no update.
    */
   updatesDir?: string | undefined;
+  /**
+   * Keep `/updates` in step with GitHub releases on its own (`UPDATES_SOURCE=github|mirror`; needs `UPDATES_DIR`).
+   * `github`: players download from GitHub. `mirror`: this server downloads, verifies and serves the installers.
+   * Unset: only what `vtt-admin updates publish` put there. Design: docs/architecture/VERSIONING-AND-DEPLOYMENT.md.
+   */
+  updatesSync?: UpdatesSyncConfig | undefined;
   /** Where players download the tray app, per platform. Shown on the join page; all optional. */
   clientDownloads: ClientDownloads;
   /** LiveKit's HTTP API as the backend reaches it (room and Egress calls). */
@@ -84,6 +99,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): BackendConfig 
     webDir: env.WEB_DIR || undefined,
     statusDir: env.STATUS_DIR || undefined,
     updatesDir: env.UPDATES_DIR || undefined,
+    updatesSync: updatesSync(env),
     clientDownloads: {
       ...(env.CLIENT_URL_WINDOWS ? { windows: env.CLIENT_URL_WINDOWS } : {}),
       ...(env.CLIENT_URL_MACOS ? { macos: env.CLIENT_URL_MACOS } : {}),
@@ -117,4 +133,16 @@ export function graceSeconds(raw: string | undefined): number {
   const n = Number(raw);
   if (raw === undefined || raw === '' || !Number.isFinite(n)) return 30;
   return Math.min(3600, Math.max(5, Math.round(n)));
+}
+
+function updatesSync(env: NodeJS.ProcessEnv): UpdatesSyncConfig | undefined {
+  const source = env.UPDATES_SOURCE;
+  if (!env.UPDATES_DIR || (source !== 'github' && source !== 'mirror')) return undefined;
+  return {
+    source,
+    repo: env.UPDATES_GITHUB_REPO || 'AndyProsser/vtt-chat-app',
+    includeDev: env.UPDATES_INCLUDE_DEV === '1',
+    publicUrl: env.PUBLIC_URL || undefined,
+    publicKey: env.UPDATER_PUBLIC_KEY || UPDATER_PUBLIC_KEY,
+  };
 }

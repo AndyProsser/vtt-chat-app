@@ -197,6 +197,8 @@ natively. Restart the backend after changing them (`docker compose up -d`, or
 | `DDB_SYNC`, `DDB_SYNC_HOURS`                                              | off, 12                  | `1`: keep linked D&D Beyond characters fresh (contacts dndbeyond.com)                                                                   |
 | `CLIENT_URL_WINDOWS` / `_MACOS` / `_LINUX`                                | none                     | Download links on the join page                                                                                                         |
 | `UPDATES_DIR`                                                             | (set for you)            | Where signed app updates are published                                                                                                  |
+| `UPDATES_SOURCE`                                                          | `github`                 | `github`, `mirror` or `off`: where app updates come from (see "Updating players' apps")                                                 |
+| `UPDATES_INCLUDE_DEV`                                                     | (off)                    | `1` also offers dev builds of your release line to players who opted in                                                                 |
 | `WEB_DIR`, `STATUS_DIR`                                                   | (set for you)            | The join page, the phone app (`/app`) and the status page                                                                               |
 | `PORT`                                                                    | 3000                     | The backend's port (loopback only in Compose)                                                                                           |
 
@@ -206,17 +208,17 @@ Runtime settings (no restart) live in the database: `./vtt-admin settings show`.
 
 **The admin command** (`./vtt-admin` in `infra/compose`; natively `node backend/dist/cli/main.js`):
 
-| Command                                                       | Use                                                                          |
-| ------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| `status`                                                      | Is everything up? Exits 1 if not (good for monitoring)                       |
-| `settings show` / `keys` / `set <key> <value>`                | Campaign creation, offline limit, invite expiry, AI backends                 |
-| `user list`, `user admin <email> grant\|revoke`               | See accounts; make or remove an Admin                                        |
-| `user code <email> [signin\|reset]`                           | One-time code for someone locked out                                         |
-| `user revoke-sessions <email>`                                | Sign a person out everywhere (lost laptop)                                   |
-| `jobs list [state]`, `jobs retry <id>`                        | Look at the summary queue; retry a failed job                                |
-| `recording list`, `recording reprocess <id> [--retranscribe]` | Redo a recording's summaries (or transcript) from the kept audio             |
-| `recording purge <id>` or `--older-than <days>`               | Delete the raw audio of processed recordings (transcript and summaries stay) |
-| `updates publish …`, `updates status`                         | Publish an app update; see what players are offered                          |
+| Command                                                       | Use                                                                                                |
+| ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `status`                                                      | Is everything up? Exits 1 if not (good for monitoring)                                             |
+| `settings show` / `keys` / `set <key> <value>`                | Campaign creation, offline limit, invite expiry, AI backends                                       |
+| `user list`, `user admin <email> grant\|revoke`               | See accounts; make or remove an Admin                                                              |
+| `user code <email> [signin\|reset]`                           | One-time code for someone locked out                                                               |
+| `user revoke-sessions <email>`                                | Sign a person out everywhere (lost laptop)                                                         |
+| `jobs list [state]`, `jobs retry <id>`                        | Look at the summary queue; retry a failed job                                                      |
+| `recording list`, `recording reprocess <id> [--retranscribe]` | Redo a recording's summaries (or transcript) from the kept audio                                   |
+| `recording purge <id>` or `--older-than <days>`               | Delete the raw audio of processed recordings (transcript and summaries stay)                       |
+| `updates sync`, `updates status`, `updates publish …`         | Sync the update feed from GitHub now; see the source and what players are offered; publish by hand |
 
 **Logs:** Compose: `docker compose logs -f backend` (also `livekit`, `egress`, `worker`, `caddy`).
 Native: `journalctl -u vtt-backend -f` (also `vtt-livekit`, `vtt-worker`, `caddy`).
@@ -302,7 +304,23 @@ The backend applies database changes (migrations) when it starts; they only move
 backup first** and do not roll the code back to an older version afterwards. Natively: `git pull`, then
 `sudo infra/install.sh --domain …` again (it is safe to re-run).
 
-**Updating players' apps:** build signed installers, then `vtt-admin updates publish <folder> --version
+**Updating players' apps (automatic):** the server keeps its update feed current by itself. It watches the GitHub
+releases and offers players the **newest patch of your server's own MAJOR.MINOR** (a 0.3.x server offers 0.3.x
+apps, never 0.4). Patches are bug fixes, so there is nothing to approve. A new MAJOR.MINOR is a deliberate upgrade
+of the whole stack (pull the new images), after which the feed follows the new line. Choose where players
+download from with `UPDATES_SOURCE` in `.env`:
+
+- `github` (the default): players download from GitHub. Nothing is stored on your server.
+- `mirror`: your server downloads the installers, checks each against the app's update key (a file that does not
+  verify is refused and never served), and serves them itself, so players never touch GitHub. It holds about six files per
+  version and keeps only the newest patch plus one previous for rollback, deleting older ones.
+- `off`: only what you publish by hand (below).
+
+`UPDATES_INCLUDE_DEV=1` also offers dev builds of your line to players who opted in. `vtt-admin updates sync` runs
+a sync now; `vtt-admin updates status` shows the source, what players are offered and what the mirror holds. It syncs
+shortly after the server starts and every 6 hours.
+
+**Updating players' apps (by hand, for air-gapped servers or your own build):** build signed installers, then `vtt-admin updates publish <folder> --version
 X.Y.Z --base-url https://your-domain/updates --notes "…"`. A version like `0.4.0-dev.2` is a dev build: only players who turned on "Include dev builds" are offered it, and a plain `0.4.0` goes to everyone ([RELEASING.md](RELEASING.md)). Players see a banner ("Version X.Y.Z is
 ready") and update when they click; the app never restarts by itself mid-game. Keep the signing key
 (`~/.tauri/vtt-chat-updater.key`) safe and backed up: if it is lost, installed apps can never update again

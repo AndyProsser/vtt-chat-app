@@ -21,6 +21,7 @@ import { MAGIC_LINK_TTL_MINUTES } from '../consts/index.js';
 import type { AccountService } from '../lib/auth/accountService.js';
 import type { Store } from '../lib/store/store.js';
 import { publishUpdates } from '../lib/updates/publish.js';
+import { mirrorUsage, type SyncResult } from '../lib/updates/sync.js';
 import type { CampaignCreation, InstanceSettings, User } from '../types/index.js';
 
 /** One line of `status`: a service, whether it answered, and a short detail. */
@@ -42,6 +43,10 @@ export interface AdminDeps {
   databaseBytes?: () => Promise<number>;
   /** `UPDATES_DIR`: where client updates are published (unset: the `updates` commands refuse). */
   updatesDir?: string;
+  /** One sync of the update feed with GitHub (`UPDATES_SOURCE`); undefined when sync is not enabled. */
+  syncUpdates?: () => Promise<SyncResult | undefined>;
+  /** `UPDATES_SOURCE`, for `updates status`. */
+  updatesSource?: string;
   /** Health checks for `status`. Injected so tests need no live services. */
   probes?: Probe[];
   out: (line: string) => void;
@@ -78,7 +83,8 @@ const USAGE = `vtt-admin — system operations for this instance (gameplay is ma
                                          redo the summaries (and with the flag, the transcripts) from the kept audio
   updates publish <dir> --version <v> --base-url <url> [--notes <text>]
                                          publish a signed client release (the bundler's output) to UPDATES_DIR
-  updates status                         what players are offered, on the release and dev-build channels
+  updates sync                           fetch the newest release of this server's line from GitHub now (UPDATES_SOURCE)
+  updates status                         the update source, what players are offered, and what the mirror holds
 `;
 
 const isSimpleKey = (key: string): key is keyof typeof SIMPLE_SETTINGS => key in SIMPLE_SETTINGS;
@@ -443,10 +449,42 @@ async function updates(
         return 1;
       }
     }
+    case 'sync': {
+      if (!deps.syncUpdates) {
+        deps.err(
+          'error: update sync is off; set UPDATES_SOURCE=github (or mirror) and UPDATES_DIR',
+        );
+        return 1;
+      }
+      try {
+        const r = await deps.syncUpdates();
+        if (!r) {
+          deps.err(
+            'error: update sync is off; set UPDATES_SOURCE=github (or mirror) and UPDATES_DIR',
+          );
+          return 1;
+        }
+        deps.out(`offering ${r.release ?? 'no release'}${r.dev ? `, dev build ${r.dev}` : ''}`);
+        if (r.downloaded.length) deps.out(`downloaded: ${r.downloaded.join(', ')}`);
+        if (r.removed.length) deps.out(`removed old versions: ${r.removed.join(', ')}`);
+        for (const s of r.skipped) deps.out(`skipped ${s}`);
+        return 0;
+      } catch (error) {
+        deps.err(`error: ${error instanceof Error ? error.message : String(error)}`);
+        return 1;
+      }
+    }
     case 'status': {
       if (!dir) {
         deps.err('error: UPDATES_DIR is not set');
         return 1;
+      }
+      deps.out(`source: ${deps.updatesSource ?? 'manual (vtt-admin updates publish)'}`);
+      if (deps.updatesSource === 'mirror') {
+        const usage = await mirrorUsage(dir);
+        deps.out(
+          `mirror holds: ${usage.versions.join(', ') || 'nothing yet'} (${(usage.bytes / 1_048_576).toFixed(0)} MB)`,
+        );
       }
       const feeds: [string, string][] = [
         ['releases', path.join(dir, 'latest.json')],

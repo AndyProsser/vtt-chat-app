@@ -52,6 +52,7 @@ import {
   type RecordsStore,
 } from '@vtt-chat-app/ai';
 import type pg from 'pg';
+import { syncFromConfig } from './lib/updates/runSync.js';
 
 const isEntryPoint =
   process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href;
@@ -174,6 +175,28 @@ if (isEntryPoint) {
         .catch(() => undefined);
     setTimeout(sweep, 60_000).unref();
     setInterval(sweep, 24 * 3_600_000).unref();
+  }
+  // Keep the client update feed in step with GitHub releases (UPDATES_SOURCE): once shortly after start, then every
+  // 6 hours. A failure (GitHub unreachable, a file that does not verify) is logged and the current feed keeps serving.
+  if (config.updatesSync) {
+    const syncOnce = () =>
+      void syncFromConfig(config)
+        .then((r) => {
+          if (!r) return;
+          console.log(
+            `[backend] updates (${config.updatesSync?.source}): offering ${r.release ?? 'nothing new'}` +
+              (r.downloaded.length ? `, downloaded ${r.downloaded.length} file(s)` : '') +
+              (r.removed.length ? `, removed ${r.removed.join(', ')}` : ''),
+          );
+          for (const s of r.skipped) console.warn(`[backend] updates: skipped ${s}`);
+        })
+        .catch((error: unknown) =>
+          console.warn(
+            `[backend] updates sync failed: ${error instanceof Error ? error.message : String(error)}`,
+          ),
+        );
+    setTimeout(syncOnce, 30_000).unref();
+    setInterval(syncOnce, 6 * 3_600_000).unref();
   }
   // Optional D&D Beyond character sync: off unless the operator turns it on; refreshed hourly.
   const ddb = new DdbSyncService({

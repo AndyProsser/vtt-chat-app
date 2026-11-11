@@ -66,6 +66,12 @@ services:
       DDB_SYNC_HOURS: ${DDB_SYNC_HOURS:-}
       # Signed client updates (`vtt-admin updates publish`), served at /updates.
       UPDATES_DIR: /data/media/updates
+      # Keeps that feed current without `updates publish`: the newest patch of this server's release line, from
+      # GitHub releases. github = players download from GitHub; mirror = this server stores and serves the installers
+      # (about 6 files, newest patch plus one previous); off = only what you publish by hand.
+      UPDATES_SOURCE: ${UPDATES_SOURCE:-github}
+      UPDATES_GITHUB_REPO: ${UPDATES_GITHUB_REPO:-}
+      UPDATES_INCLUDE_DEV: ${UPDATES_INCLUDE_DEV:-}
       # Where the join page tells players to download the app (all optional; set in .env).
       CLIENT_URL_WINDOWS: ${CLIENT_URL_WINDOWS:-}
       CLIENT_URL_MACOS: ${CLIENT_URL_MACOS:-}

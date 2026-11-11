@@ -8,6 +8,7 @@ import { loadConfig } from '../lib/config.js';
 import { migrate } from '../lib/store/migrate.js';
 import { createPool, PostgresStore } from '../lib/store/postgresStore.js';
 import { runAdmin, type Probe } from './admin.js';
+import { syncFromConfig } from '../lib/updates/runSync.js';
 
 /**
  * `vtt-admin`: the operator's CLI. It talks to the database directly (whoever can run it already
@@ -75,6 +76,12 @@ async function main(): Promise<number> {
       jobs: new PostgresJobQueue(pool),
       records: new PostgresRecordsStore(pool),
       ...(config.updatesDir ? { updatesDir: config.updatesDir } : {}),
+      ...(config.updatesSync
+        ? {
+            syncUpdates: () => syncFromConfig(config),
+            updatesSource: config.updatesSync.source,
+          }
+        : {}),
       ...(config.recordingsDir ? { recordingsDir: config.recordingsDir } : {}),
       databaseBytes: async () => {
         const { rows } = await pool.query<{ size: string }>(

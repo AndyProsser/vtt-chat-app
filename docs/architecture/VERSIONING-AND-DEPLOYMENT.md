@@ -1,6 +1,6 @@
 # Versioning and server‑controlled deployment
 
-Decided with Andy 2026‑11‑11. **Status: the rules are in force. Built 2026‑11‑11: the image workflow (`images.yml`, untried until the next tag) and the REST protocol handshake (`PROTOCOL_VERSION`, `x-vtt-protocol`, `426 update_required`, `GET /api/version`). Not built: the WebSocket check, the CI contract guard, the server‑chosen client build and the mirror.** The web onboarding / app sign‑in direction is recorded at
+Decided with Andy 2026‑11‑11. **Status: the rules are in force. Built 2026‑11‑11: the image workflow (`images.yml`, untried until the next tag) and the REST protocol handshake (`PROTOCOL_VERSION`, `x-vtt-protocol`, `426 update_required`, `GET /api/version`). Also built and unit-tested (not yet run from a deployed server against live GitHub): the server‑chosen client build and the mirror (`UPDATES_SOURCE`, `updates sync`, minisign verification of mirrored files, cleanup). Not built: the WebSocket check and the CI contract guard.** The web onboarding / app sign‑in direction is recorded at
 the end as intent only; it needs its own design pass.
 
 ## 1. Version numbers (in force now)
@@ -8,11 +8,11 @@ the end as intent only; it needs its own design pass.
 One version number per release covers the **server and the desktop app together**: the tag `v0.4.1` means
 server 0.4.1 and client 0.4.1, and the container image tag equals it.
 
-| Part      | Means                                                                                                                                                           | Compatibility rule                                       |
-| --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
-| **MAJOR** | A significant breaking change: a fundamental architectural change.                                                                                              | Client and server **must** match.                        |
-| **MINOR** | Any change to the **API or signalling** between server and client (REST, WebSocket envelope, LiveKit token or metadata shape, recording or consent contracts). | Client and server **must** match.                        |
-| **PATCH** | Bug fixes and changes that do not touch the wire: UI, window handling, installers, docs, internal refactors.                                                    | May **drift**: any client patch works with any server patch of the same MAJOR.MINOR. |
+| Part      | Means                                                                                                                                                          | Compatibility rule                                                                   |
+| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| **MAJOR** | A significant breaking change: a fundamental architectural change.                                                                                             | Client and server **must** match.                                                    |
+| **MINOR** | Any change to the **API or signalling** between server and client (REST, WebSocket envelope, LiveKit token or metadata shape, recording or consent contracts). | Client and server **must** match.                                                    |
+| **PATCH** | Bug fixes and changes that do not touch the wire: UI, window handling, installers, docs, internal refactors.                                                   | May **drift**: any client patch works with any server patch of the same MAJOR.MINOR. |
 
 Practical consequences:
 
@@ -42,7 +42,7 @@ When they disagree:
 - **Client newer than the server:** the app says the server needs updating and tells the player to ask their
   operator. It does not guess.
 
-## 2. The server decides which client build players use (designed, not built)
+## 2. The server decides which client build players use (built 2026-11-11)
 
 Today the operator runs `vtt-admin updates publish` by hand ([CLIENT-UPDATES.md](CLIENT-UPDATES.md)). The target is
 that the server works this out itself.
@@ -67,13 +67,13 @@ flowchart LR
 
 ### Update source: an operator choice
 
-`UPDATES_SOURCE` in the server config:
+`UPDATES_SOURCE` in the server config (the Compose default is `github`; code default is off unless set):
 
-| Value              | Behaviour                                                                                                                                       | Why you would pick it                                         |
-| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| `github` (default) | The manifest holds GitHub release URLs; players download from GitHub. Nothing is stored on the server.                                          | Smallest footprint; fine for most groups.                     |
-| `mirror`           | A sync job downloads the assets to the server and the manifest points at the server itself.                                                     | Operators who do not want players reaching GitHub, or whose network blocks it; honours self‑host‑first. |
-| (existing) `publish` | `vtt-admin updates publish <dir>` stays as the manual path.                                                                                   | Air‑gapped installs, or testing a build that is not on GitHub. |
+| Value                | Behaviour                                                                                              | Why you would pick it                                                                                   |
+| -------------------- | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------- |
+| `github` (default)   | The manifest holds GitHub release URLs; players download from GitHub. Nothing is stored on the server. | Smallest footprint; fine for most groups.                                                               |
+| `mirror`             | A sync job downloads the assets to the server and the manifest points at the server itself.            | Operators who do not want players reaching GitHub, or whose network blocks it; honours self‑host‑first. |
+| (existing) `publish` | `vtt-admin updates publish <dir>` stays as the manual path.                                            | Air‑gapped installs, or testing a build that is not on GitHub.                                          |
 
 Why a mirror at all: principle 1 (zero cloud reliance). GitHub is a third party, so the default path depending on
 it is acceptable only because the operator can turn it off.
