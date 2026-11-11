@@ -376,7 +376,8 @@ pub struct DeviceStart {
     pub request_id: String,
     pub user_code: String,
     pub poll_secret: String,
-    pub expires_at: String,
+    /// Epoch milliseconds, as the server sends it (a JSON number).
+    pub expires_at: i64,
     pub approve_url: String,
 }
 
@@ -533,10 +534,14 @@ impl AccountClient {
                 .ok_or_else(|| AccountError::new("bad_response", "the server sent no device code"))
         };
         let user_code = field("userCode")?;
+        let expires_at = body
+            .get("expiresAt")
+            .and_then(Value::as_i64)
+            .ok_or_else(|| AccountError::new("bad_response", "the server sent no expiry"))?;
         Ok(DeviceStart {
             request_id: field("requestId")?,
             poll_secret: field("pollSecret")?,
-            expires_at: field("expiresAt")?,
+            expires_at,
             approve_url: format!(
                 "{}/connect?c={}",
                 self.base,
@@ -1082,19 +1087,32 @@ mod tests {
         assert_eq!(normalise_link_code(""), None);
     }
 
+    // Fixtures below copy the exact shapes the backend sends (backend/src/lib/auth/deviceFlow.ts,
+    // backend/src/lib/http/authRoutes.ts and `publicUser` in middleware.ts): `expiresAt` is epoch
+    // milliseconds (a JSON number), `user` carries every public field, `avatarUrl` may be null.
+    const REAL_DEVICE_START: &[u8] = br#"{"requestId":"5f0c8a52-3f0e-4b7e-9d6a-0c1f2e3d4b5a","userCode":"ABCD-2345","pollSecret":"q2Xw8Jr0bK4mN6pV1sT3uY5zA7cE9gH0iL2oP4rW6tQ","expiresAt":1762820100000}"#;
+    const REAL_SIGNED_IN: &[u8] = br#"{"user":{"id":"8d2b1c3e-0a4f-4e6b-9c7d-1e2f3a4b5c6d","email":"ann@example.com","displayName":"Ann","avatarUrl":null,"isAdmin":false,"consentVersion":"1"},"sessionToken":"T","needsConsent":false}"#;
+
     #[tokio::test]
     async fn device_start_posts_the_label_and_parses_the_reply() {
         let (base, request) = one_shot_server(
             "201 Created",
             "application/json",
-            br#"{"requestId":"r1","userCode":"ABCD-2345","pollSecret":"sec","expiresAt":"2026-11-11T00:00:00Z"}"#.to_vec(),
+            REAL_DEVICE_START.to_vec(),
         )
         .await;
         let start = AccountClient::new(&base).device_start().await.unwrap();
-        assert_eq!(start.request_id, "r1");
+        assert_eq!(start.request_id, "5f0c8a52-3f0e-4b7e-9d6a-0c1f2e3d4b5a");
         assert_eq!(start.user_code, "ABCD-2345");
-        assert_eq!(start.poll_secret, "sec");
+        assert_eq!(
+            start.poll_secret,
+            "q2Xw8Jr0bK4mN6pV1sT3uY5zA7cE9gH0iL2oP4rW6tQ"
+        );
+        assert_eq!(start.expires_at, 1_762_820_100_000);
         assert_eq!(start.approve_url, format!("{base}/connect?c=ABCD-2345"));
+        // The panel reads `expiresAt` as a number too (panels-ui DeviceStart type).
+        let json = serde_json::to_value(&start).unwrap();
+        assert_eq!(json["expiresAt"], serde_json::json!(1_762_820_100_000_i64));
         let request = request.await.unwrap();
         assert!(request.starts_with("POST /api/auth/device "), "{request}");
         assert!(request.contains("deviceLabel"));
@@ -1134,20 +1152,31 @@ mod tests {
 
     #[tokio::test]
     async fn device_poll_returns_the_login_when_approved() {
-        let (base, _r) = one_shot_server(
-            "200 OK",
-            "application/json",
-            br#"{"user":{"id":"u1","displayName":"Ann"},"sessionToken":"T","needsConsent":false}"#
-                .to_vec(),
-        )
-        .await;
+        let (base, _r) =
+            one_shot_server("200 OK", "application/json", REAL_SIGNED_IN.to_vec()).await;
         let out = AccountClient::new(&base)
             .device_poll("r1", "sec")
             .await
             .unwrap()
             .unwrap();
         assert_eq!(out.session_token, "T");
-        assert_eq!(out.user_id, "u1");
+        assert_eq!(out.user_id, "8d2b1c3e-0a4f-4e6b-9c7d-1e2f3a4b5c6d");
+        assert_eq!(out.display_name, "Ann");
+        assert_eq!(out.avatar_url, None);
+    }
+
+    #[tokio::test]
+    async fn a_code_redeem_parses_the_real_reply() {
+        let (base, request) =
+            one_shot_server("200 OK", "application/json", REAL_SIGNED_IN.to_vec()).await;
+        let out = AccountClient::new(&base)
+            .redeem_code("ABCD2345")
+            .await
+            .unwrap();
+        assert_eq!(out.user_id, "8d2b1c3e-0a4f-4e6b-9c7d-1e2f3a4b5c6d");
+        let request = request.await.unwrap();
+        assert!(request.starts_with("POST /api/auth/magic-link/redeem "));
+        assert!(request.contains(r#""token":"ABCD2345""#));
     }
 
     #[tokio::test]
