@@ -1,6 +1,11 @@
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 
-import { DAY_MS, MAGIC_LINK_TTL_MINUTES, MINUTE_MS } from '../consts/index.js';
+import {
+  DAY_MS,
+  LINK_CODE_TTL_MINUTES,
+  MAGIC_LINK_TTL_MINUTES,
+  MINUTE_MS,
+} from '../consts/index.js';
 import type { User } from '../types/index.js';
 import { AccountService } from './auth/accountService.js';
 import {
@@ -8,6 +13,7 @@ import {
   hashPassword,
   hashSecret,
   normaliseCode,
+  normaliseShortCode,
   verifyPassword,
 } from './auth/crypto.js';
 import { CampaignService } from './campaigns/campaignService.js';
@@ -258,6 +264,28 @@ describe('magic links', () => {
     const link = await w.accounts.requestMagicLink(user.email, 'signin');
     w.clock.advance((MAGIC_LINK_TTL_MINUTES + 1) * MINUTE_MS);
     await rejects(w.accounts.redeemMagicLink(link?.token ?? ''), 'invalid_token');
+  });
+
+  describe('link codes', () => {
+    it('sign in as the issuing user, once', async () => {
+      const issued = await w.accounts.issueLinkCode(user.id);
+      expect(issued.code).toHaveLength(8);
+      const result = await w.accounts.redeemMagicLink(normaliseShortCode(issued.code));
+      expect(result.user.id).toBe(user.id);
+      await rejects(w.accounts.redeemMagicLink(issued.code), 'invalid_token');
+    });
+
+    it('expire after five minutes', async () => {
+      const issued = await w.accounts.issueLinkCode(user.id);
+      w.clock.advance(LINK_CODE_TTL_MINUTES * MINUTE_MS + 1);
+      await rejects(w.accounts.redeemMagicLink(issued.code), 'invalid_token');
+    });
+
+    it('are accepted in lower case with a hyphen', async () => {
+      const issued = await w.accounts.issueLinkCode(user.id);
+      const typed = `${issued.code.slice(0, 4)}-${issued.code.slice(4)}`.toLowerCase();
+      expect((await w.accounts.redeemMagicLink(typed)).user.id).toBe(user.id);
+    });
   });
 
   it('says nothing for an unknown address', async () => {

@@ -42,6 +42,11 @@ export const MAX_TEXT_HANDOUT_CHARS = 20_000;
 export const MAX_HANDOUT_IMAGES = 12;
 
 export const MAGIC_LINK_TTL_MINUTES = 15;
+/** A link code is typed into the desktop app by someone already signed in on the web: short-lived. */
+export const LINK_CODE_TTL_MINUTES = 5;
+/** Speakable: no look-alike characters (no I, L, O, 0, 1). */
+export const SHORT_CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+export const SHORT_CODE_LENGTH = 8;
 export const MIN_PASSWORD_LENGTH = 10;
 export const DAY_MS = 24 * 60 * 60 * 1000;
 export const MINUTE_MS = 60 * 1000;

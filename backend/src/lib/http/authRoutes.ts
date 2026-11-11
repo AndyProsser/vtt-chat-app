@@ -131,6 +131,15 @@ export function authRoutes({
   router.use(auth);
 
   // The client calls this periodically; the ping inside `requireAuth` is what keeps it signed in.
+  // A signed-in browser hands a short code to the desktop app, which redeems it at /magic-link/redeem.
+  router.post('/link-codes', async (_req, res) => {
+    const issued = await accounts.issueLinkCode(authOf(res).user.id);
+    res.json({
+      code: `${issued.code.slice(0, 4)}-${issued.code.slice(4)}`,
+      expiresAt: issued.expiresAt,
+    });
+  });
+
   router.get('/me', (_req, res) => {
     res.json({ user: publicUser(authOf(res).user) });
   });

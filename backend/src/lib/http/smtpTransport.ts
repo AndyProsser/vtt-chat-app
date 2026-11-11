@@ -12,11 +12,13 @@ export interface MailerLike {
 const SUBJECTS: Record<MagicLinkPurpose, string> = {
   signin: 'Your VTT Chat sign-in code',
   reset: 'Your VTT Chat password reset code',
+  link: 'Your VTT Chat link code',
 };
 
 const REASONS: Record<MagicLinkPurpose, string> = {
   signin: 'sign in to VTT Chat',
   reset: 'reset your VTT Chat password',
+  link: 'link the VTT Chat app',
 };
 
 /** Plain text on purpose: a code to paste into the app, nothing to click, nothing to track. */

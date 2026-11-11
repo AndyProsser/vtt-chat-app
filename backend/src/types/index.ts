@@ -92,7 +92,7 @@ export interface Invite {
   revokedAt: number | null;
 }
 
-export type MagicLinkPurpose = 'signin' | 'reset';
+export type MagicLinkPurpose = 'signin' | 'reset' | 'link';
 
 export interface MagicLink {
   id: string;

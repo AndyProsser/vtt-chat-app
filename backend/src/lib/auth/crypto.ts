@@ -1,5 +1,7 @@
-import { createHash, randomBytes, scrypt, timingSafeEqual } from 'node:crypto';
+import { createHash, randomBytes, randomInt, scrypt, timingSafeEqual } from 'node:crypto';
 import { promisify } from 'node:util';
+
+import { SHORT_CODE_ALPHABET, SHORT_CODE_LENGTH } from '../../consts/index.js';
 
 const scryptAsync = promisify(scrypt) as (
   password: string,
@@ -71,4 +73,27 @@ export function generateCode(length = 10): string {
 
 export function normaliseCode(code: string): string {
   return code.replace(/[\s-]/g, '').toUpperCase();
+}
+
+/** A link code: `randomInt` per character, so there is no modulo bias. Displayed as `ABCD-2345`. */
+export function generateShortCode(): string {
+  let out = '';
+  for (let i = 0; i < SHORT_CODE_LENGTH; i++) {
+    out += SHORT_CODE_ALPHABET[randomInt(SHORT_CODE_ALPHABET.length)];
+  }
+  return out;
+}
+
+/** Typed input tolerance: case-insensitive, ignores hyphens and spaces. */
+export function normaliseShortCode(input: string): string {
+  return input.replace(/[\s-]/g, '').toUpperCase();
+}
+
+/** True for input that has the shape of a short code (after normalising). */
+export function looksLikeShortCode(input: string): boolean {
+  const normalised = normaliseShortCode(input);
+  return (
+    normalised.length === SHORT_CODE_LENGTH &&
+    [...normalised].every((ch) => SHORT_CODE_ALPHABET.includes(ch))
+  );
 }

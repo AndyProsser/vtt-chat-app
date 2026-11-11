@@ -281,6 +281,20 @@ describe('accounts over HTTP', () => {
     ).toBe(200);
   });
 
+  it('issues a link code only to a signed-in session, and it signs in a new session', async () => {
+    const ann = await signUp('ann');
+    expect((await api.call('POST', '/api/auth/link-codes')).status).toBe(401);
+    const res = await api.call('POST', '/api/auth/link-codes', { token: ann.token });
+    expect(res.status).toBe(200);
+    expect(res.body.code).toMatch(/^[A-Z2-9]{4}-[A-Z2-9]{4}$/);
+    const redeem = await api.call('POST', '/api/auth/magic-link/redeem', {
+      body: { token: res.body.code },
+    });
+    expect(redeem.status).toBe(200);
+    expect(redeem.body.sessionToken).not.toBe(ann.token);
+    expect(redeem.body.user.id).toBe(ann.id);
+  });
+
   it('answers an unknown address exactly like a known one, and sends nothing', async () => {
     const res = await api.call('POST', '/api/auth/magic-link', {
       body: { email: 'ghost@example.com', purpose: 'reset' },

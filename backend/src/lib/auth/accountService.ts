@@ -2,6 +2,7 @@ import { randomUUID, timingSafeEqual } from 'node:crypto';
 
 import {
   DAY_MS,
+  LINK_CODE_TTL_MINUTES,
   MAGIC_LINK_TTL_MINUTES,
   MIN_PASSWORD_LENGTH,
   MINUTE_MS,
@@ -10,7 +11,15 @@ import type { MagicLinkPurpose, Session, User } from '../../types/index.js';
 import { OWN_AVATAR_VALUE } from '../avatarValue.js';
 import { DomainError } from '../errors.js';
 import type { Store } from '../store/store.js';
-import { generateSecret, hashPassword, hashSecret, verifyPassword } from './crypto.js';
+import {
+  generateSecret,
+  generateShortCode,
+  hashPassword,
+  hashSecret,
+  looksLikeShortCode,
+  normaliseShortCode,
+  verifyPassword,
+} from './crypto.js';
 
 export interface Clock {
   now(): number;
@@ -190,12 +199,37 @@ export class AccountService {
     return { token, expiresAt };
   }
 
+  /**
+   * Issues a short-lived code for a user who is already signed in (on the web), to be typed or
+   * scanned into the desktop app. Returned as 8 raw characters; callers format it for display.
+   * Redeemed through `redeemMagicLink`, so it is single-use and stored only as a hash.
+   */
+  async issueLinkCode(userId: string): Promise<{ code: string; expiresAt: number }> {
+    const user = await this.store.getUser(userId);
+    if (!user) throw new DomainError('invalid_input', 'unknown user');
+    const code = generateShortCode();
+    const now = this.clock.now();
+    const expiresAt = now + LINK_CODE_TTL_MINUTES * MINUTE_MS;
+    await this.store.putMagicLink({
+      id: this.newId(),
+      email: user.email,
+      purpose: 'link',
+      tokenHash: hashSecret(code),
+      createdAt: now,
+      expiresAt,
+      usedAt: null,
+    });
+    return { code, expiresAt };
+  }
+
   /** Redeems a magic link exactly once. A reset also sets a new password and signs out everywhere else. */
   async redeemMagicLink(
     token: string,
     options: { newPassword?: string; deviceLabel?: string } = {},
   ): Promise<SignedIn> {
-    const link = await this.store.getMagicLinkByHash(hashSecret(token));
+    const link = await this.store.getMagicLinkByHash(
+      hashSecret(looksLikeShortCode(token) ? normaliseShortCode(token) : token),
+    );
     const now = this.clock.now();
     if (!link || link.usedAt !== null || link.expiresAt <= now) {
       throw new DomainError('invalid_token');
