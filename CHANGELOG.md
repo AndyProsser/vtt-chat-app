@@ -16,6 +16,8 @@ the GitHub release notes and refuses to build a release without one. How to writ
   application menu and the macOS Dock. (It was "VTT Chat App".) Installer files are named `VTT.Chat_…` to match.
   Anyone who already installed 0.3.1 on Windows should uninstall "VTT Chat App" first, so the two do not sit
   side by side.
+  On Linux the package is now named `vtt-chat` (it was `vtt-chat-app`); remove the old one first with
+  `sudo apt remove vtt-chat-app` (or `sudo dnf remove vtt-chat-app`), or the two will fight over the same files.
 - Linux AppImage: the first time it runs, the app adds itself to your application menu and gives itself its icon
   (in your own `~/.local/share`, nothing system-wide), so the dock and menu show the VTT Chat icon. Move the
   AppImage and it updates the entry the next time it starts.
