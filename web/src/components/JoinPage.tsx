@@ -13,7 +13,7 @@ import { GetTheApp } from './GetTheApp.js';
  */
 export function JoinPage() {
   const [code, setCode] = useState(() => codeFromPath(window.location.pathname));
-  const [joined, setJoined] = useState(false);
+  const [token, setToken] = useState<string>();
   const state = useInvite(code);
 
   return (
@@ -37,8 +37,9 @@ export function JoinPage() {
             <Callout.Root color="orange">
               <Callout.Text>{state.message}</Callout.Text>
             </Callout.Root>
-          ) : joined ? (
+          ) : token !== undefined ? (
             <GetTheApp
+              token={token}
               campaignName={state.invite.campaignName}
               downloads={state.invite.downloads}
             />
@@ -50,7 +51,7 @@ export function JoinPage() {
               <AccountForm
                 code={code}
                 consentVersion={state.invite.consentVersion}
-                onJoined={() => setJoined(true)}
+                onJoined={setToken}
               />
             </Box>
           )}

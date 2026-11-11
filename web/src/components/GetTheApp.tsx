@@ -1,13 +1,16 @@
-import { Button, Callout, Code, Flex, Heading, Link, Text } from '@radix-ui/themes';
+import { Button, Callout, Flex, Heading, Link, Text } from '@radix-ui/themes';
 
-import { APP_SCHEME, PLATFORM_LABELS } from '../consts/index.js';
-import { appLink, detectPlatform } from '../lib/platform.js';
+import { PLATFORM_LABELS } from '../consts/index.js';
+import { detectPlatform } from '../lib/platform.js';
 import type { Downloads } from '../types/index.js';
+import { ConnectApp } from './ConnectApp.js';
 
 export function GetTheApp({
   campaignName,
   downloads,
+  token,
 }: {
+  token: string;
   campaignName: string;
   downloads: Downloads;
 }) {
@@ -50,17 +53,14 @@ export function GetTheApp({
       )}
 
       <Flex direction="column" gap="2">
-        <Heading size="3">Then</Heading>
-        <ol className="join-steps">
-          <li>Install and open the app. It lives in your system tray.</li>
-          <li>
-            Sign in with the email and password you just used. If it asks for a server, enter{' '}
-            <Code>{server}</Code>.
-          </li>
-          <li>Your campaign appears automatically. Hide the app and play — it stays quiet.</li>
-        </ol>
+        <Heading size="3">Then connect the app</Heading>
         <Text size="2" color="gray">
-          Already installed? <Link href={appLink(APP_SCHEME, server)}>Open the app</Link>.
+          Install and open the app — it lives in your system tray. Then connect it to your account
+          here; no password to retype.
+        </Text>
+        <ConnectApp token={token} server={server} />
+        <Text size="2" color="gray">
+          Your campaign appears automatically. Hide the app and play — it stays quiet.
         </Text>
       </Flex>
     </Flex>

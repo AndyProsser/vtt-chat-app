@@ -77,6 +77,15 @@ export async function signIn(
 export const joinCampaign = (token: string, code: string) =>
   request('POST', '/api/campaigns/join', { token, body: { code } });
 
-/** The browser session was only for joining; the app signs in for itself. */
+/** Ends the browser session (the join page signs out when it closes or after a while). */
 export const signOut = (token: string) =>
   request('POST', '/api/auth/logout', { token }).catch(() => undefined);
+
+export interface LinkCode {
+  code: string;
+  expiresAt: number;
+}
+
+/** A single-use, 5-minute code that lets the app sign in as this session's account. */
+export const createLinkCode = (token: string) =>
+  request<LinkCode>('POST', '/api/auth/link-codes', { token });

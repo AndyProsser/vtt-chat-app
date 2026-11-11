@@ -1,5 +1,6 @@
 import '@radix-ui/themes/styles.css';
 import './styles/theme.css';
+import './styles/connect.css';
 
 import { Theme } from '@radix-ui/themes';
 import { createRoot } from 'react-dom/client';

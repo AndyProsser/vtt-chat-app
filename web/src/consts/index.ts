@@ -14,3 +14,4 @@ export const PLATFORM_LABELS = {
   macos: 'macOS',
   linux: 'Linux',
 } as const;
+export * from './connect.js';

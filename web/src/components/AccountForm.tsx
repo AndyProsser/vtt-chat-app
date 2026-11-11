@@ -21,7 +21,11 @@ const MESSAGES: Record<string, string> = {
   invite_invalid: 'This invite isn’t valid any more. Ask your DM for a new one.',
 };
 
-export function AccountForm(props: { code: string; consentVersion: string; onJoined: () => void }) {
+export function AccountForm(props: {
+  code: string;
+  consentVersion: string;
+  onJoined: (token: string) => void;
+}) {
   const [mode, setMode] = useState<Mode>('create');
   const [email, setEmail] = useState('');
   const [displayName, setDisplayName] = useState('');
@@ -58,11 +62,11 @@ export function AccountForm(props: { code: string; consentVersion: string; onJoi
         : await signIn(email, password, props.consentVersion);
       try {
         await joinCampaign(token, props.code);
-      } finally {
-        // The browser session only existed to join; the app signs in for itself.
+      } catch (e) {
         await signOut(token);
+        throw e;
       }
-      props.onJoined();
+      props.onJoined(token);
     } catch (e) {
       const api = e instanceof ApiError ? e : undefined;
       setError(MESSAGES[api?.code ?? ''] ?? api?.message ?? 'Something went wrong. Try again.');
