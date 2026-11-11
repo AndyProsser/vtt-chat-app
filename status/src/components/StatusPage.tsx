@@ -1,6 +1,9 @@
 import { Badge, Card, Flex, Heading, Link, Text } from '@radix-ui/themes';
 
 import { PLATFORM_LABELS, SERVICE_LABELS } from '../consts/index.js';
+import poster from '../assets/poster-fumble.webp';
+import { PictureBanner } from './PictureBanner.js';
+import { SiteHeader } from './SiteHeader.js';
 import { useStatus } from '../hooks/useStatus.js';
 import { ago, headline, pipelineLine } from '../lib/summary.js';
 import type { StatusSnapshot } from '../types/index.js';
@@ -8,20 +11,26 @@ import type { StatusSnapshot } from '../types/index.js';
 export function StatusPage() {
   const { snapshot, reachable } = useStatus();
   return (
-    <main className="status-shell">
-      <Flex direction="column" gap="4" className="status-column">
-        {!snapshot && reachable && <Text color="gray">Checking the server…</Text>}
-        {!reachable && (
-          <Banner
-            tone="down"
-            text="Cannot reach the server"
-            note={snapshot ? 'Showing the last known state.' : undefined}
-          />
-        )}
-        {snapshot && reachable && <Body snapshot={snapshot} />}
-        {snapshot && !reachable && <Body snapshot={snapshot} stale />}
+    <div className="site-shell">
+      <SiteHeader current="status" />
+      <Flex direction="column" gap="4" className="site-column" asChild>
+        <main>
+          <PictureBanner src={poster}>
+            <Heading size="5">Is the table up?</Heading>
+          </PictureBanner>
+          {!snapshot && reachable && <Text color="gray">Checking the server…</Text>}
+          {!reachable && (
+            <Banner
+              tone="down"
+              text="Cannot reach the server"
+              note={snapshot ? 'Showing the last known state.' : undefined}
+            />
+          )}
+          {snapshot && reachable && <Body snapshot={snapshot} />}
+          {snapshot && !reachable && <Body snapshot={snapshot} stale />}
+        </main>
       </Flex>
-    </main>
+    </div>
   );
 }
 

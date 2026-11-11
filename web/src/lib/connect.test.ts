@@ -16,4 +16,10 @@ describe('connectLink', () => {
     expect(url.searchParams.get('server')).toBe('http://192.168.1.5:3000');
     expect(url.searchParams.get('code')).toBe('WXYZ-6789');
   });
+
+  it('carries a long link token unchanged', () => {
+    const token = 'Zm9vYmFyLV9iYXo0NTY3ODkwQUJDREVGR0hJSktMTU4';
+    const url = new URL(connectLink('https://vtt.example.com', token));
+    expect(url.searchParams.get('code')).toBe(token);
+  });
 });

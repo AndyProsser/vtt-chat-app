@@ -27,6 +27,7 @@ export function LoginForm({ onSignedIn }: { onSignedIn: (token: string) => void 
   const [password, setPassword] = useState('');
   const [mail, setMail] = useState(false);
   const [codeSent, setCodeSent] = useState(false);
+  const [haveCode, setHaveCode] = useState(false);
   const [emailCode, setEmailCode] = useState('');
   const [pendingToken, setPendingToken] = useState<string>();
   const [consent, setConsent] = useState(false);
@@ -57,9 +58,10 @@ export function LoginForm({ onSignedIn }: { onSignedIn: (token: string) => void 
         onSignedIn(pendingToken);
         return;
       }
-      const signedIn = codeSent
-        ? await redeemEmailCode(emailCode.trim())
-        : await signInPlain(email, password);
+      const signedIn =
+        codeSent || haveCode
+          ? await redeemEmailCode(emailCode.trim())
+          : await signInPlain(email, password);
       if (signedIn.needsConsent) setPendingToken(signedIn.token);
       else onSignedIn(signedIn.token);
     });
@@ -74,9 +76,7 @@ export function LoginForm({ onSignedIn }: { onSignedIn: (token: string) => void 
       >
         <Flex direction="column" gap="3">
           <Callout.Root color="amber">
-            <Callout.Text>
-              The recording notice has changed. Please read it and accept to continue.
-            </Callout.Text>
+            <Callout.Text>Please read the recording notice and accept it to continue.</Callout.Text>
           </Callout.Root>
           <Text size="2">{CONSENT_TEXT}</Text>
           <Text as="label" size="2">
@@ -106,24 +106,29 @@ export function LoginForm({ onSignedIn }: { onSignedIn: (token: string) => void 
       }}
     >
       <Flex direction="column" gap="3">
-        <TextField.Root
-          type="email"
-          autoComplete="email"
-          aria-label="Email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        {codeSent ? (
+        {!haveCode && (
           <TextField.Root
+            size="3"
+            type="email"
+            autoComplete="email"
+            aria-label="Email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        )}
+        {codeSent || haveCode ? (
+          <TextField.Root
+            size="3"
             autoComplete="one-time-code"
-            aria-label="Code from your email"
-            placeholder="Code from your email"
+            aria-label={haveCode ? 'Sign-in code' : 'Code from your email'}
+            placeholder={haveCode ? 'ABCD-EFGH' : 'Code from your email'}
             value={emailCode}
             onChange={(e) => setEmailCode(e.target.value)}
           />
         ) : (
           <TextField.Root
+            size="3"
             type="password"
             autoComplete="current-password"
             aria-label="Password"
@@ -141,7 +146,11 @@ export function LoginForm({ onSignedIn }: { onSignedIn: (token: string) => void 
           type="submit"
           size="3"
           loading={busy}
-          disabled={!email.includes('@') || (codeSent ? emailCode.trim() === '' : password === '')}
+          disabled={
+            codeSent || haveCode
+              ? (!haveCode && !email.includes('@')) || emailCode.trim() === ''
+              : !email.includes('@') || password === ''
+          }
         >
           Sign in
         </Button>
@@ -160,7 +169,18 @@ export function LoginForm({ onSignedIn }: { onSignedIn: (token: string) => void 
             Email me a code instead
           </Button>
         )}
-        {codeSent && (
+        <Button
+          type="button"
+          variant="ghost"
+          disabled={busy}
+          onClick={() => {
+            setHaveCode(!haveCode);
+            setError(undefined);
+          }}
+        >
+          {haveCode ? 'Use email and password instead' : 'I have a sign-in code'}
+        </Button>
+        {codeSent && !haveCode && (
           <Text size="1" color="gray">
             If that email has an account, a code is on its way.
           </Text>

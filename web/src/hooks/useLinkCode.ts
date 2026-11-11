@@ -5,15 +5,16 @@ import { deadlineFor, isExpired, secondsLeft } from '../lib/linkCode.js';
 
 export type LinkCodeState =
   | { status: 'loading' }
-  | { status: 'ready'; code: string; expired: boolean; secondsLeft: number }
+  | { status: 'ready'; code: string; linkToken: string; expired: boolean; secondsLeft: number }
   | { status: 'error'; sessionEnded: boolean };
 
 interface Issued {
   code: string;
+  linkToken: string;
   deadline: number;
 }
 
-/** Issues a connect code for this session; `refresh` replaces it (also used after expiry). */
+/** Issues connect credentials (long deep-link token + short typed code) for this session; `refresh` replaces it (also used after expiry). */
 export function useLinkCode(token: string): { state: LinkCodeState; refresh: () => void } {
   const [issued, setIssued] = useState<Issued>();
   const [failure, setFailure] = useState<{ sessionEnded: boolean }>();
@@ -27,7 +28,12 @@ export function useLinkCode(token: string): { state: LinkCodeState; refresh: () 
         if (cancelled) return;
         const received = Date.now();
         setFailure(undefined);
-        setIssued({ code: res.code, deadline: deadlineFor(received) });
+        setIssued({
+          code: res.code,
+          // an older server has no long token; the short code then rides the deep link as before
+          linkToken: res.linkToken ?? res.code,
+          deadline: deadlineFor(received),
+        });
         setNow(received);
       },
       (e: unknown) => {
@@ -57,6 +63,7 @@ export function useLinkCode(token: string): { state: LinkCodeState; refresh: () 
     ? {
         status: 'ready',
         code: issued.code,
+        linkToken: issued.linkToken,
         expired: isExpired(issued.deadline, now),
         secondsLeft: secondsLeft(issued.deadline, now),
       }

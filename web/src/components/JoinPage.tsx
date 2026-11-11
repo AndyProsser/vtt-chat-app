@@ -1,9 +1,11 @@
-import { Box, Callout, Card, Flex, Heading, Spinner, Text } from '@radix-ui/themes';
+import { Box, Callout, Card, Flex, Heading, Link, Spinner, Text } from '@radix-ui/themes';
 import { useState } from 'react';
 
+import posterJoin from '../assets/poster-join.webp';
 import { useInvite } from '../hooks/useInvite.js';
 import { codeFromPath } from '../lib/platform.js';
 import { AccountForm } from './AccountForm.js';
+import { Banner } from './Banner.js';
 import { CodeEntry } from './CodeEntry.js';
 import { GetTheApp } from './GetTheApp.js';
 
@@ -17,10 +19,12 @@ export function JoinPage() {
   const state = useInvite(code);
 
   return (
-    <Flex className="join-shell">
+    <Flex className="join-shell" direction="column" gap="4">
+      <Banner src={posterJoin}>
+        <Heading size="5">Join your table</Heading>
+      </Banner>
       <Card className="join-card" size="4">
         <Flex direction="column" gap="4">
-          <Heading size="6">Join your table</Heading>
           {code === undefined ? (
             <CodeEntry onSubmit={setCode} />
           ) : state.status === 'loading' ? (
@@ -30,7 +34,8 @@ export function JoinPage() {
           ) : state.status === 'invalid' ? (
             <Callout.Root color="red">
               <Callout.Text>
-                This invite isn&apos;t valid any more. Ask your DM for a new one.
+                This invite code isn&apos;t valid, or has expired. Ask your DM for a new one. Have a
+                sign-in code instead? Go to the <Link href="/">home page</Link> and choose Sign in.
               </Callout.Text>
             </Callout.Root>
           ) : state.status === 'error' ? (

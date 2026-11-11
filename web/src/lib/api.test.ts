@@ -1,6 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { acceptCurrentConsent, redeemEmailCode, request, signInPlain } from './api.js';
+import {
+  acceptCurrentConsent,
+  redeemEmailCode,
+  request,
+  requestAccount,
+  signInPlain,
+  signupRequestsAvailable,
+} from './api.js';
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -56,5 +63,29 @@ describe('connect-page sign-in and the recording notice', () => {
     expect(init.method).toBe('POST');
     expect(JSON.parse(String(init.body))).toEqual({ version: '7' });
     expect((init.headers as Record<string, string>).Authorization).toBe('Bearer S');
+  });
+});
+
+describe('sign-up requests', () => {
+  it('reads the providers flag and treats a failure as off', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(json({ signupRequests: true })));
+    expect(await signupRequestsAvailable()).toBe(true);
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(json({ mail: false })));
+    expect(await signupRequestsAvailable()).toBe(false);
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
+    expect(await signupRequestsAvailable()).toBe(false);
+  });
+
+  it('posts the request and surfaces a rate limit as an ApiError', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(json({ ok: true }, 202));
+    vi.stubGlobal('fetch', fetchMock);
+    await requestAccount({ email: 'a@b.co', displayName: 'A' });
+    const [path, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(path).toBe('/api/signup-requests');
+    expect(JSON.parse(String(init.body))).toEqual({ email: 'a@b.co', displayName: 'A' });
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(json({ error: 'rate_limited' }, 429)));
+    await expect(requestAccount({ email: 'a@b.co', displayName: 'A' })).rejects.toMatchObject({
+      code: 'rate_limited',
+    });
   });
 });

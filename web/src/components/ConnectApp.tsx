@@ -1,4 +1,5 @@
 import { Button, Callout, Code, Flex, Text } from '@radix-ui/themes';
+import { useState } from 'react';
 
 import { useLinkCode } from '../hooks/useLinkCode.js';
 import { useSessionEnd } from '../hooks/useSessionEnd.js';
@@ -6,7 +7,7 @@ import { connectLink } from '../lib/connect.js';
 import { formatCode, formatCountdown } from '../lib/linkCode.js';
 
 /**
- * Hands this signed-in browser session over to the app: a deep link and the typed code. (No QR
+ * Hands this signed-in browser session over to the app: a deep link (carrying a long single-use token) and, behind a disclosure, a short typed code. (No QR
  * here: a phone has no app to open the deep link, and the app has no scanner. The working QR is the
  * app's own, which a signed-in phone scans to approve at `/connect`.) The code is shown only here and never logged. The session itself is signed out
  * when the page closes or after ten minutes.
@@ -14,11 +15,12 @@ import { formatCode, formatCountdown } from '../lib/linkCode.js';
 export function ConnectApp({ token, server }: { token: string; server: string }) {
   useSessionEnd(token);
   const { state, refresh } = useLinkCode(token);
+  const [showCode, setShowCode] = useState(false);
 
   if (state.status === 'loading') {
     return (
       <Text size="2" color="gray">
-        Getting a connect code…
+        Getting a connect link…
       </Text>
     );
   }
@@ -30,7 +32,7 @@ export function ConnectApp({ token, server }: { token: string; server: string })
             'Your sign-in here has ended — reload the page to sign in again.'
           ) : (
             <>
-              Couldn&apos;t get a connect code. Sign in from the app&apos;s own screen instead.{' '}
+              Couldn&apos;t get a connect link. Sign in from the app&apos;s own screen instead.{' '}
               <Button variant="ghost" onClick={refresh}>
                 Try again
               </Button>
@@ -41,43 +43,50 @@ export function ConnectApp({ token, server }: { token: string; server: string })
     );
   }
 
-  const link = connectLink(server, state.code);
+  const link = connectLink(server, state.linkToken);
   const shown = formatCode(state.code);
 
   if (state.expired) {
     return (
       <Flex direction="column" gap="2" align="start">
         <Text size="2" color="gray">
-          That code has expired.
+          That link has expired.
         </Text>
-        <Button onClick={refresh}>New code</Button>
+        <Button onClick={refresh}>Try again</Button>
       </Flex>
     );
   }
 
   return (
-    <Flex direction="column" gap="3" className="connect">
+    <Flex direction="column" gap="2" className="connect" align="start">
       <Button asChild size="3">
         <a href={link}>Open VTT Chat</a>
       </Button>
-      <Text size="2" color="gray">
-        If the button does nothing, type this code into the app&apos;s Connect screen (“Have a code?
-        Type it here”).
-      </Text>
-      <Flex direction="column" gap="1" align="start">
-        <Text size="1" color="gray">
-          Code
-        </Text>
-        <Code size="6" className="connect-code">
-          {shown}
-        </Code>
-        <Text size="1" color="gray">
-          Works once. Expires in {formatCountdown(state.secondsLeft)}
-        </Text>
-        <Button variant="soft" size="1" onClick={refresh}>
-          New code
-        </Button>
-      </Flex>
+      <Button
+        variant="ghost"
+        size="1"
+        aria-expanded={showCode}
+        aria-controls="connect-code-panel"
+        onClick={() => setShowCode((v) => !v)}
+      >
+        Can&apos;t open the app? Show a code
+      </Button>
+      {showCode && (
+        <Flex id="connect-code-panel" direction="column" gap="1" align="start">
+          <Text size="1" color="gray">
+            Type this into the app&apos;s Connect screen (“Have a code instead?”).
+          </Text>
+          <Code size="6" className="connect-code">
+            {shown}
+          </Code>
+          <Text size="1" color="gray">
+            Works once. Expires in {formatCountdown(state.secondsLeft)}
+          </Text>
+          <Button variant="soft" size="1" onClick={refresh}>
+            New code
+          </Button>
+        </Flex>
+      )}
     </Flex>
   );
 }

@@ -83,11 +83,14 @@ export const signOut = (token: string) =>
   request('POST', '/api/auth/logout', { token, keepalive: true }).catch(() => undefined);
 
 export interface LinkCode {
+  /** The short typed fallback, `ABCD-2345`. */
   code: string;
+  /** Long single-use token for the deep link; absent only from a server older than 0.4. */
+  linkToken?: string;
   expiresAt: number;
 }
 
-/** A single-use, 5-minute code that lets the app sign in as this session's account. */
+/** Single-use, 5-minute credentials (a deep-link token and a typed code) that sign the app in as this session's account. */
 export const createLinkCode = (token: string) =>
   request<LinkCode>('POST', '/api/auth/link-codes', { token });
 
@@ -138,3 +141,14 @@ export async function redeemEmailCode(token: string): Promise<ConnectSignIn> {
     await request<Session>('POST', '/api/auth/magic-link/redeem', { body: { token } }),
   );
 }
+
+/** Whether the operator lets visitors request an account (`signup.requests` is on). */
+export const signupRequestsAvailable = () =>
+  request<{ signupRequests?: boolean }>('GET', '/api/auth/providers').then(
+    (p) => p.signupRequests === true,
+    () => false,
+  );
+
+/** Asks the operator for an account. The answer is the same whether or not the address is known. */
+export const requestAccount = (input: { email: string; displayName: string; message?: string }) =>
+  request<{ ok: true }>('POST', '/api/signup-requests', { body: input });

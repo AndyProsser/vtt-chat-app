@@ -2,18 +2,59 @@ body {
   margin: 0;
 }
 
-.status-shell {
+/* The shared page frame: the same header, column width and background on every page (landing, join,
+   connect, status). web/ and status/ are separate bundles, so this block is kept identical in both
+   theme.css files. */
+.site-shell {
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
-  justify-content: center;
-  padding: 32px 16px;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+    max(24px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
   background:
     radial-gradient(circle at 15% 0%, var(--accent-3), transparent 50%), var(--color-background);
 }
-
-.status-column {
+.site-header,
+.site-column {
   width: 100%;
   max-width: 520px;
+}
+.site-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.site-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--gray-12);
+  font-weight: 600;
+  font-size: 18px;
+  text-decoration: none;
+}
+.site-brand img {
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+}
+.site-nav {
+  display: flex;
+  gap: 16px;
+  font-size: 14px;
+}
+.site-nav a {
+  color: var(--gray-11);
+  text-decoration: none;
+  padding: 8px 0;
+}
+.site-nav a:hover,
+.site-nav a[aria-current='page'] {
+  color: var(--accent-11);
 }
 
 .status-banner {
@@ -42,4 +83,55 @@ body {
 .status-banner-down .status-dot {
   background: var(--red-9);
   box-shadow: 0 0 0 5px var(--red-a4);
+}
+/* A picture across the top of a page or card, with a caption over a darkening gradient. */
+.banner {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-5);
+  border: 1px solid var(--gray-a5);
+  background: var(--gray-3);
+  aspect-ratio: 21 / 9;
+}
+.banner-hero {
+  aspect-ratio: 16 / 9;
+}
+.banner img,
+.banner video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.banner::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgb(0 0 0 / 0.72), transparent 65%);
+  pointer-events: none;
+}
+.banner-caption {
+  position: absolute;
+  z-index: 1;
+  left: 16px;
+  right: 16px;
+  bottom: 14px;
+  color: #fff;
+  text-shadow: 0 1px 6px rgb(0 0 0 / 0.6);
+}
+.banner-caption h1,
+.banner-caption h2,
+.banner-caption p,
+.banner-caption span {
+  color: #fff;
+  margin: 0;
+}
+
+/* No visible page scrollbar (the page still scrolls by wheel, touch and keyboard). */
+html {
+  scrollbar-width: none;
+}
+html::-webkit-scrollbar {
+  display: none;
 }

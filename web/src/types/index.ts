@@ -4,6 +4,9 @@ export interface Downloads {
   windows?: string;
   macos?: string;
   linux?: string;
+  /** Extra Linux formats, present when the server's update sync found them. */
+  linuxDeb?: string;
+  linuxRpm?: string;
 }
 
 /** `GET /api/invites/:code` */

@@ -13,13 +13,16 @@ export function CodeEntry({ onSubmit }: { onSubmit: (code: string) => void }) {
       <Flex direction="column" gap="3">
         <Text color="gray">Enter the invite code your DM sent you.</Text>
         <TextField.Root
+          size="3"
           aria-label="Invite code"
           placeholder="ABCD-EFGH"
           value={value}
           onChange={(e) => setValue(e.target.value)}
           autoFocus
         />
-        <Button type="submit">Continue</Button>
+        <Button type="submit" size="3">
+          Continue
+        </Button>
       </Flex>
     </form>
   );
