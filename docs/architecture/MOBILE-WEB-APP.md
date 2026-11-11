@@ -107,3 +107,14 @@ redeemed once and now sets the cookie. If the session ends the app returns to si
   phone or tablet.
 - **Height:** the page never scrolls; the chat scrolls inside it (dynamic viewport height, so a phone's address bar
   does not push the bottom off screen).
+
+## Layout and icons
+
+- **Width:** from 520px up the app is a bordered, rounded card exactly 640px wide (border-box), with 16px side gutters
+  and the same page background as Home, Download and Status. Below 520px (phones) it is full-bleed. The members rail
+  still switches at 700px.
+- **Bottom tabs** use the desktop app's lucide icons so the two read the same (Handouts = FileText, History =
+  ScrollText, Sessions = CalendarClock; Chat = MessageSquare, since the desktop has no chat tab icon) with the label
+  beneath. The icon paths live in `web/src/components/icons/paths.ts` (lucide, ISC licence).
+- **Copy buttons** (`Command`) are icon-only, stretched to the height of the code box, with a tooltip ("Copy", then
+  "Copied") and a tick for two seconds after copying.

@@ -31,6 +31,7 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ### Changed
 
+- Web chat: the card is the same width as the other pages on tablets and desktops, the bottom tabs show the same icons as the desktop app, and copy buttons are an icon with a tooltip.
 - **Browser sign-in is now a secure, long-lived cookie.** The site and the web app (`/app`) keep you signed in for weeks: the cookie is HttpOnly (page script cannot read it) and refreshes each time you open the app, and only expires after the operator's offline limit (30 days by default) without you opening it. Pressing **Sign out** ends it. After signing in on a computer, **Open VTT Chat** comes first, then the web version, then a "Don't have the app yet?" download section. The header menu is now **Chat** (opens `/app`), **Download** and **Status**; Chat and Download show only while signed in, and the Home link is gone (the logo goes Home).
 - `/app` now shares the Home pages' look and the app's Default colours, and is a centred card on desktop browsers.
 - The app's version is now 0.4.0, matching the server.
@@ -43,6 +44,7 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ### Fixed
 
+- The server no longer offers a new release to the update feed or the download page until its Windows, macOS and Linux installers have all been uploaded (a half-published release used to hide the update from whoever was still missing).
 - The web chat no longer scrolls 10-20px past the bottom of the page.
 - Home, Download, Status and the web chat share one 640px column.
 - Long install commands on the download page scroll inside their block instead of widening the page, and each has a Copy button.
