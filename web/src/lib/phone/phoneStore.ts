@@ -4,6 +4,7 @@ import type { CampaignItem, ChatLine, LiveState, Member } from '../../types/phon
 import { lineFromFrame, mergeLines } from './chat.js';
 import { ERROR_FRAME_MESSAGES } from './compose.js';
 import { applyJoinRequestFrame, type Decided, parseDecided } from './joinRequests.js';
+import { applyPresenceFrame } from './presence.js';
 
 export type Tab = 'chat' | 'sessions' | 'handouts' | 'history';
 
@@ -95,6 +96,12 @@ export const usePhoneStore = create<PhoneState>((set, get) => ({
       case 'roster.update': {
         const d = data as { members?: Member[] };
         if (d.members) set({ members: d.members });
+        return;
+      }
+      case 'presence.update':
+      case 'audio.update': {
+        const members = applyPresenceFrame(s.members, type, data);
+        if (members !== s.members) set({ members });
         return;
       }
       case 'chat.message':

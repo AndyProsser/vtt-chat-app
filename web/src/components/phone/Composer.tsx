@@ -6,6 +6,7 @@ import {
   chatContext,
   nextUpcomingSession,
   planSend,
+  sendsOnKey,
   TYPO_WARNING,
   visibleSuggestions,
 } from '../../lib/phone/compose.js';
@@ -115,7 +116,7 @@ export function Composer({
         return;
       }
     }
-    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+    if (sendsOnKey(e.nativeEvent, window.matchMedia('(pointer: coarse)').matches)) {
       e.preventDefault();
       send();
     }

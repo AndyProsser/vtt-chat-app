@@ -79,6 +79,7 @@ function SessionCard({
               size="2"
               variant={item.mine === a ? 'solid' : 'soft'}
               color={a === 'no' ? 'red' : a === 'late' ? 'amber' : 'green'}
+              aria-pressed={item.mine === a}
               loading={busy === a}
               onClick={() => void answer(a)}
             >

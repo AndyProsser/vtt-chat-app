@@ -81,3 +81,22 @@ export const ERROR_FRAME_MESSAGES: Record<string, string> = {
   invalid_kind: 'The server did not accept that kind of message.',
   invalid_lang: 'The server did not accept that language.',
 };
+
+export interface KeyLike {
+  key: string;
+  shiftKey: boolean;
+  ctrlKey: boolean;
+  metaKey: boolean;
+  isComposing?: boolean;
+}
+
+/**
+ * Whether a key press sends the line. Ctrl/Cmd+Enter always does. A bare Enter does on a device with a real
+ * keyboard and pointer (like every desktop chat; Shift+Enter makes a new line) but not on a touch device,
+ * where Enter is how you start a new line and the Send button sends.
+ */
+export function sendsOnKey(e: KeyLike, coarsePointer: boolean): boolean {
+  if (e.key !== 'Enter' || e.isComposing) return false;
+  if (e.ctrlKey || e.metaKey) return true;
+  return !coarsePointer && !e.shiftKey;
+}

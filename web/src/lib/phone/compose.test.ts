@@ -1,7 +1,14 @@
 import { parseComposerInput } from '@vtt-chat-app/shared';
 import { describe, expect, it } from 'vitest';
 
-import { chatContext, nextUpcomingSession, planSend, visibleSuggestions } from './compose.js';
+import {
+  chatContext,
+  type KeyLike,
+  nextUpcomingSession,
+  planSend,
+  sendsOnKey,
+  visibleSuggestions,
+} from './compose.js';
 import type { Member, SessionItem } from '../../types/phone.js';
 
 const members: Member[] = [
@@ -89,5 +96,32 @@ describe('visibleSuggestions', () => {
     };
     expect(visibleSuggestions(one, '/late')).toEqual([]);
     expect(visibleSuggestions(one, '/la')).toHaveLength(1);
+  });
+});
+
+describe('sendsOnKey', () => {
+  const k = (o: Partial<KeyLike> = {}): KeyLike => ({
+    key: 'Enter',
+    shiftKey: false,
+    ctrlKey: false,
+    metaKey: false,
+    ...o,
+  });
+  it('sends on a bare Enter with a mouse and keyboard', () => {
+    expect(sendsOnKey(k(), false)).toBe(true);
+  });
+  it('keeps Shift+Enter as a new line', () => {
+    expect(sendsOnKey(k({ shiftKey: true }), false)).toBe(false);
+  });
+  it('leaves a bare Enter as a new line on a touch device', () => {
+    expect(sendsOnKey(k(), true)).toBe(false);
+  });
+  it('sends on Ctrl or Cmd+Enter everywhere', () => {
+    expect(sendsOnKey(k({ ctrlKey: true }), true)).toBe(true);
+    expect(sendsOnKey(k({ metaKey: true }), false)).toBe(true);
+  });
+  it('ignores Enter that confirms an IME composition, and other keys', () => {
+    expect(sendsOnKey(k({ isComposing: true }), false)).toBe(false);
+    expect(sendsOnKey(k({ key: 'a' }), false)).toBe(false);
   });
 });
