@@ -42,3 +42,6 @@ Cargo.lock
 
 # Dev seed accounts and generated passwords (never commit)
 .dev/
+
+# Output of web/e2e/ui-smoke.mjs runs
+ui-smoke-out/
