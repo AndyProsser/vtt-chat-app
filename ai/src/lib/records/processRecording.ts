@@ -1,12 +1,13 @@
 import type { AiSettings } from '@vtt-chat-app/shared';
 
-import type { GenerateText, Job, Segment, SummaryKind, TranscribeWav } from '../../types/index.js';
+import type { GenerateText, Job, Segment, TranscribeWav } from '../../types/index.js';
 import { chatUtterances, mergeTimeline } from '../chat.js';
 import { formatTranscript } from '../format.js';
 import type { JobHandler } from '../jobs/worker.js';
 import { mergeTranscripts } from '../merge.js';
 import { buildJobProviders } from '../providers/fromSettings.js';
 import { summarise } from '../summarise.js';
+import { planSummaries } from '../summaryPlan.js';
 import type { RecordsStore } from './recordsStore.js';
 
 export const PROCESS_RECORDING_JOB = 'process-recording';
@@ -24,12 +25,6 @@ export interface ProcessRecordingDeps {
   /** Overridable for tests that inject `fetch`. */
   buildProviders?: typeof buildJobProviders;
 }
-
-/** Which summaries a processed recording gets, and who may read each. */
-const SUMMARIES: { kind: SummaryKind; visibility: 'members' | 'dm' }[] = [
-  { kind: 'session', visibility: 'members' },
-  { kind: 'dm-only', visibility: 'dm' },
-];
 
 /**
  * The records job for one recording: transcribe every non-private track, merge by timestamp,
@@ -75,19 +70,28 @@ export function createProcessRecordingHandler(deps: ProcessRecordingDeps): JobHa
 
       // 2. Merge, 3. summarise.
       // Spoken lines, plus what people typed into the public chat during the recording (never whispers).
+      const events = await deps.records.listRecordingEvents(recording.id);
       const utterances = mergeTimeline(
         mergeTranscripts(await deps.records.listTranscripts(recording.id)),
-        chatUtterances(await deps.records.listRecordingEvents(recording.id), recording.startedAt),
+        chatUtterances(events, recording.startedAt),
       );
       const campaignName = await deps.records.campaignName(recording.campaignId);
-      for (const { kind, visibility } of SUMMARIES) {
-        if (await deps.records.getSummary(recording.id, kind, '')) continue;
-        if (utterances.length === 0) {
+      // Session and DM-only; a chapter per part when it was paused; one per player's character.
+      const plan = planSummaries({
+        utterances,
+        events,
+        startedAt: recording.startedAt,
+        playerIds: new Set(await deps.records.playerIds(recording.campaignId)),
+        ...(campaignName ? { campaignName } : {}),
+      });
+      for (const { kind, subject, visibility, utterances: covered, context } of plan) {
+        if (await deps.records.getSummary(recording.id, kind, subject)) continue;
+        if (covered.length === 0) {
           // A session with no speech is a result, not a failure; don't ask a model to invent one.
           await deps.records.putSummary({
             recordingId: recording.id,
             kind,
-            subject: '',
+            subject,
             visibility,
             text: 'No speech or typed chat was detected in this recording.',
             modelCalls: 0,
@@ -95,15 +99,12 @@ export function createProcessRecordingHandler(deps: ProcessRecordingDeps): JobHa
           });
           continue;
         }
-        log(`${recording.id}: writing ${kind} summary`);
-        const result = await summarise(providers.generate.call, utterances, {
-          kind,
-          context: campaignName ? { campaignName } : {},
-        });
+        log(`${recording.id}: writing ${kind}${subject ? ` (${subject})` : ''} summary`);
+        const result = await summarise(providers.generate.call, covered, { kind, context });
         await deps.records.putSummary({
           recordingId: recording.id,
           kind,
-          subject: '',
+          subject,
           visibility,
           text: result.text,
           modelCalls: result.modelCalls,

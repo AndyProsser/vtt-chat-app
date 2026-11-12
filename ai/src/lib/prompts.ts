@@ -4,6 +4,8 @@ const GROUND_RULES = [
   'Use only what is in the transcript. Do not invent events, names or details.',
   'If something is unclear or the transcript seems garbled, say so instead of guessing.',
   'Speech was transcribed automatically, so expect misspelled names; keep the spelling the speakers most often used.',
+  'Each line names who spoke or typed it; keep every action and line with the person who did or said it.',
+  'Lines marked "(typed)" were typed into the table chat instead of spoken; treat them as part of the game.',
   'Ignore table chatter that is not about the game (food, breaks, technical problems).',
 ].join('\n- ');
 
@@ -14,6 +16,11 @@ function describe(kind: SummaryKind, context: SummaryContext): string {
       return `a shared summary of a tabletop role-playing session${campaign}, for all players. Cover what happened in order, key decisions, important discoveries, and unresolved threads.`;
     case 'dm-only':
       return `a private summary of a tabletop role-playing session${campaign}, for the Game Master only. Besides what happened, list secrets that were revealed or are still hidden, plot hooks players pursued or ignored, promises made to or by non-player characters, and things the Game Master should prepare for next session.`;
+    case 'chapter': {
+      if (!context.chapter) throw new Error('a chapter summary needs context.chapter');
+      const { number, of } = context.chapter;
+      return `a summary of part ${number} of ${of} of a tabletop role-playing session${campaign}, for all players (the session was paused between parts; this covers part ${number} only). Cover what happened in this part in order, key decisions and discoveries.`;
+    }
     case 'character': {
       if (!context.characterName) {
         throw new Error('a character summary needs context.characterName');
@@ -21,6 +28,14 @@ function describe(kind: SummaryKind, context: SummaryContext): string {
       return `a summary of a tabletop role-playing session${campaign} from the point of view of the character "${context.characterName}": what they did, saw, learned and promised, and what they might want to do next.`;
     }
   }
+}
+
+/** The rules, plus who the Game Master is when known (their lines are narration, not a character's). */
+function rules(context: SummaryContext): string {
+  const gm = context.gameMaster
+    ? `\n- "${context.gameMaster}" is the Game Master: their lines describe the world and the non-player characters. Everyone else is a player speaking as their character.`
+    : '';
+  return `Rules:\n- ${GROUND_RULES}${gm}`;
 }
 
 /** Prompt for one piece of a long transcript. */
@@ -34,7 +49,7 @@ export function buildChunkPrompt(
   return [
     `You are helping to write ${describe(kind, context)}`,
     `This is part ${index + 1} of ${total} of the transcript. Write concise notes for this part only; they will be combined with the other parts later.`,
-    `Rules:\n- ${GROUND_RULES}`,
+    rules(context),
     'Transcript (each line is "[time] speaker: words"):',
     chunk,
     'Notes for this part:',
@@ -53,7 +68,7 @@ export function buildReducePrompt(
     : `Combine the notes below into shorter notes that keep every important fact, decision and name, in order. They will be combined again later.`;
   return [
     task,
-    `Rules:\n- ${GROUND_RULES}`,
+    rules(context),
     'Notes, in order:',
     notes.map((note, i) => `--- part ${i + 1} ---\n${note.trim()}`).join('\n\n'),
     final ? 'Summary:' : 'Combined notes:',
@@ -68,7 +83,7 @@ export function buildSinglePrompt(
 ): string {
   return [
     `You are helping to write ${describe(kind, context)} Write it as clear prose with short headed sections.`,
-    `Rules:\n- ${GROUND_RULES}`,
+    rules(context),
     'Transcript (each line is "[time] speaker: words"):',
     transcript,
     'Summary:',

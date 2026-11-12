@@ -158,6 +158,7 @@ export class MemoryRecordsStore implements RecordsStore {
         const d = e.detail;
         if (e.recordingId !== r.id || e.event !== 'chat' || !d) continue;
         if (d.to !== undefined || d.recipientId !== undefined) continue; // never a whisper
+        if (d.kind === 'ooc') continue; // never out of character
         if (typeof d.text === 'string' && matches(d.text)) {
           hits.push({
             recordingId: r.id,
@@ -191,5 +192,8 @@ export class MemoryRecordsStore implements RecordsStore {
     void this.summaries.set(this.key(s.recordingId, s.kind, s.subject), { ...s });
 
   campaignName = async (campaignId: string) => this.campaigns.get(campaignId);
+  /** Players per campaign (everyone but the DM). */
+  players = new Map<string, string[]>();
+  playerIds = async (campaignId: string) => [...(this.players.get(campaignId) ?? [])];
   getAiSettings = async () => this.aiSettings;
 }

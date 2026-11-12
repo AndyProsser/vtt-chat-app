@@ -89,5 +89,7 @@ export interface RecordsStore {
   notifyAudioPurgeSoon(recordingId: string, purgeAt: number, at: number): Promise<void>;
 
   campaignName(campaignId: string): Promise<string | undefined>;
+  /** Account ids of the campaign's players (every member but the DM): who gets a character summary. */
+  playerIds(campaignId: string): Promise<string[]>;
   getAiSettings(): Promise<AiSettings>;
 }

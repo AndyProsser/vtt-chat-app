@@ -35,12 +35,16 @@ export interface Utterance {
   typed?: boolean;
 }
 
-export type SummaryKind = 'session' | 'dm-only' | 'character';
+export type SummaryKind = 'session' | 'dm-only' | 'character' | 'chapter';
 
 export interface SummaryContext {
   campaignName?: string;
   /** Required when `kind` is `character`. */
   characterName?: string;
+  /** Required when `kind` is `chapter`: which part of the recording, of how many. */
+  chapter?: { number: number; of: number };
+  /** The name the Game Master's lines are shown under, so the model reads them as narration. */
+  gameMaster?: string;
 }
 
 /** Sends a prompt to a language model and returns its text. Local (Ollama) by default. */

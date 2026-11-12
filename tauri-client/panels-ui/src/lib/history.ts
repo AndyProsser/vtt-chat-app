@@ -23,6 +23,8 @@ export interface Utterance {
   startMs: number;
   endMs: number;
   text: string;
+  /** Typed into the table chat during the recording, not spoken. */
+  typed?: boolean;
 }
 export interface SearchHit {
   recordingId: string;
@@ -35,6 +37,7 @@ export interface SearchHit {
 
 export const SUMMARY_LABELS: Record<string, string> = {
   session: 'Session summary',
+  chapter: 'Chapter',
   character: 'Character',
   'dm-only': 'DM only',
 };

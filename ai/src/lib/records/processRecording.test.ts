@@ -86,6 +86,37 @@ describe('process-recording handler', () => {
     expect(await records.getSummary(REC, 'dm-only', '')).toMatchObject({ visibility: 'dm' });
   });
 
+  it('writes a chapter summary for each part around a pause, and one per player character', async () => {
+    records.players.set('camp-1', ['bob']); // alice is the DM
+    for (const [at, event] of [
+      [0, 'started'],
+      [1000, 'paused'],
+      [1500, 'resumed'],
+      [9000, 'stopped'],
+    ] as const) {
+      await records.addRecordingEvent({ recordingId: REC, at, event });
+    }
+    await handler().run(job()); // alice speaks at 0 (part 1), bob at 2000 (part 2)
+    const all = [...records.summaries.values()].map(
+      (s) => `${s.kind}:${s.subject}:${s.visibility}`,
+    );
+    expect(all.sort()).toEqual(
+      [
+        'chapter:1:members',
+        'chapter:2:members',
+        'character:BOB:members',
+        'dm-only::dm',
+        'session::members',
+      ].sort(),
+    );
+    const chapter2 = prompts.find((p) => p.includes('part 2 of 2'));
+    expect(chapter2).toContain('said in /audio/t-bob.ogg');
+    expect(chapter2).not.toContain('said in /audio/t-alice.ogg');
+    expect(prompts.find((p) => p.includes('point of view of the character "BOB"'))).toBeDefined();
+    // The model is told whose lines are the Game Master's narration.
+    expect(prompts[0]).toContain('"ALICE" is the Game Master');
+  });
+
   it('puts the speakers and their track offsets into what the model reads', async () => {
     await handler().run(job());
     expect(prompts[0]).toContain('ALICE');

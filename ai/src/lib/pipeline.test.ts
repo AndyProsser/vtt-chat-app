@@ -6,11 +6,34 @@ import { formatTimestamp, formatUtterance } from './format.js';
 import { mergeTranscripts } from './merge.js';
 import { createOllamaGenerate } from './ollama.js';
 import { buildChunkPrompt } from './prompts.js';
-import { groupByBudget, summarise } from './summarise.js';
+import { groupByBudget, stripThinking, summarise } from './summarise.js';
 import { isNonSpeech, parseWhisperJson } from './whisperJson.js';
 
 const alice = { id: 'alice', name: 'Aria (Alice)' };
 const bob = { id: 'bob', name: 'Bruno (Bob)' };
+
+describe('stripThinking', () => {
+  it('keeps only the answer of a reasoning model that thought aloud', () => {
+    expect(stripThinking('<think>\nthe user wants…\n</think>\n\n## Summary\nThey won.')).toBe(
+      '## Summary\nThey won.',
+    );
+    // A server that dropped the opening tag but kept the closing one.
+    expect(stripThinking('hmm, let me see</think>The answer')).toBe('The answer');
+    expect(stripThinking('  plain summary  ')).toBe('plain summary');
+  });
+
+  it('is applied to every model call a summary makes', async () => {
+    const generate = async () => '<think>secret reasoning</think>The party won.';
+    const result = await summarise(
+      generate,
+      [{ speaker: alice, startMs: 0, endMs: 1, text: 'hi' }],
+      {
+        kind: 'session',
+      },
+    );
+    expect(result.text).toBe('The party won.');
+  });
+});
 
 describe('parseWhisperJson', () => {
   it('reads offsets and trims text, skipping non-speech markers', () => {
@@ -234,8 +257,22 @@ describe('createOllamaGenerate', () => {
       model: 'm',
       prompt: 'prompt',
       stream: false,
+      think: false,
       options: { num_ctx: 8192 },
     });
+    expect(JSON.parse(String(init.body))).not.toHaveProperty('keep_alive');
+  });
+
+  it('asks Ollama to unload the model after keepAlive when one is given', async () => {
+    const fetchImpl = vi.fn(
+      async () => new Response(JSON.stringify({ response: 'ok' }), { status: 200 }),
+    ) as unknown as typeof fetch;
+    await createOllamaGenerate({ model: 'm', keepAlive: '2m', fetchImpl })('p');
+    const [, init] = (fetchImpl as unknown as ReturnType<typeof vi.fn>).mock.calls[0] as [
+      string,
+      RequestInit,
+    ];
+    expect(JSON.parse(String(init.body))).toMatchObject({ keep_alive: '2m' });
   });
 
   it('fails clearly on HTTP errors and malformed bodies', async () => {

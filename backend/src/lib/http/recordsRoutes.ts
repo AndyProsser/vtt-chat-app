@@ -1,5 +1,7 @@
 import {
   AUDIO_NOTICE_DAYS,
+  chatUtterances,
+  mergeTimeline,
   mergeTranscripts,
   PURGE_RECORDING_JOB,
   type JobQueue,
@@ -140,13 +142,20 @@ export function recordsRoutes(deps: RecordsRouteDeps): Router {
   router.get('/:recordingId/transcript', async (req, res) => {
     const { campaignId } = await membership(req, authOf(res).user.id);
     const recording = await ownRecording(campaignId, param(req.params.recordingId));
-    const utterances = mergeTranscripts(await records.listTranscripts(recording.id));
+    // What was said and what was typed into the public chat, on one timeline: the same lines the
+    // summaries were written from. Typed lines are marked; whispers and out-of-character lines never
+    // reach the recording's timeline, and chatUtterances refuses them again.
+    const utterances = mergeTimeline(
+      mergeTranscripts(await records.listTranscripts(recording.id)),
+      chatUtterances(await records.listRecordingEvents(recording.id), recording.startedAt),
+    );
     res.json({
       utterances: utterances.map((u) => ({
         speaker: u.speaker,
         startMs: u.startMs,
         endMs: u.endMs,
         text: u.text,
+        ...(u.typed ? { typed: true } : {}),
       })),
     });
   });

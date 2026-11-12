@@ -242,6 +242,32 @@ describe('reading history', () => {
     expect(body.utterances[1].startMs).toBe(2_500); // Bruno's track began 2 s in, his line 0.5 s after that
     expect(JSON.stringify(body)).not.toContain('Carol');
   });
+
+  it('puts typed chat on the transcript timeline, marked typed, never a whisper or an ooc line', async () => {
+    const id = await seed();
+    const chat = (at: number, detail: Record<string, unknown>) =>
+      records.addRecordingEvent({ recordingId: id, at: 1_000 + at, event: 'chat', detail });
+    await chat(1_000, { senderId: 'a', senderName: 'Aria', text: 'I nock an arrow', kind: 'chat' });
+    await chat(1_100, { senderId: 'c', senderName: 'Carol', text: 'psst zircon', to: 'a' });
+    await chat(1_200, { senderId: 'a', senderName: 'Aria', text: 'pizza is here', kind: 'ooc' });
+    const { body } = await call(
+      'GET',
+      `/api/campaigns/${campaign}/recordings/${id}/transcript`,
+      player.token,
+    );
+    expect(
+      body.utterances.map((u: { speaker: { name: string }; text: string; typed?: boolean }) => [
+        u.speaker.name,
+        u.text,
+        u.typed ?? false,
+      ]),
+    ).toEqual([
+      ['Aria', 'I open the iron door', false],
+      ['Aria', 'I nock an arrow', true],
+      ['Bruno', 'The dragon wakes', false],
+    ]);
+    expect(JSON.stringify(body)).not.toMatch(/zircon|pizza/);
+  });
 });
 
 describe('search', () => {
@@ -272,6 +298,13 @@ describe('search', () => {
       at: 1_000 + 5_000,
       event: 'chat',
       detail: { senderId: 'c', senderName: 'Carol', text: 'brimstone is a lie', to: 'a' },
+    });
+    // An out-of-character line is dropped before it reaches the timeline; search refuses one anyway.
+    await records.addRecordingEvent({
+      recordingId: id,
+      at: 1_000 + 6_000,
+      event: 'chat',
+      detail: { senderId: 'a', senderName: 'Aria', text: 'brimstone pizza ooc', kind: 'ooc' },
     });
     const { body } = await search(player.token, 'brimstone');
     expect(body.hits).toHaveLength(1);

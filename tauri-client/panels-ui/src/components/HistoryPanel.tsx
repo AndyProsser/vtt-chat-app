@@ -355,8 +355,8 @@ function Detail({ id }: { id: string }) {
           {transcript.length === 0 && <span className="vtt-muted">No transcript yet.</span>}
           {transcript.map((u, i) => (
             <p key={i}>
-              <span className="vtt-muted">{clock(u.startMs)}</span> <b>{speakerName(u.speaker)}</b>{' '}
-              {u.text}
+              <span className="vtt-muted">{clock(u.startMs)}</span> <b>{speakerName(u.speaker)}</b>
+              {u.typed ? <span className="vtt-muted"> (typed)</span> : null} {u.text}
             </p>
           ))}
         </div>

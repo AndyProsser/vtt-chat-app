@@ -1,3 +1,4 @@
+export * from './chat.js';
 export * from './chunk.js';
 export * from './ffmpeg.js';
 export * from './format.js';
@@ -9,5 +10,6 @@ export * from './records/index.js';
 export * from './providers/index.js';
 export * from './speechWindows.js';
 export * from './summarise.js';
+export * from './summaryPlan.js';
 export * from './whisperCli.js';
 export * from './whisperJson.js';

@@ -8,6 +8,8 @@
  *   WHISPER_LOCAL_URL   the local Whisper as an OpenAI-compatible server (the Compose bundle's `whisper`), OR
  *   WHISPER_BIN / WHISPER_MODEL / WHISPER_THREADS   a local whisper.cpp binary (default whisper-cli)
  *   OLLAMA_URL / OLLAMA_MODEL   the local LLM (default http://127.0.0.1:11434; model required)
+ *   OLLAMA_KEEP_ALIVE   how long Ollama keeps the model loaded after a request (e.g. 2m; unset: the
+ *                       Ollama server's own setting)
  *   WHISPER_API_KEY / LLM_API_KEY   only if a remote backend needs one
  *   RECORDINGS_DIR      where the audio files live (needed to delete raw audio)
  *   RECORDING_RETENTION_DAYS   delete the raw audio of processed recordings after this many days
@@ -69,6 +71,7 @@ async function main(): Promise<void> {
       model: required('OLLAMA_MODEL'),
       baseUrl: process.env.OLLAMA_URL ?? DEFAULT_OLLAMA_URL,
       numCtx: 8192,
+      ...(process.env.OLLAMA_KEEP_ALIVE ? { keepAlive: process.env.OLLAMA_KEEP_ALIVE } : {}),
     }),
     transcribeAudioFile: (file, transcribeWav) => transcribeTrackFile(file, transcribeWav),
     env: process.env,

@@ -152,6 +152,41 @@ describe.skipIf(TEST_DATABASE_URL === undefined)('PostgresRecordsStore', () => {
     ).rejects.toThrow();
   });
 
+  it('stores chapter and character summaries, one per subject', async () => {
+    const base = { recordingId, modelCalls: 1, createdAt: 1, visibility: 'members' as const };
+    await store.putSummary({ ...base, kind: 'chapter', subject: '1', text: 'part one' });
+    await store.putSummary({ ...base, kind: 'chapter', subject: '2', text: 'part two' });
+    await store.putSummary({ ...base, kind: 'character', subject: 'Aria', text: 'Aria did it' });
+    const all = await store.listSummaries(recordingId);
+    expect(all.map((s) => `${s.kind}:${s.subject}`).sort()).toEqual([
+      'chapter:1',
+      'chapter:2',
+      'character:Aria',
+    ]);
+  });
+
+  it('lists the players of a campaign, never its DM', async () => {
+    const rec = await store.getRecording(recordingId);
+    const campaign = rec?.campaignId ?? '';
+    const ids: Record<string, string> = {};
+    for (const [name, role] of [
+      ['dm', 'dm'],
+      ['p1', 'player'],
+      ['p2', 'player'],
+    ] as const) {
+      ids[name] = randomUUID();
+      await db.pool.query(
+        `INSERT INTO users (id, email, display_name, consent_version, consent_at, created_at) VALUES ($1, $2, $3, '1', 1, 1)`,
+        [ids[name], `${name}-${ids[name]}@x.test`, name],
+      );
+      await db.pool.query(
+        `INSERT INTO memberships (campaign_id, user_id, role, joined_at) VALUES ($1, $2, $3, 1)`,
+        [campaign, ids[name], role],
+      );
+    }
+    expect((await store.playerIds(campaign)).sort()).toEqual([ids.p1, ids.p2].sort());
+  });
+
   it('reads campaign name and AI settings (with defaults for a fresh database)', async () => {
     expect((await store.getAiSettings()).fallback.afterSeconds).toBe(600);
     const rec = await store.getRecording(recordingId);

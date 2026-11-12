@@ -319,6 +319,7 @@ export class PostgresRecordsStore implements RecordsStore {
               plainto_tsquery('english', $2) q
         WHERE r.campaign_id = $1 AND e.event = 'chat'
           AND NOT (e.detail ? 'to') AND NOT (e.detail ? 'recipientId')
+          AND COALESCE(e.detail->>'kind', '') <> 'ooc'
           AND to_tsvector('english', COALESCE(e.detail->>'text', '')) @@ q
         ORDER BY rank DESC, r.started_at DESC LIMIT $3`,
       [campaignId, query, options.limit],
@@ -403,6 +404,14 @@ export class PostgresRecordsStore implements RecordsStore {
       campaignId,
     ]);
     return rows[0]?.name as string | undefined;
+  }
+
+  async playerIds(campaignId: string): Promise<string[]> {
+    const { rows } = await this.pool.query<Row>(
+      `SELECT user_id FROM memberships WHERE campaign_id = $1 AND role = 'player'`,
+      [campaignId],
+    );
+    return rows.map((r) => r.user_id as string);
   }
 
   async getAiSettings(): Promise<AiSettings> {

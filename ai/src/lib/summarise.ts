@@ -26,6 +26,17 @@ export function groupByBudget(notes: readonly string[], maxChars: number): strin
   return groups;
 }
 
+/**
+ * Removes a reasoning model's `<think>…</think>` preamble, which some servers return inside the answer
+ * (an OpenAI-compatible endpoint, or Ollama without `think: false`). Only the summary is stored.
+ */
+export function stripThinking(text: string): string {
+  return text
+    .replace(/<think>[\s\S]*?<\/think>/gi, '')
+    .replace(/^[\s\S]*?<\/think>/i, '')
+    .trim();
+}
+
 export interface SummariseOptions {
   kind: SummaryKind;
   context?: SummaryContext;
@@ -60,7 +71,7 @@ export async function summarise(
   let modelCalls = 0;
   const call = async (prompt: string): Promise<string> => {
     modelCalls += 1;
-    return (await generate(prompt)).trim();
+    return stripThinking(await generate(prompt));
   };
 
   if (utterances.length === 0) {
