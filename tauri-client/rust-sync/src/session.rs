@@ -272,10 +272,7 @@ mod tests {
         ));
         assert_eq!(
             actions,
-            vec![
-                Action::Emit(SyncEvent::IncompatibleServer),
-                Action::Stop
-            ]
+            vec![Action::Emit(SyncEvent::IncompatibleServer), Action::Stop]
         );
         // The close that follows the error frame must not start a reconnect.
         assert_eq!(s.on_close(Some(CLOSE_BAD_REQUEST)), vec![Action::Stop]);

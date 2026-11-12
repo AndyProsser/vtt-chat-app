@@ -122,8 +122,7 @@ async fn run(
     loop {
         let outcome = match provider().await {
             Ok(info) => {
-                let session =
-                    session.get_or_insert_with(|| {
+                let session = session.get_or_insert_with(|| {
                     Session::new(info.session_token.clone()).with_app_protocol(config.app_protocol)
                 });
                 // Re-assert the subscriptions made while we were disconnected.
