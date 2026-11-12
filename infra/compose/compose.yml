@@ -135,13 +135,17 @@ services:
         health_port: 8080
     volumes:
       - recordings:/out
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', '-o', '/dev/null', 'http://127.0.0.1:8080/']
+      interval: 15s
+      retries: 5
     depends_on:
       recordings-init: { condition: service_completed_successfully }
       livekit: { condition: service_started }
 
   # --- Local AI: always configured, the default and the fallback for a remote backend ---
-  # Both speak the OpenAI-compatible API. Whisper runs on CPU here; for a GPU use a CUDA image
-  # (see infra/records-smoke/whisper-cuda.Dockerfile) and the compose.gpu.yml override.
+  # Both speak the OpenAI-compatible API. Whisper runs on CPU here; for an NVIDIA GPU add the
+  # compose.gpu.yml override (it builds whisper-cuda.Dockerfile, which also covers GTX 10-series cards).
   models-init:
     profiles: [records]
     image: curlimages/curl:latest
@@ -173,6 +177,10 @@ services:
       - -l
       - en
     volumes: [whisper-models:/models:ro]
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', '-o', '/dev/null', 'http://127.0.0.1:8080/health']
+      interval: 15s
+      retries: 10
     depends_on:
       models-init: { condition: service_completed_successfully }
 
@@ -181,6 +189,10 @@ services:
     image: ollama/ollama:latest
     restart: unless-stopped
     volumes: [ollama-data:/root/.ollama]
+    environment:
+      # Unload the model this long after the last request, so an idle server holds no (V)RAM for it.
+      # A job's summaries run back to back, so the model stays loaded for the whole job.
+      OLLAMA_KEEP_ALIVE: ${OLLAMA_KEEP_ALIVE:-2m}
     healthcheck:
       test: ['CMD', 'ollama', 'list']
       interval: 10s
@@ -208,7 +220,7 @@ services:
     restart: unless-stopped
     depends_on:
       postgres: { condition: service_healthy }
-      whisper: { condition: service_started }
+      whisper: { condition: service_healthy }
       ollama-pull: { condition: service_completed_successfully }
       recordings-init: { condition: service_completed_successfully }
     environment:

@@ -1,0 +1,44 @@
+# GPU override for the records profile: Whisper and Ollama on an NVIDIA card.
+#
+#   docker compose -f compose.yml -f compose.gpu.yml --profile records up -d --build
+#   (or put COMPOSE_FILE=compose.yml:compose.gpu.yml in .env and use plain `docker compose`)
+#
+# Needs the NVIDIA driver and the NVIDIA Container Toolkit with CDI on the host (`nvidia-ctk cdi list`
+# shows nvidia.com/gpu=all). Whisper runs from whisper-cuda.Dockerfile, built here once (~30 min, ~5.8 GB),
+# because upstream's CUDA image has no kernels for GTX 10-series (Pascal) cards; CUDA_ARCHS picks the cards.
+#
+# Neither service keeps the GPU busy between sessions: Whisper runs behind whisper-idle.py, which stops
+# whisper-server (and so frees its VRAM) after WHISPER_IDLE_SECONDS idle, and Ollama unloads the model after
+# OLLAMA_KEEP_ALIVE (both default to a few minutes; see compose.yml). The worker runs Whisper and the LLM one
+# after the other, never at once, so the card needs room for the larger of the two, not both.
+# Measured sizes and defaults: docs/architecture/RECORDING-AND-SUMMARIES.md.
+services:
+  whisper:
+    image: ${WHISPER_GPU_IMAGE:-vtt-whisper-cuda}
+    build:
+      context: .
+      dockerfile: whisper-cuda.Dockerfile
+      args:
+        CUDA_ARCHS: ${CUDA_ARCHS:-61;75;86;89}
+    devices: ['nvidia.com/gpu=all']
+    entrypoint: ['python3', '/app/whisper-idle.py', '/app/build/bin/whisper-server']
+    command:
+      - -m
+      - /models/${WHISPER_MODEL_FILE:-ggml-small-q5_1.bin}
+      - --inference-path
+      - /v1/audio/transcriptions
+      - -l
+      - en
+    environment:
+      WHISPER_IDLE_SECONDS: ${WHISPER_IDLE_SECONDS:-120}
+    healthcheck:
+      test:
+        - CMD
+        - python3
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=3)"
+      interval: 15s
+      retries: 5
+
+  ollama:
+    devices: ['nvidia.com/gpu=all']

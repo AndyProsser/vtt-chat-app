@@ -1,12 +1,16 @@
-# whisper.cpp with CUDA for GPUs the upstream prebuilt image does not cover.
+# whisper.cpp with CUDA for GPUs the upstream prebuilt image does not cover — used by compose.gpu.yml.
 #
 # Upstream's ghcr.io/ggml-org/whisper.cpp:main-cuda is built for sm_75/80/86/90 only (CUDA 13, which
 # dropped Pascal), so on a GTX 10-series card it dies with "no kernel image is available". This
 # builds the same binaries on CUDA 12.4 for the architectures you list.
 #
-#   docker build -f infra/records-smoke/whisper-cuda.Dockerfile -t vtt-whisper-cuda \
-#     --build-arg CUDA_ARCHS="61;75;86;89" infra/records-smoke
-#   WHISPER_IMAGE=vtt-whisper-cuda WHISPER_GPU=1 infra/records-smoke/whisper-docker.sh ...
+#   docker compose -f compose.yml -f compose.gpu.yml --profile records build whisper   (or, by hand:)
+#   docker build -f infra/compose/whisper-cuda.Dockerfile -t vtt-whisper-cuda \
+#     --build-arg CUDA_ARCHS="61;75;86;89" infra/compose
+#   WHISPER_IMAGE=vtt-whisper-cuda WHISPER_GPU=1 infra/records-smoke/whisper-docker.sh ...   (records smoke)
+#
+# The compile takes ~30 minutes once; the image is ~5.8 GB. It also carries whisper-idle.py, which
+# compose.gpu.yml runs in front of whisper-server so the model leaves VRAM when Whisper is idle.
 #
 # Common values: 61 = GTX 10xx, 75 = RTX 20xx/GTX 16xx, 86 = RTX 30xx, 89 = RTX 40xx.
 ARG CUDA_VERSION=12.4.1
@@ -30,4 +34,7 @@ COPY --from=build /src/build/src/libwhisper.so* /app/build/bin/
 COPY --from=build /src/build/ggml/src /tmp/ggml
 RUN find /tmp/ggml -name '*.so*' -exec cp -P {} /app/build/bin/ \; && rm -rf /tmp/ggml
 ENV LD_LIBRARY_PATH=/app/build/bin
+# Last, so the compile above stays cached: Python (standard library only) for the idle front.
+RUN apt-get update && apt-get install -y --no-install-recommends python3 && rm -rf /var/lib/apt/lists/*
+COPY whisper-idle.py /app/whisper-idle.py
 ENTRYPOINT ["/app/build/bin/whisper-cli"]
