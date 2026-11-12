@@ -31,7 +31,9 @@ export function GetTheApp({ campaignName }: { campaignName?: string }) {
       </Callout.Root>
 
       <Flex direction="column" gap="2">
-        <Heading size="3">Open the app</Heading>
+        <Heading size="3" as="h2">
+          Open the app
+        </Heading>
         <Text size="2" color="gray">
           It lives in your system tray. This hands your sign-in to the app in one click; no password
           to retype.

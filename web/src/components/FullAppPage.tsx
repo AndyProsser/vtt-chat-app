@@ -28,7 +28,9 @@ export function FullAppPage() {
             </Text>
           </Flex>
           <Flex direction="column" gap="2">
-            <Heading size="3">What the desktop app adds</Heading>
+            <Heading size="3" as="h2">
+              What the desktop app adds
+            </Heading>
             <ul className="full-app-list">
               {FULL_APP_FEATURES.map((f) => (
                 <li key={f.title}>
@@ -43,7 +45,9 @@ export function FullAppPage() {
             </ul>
           </Flex>
           <Flex direction="column" gap="2">
-            <Heading size="3">How to get it</Heading>
+            <Heading size="3" as="h2">
+              How to get it
+            </Heading>
             <Text size="2">On a computer, open this page and sign in to download:</Text>
             <Command command={url} />
             {canShare && (

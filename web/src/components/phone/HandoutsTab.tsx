@@ -65,7 +65,9 @@ function HandoutView({
         <Button variant="soft" onClick={onBack}>
           Back
         </Button>
-        <Heading size="5">{item.title}</Heading>
+        <Heading size="5" as="h2">
+          {item.title}
+        </Heading>
       </Flex>
       {item.kind === 'text' && <div className="phone-note">{item.body}</div>}
       {(item.kind === 'image' || item.kind === 'map') && (

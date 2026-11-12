@@ -145,7 +145,9 @@ function DownloadContent({ onBack }: { onBack?: () => void }) {
       </Tabs.Root>
 
       <Flex direction="column" gap="2">
-        <Heading size="3">Then connect it</Heading>
+        <Heading size="3" as="h2">
+          Then connect it
+        </Heading>
         <Text size="2" color="gray">
           Open the app, enter this server address and press Connect, then approve it in your
           browser. Or press Open VTT Chat below: it hands your sign-in to the app in one click.

@@ -46,7 +46,9 @@ export function LandingPage() {
             <GetTheApp />
           ) : view === 'signin' ? (
             <Flex direction="column" gap="3">
-              <Heading size="3">Sign in</Heading>
+              <Heading size="3" as="h2">
+                Sign in
+              </Heading>
               <LoginForm onSignedIn={onSignedIn} />
               <Button variant="ghost" onClick={() => setView('home')}>
                 Back
@@ -60,20 +62,26 @@ export function LandingPage() {
                 group controls.
               </Text>
               <Flex direction="column" gap="2">
-                <Heading size="3">Joining a table?</Heading>
+                <Heading size="3" as="h2">
+                  Joining a table?
+                </Heading>
                 <CodeEntry
                   onSubmit={(code) => window.location.assign(`/join/${encodeURIComponent(code)}`)}
                 />
               </Flex>
               <Flex direction="column" gap="2">
-                <Heading size="3">Already have an account?</Heading>
+                <Heading size="3" as="h2">
+                  Already have an account?
+                </Heading>
                 <Button variant="soft" size="3" onClick={() => setView('signin')}>
                   Sign in
                 </Button>
               </Flex>
               {canRequest && (
                 <Flex direction="column" gap="2">
-                  <Heading size="3">Request an account</Heading>
+                  <Heading size="3" as="h2">
+                    Request an account
+                  </Heading>
                   <RequestAccount />
                 </Flex>
               )}

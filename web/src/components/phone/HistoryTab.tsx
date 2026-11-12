@@ -85,7 +85,9 @@ function RecordingView({
         <Button variant="soft" onClick={onBack}>
           Back
         </Button>
-        <Heading size="4">{recordingTitle(item.startedAt, item.stoppedAt)}</Heading>
+        <Heading size="4" as="h2">
+          {recordingTitle(item.startedAt, item.stoppedAt)}
+        </Heading>
       </Flex>
       {detail.error && (
         <Callout.Root color="red">

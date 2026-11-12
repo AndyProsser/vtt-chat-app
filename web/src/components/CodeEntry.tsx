@@ -18,7 +18,6 @@ export function CodeEntry({ onSubmit }: { onSubmit: (code: string) => void }) {
           placeholder="ABCD-EFGH"
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          autoFocus
         />
         <Button type="submit" size="3">
           Continue
