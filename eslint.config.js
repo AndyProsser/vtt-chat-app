@@ -15,6 +15,8 @@ export default tseslint.config(
       // read nested .gitignore files, so it needs listing here too or `npm run lint` fails
       // locally on files that never reach CI.
       '.remember/**',
+      // Dev-box browser smoke test (web/e2e/README.md): Node plus code evaluated inside the page, not CI-linted.
+      'web/e2e/**',
     ],
   },
   js.configs.recommended,
