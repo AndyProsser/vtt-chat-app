@@ -7,7 +7,7 @@ class FakeSocket implements SocketLike {
   sent: { t: string; d: unknown }[] = [];
   onopen: (() => void) | null = null;
   onmessage: ((e: { data: unknown }) => void) | null = null;
-  onclose: (() => void) | null = null;
+  onclose: ((e?: { code?: number }) => void) | null = null;
   onerror: (() => void) | null = null;
   send(data: string) {
     this.sent.push(JSON.parse(data));
@@ -22,13 +22,13 @@ class FakeSocket implements SocketLike {
   say(t: string, d?: unknown) {
     this.onmessage?.({ data: JSON.stringify({ v: 1, t, d }) });
   }
-  drop() {
+  drop(code?: number) {
     this.readyState = 3;
-    this.onclose?.();
+    this.onclose?.(code === undefined ? undefined : { code });
   }
 }
 
-function setup() {
+function setup(sessionAlive?: () => Promise<boolean>) {
   const sockets: FakeSocket[] = [];
   const waits: { fn: () => void; ms: number }[] = [];
   const events: [string, unknown][] = [];
@@ -40,6 +40,7 @@ function setup() {
     onEvent: (t, d) => events.push([t, d]),
     onState: (s) => states.push(s),
     onRevoked: () => (revoked += 1),
+    ...(sessionAlive ? { sessionAlive } : {}),
     open: () => {
       const s = new FakeSocket();
       sockets.push(s);
@@ -126,6 +127,42 @@ describe('LiveSocket', () => {
     expect(t.revoked()).toBe(1);
     s.drop();
     expect(t.waits).toHaveLength(0);
+  });
+  it('stops for good on a 4401 close, without asking the server', () => {
+    const t = setup(() => Promise.reject(new Error('must not be asked')));
+    t.live.start();
+    t.sockets[0]!.drop(4401);
+    expect(t.revoked()).toBe(1);
+    expect(t.waits).toHaveLength(0);
+  });
+  it('asks the server when a connect fails, and ends the session if its cookie is dead (a refused upgrade)', async () => {
+    const t = setup(() => Promise.resolve(false));
+    t.live.start();
+    t.sockets[0]!.drop(1006);
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(t.revoked()).toBe(1);
+    expect(t.waits).toHaveLength(0);
+    expect(t.sockets).toHaveLength(1);
+  });
+  it('keeps the normal retry when the server says the session is fine, or cannot be reached', async () => {
+    for (const probe of [() => Promise.resolve(true), () => Promise.reject(new Error('offline'))]) {
+      const t = setup(probe);
+      t.live.start();
+      t.sockets[0]!.drop(1006);
+      await new Promise((r) => setTimeout(r, 0));
+      expect(t.revoked()).toBe(0);
+      expect(t.waits).toHaveLength(1);
+      expect(t.waits[0]?.ms).toBe(RETRY_MS[0]);
+    }
+  });
+  it('does not ask the server about a connection that had signed in (a plain drop)', () => {
+    const t = setup(() => Promise.reject(new Error('must not be asked')));
+    t.live.start();
+    t.sockets[0]!.open();
+    t.sockets[0]!.say('auth.ok');
+    t.sockets[0]!.drop(1006);
+    expect(t.waits).toHaveLength(1);
   });
   it('does not reconnect after stop()', () => {
     const t = setup();

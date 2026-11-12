@@ -9,7 +9,7 @@ export interface SocketLike {
   close(): void;
   onopen: (() => void) | null;
   onmessage: ((event: { data: unknown }) => void) | null;
-  onclose: (() => void) | null;
+  onclose: ((event?: { code?: number }) => void) | null;
   onerror: (() => void) | null;
 }
 
@@ -21,6 +21,12 @@ export interface LiveSocketOptions {
   onState: (state: LiveState) => void;
   /** The server ended this sign-in (signed out elsewhere, or expired). */
   onRevoked: () => void;
+  /**
+   * Asked when a connection ends before it ever signed in. A browser cannot see why an upgrade failed (a 401 and
+   * a dead network look the same), so this asks the server: `false` means the session is gone and there is no
+   * point retrying; anything else (including a rejection) means "unknown", and the normal retry follows.
+   */
+  sessionAlive?: () => Promise<boolean>;
   open?: (url: string) => SocketLike;
   /** Waits before a reconnect; tests pass their own. */
   schedule?: (fn: () => void, ms: number) => unknown;
@@ -35,6 +41,8 @@ export interface SayOptions {
 }
 
 const OPEN = 1;
+/** The close code the server uses for "not signed in / signed out" (backend CloseCode.Unauthorized). */
+const CLOSE_UNAUTHORIZED = 4401;
 const PROTOCOL_VERSION = 1;
 export const RETRY_MS = [1_000, 2_000, 5_000, 10_000, 30_000];
 
@@ -89,8 +97,16 @@ export class LiveSocket {
     return true;
   }
 
+  /** The session is over: stop for good (no retry) and tell the app, once. */
+  private ended(): void {
+    if (this.stopped) return;
+    this.stopped = true;
+    this.o.onRevoked();
+  }
+
   private connect(): void {
     this.o.onState('connecting');
+    let signedIn = false;
     const socket = (this.o.open ?? ((url) => new WebSocket(url) as unknown as SocketLike))(
       this.o.url,
     );
@@ -108,28 +124,44 @@ export class LiveSocket {
       if (typeof frame.t !== 'string') return;
       if (frame.t === 'auth.ok') {
         this.attempt = 0;
+        signedIn = true;
         this.send('resume', { campaignId: this.o.campaignId });
         this.o.onState('live');
         return;
       }
       if (frame.t === 'auth.revoked') {
-        this.stopped = true;
-        this.o.onRevoked();
+        this.ended();
         return;
       }
       this.o.onEvent(frame.t, frame.d);
     };
-    const lost = () => {
-      if (this.socket !== socket) return;
-      this.socket = undefined;
-      this.o.onState('offline');
-      if (this.stopped) return;
+    const retryLater = () => {
+      // A newer connection (or retry) already exists: this one's answer arrived late.
+      if (this.socket !== undefined || this.timer !== undefined) return;
       const wait = RETRY_MS[Math.min(this.attempt, RETRY_MS.length - 1)] ?? 30_000;
       this.attempt += 1;
       this.timer = (this.o.schedule ?? ((fn, ms) => setTimeout(fn, ms)))(() => {
         this.timer = undefined;
         if (!this.stopped) this.connect();
       }, wait);
+    };
+    const lost = (event?: { code?: number }) => {
+      if (this.socket !== socket) return;
+      this.socket = undefined;
+      this.o.onState('offline');
+      if (this.stopped) return;
+      if (event?.code === CLOSE_UNAUTHORIZED) return this.ended();
+      const probe = this.o.sessionAlive;
+      if (signedIn || !probe) return retryLater();
+      // Never got in: either the network, or a refused upgrade. Ask before spinning on a dead session.
+      probe().then(
+        (alive) => {
+          if (this.stopped) return;
+          if (alive) retryLater();
+          else this.ended();
+        },
+        () => !this.stopped && retryLater(),
+      );
     };
     socket.onclose = lost;
     socket.onerror = () => undefined; // a failed connect is followed by close, which retries

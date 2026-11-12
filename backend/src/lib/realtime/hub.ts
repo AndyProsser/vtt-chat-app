@@ -206,6 +206,20 @@ export class Hub {
     }
   }
 
+  /**
+   * Whether a session token is still good, without signing a socket in. The WebSocket upgrade asks this so a
+   * browser holding a dead cookie is refused with a 401 at once instead of connecting, being told, and retrying.
+   */
+  async credentialValid(token: string): Promise<boolean> {
+    try {
+      await this.options.accounts.authenticate(token, { ping: false });
+      return true;
+    } catch (error) {
+      if (error instanceof DomainError) return false;
+      throw error;
+    }
+  }
+
   /** Remote sign-out: drop every live connection that belongs to this session. */
   revokeSession(sessionId: string): void {
     for (const state of [...this.connections.values()]) {

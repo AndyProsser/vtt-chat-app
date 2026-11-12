@@ -147,6 +147,39 @@ describe('WebSocket transport', () => {
     }
   });
 
+  it('refuses a browser upgrade with 401 when its cookie is dead or missing, and tells a live one on logout', async () => {
+    const login = await fetch(`http://${base}/api/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-VTT-Client': 'web' },
+      body: JSON.stringify({
+        email: 'gone@example.com',
+        displayName: 'gone',
+        password: PASSWORD,
+        acceptedConsentVersion: '1',
+      }),
+    });
+    const cookie = login.headers.getSetCookie()[0]!.split(';')[0]!;
+    const own = { Origin: `http://${base}` };
+
+    // A live socket hears auth.revoked when the session is signed out, then is closed.
+    const live = await open('/ws', { Cookie: cookie, ...own });
+    await live.waitFor('auth.ok');
+    const out = await fetch(`http://${base}/api/auth/logout`, {
+      method: 'POST',
+      headers: { Cookie: cookie, 'X-VTT-Client': 'web', ...own },
+    });
+    expect(out.status).toBe(204);
+    await live.waitFor('auth.revoked');
+    expect((await live.closed).code).toBe(4401);
+
+    // The same (now dead) cookie, and no cookie at all, are refused at the upgrade: no socket, no retry storm.
+    await expect(open('/ws', { Cookie: cookie, ...own })).rejects.toThrow(/401/);
+    await expect(open('/ws', { ...own })).rejects.toThrow(/401/);
+    // The desktop app (no Origin) still connects and authenticates with a frame.
+    const app = await open();
+    app.ws.close();
+  });
+
   it('relays chat between two real sockets', async () => {
     const dmToken = await signUp('dm');
     const playerToken = await signUp('player');

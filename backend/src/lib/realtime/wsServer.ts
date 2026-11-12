@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { IncomingMessage, Server } from 'node:http';
+import type { Duplex } from 'node:stream';
 
 import { WebSocketServer, type WebSocket } from 'ws';
 
@@ -37,7 +38,10 @@ export interface WsOptions {
  * so the `Origin` must match; an absent or foreign Origin means the cookie is ignored (and the client has
  * to send an `auth` frame, which a cross-site page has no token for).
  */
-function cookieCredential(request: IncomingMessage, trusted: boolean): string | undefined {
+function cookieCredential(
+  request: IncomingMessage,
+  trusted: boolean,
+): { credential: string | undefined; ownPage: boolean } {
   const forwarded = (name: string): string | undefined =>
     trusted ? (request.headers[name] as string | undefined)?.split(',')[0]?.trim() : undefined;
   const secure =
@@ -45,15 +49,25 @@ function cookieCredential(request: IncomingMessage, trusted: boolean): string | 
     forwarded('x-forwarded-proto') === 'https';
   const host = forwarded('x-forwarded-host') ?? request.headers.host;
   const raw = readCookie(request.headers.cookie, secure ? SECURE_COOKIE : PLAIN_COOKIE);
-  if (raw === undefined || !host) return undefined;
-  // A WebSocket handshake is a GET, so `sameOrigin` would wave it through; ask it as a POST.
+  if (!host) return { credential: undefined, ownPage: false };
+  // A WebSocket handshake is a GET, so `sameOrigin` would wave it through; ask it as a POST. A request that
+  // names an Origin and passes is one of this server's own pages (the desktop app sends no Origin).
   const expected = `${secure ? 'https' : 'http'}://${host}`;
-  if (!sameOrigin('POST', request.headers.origin, undefined, expected)) return undefined;
+  const ownPage =
+    request.headers.origin !== undefined &&
+    sameOrigin('POST', request.headers.origin, undefined, expected);
+  if (raw === undefined || !ownPage) return { credential: undefined, ownPage };
   try {
-    return decodeURIComponent(raw);
+    return { credential: decodeURIComponent(raw), ownPage };
   } catch {
-    return undefined;
+    return { credential: undefined, ownPage };
   }
+}
+
+/** Refuses a WebSocket upgrade the way an HTTP server refuses any request: before there is a socket at all. */
+function refuse(socket: Duplex): void {
+  socket.write('HTTP/1.1 401 Unauthorized\r\nConnection: close\r\nContent-Length: 0\r\n\r\n');
+  socket.destroy();
 }
 
 export function attachWebSocketServer(server: Server, hub: Hub, options: WsOptions = {}): WsHandle {
@@ -68,9 +82,19 @@ export function attachWebSocketServer(server: Server, hub: Hub, options: WsOptio
       return;
     }
     const trusted = options.trustProxy?.(request.socket.remoteAddress ?? '') ?? false;
-    const credential = cookieCredential(request, trusted);
-    if (credential) credentials.set(request, credential);
-    wss.handleUpgrade(request, socket, head, (ws) => wss.emit('connection', ws, request));
+    const { credential, ownPage } = cookieCredential(request, trusted);
+    const upgrade = (): void => {
+      if (credential) credentials.set(request, credential);
+      wss.handleUpgrade(request, socket, head, (ws) => wss.emit('connection', ws, request));
+    };
+    // One of our own pages relies on its cookie alone (it has no token to send in an `auth` frame), so no
+    // cookie, or a dead one, can never succeed: answer 401 instead of letting it connect, time out and retry.
+    if (ownPage && !credential) return refuse(socket);
+    if (!credential) return upgrade();
+    hub.credentialValid(credential).then(
+      (valid) => (valid ? upgrade() : refuse(socket)),
+      () => socket.destroy(),
+    );
   });
 
   wss.on('connection', (ws: WebSocket, request: IncomingMessage) => {

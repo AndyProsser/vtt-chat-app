@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 
+import { ApiError, checkSession } from '../lib/api.js';
 import { chatHistory } from '../lib/phone/phoneApi.js';
 import { usePhoneStore } from '../lib/phone/phoneStore.js';
 import { type SayOptions, LiveSocket, socketUrl } from '../lib/phone/socket.js';
@@ -27,6 +28,12 @@ export function useLiveChat(campaignId: string, onRevoked: () => void) {
       onEvent: (t, d) => usePhoneStore.getState().onFrame(t, d),
       onState: (s) => usePhoneStore.getState().setLive(s),
       onRevoked: () => revoked.current(),
+      // A refused upgrade looks like any failed connect to a browser; only the server can say the cookie is dead.
+      sessionAlive: () =>
+        checkSession().then(
+          () => true,
+          (error: unknown) => !(error instanceof ApiError && error.status === 401),
+        ),
     });
     socket.current = live;
     live.start();

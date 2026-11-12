@@ -81,6 +81,14 @@ export function PhoneApp() {
       .finally(() => setBoot('ready'));
   }, [enter]);
 
+  // The server ended this sign-in (expired, or signed out on another device): no logout call, just the sign-in
+  // screen with a reason.
+  const sessionEnded = useCallback(() => {
+    markSignedOut();
+    usePhoneStore.getState().signedOut();
+    setNotice('Your session ended. Sign in again.');
+  }, []);
+
   const signOut = useCallback(() => {
     void logout();
     markSignedOut();
@@ -105,6 +113,7 @@ export function PhoneApp() {
           {...(pending ? { initialPending: pending } : {})}
           onSignedIn={(userId) => {
             setError(undefined);
+            setNotice(undefined);
             enter(userId).catch(() => setError('Signed in, but could not load your campaigns.'));
           }}
         />
@@ -130,16 +139,24 @@ export function PhoneApp() {
       </Frame>
     );
   }
-  return <Shell campaignId={campaignId} onSignOut={signOut} />;
+  return <Shell campaignId={campaignId} onSignOut={signOut} onSessionEnded={sessionEnded} />;
 }
 
-function Shell({ campaignId, onSignOut }: { campaignId: string; onSignOut: () => void }) {
+function Shell({
+  campaignId,
+  onSignOut,
+  onSessionEnded,
+}: {
+  campaignId: string;
+  onSignOut: () => void;
+  onSessionEnded: () => void;
+}) {
   const tab = usePhoneStore((s) => s.tab);
   const unread = usePhoneStore((s) => s.unread);
   const live = usePhoneStore((s) => s.live);
   const campaign = usePhoneStore((s) => s.campaigns.find((c) => c.id === campaignId));
   const many = usePhoneStore((s) => s.campaigns.length > 1);
-  const say = useLiveChat(campaignId, onSignOut);
+  const say = useLiveChat(campaignId, onSessionEnded);
   const isDm = campaign?.role === 'dm';
   const pending = usePhoneStore((s) => s.joinPending.length);
   const [screen, setScreen] = useState<'tables' | 'requests'>();
