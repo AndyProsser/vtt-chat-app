@@ -81,7 +81,11 @@ export function AccountForm(props: { code: string; consentVersion: string; onJoi
       }}
     >
       <Flex direction="column" gap="3">
-        <SegmentedControl.Root value={mode} onValueChange={(v) => setMode(v as Mode)}>
+        <SegmentedControl.Root
+          className="segmented-fit"
+          value={mode}
+          onValueChange={(v) => setMode(v as Mode)}
+        >
           <SegmentedControl.Item value="create">Create account</SegmentedControl.Item>
           <SegmentedControl.Item value="signin">I have an account</SegmentedControl.Item>
         </SegmentedControl.Root>

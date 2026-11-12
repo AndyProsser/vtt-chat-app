@@ -211,3 +211,14 @@ html::-webkit-scrollbar {
   flex-direction: column;
   gap: 0.5rem;
 }
+
+/* A segmented control inside a card: fill the card's width and let the labels share it, instead of sizing to the
+   labels and overflowing a narrow screen by a few pixels. */
+.segmented-fit {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+.segmented-fit .rt-SegmentedControlItem {
+  min-width: 0;
+}

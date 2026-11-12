@@ -56,7 +56,7 @@ function LinuxOptions({ downloads }: { downloads: Downloads }) {
   const guide = choices.find((g) => g.id === format) ?? choices[0]!;
   return (
     <Flex direction="column" gap="3" className="fit">
-      <SegmentedControl.Root value={guide.id} onValueChange={setFormat}>
+      <SegmentedControl.Root className="segmented-fit" value={guide.id} onValueChange={setFormat}>
         {choices.map((g) => (
           <SegmentedControl.Item key={g.id} value={g.id}>
             {g.label}

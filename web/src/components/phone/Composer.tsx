@@ -4,12 +4,15 @@ import { useId, useMemo, useRef, useState } from 'react';
 
 import {
   chatContext,
+  composerPlaceholder,
+  NARROW_COMPOSER_PX,
   nextUpcomingSession,
   planSend,
   sendsOnKey,
   TYPO_WARNING,
   visibleSuggestions,
 } from '../../lib/phone/compose.js';
+import { useNarrow } from '../../hooks/useNarrow.js';
 import { answerRsvp, sessions } from '../../lib/phone/phoneApi.js';
 import { usePhoneStore } from '../../lib/phone/phoneStore.js';
 import type { SayOptions } from '../../lib/phone/socket.js';
@@ -32,6 +35,7 @@ export function Composer({
   say: (text: string, o?: SayOptions) => boolean;
 }) {
   const [text, setText] = useState('');
+  const narrow = useNarrow(NARROW_COMPOSER_PX);
   const [failed, setFailed] = useState(false);
   const [problem, setProblem] = useState<string>();
   const [note, setNote] = useState<string>();
@@ -153,7 +157,7 @@ export function Composer({
             aria-expanded={open}
             aria-controls={open ? listId : undefined}
             aria-activedescendant={open ? optionId(active) : undefined}
-            placeholder="Message the table, or type / for commands"
+            placeholder={composerPlaceholder(narrow)}
             size="3"
             rows={1}
             maxLength={CHAT_TEXT_MAX}

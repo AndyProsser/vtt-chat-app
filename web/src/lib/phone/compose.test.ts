@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   chatContext,
+  composerPlaceholder,
   type KeyLike,
   nextUpcomingSession,
   planSend,
@@ -123,5 +124,13 @@ describe('sendsOnKey', () => {
   it('ignores Enter that confirms an IME composition, and other keys', () => {
     expect(sendsOnKey(k({ isComposing: true }), false)).toBe(false);
     expect(sendsOnKey(k({ key: 'a' }), false)).toBe(false);
+  });
+});
+
+describe('composerPlaceholder', () => {
+  it('keeps the command hint on wide screens and shortens it on narrow ones', () => {
+    expect(composerPlaceholder(false)).toContain('type / for commands');
+    expect(composerPlaceholder(true)).toBe('Message the table…');
+    expect(composerPlaceholder(true).length).toBeLessThan(24);
   });
 });

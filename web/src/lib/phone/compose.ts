@@ -100,3 +100,10 @@ export function sendsOnKey(e: KeyLike, coarsePointer: boolean): boolean {
   if (e.ctrlKey || e.metaKey) return true;
   return !coarsePointer && !e.shiftKey;
 }
+
+/** Widths at or below this (CSS px) get the short placeholder: the long one wraps to two lines on a phone. */
+export const NARROW_COMPOSER_PX = 480;
+
+/** The composer's placeholder: the full hint where it fits, a short one on a narrow screen. */
+export const composerPlaceholder = (narrow: boolean): string =>
+  narrow ? 'Message the table…' : 'Message the table, or type / for commands';
