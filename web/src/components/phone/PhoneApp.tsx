@@ -7,10 +7,10 @@ import { useLiveChat } from '../../hooks/useLiveChat.js';
 import { takeHandoffToken } from '../../lib/handoff.js';
 import { appPromoHref } from '../../lib/phone/promo.js';
 import { isMobile } from '../../lib/platform.js';
-import { campaigns, joinRequests, logout, me, redeemCode } from '../../lib/phone/phoneApi.js';
+import { campaigns, joinRequests, me, redeemCode } from '../../lib/phone/phoneApi.js';
 import { type Tab, usePhoneStore } from '../../lib/phone/phoneStore.js';
 import { forgetLegacyToken, saveCampaign, savedCampaign } from '../../lib/phone/storage.js';
-import { markSignedIn, markSignedOut } from '../../lib/session.js';
+import { markSignedIn, markSignedOut, signOut as endSession } from '../../lib/session.js';
 import { SiteHeader } from '../SiteHeader.js';
 import { pendingIds } from '../../lib/phone/joinRequests.js';
 import { CampaignPicker } from './CampaignPicker.js';
@@ -89,11 +89,18 @@ export function PhoneApp() {
     setNotice('Your session ended. Sign in again.');
   }, []);
 
+  // Waits for the server (a few seconds at most) before flipping to the sign-in screen; if the server refuses,
+  // the cookie is still good, so stay signed in and say so.
   const signOut = useCallback(() => {
-    void logout();
-    markSignedOut();
-    saveCampaign(undefined);
-    usePhoneStore.getState().signedOut();
+    setError(undefined);
+    void endSession().then((result) => {
+      if (!result.ok) {
+        setError(result.message);
+        return;
+      }
+      saveCampaign(undefined);
+      usePhoneStore.getState().signedOut();
+    });
   }, []);
 
   if (boot === 'checking') {
@@ -139,7 +146,29 @@ export function PhoneApp() {
       </Frame>
     );
   }
-  return <Shell campaignId={campaignId} onSignOut={signOut} onSessionEnded={sessionEnded} />;
+  return (
+    <>
+      {error && (
+        <div
+          role="alert"
+          style={{
+            position: 'fixed',
+            top: 8,
+            left: 16,
+            right: 16,
+            zIndex: 50,
+            padding: '8px 12px',
+            borderRadius: 'var(--radius-3)',
+            background: 'var(--red-3)',
+            color: 'var(--red-11)',
+          }}
+        >
+          {error}
+        </div>
+      )}
+      <Shell campaignId={campaignId} onSignOut={signOut} onSessionEnded={sessionEnded} />
+    </>
+  );
 }
 
 function Shell({

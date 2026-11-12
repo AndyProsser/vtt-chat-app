@@ -13,7 +13,7 @@ export class ApiError extends Error {
 export async function request<T>(
   method: string,
   path: string,
-  options: { body?: unknown; keepalive?: boolean } = {},
+  options: { body?: unknown; keepalive?: boolean; signal?: AbortSignal } = {},
 ): Promise<T> {
   const response = await fetch(path, {
     method,
@@ -26,6 +26,7 @@ export async function request<T>(
     },
     ...(options.body === undefined ? {} : { body: JSON.stringify(options.body) }),
     ...(options.keepalive ? { keepalive: true } : {}),
+    ...(options.signal ? { signal: options.signal } : {}),
   });
   const text = await response.text();
   const data = text ? (JSON.parse(text) as Record<string, unknown>) : {};
@@ -84,9 +85,9 @@ export const joinCampaign = (code: string) =>
  */
 export const checkSession = () => request<{ user: { id: string } }>('GET', '/api/auth/me');
 
-/** Ends the browser session on the server and clears the cookie (the Sign out button). */
-export const signOut = () =>
-  request('POST', '/api/auth/logout', { keepalive: true }).catch(() => undefined);
+/** Ends the browser session on the server and clears the cookie (the Sign out button). Rejects if it could not. */
+export const signOut = (signal?: AbortSignal) =>
+  request('POST', '/api/auth/logout', { keepalive: true, ...(signal ? { signal } : {}) });
 
 export interface LinkCode {
   /** The short typed fallback, `ABCD-2345`. */

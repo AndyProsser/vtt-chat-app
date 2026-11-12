@@ -85,6 +85,49 @@ describe('session (cookie model)', () => {
     expect(init.method).toBe('POST');
   });
 
+  it('signs out only after the server answers, and keeps the tab signed in when the server refuses', async () => {
+    let answer!: (r: Response) => void;
+    install(vi.fn().mockReturnValue(new Promise<Response>((r) => (answer = r))));
+    markSignedIn();
+    const pending = signOut();
+    expect(getSessionState()).toBe('in'); // not flipped before the response lands
+    answer(json(500, { error: 'boom' }));
+    expect(await pending).toEqual({
+      ok: false,
+      message: expect.stringContaining('Could not sign out'),
+    });
+    expect(getSessionState()).toBe('in');
+  });
+
+  it('treats a 401 (the cookie was already dead) as signed out', async () => {
+    install(vi.fn().mockResolvedValue(json(401, { error: 'session_invalid' })));
+    markSignedIn();
+    expect(await signOut()).toEqual({ ok: true });
+    expect(getSessionState()).toBe('out');
+  });
+
+  it('gives up waiting after the timeout, or on a network failure, and clears the tab anyway', async () => {
+    install(
+      vi
+        .fn()
+        .mockImplementation(
+          (_p: string, init: RequestInit) =>
+            new Promise((_resolve, reject) =>
+              init.signal?.addEventListener('abort', () => reject(new Error('aborted'))),
+            ),
+        ),
+    );
+    markSignedIn();
+    expect(await signOut({ timeoutMs: 20 })).toEqual({ ok: true });
+    expect(getSessionState()).toBe('out');
+
+    resetSession();
+    install(vi.fn().mockRejectedValue(new TypeError('network down')));
+    markSignedIn();
+    expect(await signOut()).toEqual({ ok: true });
+    expect(getSessionState()).toBe('out');
+  });
+
   it('never writes to storage, and drops the token an earlier build left in sessionStorage', async () => {
     const removed: string[] = [];
     const storage = {

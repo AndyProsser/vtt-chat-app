@@ -6,6 +6,7 @@ import {
   refreshSession,
   signOut,
   subscribeSession,
+  type SignOutResult,
 } from '../lib/session.js';
 
 export interface SessionHook {
@@ -16,7 +17,7 @@ export interface SessionHook {
   /** Call after any sign-in form succeeds; the response has already set the cookie. */
   onSignedIn: () => void;
   /** Ends the session on the server and forgets it here. */
-  signOut: () => void;
+  signOut: () => Promise<SignOutResult>;
 }
 
 /** One behaviour for every page: ask the server once per load, follow sign-in and sign-out. */
@@ -29,6 +30,6 @@ export function useSession(): SessionHook {
     signedIn: state === 'in',
     checked: state !== 'unknown',
     onSignedIn: markSignedIn,
-    signOut: () => void signOut(),
+    signOut: () => signOut(),
   };
 }

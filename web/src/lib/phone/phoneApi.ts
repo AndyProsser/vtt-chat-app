@@ -43,8 +43,6 @@ export const acceptConsent = (version: string) =>
 export const me = () =>
   request<{ user: { id: string; displayName: string } }>('GET', '/api/auth/me');
 
-export const logout = () => request('POST', '/api/auth/logout').catch(() => undefined);
-
 export async function campaigns(): Promise<CampaignItem[]> {
   const res = await request<{
     campaigns: {

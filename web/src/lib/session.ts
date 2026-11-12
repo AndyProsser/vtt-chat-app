@@ -66,11 +66,39 @@ function forgetLegacyToken(): void {
   }
 }
 
-/** Ends the session on the server (which clears the cookie) and here. */
-export async function signOut(): Promise<void> {
+/** How long Sign out waits for the server before it gives up and clears this tab anyway. */
+export const SIGN_OUT_TIMEOUT_MS = 3_000;
+
+export type SignOutResult = { ok: true } | { ok: false; message: string };
+
+/**
+ * Ends the session on the server (which clears the cookie), and only then here, so the page never claims
+ * "signed out" while the cookie is still good:
+ *  - the server confirms (or says the cookie was already dead, a 401): signed out;
+ *  - the server answers but refuses (a 5xx, a 403): the cookie is still valid, so the tab stays signed in
+ *    and the caller shows the message;
+ *  - no answer within the timeout, or the network is down: the tab is cleared anyway (the person asked to
+ *    leave; the cookie, if it survived, simply signs the next visit in again).
+ */
+export async function signOut(
+  options: { timeoutMs?: number; logout?: (signal: AbortSignal) => Promise<unknown> } = {},
+): Promise<SignOutResult> {
+  const logout = options.logout ?? signOutApi;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), options.timeoutMs ?? SIGN_OUT_TIMEOUT_MS);
+  try {
+    await logout(controller.signal);
+  } catch (error) {
+    if (error instanceof ApiError && error.status !== 401) {
+      return { ok: false, message: 'Could not sign out. Please try again.' };
+    }
+    // A 401, a timeout or a network failure: clear this tab.
+  } finally {
+    clearTimeout(timer);
+  }
   set('out');
   inFlight = undefined;
-  await signOutApi();
+  return { ok: true };
 }
 
 /** For `useSyncExternalStore`. */
