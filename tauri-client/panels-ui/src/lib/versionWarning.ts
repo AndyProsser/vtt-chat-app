@@ -14,3 +14,7 @@ export function versionWarning(check: VersionCheck | undefined): string | undefi
   }
   return undefined;
 }
+
+/** What to show when the server refused this app's protocol on the live connection (`update_required`). */
+export const INCOMPATIBLE_WARNING =
+  'Your server and this app speak different versions, so live updates are off. Update the app to reconnect.';

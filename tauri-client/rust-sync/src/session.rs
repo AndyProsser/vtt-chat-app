@@ -49,6 +49,8 @@ pub struct Session {
     campaigns: BTreeMap<String, Option<Cursor>>,
     authenticated: bool,
     finished: bool,
+    /// The app's wire-protocol integer, sent in the `auth` frame (`None` = say nothing).
+    app_protocol: Option<u32>,
 }
 
 impl Session {
@@ -58,7 +60,14 @@ impl Session {
             campaigns: BTreeMap::new(),
             authenticated: false,
             finished: false,
+            app_protocol: None,
         }
+    }
+
+    /// Announces the app's protocol in every `auth` frame so a mismatched server can refuse with `update_required`.
+    pub fn with_app_protocol(mut self, protocol: Option<u32>) -> Self {
+        self.app_protocol = protocol;
+        self
     }
 
     pub fn is_authenticated(&self) -> bool {
@@ -100,7 +109,7 @@ impl Session {
     /// A new socket opened: always authenticate first.
     pub fn on_open(&mut self) -> Vec<Action> {
         self.authenticated = false;
-        vec![Action::Send(auth_frame(&self.token))]
+        vec![Action::Send(auth_frame(&self.token, self.app_protocol))]
     }
 
     pub fn on_text(&mut self, raw: &str) -> Vec<Action> {
@@ -124,6 +133,12 @@ impl Session {
                     let cursor = cursor.as_ref().map(|c| (c.epoch.as_str(), c.seq));
                     actions.push(Action::Send(resume_frame(campaign_id, cursor)));
                 }
+            }
+            // The server speaks another protocol than this app: retrying cannot help, so this is final.
+            ServerEvent::Error { code, .. } if code == "update_required" => {
+                self.finished = true;
+                self.authenticated = false;
+                return vec![Action::Emit(SyncEvent::IncompatibleServer), Action::Stop];
             }
             ServerEvent::AuthRevoked { .. } => {
                 self.finished = true;
@@ -235,6 +250,36 @@ mod tests {
         assert_eq!(first.len(), 1);
         assert_eq!(first[0]["t"], "auth");
         assert_eq!(first[0]["d"]["token"], "tok");
+    }
+
+    #[test]
+    fn announces_the_app_protocol_in_the_auth_frame_when_set() {
+        let mut s = Session::new("tok").with_app_protocol(Some(2));
+        let first = sent(&s.on_open());
+        assert_eq!(first[0]["d"]["protocol"], 2);
+        let mut plain = Session::new("tok");
+        assert!(sent(&plain.on_open())[0]["d"].get("protocol").is_none());
+    }
+
+    #[test]
+    fn an_update_required_error_is_final_and_never_retried() {
+        let mut s = Session::new("tok").with_app_protocol(Some(1));
+        s.on_open();
+        let actions = s.on_text(&server(
+            "error",
+            json!({ "code": "update_required", "message": "update", "serverProtocol": 2 }),
+            None,
+        ));
+        assert_eq!(
+            actions,
+            vec![
+                Action::Emit(SyncEvent::IncompatibleServer),
+                Action::Stop
+            ]
+        );
+        // The close that follows the error frame must not start a reconnect.
+        assert_eq!(s.on_close(Some(CLOSE_BAD_REQUEST)), vec![Action::Stop]);
+        assert_eq!(s.on_close(None), vec![Action::Stop]);
     }
 
     #[test]

@@ -24,6 +24,7 @@ fn fast_config() -> SyncConfig {
         idle_timeout: Duration::from_secs(5),
         backoff_base: Duration::from_millis(20),
         backoff_cap: Duration::from_millis(100),
+        app_protocol: Some(1),
     }
 }
 
@@ -326,4 +327,41 @@ async fn a_provider_error_is_retried_not_fatal() {
         "should have kept asking"
     );
     timeout(WAIT, client.stop()).await.expect("stop() hung");
+}
+
+#[tokio::test]
+async fn an_update_required_error_stops_for_good_and_announces_the_protocol() {
+    let (listener, url) = listener().await;
+    let accepts = Arc::new(AtomicUsize::new(0));
+    let counter = accepts.clone();
+    let server = tokio::spawn(async move {
+        loop {
+            let mut ws = accept(&listener).await;
+            counter.fetch_add(1, Ordering::SeqCst);
+            let auth = next_json(&mut ws).await;
+            assert_eq!(auth["d"]["protocol"], 1, "the app announces its protocol");
+            ws.send(frame(
+                "error",
+                json!({ "code": "update_required", "message": "update", "serverProtocol": 2 }),
+                None,
+            ))
+            .await
+            .unwrap();
+            ws.close(Some(CloseFrame {
+                code: CloseCode::from(4400),
+                reason: "update required".into(),
+            }))
+            .await
+            .ok();
+        }
+    });
+
+    let (event_tx, mut events) = mpsc::unbounded_channel();
+    let client = SyncClient::start(provider(url), fast_config(), event_tx);
+    expect_event(&mut events, |e| matches!(e, SyncEvent::IncompatibleServer)).await;
+    tokio::time::sleep(Duration::from_millis(500)).await;
+    assert_eq!(accepts.load(Ordering::SeqCst), 1, "must not reconnect");
+
+    client.stop().await;
+    server.abort();
 }

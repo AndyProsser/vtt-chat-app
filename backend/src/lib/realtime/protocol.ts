@@ -16,7 +16,10 @@ const campaignId = z.string().min(1).max(64);
 
 /** Data schemas for each client → server frame type. */
 export const clientData = {
-  auth: z.object({ token: z.string().min(1).max(512) }),
+  // `protocol` is the desktop app's wire-protocol integer (shared PROTOCOL_VERSION, the same number it sends
+  // as `x-vtt-protocol` on REST). Absent = the web app (same origin, matches by construction) or an app
+  // from before it existed; both are accepted. A different number gets an `update_required` error.
+  auth: z.object({ token: z.string().min(1).max(512), protocol: z.number().int().optional() }),
   // Subscribe to a campaign's live stream. `lastSeq` is the last event this client saw, and `epoch`
   // names the event stream that number belongs to (from the last snapshot/resumed). A sequence
   // number is only meaningful within its epoch, so the server replays only when both match.

@@ -31,6 +31,8 @@ pub struct SyncConfig {
     pub idle_timeout: Duration,
     pub backoff_base: Duration,
     pub backoff_cap: Duration,
+    /// The app's wire-protocol integer, announced in the `auth` frame. `None` announces nothing.
+    pub app_protocol: Option<u32>,
 }
 
 impl Default for SyncConfig {
@@ -39,6 +41,7 @@ impl Default for SyncConfig {
             idle_timeout: Duration::from_secs(90),
             backoff_base: Duration::from_secs(1),
             backoff_cap: Duration::from_secs(30),
+            app_protocol: None,
         }
     }
 }
@@ -120,7 +123,9 @@ async fn run(
         let outcome = match provider().await {
             Ok(info) => {
                 let session =
-                    session.get_or_insert_with(|| Session::new(info.session_token.clone()));
+                    session.get_or_insert_with(|| {
+                    Session::new(info.session_token.clone()).with_app_protocol(config.app_protocol)
+                });
                 // Re-assert the subscriptions made while we were disconnected.
                 for campaign in &subscriptions {
                     session.subscribe(campaign);

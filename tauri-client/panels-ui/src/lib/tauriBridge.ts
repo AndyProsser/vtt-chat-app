@@ -266,6 +266,14 @@ export function onAccountChanged(handler: () => void): Promise<UnlistenFn> {
   return listen('account:changed', () => handler());
 }
 
+/**
+ * The sync socket ended for good: `revoked` (session gone) or `incompatible-server` (the server refused this
+ * app's protocol with `update_required`, so only an app update helps). `revoked` also fires `account:changed`.
+ */
+export function onSessionSignedOut(handler: (reason: string) => void): Promise<UnlistenFn> {
+  return listen<string>('session:signed-out', (event) => handler(event.payload));
+}
+
 export function onAccountError(handler: (error: AccountError) => void): Promise<UnlistenFn> {
   return listen<AccountError>(ACCOUNT_ERROR_EVENT, (event) => handler(event.payload));
 }

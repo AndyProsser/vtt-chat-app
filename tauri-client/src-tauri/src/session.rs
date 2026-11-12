@@ -203,7 +203,14 @@ pub async fn start_session(
         };
         Box::pin(async move { Ok(info) })
     });
-    let client = SyncClient::start(provider, SyncConfig::default(), tx);
+    let client = SyncClient::start(
+        provider,
+        SyncConfig {
+            app_protocol: Some(crate::consts::PROTOCOL_VERSION),
+            ..SyncConfig::default()
+        },
+        tx,
+    );
     client.subscribe(&campaign_id);
     *slot.lock().unwrap() = Some(client);
 

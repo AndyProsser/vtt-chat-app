@@ -325,8 +325,14 @@ fn frame(t: &str, d: Value) -> String {
     json!({ "v": PROTOCOL_VERSION, "t": t, "d": d }).to_string()
 }
 
-pub fn auth_frame(token: &str) -> String {
-    frame("auth", json!({ "token": token }))
+/// `app_protocol` is the desktop app's wire-protocol integer (the same number it sends as `x-vtt-protocol`
+/// on REST). The server answers a mismatch with an `update_required` error; leaving it out is accepted.
+pub fn auth_frame(token: &str, app_protocol: Option<u32>) -> String {
+    let mut d = json!({ "token": token });
+    if let Some(protocol) = app_protocol {
+        d["protocol"] = json!(protocol);
+    }
+    frame("auth", d)
 }
 
 /// `cursor` is `(epoch, last_seq)`: the last replayable event this client saw and the event stream
@@ -745,7 +751,7 @@ mod tests {
 
     #[test]
     fn client_frames_match_the_backend_schema() {
-        let auth: Value = serde_json::from_str(&auth_frame("tok")).unwrap();
+        let auth: Value = serde_json::from_str(&auth_frame("tok", None)).unwrap();
         assert_eq!(
             auth,
             json!({ "v": 1, "t": "auth", "d": { "token": "tok" } })

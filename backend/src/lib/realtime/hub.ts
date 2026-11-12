@@ -1,12 +1,18 @@
 import { randomUUID } from 'node:crypto';
 
-import { isChatKind, isChatLanguageKey, type ChatKind } from '@vtt-chat-app/shared';
+import {
+  isChatKind,
+  isChatLanguageKey,
+  PROTOCOL_VERSION as APP_PROTOCOL,
+  type ChatKind,
+} from '@vtt-chat-app/shared';
 
 import { CHAT_RETENTION_MESSAGES } from '../../consts/index.js';
 import type { ChatMessage, Session, User } from '../../types/index.js';
 import type { AccountService } from '../auth/accountService.js';
 import { DomainError } from '../errors.js';
 import { RateLimiter } from '../http/rateLimit.js';
+import { serverVersion } from '../version.js';
 import type { Store } from '../store/store.js';
 import { PresenceTracker } from './presence.js';
 import {
@@ -79,6 +85,8 @@ export interface HubOptions {
   parties?: PartyService;
   /** Called when someone who was subscribed to a campaign turns out no longer to be a member. */
   onMemberRemoved?: (campaignId: string, userId: string) => void;
+  /** Reported in an `update_required` error. Default: the server's own release version. */
+  serverVersion?: string;
   now?: () => number;
   /** Drop a connection that hasn't authenticated within this long. */
   authTimeoutMs?: number;
@@ -374,7 +382,20 @@ export class Hub {
         state.conn.close(CloseCode.Unauthorized, 'not authenticated');
         return;
       }
-      await this.authenticate(state, (frame.data as ClientData<'auth'>).token, frame.id);
+      const auth = frame.data as ClientData<'auth'>;
+      // The desktop app announces its protocol; a mismatch is a final "update the app", not a retry.
+      if (auth.protocol !== undefined && auth.protocol !== APP_PROTOCOL) {
+        this.send(state, 'error', {
+          code: 'update_required',
+          message: 'This server and your app speak different versions. Update the app to continue.',
+          serverVersion: this.options.serverVersion ?? serverVersion(),
+          serverProtocol: APP_PROTOCOL,
+          clientProtocol: String(auth.protocol),
+        });
+        state.conn.close(CloseCode.BadRequest, 'update required');
+        return;
+      }
+      await this.authenticate(state, auth.token, frame.id);
       return;
     }
 

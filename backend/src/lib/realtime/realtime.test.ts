@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- tests inspect loosely-typed JSON frames */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { PROTOCOL_VERSION as APP_PROTOCOL } from '@vtt-chat-app/shared';
+
 import type { User } from '../../types/index.js';
 import { AccountService } from '../auth/accountService.js';
 import { CampaignService } from '../campaigns/campaignService.js';
@@ -256,6 +258,34 @@ describe('Hub: authentication', () => {
     expect(conn.last('error')?.d.code).toBe('already_authenticated');
 
     await t.hub.receive('c1', JSON.stringify({ v: 99, t: 'resume' }));
+    expect(conn.closed?.code).toBe(CloseCode.BadRequest);
+  });
+
+  it('accepts an auth frame with the matching app protocol, or none at all', async () => {
+    for (const [id, extra] of [
+      ['c1', { protocol: APP_PROTOCOL }],
+      ['c2', {}],
+    ] as const) {
+      const conn = new FakeConn(id);
+      t.hub.accept(conn);
+      await t.hub.receive(id, frame('auth', { token: t.token.player, ...extra }));
+      expect(conn.of('auth.ok')).toHaveLength(1);
+      expect(conn.closed).toBeNull();
+    }
+  });
+
+  it('answers an app on another protocol with update_required, then closes (no auth.revoked)', async () => {
+    const conn = new FakeConn('c1');
+    t.hub.accept(conn);
+    await t.hub.receive('c1', frame('auth', { token: t.token.player, protocol: APP_PROTOCOL + 1 }));
+    expect(conn.last('error')?.d).toMatchObject({
+      code: 'update_required',
+      serverProtocol: APP_PROTOCOL,
+      clientProtocol: String(APP_PROTOCOL + 1),
+    });
+    expect(typeof conn.last('error')?.d.serverVersion).toBe('string');
+    expect(conn.of('auth.ok')).toHaveLength(0);
+    expect(conn.of('auth.revoked')).toHaveLength(0);
     expect(conn.closed?.code).toBe(CloseCode.BadRequest);
   });
 
