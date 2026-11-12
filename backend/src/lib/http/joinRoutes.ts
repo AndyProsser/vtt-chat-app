@@ -1,7 +1,7 @@
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-import express, { Router } from 'express';
+import express, { Router, type RequestHandler } from 'express';
 
 import type { CampaignService } from '../campaigns/campaignService.js';
 import type { RateLimiter } from './rateLimit.js';
@@ -37,6 +37,24 @@ export function inviteRoutes({ campaigns, inviteLimiter }: JoinRouteDeps): Route
  * UI: first-run account creation and the app download. Everything after install happens in the app.
  * Returns undefined when the directory isn't there, so a backend without the page still starts.
  */
+/** Paths that belong to something other than the site's pages; an unknown path under one stays a plain 404. */
+const NOT_PAGES = /^\/(api|updates|assets|status|ws)(\/|$)/;
+
+/**
+ * The last handler: a browser that navigates to an address nothing serves gets the site's own page with a
+ * 404 status (the page draws "Page not found" inside the usual frame), not Express's bare text. Anything
+ * that is not a browser navigation (an API client, an image, a script) keeps the plain 404.
+ */
+export function webNotFound(webDir: string): RequestHandler | undefined {
+  const index = resolve(webDir, 'index.html');
+  if (!existsSync(index)) return undefined;
+  return (req, res, next) => {
+    if ((req.method !== 'GET' && req.method !== 'HEAD') || NOT_PAGES.test(req.path)) return next();
+    if (!req.header('accept')?.includes('text/html')) return next();
+    res.status(404).sendFile(index);
+  };
+}
+
 export function webPages(webDir: string): Router | undefined {
   const root = resolve(webDir);
   const index = resolve(root, 'index.html');

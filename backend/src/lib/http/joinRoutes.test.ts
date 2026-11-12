@@ -110,6 +110,27 @@ describe('the join page backend', () => {
     expect((await fetch(`${base}/assets/../index.html`)).status).not.toBe(500);
   });
 
+  it('answers an unknown browser path with the site page and a 404 status, and nothing else that way', async () => {
+    const html = { Accept: 'text/html,application/xhtml+xml,*/*;q=0.8' };
+    const res = await fetch(`${base}/no/such/page`, { headers: html });
+    expect(res.status).toBe(404);
+    expect(await res.text()).toContain('<title>join</title>');
+    expect(res.headers.get('content-security-policy')).toContain("default-src 'self'");
+
+    // Not a browser navigation, or not the site's paths: the plain 404 stays.
+    const plain = await fetch(`${base}/no/such/page`);
+    expect(plain.status).toBe(404);
+    expect(await plain.text()).not.toContain('<title>join</title>');
+    for (const path of ['/api/nope', '/assets/nope.js', '/updates/nope', '/status/nope']) {
+      const other = await fetch(`${base}${path}`, { headers: html });
+      expect(other.status).toBe(404);
+      expect(await other.text()).not.toContain('<title>join</title>');
+    }
+    expect((await fetch(`${base}/no/such/page`, { method: 'POST', headers: html })).status).toBe(
+      404,
+    );
+  });
+
   it('serves the phone app at /app, with the extra allowances it needs, only when it was built', async () => {
     expect((await fetch(`${base}/app`)).status).toBe(404);
     await writeFile(join(webDir, 'app.html'), '<!doctype html><title>phone</title>');

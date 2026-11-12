@@ -14,6 +14,8 @@ import { LandingPage } from './components/LandingPage.js';
 import { DownloadPage } from './components/DownloadPage.js';
 import { FullAppPage } from './components/FullAppPage.js';
 import { JoinPage } from './components/JoinPage.js';
+import { NotFoundPage } from './components/NotFoundPage.js';
+import { resolveRoute } from './lib/routes.js';
 
 const container = document.getElementById('root');
 if (!container) throw new Error('web: #root element missing from index.html');
@@ -21,22 +23,24 @@ if (!container) throw new Error('web: #root element missing from index.html');
 /** Radix needs to be told light or dark; this follows the operating system (CLAUDE.md §4). */
 function Root() {
   const appearance = useSystemAppearance();
-  const page = window.location.pathname.replace(/\/+$/, '');
+  const route = resolveRoute(window.location.pathname);
   return (
     <Theme appearance={appearance} accentColor="violet" radius="large">
       <div className="site-shell">
-        <SiteHeader current={page === '/download' ? 'download' : 'other'} />
+        <SiteHeader current={route === 'download' ? 'download' : 'other'} />
         <main className="site-column">
-          {page === '/connect' ? (
+          {route === 'connect' ? (
             <ConnectDevicePage />
-          ) : page === '/download' ? (
+          ) : route === 'download' ? (
             <DownloadPage />
-          ) : page === '/full-app' ? (
+          ) : route === 'full-app' ? (
             <FullAppPage />
-          ) : page === '' ? (
+          ) : route === 'landing' ? (
             <LandingPage />
-          ) : (
+          ) : route === 'join' ? (
             <JoinPage />
+          ) : (
+            <NotFoundPage />
           )}
         </main>
       </div>

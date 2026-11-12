@@ -9,7 +9,7 @@ import { JoinRequestService } from './campaigns/joinRequests.js';
 import { joinRequestRoutes } from './http/joinRequestRoutes.js';
 import { DEFAULT_TRUST_PROXY, type BackendConfig } from './config.js';
 import { signupRoutes } from './http/signupRoutes.js';
-import { inviteRoutes, webPages } from './http/joinRoutes.js';
+import { inviteRoutes, webNotFound, webPages } from './http/joinRoutes.js';
 import type { DdbSyncService } from './ddb/ddbSyncService.js';
 import { avatarRoutes } from './http/avatarRoutes.js';
 import { OidcClient } from './auth/oidc.js';
@@ -350,6 +350,10 @@ export function createApp({
     app.use('/api/notifications', notificationRoutes({ accounts, schedule: service }));
   }
 
+  if (config.webDir) {
+    const notFound = webNotFound(config.webDir);
+    if (notFound) app.use(notFound);
+  }
   app.use(errorHandler);
   return app;
 }
