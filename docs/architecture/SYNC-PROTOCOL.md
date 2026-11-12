@@ -44,6 +44,11 @@ JSON text frames, versioned from day one:
 
 ## Auth handshake
 
+The `auth` frame may carry `protocol` (an integer: the client's `PROTOCOL_VERSION`). A server on a different protocol answers
+an `error` frame with code `update_required` (`serverVersion`, `serverProtocol`, `clientProtocol`, the same body as the REST 426) and closes with code 4400; the desktop app treats it as final (no reconnect) and shows the update strip. A missing
+`protocol` is accepted (the same-origin web app, and apps up to 0.3.2). A browser WebSocket upgrade with a missing or dead
+session cookie gets HTTP 401 and no socket; a live socket whose session is revoked or expires receives `auth.revoked`.
+
 A browser's WebSocket is signed in from its session cookie at upgrade, only when `Origin` matches the server, and
 sends no `auth` frame. Other clients (the desktop app) send `auth {token}` as below.
 

@@ -12,6 +12,8 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ### Added
 
+- **The desktop app announces its protocol on the live connection too**; a server on a different protocol answers "update required" and the app shows the update strip instead of retrying.
+- **A page-not-found screen** in the site's own frame for unknown addresses (it was a plain white text page).
 - **Ask to join a table.** Someone with no campaign sees the tables that are open to requests (name, DM and player count) and can ask to join with an optional message; people who already have a campaign can ask to join others too. **The DM approves or declines** (not the operator), gets a badge and a notification for new requests, and can switch **Allow join** off in the campaign's settings to hide the table. Allow join is on by default. Operators can hide all listings with `vtt-admin settings set campaign-directory off`. You can have up to 5 requests open, and ask again 7 days after a decline.
 - **Who is at the table, in the web chat.** An avatar strip (a rail on wide screens) shows everyone in the campaign with an online, away or offline dot and a DM tag. Hover with a mouse, or click or tap, for their character, race, class and level. The web chat's header now has a burger menu and a "Get the app" button, and the "To:" picker is gone (whisper with `/tell`, `/w` or `/dm`).
 - **Chat commands, with autocomplete, in the desktop app and the web app.** Type `/` for the list. A plain line is in character; `/say` (quoted, serif), `/do` or `/me` (a stage direction) and `/ooc` (small, muted, tagged OOC) set how a line looks; `/tell name` or `/w name` whisper to one person (names complete as you type) and `/dm` whispers to the DM. `/say-elvish`, `/say-dwarvish` and the other D&D languages style the line to suit with a small "in Elvish" caption, and never change the words. `/late`, `/cant` and `/work` post an out-of-character note and set your RSVP for the next session; `/brb`, `/afk` and `/back` post a ready-made note. **Out-of-character lines are never recorded**, and stay out of transcripts, summaries and search. Chat lines carry a kind and an optional language (additive wire fields, so no protocol bump in 0.4).
@@ -32,6 +34,9 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ### Changed
 
+- A web chat tab whose session has ended (expired, or signed out elsewhere) returns to the sign-in screen with "Your session ended. Sign in again." instead of reconnecting forever.
+- Sign out on the web waits for the server before showing signed-out, and says so if the server refuses.
+- Web chat: Enter sends on a computer (Shift+Enter for a new line); the members rail follows live presence; the join-request box clears after sending; the sign-in header no longer clips on phones.
 - **Settings, reorganised and tidier.** Five tabs: Profile, Campaign, Sessions, Audio and Notifications. Profile now holds your larger photo (click it to change it), your name (click the dotted underline to rename), sign-out as an icon at the top right, the theme, and at the bottom the app and server versions, updates and start-with-the-computer. Notifications have their own tab, General is now Audio, there is more padding, rows sit in tidy cards, and the Sessions tab's schedule button is an icon at the top right with a tooltip.
 - Web chat: the card is the same width as the other pages on tablets and desktops, the bottom tabs show the same icons as the desktop app, and copy buttons are an icon with a tooltip.
 - **Browser sign-in is now a secure, long-lived cookie.** The site and the web app (`/app`) keep you signed in for weeks: the cookie is HttpOnly (page script cannot read it) and refreshes each time you open the app, and only expires after the operator's offline limit (30 days by default) without you opening it. Pressing **Sign out** ends it. After signing in on a computer, **Open VTT Chat** comes first, then the web version, then a "Don't have the app yet?" download section. The header menu is now **Chat** (opens `/app`), **Download** and **Status**; Chat and Download show only while signed in, and the Home link is gone (the logo goes Home).
@@ -46,6 +51,7 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ### Fixed
 
+- The Linux download format selector no longer overflows its card on phones; the chat box hint is shorter on phones.
 - The server no longer offers a new release to the update feed or the download page until its Windows, macOS and Linux installers have all been uploaded (a half-published release used to hide the update from whoever was still missing).
 - The web chat no longer scrolls 10-20px past the bottom of the page.
 - Home, Download, Status and the web chat share one 640px column.
