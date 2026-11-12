@@ -47,7 +47,9 @@ function Banner({
     <div className={`status-banner status-banner-${tone}`} role="status">
       <span className="status-dot" aria-hidden />
       <Flex direction="column">
-        <Heading size="5">{text}</Heading>
+        <Heading size="5" as="h2">
+          {text}
+        </Heading>
         {note && <Text size="2">{note}</Text>}
       </Flex>
     </div>
@@ -61,7 +63,9 @@ function Body({ snapshot, stale = false }: { snapshot: StatusSnapshot; stale?: b
       {!stale && <Banner tone={h.tone} text={h.text} />}
       <Card>
         <Flex direction="column" gap="2">
-          <Heading size="3">Services</Heading>
+          <Heading size="3" as="h2">
+            Services
+          </Heading>
           {snapshot.services.map((s) => (
             <Flex key={s.name} justify="between" align="center">
               <Text>{SERVICE_LABELS[s.name] ?? s.name}</Text>
@@ -72,7 +76,9 @@ function Body({ snapshot, stale = false }: { snapshot: StatusSnapshot; stale?: b
       </Card>
       <Card>
         <Flex direction="column" gap="2">
-          <Heading size="3">Right now</Heading>
+          <Heading size="3" as="h2">
+            Right now
+          </Heading>
           <Row label="Players connected" value={String(snapshot.players.online)} />
           <Row
             label="Session recording"
