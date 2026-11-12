@@ -30,6 +30,15 @@ describe('chatUtterances', () => {
     expect(chatUtterances([chat(5_000, 'psst', { recipientId: 'u2' })], 0)).toEqual([]);
   });
 
+  it('never includes an out-of-character line, even if one reached the timeline', () => {
+    expect(chatUtterances([chat(5_000, 'pizza is here', { kind: 'ooc' })], 0)).toEqual([]);
+    const kept = chatUtterances(
+      [chat(1_000, 'Stand fast', { kind: 'say' }), chat(2_000, 'draws a dagger', { kind: 'do' })],
+      0,
+    );
+    expect(kept.map((u) => u.text)).toEqual(['Stand fast', 'draws a dagger']);
+  });
+
   it('ignores other events and malformed chat', () => {
     const odd: RecordingEvent[] = [
       { recordingId: 'r', at: 1, event: 'started' },

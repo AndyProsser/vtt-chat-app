@@ -285,6 +285,8 @@ describe('RecordingCapture', () => {
     await capture.idle();
     const typed = (await records.listRecordingEvents(REC)).filter((e) => e.event === 'chat');
     expect(typed.map((e) => e.detail?.text)).toEqual(['plain zebra', 'spoken zebra', 'acts zebra']);
+    // The kind is kept on the line, so the worker can check it again.
+    expect(typed.map((e) => e.detail?.kind)).toEqual([undefined, 'say', 'do']);
     const hits = await records.search(CAMPAIGN, 'zebra', { includeDmOnly: true, limit: 20 });
     expect(hits.map((h) => h.snippet).join(' ')).not.toContain('late');
     expect(hits).toHaveLength(3);

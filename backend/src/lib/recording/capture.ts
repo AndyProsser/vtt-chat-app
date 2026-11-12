@@ -164,7 +164,13 @@ export class RecordingCapture {
         recordingId: live.recordingId,
         at: line.at,
         event: 'chat',
-        detail: { senderId: line.senderId, senderName: line.senderName, text: line.text },
+        // The kind travels with the line so the worker can refuse an `ooc` one too (defence in depth).
+        detail: {
+          senderId: line.senderId,
+          senderName: line.senderName,
+          text: line.text,
+          ...(line.kind ? { kind: line.kind } : {}),
+        },
       });
     });
   }

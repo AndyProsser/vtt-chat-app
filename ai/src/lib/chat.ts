@@ -5,15 +5,17 @@ import type { Utterance } from '../types/index.js';
  * The lines people typed into the table's public chat while a recording ran, as utterances on the
  * recording's clock (`startedAt` is when the recording began).
  *
- * **Whispers are never included.** The server never stores one as a chat event; this refuses any event
- * that names a recipient anyway, as the last line of defence (CLAUDE.md §8.4).
+ * **Whispers and out-of-character lines are never included.** The server never stores either as a chat
+ * event (it drops `ooc` lines before they reach the timeline); this refuses any event that names a
+ * recipient or is marked `ooc` anyway, as the last line of defence (CLAUDE.md §8.4, CHAT-COMMANDS.md).
  */
 export function chatUtterances(events: readonly RecordingEvent[], startedAt: number): Utterance[] {
   const lines: Utterance[] = [];
   for (const event of events) {
     if (event.event !== 'chat' || !event.detail) continue;
-    const { senderId, senderName, text, to, recipientId } = event.detail;
+    const { senderId, senderName, text, to, recipientId, kind } = event.detail;
     if (to !== undefined || recipientId !== undefined) continue;
+    if (kind === 'ooc') continue;
     if (typeof text !== 'string' || text.trim() === '') continue;
     if (typeof senderId !== 'string' || typeof senderName !== 'string') continue;
     const at = Math.max(0, event.at - startedAt);
