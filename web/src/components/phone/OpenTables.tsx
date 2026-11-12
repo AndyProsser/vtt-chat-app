@@ -154,6 +154,10 @@ function TableCard({
   onWithdraw: () => void;
 }) {
   const [message, setMessage] = useState('');
+  // A request that went out (or was cancelled) starts the next one from a clean box.
+  useEffect(() => {
+    if (!asking) setMessage('');
+  }, [asking]);
   const state = cardState(table.myRequest, Date.now());
   const length = messageLength(message);
   const over = length > MAX_JOIN_MESSAGE;
