@@ -92,6 +92,8 @@ export interface Utterance {
   startMs: number;
   endMs: number;
   text: string;
+  /** Typed into the table chat during the recording, not spoken. */
+  typed?: boolean;
 }
 
 export type LiveState = 'connecting' | 'live' | 'offline';

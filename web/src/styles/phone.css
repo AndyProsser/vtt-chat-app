@@ -57,6 +57,7 @@ body,
   }
 }
 .phone-top {
+  box-sizing: border-box;
   width: 100%;
   max-width: 640px;
   padding: max(10px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) 4px
@@ -65,6 +66,8 @@ body,
 @media (min-width: 700px) {
   .phone-top {
     padding-top: 0;
+    /* 640px of header between the side padding, lined up with the 640px column below. */
+    max-width: 672px;
   }
 }
 .phone-header {

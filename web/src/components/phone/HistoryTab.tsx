@@ -120,6 +120,7 @@ function RecordingView({
             <div key={i} className="phone-utterance">
               <Text size="1" color="gray">
                 {clock(u.startMs)} · {u.speaker.name}
+                {u.typed ? ' (typed)' : ''}
               </Text>
               <Text size="2">{u.text}</Text>
             </div>
