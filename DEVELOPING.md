@@ -136,6 +136,12 @@ is any change to the API or signalling between server and client: if you change 
 must match on MAJOR.MINOR and may differ on PATCH; while we are on `0.y.z`, `y` plays the MAJOR role. Rationale and
 the planned server-chosen update flow: [docs/architecture/VERSIONING-AND-DEPLOYMENT.md](docs/architecture/VERSIONING-AND-DEPLOYMENT.md).
 
+**Contract guard.** `npm test` fails (`backend/src/lib/wire/contract.test.ts`) if the wire contract (client frame
+schemas, server event names, REST routes) differs from `shared/protocol.contract.json`. If the change is deliberate:
+bump `PROTOCOL_VERSION` (`shared/src/consts/index.ts` and `tauri-client/src-tauri/src/consts.rs`), then run
+`npm run protocol:update`. It refuses when the contract changed but the version did not, unless you pass
+`-- --allow-same-version` (an additive field in an unreleased minor).
+
 ## Releasing
 
 Two kinds of build, told apart by the tag name: a **release** (`v0.4.0`, built into a draft you review and
