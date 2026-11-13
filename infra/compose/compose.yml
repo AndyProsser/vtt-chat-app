@@ -132,11 +132,13 @@ services:
         ws_url: ws://127.0.0.1:7880
         redis:
           address: 127.0.0.1:${VALKEY_HOST_PORT:-6379}
-        health_port: 8080
+        # Host-networked, so this binds on every interface: an uncommon port (not 8080, which a native
+        # Whisper uses) and blocked from outside by the firewall (OPERATOR-GUIDE, ports).
+        health_port: 18180
     volumes:
       - recordings:/out
     healthcheck:
-      test: ['CMD', 'curl', '-fsS', '-o', '/dev/null', 'http://127.0.0.1:8080/']
+      test: ['CMD', 'curl', '-fsS', '-o', '/dev/null', 'http://127.0.0.1:18180/']
       interval: 15s
       retries: 5
     depends_on:

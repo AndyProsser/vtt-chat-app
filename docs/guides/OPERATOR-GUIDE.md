@@ -58,7 +58,26 @@ Nothing here needs an outside account. Players' apps talk only to **your** serve
   | `7881/tcp`                             | voice over TCP when UDP is blocked           |
   | `50000-50200/udp` (a range you choose) | voice. **Required**; widen it for big groups |
 
-  Behind a home router, forward those to the machine. **Cloudflare Tunnel cannot carry voice**; it can
+  **Everything else must stay closed from the internet.** LiveKit and Egress run host-networked in the
+  Compose bundle, so their own ports listen on every interface of the machine, not just the ones above.
+  Forward nothing else, and if the machine has a public address, block these on its firewall (`ufw` or your
+  cloud's security group):
+
+  | Port        | Who                | Reachable from                                                                   |
+  | ----------- | ------------------ | -------------------------------------------------------------------------------- |
+  | `7880/tcp`  | LiveKit signalling | this machine only (Caddy and the backend use it); not forwarded, blocked outside |
+  | `18180/tcp` | Egress health      | this machine only (the Compose healthcheck); not forwarded, blocked outside      |
+  | `6379/tcp`  | Valkey             | loopback only (`VALKEY_HOST_PORT`; LiveKit and Egress use it)                    |
+  | `3000/tcp`  | backend            | loopback only (Compose publishes it on `127.0.0.1`)                              |
+  | `5432/tcp`  | Postgres           | not published at all                                                             |
+
+  Port 7880 is how Caddy reaches LiveKit, so on a home network "not forwarded" is enough; on a machine with a
+  public IP, add the firewall rule. The Egress health port is `18180` rather than its default `8080` so it does
+  not collide with a native Whisper and is not a well-known port; it answers a plain "is it up" and nothing
+  private. (Ports above were read from `infra/compose/compose.yml` and `livekit.yaml`; the firewall rules are
+  not tested on a live public machine.)
+
+  Behind a home router, forward the ports in the first table to the machine. **Cloudflare Tunnel cannot carry voice**; it can
   only front the web part. Players on very restrictive networks (hotel, school, some workplaces) may be
   unable to use UDP voice at all; LiveKit's built-in TURN is the fix and is off by default
   ([DEPLOYMENT-AND-TRANSPORT.md](../architecture/DEPLOYMENT-AND-TRANSPORT.md)).
@@ -315,7 +334,7 @@ check. Set `AUDIO_DISK_PURGE=0` in `.env` to switch the disk rule off (the age r
 (Built 2026-11-10; tested with fakes and a real Postgres, not yet watched on a filling disk.)
 
 A fourth rule, **off by default**: `./vtt-admin settings set audio-purge-next-session on`. When a recording
-**starts** in a campaign, the raw audio of that campaign's *earlier* recordings is purged, but only those that
+**starts** in a campaign, the raw audio of that campaign's _earlier_ recordings is purged, but only those that
 are fully processed (transcript and summaries done) and still hold audio. Anything queued, processing or
 failed is left alone, and so is every other campaign. The text stays. It is the "the DM never pressed delete"
 rule: the DM's button is the only confirmation there is, so a recording the DM has not deleted counts as
