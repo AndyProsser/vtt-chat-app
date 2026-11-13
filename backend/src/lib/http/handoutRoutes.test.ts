@@ -108,7 +108,8 @@ beforeEach(async () => {
       announceRecording() {},
       announceHandoutShown: (c, h, a, dmIds) => shown.push({ c, id: h.id, a, dmIds }),
       announceHandoutRemoved: (c, id) => removed.push({ c, id }),
-      announceHandoutChanged: (c, h, dmIds) => changed.push({ c, id: h.id, v: h.visibility, dmIds }),
+      announceHandoutChanged: (c, h, dmIds) =>
+        changed.push({ c, id: h.id, v: h.visibility, dmIds }),
     },
   });
   await new Promise<void>((resolve) => {
