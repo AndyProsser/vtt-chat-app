@@ -262,4 +262,21 @@ if (isEntryPoint) {
   server.listen(config.port, () => {
     console.log(`backend listening on :${config.port} (REST /api, WebSocket /ws)`);
   });
+
+  // Node as PID 1 ignores SIGTERM unless a handler exists, so `docker stop` waited its full 10 seconds and then
+  // killed the process. Stop taking connections, drop the open ones (clients reconnect and resume, exactly as
+  // after any restart), close the database pool, and leave; a hard exit follows if that takes more than 5 s.
+  let stopping = false;
+  const shutdown = (signal: string) => {
+    if (stopping) return;
+    stopping = true;
+    console.log(`${signal}: shutting down`);
+    setTimeout(() => process.exit(0), 5000).unref();
+    server.close(() => {
+      void Promise.resolve(pool?.end()).finally(() => process.exit(0));
+    });
+    server.closeAllConnections();
+  };
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
 }
