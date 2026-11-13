@@ -8,6 +8,9 @@ the link your DM or server operator gave you.
 Your server also has a download page at `/download` (for example `https://your-server/download`) with the same
 steps, one tab per system, and the download buttons.
 
+> **What is published today:** the Windows `.exe`, the macOS `.dmg`, and for Linux the AppImage and `.deb`. The `.msi`
+> and `.rpm` mentioned below are planned but **not built yet**: Fedora and openSUSE users use the AppImage for now.
+
 ## Windows
 
 1. Download the `.exe` installer (the `.msi` does the same job and suits managed PCs) and run it.

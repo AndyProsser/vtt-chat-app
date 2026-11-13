@@ -256,6 +256,14 @@ different versions, update the app, or ask your DM to update the server if the a
 - **Party inventory** → drop items from the SRD catalogue, roll treasure, or write your own; **give** to a
   named player, **split** coin, **remove** anything.
 
+**From your phone (the web app)**: you can run the table's notes and schedule from `/app` too. On **Handouts**, tap
+**+** (New note) to write a note with a title and Markdown text; the **Preview** switch shows what players will read.
+A new note is a draft only you can see, unless you switch on **Show it to the table now**. Open any handout to **Show**
+or **Hide** it, and a note to **Edit** it; **Delete** asks you to press again. On **Sessions**, tap the calendar button
+(Schedule a session) to set a title, date and time (in your phone's time zone, which the form names), a length and
+optional notes; each upcoming session has **Edit** and **Cancel session**. Players are notified as usual. Adding
+pictures and PDFs is still done in the desktop app.
+
 **Connection screen**: the activity button shows each player's delay, jitter and loss, to see who is struggling.
 
 ## 12. When something is wrong

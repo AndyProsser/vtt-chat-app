@@ -23,6 +23,35 @@ app). A changed recording notice is accepted on the sign-in screen. The session 
 local storage (long-lived and remotely revocable, like the tray app's); **Menu → Sign out** ends it, and signing
 the device out elsewhere (Settings → Sessions in the tray app) signs the phone out too.
 
+## The DM's tools (notes and the schedule)
+
+The campaign's DM (and only the DM) gets two icon buttons, in the desktop app's gold-outline style with a tooltip:
+**New note** (`+`, top right of Handouts) and **Schedule a session** (calendar-plus, top right of Sessions). Players
+see the tabs exactly as before; the server refuses every one of these calls from a non-DM with `403`.
+
+- **A full-screen sheet**, not a dialog: Back, a title and Save on a sticky bar over a single column (at most 560px,
+  centred; 100% of the card below that). Focus goes to the first field on open and back to the button that opened it on
+  close. **Escape** (or Back) closes it, asking "Discard your changes?" first if anything was typed. Every box inside
+  is asserted to stay within the sheet at 320, 360, 390, 640 and 1000px with long unbroken text (`dmtools` in
+  `web/e2e/ui-smoke.mjs`).
+- **Notes** (`POST/PATCH/DELETE …/handouts`, `POST …/handouts/:id/show|hide`): title (1-200), body (1-20,000) with
+  counters and a **Write / Preview** switch. A new note is a **draft** only the DM sees (as on the desktop) unless
+  **Show it to the table now** is on, which also puts a card in the chat. Open a note to **Edit** (notes only),
+  **Show / Hide** or **Delete** (second press to confirm). The list tags each handout _Draft_ or _Shown_ for the DM.
+  Pictures and PDFs can be shown, hidden and deleted here, but are still created and edited in the desktop app.
+- **Sessions** (`POST/PATCH/DELETE …/sessions`): title, a native `datetime-local` field read and written in the
+  device's own zone (the sheet names the zone), a duration (30 minutes to 8 hours, as on the desktop) and Markdown
+  notes. **Edit** is on every upcoming session card; **Cancel session** only before it starts, with a second press.
+  An edit sends only the fields that changed, so a session already under way stays editable. A time the clocks skip
+  (daylight saving) is refused with a reason; one that happens twice takes the first.
+- **Markdown** is rendered by `react-markdown` with raw HTML dropped, pictures not fetched and links shown as text
+  (the same rules as the desktop's handout viewer), loaded on demand as its own chunk (about 36 KB gzipped) so the chat
+  does not carry it. Players now read notes and session notes as formatted text instead of raw Markdown.
+- **Live:** the lists read again on `handout.shown`, `handout.removed`, `handout.changed` (new: sent when a handout
+  that people can see is edited) and on `notification` frames of kind `session.*` / `rsvp.*` (which the server already
+  sends when a session is scheduled, moved or cancelled), and after every (re)connect snapshot (`phoneStore.ts`:
+  `handoutsRev`, `sessionsRev`).
+
 ## How it is built
 
 - One more entry in the existing `web/` package (`app.html` + `src/phone.tsx`), sharing its build and assets with
