@@ -57,8 +57,8 @@ the desktop app are two faces of one product.** Nothing below has been through a
    chat commands, join requests). On the list: a real phone and iOS Safari, deep links on
    Windows and macOS and the Linux AppImage, voice over `https://localhost` with the trusted CA, the Windows and macOS builds.
 3. **Close the version and sign-in gaps:** done 2026-11-12 are the WebSocket protocol check, the CI guard that fails an
-   unrecorded wire change, and signing out an expired `/app` tab (Stage 3b #3). Still to do: the web **Devices list with
-   revoke** (#8).
+   unrecorded wire change, and signing out an expired `/app` tab (Stage 3b #3). The web **Account page** (profile, password, devices
+   with revoke, recording notice) is built 2026-11-13 (#8) but not yet seen in a real browser.
 4. **Decide the undecided:** how a signed-in person with **no campaign** gets into one (request-to-join from an opt-in list,
    DM approves in the app); whether quick-reply commands should be customisable; per-character languages and polyglot
    masking (needs server-side masking; only designed as a seam).

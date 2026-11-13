@@ -71,11 +71,16 @@ export async function sessionFor(email) {
   }
   throw new Error('redeem kept failing for ' + email);
 }
-async function redeem(email) {
+/** A brand-new session for an account (a second "device"), optionally labelled; undefined if rate limited. */
+export const freshSession = (email, deviceLabel) => redeem(email, deviceLabel);
+async function redeem(email, deviceLabel) {
   const res = await fetch(`${BASE}/api/auth/magic-link/redeem`, {
     method: 'POST',
     headers: { 'content-type': 'application/json', 'x-vtt-client': 'web' },
-    body: JSON.stringify({ token: signInCode(email) }),
+    body: JSON.stringify({
+      token: signInCode(email),
+      ...(deviceLabel === undefined ? {} : { deviceLabel }),
+    }),
   });
   const c = res.headers.getSetCookie().find((x) => x.startsWith('__Host-vtt_session='));
   if (!c) {

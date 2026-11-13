@@ -125,8 +125,9 @@ straight into the web app or offered the desktop app first.
   `sessionStorage` or `localStorage`. This replaced an interim `sessionStorage` token (and, before that,
   memory-only).
 - The session the app receives is the existing long-lived, remotely revocable one. `GET /api/auth/sessions` and
-  `DELETE /api/auth/sessions/:id` already exist; the Devices list that uses them waits for the web account page
-  ([ROADMAP.md](../../ROADMAP.md) item 8). Until then `vtt-admin user revoke-sessions <email>` is the revoke.
+  `DELETE /api/auth/sessions/:id` back the **Devices** card on the web Account page (`/account`, built 2026-11-13;
+  see [MOBILE-WEB-APP.md](MOBILE-WEB-APP.md)), which also has "sign out all other devices"
+  (`POST /api/auth/sessions/revoke-others`). `vtt-admin user revoke-sessions <email>` is the operator's revoke.
 - **Consent.** The app has no consent screen, so the browser takes it before anything reaches the app. The
   `/connect` sign-in shows a changed recording notice and accepts it (version from `/api/auth/providers`, posted
   to `/api/auth/consent`) before the approval screen, as the join and phone pages do. The server enforces it:

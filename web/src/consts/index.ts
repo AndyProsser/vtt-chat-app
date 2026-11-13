@@ -15,3 +15,4 @@ export const PLATFORM_LABELS = {
   linux: 'Linux',
 } as const;
 export * from './connect.js';
+export * from './account.js';

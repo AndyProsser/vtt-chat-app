@@ -1,8 +1,12 @@
 import { useSession } from '../hooks/useSession.js';
 
 /** The page header every page shares: the app's logo, its name, and where to go next. */
-export function SiteHeader({ current }: { current: 'chat' | 'download' | 'status' | 'other' }) {
-  // Chat and Download are for signed-in visitors only.
+export function SiteHeader({
+  current,
+}: {
+  current: 'chat' | 'download' | 'account' | 'status' | 'other';
+}) {
+  // Chat, Download and Account are for signed-in visitors only.
   const { signedIn } = useSession();
   return (
     <header className="site-header">
@@ -19,6 +23,11 @@ export function SiteHeader({ current }: { current: 'chat' | 'download' | 'status
         {signedIn && (
           <a href="/download" aria-current={current === 'download' ? 'page' : undefined}>
             Download
+          </a>
+        )}
+        {signedIn && (
+          <a href="/account" aria-current={current === 'account' ? 'page' : undefined}>
+            Account
           </a>
         )}
         <a href="/status" aria-current={current === 'status' ? 'page' : undefined}>

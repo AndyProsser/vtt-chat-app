@@ -7,3 +7,29 @@
 .isolated {
   unicode-bidi: isolate;
 }
+
+/* The Account page: a stack of cards; each signed-in device is a row that wraps on a phone. */
+.account-devices {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+.account-device {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  padding: 12px;
+  border: 1px solid var(--vtt-edge);
+  border-radius: var(--radius-3);
+  background: var(--vtt-bubble);
+}
+.account-device-label {
+  overflow-wrap: anywhere;
+}
+.account-device-action {
+  flex: 0 0 auto;
+}

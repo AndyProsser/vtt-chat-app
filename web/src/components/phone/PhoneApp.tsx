@@ -289,6 +289,9 @@ function Shell({
                     <a href="/">Home</a>
                   </DropdownMenu.Item>
                   <DropdownMenu.Item asChild>
+                    <a href="/account">Account</a>
+                  </DropdownMenu.Item>
+                  <DropdownMenu.Item asChild>
                     <a href="/download">Download</a>
                   </DropdownMenu.Item>
                   <DropdownMenu.Item asChild>

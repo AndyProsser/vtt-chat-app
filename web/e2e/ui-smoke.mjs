@@ -1,11 +1,14 @@
 // Real-browser smoke test of the web UI against the local Compose smoke stack. See README.md.
 //   NODE_PATH=<scratch>/node_modules NODE_EXTRA_CA_CERTS=<caddy-root.crt> node web/e2e/ui-smoke.mjs [flow ...]
+import { writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import {
   admin,
   api,
   BASE,
   clickText,
   ensureUser,
+  freshSession,
   launch,
   newPage,
   noOverflow,
@@ -30,6 +33,7 @@ const T = {
   dm: { email: 'dmx@example.com', name: 'Test dmx' },
   pl: { email: 'pla@example.com', name: 'Test pla' },
   rq: { email: 'reqb@example.com', name: 'Test reqb' },
+  ac: { email: 'acct@example.com', name: 'Test acct' },
 };
 const CAMPAIGN_NAME = 'UI Smoke Table';
 
@@ -80,7 +84,11 @@ flows.landing = async (b) => {
             ?.getAttribute('href') ?? null,
         body: document.body.innerText,
       }));
-      check(`${tag}: signed-in nav`, inn.nav.join() === 'Chat,Download,Status', inn.nav.join());
+      check(
+        `${tag}: signed-in nav`,
+        inn.nav.join() === 'Chat,Download,Account,Status',
+        inn.nav.join(),
+      );
       if (view === 'desktop') {
         check(
           `${tag}: Open VTT Chat link has long token`,
@@ -215,6 +223,186 @@ flows.download = async (b) => {
         );
         check(`${tag}: copy icon swaps and reverts`, iconNow !== iconLater);
       } else check(`${tag}: copy button exists on active Linux panel`, false);
+      await p.__context.close();
+    }
+};
+
+// Account page (NOT YET RUN: written alongside the page; run `node ui-smoke.mjs account` on the smoke stack). ---
+// Uses its own throwaway account so signing out "all other devices" cannot cost another flow its session.
+// A 1x1 PNG, enough for the picker (the page crops and re-encodes it).
+const TINY_PNG = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+  'base64',
+);
+const PW_A = 'Account-flow-passphrase-A';
+const PW_B = 'Account-flow-passphrase-B';
+const BAD_LABEL = '<img src=x onerror=alert(1)> evil';
+
+flows.account = async (b) => {
+  // Signed out: the sign-in form, none of the cards.
+  for (const scheme of schemes) {
+    const out = await newPage(b, { view: 'desktop', scheme, problems });
+    await out.goto(BASE + '/account', { waitUntil: 'networkidle0' });
+    const gated = await out.evaluate(() => ({
+      login: !!document.querySelector('[aria-label="Email"]'),
+      cards: document.querySelectorAll('#account-profile, #account-devices').length,
+      nav: [...document.querySelectorAll('.site-nav a')].map((a) => a.textContent.trim()).join(),
+    }));
+    check(
+      `account ${scheme}: signed out shows the sign-in form only`,
+      gated.login && gated.cards === 0 && gated.nav === 'Status',
+      JSON.stringify(gated),
+    );
+    await out.__context.close();
+  }
+
+  for (const view of views)
+    for (const scheme of schemes) {
+      const tag = `account ${view}/${scheme}`;
+      // Fetched per page: the desktop/light pass ends by signing its own session out.
+      const cookie = await sessionFor(T.ac.email);
+      // A second device, labelled with hostile text, so the list has something to sign out.
+      const other = await freshSession(T.ac.email, BAD_LABEL);
+      check(`${tag}: second session created`, !!other);
+      const p = await newPage(b, { view, scheme, cookie, problems });
+      await p.goto(BASE + '/account', { waitUntil: 'networkidle0' });
+      await waitText(p, /Your account/);
+      const page = await p.evaluate(() => ({
+        heads: [...document.querySelectorAll('h2')].map((h) => h.textContent.trim()).join(),
+        nav: [...document.querySelectorAll('.site-nav a')].map((a) => a.textContent.trim()).join(),
+        current: document.querySelector('.site-nav a[aria-current=page]')?.textContent.trim(),
+        thisDevice: [...document.querySelectorAll('.account-device')].filter((r) =>
+          /This device/.test(r.innerText),
+        ).length,
+        rows: document.querySelectorAll('.account-device').length,
+        injected: !!document.querySelector('.account-devices img'),
+        labelShown: document.querySelector('.account-devices')?.innerText.includes('<img src=x'),
+      }));
+      await shot(p, `account-${view}-${scheme}`);
+      check(
+        `${tag}: four cards`,
+        page.heads === 'Profile,Security,Devices,Recording notice',
+        page.heads,
+      );
+      check(
+        `${tag}: Account is in the nav and marked current`,
+        page.nav === 'Chat,Download,Account,Status' && page.current === 'Account',
+        `${page.nav} / ${page.current}`,
+      );
+      check(`${tag}: this device is marked exactly once`, page.thisDevice === 1);
+      check(`${tag}: another device is listed`, page.rows >= 2, String(page.rows));
+      check(
+        `${tag}: a hostile device label is text, not markup`,
+        !page.injected && page.labelShown,
+      );
+      check(`${tag}: no x-overflow`, await noOverflow(p));
+
+      if (view === 'desktop' && scheme === 'light') {
+        // Rename, and put it back.
+        await p.click('#account-name', { clickCount: 3 });
+        await p.type('#account-name', 'Test acct renamed');
+        await clickText(p, /^Save$/);
+        await waitText(p, /Name saved/);
+        const renamed = (await api(cookie, 'GET', '/api/auth/me')).json?.user?.displayName;
+        check(`${tag}: rename is saved`, renamed === 'Test acct renamed', String(renamed));
+        await p.click('#account-name', { clickCount: 3 });
+        await p.type('#account-name', T.ac.name);
+        await clickText(p, /^Save$/);
+        await waitText(p, /Name saved/);
+
+        // Picture: upload, then remove.
+        const file = join(OUT, 'account-avatar.png');
+        writeFileSync(file, TINY_PNG);
+        const input = await p.$('input[type=file]');
+        await input.uploadFile(file);
+        await waitText(p, /Picture updated/);
+        const av = (await api(cookie, 'GET', '/api/auth/me')).json?.user?.avatarUrl;
+        check(`${tag}: picture upload sets an avatar`, /^avatar:/.test(av ?? ''), String(av));
+        await clickText(p, /^Remove$/);
+        await waitText(p, /Picture removed/);
+        const gone = (await api(cookie, 'GET', '/api/auth/me')).json?.user?.avatarUrl;
+        check(`${tag}: picture removed`, gone === null, String(gone));
+
+        // Confirm-by-second-click on one other device.
+        const before = (await api(cookie, 'GET', '/api/auth/sessions')).json.sessions.length;
+        await clickText(p, /^Sign out$/, '.account-device:not(:has(.rt-Badge)) button');
+        await sleep(300);
+        const armed = await p.evaluate(() =>
+          /Press again to sign out/.test(document.querySelector('.account-devices')?.innerText),
+        );
+        const stillThere = (await api(cookie, 'GET', '/api/auth/sessions')).json.sessions.length;
+        check(`${tag}: first press only arms the button`, armed && stillThere === before);
+        await clickText(p, /Press again to sign out/);
+        await waitText(p, /Device signed out/);
+        const after = (await api(cookie, 'GET', '/api/auth/sessions')).json.sessions.length;
+        check(
+          `${tag}: second press signs that device out`,
+          after === before - 1,
+          `${before}->${after}`,
+        );
+        check(
+          `${tag}: the signed-out session no longer works`,
+          (await api(other, 'GET', '/api/auth/me')).status === 401,
+        );
+
+        // Sign out all other devices.
+        const extra = await freshSession(T.ac.email, 'Another browser');
+        await p.reload({ waitUntil: 'networkidle0' });
+        await waitText(p, /Sign out all other devices/);
+        await clickText(p, /^Sign out all other devices$/);
+        await sleep(300);
+        await clickText(p, /Press again to sign out all other devices/);
+        await waitText(p, /other devices? signed out|No other devices/);
+        await sleep(500);
+        const left = (await api(cookie, 'GET', '/api/auth/sessions')).json.sessions;
+        check(`${tag}: all other devices are signed out`, left.length === 1 && left[0].current);
+        check(
+          `${tag}: that session is dead`,
+          (await api(extra, 'GET', '/api/auth/me')).status === 401,
+        );
+
+        // Password: set, or change from whichever of the two the last run left.
+        await p.reload({ waitUntil: 'networkidle0' });
+        await waitText(p, /Security/);
+        const fill = async (sel, v) => {
+          await p.click(sel, { clickCount: 3 });
+          await p.type(sel, v);
+        };
+        const has = !!(await p.$('#account-current'));
+        const attempt = async (from, to) => {
+          if (from) await fill('#account-current', from);
+          await fill('#account-new', to);
+          await fill('#account-confirm', to);
+          await clickText(p, /^(Change|Set) password$/);
+          await sleep(1200);
+          return p.evaluate(() => document.body.innerText);
+        };
+        let body = await attempt(has ? PW_A : undefined, PW_B);
+        if (/not your current password/.test(body)) body = await attempt(PW_B, PW_A);
+        check(
+          `${tag}: password set or changed`,
+          /Password (set|changed)\./.test(body),
+          body.slice(0, 80),
+        );
+        const mismatch = await (async () => {
+          await fill('#account-current', PW_A);
+          await fill('#account-new', 'a-different-passphrase');
+          await fill('#account-confirm', 'not-the-same-one-ok');
+          await clickText(p, /^Change password$/);
+          await sleep(300);
+          return p.evaluate(() => document.body.innerText);
+        })();
+        check(`${tag}: a mismatch is refused before it is sent`, /do not match/.test(mismatch));
+        check(
+          `${tag}: the account now reports a password`,
+          (await api(cookie, 'GET', '/api/auth/me')).json?.user?.hasPassword === true,
+        );
+
+        // Sign out this device from its own row: the page flips to the sign-in form.
+        await clickText(p, /^Sign out$/, '.account-device button');
+        await waitText(p, /Sign in to manage/);
+        check(`${tag}: signing out here returns to the sign-in form`, true);
+      }
       await p.__context.close();
     }
 };
@@ -1224,8 +1412,8 @@ flows.pages = async (b) => {
           if (path === '/status')
             check(`${tag} /status: no download links`, info.dl.length === 0, info.dl.join());
           check(
-            `${tag} ${path}: nav is ${signed === 'in' ? 'Chat,Download,Status' : 'Status'}`,
-            info.nav === (signed === 'in' ? 'Chat,Download,Status' : 'Status'),
+            `${tag} ${path}: nav is ${signed === 'in' ? 'Chat,Download,Account,Status' : 'Status'}`,
+            info.nav === (signed === 'in' ? 'Chat,Download,Account,Status' : 'Status'),
             info.nav,
           );
           const issues = await a11yBasics(p);
@@ -1383,7 +1571,7 @@ function signInCodeFor(email) {
 // runner ------------------------------------------------------------------------------------------------
 const want = process.argv.slice(2);
 const names = want.length ? want : Object.keys(flows);
-for (const n of ['dm', 'pl', 'rq']) ensureUser(T[n].email, T[n].name);
+for (const n of ['dm', 'pl', 'rq', 'ac']) ensureUser(T[n].email, T[n].name);
 // Campaign creation is closed on a default instance, so the throwaway DM is an Admin (revoke with `vtt-admin user admin dmx@example.com revoke`).
 try {
   admin('user', 'admin', T.dm.email, 'grant');

@@ -1,5 +1,6 @@
 /** Which page the static `index.html` should show for a path. Mirrors the paths the server serves it for. */
-export type SiteRoute = 'landing' | 'connect' | 'download' | 'full-app' | 'join' | 'not-found';
+export type SiteRoute =
+  'landing' | 'connect' | 'download' | 'account' | 'full-app' | 'join' | 'not-found';
 
 /**
  * The server answers any unknown browser path with this same page (status 404), so the page itself has to
@@ -10,6 +11,7 @@ export function resolveRoute(pathname: string): SiteRoute {
   if (path === '') return 'landing';
   if (path === '/connect') return 'connect';
   if (path === '/download') return 'download';
+  if (path === '/account') return 'account';
   if (path === '/full-app') return 'full-app';
   if (path === '/join' || path.startsWith('/join/')) return 'join';
   return 'not-found';

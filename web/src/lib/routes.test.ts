@@ -9,6 +9,7 @@ describe('resolveRoute', () => {
     expect(resolveRoute('/download/')).toBe('download');
     expect(resolveRoute('/full-app')).toBe('full-app');
     expect(resolveRoute('/connect')).toBe('connect');
+    expect(resolveRoute('/account/')).toBe('account');
   });
 
   it('treats /join and /join/<code> as the join page', () => {
@@ -20,6 +21,7 @@ describe('resolveRoute', () => {
     expect(resolveRoute('/nope')).toBe('not-found');
     expect(resolveRoute('/joined')).toBe('not-found');
     expect(resolveRoute('/download/extra')).toBe('not-found');
+    expect(resolveRoute('/account/x')).toBe('not-found');
     expect(resolveRoute('/wp-login.php')).toBe('not-found');
   });
 });

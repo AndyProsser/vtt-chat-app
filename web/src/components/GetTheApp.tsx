@@ -46,6 +46,10 @@ export function GetTheApp({ campaignName }: { campaignName?: string }) {
         Want chat without installing anything? Use <Link href="/app">Chat</Link> in the menu.{' '}
         <Link href="/full-app">What the full app adds</Link>
       </Text>
+      <Text size="2" color="gray">
+        Your name, picture, password and signed-in devices are on the{' '}
+        <Link href="/account">Account page</Link>.
+      </Text>
 
       <Flex justify="end">
         <SignOutButton />

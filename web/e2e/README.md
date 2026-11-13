@@ -28,7 +28,7 @@ node ui-smoke.mjs chat rail       # just some
 ```
 
 Flows: `landing`, `download`, `chat` (commands, autocomplete, /late and RSVP), `rail` (members, presence, popouts),
-`menu` (header, burger, widths), `join` (ask to join, withdraw, approve, decline, Allow join), `pages` (full-app,
+`account` (the /account page: profile, picture, password, devices and their sign-out; **written but not yet run**), `menu` (header, burger, widths), `join` (ask to join, withdraw, approve, decline, Allow join), `pages` (full-app,
 status, 404, focus order, accessibility basics), `frame` (sign-in and table-picker header). Exit code is 1 when a
 check fails. Env: `BASE` (default `https://localhost`), `CHROMIUM`, `COMPOSE_DIR` (default `../../infra/compose`).
 

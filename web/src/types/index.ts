@@ -22,3 +22,4 @@ export interface SignUpInput {
   consentVersion: string;
 }
 export * from './installGuide.js';
+export * from './account.js';

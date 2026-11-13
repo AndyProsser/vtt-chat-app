@@ -79,6 +79,31 @@ the web version instead". The public `/full-app` page explains what the desktop 
 the soundboard, tray controls) and how to get it, with a copyable link to send to a computer; the phone menu links
 to it.
 
+## The Account page (`/account`, built 2026-11-13)
+
+A framed page like `/download`, for a signed-in browser (signed out it shows the sign-in form). It links from the
+header nav ("Account", web and status pages), the phone app's menu and the signed-in Home. Four cards:
+
+- **Profile:** display name (1 to 80 characters) and portrait. A picked picture is cropped to a centred 256-pixel
+  square and re-encoded in the browser, then uploaded like the desktop app does (`POST /api/avatars/upload`, then
+  `PATCH /api/auth/me` with `avatar:<id>`); Remove clears it. A built-in emblem chosen in the desktop app cannot be
+  drawn here, so the web shows initials and says so.
+- **Security:** whether the account has a password, and set or change it (`POST /api/auth/password`, at least 10
+  characters; an account that already has one must give the current one). **Changing it signs out every other
+  device**, so a stolen session does not outlive the change; this one stays. The server rate-limits wrong guesses.
+- **Devices:** every signed-in session (`GET /api/auth/sessions`): device label, signed in, last seen, a "This device"
+  mark. Its own row's button is the normal Sign out. Each other device has a Sign out button, and "Sign out all other
+  devices" (`POST /api/auth/sessions/revoke-others`) ends the rest. Both need **a second press** to confirm (the button
+  changes to "Press again to sign out", and goes back after four seconds): no dialog, so it works the same by
+  keyboard, screen reader or thumb. Device labels are text the device sent, so they are drawn as plain text in an
+  isolated left-to-right span, never as markup.
+- **Recording notice:** the version accepted and the date (`consentVersion`, `consentAt` on `/api/auth/me`; read-only,
+  a changed notice is accepted at the next sign-in).
+
+The two new routes and the `hasPassword` and `consentAt` fields are additive (`shared/protocol.contract.json`
+updated inside 0.4). Not verified in a real browser: the page is built and unit-tested (`web/src/lib/account.ts`,
+the backend routes), and `web/e2e/ui-smoke.mjs account` was written for it but has not been run.
+
 ## Look
 
 The web app at `/app` is the same app on phones and desktop browsers. It has no voice or audio options; voice is

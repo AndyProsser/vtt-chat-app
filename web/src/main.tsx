@@ -11,6 +11,7 @@ import { useSystemAppearance } from './hooks/useSystemAppearance.js';
 import { ConnectDevicePage } from './components/ConnectDevicePage.js';
 import { SiteHeader } from './components/SiteHeader.js';
 import { LandingPage } from './components/LandingPage.js';
+import { AccountPage } from './components/account/AccountPage.js';
 import { DownloadPage } from './components/DownloadPage.js';
 import { FullAppPage } from './components/FullAppPage.js';
 import { JoinPage } from './components/JoinPage.js';
@@ -27,12 +28,16 @@ function Root() {
   return (
     <Theme appearance={appearance} accentColor="violet" radius="large">
       <div className="site-shell">
-        <SiteHeader current={route === 'download' ? 'download' : 'other'} />
+        <SiteHeader
+          current={route === 'download' ? 'download' : route === 'account' ? 'account' : 'other'}
+        />
         <main className="site-column">
           {route === 'connect' ? (
             <ConnectDevicePage />
           ) : route === 'download' ? (
             <DownloadPage />
+          ) : route === 'account' ? (
+            <AccountPage />
           ) : route === 'full-app' ? (
             <FullAppPage />
           ) : route === 'landing' ? (
