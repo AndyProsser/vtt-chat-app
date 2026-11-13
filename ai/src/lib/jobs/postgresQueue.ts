@@ -14,6 +14,7 @@ const toJob = (r: Row): Job => ({
   maxAttempts: r.max_attempts as number,
   runAfter: r.run_after as number,
   lockedUntil: (r.locked_until as number | null) ?? null,
+  lockedBy: (r.locked_by as string | null) ?? null,
   lastError: (r.last_error as string | null) ?? null,
   createdAt: r.created_at as number,
   updatedAt: r.updated_at as number,
@@ -55,23 +56,27 @@ export class PostgresJobQueue implements JobQueue {
     }
   }
 
-  async claim(now: number, leaseMs: number): Promise<Job | undefined> {
+  async claim(now: number, leaseMs: number, workerId?: string): Promise<Job | undefined> {
+    // A running job is orphaned when its lease ran out, or when this same worker id holds it (the worker
+    // restarted). `IS NOT NULL` keeps an anonymous claimer from matching a NULL locked_by.
+    const orphaned = (id: string): string =>
+      `state = 'running' AND (locked_until <= $1 OR (${id}::text IS NOT NULL AND locked_by = ${id}::text))`;
     await this.pool.query(
-      `UPDATE jobs SET state = 'failed', locked_until = NULL, updated_at = $1,
+      `UPDATE jobs SET state = 'failed', locked_until = NULL, locked_by = NULL, updated_at = $1,
          last_error = COALESCE(last_error, 'worker stopped responding on the final attempt')
-       WHERE state = 'running' AND locked_until <= $1 AND attempts >= max_attempts`,
-      [now],
+       WHERE ${orphaned('$2')} AND attempts >= max_attempts`,
+      [now, workerId ?? null],
     );
     const { rows } = await this.pool.query<Row>(
-      `UPDATE jobs SET state = 'running', attempts = attempts + 1, locked_until = $1 + $2::bigint, updated_at = $1
+      `UPDATE jobs SET state = 'running', attempts = attempts + 1, locked_until = $1 + $2::bigint, locked_by = $3::text, updated_at = $1
        WHERE id = (
          SELECT id FROM jobs
-         WHERE (state = 'queued' AND run_after <= $1) OR (state = 'running' AND locked_until <= $1)
+         WHERE (state = 'queued' AND run_after <= $1) OR (${orphaned('$3')})
          ORDER BY created_at
          FOR UPDATE SKIP LOCKED
          LIMIT 1)
        RETURNING *`,
-      [now, leaseMs],
+      [now, leaseMs, workerId ?? null],
     );
     return rows[0] ? toJob(rows[0]) : undefined;
   }
@@ -85,14 +90,14 @@ export class PostgresJobQueue implements JobQueue {
 
   async complete(id: string, now: number): Promise<void> {
     await this.pool.query(
-      `UPDATE jobs SET state = 'done', locked_until = NULL, last_error = NULL, updated_at = $2 WHERE id = $1`,
+      `UPDATE jobs SET state = 'done', locked_until = NULL, locked_by = NULL, last_error = NULL, updated_at = $2 WHERE id = $1`,
       [id, now],
     );
   }
 
   async fail(id: string, error: string, now: number, retryAt: number): Promise<Job> {
     const { rows } = await this.pool.query<Row>(
-      `UPDATE jobs SET last_error = $2, locked_until = NULL, updated_at = $3,
+      `UPDATE jobs SET last_error = $2, locked_until = NULL, locked_by = NULL, updated_at = $3,
          state = CASE WHEN attempts >= max_attempts THEN 'failed' ELSE 'queued' END,
          run_after = CASE WHEN attempts >= max_attempts THEN run_after ELSE $4 END
        WHERE id = $1 RETURNING *`,

@@ -86,6 +86,8 @@ export interface Job {
   maxAttempts: number;
   runAfter: number;
   lockedUntil: number | null;
+  /** The worker (`WORKER_ID`) holding the lease on a running job, when it said who it is. */
+  lockedBy?: string | null;
   lastError: string | null;
   createdAt: number;
   updatedAt: number;

@@ -15,13 +15,14 @@ export interface EnqueueInput {
  * - `enqueue` returns the existing queued/running job for the same kind + recording instead of
  *   adding a duplicate, so "recording stopped" arriving twice cannot process it twice.
  * - `claim` takes a queued job that is due, **or a running one whose lease expired** (its worker
- *   died). Each claim counts as an attempt; a job that has used all its attempts is failed rather
+ *   died), **or a running one this same `workerId` holds** (the worker restarted and its own job is
+ *   orphaned, so it need not wait out the lease; leases held by other ids are still honoured). Each claim counts as an attempt; a job that has used all its attempts is failed rather
  *   than claimed again, so a job that crashes its worker cannot loop forever.
  * - A running job keeps its lease with `extendLease`; a long transcription must heartbeat.
  */
 export interface JobQueue {
   enqueue(input: EnqueueInput, now: number): Promise<Job>;
-  claim(now: number, leaseMs: number): Promise<Job | undefined>;
+  claim(now: number, leaseMs: number, workerId?: string): Promise<Job | undefined>;
   extendLease(id: string, now: number, leaseMs: number): Promise<void>;
   complete(id: string, now: number): Promise<void>;
   /** Back to queued at `retryAt`, or failed for good if no attempts remain. Returns the new state. */
@@ -63,10 +64,13 @@ export class MemoryJobQueue implements JobQueue {
     return { ...job };
   }
 
-  async claim(now: number, leaseMs: number): Promise<Job | undefined> {
+  async claim(now: number, leaseMs: number, workerId?: string): Promise<Job | undefined> {
+    const orphaned = (j: Job): boolean =>
+      j.state === 'running' &&
+      ((j.lockedUntil ?? 0) <= now || (workerId !== undefined && j.lockedBy === workerId));
     // A worker that died mid-job and used its last attempt: give up on it.
     for (const j of this.jobs.values()) {
-      if (j.state === 'running' && (j.lockedUntil ?? 0) <= now && j.attempts >= j.maxAttempts) {
+      if (orphaned(j) && j.attempts >= j.maxAttempts) {
         j.state = 'failed';
         j.lastError ??= 'worker stopped responding on the final attempt';
         j.lockedUntil = null;
@@ -74,16 +78,13 @@ export class MemoryJobQueue implements JobQueue {
       }
     }
     const due = [...this.jobs.values()]
-      .filter(
-        (j) =>
-          (j.state === 'queued' && j.runAfter <= now) ||
-          (j.state === 'running' && (j.lockedUntil ?? 0) <= now),
-      )
+      .filter((j) => (j.state === 'queued' && j.runAfter <= now) || orphaned(j))
       .sort((a, b) => a.createdAt - b.createdAt)[0];
     if (!due) return undefined;
     due.state = 'running';
     due.attempts += 1;
     due.lockedUntil = now + leaseMs;
+    due.lockedBy = workerId ?? null;
     due.updatedAt = now;
     return { ...due };
   }

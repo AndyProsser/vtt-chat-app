@@ -464,6 +464,7 @@ describe.skipIf(TEST_DATABASE_URL === undefined)('migrate', () => {
         '0028_join_requests.sql',
         '0029_chapter_summaries.sql',
         '0030_audio_purge_on_next_session.sql',
+        '0031_job_locked_by.sql',
       ]);
       expect(await migrate(pool)).toEqual([]);
     } finally {

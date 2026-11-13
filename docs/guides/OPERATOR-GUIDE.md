@@ -322,6 +322,11 @@ rule: the DM's button is the only confirmation there is, so a recording the DM h
 unconfirmed. The worker does the deleting and logs each one (`docker compose logs worker`); `recording list`
 then shows "audio purged". Turn it back off with `... audio-purge-next-session off`.
 
+**Worker restarts:** the worker has a stable name, `WORKER_ID` (the Compose bundle sets `worker-1`; natively it
+defaults to the hostname). If the worker is killed mid-job, the restarted one takes its own job back at once
+instead of waiting out the 5-minute lease. A lease held by a worker with a different name is still honoured.
+Never give two workers running at the same time the same `WORKER_ID`.
+
 **Health you can rely on:** the app reconnects itself after network loss, sleep or a server restart. A
 recording survives the DM's app crashing (see section 6). A **server** restart during a recording marks
 that recording interrupted; the audio already written is kept and can be reprocessed.

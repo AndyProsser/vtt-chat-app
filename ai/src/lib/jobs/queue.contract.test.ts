@@ -81,6 +81,32 @@ function queueContract(name: string, make: () => Promise<JobQueue>): void {
       expect(again).toMatchObject({ id: job.id, attempts: 2 });
     });
 
+    it('lets a restarted worker with the same id take its own running job back before the lease ends', async () => {
+      const job = await q.enqueue({ kind: 'a' }, 1000);
+      await q.claim(1000, 300_000, 'worker-1');
+      const again = await q.claim(1500, 300_000, 'worker-1'); // restarted: lease has 5 min to run
+      expect(again).toMatchObject({ id: job.id, attempts: 2, lockedBy: 'worker-1' });
+    });
+
+    it('still honours a lease held by another worker id, or by an unnamed one', async () => {
+      await q.enqueue({ kind: 'a' }, 1000);
+      await q.claim(1000, 300_000, 'worker-1');
+      expect(await q.claim(1500, 300_000, 'worker-2')).toBeUndefined();
+      expect(await q.claim(1500, 300_000)).toBeUndefined();
+      // and an unnamed claimer's job is not reclaimed by a named worker either
+      const q2 = await make();
+      await q2.enqueue({ kind: 'b' }, 1000);
+      await q2.claim(1000, 300_000);
+      expect(await q2.claim(1500, 300_000, 'worker-1')).toBeUndefined();
+    });
+
+    it('a same-id restart gives up on its own job once the attempts are used', async () => {
+      const job = await q.enqueue({ kind: 'a', maxAttempts: 1 }, 1000);
+      await q.claim(1000, 300_000, 'worker-1');
+      expect(await q.claim(1500, 300_000, 'worker-1')).toBeUndefined();
+      expect(await q.get(job.id)).toMatchObject({ state: 'failed' });
+    });
+
     it('a heartbeat keeps the lease', async () => {
       const job = await q.enqueue({ kind: 'a' }, 1000);
       await q.claim(1000, 1000);

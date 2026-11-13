@@ -10,6 +10,9 @@
  *   OLLAMA_URL / OLLAMA_MODEL   the local LLM (default http://127.0.0.1:11434; model required)
  *   OLLAMA_KEEP_ALIVE   how long Ollama keeps the model loaded after a request (e.g. 2m; unset: the
  *                       Ollama server's own setting)
+ *   WORKER_ID           this worker's stable name (default: the hostname). A restarted worker with the
+ *                       same id takes back its own interrupted job at once instead of waiting out the
+ *                       5-minute lease; never give two running workers the same id
  *   WHISPER_API_KEY / LLM_API_KEY   only if a remote backend needs one
  *   RECORDINGS_DIR      where the audio files live (needed to delete raw audio)
  *   RECORDING_RETENTION_DAYS   delete the raw audio of processed recordings after this many days
@@ -21,10 +24,11 @@
  */
 import { DEFAULT_OLLAMA_URL } from '../consts/index.js';
 import { rmdir, unlink } from 'node:fs/promises';
+import { hostname } from 'node:os';
 import path from 'node:path';
 
 import { PostgresJobQueue } from '../lib/jobs/postgresQueue.js';
-import { processNext, runWorker } from '../lib/jobs/worker.js';
+import { processNext, resolveWorkerId, runWorker } from '../lib/jobs/worker.js';
 import { createOllamaGenerate } from '../lib/ollama.js';
 import { PostgresRecordsStore, createPool } from '../lib/records/postgresRecordsStore.js';
 import {
@@ -99,8 +103,10 @@ async function main(): Promise<void> {
     },
     log,
   });
+  const workerId = resolveWorkerId(process.env, hostname());
   const options = {
     queue,
+    workerId,
     handlers: { [PROCESS_RECORDING_JOB]: handler, [PURGE_RECORDING_JOB]: purge },
     log,
   };
@@ -135,7 +141,7 @@ async function main(): Promise<void> {
         /* drain */
       }
     } else {
-      log('records worker started');
+      log(`records worker started (id ${workerId})`);
       if (retentionDays > 0) {
         log(`raw audio is deleted ${retentionDays} day(s) after a recording is processed`);
       }

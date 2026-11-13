@@ -224,6 +224,8 @@ services:
       ollama-pull: { condition: service_completed_successfully }
       recordings-init: { condition: service_completed_successfully }
     environment:
+      # A stable name: after a restart this worker takes its own interrupted job back at once.
+      WORKER_ID: worker-1
       DATABASE_URL: postgres://vtt:${POSTGRES_PASSWORD}@postgres:5432/vtt
       WHISPER_LOCAL_URL: http://whisper:8080
       OLLAMA_URL: http://ollama:11434

@@ -10,6 +10,11 @@ export interface JobHandler {
 export interface WorkerOptions {
   queue: JobQueue;
   handlers: Record<string, JobHandler>;
+  /**
+   * This worker's stable identity (`WORKER_ID`). A restarted worker with the same id takes back the jobs
+   * it was running at once instead of waiting for their lease; other workers' leases are honoured.
+   */
+  workerId?: string;
   /** A running job must heartbeat inside this window or another worker may take it. */
   leaseMs?: number;
   /** Idle wait when the queue is empty. */
@@ -18,6 +23,16 @@ export interface WorkerOptions {
   sleep?: (ms: number, signal?: AbortSignal) => Promise<void>;
   signal?: AbortSignal;
   log?: (line: string) => void;
+}
+
+/**
+ * The worker's stable identity: `WORKER_ID` when set, else the machine's hostname. Stable across restarts
+ * is the point (a restarted worker reclaims its own orphaned jobs), so two workers at once must not share
+ * an id.
+ */
+export function resolveWorkerId(env: Record<string, string | undefined>, hostname: string): string {
+  const id = env.WORKER_ID?.trim();
+  return id ? id : hostname;
 }
 
 /** 15 s, 30 s, 1 min … capped at 10 min: long enough for a restarting Whisper box to come back. */
@@ -44,7 +59,7 @@ export async function processNext(options: WorkerOptions): Promise<boolean> {
   const leaseMs = options.leaseMs ?? 5 * 60_000;
   const log = options.log ?? (() => undefined);
 
-  const job = await queue.claim(now(), leaseMs);
+  const job = await queue.claim(now(), leaseMs, options.workerId);
   if (!job) return false;
   const handler = options.handlers[job.kind];
   if (!handler) {
