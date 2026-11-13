@@ -122,6 +122,10 @@ stack, in light and dark, at 1000x800 and 390x844 touch-mobile, with a DM and a 
 - **Built and unit-tested:** the WebSocket protocol check (`update_required`, close 4400), the wire-contract guard
   (`npm test` fails on an unrecorded wire change; `npm run protocol:update`), and the `via` field that lets both apps say
   "On the web (chat only)".
+- **Account page verified 2026-11-13** (about 40 checks): the profile name and picture, signing out another device and all
+  others (the dead session really is dead), setting and changing the password and the mismatch refusal. With it the
+  full suite passes (about 330 checks across 9 flows). Running every flow back to back trips the sign-in rate limit (10
+  code redemptions per 15 minutes per address); restart the backend between batches, as `web/e2e/README.md` says.
 - **Not covered:** the new-account consent step in the browser, voice, the Tauri desktop app (including the app against a
   genuinely mismatched server), real touch hardware, real download links, and a real cookie expiry mid-session.
 

@@ -299,14 +299,12 @@ flows.account = async (b) => {
 
       if (view === 'desktop' && scheme === 'light') {
         // Rename, and put it back.
-        await p.click('#account-name', { clickCount: 3 });
-        await p.type('#account-name', 'Test acct renamed');
+        await setField(p, '#account-name', 'Test acct renamed');
         await clickText(p, /^Save$/);
         await waitText(p, /Name saved/);
         const renamed = (await api(cookie, 'GET', '/api/auth/me')).json?.user?.displayName;
         check(`${tag}: rename is saved`, renamed === 'Test acct renamed', String(renamed));
-        await p.click('#account-name', { clickCount: 3 });
-        await p.type('#account-name', T.ac.name);
+        await setField(p, '#account-name', T.ac.name);
         await clickText(p, /^Save$/);
         await waitText(p, /Name saved/);
 
@@ -364,10 +362,7 @@ flows.account = async (b) => {
         // Password: set, or change from whichever of the two the last run left.
         await p.reload({ waitUntil: 'networkidle0' });
         await waitText(p, /Security/);
-        const fill = async (sel, v) => {
-          await p.click(sel, { clickCount: 3 });
-          await p.type(sel, v);
-        };
+        const fill = (sel, v) => setField(p, sel, v);
         const has = !!(await p.$('#account-current'));
         const attempt = async (from, to) => {
           if (from) await fill('#account-current', from);
@@ -721,6 +716,15 @@ const dialogs = (p) =>
       };
     }),
   );
+/** Replaces an input's value: focus, select all, delete, type (a triple click does not reliably select it all). */
+async function setField(p, sel, value) {
+  await p.click(sel);
+  await p.keyboard.down('Control');
+  await p.keyboard.press('KeyA');
+  await p.keyboard.up('Control');
+  await p.keyboard.press('Backspace');
+  await p.type(sel, value);
+}
 const railState = (p) =>
   p.$$eval('.phone-rail-item > button, .phone-rail button.phone-av', (e) =>
     e.map((x) => x.getAttribute('aria-label')),
@@ -761,7 +765,7 @@ flows.rail = async (b) => {
     labels = await railState(dm);
     check(
       `${tag}: player shows connected (chat only) when they open the web app`,
-      labels.some((l) => /Test pla, Offline \(chat only\)/.test(l)),
+      labels.some((l) => /Test pla, (Offline|On the web) \(chat only\)/.test(l)),
       labels.join(' | '),
     );
     await pl.goto('about:blank');
@@ -858,6 +862,9 @@ flows.rail = async (b) => {
       check(`${tag}: only one popout open`, d2.length === 1, JSON.stringify(d2));
       await dm.keyboard.press('Escape');
     } else {
+      // The strip scrolls sideways and grows with every approved throwaway account: bring the target on screen.
+      await target.evaluate((e) => e.scrollIntoView({ inline: 'center', block: 'nearest' }));
+      await sleep(200);
       const bb = await target.boundingBox();
       await dm.touchscreen.tap(bb.x + bb.width / 2, bb.y + bb.height / 2);
       await sleep(500);
@@ -874,6 +881,8 @@ flows.rail = async (b) => {
       });
       check(`${tag}: popout causes no layout shift`, before === after, `${before} vs ${after}`);
       const first = (await dm.$$('.phone-av'))[0];
+      await first.evaluate((e) => e.scrollIntoView({ inline: 'center', block: 'nearest' }));
+      await sleep(200);
       const fb = await first.boundingBox();
       await dm.touchscreen.tap(fb.x + fb.width / 2, fb.y + fb.height / 2);
       await sleep(400);
@@ -881,7 +890,10 @@ flows.rail = async (b) => {
       await dm.touchscreen.tap(fb.x + fb.width / 2, fb.y + fb.height / 2);
       await sleep(400);
       check(`${tag}: tapping the open one closes`, (await dialogs(dm)).length === 0);
-      await dm.touchscreen.tap(bb.x + bb.width / 2, bb.y + bb.height / 2);
+      await target.evaluate((e) => e.scrollIntoView({ inline: 'center', block: 'nearest' }));
+      await sleep(200);
+      const bb2 = await target.boundingBox();
+      await dm.touchscreen.tap(bb2.x + bb2.width / 2, bb2.y + bb2.height / 2);
       await sleep(300);
       await dm.touchscreen.tap(195, 500);
       await sleep(400);
