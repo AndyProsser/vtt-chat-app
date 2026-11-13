@@ -39,7 +39,11 @@ export function NoteEditor({
   async function save() {
     setTried(true);
     setError(undefined);
-    if (!payload) return;
+    if (!payload) {
+      // Put the cursor in the first field that needs attention.
+      document.getElementById(errors.title ? `${id}-title` : `${id}-body`)?.focus();
+      return;
+    }
     setBusy(true);
     try {
       if (note) {

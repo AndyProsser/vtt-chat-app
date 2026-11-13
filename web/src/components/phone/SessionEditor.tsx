@@ -65,7 +65,11 @@ export function SessionEditor({
   async function save() {
     setTried(true);
     setError(undefined);
-    if (!payload) return;
+    if (!payload) {
+      const first = (['title', 'start', 'duration', 'notes'] as const).find((k) => errors[k]);
+      document.getElementById(`${id}-${first === 'start' ? 'start' : (first ?? 'title')}`)?.focus();
+      return;
+    }
     setBusy(true);
     try {
       if (session) {
