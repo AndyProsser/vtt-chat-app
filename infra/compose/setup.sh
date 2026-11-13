@@ -5,7 +5,9 @@
 #
 #   ./setup.sh <site-address> [public-ip]
 #     site-address  the hostname players will use, e.g. vtt.example.com (or "localhost" to try it out)
-#     VALKEY_HOST_PORT (env) loopback port LiveKit uses for Valkey, default 6379
+#     VALKEY_HOST_PORT (env) loopback port LiveKit uses for Valkey, default 6379 (or the next free one)
+#     BACKEND_PORT (env)     loopback port the backend is published on for local probes, default 3000 (or the next free one)
+#     VTT_VERSION (env) the image version to pin, e.g. 0.4.0-dev.5; default: see "Which images" below
 #     public-ip     set when the server is behind NAT and LiveKit must advertise its public address
 set -euo pipefail
 cd "$(dirname "$0")"
@@ -16,7 +18,12 @@ for a in "$@"; do if [[ $a == --force ]]; then force=1; else args+=("$a"); fi; d
 site="${args[0]:-}"
 public_ip="${args[1]:-}"
 # LiveKit is host-networked, so it reaches Valkey through a loopback port on the host. Override if 6379 is taken.
-valkey_port="${VALKEY_HOST_PORT:-6379}"
+# port_busy N: is something already listening on TCP port N on this machine? (false when `ss` is missing)
+port_busy() { command -v ss >/dev/null && ss -Hltn 2>/dev/null | awk '{print $4}' | grep -Eq "[:.]$1$"; }
+# first_free N: N, or the next port above it that nothing listens on
+first_free() { local p=$1; while port_busy "$p"; do p=$((p + 1)); done; echo "$p"; }
+valkey_port="${VALKEY_HOST_PORT:-$(first_free 6379)}"
+backend_port="$(first_free "${BACKEND_PORT:-3000}")"
 [[ -n $site ]] || { echo "usage: $0 <site-address> [public-ip] [--force]" >&2; exit 2; }
 
 if [[ -e .env && $force -eq 0 ]]; then
@@ -27,6 +34,18 @@ fi
 # hex of N random bytes (avoids a `head` closing a pipe early, which pipefail would turn into a failure)
 rand() { openssl rand -hex "$1"; }
 
+# Which images to pull. Release tags publish a MAJOR.MINOR line that follows the newest patch; a dev tag
+# (v0.4.0-dev.5) publishes only its exact version, so a line like "0.4" does not exist until 0.4.0 is released.
+#   1. VTT_VERSION from the environment wins (the way to pin a dev build or an exact patch);
+#   2. else the newest git tag of this checkout: a dev/rc tag is pinned exactly, a release tag becomes its line;
+#   3. else (a tarball without git) the MAJOR.MINOR of tauri-client/Cargo.toml.
+version="${VTT_VERSION:-}"
+if [[ -z $version ]] && tag=$(git describe --tags --abbrev=0 2>/dev/null); then
+  tag=${tag#v}
+  if [[ $tag == *-* ]]; then version=$tag; else version=${tag%.*}; fi
+fi
+[[ -n $version ]] || version=$(sed -n 's/^version = "\([0-9]*\.[0-9]*\)\.[0-9]*.*"/\1/p' ../../tauri-client/Cargo.toml | head -1)
+
 umask 077
 lk_key="API$(rand 6)"
 lk_secret="$(rand 32)"
@@ -36,8 +55,8 @@ lk_secret="$(rand 32)"
   echo "LIVEKIT_API_KEY=$lk_key"
   echo "LIVEKIT_API_SECRET=$lk_secret"
   echo "VALKEY_HOST_PORT=$valkey_port"
-  # The release line of this checkout (MAJOR.MINOR): the images follow its newest patch, never a new minor.
-  echo "VTT_VERSION=$(sed -n 's/^version = "\([0-9]*\.[0-9]*\)\.[0-9]*.*"/\1/p' ../../tauri-client/Cargo.toml | head -1)"
+  echo "BACKEND_PORT=$backend_port"
+  echo "VTT_VERSION=$version"
 } > .env
 
 use_external_ip=false
@@ -57,6 +76,9 @@ redis:
 keys:
   $lk_key: $lk_secret
 YAML
-echo "Wrote .env and livekit.yaml for $site. Next: docker compose pull && docker compose up -d --wait"
+echo "Wrote .env and livekit.yaml for $site (images: $version). Next: docker compose pull && docker compose up -d --wait"
 [[ $force -eq 1 ]] && echo "NOTE: Postgres keeps the password it was first started with. If the stack has run before, regenerating means \`docker compose down -v\`, which DELETES the database."
+for p in 80 443 7880 7881; do
+  port_busy "$p" && echo "WARNING: port $p is already in use on this machine; Caddy (80, 443) and LiveKit (7880, 7881) need it. Stop what uses it (see: ss -ltnp) before starting."
+done
 echo "Open to the internet: 80/tcp, 443/tcp+udp, 7881/tcp, 50000-50200/udp."
