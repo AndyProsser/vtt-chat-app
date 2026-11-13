@@ -99,6 +99,8 @@ export function publicUser(user: User) {
     avatarUrl: user.avatarUrl ?? null,
     isAdmin: user.isAdmin,
     consentVersion: user.consentVersion,
+    consentAt: user.consentAt,
+    hasPassword: user.passwordHash !== null,
   };
 }
 

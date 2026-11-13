@@ -38,6 +38,10 @@ const profileBody = z
     avatarUrl: z.string().max(100).nullable().optional(),
   })
   .refine((b) => b.displayName !== undefined || b.avatarUrl !== undefined, 'nothing to change');
+const passwordBody = z.object({
+  currentPassword: z.string().max(512).optional(),
+  newPassword: z.string().max(512),
+});
 const deviceStartBody = z.object({ deviceLabel: deviceLabelField });
 const deviceApproveBody = z.object({ userCode: z.string().max(32) });
 const devicePollBody = z.object({ requestId: z.string().max(64), pollSecret: z.string().max(256) });
@@ -295,6 +299,34 @@ export function authRoutes({
     await accounts.revokeSession(authOf(res).user.id, id);
     onSessionRevoked?.(id);
     res.status(204).end();
+  });
+
+  // Sign out every device but this one.
+  router.post('/sessions/revoke-others', async (_req, res) => {
+    const { user, session } = authOf(res);
+    const revoked = await accounts.revokeOtherSessions(user.id, session.id);
+    for (const id of revoked) onSessionRevoked?.(id);
+    res.json({ revoked: revoked.length });
+  });
+
+  // Set or change the password. Other devices are signed out; this one stays.
+  router.post('/password', async (req, res) => {
+    const { user, session } = authOf(res);
+    const body = passwordBody.parse(req.body);
+    const key = `password:${req.ip}:${user.id}`;
+    if (!loginLimiter.allow(key)) {
+      res
+        .status(429)
+        .json({ error: 'rate_limited', message: 'too many attempts; try again later' });
+      return;
+    }
+    const revoked = await accounts.changePassword(user.id, session.id, {
+      ...(body.currentPassword === undefined ? {} : { currentPassword: body.currentPassword }),
+      newPassword: body.newPassword,
+    });
+    loginLimiter.reset(key);
+    for (const id of revoked) onSessionRevoked?.(id);
+    res.json({ revoked: revoked.length });
   });
 
   router.post('/logout', async (req, res) => {

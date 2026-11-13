@@ -347,6 +347,44 @@ export class AccountService {
     }
   }
 
+  /**
+   * Signs out every device but one (the caller's own). Returns the ids it revoked so live sockets on
+   * them can be dropped.
+   */
+  async revokeOtherSessions(userId: string, keepSessionId: string): Promise<string[]> {
+    const now = this.clock.now();
+    const revoked: string[] = [];
+    for (const session of await this.store.listSessionsForUser(userId)) {
+      if (session.id === keepSessionId || session.revokedAt !== null) continue;
+      await this.store.putSession({ ...session, revokedAt: now });
+      revoked.push(session.id);
+    }
+    return revoked;
+  }
+
+  /**
+   * Sets or changes the password of a signed-in account. An account that already has a password must give
+   * the current one; an account without one (magic-link or OIDC only) may set its first, because the
+   * session itself is the proof. Every other device is signed out, so a stolen session does not outlive
+   * the change. Returns the revoked session ids.
+   */
+  async changePassword(
+    userId: string,
+    keepSessionId: string,
+    input: { currentPassword?: string; newPassword: string },
+  ): Promise<string[]> {
+    const user = await this.requireUser(userId);
+    if (user.passwordHash !== null) {
+      const ok =
+        input.currentPassword !== undefined &&
+        (await verifyPassword(input.currentPassword, user.passwordHash));
+      if (!ok) throw new DomainError('invalid_credentials');
+    }
+    checkPassword(input.newPassword);
+    await this.store.putUser({ ...user, passwordHash: await hashPassword(input.newPassword) });
+    return this.revokeOtherSessions(userId, keepSessionId);
+  }
+
   async revokeAllSessions(userId: string): Promise<void> {
     const now = this.clock.now();
     for (const session of await this.store.listSessionsForUser(userId)) {

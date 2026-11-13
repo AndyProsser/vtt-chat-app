@@ -1,6 +1,6 @@
 {
   "protocolVersion": 2,
-  "hash": "e6cbdaec4c6bc6b07a1937fd211773600ff9c8550a1795f60681be3ab3208c80",
+  "hash": "01f95fe1b019bd25b950bf7225bd7adfb931e9ebef7e5018422418025d19af6b",
   "summary": {
     "clientFrames": [
       "audio.state",
@@ -86,7 +86,9 @@
       "http/authRoutes.ts POST /logout",
       "http/authRoutes.ts POST /magic-link",
       "http/authRoutes.ts POST /magic-link/redeem",
+      "http/authRoutes.ts POST /password",
       "http/authRoutes.ts POST /register",
+      "http/authRoutes.ts POST /sessions/revoke-others",
       "http/avatarRoutes.ts GET /:id",
       "http/avatarRoutes.ts POST /upload",
       "http/campaignRoutes.ts DELETE /:id/invites/:code",

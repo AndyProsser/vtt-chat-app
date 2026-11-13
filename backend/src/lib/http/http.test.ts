@@ -264,6 +264,86 @@ describe('accounts over HTTP', () => {
     expect((await api.call('GET', '/api/auth/me', { token })).status).toBe(401);
   });
 
+  it('says whether the account has a password and when the notice was accepted', async () => {
+    const { token } = await signUp('ann');
+    const me = (await api.call('GET', '/api/auth/me', { token })).body.user;
+    expect(me.hasPassword).toBe(true);
+    expect(typeof me.consentAt).toBe('number');
+    expect(JSON.stringify(me)).not.toContain('passwordHash');
+  });
+
+  it('signs out every other device but keeps this one', async () => {
+    const { token } = await signUp('ann');
+    const login = () =>
+      api.call('POST', '/api/auth/login', {
+        body: { email: 'ann@example.com', password: PASSWORD, deviceLabel: 'phone' },
+      });
+    const phone = (await login()).body.sessionToken as string;
+    const tablet = (await login()).body.sessionToken as string;
+    const res = await api.call('POST', '/api/auth/sessions/revoke-others', { token });
+    expect(res.status).toBe(200);
+    expect(res.body.revoked).toBe(2);
+    expect((await api.call('GET', '/api/auth/me', { token })).status).toBe(200);
+    expect((await api.call('GET', '/api/auth/me', { token: phone })).status).toBe(401);
+    expect((await api.call('GET', '/api/auth/me', { token: tablet })).status).toBe(401);
+    expect((await api.call('POST', '/api/auth/sessions/revoke-others', {})).status).toBe(401);
+  });
+
+  describe('changing the password', () => {
+    const NEXT = 'a brand new passphrase';
+    const change = (token: string, body: unknown) =>
+      api.call('POST', '/api/auth/password', { token, body });
+
+    it('needs the current password, then signs out the other devices and takes the new one', async () => {
+      const { token } = await signUp('ann');
+      const other = (
+        await api.call('POST', '/api/auth/login', {
+          body: { email: 'ann@example.com', password: PASSWORD },
+        })
+      ).body.sessionToken as string;
+      expect((await change(token, { newPassword: NEXT })).status).toBe(401);
+      expect((await change(token, { currentPassword: 'wrong', newPassword: NEXT })).status).toBe(
+        401,
+      );
+      expect(
+        (await change(token, { currentPassword: PASSWORD, newPassword: 'short' })).status,
+      ).toBe(400);
+      const ok = await change(token, { currentPassword: PASSWORD, newPassword: NEXT });
+      expect(ok.status).toBe(200);
+      expect(ok.body.revoked).toBe(1);
+      expect((await api.call('GET', '/api/auth/me', { token })).status).toBe(200);
+      expect((await api.call('GET', '/api/auth/me', { token: other })).status).toBe(401);
+      const old = await api.call('POST', '/api/auth/login', {
+        body: { email: 'ann@example.com', password: PASSWORD },
+      });
+      expect(old.status).toBe(401);
+      const fresh = await api.call('POST', '/api/auth/login', {
+        body: { email: 'ann@example.com', password: NEXT },
+      });
+      expect(fresh.status).toBe(200);
+    });
+
+    it('lets an account with no password set its first, and needs a session', async () => {
+      const made = await api.call('POST', '/api/auth/register', {
+        body: { email: 'bo@example.com', displayName: 'Bo', acceptedConsentVersion: '1' },
+      });
+      expect(made.status).toBe(201);
+      await api.call('POST', '/api/auth/magic-link', {
+        body: { email: 'bo@example.com', purpose: 'signin' },
+      });
+      const redeem = await api.call('POST', '/api/auth/magic-link/redeem', {
+        body: { token: sender.messages.at(-1)?.token },
+      });
+      const token = redeem.body.sessionToken as string;
+      expect((await api.call('GET', '/api/auth/me', { token })).body.user.hasPassword).toBe(false);
+      expect((await change(token, { newPassword: NEXT })).status).toBe(200);
+      expect((await api.call('GET', '/api/auth/me', { token })).body.user.hasPassword).toBe(true);
+      expect(
+        (await api.call('POST', '/api/auth/password', { body: { newPassword: NEXT } })).status,
+      ).toBe(401);
+    });
+  });
+
   it('never returns the magic-link token; it only goes to the sender', async () => {
     await signUp('ann');
     const res = await api.call('POST', '/api/auth/magic-link', {

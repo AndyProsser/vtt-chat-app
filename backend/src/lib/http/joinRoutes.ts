@@ -84,7 +84,7 @@ export function webPages(webDir: string): Router | undefined {
       fallthrough: false,
     }),
   );
-  router.get(['/', '/join', '/join/:code', '/connect', '/download', '/full-app'], (_req, res) => {
+  router.get(['/', '/join', '/join/:code', '/connect', '/download', '/full-app', '/account'], (_req, res) => {
     res.sendFile(index);
   });
   // The phone app (web/app.html). Hash routes, so this one path is all the server needs to know.

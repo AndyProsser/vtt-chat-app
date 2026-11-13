@@ -99,7 +99,13 @@ describe('the join page backend', () => {
   });
 
   it('serves the page at /join and /join/:code, with a locked-down CSP, and its assets', async () => {
-    for (const path of ['/join', '/join/ABCD-EFGH', '/connect', '/connect?c=ABCD-2345']) {
+    for (const path of [
+      '/join',
+      '/join/ABCD-EFGH',
+      '/connect',
+      '/account',
+      '/connect?c=ABCD-2345',
+    ]) {
       const res = await fetch(`${base}${path}`);
       expect(res.status).toBe(200);
       expect(await res.text()).toContain('<title>join</title>');
