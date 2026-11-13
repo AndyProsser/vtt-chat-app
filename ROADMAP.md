@@ -52,17 +52,21 @@ the desktop app are two faces of one product.** Nothing below has been through a
 
 1. **A second person, on a blank VM** (Stage 3b #6 and the Stage 3 "done when"): the real test of the images, the operator
    guide, `wss://` through Caddy with a real certificate, LiveKit audio over UDP, and the new landing and download pages.
-2. **See it running.** Nothing from today's web work, the chat commands, the members rail, the Settings reorganisation or the
-   desktop connect screen has been looked at in a real app window by anyone but the author's screenshots; the web pages were
-   measured in headless Chromium (no overflow at 400 to 1000px). On the list: a real phone and iOS Safari, deep links on
+2. **See it running.** The web screens were exercised in a real headless browser on 2026-11-12 (about 330 checks, seven bugs
+   fixed; `web/e2e/ui-smoke.mjs`). Still unseen in a real window: the desktop app's new screens (connect, Settings, rail,
+   chat commands, join requests). On the list: a real phone and iOS Safari, deep links on
    Windows and macOS and the Linux AppImage, voice over `https://localhost` with the trusted CA, the Windows and macOS builds.
-3. **Close the version and sign-in gaps:** the WebSocket protocol check and the CI guard that fails a wire change without a
-   version bump (Stage 3b #3); the web **Devices list with revoke** (#8); an expired cookie in an open `/app` tab should sign
-   out instead of retrying quietly.
+3. **Close the version and sign-in gaps:** done 2026-11-12 are the WebSocket protocol check, the CI guard that fails an
+   unrecorded wire change, and signing out an expired `/app` tab (Stage 3b #3). Still to do: the web **Devices list with
+   revoke** (#8).
 4. **Decide the undecided:** how a signed-in person with **no campaign** gets into one (request-to-join from an opt-in list,
    DM approves in the app); whether quick-reply commands should be customisable; per-character languages and polyglot
    masking (needs server-side masking; only designed as a seam).
-5. **The old list below** (recording validation with the records profile, listening tests, the 4-hour soak, D&D Beyond on
+5. **Recording and AI: proven end to end on 2026-11-12** on the Compose stack with synthetic speech (66 of 66 checks: consent, per-speaker
+   attribution, typed lines in, OOC and whispers out, DM-only summaries, search, a killed worker, the remote-AI fallback;
+   [BUILD-STATUS.md](docs/BUILD-STATUS.md)). Still to do there: real human voices and room noise, a multi-hour session, a CPU-only
+   server, and the second-person deploy.
+6. **The old list below** (listening tests, the 4-hour soak, D&D Beyond on
    real sheets, Windows and macOS away detection) still stands and is unchanged.
 
 **As of 2026-11-09 the player experience was essentially complete:** sign in, join, talk, chat, whisper, loot, RSVP, hear the DM's scenes and stingers, browse past sessions, with recording and consent working end to end. What was left then, and still is, is **verification on real machines**, a few UI/UX refinements, and release work.

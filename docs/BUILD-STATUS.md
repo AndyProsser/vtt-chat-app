@@ -46,6 +46,28 @@ search refuse `ooc` again — defence in depth).
 **Still unverified:** real human voices, noise, echo and crosstalk; a real multi-hour session (map-reduce path); the Rust
 desktop client and phone app as the recorded clients; a CPU-only server end to end; a fresh-VM install by someone else.
 
+## Verified 2026-11-12: the web UI in a real browser; protocol and session hardening
+
+Headless Chromium drove the built web UI (Home, Download, Full app, Status, the `/app` web chat) against the local smoke
+stack, in light and dark, at 1000x800 and 390x844 touch-mobile, with a DM and a player in two browser contexts
+(`web/e2e/ui-smoke.mjs`, about 330 checks; rerun it after UI changes).
+
+- **Verified working:** the sign-in code flow, sign-out and the nav rules; the Home hand-off and the connect code with its
+  countdown; the download tabs, per-format steps and the copy button; every chat command and the autocomplete (keyboard,
+  typo warning), whispers reaching only their two people, and `/late` setting the RSVP; the members rail (presence,
+  hover, tap, Escape, popout size); the menu, the 640px layout and no page scroll; the whole join-request cycle (request,
+  withdraw, approve, decline, Allow join on and off, about 12 to 17 seconds to reach the requester by polling);
+  `/full-app`, `/status`, focus order and basic accessibility.
+- **Found and fixed:** Enter did not send on desktop, the RSVP choice was invisible to assistive tech, the rail ignored
+  live presence, the join message box kept old text, the sign-in header clipped on phones, repeated top-level headings
+  and an autofocused invite box, a plain-text 404 page, an expired cookie leaving a tab retrying forever, and a sign-out
+  that flipped before the server answered.
+- **Built and unit-tested:** the WebSocket protocol check (`update_required`, close 4400), the wire-contract guard
+  (`npm test` fails on an unrecorded wire change; `npm run protocol:update`), and the `via` field that lets both apps say
+  "On the web (chat only)".
+- **Not covered:** the new-account consent step in the browser, voice, the Tauri desktop app (including the app against a
+  genuinely mismatched server), real touch hardware, real download links, and a real cookie expiry mid-session.
+
 ## Built 2026-11-11, later: the web app, chat commands, cookie sessions (0.4, dev.1 to dev.4)
 
 What exists, and **how far each piece has been checked** (U = unit tests, B = measured in headless Chromium against the
