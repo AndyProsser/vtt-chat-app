@@ -665,3 +665,230 @@ button.phone-picture-button {
   overflow-wrap: anywhere;
   white-space: pre-wrap;
 }
+
+/* The DM's tools: icon buttons (the desktop app's gold-outline ToolButton), and full-screen sheets */
+.phone-head-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.phone-tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 40px;
+  height: 40px;
+  padding: 0 10px;
+  border: 1px solid var(--vtt-gold);
+  border-radius: var(--radius-3);
+  background: transparent;
+  color: var(--vtt-gold);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+.phone-tool:hover:not([disabled]) {
+  background: color-mix(in srgb, var(--vtt-gold) 15%, transparent);
+}
+.phone-tool:focus-visible {
+  outline: 2px solid var(--focus-8);
+  outline-offset: 2px;
+}
+.phone-tool[disabled] {
+  opacity: 0.5;
+  cursor: default;
+}
+.phone-tool-danger {
+  color: var(--red-11);
+  border-color: var(--red-9);
+}
+.phone-tool-danger:hover:not([disabled]) {
+  background: color-mix(in srgb, var(--red-9) 14%, transparent);
+}
+.phone-tool-text {
+  white-space: nowrap;
+}
+.phone-actions {
+  align-items: center;
+}
+
+.phone-sheet {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.phone-sheet-head {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px max(16px, env(safe-area-inset-right)) 10px max(16px, env(safe-area-inset-left));
+  background: var(--vtt-bar);
+  border-bottom: 1px solid var(--vtt-edge);
+}
+.phone-sheet-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  outline: none;
+}
+.phone-sheet-actions {
+  display: flex;
+  gap: 8px;
+}
+.phone-sheet-ask {
+  position: sticky;
+  top: 58px;
+  z-index: 4;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  padding: 10px max(16px, env(safe-area-inset-right)) 10px max(16px, env(safe-area-inset-left));
+  background: var(--amber-3);
+  color: var(--amber-12);
+  border-bottom: 1px solid var(--amber-7);
+}
+.phone-sheet-body {
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 16px max(16px, env(safe-area-inset-right)) 32px max(16px, env(safe-area-inset-left));
+}
+.phone-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.phone-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.phone-field-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.phone-field-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.phone-count {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  margin-left: auto;
+}
+.phone-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--vtt-ink);
+}
+.phone-input {
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--vtt-edge);
+  border-radius: var(--radius-3);
+  background: var(--vtt-bubble);
+  color: var(--vtt-ink);
+  font: inherit;
+  font-size: 16px; /* anything smaller makes iOS zoom the page on focus */
+  box-sizing: border-box;
+}
+.phone-input:focus-visible {
+  outline: 2px solid var(--focus-8);
+  outline-offset: 1px;
+}
+.phone-input[aria-invalid='true'] {
+  border-color: var(--red-9);
+}
+.phone-preview {
+  min-height: 160px;
+  padding: 12px;
+  border: 1px dashed var(--vtt-edge);
+  border-radius: var(--radius-3);
+  background: var(--vtt-bubble);
+  overflow-wrap: anywhere;
+}
+.phone-switch-row {
+  padding: 12px;
+  border: 1px solid var(--vtt-edge);
+  border-radius: var(--radius-3);
+  background: var(--vtt-bubble);
+}
+
+/* Rendered Markdown (notes, session notes): the app's own look, nothing from the note's author but structure */
+.phone-md {
+  overflow-wrap: anywhere;
+  line-height: 1.55;
+}
+.phone-md > :first-child {
+  margin-top: 0;
+}
+.phone-md > :last-child {
+  margin-bottom: 0;
+}
+.phone-md h1,
+.phone-md h2,
+.phone-md h3 {
+  line-height: 1.25;
+  margin: 1em 0 0.4em;
+}
+.phone-md h1 {
+  font-size: 1.35em;
+}
+.phone-md h2 {
+  font-size: 1.2em;
+}
+.phone-md h3 {
+  font-size: 1.05em;
+}
+.phone-md p,
+.phone-md ul,
+.phone-md ol {
+  margin: 0.6em 0;
+}
+.phone-md ul,
+.phone-md ol {
+  padding-left: 1.4em;
+}
+.phone-md blockquote {
+  margin: 0.8em 0;
+  padding: 0.2em 0 0.2em 12px;
+  border-left: 3px solid var(--vtt-gold);
+  font-style: italic;
+  opacity: 0.92;
+}
+.phone-md hr {
+  border: 0;
+  border-top: 1px solid var(--vtt-edge);
+  margin: 1em 0;
+}
+.phone-md code {
+  font-family: ui-monospace, monospace;
+  font-size: 0.92em;
+  padding: 0 4px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--vtt-edge) 25%, transparent);
+}
+.phone-md pre {
+  overflow-x: auto;
+  padding: 10px;
+  border-radius: var(--radius-2);
+  background: color-mix(in srgb, var(--vtt-edge) 20%, transparent);
+}
+.phone-md-link {
+  text-decoration: underline;
+  text-decoration-style: dotted;
+}
