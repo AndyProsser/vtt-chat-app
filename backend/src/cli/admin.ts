@@ -61,6 +61,8 @@ const SIMPLE_SETTINGS = {
     'on | off  (let visitors request an account; you approve in `signup`; default off)',
   'campaign-directory':
     'on | off  (list campaigns that allow it to every signed-in account so people can ask to join; off = invites only; default on)',
+  'audio-purge-next-session':
+    "on | off  (when a recording starts, delete the raw audio of that campaign's earlier processed recordings; the text stays; default off)",
   'offline-limit-days': 'whole days a device may stay unseen before it must sign in again',
   'invite-expiry-days': 'whole days a new invite code stays valid',
   'consent-version':
@@ -124,6 +126,9 @@ export function applySetting(
     case 'campaign-directory':
       if (value !== 'on' && value !== 'off') throw new SettingError('must be "on" or "off"');
       return { ...settings, campaignDirectory: value };
+    case 'audio-purge-next-session':
+      if (value !== 'on' && value !== 'off') throw new SettingError('must be "on" or "off"');
+      return { ...settings, audioPurgeOnNextSession: value };
     case 'offline-limit-days':
       return { ...settings, offlineLimitDays: positiveInt(value, 'offline-limit-days') };
     case 'invite-expiry-days':
@@ -142,6 +147,7 @@ function settingsLines(s: InstanceSettings): string[] {
     `campaign-creation          ${s.campaignCreation}`,
     `signup.requests            ${s.signupRequests}`,
     `campaign-directory         ${s.campaignDirectory}`,
+    `audio-purge-next-session   ${s.audioPurgeOnNextSession}`,
     `offline-limit-days         ${s.offlineLimitDays}`,
     `invite-expiry-days         ${s.inviteExpiryDays}`,
     `consent-version            ${s.consentVersion}`,

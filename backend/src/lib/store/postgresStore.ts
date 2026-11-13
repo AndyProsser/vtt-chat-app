@@ -213,6 +213,8 @@ export class PostgresStore implements Store {
       campaignCreation: r.campaign_creation as InstanceSettings['campaignCreation'],
       signupRequests: r.signup_requests as InstanceSettings['signupRequests'],
       campaignDirectory: r.campaign_directory as InstanceSettings['campaignDirectory'],
+      audioPurgeOnNextSession:
+        r.audio_purge_on_next_session as InstanceSettings['audioPurgeOnNextSession'],
       offlineLimitDays: r.offline_limit_days as number,
       inviteExpiryDays: r.invite_expiry_days as number,
       consentVersion: r.consent_version as string,
@@ -222,11 +224,11 @@ export class PostgresStore implements Store {
 
   async putSettings(s: InstanceSettings): Promise<void> {
     await this.db.query(
-      `INSERT INTO instance_settings (id, campaign_creation, offline_limit_days, invite_expiry_days, consent_version, ai, signup_requests, campaign_directory)
-       VALUES (1, $1, $2, $3, $4, $5, $6, $7)
+      `INSERT INTO instance_settings (id, campaign_creation, offline_limit_days, invite_expiry_days, consent_version, ai, signup_requests, campaign_directory, audio_purge_on_next_session)
+       VALUES (1, $1, $2, $3, $4, $5, $6, $7, $8)
        ON CONFLICT (id) DO UPDATE SET campaign_creation = $1, offline_limit_days = $2,
          invite_expiry_days = $3, consent_version = $4, ai = $5, signup_requests = $6,
-         campaign_directory = $7`,
+         campaign_directory = $7, audio_purge_on_next_session = $8`,
       [
         s.campaignCreation,
         s.offlineLimitDays,
@@ -235,6 +237,7 @@ export class PostgresStore implements Store {
         JSON.stringify(s.ai),
         s.signupRequests,
         s.campaignDirectory,
+        s.audioPurgeOnNextSession,
       ],
     );
   }

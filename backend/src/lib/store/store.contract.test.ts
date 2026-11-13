@@ -324,6 +324,12 @@ describe('sign-up requests', () => {
     expect(await store.getSignupRequest(backend.newId())).toBeUndefined();
   });
 
+  it('keeps the audio-purge-next-session setting, off by default', async () => {
+    expect((await store.getSettings()).audioPurgeOnNextSession).toBe('off');
+    await store.putSettings({ ...(await store.getSettings()), audioPurgeOnNextSession: 'on' });
+    expect((await store.getSettings()).audioPurgeOnNextSession).toBe('on');
+  });
+
   it('keeps the signup-requests setting, off by default', async () => {
     expect((await store.getSettings()).signupRequests).toBe('off');
     await store.putSettings({ ...(await store.getSettings()), signupRequests: 'on' });
@@ -457,6 +463,7 @@ describe.skipIf(TEST_DATABASE_URL === undefined)('migrate', () => {
         '0027_chat_kind.sql',
         '0028_join_requests.sql',
         '0029_chapter_summaries.sql',
+        '0030_audio_purge_on_next_session.sql',
       ]);
       expect(await migrate(pool)).toEqual([]);
     } finally {

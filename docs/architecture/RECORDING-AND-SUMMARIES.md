@@ -216,8 +216,15 @@ what retention removes, and the text is kept for good.
   At most two recordings per kind per check, so one run cannot clear a library. `AUDIO_DISK_PURGE=0` turns the
   rule off. There is **no "keep this one" button**: the DM can only delete sooner or let it happen; the operator
   can switch the rule off or free space another way. (A hold would be a small addition if it is missed.)
-- **Not built:** purging when the next session starts (the other stale rule on the list; Andy chose the disk
-  rule), and the DM warning on any rule but the disk one (the age rule, `RECORDING_RETENTION_DAYS`, is the
+- **When the next session starts (built 2026-11-13, off by default):** operator setting
+  `audio-purge-next-session` (`vtt-admin settings set audio-purge-next-session on`). When a recording starts, the
+  backend queues the ordinary `purge-recording` job for that campaign's **earlier** recordings that are
+  `processed` and still hold audio. It never touches one that is queued, processing or failed, one without
+  audio, the new recording, or another campaign's. There is no separate "DM confirmed" flag: the DM's confirm
+  _is_ the delete button, so any processed recording that still has audio is by definition unconfirmed, which
+  is exactly who this stale rule is for. It has no DM warning (it is an explicit operator setting, like the age
+  rule). A failure reading the setting or queueing is logged and never stops the new recording.
+- **Not built:** the DM warning on any rule but the disk one (the age rule, `RECORDING_RETENTION_DAYS`, is the
   operator's explicit setting and still deletes without a notice).
 
 ## When the server restarts mid-recording (built and drilled 2026-11-10)

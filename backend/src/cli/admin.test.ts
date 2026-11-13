@@ -523,6 +523,21 @@ describe('campaign directory setting', () => {
   });
 });
 
+describe('audio-purge-next-session', () => {
+  it('defaults to off, validates, and shows in settings show and keys', async () => {
+    expect((await store.getSettings()).audioPurgeOnNextSession).toBe('off');
+    expect(await run('settings set audio-purge-next-session maybe')).toBe(1);
+    expect(await run('settings set audio-purge-next-session on')).toBe(0);
+    expect((await store.getSettings()).audioPurgeOnNextSession).toBe('on');
+    out.length = 0;
+    await run('settings show');
+    expect(out.join('\n')).toContain('audio-purge-next-session   on');
+    out.length = 0;
+    await run('settings keys');
+    expect(out.join('\n')).toContain('audio-purge-next-session');
+  });
+});
+
 describe('signup requests', () => {
   const ask = (email: string, name = 'Visitor', message = '') =>
     signups.submit({ email, displayName: name, message });

@@ -1,6 +1,11 @@
 import { randomUUID } from 'node:crypto';
 
-import { PROCESS_RECORDING_JOB, type JobQueue, type RecordsStore } from '@vtt-chat-app/ai';
+import {
+  PROCESS_RECORDING_JOB,
+  PURGE_RECORDING_JOB,
+  type JobQueue,
+  type RecordsStore,
+} from '@vtt-chat-app/ai';
 import type { ChatKind } from '@vtt-chat-app/shared';
 
 import type { AckStore } from './ackStore.js';
@@ -50,6 +55,11 @@ export interface CaptureDeps {
   dir: string;
   /** The name a transcript shows for this account in this campaign. */
   speakerName: (campaignId: string, accountId: string) => Promise<string>;
+  /**
+   * Whether `audio-purge-next-session` is on (read at each recording start, so the CLI takes effect
+   * at once). Absent means off.
+   */
+  purgeOnNextSession?: () => Promise<boolean>;
   now?: () => number;
   newId?: () => string;
   log?: (line: string) => void;
@@ -292,7 +302,30 @@ export class RecordingCapture {
     });
     await this.event(recordingId, 'started');
     this.live.set(campaignId, { recordingId, startedAt, capturing: true, segments: new Map() });
+    await this.purgeEarlierAudio(campaignId, recordingId);
     await this.reconcile(campaignId);
+  }
+
+  /**
+   * The optional "purge at the next session start" rule (RECORDING-AND-SUMMARIES.md): queues the ordinary
+   * `purge-recording` job for this campaign's earlier recordings that are fully processed and still hold
+   * audio. Never another campaign's, never one still queued/processing/failed, never the new one. A failure
+   * here is logged and must not stop the new recording.
+   */
+  private async purgeEarlierAudio(campaignId: string, currentId: string): Promise<void> {
+    try {
+      if (!(await this.deps.purgeOnNextSession?.())) return;
+      const { records, jobs } = this.deps;
+      for (const r of await records.listRecordingsForCampaign(campaignId)) {
+        if (r.id === currentId || r.campaignId !== campaignId || r.status !== 'processed') continue;
+        const tracks = await records.listTracks(r.id);
+        if (!tracks.some((t) => (t.purgedAt ?? null) === null)) continue;
+        await jobs.enqueue({ kind: PURGE_RECORDING_JOB, recordingId: r.id }, this.now());
+        this.log(`new session started: queued a purge of the raw audio of recording ${r.id}`);
+      }
+    } catch (error) {
+      this.log(`audio purge at session start failed: ${String(error)}`);
+    }
   }
 
   private async paused(campaignId: string): Promise<void> {

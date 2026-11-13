@@ -18,6 +18,7 @@ export const DEFAULT_INSTANCE_SETTINGS: InstanceSettings = {
   campaignCreation: 'closed',
   signupRequests: 'off',
   campaignDirectory: 'on',
+  audioPurgeOnNextSession: 'off',
   offlineLimitDays: 30,
   inviteExpiryDays: 7,
   consentVersion: '1',

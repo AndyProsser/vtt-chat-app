@@ -139,6 +139,7 @@ export interface ChatMessage {
 export type CampaignCreation = 'closed' | 'open';
 
 export type SignupRequestsSetting = 'on' | 'off';
+export type AudioPurgeOnNextSessionSetting = 'on' | 'off';
 
 export type CampaignDirectorySetting = 'on' | 'off';
 
@@ -187,6 +188,11 @@ export interface InstanceSettings {
   signupRequests: SignupRequestsSetting;
   /** `on`: campaigns whose DM allows it are listed to every signed-in account. `off`: invites only. */
   campaignDirectory: CampaignDirectorySetting;
+  /**
+   * `on`: when a recording starts, the raw audio of that campaign's earlier, fully processed recordings
+   * is purged (the text stays). Off by default.
+   */
+  audioPurgeOnNextSession: AudioPurgeOnNextSessionSetting;
   /** A device unseen for this long must sign in again. */
   offlineLimitDays: number;
   inviteExpiryDays: number;

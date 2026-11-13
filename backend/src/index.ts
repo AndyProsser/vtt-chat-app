@@ -132,6 +132,7 @@ if (isEntryPoint) {
       records,
       jobs: new PostgresJobQueue(pool),
       acks,
+      purgeOnNextSession: async () => (await store.getSettings()).audioPurgeOnNextSession === 'on',
       dir: config.recordingsDir,
       speakerName: async (campaignId, accountId) => {
         const membership = await store.getMembership(campaignId, accountId);

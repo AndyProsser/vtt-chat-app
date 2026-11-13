@@ -314,6 +314,14 @@ then deletes that audio three days later; below 3% free it does not wait. At mos
 check. Set `AUDIO_DISK_PURGE=0` in `.env` to switch the disk rule off (the age rule and the DM's button stay).
 (Built 2026-11-10; tested with fakes and a real Postgres, not yet watched on a filling disk.)
 
+A fourth rule, **off by default**: `./vtt-admin settings set audio-purge-next-session on`. When a recording
+**starts** in a campaign, the raw audio of that campaign's *earlier* recordings is purged, but only those that
+are fully processed (transcript and summaries done) and still hold audio. Anything queued, processing or
+failed is left alone, and so is every other campaign. The text stays. It is the "the DM never pressed delete"
+rule: the DM's button is the only confirmation there is, so a recording the DM has not deleted counts as
+unconfirmed. The worker does the deleting and logs each one (`docker compose logs worker`); `recording list`
+then shows "audio purged". Turn it back off with `... audio-purge-next-session off`.
+
 **Health you can rely on:** the app reconnects itself after network loss, sleep or a server restart. A
 recording survives the DM's app crashing (see section 6). A **server** restart during a recording marks
 that recording interrupted; the audio already written is kept and can be reprocessed.

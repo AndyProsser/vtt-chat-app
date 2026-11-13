@@ -473,3 +473,94 @@ describe('RecordingCapture', () => {
     });
   });
 });
+
+describe('purging earlier audio when a session starts', () => {
+  const OLD = 'rec-old';
+  const seed = async (
+    id: string,
+    campaignId: string,
+    status: 'processed' | 'processing' | 'stopped' | 'failed',
+    purgedAt: number | null = null,
+  ) => {
+    await records.putRecording({ id, campaignId, startedAt: 1, stoppedAt: 2, status });
+    await records.putTrack({
+      id: `${id}-t`,
+      recordingId: id,
+      speakerId: 'u1',
+      speakerName: 'U1',
+      filePath: `/out/${id}.ogg`,
+      startOffsetMs: 0,
+      private: false,
+      transcribedAt: null,
+      purgedAt,
+    });
+  };
+  const withRule = (on: boolean) => {
+    capture = new RecordingCapture({
+      recorder,
+      records,
+      jobs,
+      acks,
+      dir: '/out/',
+      speakerName: async () => 'n',
+      purgeOnNextSession: async () => on,
+      now: () => time,
+      log: (l) => log.push(l),
+      sleep: async () => {
+        time += 100;
+      },
+      pollMs: 100,
+    });
+  };
+  const purgeJobs = async () =>
+    (await jobs.list()).filter((j) => j.kind === 'purge-recording').map((j) => j.recordingId);
+
+  it('queues a purge for this campaign’s earlier processed recordings, and logs it', async () => {
+    withRule(true);
+    await seed(OLD, CAMPAIGN, 'processed');
+    capture.onRecordingChange(change('STARTED'));
+    await capture.idle();
+    expect(await purgeJobs()).toEqual([OLD]);
+    expect(log.some((l) => l.includes(OLD))).toBe(true);
+  });
+
+  it('does nothing when the setting is off (the default) or absent', async () => {
+    withRule(false);
+    await seed(OLD, CAMPAIGN, 'processed');
+    capture.onRecordingChange(change('STARTED'));
+    await capture.idle();
+    expect(await purgeJobs()).toEqual([]);
+  });
+
+  it('never touches a recording that is not fully processed, already purged, or another campaign’s', async () => {
+    withRule(true);
+    await seed('r-proc', CAMPAIGN, 'processing');
+    await seed('r-stop', CAMPAIGN, 'stopped');
+    await seed('r-fail', CAMPAIGN, 'failed');
+    await seed('r-gone', CAMPAIGN, 'processed', 5);
+    await seed('r-other', 'camp-2', 'processed');
+    capture.onRecordingChange(change('STARTED'));
+    await capture.idle();
+    expect(await purgeJobs()).toEqual([]);
+  });
+
+  it('still starts the recording if the rule cannot be read', async () => {
+    capture = new RecordingCapture({
+      recorder,
+      records,
+      jobs,
+      acks,
+      dir: '/out/',
+      speakerName: async () => 'n',
+      purgeOnNextSession: async () => {
+        throw new Error('db down');
+      },
+      now: () => time,
+      log: (l) => log.push(l),
+    });
+    capture.onRecordingChange(change('STARTED'));
+    await capture.idle();
+    expect((await records.getRecording(REC))?.status).toBe('recording');
+    expect(log.some((l) => l.includes('failed'))).toBe(true);
+  });
+});

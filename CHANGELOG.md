@@ -12,6 +12,7 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ### Added
 
+- **Operators: purge raw audio when the next session starts** (off by default): `vtt-admin settings set audio-purge-next-session on` deletes the raw audio of a campaign's earlier, fully processed recordings when a new recording starts there. The text (transcripts and summaries) stays; recordings still being processed, and other campaigns', are never touched.
 - **More summaries per recorded session:** a chapter summary for each part either side of a pause, and a summary from each player character's point of view, next to the session and DM-only ones.
 - **Typed lines in the History transcript:** what was typed into the public chat during a recording now shows in the transcript among the spoken lines, marked "(typed)" (it was already in summaries and search). Out-of-character lines and whispers stay out.
 - **Operators: NVIDIA GPU support for recording** (`infra/compose/compose.gpu.yml`), including GTX 10-series cards. Whisper and the language model leave the GPU a minute or two after the work is done. GPU defaults: Whisper `large-v3-turbo` and `qwen3:8b`.
