@@ -3,7 +3,9 @@
 Records are a **core** part of the design (decided 2026-11-05), not a plugin. This document is the
 design sketch for the whole path: recording → consent cue → transcript → summaries → access.
 
-**Status:** design sketch; nothing here is implemented. Items marked **(open)** are undecided.
+**Status:** built, and **run end to end on the Docker Compose stack on 2026-11-12** (synthetic voices; see
+[Verified on the Compose stack](#verified-on-the-compose-stack-2026-11-12)). The early sections are the design
+as sketched; the dated "as built" sections below say what exists. Items marked **(open)** are undecided.
 
 ## Why server-side
 
@@ -42,7 +44,8 @@ flowchart LR
 3. **Transcribe each track** with Whisper.cpp, then **merge by timestamp** into one transcript with
    speaker = track owner. Overlapping speech is preserved instead of guessed at.
 4. **Summarise** with a local LLM (Ollama). Outputs: session summary, chapter summaries,
-   character-specific summaries, DM-only summaries. Long sessions are map-reduce summarised
+   character-specific summaries, DM-only summaries (all four built 2026-11-12: a chapter is a stretch between
+   pauses, a character summary is written for each player who spoke or typed, under their transcript name). Long sessions are map-reduce summarised
    (per-chunk, then combined) — local models have small effective context.
 5. **Anchors:** summaries reference transcript timestamps. If DM markers stay in scope **(open)**,
    chapter summaries are cut at markers; otherwise at detected topic shifts.
@@ -92,13 +95,14 @@ Recording people is a trust matter before it is a technical one. The design is:
   separately ([CLAUDE.md §7](../../.claude/CLAUDE.md)).
 - The DM can delete a campaign's records; the operator can purge by policy.
 
-## Sizing (rough, to be measured in the Stage 2 spike)
+## Sizing (measured 2026-11-12; details in the next section)
 
-| Item                      | Estimate                                                                                                                                                                   | Note                                                                                                                                                          |
-| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Raw audio, Opus per track | ~30–60 MB per speaker-hour                                                                                                                                                 | 5 players × 4 h ≈ 0.6–1.2 GB per session before transcode                                                                                                     |
-| Whisper.cpp               | **Measured 2026-11-07 (8-core desktop, `small` q5_1):** RTF ~0.77 on continuous speech, ~0.13 on a sparse track once silence is skipped. `medium` and GPU not yet measured | Skip silence by segmenting each track ourselves — see [AUDIO-SPIKE-RESULTS.md](AUDIO-SPIKE-RESULTS.md) Finding 4. Per-speaker tracks multiply the audio-hours |
-| LLM summary               | Minutes per session on CPU with a small model                                                                                                                              | Run after the session, not live                                                                                                                               |
+| Item                      | Measured                                                                                                                          | Note                                                                                                            |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| Raw audio, Opus per track | **12–29 MB per player-hour** (27 kbit/s for a mostly quiet track, up to 64 kbit/s for the DM, who talks most)                     | 5 players × 4 h ≈ 0.25–0.6 GB per session. Synthetic mic without DTX; a real client that sends DTX may be lower |
+| Whisper.cpp, CPU          | `small` q5_1: **RTF 0.30** of the track's length (8-core desktop, 4 threads; 8 threads is no faster); `medium` q5_0: RTF 0.95     | Speech windows only, so silence costs nothing; `medium` was no more accurate on clean speech                    |
+| Whisper.cpp, GPU          | GTX 1080: `small` RTF 0.024, `large-v3-turbo` q5_0 RTF 0.037, `medium` q5_0 RTF 0.044; ~0.6 / ~1.0 / ~1.0 GB of VRAM              | `large-v3-turbo` was the most accurate                                                                          |
+| LLM, per summary          | GTX 1080: llama3.2:3b ~7 s, llama3.1:8b / qwen3:8b ~14–17 s. CPU: llama3.2:3b ~50 s, qwen3:8b ~150 s (a 3-minute scene's summary) | A recording gets 2 + chapters + one per player summaries; a long session is map-reduced (more calls)            |
 
 Processing runs **after** the session by default; "live" summaries are a later enhancement that
 depends on measured CPU headroom.
@@ -126,8 +130,8 @@ depends on measured CPU headroom.
   that clients have to keep in sync.
 
 - **Whisper model default depends on hardware:** chosen at setup (GPU detected or not), overridable
-  by an environment variable or the CLI. Proposed starting points, to be validated by the
-  Stage 2 spike: **CPU-only → `small` (quantised)**, **GPU → `large-v3-turbo`**. (`small` q5_1 on CPU is confirmed workable; the GPU choice is still unmeasured.)
+  by an environment variable or the CLI. **CPU-only → `small` q5_1**, **GPU → `large-v3-turbo` q5_0** —
+  both confirmed by measurement on 2026-11-12 (see below); the GPU default is `compose.gpu.yml`'s.
 - **Transcribe speech windows, not whole tracks — built** (`ai/src/lib/speechWindows.ts`; measured in AUDIO-SPIKE-RESULTS.md Finding 5, where the problem proved hardware-independent). Segment each track with a silence detector (ffmpeg `silencedetect` gave exact windows in the spike), transcribe the windows, and add each window's start offset. whisper.cpp's own `--vad` produced timestamps that drift by tens of seconds, and whole-track transcription both wastes time on silence and hallucinates text on room noise.
 - **Standing consent is collected at account creation** ("you consent that you may be recorded…"),
   stored in Postgres against the user profile with a timestamp and the **version of the consent
@@ -243,3 +247,62 @@ Drilled against a real LiveKit server and a real Egress with `infra/records-smok
 recorded, the process "restarts", recovery stops the egress and keeps a playable file. It passed on
 2026-11-10 on the dev PC. The drill's backend side runs in one process (a fresh `RecordingCapture`
 standing in for the restarted backend); a real `kill -9` of the packaged backend is not drilled.
+
+## Verified on the Compose stack (2026-11-12)
+
+`infra/records-smoke/compose-e2e.ts` ran the whole path on the local Docker Compose stack (records profile,
+GPU override, GTX 1080 8 GB, 8-core desktop, 31 GB RAM): four people (DM + three players) connected over
+the WebSocket and to LiveKit through Caddy's `wss://`, each publishing synthetic speech (piper TTS, four
+voices) as their microphone; the DM recorded through the real API; every app acknowledged the cue.
+
+**Passed (66 checks):** every connected app acknowledged; the late joiner was told "in progress, not
+acknowledged" and **nothing they said before acknowledging was captured**; words spoken while paused were not
+captured; per-speaker word accuracy 0.97–1.00 with no line under the wrong name; typed `chat`, `/say` and
+`/do` lines in the transcript marked typed; **the `/ooc` line, the `/late` quick line, a `/dm` and a `/tell`
+whisper appeared nowhere** (transcript, summaries, search as DM and as player); session, DM-only, two chapter
+and three character summaries; DM-only never returned to a player (detail, list, search); search found a
+spoken and a typed phrase; a second recording needed (and got) fresh acknowledgements; **`docker compose kill
+worker` mid-job → the job finished on attempt 2** after the 5-minute lease; with transcription pointed at an
+unreachable server and a 20 s fallback, **the worker fell back to the local Whisper** and the recording was
+processed. A backend recreated mid-recording (by another session) was also recovered as designed: egresses
+stopped, audio kept, processing queued.
+
+**Measured** (same machine; Whisper through the worker's own windowing code, `whisper-bench.ts`, a 6.5-minute
+Opus track of the scene's lines in four voices; LLM through `llm-bench.ts` on the recorded scene's transcript):
+
+| Whisper                   | RTF (time ÷ audio) | Word accuracy | Peak memory         |
+| ------------------------- | ------------------ | ------------- | ------------------- |
+| GPU `small` q5_1          | 0.024              | 0.982         | ~0.6 GB VRAM        |
+| GPU `medium` q5_0         | 0.044              | 0.980         | ~1.0 GB VRAM        |
+| GPU `large-v3-turbo` q5_0 | 0.037              | **0.988**     | ~1.0 GB VRAM        |
+| CPU `small` q5_1, 4 thr   | 0.30               | 0.982         | 0.4 GB RAM, 4 cores |
+| CPU `small` q5_1, 8 thr   | 0.32 (no faster)   | 0.982         | 0.4 GB RAM          |
+| CPU `medium` q5_0, 8 thr  | 0.95               | 0.984         | 0.9 GB RAM          |
+
+| LLM (one summary of a 3-min scene) | GTX 1080 | CPU    | VRAM    | Judged quality                                                                                                 |
+| ---------------------------------- | -------- | ------ | ------- | -------------------------------------------------------------------------------------------------------------- |
+| llama3.2:3b                        | ~7 s     | ~50 s  | ~2.7 GB | Readable, but **invents** (an NPC "Cattil" and her promise; the eel "defeated"; the party "entering" the door) |
+| llama3.1:8b                        | ~14 s    | —      | ~5.2 GB | Faithful and well ordered; a stray meta remark, one invented "promise" in a character summary                  |
+| qwen3:8b (thinking off)            | ~15 s    | ~150 s | ~5.5 GB | **Most faithful**, best structure, correct who-did-what (one slip: who asked about the inscription)            |
+
+Peaks during a full e2e run on the GPU: VRAM 7.1 GB of 8 (desktop 1.1 GB + Ollama), Ollama 6.3 GB RAM, Whisper
+0.35 GB, Egress 0.18 GB and ~1.3 cores while recording four tracks, worker 75 MB. **Idle, the card is back at the
+desktop's ~1.1 GB** (Whisper stops after 60 s idle, Ollama unloads after 2 min). Audio: 12–29 MB per player-hour.
+
+**Defaults chosen:**
+
+- **GPU (compose.gpu.yml): Whisper `large-v3-turbo` q5_0 + `qwen3:8b`.** Turbo was the most accurate and only
+  ~1.5× slower than `small`; a 4-hour, five-player session is a few minutes of Whisper. qwen3:8b gave the most
+  faithful summaries for ~2× llama3.2:3b's time, still about 15 s a summary; both fit an 8 GB card one after
+  the other (the worker never runs them together). Smaller cards: `small` + `llama3.2:3b`.
+- **CPU (compose.yml): Whisper `small` q5_1 (4 threads, whisper-server's default) + `llama3.2:3b`.** `medium` costs
+  3× for no measurable gain on clean speech; 8 threads were no faster than 4. qwen3:8b would be the better
+  summariser but is ~3× slower on CPU (a long session's summaries go from hours to most of a night) and needs
+  ~6 GB of RAM, so it stays an opt-in (`OLLAMA_MODEL=qwen3:8b`) for CPU servers with the memory and patience.
+- Ollama is always called with thinking off (reasoning models otherwise spend minutes on hidden text), and any
+  `<think>` block a server returns is stripped.
+
+**Still unverified:** real human voices, room noise, echo and crosstalk (TTS flatters accuracy); a real
+4-hour session's map-reduce summaries (the scene fits one model call); the Rust desktop client and phone app as
+the recorded clients (the e2e uses LiveKit's Node SDK); a CPU-only server end to end (CPU numbers are the
+same Whisper/LLM measured standalone).

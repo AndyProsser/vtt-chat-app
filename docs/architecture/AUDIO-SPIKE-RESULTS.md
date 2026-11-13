@@ -85,4 +85,8 @@ UI will not change.
 1. **Per-player gain and the cue mixer vs. the ADM.** Options: (a) accept ADM playout and do gain by other means; (b) take over playout ourselves (`NativeAudioStream` per remote → own mixer → one output stream) and feed WebRTC's audio-processing module the mixed signal as the echo reference (`libwebrtc::native::apm`, which exists). (b) keeps full control but is the harder path and is only worth it if acoustic tests show (a) can't meet the gain requirement.
 2. Acoustic AEC quality, CPU and latency — need two machines, open mics and speakers, and a LiveKit server.
 3. Auto-rejoin after network drop and sleep/wake.
-4. ~~Part B~~ ran on 2026-11-07 (Finding 4). Still open: Whisper on GPU, `medium`, VAD-segmented transcription built into `ai/`, and a long real conversation instead of a repeated sample.
+4. ~~Part B~~ ran on 2026-11-07 (Finding 4). ~~Whisper on GPU, `medium`, segmented transcription in `ai/`~~ measured
+   on 2026-11-12 through the worker's own code path (`infra/records-smoke/whisper-bench.ts`; numbers in
+   [RECORDING-AND-SUMMARIES.md](RECORDING-AND-SUMMARIES.md#verified-on-the-compose-stack-2026-11-12)). Still open: a long
+   **real** conversation (human voices, room noise, crosstalk) with a reference transcript; the 2026-11-12 numbers use
+   synthetic TTS speech, which flatters accuracy.

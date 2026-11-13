@@ -15,6 +15,37 @@ cd tauri-client && cargo fmt --check && cargo clippy --workspace --all-targets -
 
 Last run (2026-11-09, memory stores): backend 406 (+18 skipped without Postgres), panels-ui 213, ddb 9, status 3; Rust: src-tauri 88 (+2 ignored), rust-livekit and rust-sync as before, with the LiveKit live tests passing individually on SDK 0.10.1. `cargo clippy -D warnings` still fails on the old unused `capture_allowed`. Not run: anything in CI (the workflow exists, nothing has run it since the pivot).
 
+## Ran against the real thing 2026-11-12: recording + AI end to end on the Compose stack
+
+The records profile ran for the first time on the local Compose stack (`vtt-smoke`, GPU override, GTX 1080), driven
+by the new **`infra/records-smoke/compose-e2e.ts`**: real WebSocket clients, real LiveKit participants (Node SDK,
+`wss://` through Caddy) speaking synthetic TTS speech, the real recording API and consent acks, Egress, the Postgres
+job queue, the worker, Whisper and Ollama, checked through the Records API. **66/66 checks passed** (one run needed a
+test fix: two search checks ran against the wrong recording). Numbers and chosen defaults:
+[RECORDING-AND-SUMMARIES.md](architecture/RECORDING-AND-SUMMARIES.md#verified-on-the-compose-stack-2026-11-12).
+
+| Verified live                                                                                                | How                                  |
+| ------------------------------------------------------------------------------------------------------------ | ------------------------------------ |
+| Consent: all apps ack; a late joiner is not captured before acking; nothing captured while paused            | transcript checks                    |
+| Speaker attribution (per-speaker accuracy 0.97–1.00), typed IC lines (chat, `/say`, `/do`) in the transcript | API, as a player                     |
+| `/ooc`, `/late`, `/dm`, `/tell` absent from transcript, summaries and search                                 | unique marker words                  |
+| Session, DM-only, chapter and character summaries; DM-only never served to a player                          | detail, list, search                 |
+| Durable queue: worker `docker compose kill`ed mid-job, job completed on attempt 2                            | `jobs.attempts`                      |
+| Remote-AI fallback: unreachable transcription URL → local Whisper after 20 s                                 | worker log                           |
+| Restart recovery with a real container recreate mid-recording (egresses stopped, audio processed)            | backend log (happened by accident)   |
+| GPU freed when idle (Whisper idle front, Ollama keep-alive)                                                  | `nvidia-smi` back to desktop ~1.1 GB |
+
+**Bugs and gaps found and fixed:** only session and DM-only summaries existed (chapter and character summaries built,
+migration 0029); typed lines reached summaries and search but not `GET …/transcript` (now merged, marked `typed`);
+Qwen3-style models would think aloud into the summary (`think: false` + `<think>` stripped); `compose.yml` pointed at a
+`compose.gpu.yml` that did not exist (written; Whisper CUDA build moved to `infra/compose/`, with an idle front that frees
+VRAM); whisper and egress had no healthchecks (the worker waited only for "started"); Ollama kept models loaded 5 min
+(now `OLLAMA_KEEP_ALIVE`, default 2m); the chat line's kind was dropped on the way to the timeline (now kept; worker and
+search refuse `ooc` again — defence in depth).
+
+**Still unverified:** real human voices, noise, echo and crosstalk; a real multi-hour session (map-reduce path); the Rust
+desktop client and phone app as the recorded clients; a CPU-only server end to end; a fresh-VM install by someone else.
+
 ## Built 2026-11-11, later: the web app, chat commands, cookie sessions (0.4, dev.1 to dev.4)
 
 What exists, and **how far each piece has been checked** (U = unit tests, B = measured in headless Chromium against the
@@ -187,7 +218,7 @@ Each is one constant or setting; change freely.
 | Invite expiry **7 days**; magic link **15 min**; min password **10**; scrypt N=2^15                                                                     | `backend/src/consts/index.ts`           |
 | Rate limits: 10 logins/15 min per IP+email; 10 chat msgs/10 s; 20 invite tries/15 min                                                                   | `backend/src/lib/app.ts`, `hub.ts`      |
 | Replay buffer 500 events / 10 min; stats every 5 s in a voice session; idle = online/offline only                                                       | `SYNC-PROTOCOL.md`                      |
-| Whisper default: CPU-only `small` (quantised), GPU `large-v3-turbo` — unmeasured                                                                        | `RECORDING-AND-SUMMARIES.md`            |
+| Whisper/LLM defaults: CPU `small` q5_1 + llama3.2:3b, GPU `large-v3-turbo` + qwen3:8b — measured 2026-11-12, choice not yet confirmed by Andy           | `compose.yml`, `compose.gpu.yml`        |
 | Panel-toggle hotkey is **Ctrl+Shift+P** (was Ctrl+Shift+O)                                                                                              | `src-tauri/src/hotkeys.rs`              |
 | Cues are synthesised tones; **a spoken "Session recording in progress" clip is not built** and needs an asset decision                                  | `rust-livekit/src/cue/`                 |
 | The Admin CLI talks to the database directly (no HTTP, no sign-in); AI API keys live in the environment, never the database                             | `backend/README.md`                     |

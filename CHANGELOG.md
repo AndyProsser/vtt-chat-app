@@ -12,6 +12,11 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ### Added
 
+- **More summaries per recorded session:** a chapter summary for each part either side of a pause, and a summary from each player character's point of view, next to the session and DM-only ones.
+- **Typed lines in the History transcript:** what was typed into the public chat during a recording now shows in the transcript among the spoken lines, marked "(typed)" (it was already in summaries and search). Out-of-character lines and whispers stay out.
+- **Operators: NVIDIA GPU support for recording** (`infra/compose/compose.gpu.yml`), including GTX 10-series cards. Whisper and the language model leave the GPU a minute or two after the work is done. GPU defaults: Whisper `large-v3-turbo` and `qwen3:8b`.
+- **Operators: an end-to-end smoke test** for the recording pipeline (`infra/records-smoke/compose-e2e.ts`).
+
 - **The desktop app announces its protocol on the live connection too**; a server on a different protocol answers "update required" and the app shows the update strip instead of retrying.
 - **A page-not-found screen** in the site's own frame for unknown addresses (it was a plain white text page).
 - **Ask to join a table.** Someone with no campaign sees the tables that are open to requests (name, DM and player count) and can ask to join with an optional message; people who already have a campaign can ask to join others too. **The DM approves or declines** (not the operator), gets a badge and a notification for new requests, and can switch **Allow join** off in the campaign's settings to hide the table. Allow join is on by default. Operators can hide all listings with `vtt-admin settings set campaign-directory off`. You can have up to 5 requests open, and ask again 7 days after a decline.

@@ -43,9 +43,10 @@ Nothing here needs an outside account. Players' apps talk only to **your** serve
 
 - **A machine you control**: a VM or a spare PC with Ubuntu 24.04 (Docker Compose also works on other
   Linux). 4 GB of memory is enough for voice and chat. **Recording and AI summaries need more**: the
-  speech-to-text and the language model are the heavy parts. Real sizing numbers are not measured yet
-  (the model download alone is about 2 GB). Without a GPU, a session is transcribed in hours, not minutes,
-  and that is by design (the work runs after the game).
+  speech-to-text and the language model are the heavy parts: plan on **8 GB of memory and ~15 GB of disk**
+  for them on a CPU-only server (images, models, and audio at ~12–30 MB per player-hour until you delete
+  it). Without a GPU, a session is transcribed and summarised in hours, not minutes, and that is by design
+  (the work runs after the game). An NVIDIA GPU makes it minutes ([section 6](#6-turn-on-recording-and-ai-summaries)).
 - **A domain name** pointing at the machine (for example `vtt.example.com`). Browsers and the app
   need real HTTPS; Caddy gets the certificate for you from Let's Encrypt. To try things on one machine, use
   `localhost`.
@@ -185,6 +186,45 @@ docker compose --profile records up -d --wait
 This adds **Egress** (about 4 GB of image), **Whisper** (speech to text; about 190 MB model),
 **Ollama** (a language model, about 2 GB for the default `llama3.2:3b`) and the **worker** that runs the
 jobs. The first start downloads the models; give it time (`docker compose logs -f models-init ollama-pull`).
+
+**What to expect on a CPU-only server** (measured on an 8-core desktop, 2026-11-12): Whisper `small` takes
+about 0.3 × the length of each player's speech, and each summary 1–2 minutes with `llama3.2:3b`. A 4-hour
+session with five players is a few hours of work, done after the game; nothing is lost if it takes all night.
+Memory while it runs: Whisper about 0.5 GB, the language model about 3 GB.
+
+### With an NVIDIA GPU (including GTX 10-series)
+
+Add the GPU override. It builds Whisper for your card once (about 30 minutes, a ~6 GB image; upstream's
+CUDA image does not run on GTX 10-series cards) and runs Whisper and Ollama on the GPU:
+
+```bash
+nvidia-ctk cdi list | grep nvidia.com/gpu=all    # the NVIDIA Container Toolkit with CDI must be set up
+echo 'COMPOSE_FILE=compose.yml:compose.gpu.yml' >> .env   # so every docker compose command includes it
+docker compose --profile records up -d --build --wait
+```
+
+Defaults for an 8 GB card: Whisper **`large-v3-turbo`** (q5_0, ~574 MB download, ~1 GB of VRAM, ~27×
+faster than real time) and **`qwen3:8b`** for the summaries (~5.2 GB download, ~5.5 GB of VRAM, ~15 s a
+summary on a GTX 1080). On a 4–6 GB card set `WHISPER_MODEL_FILE=ggml-small-q5_1.bin` and
+`OLLAMA_MODEL=llama3.2:3b` in `.env`. `CUDA_ARCHS` (default `61;75;86;89`) picks which card generations
+the build supports. **The GPU is free between jobs:** Whisper stops after `WHISPER_IDLE_SECONDS` (60) without
+work and Ollama unloads its model after `OLLAMA_KEEP_ALIVE` (2m), so a machine that is also a gaming PC
+gets its VRAM back a minute or two after the summaries are written. The worker runs Whisper and the
+language model one after the other, never together.
+
+**Disk:** Egress image ~4 GB, Whisper CUDA image ~6 GB (CPU image ~1.7 GB), Ollama image ~8.5 GB, models as
+above, and audio at about 12–30 MB per player-hour (deleted when the DM confirms the summary, or by the
+retention rules in section 8).
+
+### Check it works: the end-to-end smoke test
+
+From a checkout of the repository on the server (Node and `npm install` needed), with the records profile
+up, `node infra/records-smoke/compose-e2e.ts` plays a four-minute scripted scene with four synthetic
+players, records it, waits for the worker and checks the result through the API: who said what, typed
+lines, nothing from whispers or `/ooc` anywhere, all four kinds of summary, DM-only kept from players,
+search, a worker killed mid-job, and (`--fallback`) the fallback from an unreachable remote AI. It makes its
+own `@example.com` accounts and campaign. Setup (a small text-to-speech program) and options:
+[infra/records-smoke/README.md](../../infra/records-smoke/README.md#the-compose-end-to-end-test-compose-e2ets-run-it-after-an-install).
 
 How it behaves, so you can explain it to your players:
 
