@@ -1590,6 +1590,495 @@ function signInCodeFor(email) {
   return signInCode(email);
 }
 
+// 10. The DM's tools in the phone app: notes (write, preview, show, edit, delete) and the schedule ---------
+const tab = (p, name) => clickText(p, new RegExp(`^${name}$`), '.phone-tab');
+const visible = (p, sel) =>
+  p.$eval(sel, (e) => e.getBoundingClientRect().width > 0).catch(() => false);
+const hasText = (p, re) =>
+  p.evaluate((src) => new RegExp(src, 'i').test(document.body.innerText), re.source);
+/** Sets a native datetime-local input the way a picker does (a value and an input event). */
+const setDateTime = (p, sel, value) =>
+  p.$eval(
+    sel,
+    (e, v) => {
+      const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+      set.call(e, v);
+      e.dispatchEvent(new Event('input', { bubbles: true }));
+    },
+    value,
+  );
+const localInput = (offsetDays, hh) =>
+  `(() => { const d = new Date(Date.now() + ${offsetDays} * 864e5); const p = (n) => String(n).padStart(2, '0'); return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + 'T${hh}:00'; })()`;
+/** The scrolling area of a tab must not scroll sideways either (the page-level check cannot see inside it). */
+const mainFits = (p) =>
+  p.$eval('.phone-main', (e) => e.scrollWidth <= e.clientWidth).catch(() => false);
+const activeId = (p) => p.evaluate(() => document.activeElement?.id ?? '');
+const waitGone = (p, re, timeout = 10000) =>
+  p.waitForFunction(
+    (src) => !new RegExp(src, 'i').test(document.body.innerText),
+    { timeout },
+    re.source,
+  );
+
+flows.dmtools = async (b) => {
+  const t = await ensureTable();
+  for (const view of views) {
+    const dmScheme = view === 'desktop' ? 'light' : 'dark';
+    const plScheme = view === 'desktop' ? 'dark' : 'light';
+    const tag = `dmtools ${view}`;
+    const stamp = Date.now().toString(36);
+    const NOTE = `Riddle ${stamp}`;
+    const EDITED = `Riddle ${stamp} (revised)`;
+    const DRAFT = `Draft ${stamp}`;
+    const SESSION = `Session ${stamp}`;
+    const MOVED = `Session ${stamp} moved`;
+    const dm = await newPage(b, {
+      view,
+      scheme: dmScheme,
+      cookie: t.dm,
+      tag: `dm ${view}/${dmScheme}`,
+      problems,
+    });
+    const pl = await newPage(b, {
+      view,
+      scheme: plScheme,
+      cookie: t.pl,
+      tag: `pl ${view}/${plScheme}`,
+      problems,
+    });
+    await openApp(dm);
+    await openApp(pl);
+    await tab(pl, 'Handouts');
+    await tab(dm, 'Handouts');
+    await sleep(600);
+
+    // Players get none of the tools.
+    check(
+      `${tag}: a player has no New note button`,
+      !(await visible(pl, 'button[aria-label="New note"]')),
+    );
+    check(
+      `${tag}: the DM has the New note button`,
+      await visible(dm, 'button[aria-label="New note"]'),
+    );
+    const plan = (
+      await api(t.pl, 'POST', `/api/campaigns/${t.id}/handouts`, { title: 'x', text: 'y' })
+    ).status;
+    check(`${tag}: the server refuses a player a note (403)`, plan === 403, String(plan));
+
+    // Write a note: the sheet opens with the title focused.
+    await dm.click('button[aria-label="New note"]');
+    await dm.waitForSelector('.phone-sheet');
+    await sleep(300);
+    check(
+      `${tag}: the sheet opens with focus in the title`,
+      /-title$/.test(await activeId(dm)),
+      await activeId(dm),
+    );
+    check(`${tag}: the note sheet does not scroll sideways`, await mainFits(dm));
+    await shot(dm, `${tag}-note-empty`);
+    // Saving an empty form says what is missing.
+    await clickText(dm, /^Save draft$/);
+    await waitText(dm, /Give the note a title/);
+    check(
+      `${tag}: an empty note is refused with a reason`,
+      await hasText(dm, /Write something for the note/),
+    );
+    check(
+      `${tag}: the cursor goes to the field that needs attention`,
+      /-title$/.test(await activeId(dm)),
+    );
+    await dm.keyboard.type(NOTE);
+    await dm.click('.phone-sheet textarea');
+    await dm.keyboard.type(
+      '# Speak\n\n**friend** and enter <script>alert(1)</script>\n\n- one\n- two',
+    );
+    check(`${tag}: the counter follows the text`, await hasText(dm, /\d+ \/ 20,000/));
+    await clickText(dm, /^Preview$/, '[role=radio]');
+    await dm.waitForSelector('.phone-preview .phone-md h1');
+    check(
+      `${tag}: the preview renders Markdown and drops raw HTML`,
+      await dm.$eval(
+        '.phone-preview',
+        (e) =>
+          e.querySelector('strong')?.textContent === 'friend' &&
+          !e.querySelector('script') &&
+          e.querySelectorAll('li').length === 2,
+      ),
+    );
+    await shot(dm, `${tag}-note-preview`);
+    await clickText(dm, /^Write$/, '[role=radio]');
+    // Escape on a dirty form asks before throwing it away.
+    await dm.keyboard.press('Escape');
+    await dm.waitForSelector('[role=alertdialog]');
+    check(`${tag}: Escape on a dirty note asks to discard`, true);
+    await clickText(dm, /^Keep editing$/);
+    await sleep(200);
+    check(
+      `${tag}: Keep editing stays on the sheet`,
+      (await visible(dm, '.phone-sheet')) && !(await visible(dm, '[role=alertdialog]')),
+    );
+    // Show it to the table now, and save.
+    await dm.click('button[role=switch]');
+    await shot(dm, `${tag}-note-show`);
+    await clickText(dm, /^Save and show$/);
+    await dm.waitForSelector('.phone-sheet', { hidden: true });
+    await waitText(dm, new RegExp(NOTE));
+    check(`${tag}: saving returns to the list with the new note`, true);
+    check(
+      `${tag}: focus returns to the New note button`,
+      (await dm.evaluate(() => document.activeElement?.getAttribute('aria-label'))) === 'New note',
+    );
+    // The player, who had the list open, sees it without reloading.
+    await waitText(pl, new RegExp(NOTE), 10000);
+    check(`${tag}: the player's list gets the note live`, true);
+    await clickText(pl, new RegExp(NOTE), 'button.phone-card-button');
+    await pl.waitForSelector('.phone-md h1');
+    check(
+      `${tag}: the player reads it as formatted text, with no script`,
+      await pl.$eval(
+        '.phone-md',
+        (e) => e.querySelector('strong')?.textContent === 'friend' && !e.querySelector('script'),
+      ),
+    );
+    check(
+      `${tag}: a player's note view has no Edit or Delete`,
+      !(await hasText(pl, /^Edit$|Delete/m)),
+    );
+    await shot(pl, `${tag}-note-player`);
+    await clickText(pl, /^Back$/);
+
+    // Edit it: the player sees the change live.
+    await clickText(dm, new RegExp(NOTE), 'button.phone-card-button');
+    await dm.waitForSelector('.phone-actions');
+    check(`${tag}: the DM's note shows Shown to players`, await hasText(dm, /Shown to players/));
+    await shot(dm, `${tag}-note-view-dm`);
+    await clickText(dm, /^Edit$/, 'button');
+    await dm.waitForSelector('.phone-sheet');
+    check(
+      `${tag}: edit opens with the saved text`,
+      (await dm.$eval('.phone-sheet textarea', (e) => e.value)).includes('**friend**'),
+    );
+    await dm.click('.phone-sheet input');
+    await dm.keyboard.press('End');
+    await dm.keyboard.type(' (revised)');
+    await dm.click('.phone-sheet textarea');
+    await dm.keyboard.down('Control');
+    await dm.keyboard.press('End');
+    await dm.keyboard.up('Control');
+    await dm.keyboard.type('\n\nIt was a trick.');
+    await clickText(dm, /^Save$/);
+    await dm.waitForSelector('.phone-sheet', { hidden: true });
+    await waitText(dm, /It was a trick/);
+    check(`${tag}: saving an edit returns to the note, updated`, true);
+    await waitText(pl, new RegExp(EDITED.replace(/[()]/g, '\\$&')), 10000);
+    check(`${tag}: the player's list shows the edited title live`, true);
+
+    // A draft stays hidden from players; hiding and showing work; delete needs a second press.
+    await clickText(dm, /^Back$/);
+    await dm.click('button[aria-label="New note"]');
+    await dm.waitForSelector('.phone-sheet');
+    await dm.keyboard.type(DRAFT);
+    await dm.click('.phone-sheet textarea');
+    await dm.keyboard.type('Only for me.');
+    await clickText(dm, /^Save draft$/);
+    await dm.waitForSelector('.phone-sheet', { hidden: true });
+    await sleep(1500);
+    check(
+      `${tag}: a draft shows a Draft badge to the DM`,
+      await dm.evaluate(
+        (d) =>
+          [...document.querySelectorAll('button.phone-card-button')].some(
+            (c) => c.innerText.includes(d) && /Draft/.test(c.innerText),
+          ),
+        DRAFT,
+      ),
+    );
+    check(`${tag}: a draft is not in the player's list`, !(await hasText(pl, new RegExp(DRAFT))));
+    await clickText(dm, new RegExp(DRAFT), 'button.phone-card-button');
+    await dm.waitForSelector('.phone-actions');
+    await clickText(dm, /^Show$/, 'button');
+    await waitText(pl, new RegExp(DRAFT), 10000);
+    check(`${tag}: Show puts the draft in the player's list live`, true);
+    await clickText(dm, /^Hide$/, 'button');
+    await waitGone(pl, new RegExp(DRAFT));
+    check(`${tag}: Hide takes it away from the player live`, true);
+    await clickText(dm, /^Delete$/, 'button');
+    await dm.waitForFunction(() => /Press again to delete/.test(document.body.innerText));
+    check(`${tag}: the first Delete press only asks`, await hasText(dm, new RegExp(DRAFT)));
+    await clickText(dm, /Press again to delete/, 'button');
+    await dm.waitForSelector('.phone-actions', { hidden: true });
+    await sleep(800);
+    check(`${tag}: the second press deletes the draft`, !(await hasText(dm, new RegExp(DRAFT))));
+    // Delete the shown note too: the player's list loses it live.
+    await clickText(dm, new RegExp(NOTE), 'button.phone-card-button');
+    await dm.waitForSelector('.phone-actions');
+    await clickText(dm, /^Delete$/, 'button');
+    await clickText(dm, /Press again to delete/, 'button');
+    await waitGone(pl, new RegExp(NOTE), 10000);
+    check(`${tag}: deleting a shown note removes it from the player's list live`, true);
+    check(`${tag}: no x-overflow in the notes`, (await noOverflow(dm)) && (await noOverflow(pl)));
+
+    // The schedule ---------------------------------------------------------------------------------------
+    await tab(dm, 'Sessions');
+    await tab(pl, 'Sessions');
+    await sleep(600);
+    check(
+      `${tag}: a player has no schedule button`,
+      !(await visible(pl, 'button[aria-label="Schedule a session"]')),
+    );
+    const ps = (
+      await api(t.pl, 'POST', `/api/campaigns/${t.id}/sessions`, {
+        title: 'x',
+        startsAt: Date.now() + 864e5,
+      })
+    ).status;
+    check(`${tag}: the server refuses a player a session (403)`, ps === 403, String(ps));
+    await dm.click('button[aria-label="Schedule a session"]');
+    await dm.waitForSelector('.phone-sheet');
+    await sleep(300);
+    check(`${tag}: the schedule sheet shows the zone`, await hasText(dm, /Your time: .+\(.+\)/));
+    check(
+      `${tag}: the title starts as the next Session N`,
+      /^Session \d+$/.test(await dm.$eval('.phone-sheet input', (e) => e.value)),
+    );
+    // A time in the past is refused with a reason.
+    const dateSel = '.phone-sheet input[type=datetime-local]';
+    await setDateTime(dm, dateSel, await dm.evaluate(localInput(-1, '19')));
+    await clickText(dm, /^Schedule$/);
+    await waitText(dm, /already passed/);
+    check(`${tag}: a past time is refused with a reason`, true);
+    await shot(dm, `${tag}-session-error`);
+    await setField(dm, '.phone-sheet input', SESSION);
+    await setDateTime(dm, dateSel, await dm.evaluate(localInput(2, '19')));
+    await dm.click('.phone-sheet textarea');
+    await dm.keyboard.type('Bring **snacks**.');
+    check(`${tag}: the schedule sheet does not scroll sideways`, await mainFits(dm));
+    await shot(dm, `${tag}-session-form`);
+    await clickText(dm, /^Schedule$/);
+    await dm.waitForSelector('.phone-sheet', { hidden: true });
+    await waitText(dm, new RegExp(SESSION));
+    check(`${tag}: the new session is on the DM's list`, true);
+    await waitText(pl, new RegExp(SESSION), 10000);
+    check(`${tag}: the player's list gets the session live`, true);
+    check(
+      `${tag}: the notes are formatted`,
+      await pl.evaluate(() =>
+        [...document.querySelectorAll('.phone-md strong')].some((e) => e.textContent === 'snacks'),
+      ),
+    );
+    // The player answers; the card keeps the answer.
+    const card = (p, name) =>
+      p.evaluateHandle(
+        (n) => [...document.querySelectorAll('.rt-Card')].find((c) => c.innerText.includes(n)),
+        name,
+      );
+    const answer = async (p, name, label) => {
+      const c = (await card(p, name)).asElement();
+      const btn = await c.evaluateHandle(
+        (el, l) => [...el.querySelectorAll('button')].find((x) => x.innerText.trim() === l),
+        label,
+      );
+      await btn.asElement().click();
+    };
+    await answer(pl, SESSION, 'Can make it');
+    await sleep(800);
+    check(
+      `${tag}: the player's RSVP is kept`,
+      (await (await card(pl, SESSION)).asElement().evaluate((c) => c.innerText)).includes('1 in'),
+    );
+    await shot(pl, `${tag}-session-player`);
+    await shot(dm, `${tag}-session-dm`);
+    // Edit: the move reaches the player.
+    const own = (await card(dm, SESSION)).asElement();
+    await (
+      await own.evaluateHandle((el) => el.querySelector('button[aria-label="Edit this session"]'))
+    )
+      .asElement()
+      .click();
+    await dm.waitForSelector('.phone-sheet');
+    check(
+      `${tag}: edit opens with the saved values`,
+      (await dm.$eval('.phone-sheet input', (e) => e.value)) === SESSION,
+    );
+    await setField(dm, '.phone-sheet input', MOVED);
+    await clickText(dm, /^Save$/);
+    await dm.waitForSelector('.phone-sheet', { hidden: true });
+    await waitText(pl, new RegExp(MOVED), 10000);
+    check(`${tag}: the player sees the edited session live`, true);
+    check(
+      `${tag}: the RSVP survived the edit`,
+      (await (await card(pl, MOVED)).asElement().evaluate((c) => c.innerText)).includes('1 in'),
+    );
+    // Cancel needs a second press and removes it for both.
+    await waitText(dm, new RegExp(MOVED));
+    const own2 = (await card(dm, MOVED)).asElement();
+    await (
+      await own2.evaluateHandle((el) =>
+        el.querySelector('button[aria-label="Cancel this session"]'),
+      )
+    )
+      .asElement()
+      .click();
+    await dm.waitForFunction(() => /Press again to cancel/.test(document.body.innerText));
+    check(`${tag}: the first Cancel press only asks`, await hasText(dm, new RegExp(MOVED)));
+    await clickText(dm, /Press again to cancel/, 'button');
+    await waitGone(pl, new RegExp(MOVED), 10000);
+    await waitGone(dm, new RegExp(MOVED), 10000);
+    check(`${tag}: cancelling removes the session for the DM and the player`, true);
+    check(
+      `${tag}: no x-overflow in the schedule`,
+      (await noOverflow(dm)) && (await noOverflow(pl)),
+    );
+    await p_close(dm, pl);
+  }
+  await sheetFit(b, t);
+};
+/** Every box inside the open sheet must lie within the sheet's own edges (a clipped sheet would hide a scrollbar, not the fault). */
+const sheetOffenders = (p) =>
+  p.evaluate(() => {
+    const sheet = document.querySelector('.phone-sheet');
+    if (!sheet) return ['no sheet'];
+    const box = sheet.getBoundingClientRect();
+    const out = [];
+    for (const e of sheet.querySelectorAll('*')) {
+      const cs = getComputedStyle(e);
+      const r = e.getBoundingClientRect();
+      if (r.width === 0 || r.height === 0 || cs.opacity === '0' || cs.visibility === 'hidden')
+        continue;
+      if (r.right > box.right + 0.5 || r.left < box.left - 0.5)
+        out.push(
+          `${e.tagName.toLowerCase()}.${String(e.className).split(' ')[0]} ${Math.round(r.left)}..${Math.round(r.right)} in ${Math.round(box.left)}..${Math.round(box.right)}`,
+        );
+    }
+    return out.slice(0, 4);
+  });
+const sheetFits = async (p, label) => {
+  const page = await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth);
+  const main = await mainFits(p);
+  const bad = await sheetOffenders(p);
+  check(
+    `${label}`,
+    page && main && bad.length === 0,
+    bad.join(' | ') || (page && main ? '' : `page ${page} main ${main}`),
+  );
+};
+const discard = async (p) => {
+  await p.keyboard.press('Escape');
+  await p.waitForSelector('[role=alertdialog]');
+  await clickText(p, /^Discard$/);
+  await p.waitForSelector('.phone-sheet', { hidden: true });
+};
+const LONG = 'W'.repeat(120);
+const FIT_WIDTHS = [320, 360, 390, 640, 1000];
+
+/** Every sheet, at every width, in write and preview, with long unbroken text: nothing may leave the sheet. */
+async function sheetFit(b, t) {
+  const stamp = Date.now().toString(36);
+  const note = (
+    await api(t.dm, 'POST', `/api/campaigns/${t.id}/handouts`, {
+      title: `Fit ${stamp}`,
+      text: 'A note to edit.',
+    })
+  ).json.handout;
+  const session = (
+    await api(t.dm, 'POST', `/api/campaigns/${t.id}/sessions`, {
+      title: `Fit session ${stamp}`,
+      startsAt: Date.now() + 5 * 864e5,
+      durationMinutes: 120,
+      notes: 'To edit.',
+    })
+  ).json.session;
+  try {
+    for (const w of FIT_WIDTHS) {
+      const tag = `sheet fit ${w}px`;
+      const p = await newPage(b, {
+        view: 'desktop',
+        scheme: w === 320 ? 'dark' : 'light',
+        cookie: t.dm,
+        tag: `dm ${w}px`,
+        problems,
+      });
+      await p.setViewport({
+        width: w,
+        height: 800,
+        deviceScaleFactor: 1,
+        isMobile: w <= 640,
+        hasTouch: w <= 640,
+      });
+      await openApp(p);
+      await tab(p, 'Handouts');
+      await sleep(500);
+      // New note.
+      await p.click('button[aria-label="New note"]');
+      await p.waitForSelector('.phone-sheet');
+      await sleep(250);
+      await p.keyboard.type(LONG);
+      await p.click('.phone-sheet textarea');
+      await p.keyboard.type(`${LONG} ${LONG}\n\n# ${LONG}`);
+      await sheetFits(p, `${tag}: new note`);
+      if (w === 320 || w === 1000) await shot(p, `fit-${w}-note`);
+      await clickText(p, /^Preview$/, '[role=radio]');
+      await p.waitForSelector('.phone-preview .phone-md');
+      await sheetFits(p, `${tag}: new note, preview`);
+      if (w === 320 || w === 1000) await shot(p, `fit-${w}-note-preview`);
+      await discard(p);
+      // Edit a note.
+      await clickText(p, new RegExp(`Fit ${stamp}`), 'button.phone-card-button');
+      await p.waitForSelector('.phone-actions');
+      await clickText(p, /^Edit$/, 'button');
+      await p.waitForSelector('.phone-sheet');
+      await p.click('.phone-sheet input');
+      await p.keyboard.press('End');
+      await p.keyboard.type(LONG);
+      await sheetFits(p, `${tag}: edit note`);
+      await clickText(p, /^Preview$/, '[role=radio]');
+      await sheetFits(p, `${tag}: edit note, preview`);
+      await discard(p);
+      await clickText(p, /^Back$/, 'button');
+      // Schedule.
+      await tab(p, 'Sessions');
+      await sleep(400);
+      await p.click('button[aria-label="Schedule a session"]');
+      await p.waitForSelector('.phone-sheet');
+      await sleep(250);
+      await setField(p, '.phone-sheet input', LONG);
+      await p.click('.phone-sheet textarea');
+      await p.keyboard.type(`${LONG} ${LONG}`);
+      await sheetFits(p, `${tag}: schedule`);
+      if (w === 320 || w === 1000) await shot(p, `fit-${w}-schedule`);
+      await clickText(p, /^Preview$/, '[role=radio]');
+      await sheetFits(p, `${tag}: schedule, preview`);
+      await discard(p);
+      // Edit a session.
+      await p.evaluate(
+        (n) =>
+          [...document.querySelectorAll('.rt-Card')]
+            .find((c) => c.innerText.includes(n))
+            ?.querySelector('button[aria-label="Edit this session"]')
+            ?.click(),
+        `Fit session ${stamp}`,
+      );
+      await p.waitForSelector('.phone-sheet');
+      await p.click('.phone-sheet input');
+      await p.keyboard.press('End');
+      await p.keyboard.type(LONG);
+      await sheetFits(p, `${tag}: edit session`);
+      await clickText(p, /^Preview$/, '[role=radio]');
+      await sheetFits(p, `${tag}: edit session, preview`);
+      await discard(p);
+      await p.__context.close();
+    }
+  } finally {
+    await api(t.dm, 'DELETE', `/api/campaigns/${t.id}/handouts/${note.id}`);
+    await api(t.dm, 'DELETE', `/api/campaigns/${t.id}/sessions/${session.id}`);
+  }
+}
+
+const p_close = async (...ps) => {
+  for (const p of ps) await p.__context.close();
+};
+
 // runner ------------------------------------------------------------------------------------------------
 const want = process.argv.slice(2);
 const names = want.length ? want : Object.keys(flows);
