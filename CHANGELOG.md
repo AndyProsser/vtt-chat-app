@@ -12,6 +12,7 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ### Added
 
+- **Each language in `/say-<language>` has its own typeface**, in both apps: elegant italics for Elvish, a heavy slab for Dwarvish and Giant, a blackletter for Infernal, a rounded face for Halfling and Gnomish, handwriting for Goblin and Orc, and so on. The fonts ship with the app and load only the first time a line in that language is shown (about 150 KB in total, nothing at startup).
 - **An Account page in the browser** (`/account`, in the header and the phone menu): change your display name and picture, see which recording notice you accepted and when, set or change your password (the form stays folded away until you press the button), and see every device you are signed in on and sign any of them out (or all the others). Changing the password signs your other devices out. Sign-out buttons need a second press to confirm.
 - **Operators: purge raw audio when the next session starts** (off by default): `vtt-admin settings set audio-purge-next-session on` deletes the raw audio of a campaign's earlier, fully processed recordings when a new recording starts there. The text (transcripts and summaries) stays; recordings still being processed, and other campaigns', are never touched.
 - **More summaries per recorded session:** a chapter summary for each part either side of a pause, and a summary from each player character's point of view, next to the session and DM-only ones.

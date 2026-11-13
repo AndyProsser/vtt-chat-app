@@ -77,12 +77,24 @@ Kinds must be told apart without relying on colour alone (accessibility), and mu
 everyone knows what was spoken: a per-language style preset (a font stack and letter-spacing, chosen to suggest the
 tongue: flowing for Elvish, blocky for Dwarvish, angular for Infernal) and a caption such as _"in Elvish"_ under the
 line. The caption is real text, so it is read by assistive technology and copied with the message. _(my call:
-system font stacks only, no bundled font files, so the tray app stays small; a language falls back to the plain
-`say` style if a font is missing.)_
+bundled web fonts, fetched only when used (see below); a language falls back to a system stack if a font cannot load.)_
 
 Built-in languages (the D&D 5e set, one table in `shared/`): Common, Dwarvish, Elvish, Giant, Gnomish, Goblin,
 Halfling, Orc, Abyssal, Celestial, Draconic, Deep Speech, Infernal, Primordial, Sylvan, Undercommon, Thieves' cant,
 Druidic. The `lang` sent over the wire is a key from this table; the server rejects anything else.
+
+### Fonts
+
+Each style has its own typeface: Cormorant Garamond (flowing: Elvish, Sylvan, Celestial), Alfa Slab One (blocky: Dwarvish,
+Giant), Pirata One (angular: Infernal, Abyssal and similar), Fredoka (rounded: Halfling, Gnomish), Caveat (scratchy: Goblin,
+Orc), Cinzel Decorative (arcane) and Share Tech Mono (mono). They are **bundled with each client, never loaded from the
+internet**, and an `@font-face` file is downloaded by the browser only the first time a line in that style is shown, so a
+table that never speaks Goblin never fetches the Goblin font. All seven add up to about 150 KB in the build (the largest is
+51 KB), and nothing loads at startup. The table lives once in `shared/` (`LANGUAGE_STYLE_CSS`) and both clients import the
+font files from `languageFonts.ts`. The fonts are SIL Open Font Licence 1.1 and come from the Fontsource npm packages, which
+carry their licence files into the build. A font that cannot load falls back to a system stack, and the "in {language}"
+caption keeps the meaning either way. The first use of a style can flash the fallback face for an instant (`font-display:
+swap`).
 
 ### Future: polyglots (not designed in detail, not built)
 

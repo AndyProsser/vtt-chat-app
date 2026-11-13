@@ -3,6 +3,7 @@ import '@fontsource/cinzel/600.css';
 import './styles/tokens.css';
 import './styles/theme.css';
 import './styles/main.css';
+import './lib/languageFonts.js';
 
 import { createRoot } from 'react-dom/client';
 

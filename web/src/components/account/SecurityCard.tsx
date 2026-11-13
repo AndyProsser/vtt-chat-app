@@ -140,13 +140,14 @@ export function SecurityCard({
                 setConfirm,
                 'new-password',
               )}
-              <Flex gap="2">
+              <Flex gap="2" align="center">
                 <Button type="submit" size="3" loading={busy}>
                   Save password
                 </Button>
                 <Button
                   type="button"
-                  variant="ghost"
+                  variant="soft"
+                  color="gray"
                   size="3"
                   aria-expanded
                   aria-controls={formId}

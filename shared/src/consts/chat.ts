@@ -1,4 +1,4 @@
-import type { ChatCommand, ChatKind, ChatLanguage } from '../types/chat.js';
+import type { ChatCommand, ChatKind, ChatLanguage, ChatLanguageStyle } from '../types/chat.js';
 
 export const CHAT_KINDS: readonly ChatKind[] = ['chat', 'say', 'do', 'ooc'];
 
@@ -109,3 +109,50 @@ export const BASE_CHAT_COMMANDS: readonly ChatCommand[] = [
     kind: 'ooc',
   },
 ];
+
+/**
+ * How each language style is set (CSS properties in camelCase), shared by the web app and the desktop app so a line
+ * looks the same in both. The first family in each stack is a web font that is bundled with each client and fetched
+ * only when a line in a language that uses it is first shown (browsers load an `@font-face` file lazily); the rest is
+ * the system fallback. Sizes are nudged because these faces have very different x-heights. The weights match the font
+ * files each client imports (see `languageFonts.ts`): Cormorant Garamond italic 500, Alfa Slab One 400, Pirata One 400,
+ * Fredoka 500, Caveat 600, Cinzel Decorative 700, Share Tech Mono 400.
+ */
+export const LANGUAGE_STYLE_CSS: Record<ChatLanguageStyle, Record<string, string>> = {
+  plain: {},
+  flowing: {
+    fontFamily: '"Cormorant Garamond","Palatino Linotype","Book Antiqua",Palatino,Georgia,serif',
+    fontStyle: 'italic',
+    fontWeight: '500',
+    fontSize: '1.1em',
+    letterSpacing: '.02em',
+  },
+  blocky: {
+    fontFamily: '"Alfa Slab One",Rockwell,"Roboto Slab","Courier New",serif',
+    fontWeight: '400',
+    fontSize: '.92em',
+    letterSpacing: '.03em',
+  },
+  angular: {
+    fontFamily: '"Pirata One","Trebuchet MS","Segoe UI",sans-serif',
+    fontWeight: '400',
+    fontSize: '1.12em',
+    letterSpacing: '.04em',
+  },
+  rounded: {
+    fontFamily: 'Fredoka,ui-rounded,Nunito,"Varela Round",sans-serif',
+    fontWeight: '500',
+  },
+  scratchy: {
+    fontFamily: 'Caveat,"Brush Script MT","Segoe Script","Bradley Hand",cursive',
+    fontWeight: '600',
+    fontSize: '1.2em',
+  },
+  arcane: {
+    fontFamily: '"Cinzel Decorative",Papyrus,Luminari,fantasy',
+    fontWeight: '700',
+    fontSize: '.95em',
+    letterSpacing: '.06em',
+  },
+  mono: { fontFamily: '"Share Tech Mono","Courier New","SF Mono",monospace' },
+};

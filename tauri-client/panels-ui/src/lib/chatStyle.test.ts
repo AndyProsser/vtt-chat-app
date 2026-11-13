@@ -15,7 +15,7 @@ describe('chat style', () => {
   });
   it('maps a language to its preset', () => {
     expect(languageStyle('elvish')?.fontStyle).toBe('italic');
-    expect(languageStyle('dwarvish')?.fontWeight).toBe('bold');
+    expect(languageStyle('dwarvish')?.fontFamily).toMatch(/^"Alfa Slab One"/);
     expect(languageStyle('common')).toEqual({});
     expect(languageStyle('klingon')).toBeUndefined();
     expect(languageOf('deep-speech')?.name).toBe('Deep Speech');

@@ -1,4 +1,9 @@
-import { CHAT_LANGUAGES, type ChatKind, type ChatLanguageStyle } from '@vtt-chat-app/shared';
+import {
+  CHAT_LANGUAGES,
+  LANGUAGE_STYLE_CSS,
+  type ChatKind,
+  type ChatLanguageStyle,
+} from '@vtt-chat-app/shared';
 import type { CSSProperties } from 'react';
 
 import type { ChatLine } from '../../types/phone.js';
@@ -15,34 +20,8 @@ export const KIND_CLASS: Record<ChatKind | 'whisper', string> = {
   whisper: 'phone-line-whisper',
 };
 
-/** System fonts only, no font files. The same table is used by the desktop app so the two match. */
-export const LANGUAGE_STYLES: Record<ChatLanguageStyle, CSSProperties> = {
-  plain: {},
-  flowing: {
-    fontFamily: '"Palatino Linotype","Book Antiqua",Palatino,Georgia,serif',
-    fontStyle: 'italic',
-    letterSpacing: '.02em',
-  },
-  blocky: {
-    fontFamily: 'Rockwell,"Roboto Slab","Courier New",serif',
-    fontWeight: 'bold',
-    letterSpacing: '.04em',
-  },
-  angular: {
-    fontFamily: '"Trebuchet MS","Segoe UI",sans-serif',
-    fontStyle: 'italic',
-    fontVariantCaps: 'small-caps',
-    letterSpacing: '.08em',
-  },
-  rounded: { fontFamily: 'ui-rounded,Nunito,"Varela Round",sans-serif' },
-  scratchy: { fontFamily: '"Brush Script MT","Segoe Script","Bradley Hand",cursive' },
-  arcane: {
-    fontFamily: 'Papyrus,Luminari,fantasy',
-    fontVariantCaps: 'small-caps',
-    letterSpacing: '.12em',
-  },
-  mono: { fontFamily: '"Courier New","SF Mono",monospace' },
-};
+/** The same table as the desktop app (it lives in `shared/`); the font files load only when a line first uses them. */
+export const LANGUAGE_STYLES = LANGUAGE_STYLE_CSS as Record<ChatLanguageStyle, CSSProperties>;
 
 const language = (key: string | undefined) => CHAT_LANGUAGES.find((l) => l.key === key);
 

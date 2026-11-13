@@ -2,6 +2,7 @@ import '@radix-ui/themes/styles.css';
 import './styles/palette.css';
 import './styles/theme.css';
 import './styles/phone.css';
+import './lib/languageFonts.js';
 
 import { Theme } from '@radix-ui/themes';
 import { createRoot } from 'react-dom/client';
