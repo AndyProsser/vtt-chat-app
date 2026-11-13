@@ -1,2 +1,5 @@
 .env
 livekit.yaml
+# backups hold the secrets (config/) — never commit them
+backups/
+*.before-restore

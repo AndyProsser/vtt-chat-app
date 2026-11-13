@@ -29,17 +29,17 @@ umask 077
 mkdir -p "$out/config"
 echo "Backing up to $out"
 
-docker compose up -d --wait postgres >/dev/null
+docker compose up -d --wait postgres >/dev/null 2>&1 || { echo "could not start the database service (is the stack installed here?)" >&2; exit 1; }
 echo "  database…"
 docker compose exec -T postgres pg_dump -U vtt -d vtt --no-owner | gzip > "$out/database.sql.gz"
 [[ -s $out/database.sql.gz ]] || { echo "the database dump is empty; stopping" >&2; exit 1; }
 
 echo "  uploaded files…"
-docker compose run --rm --no-deps -T --entrypoint sh media-init -c 'tar -C /data/media -cz .' > "$out/media.tar.gz"
+docker compose run --rm --no-deps -T --entrypoint sh media-init -c 'tar -C /data/media -cz .' > "$out/media.tar.gz" 2> >(grep -v '^ Container ' >&2)
 
 if ((audio)); then
   echo "  recorded audio (this can be large)…"
-  docker compose --profile records run --rm --no-deps -T --entrypoint sh recordings-init -c 'tar -C /out -cz .' > "$out/recordings.tar.gz"
+  docker compose --profile records run --rm --no-deps -T --entrypoint sh recordings-init -c 'tar -C /out -cz .' > "$out/recordings.tar.gz" 2> >(grep -v '^ Container ' >&2)
 fi
 
 echo "  configuration (contains secrets)…"
@@ -50,6 +50,8 @@ cp .env "$out/config/.env"
   echo "VTT Chat App backup"
   echo "made:     $(date -u +%FT%TZ)"
   echo "commit:   $(git -C ../.. rev-parse --short HEAD 2>/dev/null || echo unknown)"
+  echo "images:   $(sed -n 's/^VTT_VERSION=//p' .env | head -1)"
+  echo "schema:   $(docker compose exec -T postgres psql -U vtt -d vtt -Atc 'select max(name) from schema_migrations' 2>/dev/null || echo unknown)"
   echo "audio:    $([[ $audio -eq 1 ]] && echo included || echo "not included")"
   echo "contents: database.sql.gz, media.tar.gz$([[ $audio -eq 1 ]] && echo ', recordings.tar.gz'), config/"
 } > "$out/MANIFEST.txt"

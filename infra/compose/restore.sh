@@ -37,13 +37,19 @@ fi
 [[ -f .env ]] || { echo "no .env: restore with --with-config, or run ./setup.sh first" >&2; exit 1; }
 
 echo "Stopping the services that use the database…"
-docker compose up -d --wait postgres >/dev/null
+docker compose up -d --wait postgres valkey >/dev/null 2>&1
 docker compose stop backend worker egress >/dev/null 2>&1 || true
 
 echo "Replacing the database…"
 docker compose exec -T postgres psql -U vtt -d postgres -v ON_ERROR_STOP=1 \
   -c "DROP DATABASE IF EXISTS vtt WITH (FORCE)" -c "CREATE DATABASE vtt OWNER vtt" >/dev/null
 gunzip -c "$src/database.sql.gz" | docker compose exec -T postgres psql -U vtt -d vtt -v ON_ERROR_STOP=1 -q >/dev/null
+
+# The live-chat replay buffer lives in Valkey, not the database. A client that reconnects after the restore
+# would otherwise be replayed lines the restored database does not have (found in the 2026-11-13 rehearsal).
+# Only the backend's own keys go: LiveKit keeps its room state in the same Valkey. Clients then get a fresh snapshot.
+echo "Clearing the live-chat replay buffer…"
+docker compose exec -T valkey sh -c 'valkey-cli --scan --pattern "replay:*" | xargs -r valkey-cli del' >/dev/null
 
 echo "Replacing the uploaded files…"
 docker compose run --rm --no-deps -T --entrypoint sh media-init -c 'rm -rf /data/media/* /data/media/.[!.]* 2>/dev/null; tar -C /data/media -xz && chown -R 1000:1000 /data/media' < "$src/media.tar.gz"
