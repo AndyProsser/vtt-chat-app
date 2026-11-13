@@ -15,6 +15,63 @@ cd tauri-client && cargo fmt --check && cargo clippy --workspace --all-targets -
 
 Last run (2026-11-09, memory stores): backend 406 (+18 skipped without Postgres), panels-ui 213, ddb 9, status 3; Rust: src-tauri 88 (+2 ignored), rust-livekit and rust-sync as before, with the LiveKit live tests passing individually on SDK 0.10.1. `cargo clippy -D warnings` still fails on the old unused `capture_allowed`. Not run: anything in CI (the workflow exists, nothing has run it since the pivot).
 
+## Rehearsed 2026-11-13: the "second person" deploy from the docs, a backup/restore drill and a 90-minute server soak
+
+An agent standing in for the second operator followed [OPERATOR-GUIDE.md](guides/OPERATOR-GUIDE.md) literally on this machine,
+in its own Compose project (`vtt-rehearsal`, own volumes, a scratch copy of `infra/compose` from `git archive`, no `.env`),
+with the dev `vtt-smoke` stack stopped (not removed) meanwhile and started again afterwards. **This is a stand-in, not the
+Stage 3 done-when**: it was the same machine and the same author's docs. Still needing a real VM: DNS, a Let's Encrypt certificate,
+UDP voice from another network, and a human who has not read the code.
+
+**Install from the published images (`v0.4.0-dev.5`, pulled from GHCR).** `setup.sh` -> `pull` -> `up -d --wait` -> `vtt-admin user create` ->
+sign in in the browser path with a short code (HttpOnly `__Host-` cookie, CSRF origin check answered 403 to a foreign origin) ->
+campaign, invite, a second account through the join/register path -> WebSocket chat both directions (cookie upgrade and `auth` frame),
+a whisper, `/say`, `/ooc` -> a LiveKit room join over `wss://localhost/livekit` through Caddy (Node SDK; needs the CA in `SSL_CERT_FILE`) ->
+`vtt-admin status/settings/updates/storage`. Request-to-join (and the directory) is not in dev.5; it passed on the local build `vtt-local/...:e2e` (HEAD of 2026-11-12), also
+proving an upgrade from dev.5's database (migrations 0027 to 0029 applied over existing data).
+
+**Deviations found and fixed** (docs, scripts, compose):
+
+| Found                                                                                                                                                                                      | Fix                                                                                                                                                                    |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `setup.sh` pinned `VTT_VERSION=0.4` (Cargo line); only dev tags exist, so `docker compose pull` failed `not found`                                                                         | `setup.sh` pins a dev tag exactly (newest git tag), honours `VTT_VERSION=` from the environment, prints the version; guide and README explain it                       |
+| Valkey's host port 6379 and the backend's 3000 were taken: `up` failed with `address already in use`, nothing in the guide                                                                 | `setup.sh` picks free loopback ports (`VALKEY_HOST_PORT`, `BACKEND_PORT`) and warns when 80/443/7880/7881 are busy; troubleshooting rows added; `setup.test.sh`        |
+| Guide section 3 said `docker compose up -d --build` (builds from source) while the README says pull; section 10 likewise                                                                   | both lead with `docker compose pull`; building is the stated alternative                                                                                               |
+| Guide said `/api/health` returns `{"ok":true,...}`; it returns `{"status":"ok"}`                                                                                                           | fixed                                                                                                                                                                  |
+| First-account step only described the desktop app (an operator may have none yet)                                                                                                          | the browser path (front page, "I have a sign-in code") added                                                                                                           |
+| `restore.sh` left Valkey's replay buffer: a client reconnecting after an in-place restore was replayed a chat line the restored database no longer had (reproduced, then fixed and re-run) | `restore.sh` deletes the backend's `replay:*` keys (not LiveKit's) so clients get a snapshot                                                                           |
+| `backups/` (holds secrets) was not git-ignored                                                                                                                                             | `.gitignore`                                                                                                                                                           |
+| `backup.sh` printed Compose noise and recorded no version                                                                                                                                  | quiet, and `MANIFEST.txt` now has the image version and schema                                                                                                         |
+| Stopping or restarting the backend took 10 s (Node as PID 1 ignores SIGTERM, there is no handler)                                                                                          | `init: true` on the backend service (restart now sub-second). A real SIGTERM handler (close sockets with 1001, finish writes) is backend code and is left to its owner |
+
+**Understood, not bugs:** `vtt-admin storage` says `cannot read /out` without the records profile; `updates sync` says `offering no release` because the dev.5 GitHub release has no Linux installers (the sync waits for all three platforms; reproduced even with `UPDATES_INCLUDE_DEV=1`).
+
+**Backup/restore drill.** Recognisable data (3 accounts, 2 campaigns, 14 chat lines incl. a whisper, 2 handouts with an uploaded PNG, a scheduled session with an RSVP, a profile edit, two settings) -> `backup.sh` (12 KB database, 2 KB media; a drill with `--audio` also) -> `down -v` of the project -> a **new bundle directory with no `.env`** -> `restore.sh <folder> --yes --with-config` (23 s) -> row counts identical, passwords sign in, history and whisper present, handout bytes identical (sha256), RSVP and settings back. In-place restore: a session from before the backup still works, one made after is signed out, post-backup chat gone, replay buffer cleared, `--audio` files replaced (planted file removed, backed-up file restored byte for byte). Notes: with `localhost` Caddy generates a new CA on a new machine (re-trust it; its volume is not backed up); not tested with large real recordings.
+
+**Soak (90 minutes, published-path stack running the `e2e` build, six clients over `wss://` through Caddy).** About 1.25 lines/s: 6756 chat lines
+(919 whispers, 624 quick-command RSVPs), presence and voice-state frames, 505 deliberate disconnect/reconnects (each client about once a minute), two recording
+start/stop cycles with consent acks (no Egress on this stack: the state machine ran, no tracks), one burst of 15 lines (6 refused `rate_limited`, as designed), and a forced
+`docker compose restart backend` at minute 45 during the second recording.
+
+| Measure                                            | Result                                                                                                                                                                                                                      |
+| -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Lines persisted                                    | 6753 of 6756; the 3 missing were in flight at the restart (no echo to the sender, not in the database): a client should keep unconfirmed lines and retry                                                                    |
+| Lines missing at any client after reconnect/resume | 0 (all six clients, every public line sent after they first connected)                                                                                                                                                      |
+| Duplicate chat frames                              | 3 duplicate frames (one client) and 2 sequence regressions, not traced further (most likely a replay overlapping a live frame at a reconnect; the frames carry the same `id`, so a client that dedupes by id is unaffected) |
+| Resume path                                        | 509 resumes, 6 snapshots (the initial connects); the epoch survived the restart because the replay buffer lives in Valkey                                                                                                   |
+| Whisper leaks to a third party                     | 0                                                                                                                                                                                                                           |
+| Round trip (send to own echo)                      | median 13 ms, p95 15 ms, p99 19 ms, max 1027 ms (restart)                                                                                                                                                                   |
+| Backend RSS                                        | 105.6 MB (first 5 samples) to 106.0 MB (last 5); range 102.6 to 144.9 MB; docker memory 50 to 47 MiB: no growth                                                                                                             |
+| Open file descriptors / threads                    | 21 to 38 / 11 constant: no leak                                                                                                                                                                                             |
+| Valkey used memory                                 | 1.4 to 1.55 MiB, flat after the first minutes (bounded replay buffer)                                                                                                                                                       |
+| Postgres connections / backend CPU                 | 2 to 11 / about 0 to 3 % idle, peak 76 % during the restart                                                                                                                                                                 |
+| Errors in the backend log                          | 0; `auth.revoked` 0                                                                                                                                                                                                         |
+| Chat retention                                     | 5000 lines per campaign (pruning ran as designed; the verifier polled the table every 3 minutes)                                                                                                                            |
+
+**Findings for the backend owner (not fixed here):** (1) a restart during a recording marks it `failed` ("interrupted by a restart"; 0 tracks): the DM must start a new one, and the players' timer
+ends; documented behaviour should say so. (2) No SIGTERM handler (worked around in Compose). (3) The 3 in-flight lines above: the server assigns the id, so a retry after a reconnect cannot be deduplicated server-side (SYNC-PROTOCOL says the client-generated `id` dedupes retried sends; the hub uses a fresh UUID).
+Disk used by the rehearsal: about 80 MB of unique image layers (the published backend image; the rest was already present) plus about 100 MB of scratch files, all in the session's scratch directory; volumes removed with `down -v`.
+
 ## Ran against the real thing 2026-11-12: recording + AI end to end on the Compose stack
 
 The records profile ran for the first time on the local Compose stack (`vtt-smoke`, GPU override, GTX 1080), driven

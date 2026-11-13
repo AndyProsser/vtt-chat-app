@@ -44,6 +44,9 @@ services:
       dockerfile: infra/compose/backend.Dockerfile
       target: backend
     restart: unless-stopped
+    # Node as PID 1 ignores SIGTERM (the backend installs no handler), so every stop waited out Docker's 10 s grace
+    # period and was then killed (found by the 2026-11-13 soak). A tiny init forwards the signal and Node exits at once.
+    init: true
     depends_on:
       postgres: { condition: service_healthy }
       valkey: { condition: service_healthy }

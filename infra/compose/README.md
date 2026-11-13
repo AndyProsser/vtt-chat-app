@@ -8,13 +8,17 @@ cd infra/compose
 ./setup.sh vtt.example.com            # or: ./setup.sh localhost   to try it on one machine
 docker compose pull                   # the published images for this release line (see below)
 docker compose up -d --wait
-curl -k https://vtt.example.com/api/health
+curl -k https://vtt.example.com/api/health      # {"status":"ok"}
 ```
 
+If a port is taken, `setup.sh` warns (80, 443, 7880, 7881) or picks a free one (Valkey's and the backend's loopback ports).
+
 **Images.** Each release tag publishes `ghcr.io/andyprosser/vtt-chat-backend` and `vtt-chat-worker` (CI: `.github/workflows/images.yml`).
-`setup.sh` writes `VTT_VERSION=<MAJOR.MINOR>` into `.env` (for example `0.3`), so `docker compose pull` takes the newest **patch** of
-your line and never a new minor: a new minor changes the client/server protocol and is a deliberate upgrade of the whole stack
-([versioning rules](../../docs/architecture/VERSIONING-AND-DEPLOYMENT.md)). Pin an exact version (`VTT_VERSION=0.3.2`) to hold still.
+`setup.sh` pins `VTT_VERSION` in `.env` and prints it. On a checkout of a release tag it is the release line (`0.4`), so
+`docker compose pull` takes the newest **patch** of that line and never a new minor: a new minor changes the client/server protocol
+and is a deliberate upgrade of the whole stack ([versioning rules](../../docs/architecture/VERSIONING-AND-DEPLOYMENT.md)). When the
+newest tag is a **dev build** it is that exact version (`0.4.0-dev.5`), because dev tags publish only their own tag. Override with
+`VTT_VERSION=0.4.0-dev.4 ./setup.sh <site>` or by editing `.env`; pin an exact version (`0.3.2`) to hold still.
 To build from this checkout instead (development, or an unreleased commit): `docker compose up -d --build`.
 Dev builds (`v0.4.0-dev.N`) publish only their exact tag. If the pull is refused, the GitHub package is still private: the owner
 sets it to public once under the repository's Packages settings.

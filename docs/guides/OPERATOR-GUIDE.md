@@ -1,7 +1,10 @@
 # Operator guide
 
-For the person who runs the server: one machine, your own, no cloud account needed. **Draft (2026-11-10).**
-Steps marked **(not yet tried by someone else)** have only been run by the author.
+For the person who runs the server: one machine, your own, no cloud account needed. **Draft (2026-11-10);
+the Docker Compose path was followed step by step on a blank project on 2026-11-13 (rehearsal in
+[BUILD-STATUS.md](../BUILD-STATUS.md)), by the author standing in for a second person.**
+Steps marked **(not yet tried by someone else)** have only been run by the author; nothing here has yet been
+followed by a real second human on a real VM with a real domain.
 
 - [1. What you are running](#1-what-you-are-running)
 - [2. Before you start](#2-before-you-start)
@@ -91,9 +94,23 @@ sudo apt-get install -y docker.io docker-compose-v2 git   # or Docker's own pack
 git clone https://github.com/AndyProsser/vtt-chat-app.git
 cd vtt-chat-app/infra/compose
 ./setup.sh vtt.example.com                    # your domain; add your public IP as a second argument if behind NAT
-docker compose up -d --build --wait
-curl https://vtt.example.com/api/health       # {"ok":true,...}
+docker compose pull                           # the published images (no build, no compiler needed)
+docker compose up -d --wait
+curl https://vtt.example.com/api/health       # {"status":"ok"}
 ```
+
+(To build the images from the checkout instead, for an unreleased commit: `docker compose up -d --build --wait`.)
+
+**Which images.** `setup.sh` prints the version it pinned (`images: …`) and writes it to `.env` as `VTT_VERSION`.
+On a checkout of a release tag that is the release line (`0.4`: the newest patch, never a new minor); on a checkout
+whose newest tag is a **dev build** (`v0.4.0-dev.5`) it is that exact version, because a dev tag publishes only its own
+tag and a line like `0.4` does not exist until `0.4.0` is released. To pin something else, run
+`VTT_VERSION=0.4.0-dev.5 ./setup.sh vtt.example.com` (or edit `.env`) before `docker compose pull`. If the pull
+says `not found`, that tag is not published (or the GitHub package is still private).
+
+**Ports already in use.** `setup.sh` warns when 80, 443, 7880 or 7881 are taken on the machine (Caddy and LiveKit
+need them; find the culprit with `ss -ltnp`), and picks a free loopback port for Valkey (`VALKEY_HOST_PORT`, from 6379 up)
+and for the backend's local probe port (`BACKEND_PORT`, from 3000 up) if the defaults are busy; both are written to `.env`.
 
 What `setup.sh` does: writes `.env` and `livekit.yaml` with **fresh random secrets** (never printed, mode
 600, never committed). Re-running it leaves them alone. `--force` regenerates them, which **signs everyone
@@ -103,8 +120,12 @@ out** and, because Postgres keeps the password it first started with, also means
 Check it worked:
 
 ```bash
-./vtt-admin status          # database, Valkey and LiveKit should all say ok
+./vtt-admin status          # accounts, signups, database, Valkey and LiveKit should all say ok
 ```
+
+(`./vtt-admin` runs the CLI inside the `backend` container of the Compose project named in `.env` or the current
+directory's default; run it from `infra/compose`. If you run several instances on one machine, set
+`COMPOSE_PROJECT_NAME` to tell them apart.)
 
 Also open `https://vtt.example.com/status`: a public status page with the same checks, which is handy to
 give your players.
@@ -146,8 +167,10 @@ LXC containers are possible but unsupported ([DEPLOYMENT-AND-TRANSPORT.md](../ar
    ./vtt-admin user code you@example.com signin      # a one-time code
    ```
 
-   Then open the desktop app, choose your server, and sign in with that code (Profile → sign in with a
-   code). Set a password afterwards if you want one. `--accept-consent` records that the person has agreed to the recording notice (for the first account, that is
+   Then sign in with that code. **In a browser** (nothing to install): open `https://your-domain/`, choose Sign in,
+   then "I have a sign-in code". **In the desktop app**: choose your server and type the code in its Connect screen.
+   Set a password afterwards if you want one (the codes work once and expire in about 15 minutes; ask for another
+   with the same command). `--accept-consent` records that the person has agreed to the recording notice (for the first account, that is
    you). The first account is the Admin; add `--admin` to make a later one an Admin too. **(`user create` is new,
    2026-11-10, and has not yet been tried by someone else.)** The first Admin also gets a starter campaign with a
    randomly chosen dry-humour name (for example "Several Goblins Short of a Plan") and is its DM, created at sign-in
@@ -373,14 +396,31 @@ does not survive that disk. Do it on a schedule, for example a weekly cron job:
 ./vtt-admin status
 ```
 
-`restore.sh` stops the backend, replaces the database and the uploaded files, then starts everything. It
+`restore.sh` stops the backend, replaces the database and the uploaded files, clears the live-chat replay buffer in
+Valkey, then starts everything (on a new machine that includes pulling the images, so allow a few minutes). It
 refuses without `--yes`. A restore needs the **same secrets** the data was made with: the saved `.env` holds
 the database password and the keys that sign players in, which is why `--with-config` exists. On a
 machine that already runs, **take a fresh backup first**.
 
-Tested 2026-11-10 against a real Postgres and volume: data and uploaded files deleted, restored, and
-compared. **Not tested:** a full restore onto a brand-new machine through to players reconnecting, and the
-`--audio` path on real recordings. Rehearse on a spare machine once.
+What to expect afterwards (all seen in the 2026-11-13 rehearsal):
+
+- **Sessions travel with the database.** Players who were signed in at backup time stay signed in (their browser
+  cookie or the app's token still matches); anyone who signed in **after** the backup is signed out and must sign in
+  again, and chat lines written after the backup are gone, as is expected when you go back in time.
+- **Reconnecting clients get a fresh snapshot**, not a replay, so nobody sees a line the restored database lacks.
+- **With `localhost` as the site address Caddy makes a new certificate authority** on a new machine (its volume is not
+  in the backup), so re-trust it (`./trust-local-ca.sh`, or re-import `root.crt`). With a real domain Caddy simply
+  gets a new Let's Encrypt certificate (mind its rate limits if you restore repeatedly).
+- Not in the backup, by design: Caddy's certificates, Valkey (short-lived state), the Whisper and Ollama model
+  volumes (downloaded again), and the downloaded update feed (the sync refills it).
+- `backups/` is git-ignored; it holds your secrets, so keep it out of any repository and off this machine.
+
+Tested **2026-11-10** against a real Postgres and volume, and **2026-11-13** end to end on a blank Compose
+project: backup (with `--audio`), every volume destroyed, a new bundle on a "new machine" with no `.env`,
+`restore.sh --yes --with-config` (about 25 s plus the image pull), then accounts and passwords, chat history,
+whispers, a handout's exact bytes, a schedule with an RSVP, profile edits and settings all checked back, plus an
+in-place restore that kept old sessions and dropped newer ones. **Still not tested:** `--audio` with real
+multi-gigabyte recordings, and a restore onto a machine with a different CPU architecture.
 
 **Native install** has its own pair, with the same folder shape and flags:
 
@@ -399,9 +439,15 @@ Keep Postgres on local or block storage, **never on NFS** (file locking over NFS
 
 ```bash
 cd vtt-chat-app && git pull
-cd infra/compose && docker compose up -d --build --wait     # add --profile records if you use it
+cd infra/compose
+./backup.sh --to /mnt/backups                  # first: migrations only move forward
+grep VTT_VERSION .env                          # which images are pinned (edit it to move to a new patch or line)
+docker compose pull && docker compose up -d --wait   # add --profile records if you use it
 ./vtt-admin status
 ```
+
+(A line like `VTT_VERSION=0.4` follows its newest patch on every `pull`. A pinned dev build such as `0.4.0-dev.5`
+stays until you edit `.env`. To build from the checkout instead of pulling: `docker compose up -d --build --wait`.)
 
 The backend applies database changes (migrations) when it starts; they only move forward, so **take a
 backup first** and do not roll the code back to an older version afterwards. Natively: `git pull`, then
@@ -431,19 +477,24 @@ ready") and update when they click; the app never restarts by itself mid-game. K
 
 ## 11. Fix it
 
-| Symptom                                              | Likely cause and what to do                                                                                                                                                                              |
-| ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Players can sign in and chat but **no voice**        | UDP is blocked. Check the port range is forwarded to the **server** (not just open), `7881/tcp` too, and `use_external_ip`/public IP in `livekit.yaml` if behind NAT. `./vtt-admin status` shows LiveKit |
-| Voice works for some players, not on one network     | That network blocks UDP (school, hotel, work). Try another network; the lasting fix is LiveKit's TURN                                                                                                    |
-| Green padlock missing / certificate error            | The domain does not point at the server yet, or ports 80/443 are closed (Caddy cannot get a certificate). `docker compose logs caddy`                                                                    |
-| `./vtt-admin status` says Postgres is down           | `docker compose ps`; `docker compose logs postgres`. After `setup.sh --force` the password no longer matches the old database volume (see section 3)                                                     |
-| A player cannot sign in and email is not set up      | `./vtt-admin user code <email> signin` and give them the code                                                                                                                                            |
-| Locked out as Admin                                  | Another Admin can run `user admin <you> grant`; with none, `user code <your email> signin` from the server                                                                                               |
-| Recording button does nothing / no audio files       | The records profile is not running (`docker compose --profile records ps`), or `RECORDINGS_DIR` is unset. A player's voice is only recorded after their app played the start cue                         |
-| Summaries never appear                               | `./vtt-admin jobs list failed`; read the worker's log (`docker compose logs worker`); `jobs retry <id>`. The first run is slow on a CPU. A remote AI that is off waits, then falls back to local         |
-| Disk full                                            | Old recordings and uploads. Move or delete files in the recordings/media volumes; set `RECORDING_RETENTION_DAYS` for an automatic purge of audio (section 8), and check `vtt-admin storage`              |
-| After an update the app says it needs a newer server | Update the server first (section 10), then the apps                                                                                                                                                      |
-| Everything is slow after a long uptime               | `docker stats`; restart one service at a time (`docker compose restart backend`). Players reconnect on their own                                                                                         |
+| Symptom                                                     | Likely cause and what to do                                                                                                                                                                                                                                                                                                                                |
+| ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Players can sign in and chat but **no voice**               | UDP is blocked. Check the port range is forwarded to the **server** (not just open), `7881/tcp` too, and `use_external_ip`/public IP in `livekit.yaml` if behind NAT. `./vtt-admin status` shows LiveKit                                                                                                                                                   |
+| Voice works for some players, not on one network            | That network blocks UDP (school, hotel, work). Try another network; the lasting fix is LiveKit's TURN                                                                                                                                                                                                                                                      |
+| Green padlock missing / certificate error                   | The domain does not point at the server yet, or ports 80/443 are closed (Caddy cannot get a certificate). `docker compose logs caddy`                                                                                                                                                                                                                      |
+| `./vtt-admin status` says Postgres is down                  | `docker compose ps`; `docker compose logs postgres`. After `setup.sh --force` the password no longer matches the old database volume (see section 3)                                                                                                                                                                                                       |
+| A player cannot sign in and email is not set up             | `./vtt-admin user code <email> signin` and give them the code                                                                                                                                                                                                                                                                                              |
+| Locked out as Admin                                         | Another Admin can run `user admin <you> grant`; with none, `user code <your email> signin` from the server                                                                                                                                                                                                                                                 |
+| Recording button does nothing / no audio files              | The records profile is not running (`docker compose --profile records ps`), or `RECORDINGS_DIR` is unset. A player's voice is only recorded after their app played the start cue                                                                                                                                                                           |
+| Summaries never appear                                      | `./vtt-admin jobs list failed`; read the worker's log (`docker compose logs worker`); `jobs retry <id>`. The first run is slow on a CPU. A remote AI that is off waits, then falls back to local                                                                                                                                                           |
+| Disk full                                                   | Old recordings and uploads. Move or delete files in the recordings/media volumes; set `RECORDING_RETENTION_DAYS` for an automatic purge of audio (section 8), and check `vtt-admin storage`                                                                                                                                                                |
+| After an update the app says it needs a newer server        | Update the server first (section 10), then the apps                                                                                                                                                                                                                                                                                                        |
+| `docker compose up` says a port is **already in use**       | Something else listens there. For 80, 443, 7880, 7881: stop it (`ss -ltnp` names it); Caddy and LiveKit use those fixed ports. For Valkey or the backend's local port, set `VALKEY_HOST_PORT` / `BACKEND_PORT` in `.env` to a free one (`setup.sh` does this for you) and re-run `docker compose up -d`                                                    |
+| `docker compose pull` says `manifest unknown` / `not found` | `VTT_VERSION` in `.env` names a tag that is not published: a release line such as `0.4` exists only after `0.4.0` is released; a dev build is pinned exactly (`0.4.0-dev.5`). Edit `.env` (section 3)                                                                                                                                                      |
+| `./vtt-admin storage` says `cannot read /out`               | The records profile is not on this instance, so there is no recordings volume to measure. Harmless until you enable recording (section 6)                                                                                                                                                                                                                  |
+| `./vtt-admin updates sync` says `offering no release`       | The newest release of your line is a dev build and `UPDATES_INCLUDE_DEV` is not set (set `UPDATES_INCLUDE_DEV=1` in `.env` to offer dev builds to players who opted in), or that release lacks an installer (the sync waits until the Windows, macOS **and** Linux files are all uploaded; `v0.4.0-dev.5` has no Linux files), or nothing is published yet |
+| `docker compose restart backend` takes 10 s (older bundles) | The backend does not handle the stop signal itself; bundles from 2026-11-13 on run it under Docker's init (`init: true`), which makes a stop immediate. Either way clients reconnect and resume                                                                                                                                                            |
+| Everything is slow after a long uptime                      | `docker stats`; restart one service at a time (`docker compose restart backend`). Players reconnect on their own                                                                                                                                                                                                                                           |
 
 When you report a problem, include `./vtt-admin status`, the relevant log lines, and what the player saw.
 
