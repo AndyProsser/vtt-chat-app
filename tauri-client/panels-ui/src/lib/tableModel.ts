@@ -57,6 +57,7 @@ function toMembers(raw: unknown): Member[] {
       role: o.role === 'dm' ? 'dm' : 'player',
       character: o.character ? (o.character as Member['character']) : null,
       online: o.online === true,
+      via: toVia(o.via),
       inVoice: o.inVoice === true,
       muted: o.muted !== false,
       status: toStatus(o.status, o.inVoice === true),
@@ -65,6 +66,11 @@ function toMembers(raw: unknown): Member[] {
 }
 
 /** Adds lines, keeping one copy per id (a replay and a history fetch can overlap), oldest first. */
+/** What a person is connected with, or null when unknown or an older server. */
+export function toVia(raw: unknown): 'web' | 'app' | null {
+  return raw === 'web' || raw === 'app' ? raw : null;
+}
+
 /** A status from the server; one that predates it is online when in voice and offline otherwise. */
 export function toStatus(raw: unknown, inVoice: boolean): Member['status'] {
   if (raw === 'online' || raw === 'away' || raw === 'offline') return raw;
@@ -125,7 +131,7 @@ export function applyEvent(state: TableState, event: SyncEvent): TableState {
     case 'handout.removed':
       return applyCard(state, event.t, d);
     case 'presence.update':
-      return patchMember(state, String(d.userId), { online: d.online === true });
+      return patchMember(state, String(d.userId), { online: d.online === true, via: toVia(d.via) });
     case 'audio.update':
       return patchMember(state, String(d.userId), {
         inVoice: d.inVoice === true,

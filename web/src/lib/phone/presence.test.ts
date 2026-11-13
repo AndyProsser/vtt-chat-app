@@ -47,3 +47,19 @@ describe('applyPresenceFrame', () => {
     expect(applyPresenceFrame(members, 'presence.update', null)).toBe(members);
   });
 });
+
+describe('presence.update via', () => {
+  it('records what a person connected with, and clears it when they go', () => {
+    const base: Member[] = [
+      { userId: 'a', displayName: 'A', role: 'player', character: null, online: false },
+    ];
+    const on = applyPresenceFrame(base, 'presence.update', {
+      userId: 'a',
+      online: true,
+      via: 'web',
+    });
+    expect(on[0]?.via).toBe('web');
+    const off = applyPresenceFrame(on, 'presence.update', { userId: 'a', online: false });
+    expect(off[0]).toMatchObject({ online: false, via: null });
+  });
+});

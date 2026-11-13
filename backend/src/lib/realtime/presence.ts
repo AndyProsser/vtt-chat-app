@@ -7,10 +7,15 @@ export interface Stats {
 
 export type Status = 'online' | 'away' | 'offline';
 
+/** What a person is connected with: the desktop app (frame token) or the browser web app (session cookie). */
+export type Via = 'web' | 'app';
+
 export interface UserPresence {
   userId: string;
   /** At least one open, authenticated connection subscribed to the campaign. */
   online: boolean;
+  /** `app` if any of their connections is the desktop app, else `web`. Only meaningful while `online`. */
+  via: Via;
   /** Connected to the voice room. Only voice clients report anything beyond online/offline. */
   inVoice: boolean;
   muted: boolean;
@@ -22,7 +27,7 @@ export interface UserPresence {
 }
 
 interface Entry {
-  connections: Set<string>;
+  connections: Map<string, Via>;
   inVoice: boolean;
   muted: boolean;
   status: Status;
@@ -39,10 +44,10 @@ export class PresenceTracker {
   private readonly campaigns = new Map<string, Map<string, Entry>>();
 
   /** Returns `true` if this connection made the user newly online in the campaign. */
-  connect(campaignId: string, userId: string, connectionId: string): boolean {
+  connect(campaignId: string, userId: string, connectionId: string, via: Via = 'app'): boolean {
     const entry = this.entry(campaignId, userId);
     const wasOnline = entry.connections.size > 0;
-    entry.connections.add(connectionId);
+    entry.connections.set(connectionId, via);
     return !wasOnline;
   }
 
@@ -114,6 +119,7 @@ export class PresenceTracker {
     return [...users.entries()].map(([userId, entry]) => ({
       userId,
       online: entry.connections.size > 0,
+      via: [...entry.connections.values()].includes('app') ? 'app' : 'web',
       inVoice: entry.inVoice,
       muted: entry.muted,
       status: entry.status,
@@ -131,7 +137,7 @@ export class PresenceTracker {
     let entry = users.get(userId);
     if (!entry) {
       entry = {
-        connections: new Set(),
+        connections: new Map(),
         inVoice: false,
         muted: true,
         status: 'offline',

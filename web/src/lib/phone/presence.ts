@@ -17,13 +17,17 @@ export function applyPresenceFrame(members: Member[], type: string, data: unknow
   const userId = typeof d.userId === 'string' ? d.userId : undefined;
   if (!userId) return members;
   let patch: Partial<Member>;
-  if (type === 'presence.update') patch = { online: d.online === true };
+  if (type === 'presence.update')
+    patch = { online: d.online === true, via: d.via === 'web' || d.via === 'app' ? d.via : null };
   else if (type === 'audio.update') patch = { status: toStatus(d.status, d.inVoice === true) };
   else return members;
   let changed = false;
   const next = members.map((m) => {
     if (m.userId !== userId) return m;
-    if ((Object.keys(patch) as (keyof Member)[]).every((k) => m[k] === patch[k])) return m;
+    if (
+      (Object.keys(patch) as (keyof Member)[]).every((k) => (m[k] ?? null) === (patch[k] ?? null))
+    )
+      return m;
     changed = true;
     return { ...m, ...patch };
   });

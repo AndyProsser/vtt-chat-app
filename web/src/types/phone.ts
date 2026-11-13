@@ -18,6 +18,8 @@ export interface Member {
     level?: number | null;
   } | null;
   online: boolean;
+  /** What they are connected with: the desktop app or this web app. Absent from an older server. */
+  via?: 'web' | 'app' | null;
   /** Their own choice (online, away, or offline = out of voice, chat still on). Absent from old servers. */
   status?: 'online' | 'away' | 'offline';
 }

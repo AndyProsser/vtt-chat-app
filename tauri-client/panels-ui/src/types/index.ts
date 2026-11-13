@@ -28,6 +28,8 @@ export interface Member {
     level?: number | null;
   } | null;
   online: boolean;
+  /** What they are connected with: the desktop app or the web app. Absent from an older server. */
+  via?: 'web' | 'app' | null;
   inVoice: boolean;
   muted: boolean;
   /** Their own choice: online, away (in the room, mic closed) or offline (out of voice; chat stays on). */

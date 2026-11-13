@@ -21,6 +21,13 @@ export const PRESENCE_LABEL: Record<Presence, string> = {
   disconnected: 'Disconnected (app closed or signed out)',
 };
 
+/** The status words for a person; someone out of voice on the web app is "On the web", not "Offline". */
+export function presenceLabel(presence: Presence, via?: 'web' | 'app' | null): string {
+  return presence === 'offline' && via === 'web'
+    ? 'On the web (chat only)'
+    : PRESENCE_LABEL[presence];
+}
+
 const shownName = (m: Member) => m.character?.name ?? m.displayName;
 
 /** The DM first; then online, away and offline people, each group alphabetical by character (or account) name. */

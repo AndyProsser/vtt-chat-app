@@ -333,6 +333,7 @@ describe('Hub: subscriptions, presence and the snapshot', () => {
       campaignId: t.campaignId,
       userId: t.player.id,
       online: true,
+      via: 'app',
     });
   });
 
@@ -941,5 +942,19 @@ describe('Hub: recording consent flow', () => {
       frame('recording.ack', { campaignId: t.campaignId, recordingId: 'rec-1' }),
     );
     expect(loose.last('error')?.d.code).toBe('not_subscribed');
+  });
+});
+
+describe('presence via', () => {
+  it('reports app when any connection is the desktop app, else web, and clears on disconnect', () => {
+    const p = new PresenceTracker();
+    p.connect('c', 'u', 'web1', 'web');
+    expect(p.snapshot('c')[0]?.via).toBe('web');
+    p.connect('c', 'u', 'app1', 'app');
+    expect(p.snapshot('c')[0]?.via).toBe('app');
+    p.disconnect('c', 'u', 'app1');
+    expect(p.snapshot('c')[0]?.via).toBe('web');
+    p.disconnect('c', 'u', 'web1');
+    expect(p.snapshot('c')).toEqual([]);
   });
 });

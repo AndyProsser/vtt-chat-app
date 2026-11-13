@@ -96,7 +96,7 @@ function StatusDot({ member }: { member: Member }) {
   const state = railState(member);
   const label = {
     disconnected: 'Disconnected (app closed or signed out)',
-    offline: 'Offline (chat only)',
+    offline: member.via === 'web' ? 'On the web (chat only)' : 'Offline (chat only)',
     away: 'Away',
     online: 'Online, not in voice',
     voice: 'Online, in voice',

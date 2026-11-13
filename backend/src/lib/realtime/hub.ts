@@ -488,7 +488,12 @@ export class Hub {
 
     this.cancelAutoStop(campaignId);
     const newlyOnline = !state.campaigns.has(campaignId)
-      ? this.presence.connect(campaignId, auth.user.id, state.conn.id)
+      ? this.presence.connect(
+          campaignId,
+          auth.user.id,
+          state.conn.id,
+          state.conn.credential ? 'web' : 'app',
+        )
       : false;
     state.campaigns.add(campaignId);
 
@@ -541,7 +546,12 @@ export class Hub {
       this.broadcast(
         campaignId,
         'presence.update',
-        { campaignId, userId: auth.user.id, online: true },
+        {
+          campaignId,
+          userId: auth.user.id,
+          online: true,
+          via: state.conn.credential ? 'web' : 'app',
+        },
         { exclude: state.conn.id },
       );
     }
@@ -977,6 +987,7 @@ export class Hub {
             }
           : null,
         online: presence?.online ?? false,
+        via: presence?.online ? presence.via : null,
         inVoice: presence?.inVoice ?? false,
         muted: presence?.muted ?? true,
         status: presence?.status ?? 'offline',

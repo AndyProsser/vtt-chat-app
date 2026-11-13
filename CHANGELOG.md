@@ -34,6 +34,7 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ### Changed
 
+- People using the web chat show as **On the web (chat only)** in the members lists of both apps, instead of "Offline (chat only)".
 - A web chat tab whose session has ended (expired, or signed out elsewhere) returns to the sign-in screen with "Your session ended. Sign in again." instead of reconnecting forever.
 - Sign out on the web waits for the server before showing signed-out, and says so if the server refuses.
 - Web chat: Enter sends on a computer (Shift+Enter for a new line); the members rail follows live presence; the join-request box clears after sending; the sign-in header no longer clips on phones.

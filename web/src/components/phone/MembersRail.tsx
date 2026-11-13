@@ -6,7 +6,7 @@ import {
   initials,
   memberCard,
   portraitUrl,
-  PRESENCE_LABEL,
+  presenceLabel,
   presenceOf,
   railOrder,
 } from '../../lib/phone/rail.js';
@@ -84,7 +84,7 @@ function RailMember({
           aria-haspopup="dialog"
           aria-expanded={open}
           aria-controls={open ? id : undefined}
-          aria-label={`${card.title}${dm ? ', DM' : ''}, ${PRESENCE_LABEL[card.presence]}`}
+          aria-label={`${card.title}${dm ? ', DM' : ''}, ${presenceLabel(card.presence, member.via)}`}
           onPointerEnter={mouseOnly(onEnter)}
           onPointerLeave={mouseOnly(() => {
             closedByHover.current = true;
@@ -141,7 +141,7 @@ function RailMember({
             className={`phone-av-dot phone-av-dot-${card.presence} phone-av-dot-inline`}
             aria-hidden="true"
           />
-          {PRESENCE_LABEL[card.presence]}
+          {presenceLabel(card.presence, member.via)}
         </Text>
       </Popover.Content>
     </Popover.Root>
