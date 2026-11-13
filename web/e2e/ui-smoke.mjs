@@ -281,7 +281,7 @@ flows.account = async (b) => {
       await shot(p, `account-${view}-${scheme}`);
       check(
         `${tag}: four cards`,
-        page.heads === 'Profile,Security,Devices,Recording notice',
+        page.heads === 'Profile,Recording notice,Security,Devices',
         page.heads,
       );
       check(
@@ -363,12 +363,20 @@ flows.account = async (b) => {
         await p.reload({ waitUntil: 'networkidle0' });
         await waitText(p, /Security/);
         const fill = (sel, v) => setField(p, sel, v);
+        // The password form starts folded away: open it (a no-op when it is already open after a refusal).
+        const openForm = async () => {
+          if (!(await p.$('#account-new'))) await clickText(p, /^(Change|Set) password$/);
+          await p.waitForSelector('#account-new');
+        };
+        check(`${tag}: the password form starts folded away`, !(await p.$('#account-new')));
+        await openForm();
         const has = !!(await p.$('#account-current'));
         const attempt = async (from, to) => {
+          await openForm();
           if (from) await fill('#account-current', from);
           await fill('#account-new', to);
           await fill('#account-confirm', to);
-          await clickText(p, /^(Change|Set) password$/);
+          await clickText(p, /^Save password$/);
           await sleep(1200);
           return p.evaluate(() => document.body.innerText);
         };
@@ -379,11 +387,13 @@ flows.account = async (b) => {
           /Password (set|changed)\./.test(body),
           body.slice(0, 80),
         );
+        check(`${tag}: the form folds away again after a change`, !(await p.$('#account-new')));
         const mismatch = await (async () => {
+          await openForm();
           await fill('#account-current', PW_A);
           await fill('#account-new', 'a-different-passphrase');
           await fill('#account-confirm', 'not-the-same-one-ok');
-          await clickText(p, /^Change password$/);
+          await clickText(p, /^Save password$/);
           await sleep(300);
           return p.evaluate(() => document.body.innerText);
         })();

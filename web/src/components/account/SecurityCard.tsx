@@ -1,5 +1,5 @@
 import { Badge, Button, Callout, Card, Flex, Heading, Text, TextField } from '@radix-ui/themes';
-import { useState } from 'react';
+import { useId, useState } from 'react';
 
 import { MIN_PASSWORD_LENGTH } from '../../consts/index.js';
 import { changePassword, passwordDoneLine, passwordProblem } from '../../lib/account.js';
@@ -19,6 +19,9 @@ export function SecurityCard({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
   const [done, setDone] = useState<string>();
+  // The form is only needed on the rare day the password changes, so it starts folded away.
+  const [open, setOpen] = useState(false);
+  const formId = useId();
 
   async function submit() {
     const problem = passwordProblem({ hasPassword, current, next, confirm });
@@ -35,6 +38,7 @@ export function SecurityCard({
       setNext('');
       setConfirm('');
       setDone(passwordDoneLine(revoked, hasPassword));
+      setOpen(false);
       onChanged();
     } catch (e) {
       setError(
@@ -85,39 +89,81 @@ export function SecurityCard({
         </Flex>
         <Text size="2" color="gray">
           {hasPassword
-            ? 'Change your password here. Your other devices are signed out when you do; this one stays signed in.'
+            ? 'Your other devices are signed out when you change it; this one stays signed in.'
             : 'You sign in with emailed or operator codes. You can also set a password, so you can sign in without a code.'}
         </Text>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            void submit();
-          }}
-        >
-          <Flex direction="column" gap="3">
-            {hasPassword &&
-              field('account-current', 'Current password', current, setCurrent, 'current-password')}
-            {field(
-              'account-new',
-              `New password (at least ${MIN_PASSWORD_LENGTH} characters)`,
-              next,
-              setNext,
-              'new-password',
-            )}
-            {field(
-              'account-confirm',
-              'Repeat the new password',
-              confirm,
-              setConfirm,
-              'new-password',
-            )}
-            <Flex>
-              <Button type="submit" size="3" loading={busy}>
-                {hasPassword ? 'Change password' : 'Set password'}
-              </Button>
-            </Flex>
+        {!open && (
+          <Flex>
+            <Button
+              type="button"
+              variant="soft"
+              size="3"
+              aria-expanded={false}
+              aria-controls={formId}
+              onClick={() => {
+                setOpen(true);
+                setDone(undefined);
+              }}
+            >
+              {hasPassword ? 'Change password' : 'Set password'}
+            </Button>
           </Flex>
-        </form>
+        )}
+        {open && (
+          <form
+            id={formId}
+            onSubmit={(e) => {
+              e.preventDefault();
+              void submit();
+            }}
+          >
+            <Flex direction="column" gap="3">
+              {hasPassword &&
+                field(
+                  'account-current',
+                  'Current password',
+                  current,
+                  setCurrent,
+                  'current-password',
+                )}
+              {field(
+                'account-new',
+                `New password (at least ${MIN_PASSWORD_LENGTH} characters)`,
+                next,
+                setNext,
+                'new-password',
+              )}
+              {field(
+                'account-confirm',
+                'Repeat the new password',
+                confirm,
+                setConfirm,
+                'new-password',
+              )}
+              <Flex gap="2">
+                <Button type="submit" size="3" loading={busy}>
+                  Save password
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="3"
+                  aria-expanded
+                  aria-controls={formId}
+                  onClick={() => {
+                    setOpen(false);
+                    setError(undefined);
+                    setCurrent('');
+                    setNext('');
+                    setConfirm('');
+                  }}
+                >
+                  Cancel
+                </Button>
+              </Flex>
+            </Flex>
+          </form>
+        )}
         <div aria-live="polite">
           {error && (
             <Callout.Root color="red" role="alert">

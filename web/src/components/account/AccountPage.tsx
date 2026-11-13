@@ -35,6 +35,7 @@ function AccountContent() {
         Your account
       </Heading>
       <ProfileCard key={user.id} user={user} onChanged={setEdited} />
+      <NoticeCard user={user} />
       <SecurityCard
         hasPassword={user.hasPassword === true}
         onChanged={() => {
@@ -49,7 +50,6 @@ function AccountContent() {
         error={sessions.error}
         onChanged={sessions.reload}
       />
-      <NoticeCard user={user} />
     </Flex>
   );
 }

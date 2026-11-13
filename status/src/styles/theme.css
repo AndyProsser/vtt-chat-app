@@ -70,6 +70,21 @@ body {
   gap: 16px;
   font-size: 14px;
 }
+/* Four nav links at 390px: keep the brand on one line and tighten the links instead. */
+.site-brand {
+  flex: none;
+  white-space: nowrap;
+}
+@media (max-width: 440px) {
+  .site-brand {
+    font-size: 16px;
+    gap: 8px;
+  }
+  .site-nav {
+    gap: 11px;
+    font-size: 13px;
+  }
+}
 .site-nav a {
   color: var(--gray-11);
   text-decoration: none;

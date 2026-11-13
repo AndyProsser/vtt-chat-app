@@ -12,7 +12,7 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ### Added
 
-- **An Account page in the browser** (`/account`, in the header and the phone menu): change your display name and picture, set or change your password, see every device you are signed in on and sign any of them out (or all the others), and see which recording notice you accepted and when. Changing the password signs your other devices out. Sign-out buttons need a second press to confirm.
+- **An Account page in the browser** (`/account`, in the header and the phone menu): change your display name and picture, see which recording notice you accepted and when, set or change your password (the form stays folded away until you press the button), and see every device you are signed in on and sign any of them out (or all the others). Changing the password signs your other devices out. Sign-out buttons need a second press to confirm.
 - **Operators: purge raw audio when the next session starts** (off by default): `vtt-admin settings set audio-purge-next-session on` deletes the raw audio of a campaign's earlier, fully processed recordings when a new recording starts there. The text (transcripts and summaries) stays; recordings still being processed, and other campaigns', are never touched.
 - **More summaries per recorded session:** a chapter summary for each part either side of a pause, and a summary from each player character's point of view, next to the session and DM-only ones.
 - **Typed lines in the History transcript:** what was typed into the public chat during a recording now shows in the transcript among the spoken lines, marked "(typed)" (it was already in summaries and search). Out-of-character lines and whispers stay out.
