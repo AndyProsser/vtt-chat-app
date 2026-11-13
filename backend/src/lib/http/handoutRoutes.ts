@@ -15,6 +15,8 @@ export interface HandoutRouteDeps {
   onShown?: (campaignId: string, handout: Handout, audience: Audience) => void;
   /** Tell live clients a handout was hidden or deleted. */
   onRemoved?: (campaignId: string, handoutId: string) => void;
+  /** Tell live clients a handout they may see was edited (never called for a DM-only draft). */
+  onChanged?: (campaignId: string, handout: Handout) => void;
 }
 
 const textBody = z.object({ title: z.string().max(200), text: z.string().max(20_000) });
@@ -181,6 +183,7 @@ export function handoutRoutes(deps: HandoutRouteDeps): Router {
       param(req.params.handoutId),
       body,
     );
+    if (handout.visibility !== 'dm') deps.onChanged?.(handout.campaignId, handout);
     res.json({ handout: view(handout) });
   });
 

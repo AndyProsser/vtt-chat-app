@@ -287,6 +287,26 @@ export class Hub {
     );
   }
 
+  /**
+   * A handout that some people can see was edited: tell exactly those people (and the DMs) to read it again.
+   * Only the fact travels; the REST read returns what each viewer may see.
+   */
+  announceHandoutChanged(
+    campaignId: string,
+    handout: { id: string; visibility: string; recipients: string[] },
+    dmIds: string[],
+  ): void {
+    const allowed = new Set([...handout.recipients, ...dmIds]);
+    this.broadcast(
+      campaignId,
+      'handout.changed',
+      { campaignId, handoutId: handout.id },
+      handout.visibility === 'all'
+        ? {}
+        : { only: (s) => s.auth !== null && allowed.has(s.auth.user.id) },
+    );
+  }
+
   /** Loot changed on the table: everyone sees drops, claims (with who) and removals as they happen. */
   announceLoot(
     event: 'dropped' | 'claimed' | 'removed',

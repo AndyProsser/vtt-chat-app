@@ -42,6 +42,7 @@ let table: TableStore;
 let media: MemoryMediaStorage;
 let shown: any[];
 let removed: any[];
+let changed: any[];
 let dm: { id: string; token: string };
 let alice: { id: string; token: string };
 let bob: { id: string; token: string };
@@ -95,6 +96,7 @@ beforeEach(async () => {
   media = new MemoryMediaStorage();
   shown = [];
   removed = [];
+  changed = [];
   const app = createApp({
     config: CONFIG,
     store,
@@ -106,6 +108,7 @@ beforeEach(async () => {
       announceRecording() {},
       announceHandoutShown: (c, h, a, dmIds) => shown.push({ c, id: h.id, a, dmIds }),
       announceHandoutRemoved: (c, id) => removed.push({ c, id }),
+      announceHandoutChanged: (c, h, dmIds) => changed.push({ c, id: h.id, v: h.visibility, dmIds }),
     },
   });
   await new Promise<void>((resolve) => {
@@ -309,6 +312,24 @@ describe('a set of pictures', () => {
 });
 
 describe('editing a handout', () => {
+  it('tells clients to read a shown handout again, but says nothing about a draft', async () => {
+    const id = (
+      await call('POST', `/api/campaigns/${campaign}/handouts`, dm.token, {
+        title: 'Riddle',
+        text: 'Speak friend.',
+      })
+    ).body.handout.id;
+    const path = `/api/campaigns/${campaign}/handouts/${id}`;
+    await call('PATCH', path, dm.token, { text: 'A draft edit.' });
+    expect(changed).toEqual([]);
+    await call('POST', `${path}/show`, dm.token, { to: 'all' });
+    await call('PATCH', path, dm.token, { text: 'A shown edit.' });
+    await new Promise((r) => setTimeout(r, 50)); // the DM list is read before the frame is sent
+    expect(changed).toEqual([{ c: campaign, id, v: 'all', dmIds: [dm.id] }]);
+    await call('PATCH', path, alice.token, { text: 'nope' });
+    expect(changed).toHaveLength(1);
+  });
+
   it('lets the DM change the title and text, and players see the new version', async () => {
     const id = (
       await call('POST', `/api/campaigns/${campaign}/handouts`, dm.token, {

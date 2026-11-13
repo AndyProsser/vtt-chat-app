@@ -1,6 +1,6 @@
 {
   "protocolVersion": 2,
-  "hash": "01f95fe1b019bd25b950bf7225bd7adfb931e9ebef7e5018422418025d19af6b",
+  "hash": "ed009801028dd9b31149bfa32714b56ce0db99d14b795798adf46cb79a598261",
   "summary": {
     "clientFrames": [
       "audio.state",
@@ -29,6 +29,7 @@
       "chat.whisper",
       "chat.whispers",
       "error",
+      "handout.changed",
       "handout.removed",
       "handout.shown",
       "loot.${event}",

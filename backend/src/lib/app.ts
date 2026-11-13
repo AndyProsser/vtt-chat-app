@@ -72,6 +72,11 @@ export interface AppDeps {
       dmIds: string[],
     ): void;
     announceHandoutRemoved?(campaignId: string, handoutId: string): void;
+    announceHandoutChanged?(
+      campaignId: string,
+      handout: { id: string; visibility: string; recipients: string[] },
+      dmIds: string[],
+    ): void;
     announceLoot?(
       event: 'dropped' | 'claimed' | 'removed',
       item: {
@@ -309,6 +314,19 @@ export function createApp({
                     campaignId,
                     handout,
                     audience,
+                    ms.filter((m) => m.role === 'dm').map((m) => m.userId),
+                  ),
+                );
+              },
+            }
+          : {}),
+        ...(realtime?.announceHandoutChanged
+          ? {
+              onChanged: (campaignId, handout) => {
+                void store.listMemberships(campaignId).then((ms) =>
+                  realtime.announceHandoutChanged?.(
+                    campaignId,
+                    handout,
                     ms.filter((m) => m.role === 'dm').map((m) => m.userId),
                   ),
                 );
