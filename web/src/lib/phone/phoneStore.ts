@@ -26,6 +26,9 @@ interface PhoneState {
   joinPending: readonly string[];
   /** The latest answer to a request this person made, until they dismiss the banner. */
   decision: Decided | undefined;
+  /** Bumped when a live frame says the handouts / sessions changed; the tabs read their list again. */
+  handoutsRev: number;
+  sessionsRev: number;
 
   signedIn(userId: string | undefined): void;
   signedOut(): void;
@@ -57,6 +60,8 @@ export const usePhoneStore = create<PhoneState>((set, get) => ({
   campaignId: undefined,
   tab: 'chat',
   decision: undefined,
+  handoutsRev: 0,
+  sessionsRev: 0,
   ...FRESH,
 
   signedIn: (userId) => set({ authed: true, userId }),
@@ -90,7 +95,13 @@ export const usePhoneStore = create<PhoneState>((set, get) => ({
         const incoming = [...(d.recentChat ?? []), ...(d.recentWhispers ?? [])]
           .map(lineFromFrame)
           .filter((l): l is ChatLine => l !== undefined);
-        set({ members: d.members ?? s.members, lines: mergeLines(s.lines, incoming) });
+        // A (re)connect: whatever changed while the socket was down is only in the lists.
+        set({
+          members: d.members ?? s.members,
+          lines: mergeLines(s.lines, incoming),
+          handoutsRev: s.handoutsRev + 1,
+          sessionsRev: s.sessionsRev + 1,
+        });
         return;
       }
       case 'roster.update': {
@@ -113,6 +124,18 @@ export const usePhoneStore = create<PhoneState>((set, get) => ({
           lines: mergeLines(s.lines, [line]),
           unread: s.tab === 'chat' || mine ? s.unread : s.unread + 1,
         });
+        return;
+      }
+      case 'handout.shown':
+      case 'handout.removed':
+      case 'handout.changed':
+        set({ handoutsRev: s.handoutsRev + 1 });
+        return;
+      case 'notification': {
+        // The server tells members about a scheduled, moved or cancelled session (and the DM about answers).
+        const kind = (data as { kind?: unknown } | null)?.kind;
+        if (typeof kind === 'string' && (kind.startsWith('session.') || kind.startsWith('rsvp.')))
+          set({ sessionsRev: s.sessionsRev + 1 });
         return;
       }
       case 'join.request': {

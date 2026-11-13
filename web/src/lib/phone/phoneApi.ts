@@ -115,6 +115,46 @@ export async function handouts(campaignId: string): Promise<HandoutItem[]> {
   return res.handouts;
 }
 
+// ---- the DM's tools (the server refuses anyone else with 403) ----
+
+/** A new note: a DM-only draft until it is shown. */
+export const createNote = (campaignId: string, title: string, text: string) =>
+  request<{ handout: HandoutItem }>('POST', `/api/campaigns/${campaignId}/handouts`, {
+    body: { title, text },
+  }).then((r) => r.handout);
+
+export const updateNote = (
+  campaignId: string,
+  id: string,
+  patch: { title?: string; text?: string },
+) =>
+  request<{ handout: HandoutItem }>('PATCH', `/api/campaigns/${campaignId}/handouts/${id}`, {
+    body: patch,
+  }).then((r) => r.handout);
+
+export const showHandout = (campaignId: string, id: string) =>
+  request('POST', `/api/campaigns/${campaignId}/handouts/${id}/show`, { body: { to: 'all' } });
+
+export const hideHandout = (campaignId: string, id: string) =>
+  request('POST', `/api/campaigns/${campaignId}/handouts/${id}/hide`, { body: {} });
+
+export const deleteHandout = (campaignId: string, id: string) =>
+  request('DELETE', `/api/campaigns/${campaignId}/handouts/${id}`);
+
+export const createSession = (
+  campaignId: string,
+  body: { title: string; startsAt: number; durationMinutes: number; notes: string },
+) => request('POST', `/api/campaigns/${campaignId}/sessions`, { body });
+
+export const updateSession = (
+  campaignId: string,
+  id: string,
+  patch: { title?: string; startsAt?: number; durationMinutes?: number; notes?: string },
+) => request('PATCH', `/api/campaigns/${campaignId}/sessions/${id}`, { body: patch });
+
+export const cancelSession = (campaignId: string, id: string) =>
+  request('DELETE', `/api/campaigns/${campaignId}/sessions/${id}`);
+
 export async function recordings(campaignId: string): Promise<RecordingItem[]> {
   const res = await request<{ recordings: RecordingItem[] }>(
     'GET',

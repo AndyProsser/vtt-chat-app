@@ -61,4 +61,36 @@ describe('phone store', () => {
     usePhoneStore.getState().clearChatError();
     expect(usePhoneStore.getState().chatError).toBeUndefined();
   });
+
+  it('asks the handout and session lists to read again on the frames that change them', () => {
+    const { onFrame } = usePhoneStore.getState();
+    const rev = () => {
+      const s = usePhoneStore.getState();
+      return [s.handoutsRev, s.sessionsRev];
+    };
+    const start = rev();
+    onFrame('handout.shown', { handoutId: 'h' });
+    onFrame('handout.removed', { handoutId: 'h' });
+    onFrame('handout.changed', { handoutId: 'h' });
+    expect(rev()).toEqual([start[0]! + 3, start[1]]);
+    onFrame('notification', { kind: 'session.scheduled' });
+    onFrame('notification', { kind: 'session.updated' });
+    onFrame('notification', { kind: 'session.cancelled' });
+    onFrame('notification', { kind: 'rsvp.changed' });
+    expect(rev()).toEqual([start[0]! + 3, start[1]! + 4]);
+    // Anything else that arrives as a notification (a join decision, a malformed one) leaves the lists alone.
+    onFrame('notification', { kind: 'join.approved' });
+    onFrame('notification', null);
+    onFrame('notification', { kind: 5 });
+    expect(rev()).toEqual([start[0]! + 3, start[1]! + 4]);
+  });
+  it('reads both lists again after a reconnect snapshot', () => {
+    const before = usePhoneStore.getState();
+    before.onFrame('snapshot', {});
+    const after = usePhoneStore.getState();
+    expect([after.handoutsRev, after.sessionsRev]).toEqual([
+      before.handoutsRev + 1,
+      before.sessionsRev + 1,
+    ]);
+  });
 });

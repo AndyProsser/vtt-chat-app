@@ -70,6 +70,8 @@ export interface HandoutItem {
   kind: HandoutKind;
   body: string | null;
   fileCount: number;
+  /** Who can see it: only the DM (a draft), everyone, or chosen players. Absent from an older server. */
+  visibility?: 'dm' | 'all' | 'some';
   createdAt: number;
 }
 
