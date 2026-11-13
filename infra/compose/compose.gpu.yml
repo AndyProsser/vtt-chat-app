@@ -11,8 +11,28 @@
 # whisper-server (and so frees its VRAM) after WHISPER_IDLE_SECONDS idle, and Ollama unloads the model after
 # OLLAMA_KEEP_ALIVE (both default to a few minutes; see compose.yml). The worker runs Whisper and the LLM one
 # after the other, never at once, so the card needs room for the larger of the two, not both.
-# Measured sizes and defaults: docs/architecture/RECORDING-AND-SUMMARIES.md.
+#
+# Defaults for a card with 8 GB (measured on a GTX 1080, docs/architecture/RECORDING-AND-SUMMARIES.md):
+# Whisper large-v3-turbo q5_0 (~1 GB of VRAM, about 27x faster than real time) and qwen3:8b for the
+# summaries (~5.5 GB). Set WHISPER_MODEL_FILE / OLLAMA_MODEL in .env to change them; on a 4-6 GB card use
+# ggml-small-q5_1.bin and llama3.2:3b. These override the CPU defaults in compose.yml, so the services
+# that name a model are repeated here.
 services:
+  models-init:
+    entrypoint:
+      [
+        'sh',
+        '-c',
+        'f=/models/${WHISPER_MODEL_FILE:-ggml-large-v3-turbo-q5_0.bin}; [ -s "$$f" ] || curl -fL -o "$$f" https://huggingface.co/ggerganov/whisper.cpp/resolve/main/${WHISPER_MODEL_FILE:-ggml-large-v3-turbo-q5_0.bin}',
+      ]
+
+  ollama-pull:
+    entrypoint: ['sh', '-c', 'ollama pull ${OLLAMA_MODEL:-qwen3:8b}']
+
+  worker:
+    environment:
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3:8b}
+
   whisper:
     image: ${WHISPER_GPU_IMAGE:-vtt-whisper-cuda}
     build:
@@ -24,13 +44,14 @@ services:
     entrypoint: ['python3', '/app/whisper-idle.py', '/app/build/bin/whisper-server']
     command:
       - -m
-      - /models/${WHISPER_MODEL_FILE:-ggml-small-q5_1.bin}
+      - /models/${WHISPER_MODEL_FILE:-ggml-large-v3-turbo-q5_0.bin}
       - --inference-path
       - /v1/audio/transcriptions
       - -l
       - en
     environment:
-      WHISPER_IDLE_SECONDS: ${WHISPER_IDLE_SECONDS:-120}
+      # The worker sends windows back to back, so a minute of quiet means the transcription is done.
+      WHISPER_IDLE_SECONDS: ${WHISPER_IDLE_SECONDS:-60}
     healthcheck:
       test:
         - CMD

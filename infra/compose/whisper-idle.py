@@ -4,7 +4,7 @@
 whisper-server loads its model once and keeps it in VRAM for as long as it runs. On a server that is
 also somebody's gaming PC that is the wrong trade: transcription runs for an hour after a session, once
 a week. So this listens on PORT (default 8080) in front of whisper-server, starts it on the first
-request, forwards requests to it, and stops it again after WHISPER_IDLE_SECONDS (default 120) without
+request, forwards requests to it, and stops it again after WHISPER_IDLE_SECONDS (default 60) without
 one. The price is a model load (seconds) on the first request after a pause. GET /health answers
 without starting anything, so a healthcheck never loads the model.
 
@@ -25,7 +25,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 PORT = int(os.environ.get("PORT", "8080"))
 INNER = PORT + 1
-IDLE = float(os.environ.get("WHISPER_IDLE_SECONDS", "120"))
+IDLE = float(os.environ.get("WHISPER_IDLE_SECONDS", "60"))
 COMMAND = sys.argv[1:]
 HOP = {"connection", "keep-alive", "transfer-encoding", "te", "upgrade", "proxy-connection"}
 
