@@ -52,7 +52,9 @@ nosniff` and `Content-Security-Policy: default-src 'none'; sandbox`.
   others see handouts shown to everyone or to them. A handout you cannot see is `404`, exactly as if it
   did not exist; one reached through another campaign's URL is also `404`.
 - **Live:** `handout.shown` goes to exactly the people who may now see it (plus the DM's sockets);
-  `handout.removed` goes to everyone when one is hidden or deleted. A reconnecting client re-reads
+  `handout.removed` goes to everyone when one is hidden or deleted; `handout.changed` (`{campaignId,
+  handoutId}`, a fact only) goes to the same audience as `handout.shown` when a shown handout is edited,
+  so clients read the list again (a DM-only draft edit sends nothing). A reconnecting client re-reads
   `GET /api/campaigns/:id/handouts`.
 - **Not built:** sweeping media files when a whole campaign is deleted; thumbnails; image dimension limits.
 
