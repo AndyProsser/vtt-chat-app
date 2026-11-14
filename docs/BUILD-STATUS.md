@@ -374,3 +374,15 @@ workstation (Docker present, `localhost`, published `0.4.0-dev.6` images: pull, 
 keeping accounts). **Not verified:** the Docker install and `ufw` steps on a blank machine, a Let's Encrypt certificate, `--with-records`
 through the installer. **Found while testing:** `vtt-chat.prosser.online` resolves to Cloudflare's proxy addresses; it must be
 "DNS only" for voice, and the installer now says so.
+
+## The first real-VM deploy (2026-11-14)
+
+`vtt-chat.prosser.online` on a Proxmox VM (4 vCPU, then 16 GB, Ubuntu Server 26.04, a 2010 Xeon with no AVX) behind a home line and a
+Cloudflare Tunnel, installed with `infra/get.sh` from the published 0.4.x images. **Verified:** the one-line install and an update re-run;
+the stack healthy; **HTTPS with a real certificate through Cloudflare's DNS challenge** (the tunnel points at `https://<vm>:443`, nothing skips
+verification); ufw installed, enabled and correct (SSH first); the first Admin signed in, set a password and uploaded an avatar; the update
+feed offering the release to the app. **Found and fixed on the way (0.4.1 to 0.4.2):** the web strip broke the image build; the installer
+needed to cope with a minimal Ubuntu, busy ports and a CPU without AVX (Whisper died with an illegal instruction: a compat build runs but
+at 5.5 times the audio's length, so the gaming PC is the real answer); a home line needs the tunnel and the DNS challenge; `vtt-admin` needed
+`sudo` when `.env` was unreadable. **Not yet verified:** voice between two real clients over the internet (ports are forwarded), a recording
+through the CPU AI on that VM, and a second person doing the install.
