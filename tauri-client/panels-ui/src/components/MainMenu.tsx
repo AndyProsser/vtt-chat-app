@@ -80,7 +80,7 @@ export function MainMenu({ dm }: { dm: boolean }) {
         {view === 'menu' ? (
           <nav className="vtt-menu" aria-label="Menu">
             <Item
-              icon={<ScrollText size={14} />}
+              icon={<ScrollText size={12} />}
               label="Session history"
               onClick={() => {
                 void panelOpen('history');
@@ -89,20 +89,20 @@ export function MainMenu({ dm }: { dm: boolean }) {
             />
             {dm && (
               <Item
-                icon={<Activity size={14} />}
+                icon={<Activity size={12} />}
                 label="Connection quality"
                 onClick={() => setView('quality')}
               />
             )}
             <Item
-              icon={<Settings size={14} />}
+              icon={<Settings size={12} />}
               label="Settings"
               badge={waiting}
               onClick={() => setView('settings')}
             />
             <hr className="vtt-menu-sep" />
             <Item
-              icon={<Power size={14} />}
+              icon={<Power size={12} />}
               label="Quit VTT Chat"
               danger
               onClick={() => void appQuit()}
@@ -111,7 +111,7 @@ export function MainMenu({ dm }: { dm: boolean }) {
         ) : (
           <>
             <button type="button" className="vtt-menu-back" onClick={() => setView('menu')}>
-              <ArrowLeft size={14} aria-hidden /> Menu
+              <ArrowLeft size={12} aria-hidden /> Menu
             </button>
             {view === 'settings' ? <SettingsContent /> : <ConnectionPanel />}
           </>

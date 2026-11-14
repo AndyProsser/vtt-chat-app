@@ -16,14 +16,17 @@ export function BottomBar({ selfId, role }: { selfId: string | null; role: Role 
   const real = useMicLevel(engine?.active === 'mixer' && !muted);
   return (
     <footer className="vtt-bottom">
+      {/* The status pill sits above both the mute button and the level meter, as wide as the two together. */}
       <div className="vtt-bottom-left">
         <StatusPill />
-        <MuteIcon />
+        <div className="vtt-bottom-mic">
+          <MuteIcon />
+          <LevelMeter
+            level={engine?.active === 'mixer' ? real : speaking && !muted ? 1 : 0}
+            dim={muted}
+          />
+        </div>
       </div>
-      <LevelMeter
-        level={engine?.active === 'mixer' ? real : speaking && !muted ? 1 : 0}
-        dim={muted}
-      />
       <Composer selfId={selfId} role={role} />
     </footer>
   );

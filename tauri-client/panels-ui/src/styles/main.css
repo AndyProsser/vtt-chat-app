@@ -2294,16 +2294,25 @@ body,
 .vtt-bottom-left {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
   gap: 4px;
+}
+.vtt-bottom-mic {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 .vtt-pill-status {
   font-family: var(--vtt-font-body, inherit);
-  font-size: 9px;
+  /* Small on purpose: it must fit the width of the left bar, even if it is hard to read. */
+  font-size: 7px;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.03em;
   line-height: 1;
-  padding: 3px 7px;
+  padding: 2px 3px;
+  text-align: center;
+  white-space: nowrap;
   border-radius: 999px;
   border: 1px solid currentColor;
   background: color-mix(in srgb, currentColor 14%, transparent);
@@ -2324,7 +2333,7 @@ body,
 }
 /* The burger menu. */
 .vtt-menu-pop {
-  width: 220px;
+  width: 190px;
   padding: 6px;
 }
 .vtt-menu {
@@ -2338,12 +2347,13 @@ body,
   align-items: center;
   gap: 8px;
   width: 100%;
-  padding: 7px 8px;
+  padding: 5px 8px;
   border: 0;
   border-radius: 6px;
   background: transparent;
   color: inherit;
   font: inherit;
+  font-size: 12px;
   text-align: left;
   cursor: pointer;
 }
