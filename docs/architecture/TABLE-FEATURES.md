@@ -225,8 +225,9 @@ whoever is listening). Players not placed in a party are at the "main table" tog
 - State is in memory: a server restart returns everyone to the main table (the safe direction), and a
   table that everyone has left is forgotten.
 - **Not built:** the Rust client side (it must keep LiveKit's default auto-subscribe, and show the groups),
-  drag-between-groups UI, voice whispers (private audio, which must be excluded from recording at the
-  routing layer), and per-party text chat.
+  drag-between-groups UI, and per-party text chat. **There are no voice whispers (decided 2026-11-14).** Players whisper by text;
+  to speak to one player the DM isolates that player in a group of their own (the DM is in every group, so it is a private
+  conversation), then merges back.
 
 ## Client UI: one main window (built 2026-11-08)
 

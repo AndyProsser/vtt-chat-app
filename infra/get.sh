@@ -12,7 +12,8 @@
 #   --email you@example.com       the first Admin's email   --name "Your Name"   (display name)
 #   --version 0.4.0               the release to install (default: the newest stable release)
 #   --with-records                also run recording, transcription and summaries (about 6 GB of downloads)
-#   --public-ip 203.0.113.7       the public address, if this machine is behind NAT (found automatically if it is not)
+#   --voice-address 203.0.113.7   where voice (UDP) connects: an IP or DNS name. Found automatically; set it when the
+#                                 domain goes through Cloudflare's proxy or the machine is behind NAT (alias: --public-ip)
 #   --dir /opt/vtt-chat           where to put it
 #   --yes                         do not ask anything; every value must come from flags
 #   --skip-docker-install  --skip-firewall  --dry-run
@@ -20,7 +21,7 @@ set -euo pipefail
 
 REPO="${VTT_REPO:-AndyProsser/vtt-chat-app}"
 ASSUME_YES=0 DRY_RUN=0 SKIP_DOCKER=0 SKIP_FIREWALL=0 WITH_RECORDS=""
-DOMAIN="" EMAIL="" NAME="" VERSION="" PUBLIC_IP="" DIR="/opt/vtt-chat"
+BEHIND_CLOUDFLARE=0 DOMAIN="" EMAIL="" NAME="" VERSION="" PUBLIC_IP="" DIR="/opt/vtt-chat"
 
 # ---------- small helpers ----------
 if [[ -t 1 ]]; then B=$'\e[1m' G=$'\e[32m' Y=$'\e[33m' R=$'\e[31m' N=$'\e[0m'; else B="" G="" Y="" R="" N=""; fi
@@ -37,7 +38,10 @@ version_for_images() {
   if [[ $v == *-* ]]; then echo "$v"; else echo "${v%.*}"; fi
 }
 
-# Cloudflare's proxy addresses (the orange cloud). Voice (UDP) cannot pass through it, so the record must be "DNS only".
+# Cloudflare's published ranges (https://www.cloudflare.com/ips/): the addresses its proxy connects from.
+CLOUDFLARE_RANGES="173.245.48.0/20 103.21.244.0/22 103.22.200.0/22 103.31.4.0/22 141.101.64.0/18 108.162.192.0/18 190.93.240.0/20 188.114.96.0/20 197.234.240.0/22 198.41.128.0/17 162.158.0.0/15 104.16.0.0/13 104.24.0.0/14 172.64.0.0/13 131.0.72.0/22 2400:cb00::/32 2606:4700::/32 2803:f800::/32 2405:b500::/32 2405:8100::/32 2a06:98c0::/29 2c0f:f248::/32"
+
+# Cloudflare proxy addresses (the orange cloud). The website may sit behind it; voice (UDP) goes straight to the machine instead.
 is_cloudflare_ip() { [[ $1 =~ ^(104\.(1[6-9]|2[0-9]|3[01])\.|172\.(6[4-9]|7[01])\.|188\.114\.(9[6-9]|1[01][0-9])\.|162\.15[89]\.|141\.101\.(6[4-9]|[7-9][0-9]|1[01][0-9]|12[0-7])\.|108\.162\.|173\.245\.|131\.0\.7[2-5]\.|103\.2[12]\.) ]]; }
 
 valid_domain() { [[ $1 =~ ^([a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$ || $1 == localhost ]]; }
@@ -71,7 +75,7 @@ while (($#)); do
     --email) EMAIL=${2:?--email needs a value}; shift 2 ;;
     --name) NAME=${2:?--name needs a value}; shift 2 ;;
     --version) VERSION=${2:?--version needs a value}; shift 2 ;;
-    --public-ip) PUBLIC_IP=${2:?--public-ip needs a value}; shift 2 ;;
+    --voice-address | --public-ip) PUBLIC_IP=${2:?$1 needs a value}; shift 2 ;;
     --dir) DIR=${2:?--dir needs a value}; shift 2 ;;
     --with-records) WITH_RECORDS=1; shift ;;
     --no-records) WITH_RECORDS=0; shift ;;
@@ -132,7 +136,7 @@ if ((EXISTING)); then
 else
   [[ -n $EMAIL ]] || ask EMAIL "Your email address (it becomes the Admin account; nothing is sent to it)"
   valid_email "$EMAIL" || die "\"$EMAIL\" does not look like an email address"
-  [[ -n $NAME ]] || ask NAME "Your name, as players will see it" "${EMAIL%%@*}"
+  if [[ -z $NAME ]]; then if ((ASSUME_YES)); then NAME=${EMAIL%%@*}; else ask NAME "Your name, as players will see it" "${EMAIL%%@*}"; fi; fi
   if [[ -z $WITH_RECORDS ]]; then
     say "  Recording keeps a searchable history of each session with AI summaries, all on this server."
     say "  It downloads about 6 GB of models and wants 8 GB of memory; you can add it later."
@@ -179,9 +183,12 @@ if [[ $DOMAIN != localhost ]]; then
     warn "$DOMAIN does not resolve yet. Add a DNS \"A\" record pointing it at ${expected:-the public IP of this machine}; the certificate is issued once it does."
     ((ASSUME_YES)) || confirm "Carry on anyway?" y || die "stopped: set the DNS record and run this again"
   elif is_cloudflare_ip "$resolved"; then
-    warn "$DOMAIN points at Cloudflare's proxy ($resolved), not at this machine. Voice cannot pass through the proxy."
-    say "    In Cloudflare DNS, edit the record for $DOMAIN: set it to ${B}DNS only${N} (grey cloud) and point it at ${expected:-this machine}."
-    ((ASSUME_YES)) || confirm "Carry on anyway?" n || die "stopped: switch the record to DNS only and run this again"
+    BEHIND_CLOUDFLARE=1
+    say "  $DOMAIN goes through Cloudflare's proxy ($resolved): the website is protected, voice goes straight to this machine."
+    if [[ -z $PUBLIC_IP && ${detected:-} =~ ^[0-9.]+$ ]]; then PUBLIC_IP=$detected; fi
+    if [[ -n $PUBLIC_IP ]]; then say "  voice will be advertised at $PUBLIC_IP (change later: vtt-admin voice-address <ip|name|auto>)"; else
+      warn "could not find this machine's public address; re-run with --voice-address <ip or name>"; fi
+    say "    In Cloudflare: SSL/TLS mode \"Full (strict)\"; the voice ports below must reach this machine directly (no proxy, no tunnel)."
   elif [[ -n $expected && $resolved != "$expected" ]]; then
     warn "$DOMAIN points at $resolved but the public address of this machine is $expected. The secure certificate will not be issued until they match."
     ((ASSUME_YES)) || confirm "Carry on anyway?" n || die "stopped: fix the DNS record and run this again"
@@ -250,6 +257,13 @@ else
   step "Writing the configuration (fresh secrets, never shown)"
   VTT_VERSION="$IMAGE_VERSION" ./setup.sh "$DOMAIN" ${PUBLIC_IP:+"$PUBLIC_IP"}
   if [[ $WITH_RECORDS == 1 ]]; then echo "COMPOSE_PROFILES=records" >> .env; say "  recording and summaries: on"; fi
+fi
+if ((BEHIND_CLOUDFLARE)); then
+  # Caddy then sees Cloudflare's addresses, not the visitors': trust Cloudflare to say who they are.
+  grep -q '^TRUSTED_PROXIES=' .env || {
+    echo "TRUSTED_PROXIES=private_ranges $CLOUDFLARE_RANGES"
+    echo "CLIENT_IP_HEADERS=CF-Connecting-IP"
+  } >> .env
 fi
 
 step "Downloading the server images"
@@ -332,8 +346,9 @@ cat <<EOF
 
 ${B}Ports${N} (firewall on this machine: $FW_NOTE)
   Your router or cloud provider's firewall must also let these through to this machine:
-    80/tcp  443/tcp  443/udp  7881/tcp  50000-50200/udp
-  Voice uses the UDP range; without it chat works but voice does not connect.
+    80/tcp  443/tcp  7881/tcp  50000-50200/udp
+  The website needs 80 and 443. Voice needs 7881/tcp and the UDP range, straight to this machine
+  (not through Cloudflare); without them chat works but voice does not connect.
 
 ${B}Running the server${N}  (from any directory)
   vtt-admin status                          is everything healthy?

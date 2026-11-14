@@ -256,6 +256,9 @@ services:
     extra_hosts: ['host.docker.internal:host-gateway']
     environment:
       SITE_ADDRESS: ${SITE_ADDRESS}
+      # Only set when the site is behind Cloudflare's proxy (the installer does it): see Caddyfile.
+      TRUSTED_PROXIES: ${TRUSTED_PROXIES:-private_ranges}
+      CLIENT_IP_HEADERS: ${CLIENT_IP_HEADERS:-X-Forwarded-For}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data

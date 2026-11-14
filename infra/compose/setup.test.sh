@@ -31,4 +31,10 @@ fi
 out=$(cd "$tmp/infra/compose" && rm -f .env livekit.yaml && ./setup.sh localhost)
 grep -q "$(val POSTGRES_PASSWORD)" <<<"$out" && fail "a secret was printed"
 [[ $(stat -c %a "$tmp/infra/compose/.env") == 600 ]] || fail ".env mode"
+# voice address: an IP, a name, and auto
+run_v() { (cd "$tmp/infra/compose" && rm -f .env livekit.yaml && ./setup.sh localhost "$1" >/dev/null); }
+run_v 203.0.113.9; grep -q '^  node_ip: 203.0.113.9$' "$tmp/infra/compose/livekit.yaml" || fail "node_ip for an IP"
+[[ $(val VOICE_ADDRESS) == 203.0.113.9 ]] || fail "VOICE_ADDRESS recorded"
+run_v localhost; grep -q '^  node_ip: 127.0.0.1$' "$tmp/infra/compose/livekit.yaml" || fail "node_ip resolved from a name"
+run_v auto; grep -q 'use_external_ip: true' "$tmp/infra/compose/livekit.yaml" && ! grep -q node_ip "$tmp/infra/compose/livekit.yaml" || fail "auto means STUN"
 echo "setup.sh: all checks passed"

@@ -3,6 +3,7 @@
 #   Server commands (status, user, settings, jobs, recording, updates, ...) run inside the backend container.
 #   Machine commands (below) run docker compose in this folder:
 #     logs [service]   restart [service]   ps   backup [--audio]   restore <folder> --yes   update [--version x.y.z]
+#     config show | config set KEY VALUE      voice-address <ip|name|auto>
 # Works through a link or a launcher (the installer makes /usr/local/bin/vtt-admin) and asks for sudo when this user is not in
 # the docker group.
 here=$(dirname "$(readlink -f "$0")")
@@ -39,6 +40,47 @@ case ${1:-} in
     repo=${VTT_REPO:-AndyProsser/vtt-chat-app}
     curl -fsSL "https://raw.githubusercontent.com/$repo/main/infra/get.sh" | sudo bash -s -- --yes --domain "$site" "$@"
     ;;
+  config)
+    case ${2:-show} in
+      show)
+        # Secrets are hidden; everything else is shown as written.
+        sed -E 's/^([A-Z_]*(PASSWORD|SECRET|KEY)[A-Z_]*)=.*/\1=(hidden)/; s#(://[^:/@]*:)[^@]*@#\1(hidden)@#' .env
+        ;;
+      set)
+        key=${3:-} val=${4:-}
+        [[ $key =~ ^[A-Z][A-Z0-9_]*$ ]] || { echo "usage: vtt-admin config set KEY VALUE   (KEY in capitals, e.g. RECORD_CUES)" >&2; exit 2; }
+        sudo_=""; [ -w .env ] || sudo_="sudo"
+        if grep -q "^$key=" .env; then
+          $sudo_ sed -i "s|^$key=.*|$key=${val//|/\\|}|" .env
+        else
+          echo "$key=$val" | $sudo_ tee -a .env >/dev/null
+        fi
+        echo "$key set. Applying (this restarts what changed)..."
+        dc up -d
+        ;;
+      *) echo "usage: vtt-admin config show | config set KEY VALUE" >&2; exit 2 ;;
+    esac
+    ;;
+  voice-address)
+    # Where players' voice (UDP) connects. The web address can sit behind Cloudflare; voice never goes through it.
+    addr=${2:-}
+    [ -n "$addr" ] || { echo "usage: vtt-admin voice-address <ip | dns-name | auto>   (auto: LiveKit finds its own public address)" >&2; exit 2; }
+    sudo_=""; [ -w livekit.yaml ] || sudo_="sudo"
+    if [ "$addr" = auto ]; then
+      $sudo_ sed -i '/^  node_ip:/d; s/^  use_external_ip:.*/  use_external_ip: true/' livekit.yaml
+    else
+      ip=$addr
+      case $addr in
+        *[!0-9.]* | "") ip=$(getent ahostsv4 "$addr" | awk 'NR==1 {print $1}') ;;
+      esac
+      [ -n "$ip" ] || { echo "could not resolve $addr to an IPv4 address" >&2; exit 1; }
+      $sudo_ sed -i "/^  node_ip:/d; s/^  use_external_ip:.*/  use_external_ip: false\n  node_ip: $ip/" livekit.yaml
+    fi
+    if grep -q '^VOICE_ADDRESS=' .env; then $sudo_ sed -i "s|^VOICE_ADDRESS=.*|VOICE_ADDRESS=$addr|" .env; else echo "VOICE_ADDRESS=$addr" | $sudo_ tee -a .env >/dev/null; fi
+    echo "Voice will be advertised at: $(grep -E '^  (node_ip|use_external_ip)' livekit.yaml | tr -s ' ' | tr '\n' ' ')"
+    echo "Restarting LiveKit (anyone on a call reconnects in a few seconds)..."
+    dc restart livekit
+    ;;
   help | --help | -h)
     dc exec -T backend node backend/dist/cli/main.js help
     cat <<'EOT'
@@ -49,6 +91,8 @@ case ${1:-} in
   backup [--audio]                       a backup folder of the database, uploads and settings (see the operator guide)
   restore <folder> --yes                 put a backup back (replaces what is here)
   update [--version x.y.z]               update this server to the newest release of its line (your data stays)
+  config show | config set KEY VALUE     the settings file (.env): show it (secrets hidden) or change one value and apply it
+  voice-address <ip|name|auto>           the address players' voice connects to (use when the web name is behind Cloudflare)
 EOT
     ;;
   *)

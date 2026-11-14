@@ -101,12 +101,13 @@ curl -fsSL https://raw.githubusercontent.com/AndyProsser/vtt-chat-app/main/infra
 It asks for your domain and your email, then does everything: installs Docker if needed, downloads the server
 bundle for the newest release into `/opt/vtt-chat`, writes fresh secrets, starts the stack, opens the needed ports in
 `ufw` if it is active, makes you the first Admin and prints a **sign-in code** and what to do next. It checks your DNS
-first and tells you if the record is missing, points elsewhere, or is a **Cloudflare proxied record** (orange cloud:
-switch it to **DNS only**, because voice cannot pass through Cloudflare's proxy).
+first and tells you if the record is missing or points somewhere else. If the name goes through **Cloudflare's proxy** (orange
+cloud) that is fine and recommended for the website: the installer finds this machine's real public address and tells voice to
+use it ([voice and Cloudflare](#voice-and-cloudflare)).
 
 After it finishes, `vtt-admin` works from any directory (`vtt-admin status`, `vtt-admin user code <email> signin`,
 `vtt-admin settings show`, `vtt-admin help`). Machine commands work the same way: `vtt-admin logs [service]`, `vtt-admin restart [service]`,
-`vtt-admin ps`, `vtt-admin backup`, `vtt-admin restore <folder> --yes` and `vtt-admin update`. `update` (or running the
+`vtt-admin ps`, `vtt-admin config show|set`, `vtt-admin voice-address`, `vtt-admin backup`, `vtt-admin restore <folder> --yes` and `vtt-admin update`. `update` (or running the
 install command again) moves to the newest release of your **current line** (`0.4.x`); data and settings are kept, and a new
 minor (`0.5`) is only installed when you ask for it with `--version`.
 
@@ -118,6 +119,30 @@ router or cloud firewall (the table above); the script cannot do that part. Pref
 
 **(Rehearsed on a workstation with Docker already installed, against the published images; the Docker-install and
 `ufw` steps and the Let's Encrypt certificate are written but not yet run on a blank VM.)** The manual steps follow.
+
+### Where settings live
+
+Three places, each for a different kind of setting:
+
+| Where                                                                                          | What                                                                                                                                                                                                                                          | How to change it                                                                                                                         |
+| ---------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| **`.env`** beside `compose.yml` (`/opt/vtt-chat/.env`; `/etc/vtt/vtt.env` on a native install) | Things the server reads at start: the domain, `VTT_VERSION`, `RECORD_CUES`, `SMTP_URL`, `OIDC_*`, `UPDATES_SOURCE`, `COMPOSE_PROFILES` (records on/off), `VOICE_ADDRESS`, the secrets. `compose.yml` passes each one into the right container | `vtt-admin config show` (secrets hidden), `vtt-admin config set KEY VALUE` (applies it), or edit the file and run `docker compose up -d` |
+| **The database**, through `vtt-admin settings`                                                 | Things you may change while it runs: sign-up requests, campaign creation, offline limit, AI backends and models, purge rules                                                                                                                  | `vtt-admin settings show`, `settings keys`, `settings set <key> <value>`; no restart                                                     |
+| **`livekit.yaml`** (generated)                                                                 | LiveKit's keys, ports and the voice address                                                                                                                                                                                                   | `vtt-admin voice-address …`; do not hand-edit the keys                                                                                   |
+
+### Voice and Cloudflare
+
+Chat, sign-in and the website travel over `https://your-domain` (ports 80 and 443). Voice does not: LiveKit sends each player
+the address and ports for the **media** (UDP `50000-50200`, and `7881/tcp` as a fallback) **after they connect**, so those go
+straight to your machine and never touch port 443 or Cloudflare. That means:
+
+- The website can sit **behind Cloudflare's proxy** (SSL/TLS mode **Full (strict)**). The installer then also tells Caddy to trust
+  Cloudflare's ranges and read `CF-Connecting-IP`, so rate limits and the device-approval page see the visitor, not Cloudflare.
+- Voice needs only the real address of the machine. The installer detects it; set it yourself with `--voice-address <ip or name>`
+  at install or later with `vtt-admin voice-address <ip | dns-name | auto>` (`auto` lets LiveKit ask a STUN server; a name is
+  resolved to an IP when you run the command, so on a changing address run it again, for example from cron).
+- A residential line that blocks 80/443 inbound cannot serve the website itself (Cloudflare's proxy still needs to reach your
+  origin on 443); that needs a tunnel instead, which is not built in yet. Voice is unaffected, because it does not use 443.
 
 ### Or step by step
 

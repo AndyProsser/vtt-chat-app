@@ -1,3 +1,12 @@
+{
+	# Who may tell us a visitor's real address. Normally only private networks. When the site is behind Cloudflare's proxy the
+	# installer sets TRUSTED_PROXIES to Cloudflare's ranges and CLIENT_IP_HEADERS to CF-Connecting-IP (see .env).
+	servers {
+		trusted_proxies static {$TRUSTED_PROXIES:private_ranges}
+		client_ip_headers {$CLIENT_IP_HEADERS:X-Forwarded-For}
+	}
+}
+
 # One hostname. A real domain gets a Let's Encrypt certificate automatically; `localhost` gets
 # Caddy's own internal CA (fine for a local test, not trusted by other machines).
 {$SITE_ADDRESS} {
