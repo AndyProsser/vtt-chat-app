@@ -295,6 +295,42 @@ if [[ -n ${SUDO_USER:-} && $SUDO_USER != root ]] && getent group docker >/dev/nu
   fi
 fi
 
+# ---------- 5c. firewall ----------
+# Install ufw if it is missing and open what VTT Chat needs (SSH first, so enabling it cannot lock you out). A firewall we installed is also
+# switched on; one that was already there but off is left off. NOTE: ports that Docker publishes (80 and 443 here) bypass ufw by Docker's
+# design; ufw protects the host's other services and LiveKit's voice ports.
+FW_NOTE=""
+if ((SKIP_FIREWALL)); then
+  FW_NOTE="skipped (--skip-firewall)"
+else
+  fw_new=0
+  if ! command -v ufw >/dev/null 2>&1; then
+    step "Installing the firewall (ufw)"
+    apt_q install -y ufw && fw_new=1
+  fi
+  if command -v ufw >/dev/null 2>&1; then
+    if ((fw_new)) || ufw status 2>/dev/null | grep -q "Status: active"; then
+      step "Opening the needed ports in the firewall (ufw)"
+      ssh_ports=$(ss -Hltnp 2>/dev/null | awk '/sshd/ {n=split($4,a,":"); print a[n]}' | sort -u | tr '\n' ' ')
+      for port in ${ssh_ports:-22}; do ufw allow "$port/tcp" >/dev/null; done
+      ufw allow 80/tcp >/dev/null
+      ufw allow 443/tcp >/dev/null
+      ufw allow 443/udp >/dev/null
+      ufw allow 7881/tcp >/dev/null
+      ufw allow 50000:50200/udp >/dev/null
+      # Caddy and the backend reach LiveKit's signalling (7880, host-networked) from Docker's bridge networks.
+      ufw allow from 172.16.0.0/12 to any port 7880 proto tcp >/dev/null
+      ufw allow from 192.168.0.0/16 to any port 7880 proto tcp >/dev/null
+      if ((fw_new)); then ufw --force enable >/dev/null && say "  firewall switched on (SSH on ${ssh_ports:-22}, then the ports above)"; fi
+      FW_NOTE="opened in ufw on this machine"
+    else
+      FW_NOTE="ufw is installed but off; left off (turn it on yourself with: sudo ufw enable, after allowing SSH)"
+    fi
+  else
+    FW_NOTE="could not install ufw"
+  fi
+fi
+
 # ---------- 5b. are the ports free? ----------
 # Skip only when our own stack is the one running (an update); a half-finished earlier attempt must still be checked.
 own_running=0
@@ -385,23 +421,6 @@ docker compose up -d --wait --wait-timeout 600 || {
 
 # The command everyone uses afterwards: a small launcher, so it works whichever bundle version is installed.
 printf '#!/bin/sh\nexec "%s/vtt-admin" "$@"\n' "$DIR" > /usr/local/bin/vtt-admin 2>/dev/null && chmod 755 /usr/local/bin/vtt-admin || warn "could not link /usr/local/bin/vtt-admin; run it as $DIR/vtt-admin"
-
-# ---------- 8. firewall ----------
-FW_NOTE=""
-if ((SKIP_FIREWALL)); then
-  FW_NOTE="skipped (--skip-firewall)"
-elif command -v ufw >/dev/null 2>&1 && ufw status 2>/dev/null | grep -q "Status: active"; then
-  step "Opening the needed ports in the firewall (ufw)"
-  ufw allow 22/tcp >/dev/null
-  ufw allow 80/tcp >/dev/null
-  ufw allow 443/tcp >/dev/null
-  ufw allow 443/udp >/dev/null
-  ufw allow 7881/tcp >/dev/null
-  ufw allow 50000:50200/udp >/dev/null
-  FW_NOTE="opened in ufw on this machine"
-else
-  FW_NOTE="no active firewall found on this machine"
-fi
 
 # ---------- 9. is it up? ----------
 step "Checking it works"

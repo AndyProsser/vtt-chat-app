@@ -16,6 +16,8 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 - **Operators: the installer adds you to the `docker` group** (so `docker` and `vtt-admin` work without `sudo` after your next login), sets `.env` readable by that group, and installs Docker from Docker's own apt repository (the current deb822 format), so Docker updates with `sudo apt-get update && sudo apt-get upgrade`. Nothing upgrades Docker by itself: a Docker restart would drop a live session.
 
+- **Operators: the installer installs and configures the firewall** (`ufw`) unless you pass `--skip-firewall`: SSH first (the port `sshd` is actually on), then the website and voice ports, and LiveKit's internal port for Docker's networks. A firewall it installed is switched on; one that was already installed but off is left off. Ports that Docker publishes (80 and 443) bypass ufw by Docker's design.
+
 ### Fixed
 
 - `vtt-admin` uses `sudo` when the settings file is not readable by your user (it said "permission denied"), and `--cloudflare-dns` also switches an existing install to the DNS-challenge certificate.
