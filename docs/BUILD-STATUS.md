@@ -103,6 +103,17 @@ search refuse `ooc` again — defence in depth).
 **Still unverified:** real human voices, noise, echo and crosstalk; a real multi-hour session (map-reduce path); the Rust
 desktop client and phone app as the recorded clients; a CPU-only server end to end; a fresh-VM install by someone else.
 
+## Verified 2026-11-14: scene cues and chapters on the Compose stack
+
+Migration `0032_recording_cues` applied to the smoke database, and `compose-e2e.ts` passed 45 of 45 with a new scene step: the
+DM started a scene ("The Drowned Vault") mid-recording; the scene is a marker in the transcript and an event on the timeline,
+the second chapter is titled with it, and that chapter's summary carries the scene name. Postgres-backed suites pass (backend
+690, ai 183). **Caveat seen in the run:** the scene started 16 seconds in, with under a minute of speech before the pause,
+so the short-chapter rule folded it and it did not split a chapter by itself; the chapter that began at the resume
+inherited its name. **Not verified:** whether a real model (qwen3:8b) uses the cues faithfully rather than over-reading
+them (the run records whether a summary names the scene as a metric); the DM's app reporting a voice change against a real
+DM app; the History scene dividers on screen.
+
 ## Verified 2026-11-12: the web UI in a real browser; protocol and session hardening
 
 Headless Chromium drove the built web UI (Home, Download, Full app, Status, the `/app` web chat) against the local smoke
