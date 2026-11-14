@@ -14,6 +14,8 @@
 #   --with-records                also run recording, transcription and summaries (about 6 GB of downloads)
 #   --records-remote              recording and the worker here, but the AI (Whisper and the LLM) on another machine you point it at;
 #                                 chosen automatically when this CPU lacks AVX, which the local AI needs
+#   --records-compat              local AI on a CPU without AVX, using a Whisper built for it (works, but about 5x slower than the audio's length on an old
+#                                 CPU; for trying things out). Without this flag a CPU without AVX gets --records-remote
 #   --voice-address 203.0.113.7   where voice (UDP) connects: an IP or DNS name. Found automatically; set it when the
 #                                 domain goes through Cloudflare's proxy or the machine is behind NAT (alias: --public-ip)
 #   --dir /opt/vtt-chat           where to put it
@@ -29,7 +31,7 @@ set -euo pipefail
 
 REPO="${VTT_REPO:-AndyProsser/vtt-chat-app}"
 ASSUME_YES=0 DRY_RUN=0 SKIP_DOCKER=0 SKIP_FIREWALL=0 WITH_RECORDS=""
-CFDNS=0 RECORDS_PROFILE=records TUNNEL=0 NO_ADMIN=0 BEHIND_CLOUDFLARE=0 DOMAIN="" EMAIL="" NAME="" VERSION="" PUBLIC_IP="" DIR="/opt/vtt-chat"
+COMPAT=0 CFDNS=0 RECORDS_PROFILE=records TUNNEL=0 NO_ADMIN=0 BEHIND_CLOUDFLARE=0 DOMAIN="" EMAIL="" NAME="" VERSION="" PUBLIC_IP="" DIR="/opt/vtt-chat"
 
 # ---------- small helpers ----------
 if [[ -t 1 ]]; then B=$'\e[1m' G=$'\e[32m' Y=$'\e[33m' R=$'\e[31m' N=$'\e[0m'; else B="" G="" Y="" R="" N=""; fi
@@ -100,6 +102,7 @@ while (($#)); do
     --cloudflare-dns) CFDNS=1; shift ;;
     --with-records) WITH_RECORDS=1; shift ;;
     --no-records) WITH_RECORDS=0; shift ;;
+    --records-compat) WITH_RECORDS=1; COMPAT=1; shift ;;
     --records-remote) WITH_RECORDS=1; RECORDS_PROFILE=records-remote; shift ;;
     --yes | -y) ASSUME_YES=1; shift ;;
     --dry-run) DRY_RUN=1; shift ;;
@@ -168,7 +171,7 @@ else
   fi
 fi
 
-if [[ $WITH_RECORDS == 1 && $RECORDS_PROFILE == records && $(uname -m) == x86_64 ]] && ! grep -qm1 -w avx /proc/cpuinfo 2>/dev/null; then
+if [[ $WITH_RECORDS == 1 && $RECORDS_PROFILE == records && $COMPAT == 0 && $(uname -m) == x86_64 ]] && ! grep -qm1 -w avx /proc/cpuinfo 2>/dev/null; then
   warn "this CPU has no AVX, which the local Whisper and LLM need (they would crash). Recording will run here, but the AI must run on another machine:"
   say "    after the install: vtt-admin settings set ai.transcription.kind remote, ai.transcription.url, ai.llm.kind remote, ai.llm.url (operator guide: a gaming PC as the AI), and ai.fallback.enabled false"
   RECORDS_PROFILE=records-remote
@@ -323,10 +326,12 @@ if ((EXISTING)); then
   # Keep the operator's settings; only move the image version (and the domain if it changed).
   sed -i "s|^VTT_VERSION=.*|VTT_VERSION=$IMAGE_VERSION|; s|^SITE_ADDRESS=.*|SITE_ADDRESS=$DOMAIN|" .env
   if [[ $WITH_RECORDS == 1 ]] && ! grep -q '^COMPOSE_PROFILES=' .env; then echo "COMPOSE_PROFILES=$RECORDS_PROFILE" >> .env; say "  recording and summaries: on"; fi
+  if ((COMPAT)) && ! grep -q '^COMPOSE_FILE=' .env; then echo "COMPOSE_FILE=compose.yml:compose.compat.yml" >> .env; fi
 else
   step "Writing the configuration (fresh secrets, never shown)"
   VTT_VERSION="$IMAGE_VERSION" ./setup.sh "$DOMAIN" ${PUBLIC_IP:+"$PUBLIC_IP"}
   if [[ $WITH_RECORDS == 1 ]]; then echo "COMPOSE_PROFILES=$RECORDS_PROFILE" >> .env; say "  recording and summaries: on ($RECORDS_PROFILE)"; fi
+  if ((COMPAT)); then echo "COMPOSE_FILE=compose.yml:compose.compat.yml" >> .env; say "  local AI with the Whisper built for CPUs without AVX (slow)"; fi
 fi
 if ((CFDNS)); then
   mkdir -p tls.d
