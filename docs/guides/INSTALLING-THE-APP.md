@@ -8,8 +8,9 @@ the link your DM or server operator gave you.
 Your server also has a download page at `/download` (for example `https://your-server/download`) with the same
 steps, one tab per system, and the download buttons.
 
-> **What is published today:** the Windows `.exe`, the macOS `.dmg`, and for Linux the AppImage and `.deb`. The `.msi`
-> and `.rpm` mentioned below are planned but **not built yet**: Fedora and openSUSE users use the AppImage for now.
+> **Dev builds and real releases differ:** a real release (`vX.Y.Z`) publishes the Windows `.exe` and `.msi`, the macOS
+> `.dmg`, and for Linux the AppImage, `.deb` and `.rpm`. A dev build (`-dev.N`) skips the `.msi` and `.rpm`, because
+> those formats cannot carry a `-dev` version label; Fedora and openSUSE users on a dev build use the AppImage.
 
 ## Windows
 
