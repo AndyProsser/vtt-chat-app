@@ -12,6 +12,7 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ### Added
 
+- **A tidier top bar in the desktop app.** Session history, the DM's connection quality, Settings and a new **Quit** moved behind a menu (burger) button, and the recording timer is just a red dot and the time (no "REC" word; the dot is hollow when paused), leaving room for the tools. Your status is now a colour-coded **pill above the microphone button** (ONLINE green, AWAY amber, OFFLINE grey); click it to change it. The separate connection-quality button on the rail is gone (it is in the menu), and a long campaign name is cut short with an ellipsis instead of wrapping.
 - **Operators: `--records-compat`** runs the local AI on a CPU without AVX, with the Whisper built for it (very slow; for trying things out).
 
 - **Operators: the installer adds you to the `docker` group** (so `docker` and `vtt-admin` work without `sudo` after your next login), sets `.env` readable by that group, and installs Docker from Docker's own apt repository (the current deb822 format), so Docker updates with `sudo apt-get update && sudo apt-get upgrade`. Nothing upgrades Docker by itself: a Docker restart would drop a live session.
@@ -20,6 +21,8 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ### Fixed
 
+- **Slow servers no longer fail transcription and summaries with "fetch failed".** Requests to Whisper and the LLM gave up after five minutes without an answer, which a CPU-only server easily exceeds (the job failed and retried); they now wait up to an hour.
+- **Short or test recordings get a short summary** instead of a full template of empty sections ("no key decisions were made").
 - `vtt-admin` uses `sudo` when the settings file is not readable by your user (it said "permission denied"), and `--cloudflare-dns` also switches an existing install to the DNS-challenge certificate.
 
 ## [0.4.2] - 2026-11-14

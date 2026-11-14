@@ -71,6 +71,16 @@ body,
   font-variant-numeric: tabular-nums;
   font-weight: 600;
 }
+.vtt-rec {
+  white-space: nowrap;
+}
+/* The campaign button gives way before the tools do: its name is cut short with an ellipsis rather than wrapped. */
+.vtt-top .vtt-tool-text {
+  max-width: 11em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .vtt-rec-dot {
   width: 10px;
   height: 10px;

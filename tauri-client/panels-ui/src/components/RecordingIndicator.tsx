@@ -30,9 +30,15 @@ export function RecordingIndicator({ dm }: { dm: boolean }) {
   return (
     <>
       {bar.visible && (
-        <span className={bar.paused ? 'vtt-rec vtt-rec-paused' : 'vtt-rec'} role="status">
+        <span
+          className={bar.paused ? 'vtt-rec vtt-rec-paused' : 'vtt-rec'}
+          role="status"
+          title={bar.paused ? 'Recording paused' : 'Recording'}
+          aria-label={`${bar.paused ? 'Recording paused' : 'Recording'} ${bar.label}`}
+        >
+          {/* A red dot (hollow when paused) and the time: no "REC" word, to leave the bar its room. */}
           <span className="vtt-rec-dot" aria-hidden />
-          {bar.paused ? 'PAUSED' : 'REC'} {bar.label}
+          <span aria-hidden>{bar.label}</span>
         </span>
       )}
       {bar.actions.map((action) => {
