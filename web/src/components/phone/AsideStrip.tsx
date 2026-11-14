@@ -1,6 +1,4 @@
 import { Text } from '@radix-ui/themes';
-import { Lock } from 'lucide-react';
-
 import { usePhoneStore } from '../../lib/phone/phoneStore.js';
 
 /**
@@ -22,7 +20,21 @@ export function AsideStrip() {
         : `The DM is speaking privately with ${name}. They cannot hear the table. Chat still works.`;
   return (
     <Text size="1" className="phone-aside" role="status">
-      <Lock size={12} aria-hidden /> {text}
+      <svg
+        width="12"
+        height="12"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden
+      >
+        <rect x="4" y="11" width="16" height="10" rx="2" />
+        <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+      </svg>{' '}
+      {text}
     </Text>
   );
 }

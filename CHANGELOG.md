@@ -10,7 +10,15 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ## [Unreleased]
 
-## [0.4.0] - 2026-11-14
+## [0.4.1] - 2026-11-14
+
+The first patch of 0.4. **0.4.0 was tagged but never built:** its server image failed to build (the web chat's new private-talk strip used an icon library the web package does not declare, which only the container build noticed), so no 0.4.0 images or installers were published. 0.4.1 is the same release with that fixed; everything below under 0.4.0 applies to it.
+
+### Fixed
+
+- The server image builds again. CI now builds the backend and worker images on every push so this cannot reach a tag again.
+
+## [0.4.0] - 2026-11-14 (never published; see 0.4.1)
 
 ### Added
 
