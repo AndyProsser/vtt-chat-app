@@ -245,6 +245,25 @@ else
   docker compose version >/dev/null 2>&1 || die "Docker installed but \"docker compose\" does not work"
 fi
 
+# ---------- 5b. are the ports free? ----------
+# Skip only when our own stack is the one running (an update); a half-finished earlier attempt must still be checked.
+own_running=0
+if ((EXISTING)) && [[ -f $DIR/compose.yml ]] && [[ -n $(cd "$DIR" && docker compose ps -q 2>/dev/null) ]]; then own_running=1; fi
+if ((own_running == 0)) && command -v ss >/dev/null 2>&1; then
+  busy=""
+  for port in 80 443 7880 7881; do
+    who=$(ss -Hltnp 2>/dev/null | awk -v p=":$port" '$4 ~ p"$" {print $NF}' | sort -u | head -2 | tr '\n' ' ')
+    [[ -n $(ss -Hltn 2>/dev/null | awk -v p=":$port" '$4 ~ p"$"') ]] && busy+="    $port/tcp  ${who:-(something is listening)}\n"
+  done
+  if [[ -n $busy ]]; then
+    printf '%s\n' "${R}These ports are already in use on this machine, and VTT Chat needs them:${N}" >&2
+    printf '%b' "$busy" >&2
+    say "  Another web server, a proxy, or an earlier install is using them. Stop it (find it with: ss -ltnp), then run this again."
+    say "  Docker containers using them:  docker ps --format '{{.Names}}  {{.Ports}}' | grep -E ':(80|443|7880|7881)->'"
+    die "ports busy; nothing was changed"
+  fi
+fi
+
 # ---------- 6. the bundle ----------
 step "Downloading the server bundle ($TAG)"
 tmp=$(mktemp -d)
