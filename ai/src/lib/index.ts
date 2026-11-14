@@ -1,5 +1,7 @@
+export * from './chapters.js';
 export * from './chat.js';
 export * from './chunk.js';
+export * from './cues.js';
 export * from './ffmpeg.js';
 export * from './format.js';
 export * from './jobs/index.js';

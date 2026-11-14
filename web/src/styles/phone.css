@@ -407,6 +407,11 @@ body,
   flex-direction: column;
   gap: 1px;
 }
+.phone-scene {
+  margin-block: 6px 2px;
+  padding-block: 4px;
+  border-block-start: 1px solid var(--gray-a5);
+}
 
 @media (prefers-reduced-motion: no-preference) {
   .phone-tab {

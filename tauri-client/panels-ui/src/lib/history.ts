@@ -16,6 +16,37 @@ export interface SummaryView {
   visibility: 'members' | 'dm';
   text: string;
   createdAt: number;
+  /** A chapter summary: the scene the chapter began in. */
+  title?: string;
+}
+/** A scene the DM started during the recording, shown as a divider among the transcript lines. */
+export interface SceneMarker {
+  atMs: number;
+  kind: 'scene';
+  text: string;
+}
+/** One row of a transcript: a line, or a "Scene: <name>" divider. */
+export type TranscriptRow =
+  { kind: 'line'; line: Utterance } | { kind: 'scene'; atMs: number; name: string };
+
+/** The lines with the scene markers placed among them by time (a divider comes before the lines at its moment). */
+export function transcriptRows(
+  lines: readonly Utterance[],
+  markers: readonly SceneMarker[] = [],
+): TranscriptRow[] {
+  const rows = [
+    ...markers.map((m) => ({
+      at: m.atMs,
+      order: 0,
+      row: { kind: 'scene', atMs: m.atMs, name: m.text } as TranscriptRow,
+    })),
+    ...lines.map((line) => ({
+      at: line.startMs,
+      order: 1,
+      row: { kind: 'line', line } as TranscriptRow,
+    })),
+  ];
+  return rows.sort((a, b) => a.at - b.at || a.order - b.order).map((r) => r.row);
 }
 export interface Utterance {
   /** `{ id, name }` from the server. */

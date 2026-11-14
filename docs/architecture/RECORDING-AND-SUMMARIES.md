@@ -45,7 +45,7 @@ flowchart LR
    speaker = track owner. Overlapping speech is preserved instead of guessed at.
 4. **Summarise** with a local LLM (Ollama). Outputs: session summary, chapter summaries,
    character-specific summaries, DM-only summaries (all four built 2026-11-12: a chapter is a stretch between
-   pauses, a character summary is written for each player who spoke or typed, under their transcript name). Long sessions are map-reduce summarised
+   pauses or between scenes, see [The table's cues and scene chapters](#the-tables-cues-and-scene-chapters-built-2026-11-13); a character summary is written for each player who spoke or typed, under their transcript name). Long sessions are map-reduce summarised
    (per-chunk, then combined) — local models have small effective context.
 5. **Anchors:** summaries reference transcript timestamps. If DM markers stay in scope **(open)**,
    chapter summaries are cut at markers; otherwise at detected topic shifts.
@@ -73,6 +73,58 @@ Recording people is a trust matter before it is a technical one. The design is:
 - **Pause/resume (open).** Suggestion: pausing is a stop (cue plays), resuming a start (cue
   plays), so there is never a silent gap or silent re-start.
 - Start and stop sounds must be clearly different from soundboard effects.
+
+## The table's cues and scene chapters (built 2026-11-13)
+
+Andy's ask: _a scene change should start a new chapter, and the transitions and soundboard/voice activity should
+be in the recording's metadata so the AI can summarise against them_ ("a rich tapestry"). The words are the
+record; **these are cues that colour the telling**, never events the model may build on.
+
+**What the timeline now holds** (the same `recording_events` store and clock as typed chat: milliseconds from the
+recording's start, written only while audio is being captured, so nothing is noted during a pause):
+
+| Event (`event`) | What is noted                                                                                         | When                                                                   |
+| --------------- | ----------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `scene`         | start: scene id, **name**, and the names of the sounds in its layers (the ambience); stop             | **Always**                                                             |
+| `voice`         | the DM's character voice (`dragon`, `normal` …) and the DM's name                                     | **Always** (the DM's app reports it; the voice itself runs in Rust)    |
+| `group`         | the party split or merge: each group's name and its members by name (an unchanged table is not noted) | **Always** (a split is a story moment; every group is recorded anyway) |
+| `sound`         | a one-shot effect or loop played, by **name and category**, and a loop's stop                         | **Only with `RECORD_SOUNDBOARD=1`** (off by default; see below)        |
+
+- **`RECORD_SOUNDBOARD`** keeps its meaning and its default (off): the operator opting into "the soundboard is
+  part of the record". On, the DM's effects are saved as a private audio file _and_ individual effects and loops
+  are noted by name. Off, the effects are neither recorded nor named; the **scene** still is, with its ambience.
+  (Before 2026-11-13 individual `sound` events were noted regardless, by id only; ids mean nothing to a summary.)
+- **Never private.** A sound played to chosen people only is not noted; whispers and `ooc` lines never reach the
+  timeline; names are display text with control and invisible characters stripped (`cleanCueText`).
+- **Known gaps:** a voice already on when a recording starts is noted at the next change, not at the start; a
+  split already in place at the start likewise; anything done during a pause is not noted (and a scene started in
+  a pause titles nothing).
+
+**Chapters** (`ai/src/lib/chapters.ts`, `planChapters`, used by the worker and the API alike): a chapter starts at
+the beginning, at every **resume** (always), and at every **scene start**, but a scene chapter with less than
+**60 s of speech** folds into the one before it (the scene still shows as a cue inside it), so a DM flipping
+through scenes does not leave dozens of tiny chapters. A scene the DM opens with, at the very start, titles the
+first chapter. A chapter's **title is the scene running when it began** (cleared when the scene stops). The records
+API returns `chapters: [{ number, startMs, title? }]` on a recording that has more than one, and each chapter
+summary carries its `title`; the numbering and subjects (`chapter:2`) are unchanged.
+
+**Prompts** (`ai/src/lib/cues.ts`, `format.ts`, `prompts.ts`): every summary's transcript has the cues woven in by
+time as `[0:12:03] (cue) Scene started: "Drowned Crypt" (sounds: Dripping, Eerie hum)`, so map-reduce chunking
+carries them for free. A chapter sees its own cues; the session, DM-only and character summaries see all of
+them. When there are cues the prompt adds one rule: _cue lines are noted by the app, not speech; use them only to
+say where and how things happened; they are not events, so do not invent what a sound meant, who made it, or
+anything no one said or typed._ A chapter prompt also names its scene. **Bounded:** repeated effects collapse to
+one line with a count ("Sound effect: "Drip" (6 times)"), and at most 40 cue lines go into any one summary
+(scenes, group splits and voices are kept ahead of effects, with a "N more minor cues left out" line).
+
+**History:** the transcript endpoint returns `markers` (`[{ atMs, kind: 'scene', text }]`) beside `utterances`,
+and both History views draw a "Scene: <name>" divider among the lines. Effects, voices and groups stay out of the
+transcript (they shape the summary, they are not lines to read).
+
+**Not verified yet:** the Postgres migration `0032_recording_cues.sql` and the full pipeline with a real model
+(unit tests only, no stack run); whether a local 8B model uses the cues well or over-reads them. The smoke test
+(`infra/records-smoke/compose-e2e.ts`) now starts a scene mid-recording and checks the marker, the chapter title
+and the timeline event, and records whether a summary names the scene as a metric.
 
 ## Privacy rules (hard)
 

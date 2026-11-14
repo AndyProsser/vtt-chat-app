@@ -8,6 +8,7 @@ import {
   snippetParts,
   speakerName,
   summaryLabel,
+  transcriptRows,
 } from './history.js';
 
 describe('durationLabel', () => {
@@ -79,5 +80,25 @@ describe('audioDeletionNote', () => {
     expect(audioDeletionNote({ audioDeletedOn: on }, true, 'en-AU')).toMatch(/13 Nov/);
     expect(audioDeletionNote({ audioDeletedOn: on }, false, 'en-AU')).toBeNull();
     expect(audioDeletionNote({}, true, 'en-AU')).toBeNull();
+  });
+});
+
+describe('transcriptRows', () => {
+  const line = (startMs: number, text: string) => ({
+    speaker: 'Aria',
+    startMs,
+    endMs: startMs + 500,
+    text,
+  });
+  it('puts a scene divider among the lines by time, before the lines at its moment', () => {
+    const rows = transcriptRows(
+      [line(0, 'one'), line(5000, 'two')],
+      [{ atMs: 5000, kind: 'scene', text: 'Drowned Crypt' }],
+    );
+    expect(rows.map((r) => (r.kind === 'scene' ? `Scene: ${r.name}` : r.line.text))).toEqual([
+      'one',
+      'Scene: Drowned Crypt',
+      'two',
+    ]);
   });
 });

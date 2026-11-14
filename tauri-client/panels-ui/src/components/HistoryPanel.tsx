@@ -16,6 +16,9 @@ import {
   type RecordingItem,
   type SearchHit,
   type SummaryView,
+  transcriptRows,
+  type TranscriptRow,
+  type SceneMarker,
   type Utterance,
 } from '../lib/history.js';
 import { isDm } from '../lib/tableModel.js';
@@ -308,7 +311,7 @@ function DeleteAudio({ id, onDone }: { id: string; onDone: () => void }) {
 function Detail({ id }: { id: string }) {
   const [summaries, setSummaries] = useState<SummaryView[]>();
   const [error, setError] = useState<string>();
-  const [transcript, setTranscript] = useState<Utterance[]>();
+  const [transcript, setTranscript] = useState<TranscriptRow[]>();
   useEffect(() => {
     let cancelled = false;
     campaignApi<{ summaries: SummaryView[] }>('GET', `recordings/${id}`)
@@ -321,11 +324,11 @@ function Detail({ id }: { id: string }) {
 
   async function loadTranscript() {
     try {
-      const d = await campaignApi<{ utterances: Utterance[] }>(
+      const d = await campaignApi<{ utterances: Utterance[]; markers?: SceneMarker[] }>(
         'GET',
         `recordings/${id}/transcript`,
       );
-      setTranscript(d.utterances);
+      setTranscript(transcriptRows(d.utterances, d.markers));
     } catch (e) {
       setError(accountErrorMessage(e));
     }
@@ -346,6 +349,7 @@ function Detail({ id }: { id: string }) {
           <b>
             {summaryLabel(s.kind)}
             {s.subject ? `: ${s.subject}` : ''}
+            {s.title ? ` · ${s.title}` : ''}
           </b>
           <MarkdownView text={s.text} />
         </article>
@@ -353,12 +357,24 @@ function Detail({ id }: { id: string }) {
       {transcript ? (
         <div className="vtt-transcript">
           {transcript.length === 0 && <span className="vtt-muted">No transcript yet.</span>}
-          {transcript.map((u, i) => (
-            <p key={i}>
-              <span className="vtt-muted">{clock(u.startMs)}</span> <b>{speakerName(u.speaker)}</b>
-              {u.typed ? <span className="vtt-muted"> (typed)</span> : null} {u.text}
-            </p>
-          ))}
+          {transcript.map((row, i) =>
+            row.kind === 'scene' ? (
+              <p
+                key={i}
+                className="vtt-muted"
+                style={{ borderBlockStart: '1px solid currentColor' }}
+              >
+                {clock(row.atMs)} · <b>Scene: {row.name}</b>
+              </p>
+            ) : (
+              <p key={i}>
+                <span className="vtt-muted">{clock(row.line.startMs)}</span>{' '}
+                <b>{speakerName(row.line.speaker)}</b>
+                {row.line.typed ? <span className="vtt-muted"> (typed)</span> : null}{' '}
+                {row.line.text}
+              </p>
+            ),
+          )}
         </div>
       ) : (
         <div>

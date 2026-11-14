@@ -1,10 +1,13 @@
 import type {
   RecordingEvent,
+  SummaryCue,
   SummaryContext,
   SummaryKind,
   SummaryVisibility,
   Utterance,
 } from '../types/index.js';
+import { planChapters } from './chapters.js';
+import { compactCues, eventCues } from './cues.js';
 
 /** One summary a processed recording gets: what it covers, who may read it, and what the model reads. */
 export interface PlannedSummary {
@@ -28,10 +31,10 @@ export interface PlanInput {
 }
 
 /**
- * Where each chapter begins, in ms from the start of the recording. A chapter is a stretch of recording
+ * Where each pause-chapter begins, in ms from the start of the recording. A chapter is a stretch of recording
  * between pauses (decided 2026-11-05: start / pause / resume / stop are the session's bookmarks), so the
  * first starts at 0 and every `resumed` starts another. Lines typed during a pause belong to the chapter
- * before it.
+ * before it. (Scene changes also start chapters: see `planChapters`, which `planSummaries` uses.)
  */
 export function chapterStarts(events: readonly RecordingEvent[], startedAt: number): number[] {
   const starts = [0];
@@ -55,30 +58,46 @@ export function planSummaries(input: PlanInput): PlannedSummary[] {
     ...(input.campaignName ? { campaignName: input.campaignName } : {}),
     ...(gm ? { gameMaster: gm } : {}),
   };
+  // What the table heard and did (scenes, effects, voices, groups) rides along as cues; see cues.ts.
+  const cues = eventCues(input.events, input.startedAt);
+  const withCues = (range: SummaryCue[]): SummaryContext =>
+    range.length > 0 ? { ...base, cues: compactCues(range) } : base;
+  const all = withCues(cues);
   const plan: PlannedSummary[] = [
     {
       kind: 'session',
       subject: '',
       visibility: 'members',
       utterances: [...utterances],
-      context: base,
+      context: all,
     },
-    { kind: 'dm-only', subject: '', visibility: 'dm', utterances: [...utterances], context: base },
+    { kind: 'dm-only', subject: '', visibility: 'dm', utterances: [...utterances], context: all },
   ];
   if (utterances.length === 0) return plan;
 
-  const starts = chapterStarts(input.events, input.startedAt);
-  if (starts.length > 1) {
-    for (const [i, start] of starts.entries()) {
-      const end = starts[i + 1] ?? Number.POSITIVE_INFINITY;
-      const part = utterances.filter((u) => u.startMs >= start && u.startMs < end);
+  const chapters = planChapters({
+    events: input.events,
+    startedAt: input.startedAt,
+    utterances,
+  });
+  if (chapters.length > 1) {
+    for (const c of chapters) {
+      const part = utterances.filter((u) => u.startMs >= c.startMs && u.startMs < c.endMs);
       if (part.length === 0) continue;
+      const own = cues.filter((q) => q.atMs >= c.startMs && q.atMs < c.endMs);
       plan.push({
         kind: 'chapter',
-        subject: String(i + 1),
+        subject: String(c.number),
         visibility: 'members',
         utterances: part,
-        context: { ...base, chapter: { number: i + 1, of: starts.length } },
+        context: {
+          ...withCues(own),
+          chapter: {
+            number: c.number,
+            of: chapters.length,
+            ...(c.title ? { title: c.title } : {}),
+          },
+        },
       });
     }
   }
@@ -97,7 +116,7 @@ export function planSummaries(input: PlanInput): PlannedSummary[] {
       subject: name,
       visibility: 'members',
       utterances: [...utterances],
-      context: { ...base, characterName: name },
+      context: { ...all, characterName: name },
     });
   }
   return plan;

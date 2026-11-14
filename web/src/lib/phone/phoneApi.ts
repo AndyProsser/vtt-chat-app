@@ -4,6 +4,7 @@ import type {
   HandoutItem,
   RecordingItem,
   RsvpStatus,
+  SceneMarker,
   SearchHit,
   SessionItem,
   SummaryItem,
@@ -11,6 +12,7 @@ import type {
 } from '../../types/phone.js';
 import { lineFromHistory } from './chat.js';
 import type { DmRequest, OpenTable } from './joinRequests.js';
+import { transcriptRows, type TranscriptRow } from './transcriptRows.js';
 
 interface Login {
   signedIn?: boolean;
@@ -170,12 +172,12 @@ export async function recording(campaignId: string, id: string) {
   );
 }
 
-export async function transcript(campaignId: string, id: string): Promise<Utterance[]> {
-  const res = await request<{ utterances: Utterance[] }>(
+export async function transcript(campaignId: string, id: string): Promise<TranscriptRow[]> {
+  const res = await request<{ utterances: Utterance[]; markers?: SceneMarker[] }>(
     'GET',
     `/api/campaigns/${campaignId}/recordings/${id}/transcript`,
   );
-  return res.utterances;
+  return transcriptRows(res.utterances, res.markers);
 }
 
 /** A handout's file, as a Blob. Fetched (with the session cookie) so a failure can be told from a missing picture, then shown from a blob URL. */

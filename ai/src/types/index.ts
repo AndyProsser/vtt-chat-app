@@ -35,6 +35,13 @@ export interface Utterance {
   typed?: boolean;
 }
 
+/** One non-speech moment on the recording's clock: a cue for the summary, never a fact to build on. */
+export interface SummaryCue {
+  atMs: number;
+  kind: 'scene' | 'effect' | 'voice' | 'group';
+  text: string;
+}
+
 export type SummaryKind = 'session' | 'dm-only' | 'character' | 'chapter';
 
 export interface SummaryContext {
@@ -42,7 +49,13 @@ export interface SummaryContext {
   /** Required when `kind` is `character`. */
   characterName?: string;
   /** Required when `kind` is `chapter`: which part of the recording, of how many. */
-  chapter?: { number: number; of: number };
+  chapter?: {
+    number: number;
+    of: number;
+    /** The scene the chapter began in, when there was one. */ title?: string;
+  };
+  /** What the table heard and did (scene changes, effects, voices, group splits), woven into the transcript as cues. */
+  cues?: SummaryCue[];
   /** The name the Game Master's lines are shown under, so the model reads them as narration. */
   gameMaster?: string;
 }

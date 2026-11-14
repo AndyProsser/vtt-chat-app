@@ -117,6 +117,45 @@ describe('process-recording handler', () => {
     expect(prompts[0]).toContain('"ALICE" is the Game Master');
   });
 
+  it('weaves scene, effect, voice and group cues into what the model reads, and titles the scene chapter', async () => {
+    await records.putTrack(
+      track('t-long', 'carol', {
+        // 70 s of speech after the scene starts, enough to open a chapter of its own
+        startOffsetMs: 0,
+      }),
+    );
+    const detail = (d: Record<string, unknown>) => d;
+    await records.addRecordingEvent({ recordingId: REC, at: 0, event: 'started' });
+    await records.addRecordingEvent({
+      recordingId: REC,
+      at: 120_000,
+      event: 'scene',
+      detail: detail({ action: 'start', name: 'Drowned Crypt', ambience: ['Eerie hum'] }),
+    });
+    await records.addRecordingEvent({
+      recordingId: REC,
+      at: 125_000,
+      event: 'voice',
+      detail: detail({ voice: 'dragon', by: 'ALICE' }),
+    });
+    await handler({
+      transcribeAudioFile: async (file) =>
+        file.includes('t-long')
+          ? [{ startMs: 121_000, endMs: 191_000, text: 'we descend the stairs' }]
+          : say(`said in ${file}`),
+    }).run(job());
+    const chapter = prompts.find((p) => p.includes('part 2 of 2'));
+    expect(chapter).toContain('which began in the scene "Drowned Crypt"');
+    expect(chapter).toContain('(cue) Scene started: "Drowned Crypt" (sounds: Eerie hum)');
+    expect(chapter).toContain('(cue) ALICE switched to the character voice "dragon"');
+    expect(chapter).toContain('not events');
+    const part1 = prompts.find((p) => p.includes('part 1 of 2'));
+    expect(part1).not.toContain('Drowned Crypt"');
+    // The session summary sees every cue, in time order among the lines.
+    const session = prompts.find((p) => p.includes('a shared summary'));
+    expect(session?.indexOf('Scene started')).toBeLessThan(session?.indexOf('we descend') ?? 0);
+  });
+
   it('puts the speakers and their track offsets into what the model reads', async () => {
     await handler().run(job());
     expect(prompts[0]).toContain('ALICE');

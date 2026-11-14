@@ -54,7 +54,9 @@ export type Step =
   | { do: 'late-join'; who: Who }
   /** The late joiner's app finishes playing the cue. */
   | { do: 'ack'; who: Who }
-  | { do: 'wait'; seconds: number };
+  | { do: 'wait'; seconds: number }
+  /** The DM starts a scene from their soundboard library (a known name, no sounds), mid-recording. */
+  | { do: 'scene'; name: string };
 
 /** Words that appear only in lines that must never be recorded. */
 export const FORBIDDEN = [
@@ -65,6 +67,9 @@ export const FORBIDDEN = [
   'zircon', // /dm whisper
   'aubergine', // /tell whisper
 ] as const;
+
+/** The scene the DM starts in recording A: it must come back as a chapter title and a transcript marker. */
+export const SCENE_NAME = 'The Drowned Vault';
 
 /** A phrase every member must be able to find with search. */
 export const SEARCH_SPOKEN = 'drowned king';
@@ -80,6 +85,9 @@ export const RECORDING_A: readonly Step[] = [
     text: 'Welcome back, everyone. When we left off, you had just reached the flooded steps of the Sunken Temple.',
     expect: 'captured',
   },
+  // A scene change mid-recording: the lines that follow (well over a minute of speech before the pause)
+  // form a chapter of their own, titled with the scene.
+  { do: 'scene', name: SCENE_NAME },
   {
     do: 'say',
     who: 'aria',

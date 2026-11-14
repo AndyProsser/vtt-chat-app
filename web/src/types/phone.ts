@@ -89,6 +89,8 @@ export interface SummaryItem {
   visibility: string;
   text: string;
   createdAt: number;
+  /** A chapter summary: the scene the chapter began in. */
+  title?: string;
 }
 
 export interface Utterance {
@@ -98,6 +100,13 @@ export interface Utterance {
   text: string;
   /** Typed into the table chat during the recording, not spoken. */
   typed?: boolean;
+}
+
+/** A scene the DM started during the recording, shown as a divider among the transcript lines. */
+export interface SceneMarker {
+  atMs: number;
+  kind: 'scene';
+  text: string;
 }
 
 export type LiveState = 'connecting' | 'live' | 'offline';

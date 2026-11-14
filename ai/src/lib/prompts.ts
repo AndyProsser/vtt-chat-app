@@ -18,8 +18,9 @@ function describe(kind: SummaryKind, context: SummaryContext): string {
       return `a private summary of a tabletop role-playing session${campaign}, for the Game Master only. Besides what happened, list secrets that were revealed or are still hidden, plot hooks players pursued or ignored, promises made to or by non-player characters, and things the Game Master should prepare for next session.`;
     case 'chapter': {
       if (!context.chapter) throw new Error('a chapter summary needs context.chapter');
-      const { number, of } = context.chapter;
-      return `a summary of part ${number} of ${of} of a tabletop role-playing session${campaign}, for all players (the session was paused between parts; this covers part ${number} only). Cover what happened in this part in order, key decisions and discoveries.`;
+      const { number, of, title } = context.chapter;
+      const scene = title ? `, which began in the scene "${title}"` : '';
+      return `a summary of part ${number} of ${of} of a tabletop role-playing session${campaign}${scene}, for all players (the session was paused or the scene changed between parts; this covers part ${number} only). Cover what happened in this part in order, key decisions and discoveries.`;
     }
     case 'character': {
       if (!context.characterName) {
@@ -30,12 +31,21 @@ function describe(kind: SummaryKind, context: SummaryContext): string {
   }
 }
 
+/**
+ * The rules for cue lines, added only when the transcript has some. Cues are what the table heard and did
+ * (a scene started, a sound played, a voice changed, the party split), noted by the app, not said by anyone:
+ * they colour the telling and must never become invented story.
+ */
+const CUE_RULES =
+  'Lines marked "(cue)" are cues noted by the app, not speech: a scene started, a sound effect played, the Game Master changed voice, the table split into groups. Use them only to say where and how things happened (for example, which scene the party was in, or who was in which group). They are not events: do not invent what a sound meant, who made it, or anything that no one said or typed.';
+
 /** The rules, plus who the Game Master is when known (their lines are narration, not a character's). */
 function rules(context: SummaryContext): string {
   const gm = context.gameMaster
     ? `\n- "${context.gameMaster}" is the Game Master: their lines describe the world and the non-player characters. Everyone else is a player speaking as their character.`
     : '';
-  return `Rules:\n- ${GROUND_RULES}${gm}`;
+  const cues = context.cues && context.cues.length > 0 ? `\n- ${CUE_RULES}` : '';
+  return `Rules:\n- ${GROUND_RULES}${gm}${cues}`;
 }
 
 /** Prompt for one piece of a long transcript. */

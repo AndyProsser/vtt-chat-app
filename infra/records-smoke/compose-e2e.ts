@@ -366,6 +366,18 @@ async function playScene(
       case 'wait':
         await sleep(step.seconds * 1000);
         break;
+      case 'scene': {
+        // The DM's library is theirs alone: make an empty scene with a known name, then start it as the app does.
+        const made = await ok('POST', '/api/soundboard/scenes', dm.token, {
+          name: step.name,
+          layers: [],
+        });
+        const sceneId = (made.scene as Json).id as string;
+        clients.get('dm')!.send('scene.start', { campaignId, sceneId });
+        log(`DM starts the scene "${step.name}"`);
+        await sleep(1500);
+        break;
+      }
       case 'say': {
         const client = clients.get(step.who)!;
         const voice = CAST.find((c) => c.key === step.who)!.voice;
@@ -586,6 +598,33 @@ async function verify(
         `${short}: a chapter summary for each part either side of the pause`,
         summaries.filter((s) => s.kind === 'chapter').length >= 2,
         kinds.join(', '),
+      );
+    }
+    // The DM's scene change: a transcript marker, a chapter titled with the scene, and the cue in the
+    // timeline the worker builds its prompts from (the summaries cannot be asserted word for word: a model
+    // may or may not name the scene, so that is recorded as a metric, not a check).
+    for (const scene of steps.filter(
+      (s): s is Extract<Step, { do: 'scene' }> => s.do === 'scene',
+    )) {
+      const t = await ok('GET', `${base}/${id}/transcript`, player.token);
+      check(
+        `${short}: the scene "${scene.name}" is a marker in the transcript`,
+        (t.markers as Json[] | undefined)?.some((m) => m.text === scene.name) === true,
+        JSON.stringify(t.markers),
+      );
+      check(
+        `${short}: the recording's timeline has the scene change`,
+        (dmView.events as Json[]).some((e) => e.event === 'scene'),
+      );
+      check(
+        `${short}: a chapter is titled "${scene.name}"`,
+        (dmView.chapters as Json[] | undefined)?.some((c) => c.title === scene.name) === true,
+        JSON.stringify(dmView.chapters),
+      );
+      const titled = summaries.filter((s) => s.kind === 'chapter' && s.title === scene.name);
+      check(`${short}: its chapter summary carries the scene name`, titled.length > 0);
+      metrics[`scene-in-summary-${short}`] = summaries.some(
+        (s) => s.kind !== 'dm-only' && (s.text as string).toLowerCase().includes('drowned vault'),
       );
     }
     check(

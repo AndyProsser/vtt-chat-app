@@ -104,6 +104,7 @@ function RecordingView({
               <Text size="2" weight="medium" className="phone-kind">
                 {s.kind}
                 {s.subject ? `: ${s.subject}` : ''}
+                {s.title ? ` · ${s.title}` : ''}
               </Text>
               {s.visibility !== 'members' && <Badge color="violet">DM only</Badge>}
             </Flex>
@@ -118,15 +119,21 @@ function RecordingView({
         <Flex direction="column" gap="2">
           {lines.loading && <Text color="gray">Loading…</Text>}
           {lines.error && <Text color="red">{lines.error}</Text>}
-          {(lines.data ?? []).map((u, i) => (
-            <div key={i} className="phone-utterance">
-              <Text size="1" color="gray">
-                {clock(u.startMs)} · {u.speaker.name}
-                {u.typed ? ' (typed)' : ''}
+          {(lines.data ?? []).map((row, i) =>
+            row.kind === 'scene' ? (
+              <Text key={i} size="1" color="gray" weight="medium" className="phone-scene">
+                {clock(row.atMs)} · Scene: {row.name}
               </Text>
-              <Text size="2">{u.text}</Text>
-            </div>
-          ))}
+            ) : (
+              <div key={i} className="phone-utterance">
+                <Text size="1" color="gray">
+                  {clock(row.line.startMs)} · {row.line.speaker.name}
+                  {row.line.typed ? ' (typed)' : ''}
+                </Text>
+                <Text size="2">{row.line.text}</Text>
+              </div>
+            ),
+          )}
         </Flex>
       )}
     </Flex>

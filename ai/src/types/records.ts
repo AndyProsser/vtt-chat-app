@@ -35,10 +35,14 @@ export type RecordingEventName =
   | 'resumed'
   | 'stopped'
   | 'interrupted'
-  /** The DM played a sound effect (metadata only: the audio is never recorded). */
+  /** The DM played or stopped a sound (metadata only: the audio is never recorded). */
   | 'sound'
-  /** A scene started or stopped. */
+  /** A scene started or stopped (`detail.name`, `detail.ambience`). */
   | 'scene'
+  /** The DM changed their character voice (`detail.voice`, `detail.by`). */
+  | 'voice'
+  /** The table's voice groups changed (`detail.groups`: name and member names). */
+  | 'group'
   /** A line typed into the table's public chat (never a whisper): `detail` has senderId, senderName, text. */
   | 'chat';
 
@@ -46,7 +50,7 @@ export interface RecordingEvent {
   recordingId: string;
   at: number;
   event: RecordingEventName;
-  /** For `sound` and `scene`: what was played (ids, mode, scene name). */
+  /** For `sound`, `scene`, `voice` and `group`: what happened (names are display text, already cleaned). */
   detail?: Record<string, unknown>;
 }
 

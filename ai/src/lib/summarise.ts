@@ -5,7 +5,7 @@ import {
 } from '../consts/index.js';
 import type { GenerateText, SummaryContext, SummaryKind, Utterance } from '../types/index.js';
 import { chunkLines } from './chunk.js';
-import { formatTranscript } from './format.js';
+import { formatTimeline } from './format.js';
 import { buildChunkPrompt, buildReducePrompt, buildSinglePrompt } from './prompts.js';
 
 /** Greedily packs whole notes into groups of at most `maxChars`; an oversize note stands alone. */
@@ -78,7 +78,7 @@ export async function summarise(
     throw new Error('nothing to summarise: the transcript is empty');
   }
 
-  const lines = formatTranscript(utterances);
+  const lines = formatTimeline(utterances, context.cues);
   const chunks = chunkLines(lines, chunkChars, overlap);
   const result = (text: string): SummaryResult => ({
     kind: options.kind,
