@@ -91,6 +91,8 @@ export const clientData = {
     partyId: z.string().min(1).max(64).nullable(),
   }),
   'party.reset': z.object({ campaignId }),
+  // A private aside: the DM and one player hear only each other. `userId: null` ends it. DM-only.
+  'party.aside': z.object({ campaignId, userId: z.string().min(1).max(64).nullable() }),
   // "I have heard the recording-start cue for this recording" — sent after the cue finished playing.
   'recording.ack': z.object({ campaignId, recordingId: z.string().min(1).max(64) }),
 } as const;

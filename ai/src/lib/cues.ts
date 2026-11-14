@@ -75,6 +75,16 @@ export function eventCues(events: readonly RecordingEvent[], startedAt: number):
           ? `${by} went back to their normal voice`
           : `${by} switched to the character voice ${quote(voice)}`;
       cues.push({ atMs, kind: 'voice', text });
+    } else if (e.event === 'aside') {
+      const player = str(d.player) ?? 'a player';
+      cues.push({
+        atMs,
+        kind: 'aside',
+        text:
+          d.phase === 'end'
+            ? 'The private talk ended; the table is together again'
+            : `The Game Master took ${player} aside for a private talk (not recorded)`,
+      });
     } else if (e.event === 'group') {
       cues.push({ atMs, kind: 'group', text: groupText(d.groups) });
     }
@@ -82,7 +92,7 @@ export function eventCues(events: readonly RecordingEvent[], startedAt: number):
   return cues.sort((a, b) => a.atMs - b.atMs);
 }
 
-const PRIORITY: Record<SummaryCue['kind'], number> = { scene: 0, group: 1, voice: 2, effect: 3 };
+const PRIORITY: Record<SummaryCue['kind'], number> = { scene: 0, group: 1, aside: 1, voice: 2, effect: 3 };
 
 /**
  * Keeps a summary's cue list short: repeated effects become one line with a count, and when there are still

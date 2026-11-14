@@ -125,6 +125,8 @@ export function cleanCueText(value: unknown, max = 80): string {
 export class RecordingCapture {
   private readonly live = new Map<string, Live>();
   private readonly chains = new Map<string, Promise<void>>();
+  /** Per table, the people in a private aside right now (the DM and one player): never captured while it lasts. */
+  private readonly asides = new Map<string, Set<string>>();
   private readonly now: () => number;
   private readonly newId: () => string;
   private readonly log: (line: string) => void;
@@ -245,8 +247,10 @@ export class RecordingCapture {
     state: {
       parties: { id: string; name: string }[];
       assignments: Record<string, string>;
+      aside?: { dmId: string; playerId: string } | null;
     },
   ): void {
+    this.noteAside(campaignId, state.aside ?? null);
     if (!this.cueOn('groups')) return;
     const at = this.now();
     this.enqueue(campaignId, async () => {
@@ -273,6 +277,50 @@ export class RecordingCapture {
         event: 'group',
         detail: { groups: groups.map(({ name, members }) => ({ name, members })) },
       });
+    });
+  }
+
+  /**
+   * A private aside started or ended. While it runs the DM's and the player's files are stopped and not restarted: what
+   * they say to each other is never recorded, and is not in a transcript or summary. The timeline notes it by name only.
+   * The set is updated at once (the reconciler must not restart those tracks), the file work is queued.
+   */
+  private noteAside(
+    campaignId: string,
+    aside: { dmId: string; playerId: string } | null,
+  ): void {
+    const before = this.asides.get(campaignId);
+    const after = aside ? new Set([aside.dmId, aside.playerId]) : undefined;
+    const same =
+      (!before && !after) ||
+      (before && after && before.size === after.size && [...after].every((id) => before.has(id)));
+    if (same) return;
+    if (after) this.asides.set(campaignId, after);
+    else this.asides.delete(campaignId);
+    const at = this.now();
+    this.enqueue(campaignId, async () => {
+      const live = this.live.get(campaignId);
+      if (!live) return;
+      if (aside) {
+        await this.finishSegments(campaignId, live, true, new Set([aside.dmId, aside.playerId]));
+        await this.deps.records.addRecordingEvent({
+          recordingId: live.recordingId,
+          at,
+          event: 'aside',
+          detail: {
+            phase: 'start',
+            player: cleanCueText(await this.deps.speakerName(campaignId, aside.playerId), 60),
+          },
+        });
+      } else {
+        await this.deps.records.addRecordingEvent({
+          recordingId: live.recordingId,
+          at,
+          event: 'aside',
+          detail: { phase: 'end' },
+        });
+        await this.reconcile(campaignId);
+      }
     });
   }
 
@@ -536,8 +584,10 @@ export class RecordingCapture {
     if (!live.capturing) return;
 
     const tracks = await this.deps.recorder.listAudioTracks(campaignId);
+    const aside = this.asides.get(campaignId);
     for (const track of tracks) {
       if (live.segments.has(track.trackSid)) continue;
+      if (aside?.has(track.identity)) continue; // a private aside: not recorded
       // The consent rule: not captured until this player has heard the start cue.
       if (!(await this.deps.acks.hasAcked(campaignId, live.recordingId, track.identity))) continue;
       const filepath = `${this.deps.dir.replace(/\/+$/, '')}/${live.recordingId}/${track.identity}${track.effects ? '-effects' : ''}@{time}`;
@@ -553,12 +603,18 @@ export class RecordingCapture {
 
   /**
    * Turns finished egresses into `recording_tracks` rows. With `stopAll`, first asks every active
-   * egress to stop and waits for its file; otherwise only collects the ones that already ended.
+   * egress to stop and waits for its file; otherwise only collects the ones that already ended. `only` limits it to those speakers.
    */
-  private async finishSegments(campaignId: string, live: Live, stopAll: boolean): Promise<void> {
+  private async finishSegments(
+    campaignId: string,
+    live: Live,
+    stopAll: boolean,
+    only?: ReadonlySet<string>,
+  ): Promise<void> {
     const timeout = this.deps.finalizeTimeoutMs ?? 5 * 60_000;
     const poll = this.deps.pollMs ?? 500;
     for (const [sid, segment] of [...live.segments]) {
+      if (only && !only.has(segment.identity)) continue;
       if (stopAll) await this.deps.recorder.stop(segment.egressId).catch(() => undefined);
       const deadline = this.now() + timeout;
       let result = await this.deps.recorder.result(segment.egressId);

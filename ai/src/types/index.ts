@@ -38,7 +38,7 @@ export interface Utterance {
 /** One non-speech moment on the recording's clock: a cue for the summary, never a fact to build on. */
 export interface SummaryCue {
   atMs: number;
-  kind: 'scene' | 'effect' | 'voice' | 'group';
+  kind: 'scene' | 'effect' | 'voice' | 'group' | 'aside';
   text: string;
 }
 

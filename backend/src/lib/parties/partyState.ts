@@ -15,6 +15,8 @@ export interface PartySnapshot {
   assignments: Record<string, string>;
   /** `true` while any party exists: the table is split. */
   split: boolean;
+  /** A private aside in progress: the DM and one player hear only each other. `null` when there is none. */
+  aside: { dmId: string; playerId: string } | null;
 }
 
 /**
@@ -22,15 +24,42 @@ export interface PartySnapshot {
  * the **DM is in every group** (hears everyone, heard by everyone), and **players hear only their own
  * group**; players not placed anywhere are at the "main table" together. Pure and in memory — a
  * server restart returns everyone to the main table, which is the safe direction.
+ *
+ * A private **aside** (decided 2026-11-14) overrides the groups: the DM and one player hear only each other, so the DM can speak
+ * to that player with no one else listening, and hears nothing from the table meanwhile. The table is told who (an indicator).
  */
 export class PartyState {
   private parties = new Map<string, Party>();
   private assignments = new Map<string, string>();
+  private asidePair: { dmId: string; playerId: string } | null = null;
 
   constructor(private readonly newId: () => string = randomUUID) {}
 
   get split(): boolean {
     return this.parties.size > 0;
+  }
+
+  /** The private aside, if one is running. */
+  get aside(): { dmId: string; playerId: string } | null {
+    return this.asidePair ? { ...this.asidePair } : null;
+  }
+
+  /** Whether anything restricts who hears whom (a split or an aside). */
+  get restricted(): boolean {
+    return this.split || this.asidePair !== null;
+  }
+
+  /**
+   * The DM takes one player aside: those two hear only each other and nobody else hears either of them, whatever
+   * the groups. Only one aside at a time per table; starting another replaces it. The caller checks the roles.
+   */
+  startAside(dmId: string, playerId: string): void {
+    this.asidePair = { dmId, playerId };
+  }
+
+  /** Ends the aside; everyone hears as the groups say again. */
+  endAside(): void {
+    this.asidePair = null;
   }
 
   create(name: string): Party {
@@ -75,11 +104,14 @@ export class PartyState {
   reset(): void {
     this.parties.clear();
     this.assignments.clear();
+    this.asidePair = null;
   }
 
   /** Drops a player who left the campaign. */
   forget(userId: string): void {
     this.assignments.delete(userId);
+    if (this.asidePair && (this.asidePair.playerId === userId || this.asidePair.dmId === userId))
+      this.asidePair = null;
   }
 
   /** Which group a player is in: a party id, or `null` for the main table. */
@@ -93,6 +125,12 @@ export class PartyState {
    */
   hears(listener: string, speaker: string, dmIds: ReadonlySet<string>): boolean {
     if (listener === speaker) return false;
+    // An aside beats the groups: its two people hear each other and no one else, and no one else hears them.
+    const aside = this.asidePair;
+    if (aside) {
+      const inPair = (id: string) => id === aside.dmId || id === aside.playerId;
+      if (inPair(listener) || inPair(speaker)) return inPair(listener) && inPair(speaker);
+    }
     if (dmIds.has(listener) || dmIds.has(speaker)) return true;
     return this.groupOf(listener) === this.groupOf(speaker);
   }
@@ -102,6 +140,7 @@ export class PartyState {
       parties: [...this.parties.values()].map((p) => ({ ...p })),
       assignments: Object.fromEntries(this.assignments),
       split: this.split,
+      aside: this.aside,
     };
   }
 

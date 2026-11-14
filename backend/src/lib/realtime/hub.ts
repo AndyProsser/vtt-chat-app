@@ -472,6 +472,7 @@ export class Hub {
       case 'party.delete':
       case 'party.move':
       case 'party.reset':
+      case 'party.aside':
         await this.partyFrame(state, frame.type, frame.data);
         return;
     }
@@ -906,6 +907,9 @@ export class Hub {
         case 'party.reset':
           await parties.reset(c);
           return;
+        case 'party.aside':
+          await parties.aside(c, auth.user.id, (raw as ClientData<'party.aside'>).userId);
+          return;
       }
     } catch (error) {
       if (error instanceof DomainError) return refuse(error.code, error.message);
@@ -969,6 +973,7 @@ export class Hub {
     }
     if (this.presence.disconnect(campaignId, auth.user.id, state.conn.id)) {
       this.lastOnline.set(`${campaignId}:${auth.user.id}`, this.now());
+      void this.options.parties?.userOffline(campaignId, auth.user.id).catch(() => undefined);
       this.maybeAutoStop(campaignId);
       this.broadcast(campaignId, 'presence.update', {
         campaignId,

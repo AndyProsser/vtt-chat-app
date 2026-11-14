@@ -6,6 +6,29 @@
 
 ---
 
+## Quick Start (for a DM)
+
+You need a small Ubuntu Server (a VM is fine: 4 vCPU and 8 GB of memory is plenty, even with recording), a domain name, and the
+ability to open a few ports. About half an hour.
+
+1. **Point a domain at the server.** Add a DNS "A" record (for example `vtt.example.com`) pointing at the server's public IP. The
+   website may sit behind Cloudflare's proxy; voice goes straight to the server.
+2. **Open the ports** at your router or cloud firewall: `80/tcp`, `443/tcp`, `7881/tcp` and `50000-50200/udp` (the last two carry voice).
+3. **SSH in and run one command.** It asks for your domain and email, installs everything (Docker included) and prints a sign-in code:
+
+   ```bash
+   curl -fsSL https://raw.githubusercontent.com/AndyProsser/vtt-chat-app/main/infra/get.sh | sudo bash
+   ```
+
+4. **Sign in** at `https://your-domain`, choose "I have a sign-in code", and you are in with a starter campaign where you are the DM.
+5. **Invite your players** from the app (a link or a short code). They can use the web chat straight away, or install the desktop app
+   from `https://your-domain/download` for voice.
+6. **Record a session** (optional): re-run the installer with `--with-records`, or see
+   [turning on recording](docs/guides/OPERATOR-GUIDE.md#6-turn-on-recording-and-ai-summaries). A recording is always announced to the table.
+
+Afterwards `vtt-admin` works from any directory: `vtt-admin status`, `vtt-admin user code <email> signin`, `vtt-admin logs`,
+`vtt-admin backup`, `vtt-admin update`. Everything else is in the **[operator guide](docs/guides/OPERATOR-GUIDE.md)**.
+
 ## What Is This?
 
 The usual way a group plays online: everyone joins one Discord channel and leaves their mics open. That works. What it doesn't give you is a record of what happened. VTT Chat App keeps the same open-mic experience and adds that record.

@@ -41,7 +41,7 @@ export class PartyService {
 
   snapshot(campaignId: string) {
     return (
-      this.tables.get(campaignId)?.snapshot() ?? { parties: [], assignments: {}, split: false }
+      this.tables.get(campaignId)?.snapshot() ?? { parties: [], assignments: {}, split: false, aside: null }
     );
   }
 
@@ -89,6 +89,23 @@ export class PartyService {
     await this.changed(campaignId, (s) => s.move(userId, partyId));
   }
 
+  /** The DM takes a player aside (voice only the two of them hear), or `null` ends it. DM-only; the hub checks. */
+  async aside(campaignId: string, dmId: string, playerId: string | null): Promise<void> {
+    if (playerId !== null) {
+      await this.requireMovable(campaignId, playerId);
+      await this.changed(campaignId, (s) => s.startAside(dmId, playerId));
+    } else {
+      await this.changed(campaignId, (s) => s.endAside());
+    }
+  }
+
+  /** Someone went offline: an aside with them can no longer work, so it ends (otherwise the other person hears nothing). */
+  async userOffline(campaignId: string, userId: string): Promise<void> {
+    const aside = this.tables.get(campaignId)?.aside;
+    if (!aside || (aside.dmId !== userId && aside.playerId !== userId)) return;
+    await this.changed(campaignId, (s) => s.endAside());
+  }
+
   /** A player left the campaign: take them out of any party. */
   async forget(campaignId: string, userId: string): Promise<void> {
     const s = this.tables.get(campaignId);
@@ -116,7 +133,7 @@ export class PartyService {
     const { router, store } = this.deps;
     const state = this.tables.get(campaignId);
     const applied = this.unsubscribed.get(campaignId);
-    if (!router || !state || (!state.split && !applied)) return;
+    if (!router || !state || (!state.restricted && !applied)) return;
 
     const dmIds = new Set(
       (await store.listMemberships(campaignId)).filter((m) => m.role === 'dm').map((m) => m.userId),
@@ -129,7 +146,7 @@ export class PartyService {
     for (const listener of people) {
       const before = applied?.get(listener.identity) ?? new Set<string>();
       const mustNotHear = new Set<string>();
-      if (state.split) {
+      if (state.restricted) {
         for (const [sid, speaker] of owner) {
           if (speaker !== listener.identity && !state.hears(listener.identity, speaker, dmIds))
             mustNotHear.add(sid);
@@ -144,14 +161,14 @@ export class PartyService {
         await router.setSubscription(campaignId, listener.identity, toSubscribe, true);
       if (mustNotHear.size > 0) nextApplied.set(listener.identity, mustNotHear);
     }
-    if (nextApplied.size === 0 && !state.split) this.unsubscribed.delete(campaignId);
+    if (nextApplied.size === 0 && !state.restricted) this.unsubscribed.delete(campaignId);
     else this.unsubscribed.set(campaignId, nextApplied);
   }
 
   /** While a table is split, re-check every few seconds so a newly published track is cut off again. */
   startTicking(intervalMs = 2000): void {
     this.timer ??= setInterval(() => {
-      for (const [campaignId, s] of this.tables) if (s.split) void this.reconcile(campaignId);
+      for (const [campaignId, s] of this.tables) if (s.restricted) void this.reconcile(campaignId);
     }, intervalMs);
     this.timer.unref();
   }

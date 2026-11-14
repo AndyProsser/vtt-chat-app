@@ -43,6 +43,8 @@ export type RecordingEventName =
   | 'voice'
   /** The table's voice groups changed (`detail.groups`: name and member names). */
   | 'group'
+  /** The DM took a player aside for a private talk (`detail.phase`: start or end, `detail.player`); the audio is never recorded. */
+  | 'aside'
   /** A line typed into the table's public chat (never a whisper): `detail` has senderId, senderName, text. */
   | 'chat';
 

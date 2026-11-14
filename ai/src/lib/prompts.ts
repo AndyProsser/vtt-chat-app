@@ -37,7 +37,7 @@ function describe(kind: SummaryKind, context: SummaryContext): string {
  * they colour the telling and must never become invented story.
  */
 const CUE_RULES =
-  'Lines marked "(cue)" are cues noted by the app, not speech: a scene started, a sound effect played, the Game Master changed voice, the table split into groups. Use them only to say where and how things happened (for example, which scene the party was in, or who was in which group). They are not events: do not invent what a sound meant, who made it, or anything that no one said or typed.';
+  'Lines marked "(cue)" are cues noted by the app, not speech: a scene started, a sound effect played, the Game Master changed voice, the table split into groups, the Game Master took a player aside for a private talk (which is not recorded: never guess what was said). Use them only to say where and how things happened (for example, which scene the party was in, or who was in which group). They are not events: do not invent what a sound meant, who made it, or anything that no one said or typed.';
 
 /** The rules, plus who the Game Master is when known (their lines are narration, not a character's). */
 function rules(context: SummaryContext): string {

@@ -253,6 +253,7 @@ if ((EXISTING)); then
   step "Updating the existing install"
   # Keep the operator's settings; only move the image version (and the domain if it changed).
   sed -i "s|^VTT_VERSION=.*|VTT_VERSION=$IMAGE_VERSION|; s|^SITE_ADDRESS=.*|SITE_ADDRESS=$DOMAIN|" .env
+  if [[ $WITH_RECORDS == 1 ]] && ! grep -q '^COMPOSE_PROFILES=' .env; then echo "COMPOSE_PROFILES=records" >> .env; say "  recording and summaries: on"; fi
 else
   step "Writing the configuration (fresh secrets, never shown)"
   VTT_VERSION="$IMAGE_VERSION" ./setup.sh "$DOMAIN" ${PUBLIC_IP:+"$PUBLIC_IP"}
