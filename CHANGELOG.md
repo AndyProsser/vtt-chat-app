@@ -10,6 +10,8 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-14
+
 ### Added
 
 - **The DM can talk to one player privately.** Double-click a player's portrait in the desktop app (again to end it, or press End on the banner): only the DM and that player hear each other, the rest of the table cannot hear either of them, and the DM cannot hear the table, so there are no distractions. Chat still works. Everyone sees a banner saying what is happening (in the desktop app and the web chat), the two avatars show a lock, and the talk ends by itself if either person goes offline or drops out of voice. It is **never recorded**: the two people's audio is not captured while it lasts, and the timeline only notes that it happened. Adds a DM-only `party.aside` frame and an `aside` field on `party.state` (additive), and migration 0033.
@@ -81,7 +83,10 @@ the GitHub release notes and refuses to build a release without one. How to writ
 - Deep links (Open VTT Chat) may not work on the Linux AppImage; type the code instead.
 - The protocol check starts with this release. Apps up to 0.3.2 never sent it, so a 0.4 server does not tell them to update: their old sign-in keeps working until the player installs 0.4. A 0.4 app on a 0.3 server says the server is older than the app and should be updated.
 - If the recording notice changed since you last accepted it, the web page asks you to accept it before it connects the app. The app itself cannot show the notice.
-- The web has no Devices list yet; an operator can sign a player out everywhere with `vtt-admin user revoke-sessions`.
+- Recording, transcripts and summaries are proven end to end with synthetic speech and have not yet been run on a real session with human voices; a very long (multi-hour) session is untested. If the server restarts during a recording, that recording is marked failed (its audio is kept) and the DM starts a new one.
+- Voice groups and the DM's private talk are verified on the server and with synthetic audio; nobody has listened to them with real players yet. Voice over the internet (UDP through a firewall) has not been exercised on a public server.
+- The Windows and macOS builds and the Linux `.rpm` are built by the release workflow but untested by a person. The one-command server install (`infra/get.sh`) has been run on a workstation, not yet on a blank server.
+- There are no voice whispers: players whisper by text, and the DM speaks to one player with a private talk.
 
 ## [0.3.2] - 2026-11-11
 
