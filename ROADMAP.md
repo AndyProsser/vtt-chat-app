@@ -18,6 +18,39 @@
 
 ## Where we are and what is next
 
+### Close-out for v0.4.0, 2026-11-14
+
+Stages 0 to 8 are **built**; what keeps them from "closed" is verification that needs a real server or real people, not more
+code. This is the list the v0.4.0 release waits on, and nothing else is planned before it.
+
+| Stage                  | Built                                                                                                                | Gate to close it (all need a human or real hardware)                                                          |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| 0, 0.5, 1              | 🟢 Closed                                                                                                            |                                                                                                               |
+| 2 Audio spike          | Built; measured on the dev PC                                                                                        | Two machines on different OSes holding a conversation (needs a second machine, a Windows PC)                  |
+| 3 Server core          | 🟢 Built, both install tiers, chat persistence                                                                       | A second person deploys from the docs on a blank VM (below)                                                   |
+| 3b Deployment buildout | 🟢 Built: images, handshake (REST and WebSocket, CI guard), updates, web onboarding, Devices                         | The real-VM run below                                                                                         |
+| 4 Tray client          | 🟢 Built                                                                                                             | A real session in the desktop window on Windows and Linux; the 4-hour soak; listening to voices and the mixer |
+| 5 Records and AI       | 🟢 Built, proven end to end with synthetic speech (66/66, then scene cues 45/45)                                     | One real session with human voices on the real VM (CPU defaults); the GPU PC as the fast path                 |
+| 6 Table features       | 🟢 Built. **Voice whispers are deferred past 0.4.0** (they need private audio routing)                               | The full-session test (whispers, handout, loot, split, soundboard, reconnect) with real players               |
+| 7 Web app              | 🟢 Built; 330 checks in a real headless browser                                                                      | A real phone, including iOS Safari                                                                            |
+| 8 Operations           | 🟢 Admin CLI (status, users, settings, jobs, recordings, updates; machine commands), status page, backup and restore | The status page and `vtt-admin` on the real VM                                                                |
+
+**Done 2026-11-12 to 14 (since the last stock-take):** the browser Account page (profile, recording notice, collapsed password,
+Devices with revoke); **request to join** a campaign (opt-in directory, DM approves); the DM's notes and schedule in the web
+chat; a typeface for each `/say-<language>` line; Enter sends and Ctrl+Enter makes a new line in both apps; web layout that
+scales; **scene changes start chapters** and the summaries are told what the table heard (`RECORD_CUES`, names only, scene
+changes by default); a recommended CPU-only setup with a gaming PC as the fast path; the blank-install rehearsal, backup and
+restore, and a 90-minute soak; a graceful server shutdown; `.rpm` for real releases; and the **one-command operator install**
+(`infra/get.sh`) with `vtt-admin logs/restart/ps/backup/restore/update`.
+
+**Next, in order:**
+
+1. **The real VM** (`vtt-chat.prosser.online`, 4 vCPU, 8 GB): run the one-command install on a blank Ubuntu Server, then the
+   operator guide from there: DNS "DNS only" (not Cloudflare-proxied), Let's Encrypt, UDP voice from two real clients, a
+   recorded session with the CPU defaults, `vtt-admin backup` and `update`. Findings feed back into `get.sh` and the guide.
+2. **v0.4.0 release**: CHANGELOG section, version files, tag, draft release, publish (each on Andy's word).
+3. Everything in the table's right-hand column, as real people and machines are available.
+
 ### Stock-take, 2026-11-11 (end of day)
 
 A long day: 83 commits, four dev builds (`v0.4.0-dev.1` to `-dev.4`), and the first real run of the deployment
@@ -189,7 +222,7 @@ The riskiest unknowns are all "does this actually work on real machines with ope
 
 ## Stage 3 — Server Core
 
-**Status:** 🟢 Nearly done — built and verified against real services: identity/campaign domain, REST, WebSocket hub with a Valkey-backed replay buffer, Postgres store and migrations, recording state and consent acknowledgements, the Admin CLI (`vtt-admin`), and **both install tiers** (Docker Compose; native `infra/install.sh` on Ubuntu 24.04). **Remaining:** chat persistence and the "done when" test — a second person deploying from the docs on a blank VM
+**Status:** 🟢 Nearly done — built and verified against real services: identity/campaign domain, REST, WebSocket hub with a Valkey-backed replay buffer, Postgres store and migrations, recording state and consent acknowledgements, the Admin CLI (`vtt-admin`), and **both install tiers** (Docker Compose; native `infra/install.sh` on Ubuntu 24.04). **Remaining:** the "done when" test — a second person deploying from the docs on a blank VM
 **Depends on:** Stage 2 (and the open identity decision, below)
 
 **Decided with Andy (2026-11-05):** the identity & access model ([CLAUDE.md §11](.claude/CLAUDE.md#11-identity--access-model--direction-decided-2026-11-05-details-open)) and the sync protocol ([SYNC-PROTOCOL.md](docs/architecture/SYNC-PROTOCOL.md), draft). Remaining open: Admin quick-access extras, OIDC specifics, and the assumed defaults (invite expiry 7 days, magic-link lifetime 15 minutes, minimum password length 10).
@@ -209,7 +242,7 @@ The riskiest unknowns are all "does this actually work on real machines with ope
 
 ## Stage 3b — Deployment Buildout (added 2026-11-11)
 
-**Status:** 🟡 In Progress
+**Status:** 🟢 Built; the real-VM run (#6) is the gate. The one-command installer `infra/get.sh` was added 2026-11-14
 **Depends on:** Stage 3 (the Compose bundle), Stage 4 (the tray client and its updater)
 **Design:** [VERSIONING-AND-DEPLOYMENT.md](docs/architecture/VERSIONING-AND-DEPLOYMENT.md)
 
@@ -222,12 +255,12 @@ The riskiest unknowns are all "does this actually work on real machines with ope
 | --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1   | **Version rules** (MAJOR/MINOR/PATCH meaning, 0.y as the match tier) in CLAUDE.md, DEVELOPING.md and the design doc                                                                                                                                                     | 🟢 Done 2026-11-11                                                                                                                                                                                                                                   |
 | 2   | **Container build workflow:** CI builds the backend and worker images on a release tag and pushes them to GHCR (full version + MAJOR.MINOR tags; dev tags never move `latest`); the Compose bundle pulls them by `VTT_VERSION` instead of building on the server        | 🟢 Run for dev.1 to dev.4; brought up locally from the images (2026-11-11), four bugs found and fixed                                                                                                                                                |
-| 3   | **Protocol version handshake:** `PROTOCOL_VERSION` in `shared/`, sent by the client and answered by the server, with "update required" on both sides; a CI test fails if a wire contract changes without it                                                             | 🟡 REST built; WebSocket and CI guard still to do                                                                                                                                                                                                    |
+| 3   | **Protocol version handshake:** `PROTOCOL_VERSION` in `shared/`, sent by the client and answered by the server, with "update required" on both sides; a CI test fails if a wire contract changes without it                                                             | 🟢 Done 2026-11-12: REST, WebSocket, and a CI guard that fails an unrecorded wire change                                                                                                                                                             |
 | 4   | **Server-chosen client builds:** the server offers the newest patch of its own MAJOR.MINOR, patches auto-approved, from GitHub releases (`UPDATES_SOURCE=github`)                                                                                                       | 🟢 Run against live GitHub (dev builds); waits for all three installers before offering a release                                                                                                                                                    |
 | 5   | **Update mirror:** `UPDATES_SOURCE=mirror` sync job (verify signatures, newest patch plus one previous, cleanup), `vtt-admin updates sync/status`                                                                                                                       | 🟡 Built, unit-tested; untried against live GitHub                                                                                                                                                                                                   |
 | 6   | **Fresh-VM deploy test** from the images and the operator guide (the Stage 3 "done when"), with real LiveKit audio, `wss://` through Caddy and a Let's Encrypt certificate                                                                                              | 🟡 Compose path rehearsed 2026-11-13 (blank project, published dev.5 images, docs followed literally, backup/restore, 90-minute soak; 9 deviations fixed, see BUILD-STATUS). Still needs a real VM and a second human: DNS, Let's Encrypt, UDP voice |
 | 7   | **Web onboarding and app sign-in:** invite link → account → OS-specific install → "Open VTT Chat" hand-off (deep link, typed code, device code approved by scanning the app's QR or opening its link; no PKCE, see APP-SIGN-IN.md); the server owns the sign-in methods | 🟢 Built 2026-11-11 and tried locally by Andy: landing, sign-in (code, password), long link, the app connects with no prompt; other OSes and a phone untried                                                                                         |
-| 8   | **Mobile account and install flow:** security and profile (name, avatar) in the browser; the **Devices list with revoke** (`GET`/`DELETE /api/auth/sessions` already exist); add-to-home-screen steps for Android and iOS, then how to install the desktop app          | 🟡 Web app unified (see Stage 7); the Devices list with revoke and the profile and security pages are still to do                                                                                                                                    |
+| 8   | **Mobile account and install flow:** security and profile (name, avatar) in the browser; the **Devices list with revoke** (`GET`/`DELETE /api/auth/sessions` already exist); add-to-home-screen steps for Android and iOS, then how to install the desktop app          | 🟢 Built 2026-11-13: the browser Account page (profile, recording notice, password, Devices with revoke); add-to-home-screen steps; not yet seen on a real phone                                                                                     |
 
 **Done when:** an operator on a blank Ubuntu VM pulls the images, starts the stack, and a new player goes from an
 invite link to a signed-in, preconfigured app without typing a server address; a client of the wrong MAJOR.MINOR is
@@ -255,7 +288,7 @@ told clearly to update; and a recorded session runs through to its summary.
 
 ## Stage 5 — Records & AI Summaries (Core)
 
-**Status:** 🟡 In Progress — the processing half is built and verified live (Egress files → durable job queue → worker → Whisper/LLM, local or remote with fallback → transcripts and summaries in Postgres; Admin CLI `jobs` / `recording`). **Records API built** (read, search, DM-only enforced at the API, DM delete). **History window built 2026-11-09 (unverified in a real window).** **Built 2026-11-10:** the DM confirms → purge raw audio, and a disk-low purge rule with a 3-day warning (the next-session rule is not built). **Not built:** the cloud-adapter extras. The recording loop itself — DM start/stop → per-speaker capture gated on the consent acknowledgement → processing — is closed and verified live. See [docs/BUILD-STATUS.md](docs/BUILD-STATUS.md)
+**Status:** 🟡 In Progress — the processing half is built and verified live (Egress files → durable job queue → worker → Whisper/LLM, local or remote with fallback → transcripts and summaries in Postgres; Admin CLI `jobs` / `recording`). **Records API built** (read, search, DM-only enforced at the API, DM delete). **History window built 2026-11-09 (unverified in a real window).** **Built 2026-11-10:** the DM confirms → purge raw audio, and a disk-low purge rule with a 3-day warning (the next-session rule is not built). **Not built:** extra cloud providers (Stage 10). Scene cues and chapters built 2026-11-14. The recording loop itself — DM start/stop → per-speaker capture gated on the consent acknowledgement → processing — is closed and verified live. See [docs/BUILD-STATUS.md](docs/BUILD-STATUS.md)
 **Depends on:** Stage 3, Stage 4 (Stage 2 Part B already proved the pipeline shape)
 
 **Deliverables:**
@@ -303,7 +336,7 @@ told clearly to update; and a recorded session runs through to its summary.
 
 ## Stage 8 — Operations: Admin CLI & Status Page
 
-**Status:** 🟢 The Admin CLI (`vtt-admin`) is built and in use (Stage 3); the public status page (`status/`, `/status` and `/api/status`) is built 2026-11-09, unverified on a real deployment
+**Status:** 🟢 Closed in code 2026-11-14. The Admin CLI (`vtt-admin`) is built and in use (Stage 3), with machine commands `logs`, `restart`, `ps`, `backup`, `restore`, `update` added; the public status page (`status/`, `/status` and `/api/status`) is built 2026-11-09, unverified on a real deployment
 **Depends on:** Stage 5
 
 **Deliverables:**
