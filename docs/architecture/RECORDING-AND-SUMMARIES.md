@@ -96,6 +96,10 @@ recording's start, written only while audio is being captured, so nothing is not
   call. A cue is only ever **metadata (a name or an id), never audio**.
 - **`RECORD_SOUNDBOARD=1`** is a separate, unrelated switch: it saves the DM's effects as a private audio file in the
   recording (testing only). It does not name anything in the timeline; `sounds` in `RECORD_CUES` does that.
+- **A private talk is never recorded.** When the DM takes a player aside ([TABLE-FEATURES.md](TABLE-FEATURES.md#private-talk-the-dm-speaks-to-one-player-built-2026-11-14)),
+  the capture stops both people's files and starts new ones when it ends; the timeline gets an `aside` event (the player's name,
+  start and end) and the summaries are told that a private talk happened and was not recorded. It is not governed by `RECORD_CUES`:
+  the privacy rule always applies.
 - **Never private.** A sound played to chosen people only is not noted; whispers and `ooc` lines never reach the
   timeline; names are display text with control and invisible characters stripped (`cleanCueText`).
 - **Known gaps:** a voice already on when a recording starts is noted at the next change, not at the start; a

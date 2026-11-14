@@ -196,6 +196,7 @@ pub fn is_table_command(t: &str) -> bool {
             | "party.delete"
             | "party.move"
             | "party.reset"
+            | "party.aside"
     )
 }
 
@@ -501,6 +502,9 @@ mod tests {
     fn only_known_table_commands_become_frames() {
         let f = command_frame("party.move", json!({ "campaignId": "c" })).unwrap();
         assert!(f.contains("\"t\":\"party.move\""));
+        assert!(
+            command_frame("party.aside", json!({ "campaignId": "c", "userId": null })).is_some()
+        );
         assert!(command_frame("auth", json!({})).is_none());
         assert!(command_frame("chat.message", json!({})).is_none());
         let w = whisper_frame("c", "u2", "psst");

@@ -240,6 +240,8 @@ different versions, update the app, or ask your DM to update the server if the a
   Echo cancellation still works with them (new audio engine); headphones are best.
 - **Voice groups**: the groups button splits the table into rooms (a split party). Drag portraits between
   groups, or focus one and press Enter for a menu. You are in every group.
+- **Talk to one player privately**: **double-click** their portrait on the rail (double-click again, or press **End** in the banner, to stop). Only you and that player hear each other; the rest of the table cannot hear either of you, and you cannot hear the table, so there are no distractions. Chat still works. Everyone sees a banner saying what is happening, so nobody wonders why you went quiet. It is **not recorded**, and it ends by itself if either of you disconnects.
+- **Everyone sees group changes**: when someone is moved into or out of a group, a line appears in the chat.
 
 **The soundboard and scenes** (the effects drawer)
 

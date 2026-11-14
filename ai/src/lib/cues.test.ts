@@ -216,3 +216,20 @@ describe('prompts with cues', () => {
     expect(seen[0]).toContain('(cue) Scene started');
   });
 });
+
+describe('a private aside', () => {
+  it('becomes a cue that names the player and says it was not recorded', () => {
+    const cues = eventCues(
+      [
+        ev(1000, 'started'),
+        ev(61_000, 'aside', { phase: 'start', player: 'Aria' }),
+        ev(121_000, 'aside', { phase: 'end' }),
+      ],
+      1000,
+    );
+    expect(cues.map((c) => [c.kind, c.text])).toEqual([
+      ['aside', 'The Game Master took Aria aside for a private talk (not recorded)'],
+      ['aside', 'The private talk ended; the table is together again'],
+    ]);
+  });
+});

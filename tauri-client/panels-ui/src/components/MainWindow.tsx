@@ -1,3 +1,4 @@
+import { AsideBanner } from './AsideBanner.js';
 import { useEffect, useState } from 'react';
 
 import { useAccount } from '../hooks/useAccount.js';
@@ -45,6 +46,7 @@ function Table({ selfId }: { selfId: string | null }) {
       <VersionBanner />
       <UpdateBanner />
       <JoinNotice />
+      <AsideBanner selfId={selfId} />
       <div className="vtt-body">
         <AvatarRail dm={dm} selfId={selfId} />
         <div className="vtt-chat-col">

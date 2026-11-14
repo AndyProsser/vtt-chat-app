@@ -1,3 +1,4 @@
+import { describePartyChange, type PartyStateLike } from '@vtt-chat-app/shared';
 import { create } from 'zustand';
 
 import type { CampaignItem, ChatLine, LiveState, Member } from '../../types/phone.js';
@@ -5,6 +6,13 @@ import { lineFromFrame, mergeLines } from './chat.js';
 import { ERROR_FRAME_MESSAGES } from './compose.js';
 import { applyJoinRequestFrame, type Decided, parseDecided } from './joinRequests.js';
 import { applyPresenceFrame } from './presence.js';
+
+/** A line about the table itself in the chat ("Mira joined Cellar"); `after` is the chat line it follows. */
+export interface TableNotice {
+  id: string;
+  text: string;
+  after: string | null;
+}
 
 export type Tab = 'chat' | 'sessions' | 'handouts' | 'history';
 
@@ -17,6 +25,10 @@ interface PhoneState {
   tab: Tab;
   members: Member[];
   lines: ChatLine[];
+  /** The voice groups and any private talk, as the server last said (the web shows them; it has no voice of its own). */
+  parties: PartyStateLike;
+  partiesSeen: boolean;
+  notices: TableNotice[];
   live: LiveState;
   /** Chat lines that arrived while the Chat tab was not showing. */
   unread: number;
@@ -47,6 +59,9 @@ interface PhoneState {
 const FRESH = {
   members: [],
   lines: [],
+  parties: { parties: [], assignments: {}, aside: null } as PartyStateLike,
+  partiesSeen: false,
+  notices: [] as TableNotice[],
   unread: 0,
   chatError: undefined,
   joinPending: [] as readonly string[],
@@ -107,6 +122,38 @@ export const usePhoneStore = create<PhoneState>((set, get) => ({
       case 'roster.update': {
         const d = data as { members?: Member[] };
         if (d.members) set({ members: d.members });
+        return;
+      }
+      case 'party.state': {
+        const d = data as {
+          parties?: { id: string; name: string }[];
+          assignments?: Record<string, string>;
+          aside?: { dmId: string; playerId: string } | null;
+        };
+        const next: PartyStateLike = {
+          parties: Array.isArray(d.parties) ? d.parties : [],
+          assignments: d.assignments ?? {},
+          aside: d.aside ?? null,
+        };
+        const nameOf = (id: string) => {
+          const m = s.members.find((x) => x.userId === id);
+          return m?.character?.name ?? m?.displayName ?? 'Someone';
+        };
+        // The first state after connecting is the starting point, not news.
+        const lines = s.partiesSeen ? describePartyChange(s.parties, next, nameOf) : [];
+        const after = s.lines.at(-1)?.id ?? null;
+        set({
+          parties: next,
+          partiesSeen: true,
+          notices: [
+            ...s.notices,
+            ...lines.map((text, i) => ({
+              id: `party:${s.notices.length + i}:${text}`,
+              text,
+              after,
+            })),
+          ].slice(-50),
+        });
         return;
       }
       case 'presence.update':

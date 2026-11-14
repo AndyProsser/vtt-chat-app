@@ -111,6 +111,29 @@ describe('voice-group frames', () => {
     expect(dm.of('party.state').filter((f) => f.d.split)).toHaveLength(0);
   });
 
+  it('the DM takes a player aside and everyone is told who; only the DM may, and it ends if either goes offline', async () => {
+    const [dm, alice, bob] = [
+      await join('dm', 'dm'),
+      await join('a', 'alice'),
+      await join('b', 'bob'),
+    ];
+    await send('b', 'party.aside', { userId: users.alice.id }); // a player: refused
+    expect(bob.of('error').map((f) => f.d.code)).toEqual(['forbidden']);
+    await send('dm', 'party.aside', { userId: users.alice.id });
+    for (const c of [dm, alice, bob]) {
+      expect(c.of('party.state').at(-1)?.d.aside).toEqual({
+        dmId: users.dm.id,
+        playerId: users.alice.id,
+      });
+    }
+    hub.closed('a'); // alice's app goes away
+    await new Promise((r) => setTimeout(r, 10));
+    expect(dm.of('party.state').at(-1)?.d.aside).toBeNull();
+    await send('dm', 'party.aside', { userId: users.bob.id });
+    await send('dm', 'party.aside', { userId: null });
+    expect(bob.of('party.state').at(-1)?.d.aside).toBeNull();
+  });
+
   it('the DM cannot be put in a party, and an unknown party is refused', async () => {
     const dm = await join('dm', 'dm');
     await send('dm', 'party.create', { name: 'A' });

@@ -1,5 +1,5 @@
 import { Flex, HoverCard, Slider, Text } from '@radix-ui/themes';
-import { MicOff } from 'lucide-react';
+import { Lock, MicOff } from 'lucide-react';
 import { memo, useState } from 'react';
 
 import { useAudioEngine } from '../hooks/useAudioEngine.js';
@@ -26,12 +26,15 @@ export const RailAvatar = memo(function RailAvatar({
   partyId,
   groupName,
   selfId,
+  aside,
 }: {
   member: Member;
   /** The signed-in player, whose own volume is not adjustable. */
   selfId?: string | null;
   partyId: string | undefined;
   groupName: string | undefined;
+  /** In the DM's private talk right now (the DM or the player). */
+  aside?: boolean;
 }) {
   const speaking = useIsSpeaking(member.userId);
   const card = memberCard(member);
@@ -41,6 +44,7 @@ export const RailAvatar = memo(function RailAvatar({
     speaking ? 'vtt-av-speaking' : '',
     railState(member) === 'disconnected' ? 'vtt-av-offline' : '',
     railState(member) === 'offline' ? 'vtt-av-idle' : '',
+    aside ? 'vtt-av-aside' : '',
   ].join(' ');
   const muted = member.online && member.inVoice && member.muted;
   return (
@@ -60,6 +64,16 @@ export const RailAvatar = memo(function RailAvatar({
           {muted && (
             <span className="vtt-av-mute" role="img" aria-label="Muted" title="Muted">
               <MicOff size={12} aria-hidden />
+            </span>
+          )}
+          {aside && (
+            <span
+              className="vtt-av-lock"
+              role="img"
+              aria-label="In a private talk"
+              title="In a private talk"
+            >
+              <Lock size={10} aria-hidden />
             </span>
           )}
           {partyId && (

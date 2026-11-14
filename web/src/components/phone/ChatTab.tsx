@@ -1,5 +1,5 @@
 import { Button, Flex, Text, VisuallyHidden } from '@radix-ui/themes';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 
 import { whisperPeer } from '../../lib/phone/chat.js';
 import {
@@ -15,6 +15,7 @@ import { chatHistory } from '../../lib/phone/phoneApi.js';
 import { usePhoneStore } from '../../lib/phone/phoneStore.js';
 import type { ChatLine } from '../../types/phone.js';
 import { Composer } from './Composer.js';
+import { AsideStrip } from './AsideStrip.js';
 import { MembersRail } from './MembersRail.js';
 
 const PAGE = 50;
@@ -31,6 +32,7 @@ export function ChatTab({
   const members = usePhoneStore((s) => s.members);
   const userId = usePhoneStore((s) => s.userId) ?? '';
   const live = usePhoneStore((s) => s.live);
+  const notices = usePhoneStore((s) => s.notices);
   const [more, setMore] = useState<'idle' | 'loading' | 'done'>('idle');
   const bottom = useRef<HTMLDivElement>(null);
   const stick = useRef(true);
@@ -57,6 +59,7 @@ export function ChatTab({
 
   return (
     <div className="phone-chat">
+      <AsideStrip />
       <MembersRail members={members} />
       <div className="phone-chat-body">
         <div
@@ -81,8 +84,38 @@ export function ChatTab({
               Nothing here yet. Say something to your table.
             </Text>
           )}
+          {notices
+            .filter((n) => n.after === null || !lines.some((l) => l.id === n.after))
+            .map((n) => (
+              <Text
+                key={n.id}
+                size="1"
+                color="gray"
+                align="center"
+                className="phone-notice"
+                role="status"
+              >
+                {n.text}
+              </Text>
+            ))}
           {lines.map((line) => (
-            <Line key={line.id} line={line} userId={userId} names={names} now={now} />
+            <Fragment key={line.id}>
+              <Line line={line} userId={userId} names={names} now={now} />
+              {notices
+                .filter((n) => n.after === line.id)
+                .map((n) => (
+                  <Text
+                    key={n.id}
+                    size="1"
+                    color="gray"
+                    align="center"
+                    className="phone-notice"
+                    role="status"
+                  >
+                    {n.text}
+                  </Text>
+                ))}
+            </Fragment>
           ))}
           <div ref={bottom} />
         </div>

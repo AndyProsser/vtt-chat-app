@@ -33,12 +33,11 @@ const member = (userId: string, displayName: string, character?: string): Member
 describe('timeline', () => {
   it('puts each card right after the chat line it follows', () => {
     const entries = timeline([line('a', 1), line('b', 2)], [card('c1', 'a'), card('c2', null)]);
-    expect(entries.map((e) => (e.type === 'line' ? e.line.id : e.card.id))).toEqual([
-      'c2',
-      'a',
-      'c1',
-      'b',
-    ]);
+    expect(
+      entries.map((e) =>
+        e.type === 'line' ? e.line.id : e.type === 'card' ? e.card.id : e.notice.id,
+      ),
+    ).toEqual(['c2', 'a', 'c1', 'b']);
   });
 
   it('hides removed cards and keeps a card whose anchor line has scrolled away', () => {
@@ -46,10 +45,11 @@ describe('timeline', () => {
       [line('b', 2)],
       [card('gone', 'b', { removed: true }), card('orphan', 'trimmed')],
     );
-    expect(entries.map((e) => (e.type === 'line' ? e.line.id : e.card.id))).toEqual([
-      'orphan',
-      'b',
-    ]);
+    expect(
+      entries.map((e) =>
+        e.type === 'line' ? e.line.id : e.type === 'card' ? e.card.id : e.notice.id,
+      ),
+    ).toEqual(['orphan', 'b']);
   });
 });
 
@@ -149,5 +149,23 @@ describe('itemLabel', () => {
         members,
       ),
     ).toBe('5 gp · available');
+  });
+});
+
+describe('timeline notices', () => {
+  it('places a notice after the chat line it followed, or first when that line has gone', () => {
+    const entries = timeline(
+      [line('a', 1), line('b', 2)],
+      [],
+      [
+        { id: 'n1', text: 'Aria joined Cellar', after: 'a' },
+        { id: 'n2', text: 'old', after: 'trimmed' },
+      ],
+    );
+    expect(
+      entries.map((e) =>
+        e.type === 'line' ? e.line.id : e.type === 'notice' ? e.notice.id : 'card',
+      ),
+    ).toEqual(['n2', 'a', 'n1', 'b']);
   });
 });

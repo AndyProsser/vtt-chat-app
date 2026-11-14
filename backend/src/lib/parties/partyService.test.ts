@@ -217,3 +217,88 @@ describe('who can be moved', () => {
     });
   });
 });
+
+describe('a private aside', () => {
+  const heard = (listener: string, subscribe: boolean) =>
+    callsFor(listener)
+      .filter((c) => c.subscribe === subscribe)
+      .flatMap((c) => c.sids)
+      .sort();
+
+  it('cuts the table off from the DM and the player, and the two off from the table, even with no split', async () => {
+    await service.aside(C, 'dm', 'alice');
+    expect(events.at(-1)?.data.aside).toEqual({ dmId: 'dm', playerId: 'alice' });
+    expect(heard('dm', false)).toEqual(['t-bob', 't-carol']); // the DM loses bob and carol
+    expect(heard('alice', false)).toEqual(['t-bob', 't-carol']);
+    expect(heard('bob', false)).toEqual(['t-alice', 't-dm']);
+    expect(heard('carol', false)).toEqual(['t-alice', 't-dm']);
+  });
+
+  it('ending it re-subscribes everyone', async () => {
+    await service.aside(C, 'dm', 'alice');
+    router.calls.length = 0;
+    await service.aside(C, 'dm', null);
+    expect(events.at(-1)?.data.aside).toBeNull();
+    expect(heard('dm', true)).toEqual(['t-bob', 't-carol']);
+    expect(heard('bob', true)).toEqual(['t-alice', 't-dm']);
+  });
+
+  it('refuses to take the DM aside, or someone who is not in the campaign', async () => {
+    await expect(service.aside(C, 'dm', 'dm')).rejects.toThrow();
+    await expect(service.aside(C, 'dm', 'nobody')).rejects.toThrow();
+  });
+
+  it('ends by itself when either person goes offline', async () => {
+    await service.aside(C, 'dm', 'alice');
+    await service.userOffline(C, 'bob'); // someone else: nothing happens
+    expect(service.snapshot(C).aside).not.toBeNull();
+    await service.userOffline(C, 'alice');
+    expect(service.snapshot(C).aside).toBeNull();
+    await service.aside(C, 'dm', 'alice');
+    await service.userOffline(C, 'dm');
+    expect(service.snapshot(C).aside).toBeNull();
+  });
+});
+
+describe('a private talk and a lost voice connection', () => {
+  it('ends by itself when the DM or the player has been out of the voice room past the grace', async () => {
+    let now = 1_000;
+    service = new PartyService({
+      store,
+      router,
+      emit: (_c, type, data) => events.push({ type, data }),
+      now: () => now,
+      asideGraceMs: 20_000,
+    });
+    await service.aside(C, 'dm', 'alice');
+    router.people = router.people.filter((p) => p.identity !== 'dm'); // the DM's app crashed
+    now += 10_000;
+    await service.reconcile(C);
+    expect(service.snapshot(C).aside).not.toBeNull(); // a blip is forgiven
+    now += 25_000;
+    await service.reconcile(C);
+    expect(service.snapshot(C).aside).toBeNull();
+    expect(events.at(-1)?.data.aside).toBeNull();
+  });
+
+  it('a person who comes back in time keeps the talk going', async () => {
+    let now = 1_000;
+    service = new PartyService({
+      store,
+      router,
+      emit: () => undefined,
+      now: () => now,
+      asideGraceMs: 20_000,
+    });
+    await service.aside(C, 'dm', 'alice');
+    const dm = router.people.find((p) => p.identity === 'dm')!;
+    router.people = router.people.filter((p) => p.identity !== 'dm');
+    now += 15_000;
+    await service.reconcile(C);
+    router.people.push(dm);
+    await service.reconcile(C);
+    now += 15_000;
+    await service.reconcile(C);
+    expect(service.snapshot(C).aside).not.toBeNull();
+  });
+});

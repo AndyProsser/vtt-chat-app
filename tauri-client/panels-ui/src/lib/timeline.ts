@@ -1,19 +1,33 @@
-import type { ChatLine, LootItem, Member, TableCard, TimelineEntry } from '../types/index.js';
+import type {
+  ChatLine,
+  LootItem,
+  Member,
+  TableCard,
+  TableNotice,
+  TimelineEntry,
+} from '../types/index.js';
 
 /**
  * Chat lines in order with each loot/handout card placed right after the line it followed. A card
  * whose line has since scrolled out of the kept window goes to the top; removed cards are hidden.
  */
-export function timeline(chat: ChatLine[], cards: TableCard[]): TimelineEntry[] {
+export function timeline(
+  chat: ChatLine[],
+  cards: TableCard[],
+  notices: TableNotice[] = [],
+): TimelineEntry[] {
   const live = cards.filter((c) => !c.removed);
   const known = new Set(chat.map((l) => l.id));
   const card = (c: TableCard): TimelineEntry => ({ type: 'card', card: c });
+  const notice = (n: TableNotice): TimelineEntry => ({ type: 'notice', notice: n });
   const out: TimelineEntry[] = live
     .filter((c) => c.after === null || !known.has(c.after))
     .map(card);
+  out.push(...notices.filter((n) => n.after === null || !known.has(n.after)).map(notice));
   for (const line of chat) {
     out.push({ type: 'line', line });
     for (const c of live) if (c.after === line.id) out.push(card(c));
+    for (const n of notices) if (n.after === line.id) out.push(notice(n));
   }
   return out;
 }

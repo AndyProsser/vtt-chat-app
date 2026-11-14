@@ -84,6 +84,8 @@ export interface PartyView {
   /** userId → party id; absent means "not in a group". */
   assignments: Record<string, string>;
   split: boolean;
+  /** A private talk in progress: the DM and one player hear only each other. */
+  aside?: { dmId: string; playerId: string } | null;
 }
 
 /** A loot or handout notice shown inline in chat; `after` is the chat line it follows. */
@@ -111,7 +113,17 @@ export interface TableCard {
   after: string | null;
 }
 
-export type TimelineEntry = { type: 'line'; line: ChatLine } | { type: 'card'; card: TableCard };
+/** A line the table is shown when voice groups change ("Mira joined Cellar"); `after` is the chat line it follows. */
+export interface TableNotice {
+  id: string;
+  text: string;
+  after: string | null;
+}
+
+export type TimelineEntry =
+  | { type: 'line'; line: ChatLine }
+  | { type: 'card'; card: TableCard }
+  | { type: 'notice'; notice: TableNotice };
 
 export interface TableState {
   members: Member[];
@@ -119,6 +131,9 @@ export interface TableState {
   cards: TableCard[];
   recording: RecordingView | null;
   parties: PartyView;
+  notices: TableNotice[];
+  /** Whether a `party.state` has been seen yet: the first one after connecting is the starting point, not news. */
+  partiesSeen: boolean;
 }
 
 export interface SoundButton {

@@ -253,6 +253,50 @@ describe('RecordingCapture', () => {
     ]);
   });
 
+  it('never records a private aside: the DM\u2019s and the player\u2019s files stop and are not restarted until it ends', async () => {
+    capture.onRecordingChange(change('STARTED'));
+    await capture.idle();
+    for (const who of ['dm', 'ann', 'bo']) publish(who);
+    for (const who of ['dm', 'ann', 'bo']) await ack(who);
+    expect(recorder.started).toHaveLength(3);
+    time += 10_000;
+    const split = { parties: [], assignments: {}, aside: { dmId: 'dm', playerId: 'ann' } };
+    capture.onPartyState(CAMPAIGN, split);
+    await capture.idle();
+    // their audio so far is kept; only bo is still being written
+    expect((await records.listTracks(REC)).map((t) => t.speakerId).sort()).toEqual(['ann', 'dm']);
+    // reconciling (a late ack, the timer) must not bring them back
+    await ack('bo');
+    capture.onAck(CAMPAIGN);
+    await capture.idle();
+    expect(recorder.started).toHaveLength(3);
+    // the timeline says that it happened and who with, never what was said
+    const aside = (await records.listRecordingEvents(REC)).filter((e) => e.event === 'aside');
+    expect(aside.map((e) => e.detail)).toEqual([{ phase: 'start', player: 'name-of-ann' }]);
+    time += 30_000;
+    capture.onPartyState(CAMPAIGN, { parties: [], assignments: {}, aside: null });
+    await capture.idle();
+    expect(recorder.started).toHaveLength(5); // dm and ann are captured again, in new files
+    expect(
+      (await records.listRecordingEvents(REC))
+        .filter((e) => e.event === 'aside')
+        .map((e) => e.detail),
+    ).toEqual([{ phase: 'start', player: 'name-of-ann' }, { phase: 'end' }]);
+  });
+
+  it('does not capture two people who are already in an aside when the recording starts', async () => {
+    capture.onPartyState(CAMPAIGN, {
+      parties: [],
+      assignments: {},
+      aside: { dmId: 'dm', playerId: 'ann' },
+    });
+    capture.onRecordingChange(change('STARTED'));
+    await capture.idle();
+    for (const who of ['dm', 'ann', 'bo']) publish(who);
+    for (const who of ['dm', 'ann', 'bo']) await ack(who);
+    expect(recorder.started.map((s) => s.filepath.split('/').pop()?.split('@')[0])).toEqual(['bo']);
+  });
+
   it('notes only scene changes unless the operator chose more cues', async () => {
     capture = makeCapture();
     capture.onRecordingChange(change('STARTED'));

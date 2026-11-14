@@ -285,10 +285,7 @@ export class RecordingCapture {
    * they say to each other is never recorded, and is not in a transcript or summary. The timeline notes it by name only.
    * The set is updated at once (the reconciler must not restart those tracks), the file work is queued.
    */
-  private noteAside(
-    campaignId: string,
-    aside: { dmId: string; playerId: string } | null,
-  ): void {
+  private noteAside(campaignId: string, aside: { dmId: string; playerId: string } | null): void {
     const before = this.asides.get(campaignId);
     const after = aside ? new Set([aside.dmId, aside.playerId]) : undefined;
     const same =

@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 
 import { useGroupDrag } from '../hooks/useGroupDrag.js';
 import { avatarColor } from '../lib/avatarColor.js';
+import { asideToggle } from '../lib/aside.js';
 import { groupNameOf, moveTargets, railSections } from '../lib/groups.js';
 import { initials, memberAvatar } from '../lib/rail.js';
 import { useTableStore } from '../lib/tableStore.js';
@@ -30,7 +31,13 @@ export function AvatarRail({ dm, selfId }: { dm: boolean; selfId: string | null 
     <nav className="vtt-rail" aria-label="People at the table">
       {host && (
         <div className="vtt-rail-item">
-          <RailAvatar member={host} partyId={undefined} groupName={undefined} selfId={selfId} />
+          <RailAvatar
+            member={host}
+            partyId={undefined}
+            groupName={undefined}
+            selfId={selfId}
+            aside={view.aside?.dmId === host.userId}
+          />
         </div>
       )}
       {sections.map((section, i) => (
@@ -53,6 +60,12 @@ export function AvatarRail({ dm, selfId }: { dm: boolean; selfId: string | null 
                     : 'vtt-rail-item'
                 }
                 onPointerDown={dm ? (e) => begin(m, e) : undefined}
+                onDoubleClick={
+                  dm
+                    ? () => void send('party.aside', { userId: asideToggle(view, m.userId) })
+                    : undefined
+                }
+                title={dm ? 'Double-click for a private talk' : undefined}
                 {...(dm
                   ? {
                       tabIndex: 0,
@@ -70,6 +83,7 @@ export function AvatarRail({ dm, selfId }: { dm: boolean; selfId: string | null 
                   partyId={section.id === 'main' ? undefined : section.id}
                   groupName={groupNameOf(view, m.userId)}
                   selfId={selfId}
+                  aside={view.aside?.playerId === m.userId}
                 />
                 {dm && (
                   <DropdownMenu.Root
@@ -83,6 +97,16 @@ export function AvatarRail({ dm, selfId }: { dm: boolean; selfId: string | null 
                       <DropdownMenu.Label>
                         Move {m.character?.name ?? m.displayName} to
                       </DropdownMenu.Label>
+                      <DropdownMenu.Item
+                        onSelect={() =>
+                          void send('party.aside', { userId: asideToggle(view, m.userId) })
+                        }
+                      >
+                        {view.aside?.playerId === m.userId
+                          ? 'End the private talk'
+                          : 'Talk privately'}
+                      </DropdownMenu.Item>
+                      <DropdownMenu.Separator />
                       {moveTargets(sections, m.userId).map((t) => (
                         <DropdownMenu.Item key={t.id} onSelect={() => moveTo(m, t.id)}>
                           {t.label}

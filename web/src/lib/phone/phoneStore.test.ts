@@ -94,3 +94,31 @@ describe('phone store', () => {
     ]);
   });
 });
+
+describe('party.state', () => {
+  it('shows the private talk and says who joined which group, but not for the first state', () => {
+    const store = usePhoneStore;
+    store.getState().signedIn('p1');
+    store.setState({
+      members: [
+        { userId: 'p1', displayName: 'Pat', role: 'player' },
+        { userId: 'p2', displayName: 'Sam', role: 'player' },
+      ] as never,
+      partiesSeen: false,
+      notices: [],
+    });
+    const frame = (assignments: Record<string, string>, aside: unknown = null) =>
+      store.getState().onFrame('party.state', {
+        parties: [{ id: 'g1', name: 'Cellar' }],
+        assignments,
+        aside,
+      });
+    frame({ p1: 'g1' });
+    expect(store.getState().notices).toEqual([]);
+    frame({ p1: 'g1', p2: 'g1' });
+    expect(store.getState().notices.map((n) => n.text)).toEqual(['Sam joined Cellar']);
+    frame({ p1: 'g1', p2: 'g1' }, { dmId: 'dm', playerId: 'p2' });
+    expect(store.getState().parties.aside).toEqual({ dmId: 'dm', playerId: 'p2' });
+    expect(store.getState().notices.at(-1)?.text).toBe('The DM took Sam aside for a private talk');
+  });
+});

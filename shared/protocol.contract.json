@@ -1,11 +1,12 @@
 {
   "protocolVersion": 2,
-  "hash": "e7095ed1edad01cd9414870883bc5f6131a234a5a52b36a577eb80bd95c4e1df",
+  "hash": "84136b2205a2341d8d8aa8ceed41fdfe04b99d7f75e569b21bb49a42789bc06c",
   "summary": {
     "clientFrames": [
       "audio.state",
       "auth",
       "chat.message",
+      "party.aside",
       "party.create",
       "party.delete",
       "party.move",

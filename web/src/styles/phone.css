@@ -943,3 +943,20 @@ button.phone-picture-button {
   text-decoration: underline;
   text-decoration-style: dotted;
 }
+
+/* A private talk between the DM and one player: a strip for the whole table. */
+.phone-aside {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: color-mix(in srgb, var(--accent-9) 18%, var(--color-background));
+  border-bottom: 1px solid var(--gray-a5);
+}
+/* A line in the chat about the table itself ("Mira joined Cellar"). */
+.phone-notice {
+  display: block;
+  font-style: italic;
+  opacity: 0.75;
+  padding: 2px 0;
+}

@@ -9,8 +9,9 @@ import { ChatMessage } from './ChatMessage.js';
 export function ChatView({ selfId }: { selfId: string | null }) {
   const chat = useTableStore((s) => s.chat);
   const cards = useTableStore((s) => s.cards);
+  const notices = useTableStore((s) => s.notices);
   const members = useTableStore((s) => s.members);
-  const entries = useMemo(() => timeline(chat, cards), [chat, cards]);
+  const entries = useMemo(() => timeline(chat, cards, notices), [chat, cards, notices]);
   const end = useRef<HTMLDivElement>(null);
   useEffect(() => {
     end.current?.scrollIntoView({ block: 'end' });
@@ -21,6 +22,10 @@ export function ChatView({ selfId }: { selfId: string | null }) {
         {entries.map((e) =>
           e.type === 'line' ? (
             <ChatMessage key={e.line.id} line={e.line} members={members} selfId={selfId} />
+          ) : e.type === 'notice' ? (
+            <p key={e.notice.id} className="vtt-notice" role="status">
+              {e.notice.text}
+            </p>
           ) : (
             <ChatCard key={e.card.id} card={e.card} members={members} selfId={selfId} />
           ),

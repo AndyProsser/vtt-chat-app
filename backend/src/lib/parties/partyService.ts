@@ -9,6 +9,9 @@ export interface PartyDeps {
   router: AudioRouter | undefined;
   emit: (campaignId: string, type: string, data: unknown) => void;
   log?: (line: string) => void;
+  now?: () => number;
+  /** How long either person of a private talk may be missing from the voice room before it ends by itself. */
+  asideGraceMs?: number;
 }
 
 /**
@@ -27,6 +30,8 @@ export class PartyService {
   private readonly unsubscribed = new Map<string, Map<string, Set<string>>>();
   private timer: ReturnType<typeof setInterval> | undefined;
   private reconciling = new Map<string, Promise<void>>();
+  /** Per table: since when someone in the private talk has been absent from the voice room. */
+  private readonly asideGone = new Map<string, number>();
 
   constructor(private readonly deps: PartyDeps) {}
 
@@ -41,7 +46,12 @@ export class PartyService {
 
   snapshot(campaignId: string) {
     return (
-      this.tables.get(campaignId)?.snapshot() ?? { parties: [], assignments: {}, split: false, aside: null }
+      this.tables.get(campaignId)?.snapshot() ?? {
+        parties: [],
+        assignments: {},
+        split: false,
+        aside: null,
+      }
     );
   }
 
@@ -139,6 +149,24 @@ export class PartyService {
       (await store.listMemberships(campaignId)).filter((m) => m.role === 'dm').map((m) => m.userId),
     );
     const people = await router.participants(campaignId);
+    // A private talk silences both people for everyone else, so if one of them drops out of the voice room (a crashed app)
+    // it ends by itself after a short grace, rather than leave the other with nobody to hear.
+    const talk = state.aside;
+    if (talk) {
+      const here = new Set(people.map((p) => p.identity));
+      if (here.has(talk.dmId) && here.has(talk.playerId)) this.asideGone.delete(campaignId);
+      else {
+        const now = (this.deps.now ?? Date.now)();
+        const since = this.asideGone.get(campaignId) ?? now;
+        this.asideGone.set(campaignId, since);
+        if (now - since >= (this.deps.asideGraceMs ?? 20_000)) {
+          this.asideGone.delete(campaignId);
+          state.endAside();
+          this.announce(campaignId);
+          this.deps.log?.(`private talk ended: ${campaignId} lost someone from the voice room`);
+        }
+      }
+    } else this.asideGone.delete(campaignId);
     const owner = new Map<string, string>(); // track sid → who publishes it
     for (const p of people) for (const sid of p.audioTrackSids) owner.set(sid, p.identity);
 

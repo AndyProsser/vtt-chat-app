@@ -1,3 +1,5 @@
+import { describePartyChange } from '@vtt-chat-app/shared';
+
 import { CHAT_LIMIT } from '../consts/index.js';
 import { kindOf } from './chatStyle.js';
 import type {
@@ -13,15 +15,18 @@ import type {
   Rarity,
   TableCard,
   TableState,
+  TableNotice,
 } from '../types/index.js';
 
-export const emptyParties: PartyView = { parties: [], assignments: {}, split: false };
+export const emptyParties: PartyView = { parties: [], assignments: {}, split: false, aside: null };
 export const emptyTable: TableState = {
   members: [],
   chat: [],
   cards: [],
   recording: null,
   parties: emptyParties,
+  notices: [],
+  partiesSeen: false,
 };
 
 type Obj = Record<string, unknown>;
@@ -147,8 +152,29 @@ export function applyEvent(state: TableState, event: SyncEvent): TableState {
       for (const [user, party] of Object.entries(asObj(d.assignments))) {
         if (typeof party === 'string') assignments[user] = party;
       }
-      const next: PartyView = { parties, assignments, split: d.split === true };
-      return { ...state, parties: next };
+      const a = asObj(d.aside);
+      const aside =
+        typeof a.dmId === 'string' && typeof a.playerId === 'string'
+          ? { dmId: a.dmId, playerId: a.playerId }
+          : null;
+      const next: PartyView = { parties, assignments, split: d.split === true, aside };
+      // Tell the table what changed, in chat, so nobody wonders who can hear whom. The first state after
+      // connecting is the starting point, not news.
+      const nameOf = (id: string): string => {
+        const m = state.members.find((x) => x.userId === id);
+        return m?.character?.name ?? m?.displayName ?? 'Someone';
+      };
+      const lines = state.partiesSeen ? describePartyChange(state.parties, next, nameOf) : [];
+      const after = lastChatId(state);
+      const notices: TableNotice[] = [
+        ...state.notices,
+        ...lines.map((text, i) => ({
+          id: `party:${state.notices.length + i}:${text}`,
+          text,
+          after,
+        })),
+      ].slice(-50);
+      return { ...state, parties: next, partiesSeen: true, notices };
     }
     case 'recording.state': {
       const r = asObj(d.recording);

@@ -92,7 +92,13 @@ export function eventCues(events: readonly RecordingEvent[], startedAt: number):
   return cues.sort((a, b) => a.atMs - b.atMs);
 }
 
-const PRIORITY: Record<SummaryCue['kind'], number> = { scene: 0, group: 1, aside: 1, voice: 2, effect: 3 };
+const PRIORITY: Record<SummaryCue['kind'], number> = {
+  scene: 0,
+  group: 1,
+  aside: 1,
+  voice: 2,
+  effect: 3,
+};
 
 /**
  * Keeps a summary's cue list short: repeated effects become one line with a count, and when there are still

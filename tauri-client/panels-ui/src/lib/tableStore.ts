@@ -25,6 +25,8 @@ export const useTableStore = create<TableStore>((set) => ({
             cards: next.cards,
             recording: next.recording,
             parties: next.parties,
+            notices: next.notices,
+            partiesSeen: next.partiesSeen,
           };
     }),
   hydrate: ({ snapshot, events }) =>
@@ -38,6 +40,8 @@ export const useTableStore = create<TableStore>((set) => ({
         cards: state.cards,
         recording: state.recording,
         parties: state.parties,
+        notices: state.notices,
+        partiesSeen: state.partiesSeen,
       };
     }),
 }));

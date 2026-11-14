@@ -194,7 +194,43 @@ describe('party.state', () => {
       parties: [{ id: 'p1', name: 'North' }],
       assignments: { u1: 'p1' },
       split: true,
+      aside: null,
     });
+  });
+
+  it('says what changed in chat, but not for the first state after connecting', () => {
+    const named = {
+      ...emptyTable,
+      members: [
+        { userId: 'u1', displayName: 'Aria', role: 'player' },
+        { userId: 'u2', displayName: 'Bram', role: 'player' },
+      ] as typeof emptyTable.members,
+    };
+    const first = applyEvent(named, {
+      t: 'party.state',
+      d: { parties: [{ id: 'p1', name: 'North' }], assignments: { u1: 'p1' }, split: true },
+    });
+    expect(first.notices).toEqual([]);
+    const moved = applyEvent(first, {
+      t: 'party.state',
+      d: {
+        parties: [{ id: 'p1', name: 'North' }],
+        assignments: { u1: 'p1', u2: 'p1' },
+        split: true,
+      },
+    });
+    expect(moved.notices.map((n) => n.text)).toEqual(['Bram joined North']);
+    const aside = applyEvent(moved, {
+      t: 'party.state',
+      d: {
+        parties: [{ id: 'p1', name: 'North' }],
+        assignments: { u1: 'p1', u2: 'p1' },
+        split: true,
+        aside: { dmId: 'dm', playerId: 'u1' },
+      },
+    });
+    expect(aside.parties.aside).toEqual({ dmId: 'dm', playerId: 'u1' });
+    expect(aside.notices.at(-1)?.text).toBe('The DM took Aria aside for a private talk');
   });
 });
 

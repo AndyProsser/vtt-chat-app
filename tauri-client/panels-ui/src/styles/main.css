@@ -2239,3 +2239,43 @@ body,
   line-height: 16px;
   text-align: center;
 }
+
+/* A private talk between the DM and one player: a strip for the whole table, a violet ring and a lock on the two. */
+.vtt-aside {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: color-mix(in srgb, var(--vtt-accent, #7c5cff) 22%, var(--vtt-bar));
+  border-bottom: 1px solid var(--vtt-edge);
+  font-size: 12px;
+}
+.vtt-aside-text {
+  flex: 1;
+  min-width: 0;
+}
+.vtt-aside-text span {
+  opacity: 0.85;
+}
+.vtt-av-aside {
+  border-color: var(--vtt-accent, #7c5cff);
+  box-shadow: 0 0 8px 1px color-mix(in srgb, var(--vtt-accent, #7c5cff) 70%, transparent);
+}
+.vtt-av-lock {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  display: inline-flex;
+  padding: 2px;
+  border-radius: 50%;
+  background: var(--vtt-accent, #7c5cff);
+  color: #fff;
+}
+/* A line in the chat about the table itself ("Mira joined Cellar"). */
+.vtt-notice {
+  margin: 2px 0;
+  text-align: center;
+  font-size: 11px;
+  font-style: italic;
+  opacity: 0.7;
+}

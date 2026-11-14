@@ -10,7 +10,7 @@ does, the rules that matter for privacy, and what is deliberately not built yet.
 | Handouts, maps, images, text snippets                                                        | planned      |
 | Loot drops with pickers                                                                      | planned      |
 | DM soundboard (a mini [thaumaturgy.app](https://thaumaturgy.app/) with the DM's own library) | planned      |
-| Party split                                                                                  | planned      |
+| Party split                                                                                  | built        |
 | Session schedule, RSVP, stored notifications                                                 | planned      |
 
 ## Chat and whispers (built)
@@ -225,9 +225,36 @@ whoever is listening). Players not placed in a party are at the "main table" tog
 - State is in memory: a server restart returns everyone to the main table (the safe direction), and a
   table that everyone has left is forgotten.
 - **Not built:** the Rust client side (it must keep LiveKit's default auto-subscribe, and show the groups),
-  drag-between-groups UI, and per-party text chat. **There are no voice whispers (decided 2026-11-14).** Players whisper by text;
-  to speak to one player the DM isolates that player in a group of their own (the DM is in every group, so it is a private
-  conversation), then merges back.
+  drag-between-groups UI, and per-party text chat. **There are no voice whispers (decided 2026-11-14).** Players whisper by text.
+
+## Private talk: the DM speaks to one player (built 2026-11-14)
+
+**Decided:** a split group is not private enough, because the DM is heard by every group. For a real aside the DM takes **one player
+aside**: those two hear **only each other**; nobody else hears either of them (so the table loses the DM, and the DM hears nothing
+from the table: no distractions); everyone else carries on among themselves. **Chat still works** for everyone.
+
+- **Trigger:** the DM **double-clicks a player** on the rail (again to end it; double-clicking someone else switches), or uses
+  "Talk privately" in the keyboard menu, or presses **End** on the banner. Server frame: `party.aside` `{ userId }`, `userId: null`
+  to end; DM-only, like the other `party.*` frames. One aside per table at a time.
+- **Model:** `PartyState.startAside/endAside`; `hears()` lets an aside override the groups. It is enforced by the same
+  subscription reconciler as a split (checked every 2 s while a table is split **or** in an aside). `party.state` carries
+  `aside: { dmId, playerId } | null`.
+- **Indicators, for the whole table:** a strip across the top of the main window (and above the web chat) that says what is
+  happening for each person: the DM ("Private talk with Mira. Only they can hear you, and you cannot hear the table"), the player
+  ("Private talk with the DM…"), and everyone else ("The DM is speaking privately with Mira. The DM cannot hear the table right now.
+  Chat still works."); a lock and ring on the two avatars on the rail.
+- **It ends by itself** when the DM or the player goes offline, or drops out of the LiveKit room for 20 seconds (a crashed app),
+  so nobody is left hearing nothing. A reset or a player leaving also ends it.
+- **Never recorded:** the DM's and the player's files are stopped when it starts and restarted when it ends, so what they say is
+  not in the audio, the transcript or any summary. The timeline notes only that it happened and with whom (`aside` event; the
+  summaries are told it was not recorded and not to guess). See [RECORDING-AND-SUMMARIES.md](RECORDING-AND-SUMMARIES.md).
+- **Note:** the DM's soundboard effects and scene ambience travel on the DM's audio, so they are cut for the table during an aside too.
+
+## Group changes are announced (built 2026-11-14)
+
+When someone is moved into or out of a group, or a split ends, every client shows a line in the chat ("Mira joined Cellar", "Mira
+moved from Cellar to Roof", "The table is together again", "The DM took Mira aside for a private talk"), worded once for both apps
+(`describePartyChange` in `shared/`). The first `party.state` after connecting is the starting point, not news.
 
 ## Client UI: one main window (built 2026-11-08)
 
