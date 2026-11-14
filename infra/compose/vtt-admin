@@ -9,8 +9,11 @@
 here=$(dirname "$(readlink -f "$0")")
 cd "$here" || exit 1
 
+# .env holds the secrets (mode 600, owned by root), and docker compose reads it, so a user who can run docker but cannot read .env
+# still needs sudo. `can_run` is true only when both work.
+can_run() { docker info >/dev/null 2>&1 && [ -r .env ]; }
 dc() {
-  if docker info >/dev/null 2>&1; then docker compose "$@"; else sudo -- docker compose "$@"; fi
+  if can_run; then docker compose "$@"; else sudo -- docker compose "$@"; fi
 }
 
 case ${1:-} in
@@ -27,11 +30,11 @@ case ${1:-} in
     ;;
   backup)
     shift
-    if docker info >/dev/null 2>&1; then ./backup.sh "$@"; else sudo -- ./backup.sh "$@"; fi
+    if can_run; then ./backup.sh "$@"; else sudo -- ./backup.sh "$@"; fi
     ;;
   restore)
     shift
-    if docker info >/dev/null 2>&1; then ./restore.sh "$@"; else sudo -- ./restore.sh "$@"; fi
+    if can_run; then ./restore.sh "$@"; else sudo -- ./restore.sh "$@"; fi
     ;;
   update)
     shift

@@ -390,7 +390,7 @@ for _ in $(seq 1 30); do
 done
 if ((local_ok)); then say "  the server answers on this machine"; else warn "the server did not answer locally; check: docker compose -f $DIR/compose.yml logs backend caddy"; fi
 if ((CFDNS)); then
-  say "  waiting for the certificate from Cloudflare's DNS challenge (up to 4 minutes)..."
+  say "  waiting for the certificate from Cloudflare's DNS challenge (normally 1 to 3 minutes: Caddy adds a DNS record, waits for it to spread, then Let's Encrypt checks it)..."
   for _ in $(seq 1 48); do
     if curl -fsS --max-time 6 --resolve "$DOMAIN:443:127.0.0.1" "https://$DOMAIN/api/health" >/dev/null 2>&1; then public_ok=1; break; fi
     sleep 5
