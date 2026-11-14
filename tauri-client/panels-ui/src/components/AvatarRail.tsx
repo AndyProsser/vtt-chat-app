@@ -9,7 +9,6 @@ import { asideToggle } from '../lib/aside.js';
 import { groupNameOf, moveTargets, railSections } from '../lib/groups.js';
 import { initials, memberAvatar } from '../lib/rail.js';
 import { useTableStore } from '../lib/tableStore.js';
-import { ConnectionMenu } from './ConnectionMenu.js';
 import { Portrait } from './Portrait.js';
 import { RailAvatar } from './RailAvatar.js';
 import { ToolButton } from './ToolButton.js';
@@ -145,9 +144,6 @@ export function AvatarRail({ dm, selfId }: { dm: boolean; selfId: string | null 
                 !
               </span>
             )}
-          </div>
-          <div className="vtt-rail-foot">
-            <ConnectionMenu />
           </div>
         </>
       )}

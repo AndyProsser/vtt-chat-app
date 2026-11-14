@@ -347,3 +347,6 @@ export interface VersionCheck {
 /** Asks the saved server (or `server`, on the signed-out screen) for its version (`server_version_check`). */
 export const serverVersionCheck = (server?: string) =>
   invoke<VersionCheck>('server_version_check', { server: server ?? null });
+
+/** Quits the whole app (the tray's Quit, from the main menu): closing the window only hides it. */
+export const appQuit = () => invoke<void>('app_quit');

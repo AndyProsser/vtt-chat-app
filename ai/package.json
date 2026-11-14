@@ -12,7 +12,8 @@
   },
   "dependencies": {
     "@vtt-chat-app/shared": "*",
-    "pg": "^8.23.1"
+    "pg": "^8.23.1",
+    "undici": "^8.12.4"
   },
   "devDependencies": {
     "@types/node": "^26.0.0",

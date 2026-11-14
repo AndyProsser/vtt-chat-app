@@ -1,5 +1,6 @@
 import { DEFAULT_OLLAMA_URL } from '../consts/index.js';
 import type { GenerateText } from '../types/index.js';
+import { longFetch } from './longFetch.js';
 
 export interface OllamaOptions {
   model: string;
@@ -21,7 +22,7 @@ export interface OllamaOptions {
  */
 export function createOllamaGenerate(options: OllamaOptions): GenerateText {
   const baseUrl = (options.baseUrl ?? DEFAULT_OLLAMA_URL).replace(/\/+$/, '');
-  const doFetch = options.fetchImpl ?? fetch;
+  const doFetch = options.fetchImpl ?? longFetch;
 
   return async (prompt) => {
     const response = await doFetch(`${baseUrl}/api/generate`, {

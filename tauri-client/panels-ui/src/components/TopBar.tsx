@@ -1,14 +1,10 @@
-import { Popover } from '@radix-ui/themes';
-import { AudioLines, Backpack, FileText, ScrollText, Settings } from 'lucide-react';
+import { AudioLines, Backpack, FileText } from 'lucide-react';
 
-import { pendingCount } from '../lib/joinRequests.js';
-import { useJoinStore } from '../lib/joinStore.js';
 import { panelOpen } from '../lib/tauriBridge.js';
 import { CampaignSwitcher } from './CampaignSwitcher.js';
 import { GroupsMenu } from './GroupsMenu.js';
 import { RecordingIndicator } from './RecordingIndicator.js';
-import { SettingsContent } from './SettingsWindow.js';
-import { StatusMenu } from './StatusMenu.js';
+import { MainMenu } from './MainMenu.js';
 import { ToolButton } from './ToolButton.js';
 
 interface Props {
@@ -18,9 +14,8 @@ interface Props {
   onToggleEffects: () => void;
 }
 
-/** Record state and timer on the left; on the right, icon buttons (with tip text) for the rest. */
+/** Record state and timer on the left; on the right, the table tools as icon buttons and a burger menu for the rest. */
 export function TopBar({ dm, effectsOpen, onToggleEffects }: Props) {
-  const waiting = useJoinStore((s) => pendingCount(s.inbox));
   return (
     <header className="vtt-top">
       <CampaignSwitcher />
@@ -39,31 +34,10 @@ export function TopBar({ dm, effectsOpen, onToggleEffects }: Props) {
       <ToolButton label="Handouts" onClick={() => void panelOpen('handouts')}>
         <FileText size={15} />
       </ToolButton>
-      <ToolButton label="Session history" onClick={() => void panelOpen('history')}>
-        <ScrollText size={15} />
-      </ToolButton>
       <ToolButton label="Party inventory" onClick={() => void panelOpen('inventory')}>
         <Backpack size={15} />
       </ToolButton>
-      <Popover.Root>
-        <Popover.Trigger>
-          <ToolButton
-            label={
-              waiting > 0
-                ? `Settings (${waiting} join request${waiting === 1 ? '' : 's'})`
-                : 'Settings'
-            }
-            className="vtt-cog"
-          >
-            <Settings size={15} />
-            {waiting > 0 && <span className="vtt-cog-dot" aria-hidden />}
-          </ToolButton>
-        </Popover.Trigger>
-        <Popover.Content size="1" align="end" className="vtt-settings-pop">
-          <SettingsContent />
-        </Popover.Content>
-      </Popover.Root>
-      <StatusMenu />
+      <MainMenu dm={dm} />
     </header>
   );
 }

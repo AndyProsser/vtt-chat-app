@@ -5,6 +5,7 @@ import { DEFAULT_MAX_NO_SPEECH_PROB, DEFAULT_PROVIDER_TIMEOUT_MS } from '../../c
 import type { GenerateText, Segment, TranscribeWav } from '../../types/index.js';
 import { isNonSpeech } from '../whisperJson.js';
 import { isTransientStatus, ProviderUnavailableError } from './errors.js';
+import { longFetch } from '../longFetch.js';
 
 export interface OpenAiCompatOptions {
   /** Server root, e.g. `http://gaming-pc:8080` or `http://127.0.0.1:11434`. `/v1/...` is appended. */
@@ -32,7 +33,7 @@ async function post(
   body: string | FormData,
   contentType?: string,
 ): Promise<unknown> {
-  const doFetch = options.fetchImpl ?? fetch;
+  const doFetch = options.fetchImpl ?? longFetch;
   let response: Response;
   try {
     response = await doFetch(`${trimSlash(options.baseUrl)}${route}`, {

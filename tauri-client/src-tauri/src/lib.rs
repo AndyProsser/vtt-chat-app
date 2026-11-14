@@ -128,6 +128,7 @@ pub fn run() {
             commands::sync_command,
             commands::chat_send,
             windows::panel_open,
+            windows::app_quit,
             windows::handout_view_open,
             windows::window_ready,
             deeplink::take_pending_connect,

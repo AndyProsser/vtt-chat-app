@@ -7,6 +7,7 @@ const GROUND_RULES = [
   'Each line names who spoke or typed it; keep every action and line with the person who did or said it.',
   'Lines marked "(typed)" were typed into the table chat instead of spoken; treat them as part of the game.',
   'Ignore table chatter that is not about the game (food, breaks, technical problems).',
+  'When there is little to summarise (a short or test recording), write only a few sentences about what is actually there. Do not add sections for things that did not happen (no "no key decisions were made" entries), and do not describe what is missing.',
 ].join('\n- ');
 
 function describe(kind: SummaryKind, context: SummaryContext): string {

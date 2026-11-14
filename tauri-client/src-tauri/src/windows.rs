@@ -439,6 +439,12 @@ fn open_page(
     Ok(())
 }
 
+/// Quits the whole app, as the tray's Quit does (the window's close button only hides it).
+#[tauri::command]
+pub fn app_quit(app: AppHandle) {
+    app.exit(0);
+}
+
 #[tauri::command]
 pub fn panel_open(app: AppHandle, name: String) -> Result<(), String> {
     open(&app, &name)

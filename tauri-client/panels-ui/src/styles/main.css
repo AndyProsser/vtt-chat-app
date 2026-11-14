@@ -2279,3 +2279,82 @@ body,
   font-style: italic;
   opacity: 0.7;
 }
+
+/* Your status as a pill above the mute button (ONLINE green, AWAY amber, OFFLINE grey). */
+.vtt-bottom-left {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.vtt-pill-status {
+  font-family: var(--vtt-font-body, inherit);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  padding: 3px 7px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  background: color-mix(in srgb, currentColor 14%, transparent);
+  cursor: pointer;
+}
+.vtt-pill-status[data-status='online'] {
+  color: #3fb97a;
+}
+.vtt-pill-status[data-status='away'] {
+  color: #e3a73b;
+}
+.vtt-pill-status[data-status='offline'] {
+  color: #8a8f98;
+}
+.vtt-pill-status:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+/* The burger menu. */
+.vtt-menu-pop {
+  width: 220px;
+  padding: 6px;
+}
+.vtt-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.vtt-menu-item,
+.vtt-menu-back {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.vtt-menu-item:hover,
+.vtt-menu-back:hover {
+  background: color-mix(in srgb, var(--vtt-accent, #7c5cff) 22%, transparent);
+}
+.vtt-menu-item .vtt-tab-badge {
+  margin-left: auto;
+}
+.vtt-menu-danger {
+  color: #e5675f;
+}
+.vtt-menu-sep {
+  border: 0;
+  border-top: 1px solid var(--vtt-edge);
+  margin: 4px 0;
+}
+.vtt-menu-back {
+  width: auto;
+  padding: 4px 8px;
+  margin: 4px 4px 0;
+  opacity: 0.8;
+}

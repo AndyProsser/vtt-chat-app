@@ -10,7 +10,7 @@ Decided 2026-11-10 (Andy). One switch for "am I at the table?", shown to everyon
 
 - **Every launch starts Offline.** The app never joins voice by itself (it used to, straight after
   sign-in). Online is a deliberate choice.
-- **Where to change it:** the tray menu (a Status submenu), the dot right of the settings cog, and
+- **Where to change it:** the tray menu (a Status submenu), the colour-coded pill above the mute button (ONLINE, AWAY, OFFLINE; click for a menu), and
   Settings → Profile. They all call one Rust command, so they cannot disagree.
 - **Unmuting while not in voice** asks "Connect to Voice Channel?" (the mute button, and the unmute
   hotkey, which brings the window forward). The tray's Mute item is disabled while Offline.
