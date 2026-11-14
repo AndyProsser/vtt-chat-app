@@ -175,7 +175,8 @@ if [[ $WITH_RECORDS == 1 && $RECORDS_PROFILE == records && $(uname -m) == x86_64
 fi
 
 CF_TOKEN=""
-if ((CFDNS)) && ((EXISTING == 0)); then
+# On an update this switches the site to the DNS challenge too (the token may already be saved from an earlier run).
+if ((CFDNS)) && ! grep -qs '^CLOUDFLARE_API_TOKEN=' "$DIR/.env"; then
   CF_TOKEN=${CLOUDFLARE_API_TOKEN:-}
   if [[ -z $CF_TOKEN ]]; then
     have_tty || die "--cloudflare-dns needs a Cloudflare API token: set CLOUDFLARE_API_TOKEN in the environment, or run in a terminal to be asked"
@@ -327,10 +328,11 @@ else
   VTT_VERSION="$IMAGE_VERSION" ./setup.sh "$DOMAIN" ${PUBLIC_IP:+"$PUBLIC_IP"}
   if [[ $WITH_RECORDS == 1 ]]; then echo "COMPOSE_PROFILES=$RECORDS_PROFILE" >> .env; say "  recording and summaries: on ($RECORDS_PROFILE)"; fi
 fi
-if ((CFDNS)) && [[ -n $CF_TOKEN ]]; then
+if ((CFDNS)); then
   mkdir -p tls.d
   printf 'tls {\n\tdns cloudflare {env.CLOUDFLARE_API_TOKEN}\n\tresolvers 1.1.1.1 1.0.0.1\n}\n' > tls.d/cloudflare.caddy
   grep -q '^CLOUDFLARE_API_TOKEN=' .env || printf 'CLOUDFLARE_API_TOKEN=%s\n' "$CF_TOKEN" >> .env
+  sed -i '/^CADDY_SITE=http:/d' .env   # leave the plain-HTTP tunnel mode: the site has a real certificate now
   chmod 600 .env
   say "  certificate through Cloudflare's DNS challenge (no inbound 80/443 needed)"
 fi
