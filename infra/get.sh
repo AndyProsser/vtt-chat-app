@@ -15,13 +15,14 @@
 #   --voice-address 203.0.113.7   where voice (UDP) connects: an IP or DNS name. Found automatically; set it when the
 #                                 domain goes through Cloudflare's proxy or the machine is behind NAT (alias: --public-ip)
 #   --dir /opt/vtt-chat           where to put it
+#   --no-admin                    do not create the first Admin now (make one later: vtt-admin user create <email> --name <name> --accept-consent)
 #   --yes                         do not ask anything; every value must come from flags
 #   --skip-docker-install  --skip-firewall  --dry-run
 set -euo pipefail
 
 REPO="${VTT_REPO:-AndyProsser/vtt-chat-app}"
 ASSUME_YES=0 DRY_RUN=0 SKIP_DOCKER=0 SKIP_FIREWALL=0 WITH_RECORDS=""
-BEHIND_CLOUDFLARE=0 DOMAIN="" EMAIL="" NAME="" VERSION="" PUBLIC_IP="" DIR="/opt/vtt-chat"
+NO_ADMIN=0 BEHIND_CLOUDFLARE=0 DOMAIN="" EMAIL="" NAME="" VERSION="" PUBLIC_IP="" DIR="/opt/vtt-chat"
 
 # ---------- small helpers ----------
 if [[ -t 1 ]]; then B=$'\e[1m' G=$'\e[32m' Y=$'\e[33m' R=$'\e[31m' N=$'\e[0m'; else B="" G="" Y="" R="" N=""; fi
@@ -87,6 +88,7 @@ while (($#)); do
     --version) VERSION=${2:?--version needs a value}; shift 2 ;;
     --voice-address | --public-ip) PUBLIC_IP=${2:?$1 needs a value}; shift 2 ;;
     --dir) DIR=${2:?--dir needs a value}; shift 2 ;;
+    --no-admin) NO_ADMIN=1; shift ;;
     --with-records) WITH_RECORDS=1; shift ;;
     --no-records) WITH_RECORDS=0; shift ;;
     --yes | -y) ASSUME_YES=1; shift ;;
@@ -146,9 +148,9 @@ EXISTING=0
 if ((EXISTING)); then
   say "  An install already exists in $DIR: it will be updated and your data and secrets kept."
 else
-  [[ -n $EMAIL ]] || ask EMAIL "Your email address (it becomes the Admin account; nothing is sent to it)"
-  valid_email "$EMAIL" || die "\"$EMAIL\" does not look like an email address"
-  if [[ -z $NAME ]]; then if ((ASSUME_YES)); then NAME=${EMAIL%%@*}; else ask NAME "Your name, as players will see it" "${EMAIL%%@*}"; fi; fi
+  ((NO_ADMIN)) || [[ -n $EMAIL ]] || ask EMAIL "Your email address (it becomes the Admin account; nothing is sent to it)"
+  ((NO_ADMIN)) || valid_email "$EMAIL" || die "\"$EMAIL\" does not look like an email address"
+  if ((NO_ADMIN)); then :; elif [[ -z $NAME ]]; then if ((ASSUME_YES)); then NAME=${EMAIL%%@*}; else ask NAME "Your name, as players will see it" "${EMAIL%%@*}"; fi; fi
   if [[ -z $WITH_RECORDS ]]; then
     say "  Recording keeps a searchable history of each session with AI summaries, all on this server."
     say "  It downloads about 6 GB of models and wants 8 GB of memory; you can add it later."
@@ -359,6 +361,8 @@ fi
 CODE_OUT=""
 if ((EXISTING)); then
   say "  existing accounts kept"
+elif ((NO_ADMIN)); then
+  say "  no Admin created (--no-admin). Make one with: vtt-admin user create <email> --name <name> --accept-consent --admin   then: vtt-admin user code <email> signin"
 else
   step "Creating your Admin account"
   say "  (This records that you accept the recording notice; players see it before joining.)"
