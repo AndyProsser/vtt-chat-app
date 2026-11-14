@@ -67,7 +67,7 @@ export function JoinRequestsSection({ campaignId }: { campaignId: string }) {
           {error}
         </div>
       )}
-      <div className="vtt-card">
+      <div className="vtt-set-card">
         <SettingRow
           label="Allow join"
           hint="When off, your table is hidden from the list and takes no requests."

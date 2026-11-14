@@ -70,7 +70,7 @@ export function NotificationsSection() {
         title="Notifications"
         hint="What to be told about while the window is closed, and when not to be disturbed."
       />
-      <div className="vtt-card">
+      <div className="vtt-set-card">
         {KINDS.map((k) => (
           <SettingRow key={k.key} label={k.label} hint={k.hint}>
             <Switch

@@ -91,12 +91,12 @@ export function OpenCampaigns() {
         </div>
       )}
       {shown && shown.length === 0 && !error && (
-        <div className="vtt-card">
+        <div className="vtt-set-card">
           <span className="vtt-muted">No tables are open to requests right now.</span>
         </div>
       )}
       {shown && shown.length > 0 && (
-        <div className="vtt-card">
+        <div className="vtt-set-card">
           {shown.map((c) => (
             <OpenCampaignRow
               key={c.id}

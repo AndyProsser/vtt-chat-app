@@ -583,22 +583,23 @@ body,
   gap: 2px;
   margin-bottom: 8px;
 }
-.vtt-card {
+.vtt-set-card {
   display: flex;
   flex-direction: column;
+  align-items: stretch;
   padding: 2px 14px;
   border: 1px solid var(--vtt-edge);
   border-radius: var(--vtt-radius-bubble);
   background: var(--vtt-bubble);
 }
-.vtt-card .vtt-setting-row {
+.vtt-set-card .vtt-setting-row {
   min-height: 52px;
   padding-block: 8px;
 }
-.vtt-card > * + * {
+.vtt-set-card > * + * {
   border-top: 1px solid color-mix(in srgb, var(--vtt-edge) 55%, transparent);
 }
-.vtt-card .vtt-muted,
+.vtt-set-card .vtt-muted,
 .vtt-card-note {
   padding-block: 8px;
 }
@@ -2377,4 +2378,41 @@ body,
   padding: 4px 8px;
   margin: 4px 4px 0;
   opacity: 0.8;
+}
+
+/* The first section of a Settings tab starts at the page padding, with no extra gap above its title. */
+.vtt-settings-page > .vtt-settings-section:first-child,
+.vtt-settings-page > :first-child > .vtt-settings-section:first-child {
+  margin-top: 0;
+}
+/* Radix controls take the app's theme (violet surfaces, the theme's accent) instead of Radix's neutral grey: dropdowns,
+   switches, sliders and tab underlines all read these variables, so every theme and light/dark restyles them at once. */
+.radix-themes {
+  --color-surface: var(--vtt-bubble);
+  --color-panel-solid: var(--vtt-bar);
+  --accent-9: var(--vtt-avatar);
+  --accent-10: color-mix(in srgb, var(--vtt-avatar) 85%, white);
+  --accent-a9: var(--vtt-avatar);
+  --accent-track: var(--vtt-avatar);
+  --focus-8: var(--vtt-gold);
+}
+.radix-themes .rt-SelectTrigger {
+  color: var(--vtt-ink);
+  box-shadow: inset 0 0 0 1px var(--vtt-edge);
+}
+.radix-themes .rt-SelectTrigger:hover {
+  box-shadow: inset 0 0 0 1px var(--vtt-gold);
+}
+.radix-themes .rt-SelectContent {
+  box-shadow:
+    0 0 0 1px var(--vtt-edge),
+    0 8px 24px rgba(0, 0, 0, 0.35);
+}
+.radix-themes .rt-SelectItem[data-highlighted] {
+  background: var(--vtt-avatar);
+  color: #fff;
+}
+/* A tab panel is focusable for keyboard readers but needs no ring around the whole page (it showed as a dashed outline). */
+.vtt-settings [role='tabpanel']:focus-visible {
+  outline: none;
 }

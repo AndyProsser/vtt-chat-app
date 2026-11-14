@@ -25,7 +25,7 @@ export function StatusSetting() {
   return (
     <Flex direction="column" className="vtt-settings-section">
       <SectionHeading title="Presence" hint="What others see, and when you step away." />
-      <div className="vtt-card">
+      <div className="vtt-set-card">
         <SettingRow label="Status" hint={STATUS_HINTS[status]}>
           <Dropdown
             label="Status"

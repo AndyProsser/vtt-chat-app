@@ -91,7 +91,7 @@ export function AudioSection() {
         title="Audio"
         hint="Your microphone and speaker, saved at once and applied if you are in voice."
       />
-      <div className="vtt-card">
+      <div className="vtt-set-card">
         {list && (
           <>
             <SettingRow label="Microphone">

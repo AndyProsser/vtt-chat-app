@@ -24,7 +24,7 @@ export function AppearanceSection() {
         title="Appearance"
         hint="How the app looks. Applies to every window at once."
       />
-      <div className="vtt-card">
+      <div className="vtt-set-card">
         <SettingRow label="Theme" hint="Light or dark follows your system setting">
           <DropdownMenu.Root>
             <DropdownMenu.Trigger>

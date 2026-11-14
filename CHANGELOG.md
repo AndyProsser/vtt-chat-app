@@ -10,6 +10,12 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ## [Unreleased]
 
+### Fixed
+
+- **Settings looked misaligned and had a dashed outline.** The Settings cards shared a name with the chat's loot and handout cards, so they picked up its dashed border and centred rows; the rows now line up (label left, control right) like they were meant to. The extra gap above a tab's first title is gone.
+- **Dropdowns, switches and sliders follow the theme** (violet surfaces and accent, light and dark) instead of Radix's neutral grey, in every window.
+- The status pill sits above both the mute button and the level meter, smaller, and the burger menu's text is smaller.
+
 ## [0.4.3] - 2026-11-14
 
 Found by running 0.4.2 on a real server with a real recording.

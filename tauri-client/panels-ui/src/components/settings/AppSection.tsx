@@ -38,7 +38,7 @@ export function AppSection() {
             : undefined
         }
       />
-      <div className="vtt-card">
+      <div className="vtt-set-card">
         <SettingRow label="Updates">
           <Flex gap="2">
             <Button
