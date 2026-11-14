@@ -105,7 +105,10 @@ first and tells you if the record is missing, points elsewhere, or is a **Cloudf
 switch it to **DNS only**, because voice cannot pass through Cloudflare's proxy).
 
 After it finishes, `vtt-admin` works from any directory (`vtt-admin status`, `vtt-admin user code <email> signin`,
-`vtt-admin settings show`, `vtt-admin help`). Run the same command again to **update**: data and settings are kept.
+`vtt-admin settings show`, `vtt-admin help`). Machine commands work the same way: `vtt-admin logs [service]`, `vtt-admin restart [service]`,
+`vtt-admin ps`, `vtt-admin backup`, `vtt-admin restore <folder> --yes` and `vtt-admin update`. `update` (or running the
+install command again) moves to the newest release of your **current line** (`0.4.x`); data and settings are kept, and a new
+minor (`0.5`) is only installed when you ask for it with `--version`.
 
 Everything it asks can be a flag, for a pasted one-liner: `... | sudo bash -s -- --domain vtt.example.com --email you@example.com --name "You" --with-records --yes`.
 Other flags: `--version 0.4.0` (a specific release; a dev build needs its full name), `--public-ip` (behind NAT),

@@ -142,6 +142,15 @@ fi
 
 # ---------- 3. which release ----------
 step "Choosing the release"
+if [[ -z $VERSION && $EXISTING == 1 && -f $DIR/.installed-version ]]; then
+  # An update stays on the installed MAJOR.MINOR line: a new minor changes how server and apps talk, and is a deliberate
+  # upgrade (name it with --version), never something a plain re-run does.
+  cur=$(tr -d '[:space:]' < "$DIR/.installed-version"); cur=${cur#v}; line=${cur%%-*}; line=${line%.*}
+  stable_only=1; [[ $cur == *-* ]] && stable_only=0
+  VERSION=$(curl -fsSL "https://api.github.com/repos/$REPO/releases?per_page=50" 2>/dev/null | sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p' \
+    | grep -E "^v${line//./\\.}\.[0-9]+(-.*)?$" | { if ((stable_only)); then grep -v -- '-'; else cat; fi; } | head -1 || true)
+  [[ -n $VERSION ]] || { VERSION=$cur; say "  no newer release of the $line line found; keeping $cur"; }
+fi
 if [[ -z $VERSION ]]; then
   VERSION=$(curl -fsSL "https://api.github.com/repos/$REPO/releases/latest" 2>/dev/null | sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p' | head -1 || true)
   [[ -n $VERSION ]] || die "could not find the newest release on GitHub; name one with --version (for example --version 0.4.0)"

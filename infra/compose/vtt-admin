@@ -1,9 +1,57 @@
 #!/usr/bin/env bash
-# Runs the Admin CLI inside the backend container:  vtt-admin status | settings … | user …
-# Works through a symlink (the installer links it to /usr/local/bin) and asks for sudo if the user is not in the docker group.
+# The operator's command.   vtt-admin <command>
+#   Server commands (status, user, settings, jobs, recording, updates, ...) run inside the backend container.
+#   Machine commands (below) run docker compose in this folder:
+#     logs [service]   restart [service]   ps   backup [--audio]   restore <folder> --yes   update [--version x.y.z]
+# Works through a link or a launcher (the installer makes /usr/local/bin/vtt-admin) and asks for sudo when this user is not in
+# the docker group.
 here=$(dirname "$(readlink -f "$0")")
 cd "$here" || exit 1
-if ! docker info >/dev/null 2>&1; then
-  exec sudo -- docker compose exec backend node backend/dist/cli/main.js "$@"
-fi
-exec docker compose exec backend node backend/dist/cli/main.js "$@"
+
+dc() {
+  if docker info >/dev/null 2>&1; then docker compose "$@"; else sudo -- docker compose "$@"; fi
+}
+
+case ${1:-} in
+  logs)
+    shift
+    dc logs --tail 200 -f "${@:-backend}"
+    ;;
+  restart)
+    shift
+    dc restart "$@"
+    ;;
+  ps)
+    dc ps
+    ;;
+  backup)
+    shift
+    if docker info >/dev/null 2>&1; then ./backup.sh "$@"; else sudo -- ./backup.sh "$@"; fi
+    ;;
+  restore)
+    shift
+    if docker info >/dev/null 2>&1; then ./restore.sh "$@"; else sudo -- ./restore.sh "$@"; fi
+    ;;
+  update)
+    shift
+    site=$(sed -n 's/^SITE_ADDRESS=//p' .env)
+    [ -n "$site" ] || { echo "no SITE_ADDRESS in $here/.env" >&2; exit 1; }
+    repo=${VTT_REPO:-AndyProsser/vtt-chat-app}
+    curl -fsSL "https://raw.githubusercontent.com/$repo/main/infra/get.sh" | sudo bash -s -- --yes --domain "$site" "$@"
+    ;;
+  help | --help | -h)
+    dc exec -T backend node backend/dist/cli/main.js help
+    cat <<'EOT'
+
+  logs [service]                         follow a service's log (default: backend; others: caddy, livekit, worker, egress, postgres)
+  restart [service]                      restart everything, or one service
+  ps                                     what is running
+  backup [--audio]                       a backup folder of the database, uploads and settings (see the operator guide)
+  restore <folder> --yes                 put a backup back (replaces what is here)
+  update [--version x.y.z]               update this server to the newest release of its line (your data stays)
+EOT
+    ;;
+  *)
+    dc exec backend node backend/dist/cli/main.js "$@"
+    ;;
+esac
