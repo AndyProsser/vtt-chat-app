@@ -289,6 +289,34 @@ PC with a GPU) use `vtt-admin settings keys` to see the `ai.*` settings; jobs wa
 fall back to the local CPU after a time you set. A **cloud** AI service is possible but means session audio
 or text leaves your server: it needs an explicit setting, and the app tells players.
 
+**Recommended for a CPU-only server with a gaming PC on the network** (measured on a GTX 1080; see
+[RECORDING-AND-SUMMARIES.md](../architecture/RECORDING-AND-SUMMARIES.md)). A 4-vCPU, 16 GB VM with no GPU can run the
+whole system, but its AI is slow: Whisper `small` takes about 0.3x the length of the audio, so a four-hour session
+transcribes in roughly 80 minutes, and a summary on the CPU takes minutes and, with the small model, can invent
+details. A GPU PC does the same work in minutes with the better models. So:
+
+1. On the gaming PC run Ollama and a Whisper server that speaks the OpenAI-compatible API (the repo's
+   `infra/compose/whisper-cuda.Dockerfile` builds one for GTX 10-series and newer cards), pull `qwen3:8b`, and let
+   them listen on the LAN (for Ollama set `OLLAMA_HOST=0.0.0.0`; allow the ports only from the VM, never the internet).
+2. On the VM, point the worker at it, with the VM's own CPU as the fallback:
+
+   ```bash
+   ./vtt-admin settings set ai.transcription.kind remote
+   ./vtt-admin settings set ai.transcription.url http://gaming-pc:8080
+   ./vtt-admin settings set ai.transcription.model large-v3-turbo
+   ./vtt-admin settings set ai.llm.kind remote
+   ./vtt-admin settings set ai.llm.url http://gaming-pc:11434
+   ./vtt-admin settings set ai.llm.model qwen3:8b
+   ./vtt-admin settings set ai.fallback.enabled true
+   ./vtt-admin settings set ai.fallback.after-seconds 600
+   ```
+
+3. Keep the local fallback ready on the VM: `small` Whisper and `llama3.2:3b` (the defaults for a CPU-only server).
+   If the PC is off, a job waits ten minutes and then runs locally, slower and rougher but never lost.
+
+Sessions are about weekly, so a slow fallback is acceptable. Expanding the VM's CPUs helps the fallback a little but
+is not worth much: even eight cores need about 150 seconds for one qwen3:8b summary on the CPU.
+
 ## 7. Configuration reference
 
 Everything is set by environment variables: in `infra/compose/.env` for Compose, or `/etc/vtt/vtt.env`
