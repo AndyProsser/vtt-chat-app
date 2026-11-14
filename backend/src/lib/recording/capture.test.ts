@@ -185,7 +185,7 @@ describe('RecordingCapture', () => {
     ]);
 
     // On: effects and loops are named, a loop's stop carries the loop's name.
-    capture = makeCapture({ recordSounds: true });
+    capture = makeCapture({ cues: new Set(['scene', 'sounds']) });
     capture.onRecordingChange({ ...change('STARTED'), recordingId: 'rec-2' });
     await capture.idle();
     play('door', 'oneshot');
@@ -201,7 +201,7 @@ describe('RecordingCapture', () => {
   });
 
   it('never notes a sound played to chosen people only', async () => {
-    capture = makeCapture({ recordSounds: true });
+    capture = makeCapture({ cues: new Set(['scene', 'sounds']) });
     capture.onRecordingChange(change('STARTED'));
     await capture.idle();
     capture.onTableEvent(
@@ -214,7 +214,8 @@ describe('RecordingCapture', () => {
     expect((await records.listRecordingEvents(REC)).map((e) => e.event)).toEqual(['started']);
   });
 
-  it("notes the DM's character voice once per change, by name, and party splits and merges by member names", async () => {
+  it("notes the DM's character voice once per change, by name, and party splits and merges by member names (when the operator turned them on)", async () => {
+    capture = makeCapture({ cues: new Set(['scene', 'voice', 'groups']) });
     capture.onRecordingChange(change('STARTED'));
     await capture.idle();
     time += 5_000;
@@ -252,7 +253,31 @@ describe('RecordingCapture', () => {
     ]);
   });
 
+  it('notes only scene changes unless the operator chose more cues', async () => {
+    capture = makeCapture();
+    capture.onRecordingChange(change('STARTED'));
+    await capture.idle();
+    capture.onTableEvent(CAMPAIGN, 'scene.started', { sceneId: 's1', name: 'The Crypt' });
+    capture.onTableEvent(CAMPAIGN, 'sound.play', { soundId: 'door' });
+    capture.onVoiceEffect(CAMPAIGN, 'dm', 'dragon');
+    capture.onPartyState(CAMPAIGN, { parties: [{ id: 'g', name: 'G' }], assignments: { a: 'g' } });
+    await capture.idle();
+    expect((await records.listRecordingEvents(REC)).map((e) => e.event)).toEqual([
+      'started',
+      'scene',
+    ]);
+    capture = makeCapture({ cues: new Set() });
+    capture.onRecordingChange(change('STARTED'));
+    await capture.idle();
+    capture.onTableEvent(CAMPAIGN, 'scene.started', { sceneId: 's2', name: 'Silent' });
+    await capture.idle();
+    expect(
+      (await records.listRecordingEvents(REC)).filter((e) => e.event === 'scene'),
+    ).toHaveLength(1);
+  });
+
   it('does not log scenes, voices or groups while nothing is recording or while the recording is paused', async () => {
+    capture = makeCapture({ cues: new Set(['scene', 'voice', 'groups', 'sounds']) });
     capture.onTableEvent(CAMPAIGN, 'scene.started', { sceneId: 's0', name: 'Before' });
     capture.onRecordingChange(change('STARTED'));
     capture.onRecordingChange(change('PAUSED'));

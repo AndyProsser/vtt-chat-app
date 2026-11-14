@@ -61,10 +61,10 @@ export interface CaptureDeps {
    */
   purgeOnNextSession?: () => Promise<boolean>;
   /**
-   * Whether individual sound effects and loops are noted in the timeline: the operator's `RECORD_SOUNDBOARD`
-   * switch, off by default. Scene changes, character voices and party splits are story cues and always are.
+   * Which table cues are noted in the timeline (the operator's `RECORD_CUES`): `scene` changes, the DM's character
+   * `voice`, party `groups` and individual `sounds` (by name; never their audio). Absent means scene changes only.
    */
-  recordSounds?: boolean;
+  cues?: ReadonlySet<'scene' | 'voice' | 'groups' | 'sounds'>;
   /** The display name and category of one of the DM's sounds, for the timeline (ids mean nothing to a summary). */
   describeSound?: (soundId: string) => Promise<{ name: string; category: string } | undefined>;
   /** The names of the sounds in a scene's layers (the ambience), noted when the scene starts. */
@@ -155,11 +155,16 @@ export class RecordingCapture {
     });
   }
 
+  /** Whether this kind of cue is noted (scene changes only, unless the operator chose more). */
+  private cueOn(kind: 'scene' | 'voice' | 'groups' | 'sounds'): boolean {
+    return (this.deps.cues ?? new Set(['scene'])).has(kind);
+  }
+
   /**
    * Call with every table frame the realtime layer sends (`only` is the audience of a frame meant for some
    * people, not everyone). The soundboard's frames are noted in the recording's timeline, so a transcript and
-   * its summaries can say "…in the Drowned Crypt, a door creaked": scene changes always; individual effects
-   * and loops only when the operator switched `RECORD_SOUNDBOARD` on. Only while audio is being captured (not
+   * its summaries can say "…in the Drowned Crypt, a door creaked": scene changes by default; individual effects
+   * and loops only when the operator listed `sounds` in `RECORD_CUES`. Only while audio is being captured (not
    * while paused), only as metadata (the effects' audio is never part of the recording), and **never a sound
    * played to chosen people only**: that is private.
    */
@@ -167,7 +172,8 @@ export class RecordingCapture {
     if (only) return;
     const d = (typeof data === 'object' && data !== null ? data : {}) as Record<string, unknown>;
     if (type !== 'sound.play' && type !== 'sound.stop' && !type.startsWith('scene.')) return;
-    if (type.startsWith('sound.') && !this.deps.recordSounds) return;
+    if (type.startsWith('sound.') && !this.cueOn('sounds')) return;
+    if (type.startsWith('scene.') && !this.cueOn('scene')) return;
     const at = this.now(); // when it happened, not when the queue got to it
     this.enqueue(campaignId, async () => {
       const live = this.live.get(campaignId);
@@ -241,6 +247,7 @@ export class RecordingCapture {
       assignments: Record<string, string>;
     },
   ): void {
+    if (!this.cueOn('groups')) return;
     const at = this.now();
     this.enqueue(campaignId, async () => {
       const live = this.live.get(campaignId);
@@ -274,6 +281,7 @@ export class RecordingCapture {
    * voice twice in a row is noted once. The server learns of it from the DM's app (the voice runs in Rust).
    */
   onVoiceEffect(campaignId: string, accountId: string, voice: string): void {
+    if (!this.cueOn('voice')) return;
     const clean = cleanCueText(voice, 24).toLowerCase();
     if (!clean) return;
     const at = this.now();

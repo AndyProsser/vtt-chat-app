@@ -64,6 +64,8 @@ export interface BackendConfig {
    * Off by default, because effects are deliberately not part of the session record.
    */
   recordSoundboard: boolean;
+  /** Which table cues go into a recording's metadata (names and ids only, never audio). Default: scene changes only. */
+  recordCues: ReadonlySet<CueKind>;
   /** Directory for uploaded files (handouts, soundboard clips). Unset: only text snippets work. */
   mediaDir: string | undefined;
   /** Built join page (`web/dist`). Unset: no browser pages are served and invites are API-only. */
@@ -115,6 +117,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): BackendConfig 
     recordingsDir: env.RECORDINGS_DIR || undefined,
     recordingGraceSeconds: graceSeconds(env.RECORDING_GRACE_SECONDS),
     recordSoundboard: env.RECORD_SOUNDBOARD === '1',
+    recordCues: parseRecordCues(env.RECORD_CUES),
     mediaDir: env.MEDIA_DIR || undefined,
     webDir: env.WEB_DIR || undefined,
     statusDir: env.STATUS_DIR || undefined,
@@ -196,4 +199,24 @@ function updatesSync(env: NodeJS.ProcessEnv): UpdatesSyncConfig | undefined {
     publicUrl: env.PUBLIC_URL || undefined,
     publicKey: env.UPDATER_PUBLIC_KEY || UPDATER_PUBLIC_KEY,
   };
+}
+
+/** The table cues that can be noted in a recording's metadata. */
+export type CueKind = 'scene' | 'voice' | 'groups' | 'sounds';
+const CUE_KINDS: readonly CueKind[] = ['scene', 'voice', 'groups', 'sounds'];
+
+/**
+ * `RECORD_CUES`: a comma-separated list of `scene`, `voice` (the DM's character voice), `groups` (party splits and
+ * merges) and `sounds` (individual effects and loops, by name), or `all` / `none`. Unset means `scene` only: a scene
+ * change is the one cue that starts a chapter. Unknown words are ignored.
+ */
+export function parseRecordCues(raw: string | undefined): ReadonlySet<CueKind> {
+  if (raw === undefined || raw.trim() === '') return new Set<CueKind>(['scene']);
+  const words = raw
+    .toLowerCase()
+    .split(/[\s,]+/)
+    .filter(Boolean);
+  if (words.includes('none')) return new Set<CueKind>();
+  if (words.includes('all')) return new Set<CueKind>(CUE_KINDS);
+  return new Set(CUE_KINDS.filter((k) => words.includes(k)));
 }

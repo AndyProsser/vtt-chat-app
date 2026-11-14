@@ -83,17 +83,19 @@ record; **these are cues that colour the telling**, never events the model may b
 **What the timeline now holds** (the same `recording_events` store and clock as typed chat: milliseconds from the
 recording's start, written only while audio is being captured, so nothing is noted during a pause):
 
-| Event (`event`) | What is noted                                                                                         | When                                                                   |
-| --------------- | ----------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| `scene`         | start: scene id, **name**, and the names of the sounds in its layers (the ambience); stop             | **Always**                                                             |
-| `voice`         | the DM's character voice (`dragon`, `normal` …) and the DM's name                                     | **Always** (the DM's app reports it; the voice itself runs in Rust)    |
-| `group`         | the party split or merge: each group's name and its members by name (an unchanged table is not noted) | **Always** (a split is a story moment; every group is recorded anyway) |
-| `sound`         | a one-shot effect or loop played, by **name and category**, and a loop's stop                         | **Only with `RECORD_SOUNDBOARD=1`** (off by default; see below)        |
+| Event (`event`) | What is noted                                                                                         | When                                                          |
+| --------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| `scene`         | start: scene id, **name**, and the names of the sounds in its layers (the ambience); stop             | **By default** (`RECORD_CUES`, below)                         |
+| `voice`         | the DM's character voice (`dragon`, `normal` …) and the DM's name                                     | Only if `RECORD_CUES` lists `voice` (the DM's app reports it) |
+| `group`         | the party split or merge: each group's name and its members by name (an unchanged table is not noted) | Only if `RECORD_CUES` lists `groups`                          |
+| `sound`         | a one-shot effect or loop played, by **name and category**, and a loop's stop                         | Only if `RECORD_CUES` lists `sounds`                          |
 
-- **`RECORD_SOUNDBOARD`** keeps its meaning and its default (off): the operator opting into "the soundboard is
-  part of the record". On, the DM's effects are saved as a private audio file _and_ individual effects and loops
-  are noted by name. Off, the effects are neither recorded nor named; the **scene** still is, with its ambience.
-  (Before 2026-11-13 individual `sound` events were noted regardless, by id only; ids mean nothing to a summary.)
+- **`RECORD_CUES`** (operator, in `.env`) chooses which cues are noted: a comma-separated list of `scene`, `voice`,
+  `groups` (party splits and merges) and `sounds` (individual effects and loops), or `all` or `none`. **Unset means
+  `scene` only**: a scene change is the one cue that starts a chapter, so it is the default; the rest are the operator's
+  call. A cue is only ever **metadata (a name or an id), never audio**.
+- **`RECORD_SOUNDBOARD=1`** is a separate, unrelated switch: it saves the DM's effects as a private audio file in the
+  recording (testing only). It does not name anything in the timeline; `sounds` in `RECORD_CUES` does that.
 - **Never private.** A sound played to chosen people only is not noted; whispers and `ooc` lines never reach the
   timeline; names are display text with control and invisible characters stripped (`cleanCueText`).
 - **Known gaps:** a voice already on when a recording starts is noted at the next change, not at the start; a

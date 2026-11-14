@@ -96,6 +96,7 @@ services:
       RECORDING_GRACE_SECONDS: ${RECORDING_GRACE_SECONDS:-}
       # Testing only: 1 also saves the DM's sound effects as a private, untranscribed file.
       RECORD_SOUNDBOARD: ${RECORD_SOUNDBOARD:-}
+      RECORD_CUES: ${RECORD_CUES:-}
     extra_hosts: ['host.docker.internal:host-gateway']
     ports: ['127.0.0.1:${BACKEND_PORT:-3000}:3000'] # loopback only: health checks and local probes
 

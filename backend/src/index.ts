@@ -140,7 +140,7 @@ if (isEntryPoint) {
       acks,
       purgeOnNextSession: async () => (await store.getSettings()).audioPurgeOnNextSession === 'on',
       dir: config.recordingsDir,
-      recordSounds: config.recordSoundboard,
+      cues: config.recordCues,
       describeSound: async (soundId) => {
         const sound = await sounds.getSound(soundId);
         return sound ? { name: sound.name, category: sound.category } : undefined;
