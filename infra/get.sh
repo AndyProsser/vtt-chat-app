@@ -296,20 +296,21 @@ if [[ -n ${SUDO_USER:-} && $SUDO_USER != root ]] && getent group docker >/dev/nu
 fi
 
 # ---------- 5c. firewall ----------
-# Install ufw if it is missing and open what VTT Chat needs (SSH first, so enabling it cannot lock you out). A firewall we installed is also
-# switched on; one that was already there but off is left off. NOTE: ports that Docker publishes (80 and 443 here) bypass ufw by Docker's
+# Install ufw if it is missing, open what VTT Chat needs (SSH first, so enabling it cannot lock you out) and switch it on if it was off. NOTE: ports that Docker publishes (80 and 443 here) bypass ufw by Docker's
 # design; ufw protects the host's other services and LiveKit's voice ports.
 FW_NOTE=""
 if ((SKIP_FIREWALL)); then
   FW_NOTE="skipped (--skip-firewall)"
 else
-  fw_new=0
+
   if ! command -v ufw >/dev/null 2>&1; then
     step "Installing the firewall (ufw)"
-    apt_q install -y ufw && fw_new=1
+    apt_q install -y ufw
   fi
   if command -v ufw >/dev/null 2>&1; then
-    if ((fw_new)) || ufw status 2>/dev/null | grep -q "Status: active"; then
+    # (Ubuntu ships ufw installed but off, so "present" is not "on": it is switched on here unless you pass --skip-firewall.)
+    fw_was_active=0; ufw status 2>/dev/null | grep -q "Status: active" && fw_was_active=1
+    if true; then
       step "Opening the needed ports in the firewall (ufw)"
       ssh_ports=$(ss -Hltnp 2>/dev/null | awk '/sshd/ {n=split($4,a,":"); print a[n]}' | sort -u | tr '\n' ' ')
       for port in ${ssh_ports:-22}; do ufw allow "$port/tcp" >/dev/null; done
@@ -321,10 +322,8 @@ else
       # Caddy and the backend reach LiveKit's signalling (7880, host-networked) from Docker's bridge networks.
       ufw allow from 172.16.0.0/12 to any port 7880 proto tcp >/dev/null
       ufw allow from 192.168.0.0/16 to any port 7880 proto tcp >/dev/null
-      if ((fw_new)); then ufw --force enable >/dev/null && say "  firewall switched on (SSH on ${ssh_ports:-22}, then the ports above)"; fi
+      if ((fw_was_active == 0)); then ufw --force enable >/dev/null && say "  firewall switched on (SSH on ${ssh_ports:-22}, then the ports above)"; fi
       FW_NOTE="opened in ufw on this machine"
-    else
-      FW_NOTE="ufw is installed but off; left off (turn it on yourself with: sudo ufw enable, after allowing SSH)"
     fi
   else
     FW_NOTE="could not install ufw"
