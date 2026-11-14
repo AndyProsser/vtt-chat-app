@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { MemoryAckStore } from './ackStore.js';
 import {
   RecordingCapture,
+  type CaptureDeps,
   type EgressResult,
   type OrphanEgress,
   type RecorderTrack,
@@ -88,13 +89,23 @@ beforeEach(() => {
   jobs = new MemoryJobQueue();
   acks = new MemoryAckStore({ now: () => time });
   log = [];
-  capture = new RecordingCapture({
+  capture = makeCapture();
+});
+
+function makeCapture(extra: Partial<CaptureDeps> = {}): RecordingCapture {
+  return new RecordingCapture({
     recorder,
     records,
     jobs,
     acks,
     dir: '/out/',
     speakerName: async (_c, id) => `name-of-${id}`,
+    describeSound: async (id) =>
+      ({
+        door: { name: 'Door creak', category: 'effect' },
+        wind: { name: 'Wind', category: 'ambience' },
+      })[id],
+    describeScene: async () => ['Dripping', 'Hum', 'Dripping'],
     now: () => time,
     newId: (() => {
       let i = 0;
@@ -105,8 +116,9 @@ beforeEach(() => {
       time += 100;
     },
     pollMs: 100,
+    ...extra,
   });
-});
+}
 
 async function ack(user: string): Promise<void> {
   await acks.ack(CAMPAIGN, REC, user);
@@ -126,38 +138,128 @@ describe('RecordingCapture', () => {
     expect((await records.listRecordingEvents(REC)).map((e) => e.event)).toEqual(['started']);
   });
 
-  it("notes which effects and scenes were played in the recording's timeline, but not their audio", async () => {
+  it("notes scene changes with their name and ambience in the recording's timeline, with the offset of when they happened", async () => {
     capture.onRecordingChange(change('STARTED'));
     await capture.idle();
     time += 2_000;
-    capture.onTableEvent(CAMPAIGN, 'sound.play', {
-      playId: 'p1',
-      soundId: 's1',
-      takeId: 't1',
-      mode: 'oneshot',
-      volume: 0.8,
-      targets: undefined,
+    capture.onTableEvent(CAMPAIGN, 'scene.started', {
+      sceneId: 'sc1',
+      name: 'Crypt\u0007 \n of Bones',
     });
-    capture.onTableEvent(CAMPAIGN, 'scene.started', { sceneId: 'sc1', name: 'Crypt' });
+    time += 1_000;
     capture.onTableEvent(CAMPAIGN, 'scene.stopped', { sceneId: 'sc1' });
     capture.onTableEvent(CAMPAIGN, 'chat.message', { text: 'not a sound' });
     await capture.idle();
     const events = await records.listRecordingEvents(REC);
-    expect(events.map((e) => e.event)).toEqual(['started', 'sound', 'scene', 'scene']);
+    expect(events.map((e) => e.event)).toEqual(['started', 'scene', 'scene']);
     expect(events[1]).toMatchObject({
       at: 1_002_000,
-      detail: { action: 'play', soundId: 's1', takeId: 't1', mode: 'oneshot', volume: 0.8 },
+      detail: {
+        action: 'start',
+        sceneId: 'sc1',
+        name: 'Crypt of Bones',
+        ambience: ['Dripping', 'Hum'],
+      },
     });
-    expect(events[2]?.detail).toEqual({ action: 'start', sceneId: 'sc1', name: 'Crypt' });
-    expect(events[3]?.detail).toMatchObject({ action: 'stop' });
+    expect(events[2]).toMatchObject({ at: 1_003_000, detail: { action: 'stop' } });
   });
 
-  it('does not log effects while nothing is recording or while the recording is paused', async () => {
-    capture.onTableEvent(CAMPAIGN, 'sound.play', { soundId: 's0' });
+  it('notes individual effects and loops only when RECORD_SOUNDBOARD is on, by name and category', async () => {
+    const play = (id: string, mode: string, extra = {}) =>
+      capture.onTableEvent(CAMPAIGN, 'sound.play', {
+        playId: `p-${id}`,
+        soundId: id,
+        mode,
+        ...extra,
+      });
+    // Off (the default): nothing about individual sounds, scenes still noted.
+    capture.onRecordingChange(change('STARTED'));
+    await capture.idle();
+    play('door', 'oneshot');
+    capture.onTableEvent(CAMPAIGN, 'sound.stop', { playId: null });
+    capture.onTableEvent(CAMPAIGN, 'scene.started', { sceneId: 'sc1', name: 'Crypt' });
+    await capture.idle();
+    expect((await records.listRecordingEvents(REC)).map((e) => e.event)).toEqual([
+      'started',
+      'scene',
+    ]);
+
+    // On: effects and loops are named, a loop's stop carries the loop's name.
+    capture = makeCapture({ recordSounds: true });
+    capture.onRecordingChange({ ...change('STARTED'), recordingId: 'rec-2' });
+    await capture.idle();
+    play('door', 'oneshot');
+    play('wind', 'loop');
+    capture.onTableEvent(CAMPAIGN, 'sound.stop', { playId: 'p-wind' });
+    await capture.idle();
+    const events = (await records.listRecordingEvents('rec-2')).filter((e) => e.event === 'sound');
+    expect(events.map((e) => e.detail)).toEqual([
+      { action: 'play', name: 'Door creak', category: 'effect', mode: 'oneshot' },
+      { action: 'play', name: 'Wind', category: 'ambience', mode: 'loop' },
+      { action: 'stop', name: 'Wind' },
+    ]);
+  });
+
+  it('never notes a sound played to chosen people only', async () => {
+    capture = makeCapture({ recordSounds: true });
+    capture.onRecordingChange(change('STARTED'));
+    await capture.idle();
+    capture.onTableEvent(
+      CAMPAIGN,
+      'sound.play',
+      { playId: 'p', soundId: 'door', mode: 'oneshot' },
+      new Set(['alice']),
+    );
+    await capture.idle();
+    expect((await records.listRecordingEvents(REC)).map((e) => e.event)).toEqual(['started']);
+  });
+
+  it("notes the DM's character voice once per change, by name, and party splits and merges by member names", async () => {
+    capture.onRecordingChange(change('STARTED'));
+    await capture.idle();
+    time += 5_000;
+    capture.onVoiceEffect(CAMPAIGN, 'dm', 'Dragon');
+    capture.onVoiceEffect(CAMPAIGN, 'dm', 'dragon'); // same voice again: not noted twice
+    const split = {
+      parties: [
+        { id: 'g1', name: 'Cave' },
+        { id: 'g2', name: 'Tower\u0000' },
+        { id: 'g3', name: 'Empty' },
+      ],
+      assignments: { bob: 'g1', alice: 'g1', carol: 'g2' },
+    };
+    capture.onPartyState(CAMPAIGN, { parties: [], assignments: {} }); // nothing yet: not a merge
+    capture.onPartyState(CAMPAIGN, split);
+    capture.onPartyState(CAMPAIGN, split); // unchanged
+    capture.onPartyState(CAMPAIGN, { parties: split.parties, assignments: {} }); // everyone back
+    await capture.idle();
+    const events = (await records.listRecordingEvents(REC)).filter((e) =>
+      ['voice', 'group'].includes(e.event),
+    );
+    expect(events.map((e) => [e.event, e.at, e.detail])).toEqual([
+      ['voice', 1_005_000, { voice: 'dragon', by: 'name-of-dm' }],
+      [
+        'group',
+        1_005_000,
+        {
+          groups: [
+            { name: 'Cave', members: ['name-of-alice', 'name-of-bob'] },
+            { name: 'Tower', members: ['name-of-carol'] },
+          ],
+        },
+      ],
+      ['group', 1_005_000, { groups: [] }],
+    ]);
+  });
+
+  it('does not log scenes, voices or groups while nothing is recording or while the recording is paused', async () => {
+    capture.onTableEvent(CAMPAIGN, 'scene.started', { sceneId: 's0', name: 'Before' });
     capture.onRecordingChange(change('STARTED'));
     capture.onRecordingChange(change('PAUSED'));
     await capture.idle();
-    capture.onTableEvent(CAMPAIGN, 'sound.play', { soundId: 's1' });
+    capture.onTableEvent(CAMPAIGN, 'scene.started', { sceneId: 's1', name: 'Paused' });
+    capture.onVoiceEffect(CAMPAIGN, 'dm', 'giant');
+    capture.onPartyState(CAMPAIGN, { parties: [{ id: 'g', name: 'G' }], assignments: { a: 'g' } });
     await capture.idle();
     expect((await records.listRecordingEvents(REC)).map((e) => e.event)).toEqual([
       'started',

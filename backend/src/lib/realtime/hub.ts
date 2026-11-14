@@ -66,7 +66,12 @@ export interface HubOptions {
   onRecordingChange?: (change: RecordingChange) => void;
   onRecordingAck?: (campaignId: string, recordingId: string, userId: string) => void;
   /** Told about every soundboard frame sent to a table, for the recording's timeline. */
-  onTableEvent?: (campaignId: string, type: string, data: unknown) => void;
+  onTableEvent?: (
+    campaignId: string,
+    type: string,
+    data: unknown,
+    only?: ReadonlySet<string>,
+  ) => void;
   /**
    * How long (ms) a recording tolerates the DM being away before players may step in, and nobody being
    * connected before it stops by itself. Default 30 s (RECORDING_GRACE_SECONDS).
@@ -141,7 +146,7 @@ export class Hub {
           now: options.now ?? Date.now,
           events: {
             emit: (campaignId, type, data, only) => {
-              options.onTableEvent?.(campaignId, type, data);
+              options.onTableEvent?.(campaignId, type, data, only);
               this.broadcast(
                 campaignId,
                 type,

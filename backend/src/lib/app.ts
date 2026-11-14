@@ -43,6 +43,8 @@ import { resolveDownloads } from './updates/downloads.js';
 
 export interface AppDeps {
   config: BackendConfig;
+  /** The DM's app reports a character-voice change; audio capture notes it in the recording's timeline. */
+  onVoiceEffect?: (campaignId: string, accountId: string, voice: string) => void;
   store: Store;
   /** D&D Beyond character sync (link, sync now, unlink). Routes answer 'disabled' without it. */
   ddb?: DdbSyncService;
@@ -134,6 +136,7 @@ export function createApp({
   sounds,
   schedule,
   onNotified,
+  onVoiceEffect,
 }: AppDeps): Express {
   const accounts = new AccountService({ store });
   const devices = new DeviceFlow({ store, accounts });
@@ -292,7 +295,13 @@ export function createApp({
   if (records) {
     app.use(
       '/api/campaigns/:campaignId/recordings',
-      recordsRoutes({ accounts, store, records, ...(jobs ? { jobs } : {}) }),
+      recordsRoutes({
+        accounts,
+        store,
+        records,
+        ...(jobs ? { jobs } : {}),
+        ...(onVoiceEffect ? { onVoiceEffect } : {}),
+      }),
     );
   }
 

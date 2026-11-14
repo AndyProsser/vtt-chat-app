@@ -3,6 +3,7 @@ import {
   chatUtterances,
   mergeTimeline,
   mergeTranscripts,
+  planChapters,
   PURGE_RECORDING_JOB,
   type JobQueue,
   type RecordsStore,
@@ -22,7 +23,16 @@ export interface RecordsRouteDeps {
   records: RecordsStore;
   /** Where the worker's jobs are queued. Without it, deleting audio from the app is unavailable. */
   jobs?: JobQueue;
+  /** Told when the DM's app reports a character voice, for the recording's timeline. */
+  onVoiceEffect?: (campaignId: string, accountId: string, voice: string) => void;
 }
+
+const voiceBody = z.object({
+  voice: z
+    .string()
+    .trim()
+    .regex(/^[a-z][a-z-]{1,23}$/),
+});
 
 const searchQuery = z.object({
   q: z.string().trim().min(2).max(200),
@@ -108,6 +118,18 @@ export function recordsRoutes(deps: RecordsRouteDeps): Router {
     res.json({ recordings: items });
   });
 
+  // The DM's app reports a character-voice change (the voice runs in Rust and the server never sees it
+  // otherwise), so a recording's timeline can say who spoke in which voice. Metadata only; DM only.
+  router.post('/voice-effect', async (req, res) => {
+    const { campaignId, isDm } = await membership(req, authOf(res).user.id);
+    if (!isDm) throw new DomainError('forbidden', 'only the DM has character voices');
+    const parsed = voiceBody.safeParse(req.body);
+    if (!parsed.success)
+      throw new DomainError('invalid_input', 'voice must be a short lowercase name');
+    deps.onVoiceEffect?.(campaignId, authOf(res).user.id, parsed.data.voice);
+    res.status(204).end();
+  });
+
   // Declared before '/:recordingId' so "search" is not taken for an id.
   router.get('/search', async (req, res) => {
     const { campaignId, isDm } = await membership(req, authOf(res).user.id);
@@ -123,10 +145,22 @@ export function recordsRoutes(deps: RecordsRouteDeps): Router {
   router.get('/:recordingId', async (req, res) => {
     const { campaignId, isDm } = await membership(req, authOf(res).user.id);
     const recording = await ownRecording(campaignId, param(req.params.recordingId));
-    const [events, summaries] = await Promise.all([
+    const [events, summaries, transcripts] = await Promise.all([
       records.listRecordingEvents(recording.id),
       records.listSummaries(recording.id),
+      records.listTranscripts(recording.id),
     ]);
+    // The chapters as the worker cut them (a pause or a scene change starts one), so a chapter summary can be
+    // shown under its scene's name. The same function the worker used: numbers and titles agree.
+    const chapters = planChapters({
+      events,
+      startedAt: recording.startedAt,
+      utterances: mergeTimeline(
+        mergeTranscripts(transcripts),
+        chatUtterances(events, recording.startedAt),
+      ),
+    });
+    const title = new Map(chapters.map((c) => [String(c.number), c.title]));
     res.json({
       recording: {
         id: recording.id,
@@ -135,7 +169,19 @@ export function recordsRoutes(deps: RecordsRouteDeps): Router {
         status: recording.status,
       },
       events: events.map((e) => ({ at: e.at, event: e.event })),
-      summaries: visible(summaries, isDm).map(summaryView),
+      ...(chapters.length > 1
+        ? {
+            chapters: chapters.map((c) => ({
+              number: c.number,
+              startMs: c.startMs,
+              ...(c.title ? { title: c.title } : {}),
+            })),
+          }
+        : {}),
+      summaries: visible(summaries, isDm).map((s) => {
+        const t = s.kind === 'chapter' ? title.get(s.subject) : undefined;
+        return { ...summaryView(s), ...(t ? { title: t } : {}) };
+      }),
     });
   });
 
@@ -145,9 +191,23 @@ export function recordsRoutes(deps: RecordsRouteDeps): Router {
     // What was said and what was typed into the public chat, on one timeline: the same lines the
     // summaries were written from. Typed lines are marked; whispers and out-of-character lines never
     // reach the recording's timeline, and chatUtterances refuses them again.
+    const events = await records.listRecordingEvents(recording.id);
     const utterances = mergeTimeline(
       mergeTranscripts(await records.listTranscripts(recording.id)),
-      chatUtterances(await records.listRecordingEvents(recording.id), recording.startedAt),
+      chatUtterances(events, recording.startedAt),
+    );
+    // Scene changes ride alongside as markers (a "Scene: <name>" divider between the lines). Names only:
+    // the scene was announced to the whole table when it started.
+    const markers = events.flatMap((e) =>
+      e.event === 'scene' && e.detail?.action === 'start' && typeof e.detail.name === 'string'
+        ? [
+            {
+              atMs: Math.max(0, e.at - recording.startedAt),
+              kind: 'scene' as const,
+              text: e.detail.name,
+            },
+          ]
+        : [],
     );
     res.json({
       utterances: utterances.map((u) => ({
@@ -157,6 +217,7 @@ export function recordsRoutes(deps: RecordsRouteDeps): Router {
         text: u.text,
         ...(u.typed ? { typed: true } : {}),
       })),
+      ...(markers.length > 0 ? { markers } : {}),
     });
   });
 

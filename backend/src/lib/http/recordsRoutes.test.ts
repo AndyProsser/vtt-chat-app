@@ -34,6 +34,7 @@ let server: Server;
 let base: string;
 let records: RecordsStore;
 let jobs: MemoryJobQueue;
+let reported: [string, string, string][];
 
 interface Person {
   id: string;
@@ -76,7 +77,14 @@ beforeEach(async () => {
       ? new PostgresRecordsStore(backend.pool)
       : new MemoryRecordsStore();
   jobs = new MemoryJobQueue();
-  const app = createApp({ config: CONFIG, store, records, jobs });
+  reported = [];
+  const app = createApp({
+    config: CONFIG,
+    store,
+    records,
+    jobs,
+    onVoiceEffect: (c, a, v) => reported.push([c, a, v]),
+  });
   await new Promise<void>((resolve) => {
     server = app.listen(0, '127.0.0.1', resolve);
   });
@@ -267,6 +275,100 @@ describe('reading history', () => {
       ['Bruno', 'The dragon wakes', false],
     ]);
     expect(JSON.stringify(body)).not.toMatch(/zircon|pizza/);
+  });
+});
+
+describe('scenes', () => {
+  /** A recording where the DM started "Drowned Crypt" two minutes in and 70 s of speech followed. */
+  async function seedScene() {
+    const id = await seed();
+    const start = 1_000;
+    await records.addRecordingEvent({
+      recordingId: id,
+      at: start + 120_000,
+      event: 'scene',
+      detail: { action: 'start', sceneId: 'sc1', name: 'Drowned Crypt', ambience: ['Dripping'] },
+    });
+    await records.addRecordingEvent({
+      recordingId: id,
+      at: start + 130_000,
+      event: 'voice',
+      detail: { voice: 'dragon', by: 'Dana' },
+    });
+    const t = {
+      id: backend.newId(),
+      recordingId: id,
+      speakerId: 'a',
+      speakerName: 'Aria',
+      filePath: '/a/late.ogg',
+      startOffsetMs: 0,
+      private: false,
+      transcribedAt: null,
+    };
+    await records.putTrack(t);
+    await records.saveTrackTranscript(
+      t.id,
+      [
+        { startMs: 20_000, endMs: 100_000, text: 'before the crypt' },
+        { startMs: 121_000, endMs: 191_000, text: 'we descend' },
+      ],
+      5,
+    );
+    await records.putSummary({
+      recordingId: id,
+      kind: 'chapter',
+      subject: '2',
+      visibility: 'members',
+      text: 'They went down.',
+      modelCalls: 1,
+      createdAt: 9,
+    });
+    return id;
+  }
+
+  it('shows the scene as a marker next to the transcript, not as a spoken line', async () => {
+    const id = await seedScene();
+    const { body } = await call(
+      'GET',
+      `/api/campaigns/${campaign}/recordings/${id}/transcript`,
+      player.token,
+    );
+    expect(body.markers).toEqual([{ atMs: 120_000, kind: 'scene', text: 'Drowned Crypt' }]);
+    expect(JSON.stringify(body.utterances)).not.toContain('Drowned');
+    expect(JSON.stringify(body)).not.toContain('dragon"'); // voice cues are not transcript lines
+  });
+
+  it('gives a recording its chapters, and the chapter summary its scene name', async () => {
+    const id = await seedScene();
+    const { body } = await call('GET', `/api/campaigns/${campaign}/recordings/${id}`, player.token);
+    expect(body.chapters).toEqual([
+      { number: 1, startMs: 0 },
+      { number: 2, startMs: 120_000, title: 'Drowned Crypt' },
+    ]);
+    expect(body.summaries.find((x: { kind: string }) => x.kind === 'chapter')).toMatchObject({
+      subject: '2',
+      title: 'Drowned Crypt',
+    });
+  });
+
+  it('has no markers or chapters for a recording without scenes', async () => {
+    const id = await seed();
+    const t = await call('GET', `/api/campaigns/${campaign}/recordings/${id}/transcript`, dm.token);
+    expect(t.body.markers).toBeUndefined();
+    const d = await call('GET', `/api/campaigns/${campaign}/recordings/${id}`, dm.token);
+    expect(d.body.chapters).toBeUndefined();
+  });
+});
+
+describe('voice effect report', () => {
+  it('is the DM’s alone and validates the name', async () => {
+    const url = `/api/campaigns/${campaign}/recordings/voice-effect`;
+    expect((await call('POST', url, player.token, { voice: 'giant' })).status).toBe(403);
+    expect((await call('POST', url, outsider.token, { voice: 'giant' })).status).toBe(403);
+    expect((await call('POST', url, dm.token, { voice: 'Giant!!' })).status).toBe(400);
+    expect(reported).toEqual([]);
+    expect((await call('POST', url, dm.token, { voice: 'giant' })).status).toBe(204);
+    expect(reported).toEqual([[campaign, dm.id, 'giant']]);
   });
 });
 

@@ -101,7 +101,12 @@ if (isEntryPoint) {
   const parties = new PartyService({
     store,
     router: audioRouter,
-    emit: (campaignId, type, data) => hubRef.current?.broadcastToCampaign(campaignId, type, data),
+    emit: (campaignId, type, data) => {
+      hubRef.current?.broadcastToCampaign(campaignId, type, data);
+      // A split or merge is a story moment: the recording's timeline notes it (who went where, by name).
+      if (type === 'party.state')
+        capture?.onPartyState(campaignId, data as Parameters<RecordingCapture['onPartyState']>[1]);
+    },
     log: (line) => console.warn(`[parties] ${line}`),
   });
   parties.startTicking();
@@ -116,7 +121,8 @@ if (isEntryPoint) {
     onMemberRemoved: (campaignId, userId) => void audioRouter.remove?.(campaignId, userId),
     onRecordingChange: (change) => capture?.onRecordingChange(change),
     onRecordingAck: (campaignId) => capture?.onAck(campaignId),
-    onTableEvent: (campaignId, type, data) => capture?.onTableEvent(campaignId, type, data),
+    onTableEvent: (campaignId, type, data, only) =>
+      capture?.onTableEvent(campaignId, type, data, only),
     onPublicChat: (campaignId, line) => capture?.onChat(campaignId, line),
     recordingGraceMs: config.recordingGraceSeconds * 1000,
   });
@@ -134,6 +140,20 @@ if (isEntryPoint) {
       acks,
       purgeOnNextSession: async () => (await store.getSettings()).audioPurgeOnNextSession === 'on',
       dir: config.recordingsDir,
+      recordSounds: config.recordSoundboard,
+      describeSound: async (soundId) => {
+        const sound = await sounds.getSound(soundId);
+        return sound ? { name: sound.name, category: sound.category } : undefined;
+      },
+      describeScene: async (sceneId) => {
+        const scene = await sounds.getScene(sceneId);
+        const names: string[] = [];
+        for (const layer of scene?.layers ?? []) {
+          const sound = await sounds.getSound(layer.soundId);
+          if (sound) names.push(sound.name);
+        }
+        return names;
+      },
       speakerName: async (campaignId, accountId) => {
         const membership = await store.getMembership(campaignId, accountId);
         const character = membership?.activeCharacterId
@@ -248,6 +268,8 @@ if (isEntryPoint) {
     realtime: hub,
     recording: hub.recording,
     records,
+    onVoiceEffect: (campaignId, accountId, voice) =>
+      capture?.onVoiceEffect(campaignId, accountId, voice),
     ...(pool ? { jobs: new PostgresJobQueue(pool) } : {}),
     table,
     sounds,

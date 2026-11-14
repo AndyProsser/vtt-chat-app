@@ -1,6 +1,6 @@
 {
   "protocolVersion": 2,
-  "hash": "ed009801028dd9b31149bfa32714b56ce0db99d14b795798adf46cb79a598261",
+  "hash": "e7095ed1edad01cd9414870883bc5f6131a234a5a52b36a577eb80bd95c4e1df",
   "summary": {
     "clientFrames": [
       "audio.state",
@@ -152,6 +152,7 @@
       "http/recordsRoutes.ts GET /:recordingId/transcript",
       "http/recordsRoutes.ts GET /search",
       "http/recordsRoutes.ts POST /:recordingId/audio/delete",
+      "http/recordsRoutes.ts POST /voice-effect",
       "http/scheduleRoutes.ts DELETE /:sessionId",
       "http/scheduleRoutes.ts GET /",
       "http/scheduleRoutes.ts GET /past",

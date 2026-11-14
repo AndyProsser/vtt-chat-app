@@ -60,6 +60,15 @@ export interface CaptureDeps {
    * at once). Absent means off.
    */
   purgeOnNextSession?: () => Promise<boolean>;
+  /**
+   * Whether individual sound effects and loops are noted in the timeline: the operator's `RECORD_SOUNDBOARD`
+   * switch, off by default. Scene changes, character voices and party splits are story cues and always are.
+   */
+  recordSounds?: boolean;
+  /** The display name and category of one of the DM's sounds, for the timeline (ids mean nothing to a summary). */
+  describeSound?: (soundId: string) => Promise<{ name: string; category: string } | undefined>;
+  /** The names of the sounds in a scene's layers (the ambience), noted when the scene starts. */
+  describeScene?: (sceneId: string) => Promise<string[]>;
   now?: () => number;
   newId?: () => string;
   log?: (line: string) => void;
@@ -81,6 +90,22 @@ interface Live {
   capturing: boolean;
   /** Tracks being written right now, by track sid. */
   segments: Map<string, Segment>;
+  /** Loops running that were noted by name, so their stop can be named. */
+  loops: Map<string, string>;
+  /** The last voice groups noted (a fingerprint), so an unchanged `party.state` is not noted twice. */
+  groups: string;
+  /** The DM's character voice as last noted. */
+  voice: string;
+}
+
+const UNSHOWABLE =
+  // eslint-disable-next-line no-control-regex
+  /[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u2028\u2029\u202a-\u202e\u2066-\u2069\ufeff]/g;
+
+/** Display text for the timeline: no control or invisible characters, one line, bounded. */
+export function cleanCueText(value: unknown, max = 80): string {
+  if (typeof value !== 'string') return '';
+  return value.replace(UNSHOWABLE, ' ').replace(/\s+/g, ' ').trim().slice(0, max);
 }
 
 /**
@@ -131,21 +156,139 @@ export class RecordingCapture {
   }
 
   /**
-   * Call with every table frame the realtime layer sends. Sound effects and scenes are noted in the
-   * recording's timeline (so a transcript can say "…a door creaked here") — only while audio is being
-   * captured, and only as metadata: the effects themselves are never part of the recording.
+   * Call with every table frame the realtime layer sends (`only` is the audience of a frame meant for some
+   * people, not everyone). The soundboard's frames are noted in the recording's timeline, so a transcript and
+   * its summaries can say "…in the Drowned Crypt, a door creaked": scene changes always; individual effects
+   * and loops only when the operator switched `RECORD_SOUNDBOARD` on. Only while audio is being captured (not
+   * while paused), only as metadata (the effects' audio is never part of the recording), and **never a sound
+   * played to chosen people only**: that is private.
    */
-  onTableEvent(campaignId: string, type: string, data: unknown): void {
-    const detail = soundDetail(type, data);
-    if (!detail) return;
+  onTableEvent(campaignId: string, type: string, data: unknown, only?: ReadonlySet<string>): void {
+    if (only) return;
+    const d = (typeof data === 'object' && data !== null ? data : {}) as Record<string, unknown>;
+    if (type !== 'sound.play' && type !== 'sound.stop' && !type.startsWith('scene.')) return;
+    if (type.startsWith('sound.') && !this.deps.recordSounds) return;
+    const at = this.now(); // when it happened, not when the queue got to it
     this.enqueue(campaignId, async () => {
       const live = this.live.get(campaignId);
       if (!live?.capturing) return;
+      const note = (event: 'sound' | 'scene', detail: Record<string, unknown>) =>
+        this.deps.records.addRecordingEvent({
+          recordingId: live.recordingId,
+          at,
+          event,
+          detail,
+        });
+      switch (type) {
+        case 'scene.started': {
+          const name = cleanCueText(d.name);
+          if (!name) return;
+          const ambience =
+            typeof d.sceneId === 'string' && this.deps.describeScene
+              ? await this.deps.describeScene(d.sceneId).catch(() => [])
+              : [];
+          const sounds = [...new Set(ambience.map((n) => cleanCueText(n)).filter(Boolean))].slice(
+            0,
+            8,
+          );
+          await note('scene', {
+            action: 'start',
+            sceneId: d.sceneId,
+            name,
+            ...(sounds.length > 0 ? { ambience: sounds } : {}),
+          });
+          return;
+        }
+        case 'scene.stopped':
+          await note('scene', { action: 'stop', sceneId: d.sceneId });
+          return;
+        case 'sound.play': {
+          const sound =
+            typeof d.soundId === 'string' ? await this.deps.describeSound?.(d.soundId) : undefined;
+          const name = cleanCueText(sound?.name);
+          if (!name) return;
+          const mode = d.mode === 'loop' ? 'loop' : 'oneshot';
+          if (mode === 'loop' && typeof d.playId === 'string') live.loops.set(d.playId, name);
+          await note('sound', {
+            action: 'play',
+            name,
+            category: cleanCueText(sound?.category, 20),
+            mode,
+            ...(typeof d.layerId === 'string' ? { layerId: d.layerId } : {}),
+          });
+          return;
+        }
+        case 'sound.stop': {
+          const playId = typeof d.playId === 'string' ? d.playId : undefined;
+          const name = playId ? live.loops.get(playId) : undefined;
+          if (playId) live.loops.delete(playId);
+          else live.loops.clear();
+          await note('sound', { action: 'stop', ...(name ? { name } : {}) });
+          return;
+        }
+      }
+    });
+  }
+
+  /**
+   * Call after every change to the voice groups (`party.state`). A split or merge is a story moment, so it
+   * is noted (who is in which group, by name) while capturing; an unchanged table is not noted again.
+   */
+  onPartyState(
+    campaignId: string,
+    state: {
+      parties: { id: string; name: string }[];
+      assignments: Record<string, string>;
+    },
+  ): void {
+    const at = this.now();
+    this.enqueue(campaignId, async () => {
+      const live = this.live.get(campaignId);
+      if (!live?.capturing) return;
+      const groups: { id: string; name: string; members: string[] }[] = [];
+      for (const party of state.parties) {
+        const ids = Object.entries(state.assignments)
+          .filter(([, partyId]) => partyId === party.id)
+          .map(([userId]) => userId)
+          .sort();
+        if (ids.length === 0) continue; // an empty group is not a split
+        const members = await Promise.all(
+          ids.map(async (id) => cleanCueText(await this.deps.speakerName(campaignId, id), 60)),
+        );
+        groups.push({ id: party.id, name: cleanCueText(party.name, 60), members: members.sort() });
+      }
+      const fingerprint = JSON.stringify(groups);
+      if (fingerprint === live.groups || (live.groups === '' && groups.length === 0)) return;
+      live.groups = fingerprint;
       await this.deps.records.addRecordingEvent({
         recordingId: live.recordingId,
-        at: this.now(),
-        event: detail.event,
-        detail: detail.detail,
+        at,
+        event: 'group',
+        detail: { groups: groups.map(({ name, members }) => ({ name, members })) },
+      });
+    });
+  }
+
+  /**
+   * The DM chose a character voice (`normal` ends it). Noted while capturing, by the DM's name; the same
+   * voice twice in a row is noted once. The server learns of it from the DM's app (the voice runs in Rust).
+   */
+  onVoiceEffect(campaignId: string, accountId: string, voice: string): void {
+    const clean = cleanCueText(voice, 24).toLowerCase();
+    if (!clean) return;
+    const at = this.now();
+    this.enqueue(campaignId, async () => {
+      const live = this.live.get(campaignId);
+      if (!live?.capturing || live.voice === clean) return;
+      live.voice = clean;
+      await this.deps.records.addRecordingEvent({
+        recordingId: live.recordingId,
+        at,
+        event: 'voice',
+        detail: {
+          voice: clean,
+          by: cleanCueText(await this.deps.speakerName(campaignId, accountId), 60),
+        },
       });
     });
   }
@@ -253,6 +396,9 @@ export class RecordingCapture {
       startedAt,
       capturing: false,
       segments: new Map(mine.map((o) => [o.egressId, o])),
+      loops: new Map(),
+      groups: '',
+      voice: 'normal',
     };
     await records.addRecordingEvent({ recordingId, at: this.now(), event: 'interrupted' });
     await this.finishSegments(campaignId, live, true);
@@ -301,7 +447,15 @@ export class RecordingCapture {
       status: 'recording',
     });
     await this.event(recordingId, 'started');
-    this.live.set(campaignId, { recordingId, startedAt, capturing: true, segments: new Map() });
+    this.live.set(campaignId, {
+      recordingId,
+      startedAt,
+      capturing: true,
+      segments: new Map(),
+      loops: new Map(),
+      groups: '',
+      voice: 'normal',
+    });
     await this.purgeEarlierAudio(campaignId, recordingId);
     await this.reconcile(campaignId);
   }
@@ -426,33 +580,5 @@ export class RecordingCapture {
         transcribedAt: null,
       });
     }
-  }
-}
-
-/** The timeline entry for a soundboard frame, or `undefined` for any other frame. */
-function soundDetail(
-  type: string,
-  data: unknown,
-): { event: 'sound' | 'scene'; detail: Record<string, unknown> } | undefined {
-  const d = (typeof data === 'object' && data !== null ? data : {}) as Record<string, unknown>;
-  switch (type) {
-    case 'sound.play':
-      return {
-        event: 'sound',
-        detail: {
-          action: 'play',
-          soundId: d.soundId,
-          takeId: d.takeId,
-          mode: d.mode,
-          volume: d.volume,
-          ...(typeof d.layerId === 'string' ? { layerId: d.layerId } : {}),
-        },
-      };
-    case 'scene.started':
-      return { event: 'scene', detail: { action: 'start', sceneId: d.sceneId, name: d.name } };
-    case 'scene.stopped':
-      return { event: 'scene', detail: { action: 'stop', sceneId: d.sceneId } };
-    default:
-      return undefined;
   }
 }
