@@ -120,3 +120,20 @@ export interface SearchHit {
   atMs?: number;
   snippet: string;
 }
+
+export type LootClaimedFor = 'self' | 'party' | 'split' | 'assigned';
+
+/** One thing in the party's loot: what it is, and who (if anyone) took it. */
+export interface LootItem {
+  id: string;
+  kind: 'item' | 'coin';
+  itemType: string;
+  rarity: string | null;
+  name: string;
+  description: string;
+  quantity: number;
+  droppedAt: number;
+  claimedBy: string | null;
+  claimedFor: LootClaimedFor | null;
+  split: { shares: { userId: string; amount: number }[]; remainder: number } | null;
+}

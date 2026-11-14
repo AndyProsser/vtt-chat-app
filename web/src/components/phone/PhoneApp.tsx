@@ -18,6 +18,7 @@ import { DecisionBanner } from './DecisionBanner.js';
 import { ChatTab } from './ChatTab.js';
 import { HandoutsTab } from './HandoutsTab.js';
 import { HistoryTab } from './HistoryTab.js';
+import { InventoryTab } from './InventoryTab.js';
 import { JoinRequestsScreen } from './JoinRequestsScreen.js';
 import { OpenTables } from './OpenTables.js';
 import { SessionsTab } from './SessionsTab.js';
@@ -330,6 +331,7 @@ function Shell({
           {!screen && tab === 'chat' && <ChatTab campaignId={campaignId} say={say} />}
           {!screen && tab === 'sessions' && <SessionsTab campaignId={campaignId} />}
           {!screen && tab === 'handouts' && <HandoutsTab campaignId={campaignId} />}
+          {!screen && tab === 'inventory' && <InventoryTab campaignId={campaignId} />}
           {!screen && tab === 'history' && <HistoryTab campaignId={campaignId} />}
         </main>
         <nav className="phone-tabs" aria-label="Sections">

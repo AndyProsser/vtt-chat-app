@@ -14,7 +14,7 @@ export interface TableNotice {
   after: string | null;
 }
 
-export type Tab = 'chat' | 'sessions' | 'handouts' | 'history';
+export type Tab = 'chat' | 'sessions' | 'handouts' | 'inventory' | 'history';
 
 interface PhoneState {
   /** The server accepted this browser's session cookie (the cookie itself is never visible to script). */
@@ -41,6 +41,8 @@ interface PhoneState {
   /** Bumped when a live frame says the handouts / sessions changed; the tabs read their list again. */
   handoutsRev: number;
   sessionsRev: number;
+  /** Bumped when a live `loot.*` frame arrives; the Loot tab reads its list again. */
+  lootRev: number;
 
   signedIn(userId: string | undefined): void;
   signedOut(): void;
@@ -77,6 +79,7 @@ export const usePhoneStore = create<PhoneState>((set, get) => ({
   decision: undefined,
   handoutsRev: 0,
   sessionsRev: 0,
+  lootRev: 0,
   ...FRESH,
 
   signedIn: (userId) => set({ authed: true, userId }),
@@ -116,6 +119,7 @@ export const usePhoneStore = create<PhoneState>((set, get) => ({
           lines: mergeLines(s.lines, incoming),
           handoutsRev: s.handoutsRev + 1,
           sessionsRev: s.sessionsRev + 1,
+          lootRev: s.lootRev + 1,
         });
         return;
       }
@@ -177,6 +181,11 @@ export const usePhoneStore = create<PhoneState>((set, get) => ({
       case 'handout.removed':
       case 'handout.changed':
         set({ handoutsRev: s.handoutsRev + 1 });
+        return;
+      case 'loot.dropped':
+      case 'loot.claimed':
+      case 'loot.removed':
+        set({ lootRev: s.lootRev + 1 });
         return;
       case 'notification': {
         // The server tells members about a scheduled, moved or cancelled session (and the DM about answers).

@@ -978,7 +978,7 @@ flows.menu = async (b) => {
         m.sh === m.ih && m.scroll === 0,
         JSON.stringify(m),
       );
-      for (const tab of ['Sessions', 'Handouts', 'History', 'Chat']) {
+      for (const tab of ['Sessions', 'Handouts', 'Loot', 'History', 'Chat']) {
         await clickText(p, new RegExp(`^${tab}$`), '.phone-tab');
         await sleep(400);
         const mm = await p.evaluate(() => ({
@@ -993,9 +993,13 @@ flows.menu = async (b) => {
           label: x.querySelector('.phone-tab-label')?.innerText,
         })),
       );
+      const tops = await p.$$eval('.phone-tab', (e) =>
+        e.map((x) => Math.round(x.getBoundingClientRect().top)),
+      );
+      check(`${tag}: all tabs sit on one row`, new Set(tops).size === 1, JSON.stringify(tops));
       check(
         `${tag}: tabs have icon and label`,
-        tabs.length === 4 && tabs.every((x) => x.icon && x.label),
+        tabs.length === 5 && tabs.every((x) => x.icon && x.label),
         JSON.stringify(tabs),
       );
       await p.__context.close();
@@ -1536,7 +1540,7 @@ flows.pages = async (b) => {
   for (const view of views) {
     const p = await newPage(b, { view, scheme: 'light', cookie: t.dm, problems });
     await openApp(p);
-    for (const tab of ['Chat', 'Sessions', 'Handouts', 'History']) {
+    for (const tab of ['Chat', 'Sessions', 'Handouts', 'Loot', 'History']) {
       await clickText(p, new RegExp(`^${tab}$`), '.phone-tab');
       await sleep(600);
       const issues = await a11yBasics(p);
@@ -2096,6 +2100,107 @@ async function sheetFit(b, t) {
 
 const p_close = async (...ps) => {
   for (const p of ps) await p.__context.close();
+};
+
+// 9. The Loot tab: the DM drops items, a player sees and takes one, the DM sees who has it --------------------
+flows.loot = async (b) => {
+  const t = await ensureTable();
+  const stamp = Date.now().toString(36);
+  const SWORD = `Moonblade ${stamp}`;
+  const COIN = `gp ${stamp}`;
+  for (const view of views) {
+    const tag = `loot ${view}`;
+    const dm = await newPage(b, {
+      view,
+      scheme: 'dark',
+      cookie: t.dm,
+      tag: `dm ${view}`,
+      problems,
+    });
+    const pl = await newPage(b, {
+      view,
+      scheme: 'light',
+      cookie: t.pl,
+      tag: `pl ${view}`,
+      problems,
+    });
+    await openApp(dm);
+    await openApp(pl);
+    await tab(pl, 'Loot');
+    await tab(dm, 'Loot');
+    await sleep(500);
+    // The DM drops an item and a pile of coin through the API (the drop tools live in the desktop app).
+    const drop = await api(t.dm, 'POST', `/api/campaigns/${t.id}/loot`, {
+      name: SWORD,
+      description: 'A pale blade that hums near secret doors.',
+      quantity: 1,
+      itemType: 'weapon',
+      rarity: 'rare',
+    });
+    check(`${tag}: the DM can drop an item`, drop.status === 201, String(drop.status));
+    await api(t.dm, 'POST', `/api/campaigns/${t.id}/loot`, {
+      name: COIN,
+      kind: 'coin',
+      quantity: 25,
+      itemType: 'coin',
+    });
+    // It appears live for the player, with the actions a player has.
+    await waitText(pl, new RegExp(SWORD));
+    check(`${tag}: the player sees the dropped item live`, true);
+    check(
+      `${tag}: the item shows its rarity`,
+      /rare/.test(await pl.evaluate(() => document.body.innerText)),
+    );
+    check(
+      `${tag}: a player has Take and Store for party`,
+      (await visible(pl, 'button[title="Take it for yourself"]')) &&
+        (await visible(pl, 'button[title="Store it in the party stash"]')),
+    );
+    check(
+      `${tag}: the DM is offered Give, not Take`,
+      !(await visible(dm, 'button[title="Take it for yourself"]')) &&
+        (await visible(dm, 'button[title="Give it to a player…"]')),
+    );
+    check(`${tag}: the loot list does not scroll the page sideways`, await mainFits(pl));
+    await shot(pl, `${tag}-player`);
+    await shot(dm, `${tag}-dm`);
+    // The player takes the sword; the DM's list shows who has it.
+    await pl.evaluate((name) => {
+      const card = [...document.querySelectorAll('.rt-Card')].find((c) =>
+        c.innerText.includes(name),
+      );
+      card?.querySelector('button[title="Take it for yourself"]')?.click();
+    }, SWORD);
+    await waitText(dm, /Taken by/);
+    check(`${tag}: the DM sees it taken, live`, true);
+    // The Mine filter lists it for the player.
+    await clickText(pl, /^Mine$/);
+    await sleep(300);
+    check(
+      `${tag}: it is in the player's Mine list`,
+      (await pl.evaluate(() => document.body.innerText)).includes(SWORD),
+    );
+    // The player puts it back; it is available again.
+    await pl.evaluate((name) => {
+      const card = [...document.querySelectorAll('.rt-Card')].find((c) =>
+        c.innerText.includes(name),
+      );
+      card?.querySelector('button[title="Put it back on the table"]')?.click();
+    }, SWORD);
+    await sleep(800);
+    await clickText(pl, /^Available$/);
+    await sleep(300);
+    check(
+      `${tag}: put back, it is available again`,
+      (await pl.evaluate(() => document.body.innerText)).includes(SWORD),
+    );
+    await dm.__context.close();
+    await pl.__context.close();
+  }
+  // Clean up what the flow dropped (the DM may remove items).
+  const list = (await api(t.dm, 'GET', `/api/campaigns/${t.id}/loot`)).body?.loot ?? [];
+  for (const i of list.filter((x) => x.name === SWORD || x.name === COIN))
+    await api(t.dm, 'DELETE', `/api/campaigns/${t.id}/loot/${i.id}`);
 };
 
 // runner ------------------------------------------------------------------------------------------------

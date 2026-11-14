@@ -2,6 +2,7 @@ export const TABS = [
   { id: 'chat', icon: 'chat', label: 'Chat' },
   { id: 'sessions', icon: 'sessions', label: 'Sessions' },
   { id: 'handouts', icon: 'handouts', label: 'Handouts' },
+  { id: 'inventory', icon: 'inventory', label: 'Loot' },
   { id: 'history', icon: 'history', label: 'History' },
 ] as const;
 

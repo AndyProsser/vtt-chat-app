@@ -178,8 +178,8 @@ answer **Can make it / Late / Can't**. The server sends reminders 24 hours and 1
 ### On your phone
 
 Open `https://<your server>/app` in your phone's browser and sign in with your email and password, or with a
-one-time code. You get four tabs: **Chat** (the table's chat and your whispers; you can reply or whisper to one
-person), **Sessions** (when the next one is, and your answer), **Handouts** (what the DM has shown you) and
+one-time code. You get five tabs: **Chat** (the table's chat and your whispers; you can reply or whisper to one
+person), **Sessions** (when the next one is, and your answer), **Handouts** (what the DM has shown you), **Loot** (the party's inventory: take what the DM drops, store it for the party, put it back; the DM can give an item to a player) and
 **History** (summaries and transcripts of past sessions). There is **no voice** on the phone: use the desktop
 app for that. It does not buzz you when closed; the desktop app does that. **Menu → Sign out** when you are on
 someone else's phone.

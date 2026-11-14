@@ -1,3 +1,4 @@
+import { LazyMarkdown } from './LazyMarkdown.js';
 import { Badge, Button, Callout, Card, Flex, Heading, Text, TextField } from '@radix-ui/themes';
 import { useEffect, useState } from 'react';
 
@@ -108,7 +109,7 @@ function RecordingView({
               </Text>
               {s.visibility !== 'members' && <Badge color="violet">DM only</Badge>}
             </Flex>
-            <div className="phone-note">{s.text}</div>
+            <LazyMarkdown text={s.text} />
           </Flex>
         </Card>
       ))}

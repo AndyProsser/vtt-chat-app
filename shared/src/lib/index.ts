@@ -4,3 +4,4 @@ export * from './chatParser.js';
 export * from './chatSuggest.js';
 export * from './chatKeys.js';
 export * from './partyNotices.js';
+export * from './lootView.js';

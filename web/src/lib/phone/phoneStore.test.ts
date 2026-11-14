@@ -122,3 +122,13 @@ describe('party.state', () => {
     expect(store.getState().notices.at(-1)?.text).toBe('The DM took Sam aside for a private talk');
   });
 });
+
+describe('loot frames', () => {
+  it('bump the loot revision so the Loot tab reads its list again', () => {
+    const before = usePhoneStore.getState().lootRev;
+    usePhoneStore.getState().onFrame('loot.dropped', { itemId: 'i1' });
+    usePhoneStore.getState().onFrame('loot.claimed', { itemId: 'i1' });
+    usePhoneStore.getState().onFrame('loot.removed', { itemId: 'i1' });
+    expect(usePhoneStore.getState().lootRev).toBe(before + 3);
+  });
+});

@@ -11,12 +11,13 @@ summary and a transcript, in light and dark). **Not tried on a real phone or on 
 
 ## What it does
 
-| Tab      | Shows                                                                                         | Uses                                                                     |
-| -------- | --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| Chat     | The table's chat and **your own** whispers in line; send to everyone or whisper to one person | `GET …/chat`, WebSocket `/ws` (`chat.message`, `chat.whisper`, snapshot) |
-| Sessions | Upcoming sessions, how far off, who has answered, and **Can make it / Running late / Can't**  | `GET …/sessions`, `PUT …/sessions/:id/rsvp`                              |
-| Handouts | What the DM has shown you: notes, picture sets and maps (pictures in order), PDFs             | `GET …/handouts`, `GET …/handouts/:id/files/:n`                          |
-| History  | Past recordings, each one's summaries (DM-only ones appear for the DM only), the transcript   | `GET …/recordings`, `…/recordings/:id`, `…/recordings/:id/transcript`    |
+| Tab      | Shows                                                                                                                                                                                       | Uses                                                                          |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Chat     | The table's chat and **your own** whispers in line; send to everyone or whisper to one person                                                                                               | `GET …/chat`, WebSocket `/ws` (`chat.message`, `chat.whisper`, snapshot)      |
+| Sessions | Upcoming sessions, how far off, who has answered, and **Can make it / Running late / Can't**                                                                                                | `GET …/sessions`, `PUT …/sessions/:id/rsvp`                                   |
+| Handouts | What the DM has shown you: notes, picture sets and maps (pictures in order), PDFs                                                                                                           | `GET …/handouts`, `GET …/handouts/:id/files/:n`                               |
+| Loot     | The party's inventory: what the DM dropped and who has it; players **Take**, **Store for party** or **Put back**, the DM **Gives** to a player (filters: All, Available, Taken, Mine); live | `GET …/loot`, `POST …/loot/:id/claim\|store\|return\|assign`, `loot.*` frames |
+| History  | Past recordings, each one's summaries (DM-only ones appear for the DM only), the transcript                                                                                                 | `GET …/recordings`, `…/recordings/:id`, `…/recordings/:id/transcript`         |
 
 Sign-in is by **email and password** or a **one-time code** (the same code a DM or operator issues for the tray
 app). A changed recording notice is accepted on the sign-in screen. The session token is kept in this browser's

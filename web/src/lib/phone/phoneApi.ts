@@ -1,6 +1,7 @@
 import { request } from '../api.js';
 import type {
   CampaignItem,
+  LootItem,
   HandoutItem,
   RecordingItem,
   RsvpStatus,
@@ -116,6 +117,20 @@ export async function handouts(campaignId: string): Promise<HandoutItem[]> {
   );
   return res.handouts;
 }
+
+// ---- the party's loot ----
+
+export async function lootItems(campaignId: string): Promise<LootItem[]> {
+  const res = await request<{ loot: LootItem[] }>('GET', `/api/campaigns/${campaignId}/loot`);
+  return res.loot;
+}
+
+/** One action on one item: the path and body come from `lootRequest` (shared with the desktop app). */
+export const lootDo = (
+  campaignId: string,
+  itemId: string,
+  req: { path: string; body: Record<string, unknown> },
+) => request('POST', `/api/campaigns/${campaignId}/loot/${itemId}/${req.path}`, { body: req.body });
 
 // ---- the DM's tools (the server refuses anyone else with 403) ----
 

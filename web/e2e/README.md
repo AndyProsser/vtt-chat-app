@@ -29,7 +29,7 @@ node ui-smoke.mjs chat rail       # just some
 
 Flows: `landing`, `download`, `chat` (commands, autocomplete, /late and RSVP), `rail` (members, presence, popouts),
 `dmtools` (the DM writes, previews, shows, edits and deletes a note and schedules, edits and cancels a session while a player watches it live; every sheet is checked to fit at 320 to 1000px),
-`account` (the /account page: profile, picture, password, devices and their sign-out; **written but not yet run**), `menu` (header, burger, widths), `join` (ask to join, withdraw, approve, decline, Allow join), `pages` (full-app,
+`account` (the /account page: profile, picture, password, devices and their sign-out; **written but not yet run**), `menu` (header, burger, widths), `loot` (the Loot tab: drop, see, take, put back), `join` (ask to join, withdraw, approve, decline, Allow join), `pages` (full-app,
 status, 404, focus order, accessibility basics), `frame` (sign-in and table-picker header). Exit code is 1 when a
 check fails. Env: `BASE` (default `https://localhost`), `CHROMIUM`, `COMPOSE_DIR` (default `../../infra/compose`).
 
