@@ -12,9 +12,13 @@
 #   --email you@example.com       the first Admin's email   --name "Your Name"   (display name)
 #   --version 0.4.0               the release to install (default: the newest stable release)
 #   --with-records                also run recording, transcription and summaries (about 6 GB of downloads)
+#   --records-remote              recording and the worker here, but the AI (Whisper and the LLM) on another machine you point it at;
+#                                 chosen automatically when this CPU lacks AVX, which the local AI needs
 #   --voice-address 203.0.113.7   where voice (UDP) connects: an IP or DNS name. Found automatically; set it when the
 #                                 domain goes through Cloudflare's proxy or the machine is behind NAT (alias: --public-ip)
 #   --dir /opt/vtt-chat           where to put it
+#   --behind-tunnel               the website arrives through a Cloudflare Tunnel (your line blocks 80/443, or you prefer it): Caddy serves plain
+#                                 HTTP and asks for no certificate; see the operator guide for the tunnel's hostname and token
 #   --no-admin                    do not create the first Admin now (make one later: vtt-admin user create <email> --name <name> --accept-consent)
 #   --yes                         do not ask anything; every value must come from flags
 #   --skip-docker-install  --skip-firewall  --dry-run
@@ -22,7 +26,7 @@ set -euo pipefail
 
 REPO="${VTT_REPO:-AndyProsser/vtt-chat-app}"
 ASSUME_YES=0 DRY_RUN=0 SKIP_DOCKER=0 SKIP_FIREWALL=0 WITH_RECORDS=""
-NO_ADMIN=0 BEHIND_CLOUDFLARE=0 DOMAIN="" EMAIL="" NAME="" VERSION="" PUBLIC_IP="" DIR="/opt/vtt-chat"
+RECORDS_PROFILE=records TUNNEL=0 NO_ADMIN=0 BEHIND_CLOUDFLARE=0 DOMAIN="" EMAIL="" NAME="" VERSION="" PUBLIC_IP="" DIR="/opt/vtt-chat"
 
 # ---------- small helpers ----------
 if [[ -t 1 ]]; then B=$'\e[1m' G=$'\e[32m' Y=$'\e[33m' R=$'\e[31m' N=$'\e[0m'; else B="" G="" Y="" R="" N=""; fi
@@ -89,8 +93,10 @@ while (($#)); do
     --voice-address | --public-ip) PUBLIC_IP=${2:?$1 needs a value}; shift 2 ;;
     --dir) DIR=${2:?--dir needs a value}; shift 2 ;;
     --no-admin) NO_ADMIN=1; shift ;;
+    --behind-tunnel) TUNNEL=1; shift ;;
     --with-records) WITH_RECORDS=1; shift ;;
     --no-records) WITH_RECORDS=0; shift ;;
+    --records-remote) WITH_RECORDS=1; RECORDS_PROFILE=records-remote; shift ;;
     --yes | -y) ASSUME_YES=1; shift ;;
     --dry-run) DRY_RUN=1; shift ;;
     --skip-docker-install) SKIP_DOCKER=1; shift ;;
@@ -158,6 +164,12 @@ else
   fi
 fi
 
+if [[ $WITH_RECORDS == 1 && $RECORDS_PROFILE == records && $(uname -m) == x86_64 ]] && ! grep -qm1 -w avx /proc/cpuinfo 2>/dev/null; then
+  warn "this CPU has no AVX, which the local Whisper and LLM need (they would crash). Recording will run here, but the AI must run on another machine:"
+  say "    after the install: vtt-admin settings set ai.transcription.kind remote, ai.transcription.url, ai.llm.kind remote, ai.llm.url (operator guide: a gaming PC as the AI), and ai.fallback.enabled false"
+  RECORDS_PROFILE=records-remote
+fi
+
 # ---------- 3. which release ----------
 step "Choosing the release"
 if [[ -z $VERSION && $EXISTING == 1 && -f $DIR/.installed-version ]]; then
@@ -190,7 +202,7 @@ if [[ -z $PUBLIC_IP ]]; then
     warn "could not find the public address; if this machine is behind a router, re-run with --public-ip <address>"
   fi
 fi
-if [[ $DOMAIN != localhost ]]; then
+if [[ $DOMAIN != localhost ]] && ((TUNNEL == 0)); then
   resolved=$(getent ahostsv4 "$DOMAIN" 2>/dev/null | awk 'NR==1 {print $1}' || true)
   expected=${PUBLIC_IP:-${detected:-}}
   if [[ -z $resolved ]]; then
@@ -293,13 +305,17 @@ if ((EXISTING)); then
   step "Updating the existing install"
   # Keep the operator's settings; only move the image version (and the domain if it changed).
   sed -i "s|^VTT_VERSION=.*|VTT_VERSION=$IMAGE_VERSION|; s|^SITE_ADDRESS=.*|SITE_ADDRESS=$DOMAIN|" .env
-  if [[ $WITH_RECORDS == 1 ]] && ! grep -q '^COMPOSE_PROFILES=' .env; then echo "COMPOSE_PROFILES=records" >> .env; say "  recording and summaries: on"; fi
+  if [[ $WITH_RECORDS == 1 ]] && ! grep -q '^COMPOSE_PROFILES=' .env; then echo "COMPOSE_PROFILES=$RECORDS_PROFILE" >> .env; say "  recording and summaries: on"; fi
 else
   step "Writing the configuration (fresh secrets, never shown)"
   VTT_VERSION="$IMAGE_VERSION" ./setup.sh "$DOMAIN" ${PUBLIC_IP:+"$PUBLIC_IP"}
-  if [[ $WITH_RECORDS == 1 ]]; then echo "COMPOSE_PROFILES=records" >> .env; say "  recording and summaries: on"; fi
+  if [[ $WITH_RECORDS == 1 ]]; then echo "COMPOSE_PROFILES=$RECORDS_PROFILE" >> .env; say "  recording and summaries: on ($RECORDS_PROFILE)"; fi
 fi
-if ((BEHIND_CLOUDFLARE)); then
+if ((TUNNEL)); then
+  grep -q '^CADDY_SITE=' .env || echo "CADDY_SITE=http://$DOMAIN" >> .env
+  grep -q '^CLIENT_IP_HEADERS=' .env || echo "CLIENT_IP_HEADERS=CF-Connecting-IP" >> .env
+  say "  website through a Cloudflare Tunnel: Caddy serves plain HTTP on port 80"
+elif ((BEHIND_CLOUDFLARE)); then
   # Caddy then sees Cloudflare's addresses, not the visitors': trust Cloudflare to say who they are.
   grep -q '^TRUSTED_PROXIES=' .env || {
     echo "TRUSTED_PROXIES=private_ranges $CLOUDFLARE_RANGES"
@@ -342,11 +358,13 @@ fi
 step "Checking it works"
 local_ok=0 public_ok=0
 for _ in $(seq 1 30); do
-  if curl -fsS --max-time 5 -k --resolve "$DOMAIN:443:127.0.0.1" "https://$DOMAIN/api/health" >/dev/null 2>&1; then local_ok=1; break; fi
+  if ((TUNNEL)); then
+    curl -fsS --max-time 5 -H "Host: $DOMAIN" "http://127.0.0.1/api/health" >/dev/null 2>&1 && { local_ok=1; break; }
+  elif curl -fsS --max-time 5 -k --resolve "$DOMAIN:443:127.0.0.1" "https://$DOMAIN/api/health" >/dev/null 2>&1; then local_ok=1; break; fi
   sleep 2
 done
 if ((local_ok)); then say "  the server answers on this machine"; else warn "the server did not answer locally; check: docker compose -f $DIR/compose.yml logs backend caddy"; fi
-if [[ $DOMAIN != localhost ]]; then
+if [[ $DOMAIN != localhost ]] && ((TUNNEL == 0)); then
   say "  waiting for the secure certificate (up to 2 minutes)..."
   for _ in $(seq 1 24); do
     if curl -fsS --max-time 6 "https://$DOMAIN/api/health" >/dev/null 2>&1; then public_ok=1; break; fi
@@ -409,7 +427,15 @@ ${B}Next${N}
 
 Guide: https://github.com/$REPO/blob/main/docs/guides/OPERATOR-GUIDE.md
 EOF
-if ((public_ok == 0)) && [[ $DOMAIN != localhost ]]; then
+if ((TUNNEL)); then
+  cat <<EOF
+
+${Y}One step is yours:${N} in Cloudflare (Zero Trust > Networks > Tunnels) give your tunnel a public hostname ${B}$DOMAIN${N} with the service
+${B}http://$(hostname -I | awk '{print $1}'):80${N} (this machine, if the tunnel runs elsewhere on your network), or run the tunnel from here:
+  vtt-admin config set CLOUDFLARE_TUNNEL_TOKEN <token>   then:   cd $DIR && docker compose --profile tunnel up -d
+(with the token service set to http://caddy:80). Voice does not use the tunnel: forward 7881/tcp and 50000-50200/udp to this machine.
+EOF
+elif ((public_ok == 0)) && [[ $DOMAIN != localhost ]]; then
   cat <<EOF
 
 ${Y}Not finished:${N} the secure address is not answering yet. Check that $DOMAIN points at ${PUBLIC_IP:-${detected:-this machine}}

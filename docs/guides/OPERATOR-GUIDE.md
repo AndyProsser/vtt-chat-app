@@ -122,6 +122,18 @@ router or cloud firewall (the table above); the script cannot do that part. Pref
 **(Rehearsed on a workstation with Docker already installed, against the published images; the Docker-install and
 `ufw` steps and the Let's Encrypt certificate are written but not yet run on a blank VM.)** The manual steps follow.
 
+### Behind a Cloudflare Tunnel (a line that blocks 80/443)
+
+Most home connections block inbound 80 and 443, so Let's Encrypt and Cloudflare's proxy cannot reach the server. Use a **Cloudflare
+Tunnel** for the website instead: the server connects **out** to Cloudflare and nothing needs to be opened for it. Install with
+`--behind-tunnel`: Caddy then serves plain HTTP on port 80 (Cloudflare holds the certificate) and trusts `CF-Connecting-IP` for the
+visitor's address. Then give the tunnel a **public hostname** for your domain with the service `http://<this machine's address>:80`
+(Cloudflare dashboard: Zero Trust, Networks, Tunnels), or run the tunnel from this server: set `CLOUDFLARE_TUNNEL_TOKEN` with
+`vtt-admin config set CLOUDFLARE_TUNNEL_TOKEN <token>` (a token is a secret: type it yourself, do not paste it into a chat) and
+`docker compose --profile tunnel up -d` (use the service `http://caddy:80` for that one). Voice does not use the tunnel; forward
+`7881/tcp` and `50000-50200/udp` to the machine and see "Voice and Cloudflare" below. A page that answers `error code: 502` from
+Cloudflare means the tunnel's service address is wrong or unreachable.
+
 ### Where settings live
 
 Three places, each for a different kind of setting:
@@ -372,7 +384,13 @@ details. A GPU PC does the same work in minutes with the better models. So:
    ./vtt-admin settings set ai.fallback.after-seconds 600
    ```
 
-3. Keep the local fallback ready on the VM: `small` Whisper and `llama3.2:3b` (the defaults for a CPU-only server).
+3. **No local AI on the VM (an old CPU, or you simply do not want it)?** Local Whisper and the LLM need a CPU with **AVX** (anything from
+   about 2012 on; some old servers, such as a 2010 Xeon, lack it and the Whisper container dies with an illegal instruction). Install
+   with `--records-remote` (the installer picks it by itself when it finds no AVX): the Compose profile `records-remote` runs recording
+   (Egress) and the worker but not Whisper or Ollama, and the AI must be remote: set the keys above and
+   `./vtt-admin settings set ai.fallback.enabled false`, so a job waits for the PC instead of trying a local service that is not there.
+   Keep the PC on during the hours after a session.
+4. Otherwise keep the local fallback ready on the VM: `small` Whisper and `llama3.2:3b` (the defaults for a CPU-only server).
    If the PC is off, a job waits ten minutes and then runs locally, slower and rougher but never lost.
 
 Sessions are about weekly, so a slow fallback is acceptable. Expanding the VM's CPUs helps the fallback a little but

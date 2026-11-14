@@ -9,7 +9,9 @@
 
 # One hostname. A real domain gets a Let's Encrypt certificate automatically; `localhost` gets
 # Caddy's own internal CA (fine for a local test, not trusted by other machines).
-{$SITE_ADDRESS} {
+# CADDY_SITE is the site address by default. Behind a Cloudflare Tunnel (which brings the traffic in over its own encrypted
+# connection and holds the certificate) the installer sets it to http://<domain>, so Caddy serves plain HTTP and asks for no certificate.
+{$CADDY_SITE} {
 	encode zstd gzip
 
 	# Signalling for LiveKit: the SDK appends /rtc, so strip our prefix. Media (UDP) bypasses Caddy.

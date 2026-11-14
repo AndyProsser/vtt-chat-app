@@ -114,7 +114,7 @@ services:
   # --- Records pipeline (profile "records": docker compose --profile records up -d) ---
   # One-shot: the Egress image runs as uid 1001, a fresh named volume is root-owned.
   recordings-init:
-    profiles: [records]
+    profiles: [records, records-remote]
     image: busybox:stable
     command: ['chown', '-R', '1001:0', '/out']
     volumes: [recordings:/out]
@@ -122,7 +122,7 @@ services:
   # Per-speaker track egress writes files into /out. Host network like LiveKit: it talks to LiveKit
   # and Valkey on loopback. The image is large (~4 GB, it bundles Chrome for web egress we don't use).
   egress:
-    profiles: [records]
+    profiles: [records, records-remote]
     image: livekit/egress:${EGRESS_VERSION:-v1.15.0}
     restart: unless-stopped
     network_mode: host
@@ -149,7 +149,8 @@ services:
       recordings-init: { condition: service_completed_successfully }
       livekit: { condition: service_started }
 
-  # --- Local AI: always configured, the default and the fallback for a remote backend ---
+  # --- Local AI: the default, and the fallback for a remote backend (profile "records"). A CPU without AVX (some old servers)
+  # cannot run it; the profile "records-remote" runs recording and the worker only, and the AI runs on another machine. ---
   # Both speak the OpenAI-compatible API. Whisper runs on CPU here; for an NVIDIA GPU add the
   # compose.gpu.yml override (it builds whisper-cuda.Dockerfile, which also covers GTX 10-series cards).
   models-init:
@@ -217,7 +218,7 @@ services:
   # Claims process-recording jobs, cuts tracks into speech windows (ffmpeg) and calls Whisper/the LLM
   # as the operator's AI settings say (vtt-admin settings), falling back to the local services above.
   worker:
-    profiles: [records]
+    profiles: [records, records-remote]
     image: ${VTT_REGISTRY:-ghcr.io/andyprosser}/vtt-chat-worker:${VTT_VERSION:-latest}
     build:
       context: ../..
@@ -226,8 +227,9 @@ services:
     restart: unless-stopped
     depends_on:
       postgres: { condition: service_healthy }
-      whisper: { condition: service_healthy }
-      ollama-pull: { condition: service_completed_successfully }
+      # Absent under the records-remote profile (the AI runs on another machine): required: false lets the worker start without them.
+      whisper: { condition: service_healthy, required: false }
+      ollama-pull: { condition: service_completed_successfully, required: false }
       recordings-init: { condition: service_completed_successfully }
     environment:
       # A stable name: after a restart this worker takes its own interrupted job back at once.
@@ -256,6 +258,7 @@ services:
     extra_hosts: ['host.docker.internal:host-gateway']
     environment:
       SITE_ADDRESS: ${SITE_ADDRESS}
+      CADDY_SITE: ${CADDY_SITE:-${SITE_ADDRESS}}
       # Only set when the site is behind Cloudflare's proxy (the installer does it): see Caddyfile.
       TRUSTED_PROXIES: ${TRUSTED_PROXIES:-private_ranges}
       CLIENT_IP_HEADERS: ${CLIENT_IP_HEADERS:-X-Forwarded-For}
@@ -263,6 +266,19 @@ services:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data
       - caddy-config:/config
+
+  # Optional (profile "tunnel"): a Cloudflare Tunnel, for a server whose line blocks inbound 80/443 (most home connections) or
+  # that should not expose them. Create the tunnel in Cloudflare (Zero Trust > Networks > Tunnels), give it a public hostname
+  # for your domain with the service http://caddy:80, put its token in .env as CLOUDFLARE_TUNNEL_TOKEN, and set
+  # CADDY_SITE=http://<your domain> and CLIENT_IP_HEADERS=CF-Connecting-IP. Voice does not use the tunnel (it is UDP, direct).
+  cloudflared:
+    profiles: [tunnel]
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:-}
+    depends_on: [caddy]
 
 volumes:
   media:
