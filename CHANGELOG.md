@@ -10,6 +10,14 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ## [Unreleased]
 
+### Added
+
+- **Operators: `--records-compat`** runs the local AI on a CPU without AVX, with the Whisper built for it (very slow; for trying things out).
+
+### Fixed
+
+- `vtt-admin` uses `sudo` when the settings file is not readable by your user (it said "permission denied"), and `--cloudflare-dns` also switches an existing install to the DNS-challenge certificate.
+
 ## [0.4.2] - 2026-11-14
 
 Found by installing 0.4.1 on a real home server: an old CPU, a line that blocks ports 80 and 443, and a minimal Ubuntu.
@@ -17,7 +25,7 @@ Found by installing 0.4.1 on a real home server: an old CPU, a line that blocks 
 ### Added
 
 - **Operators: certificates through Cloudflare's DNS challenge** (`--cloudflare-dns`, a Cloudflare API token): real HTTPS, even inside your network or behind a Cloudflare Tunnel, with no inbound 80/443. Adds a `vtt-chat-caddy` image (Caddy with the Cloudflare DNS module).
-- **Operators: a Whisper for CPUs without AVX** (`--records-compat`, `compose.compat.yml`, image `vtt-chat-whisper-compat`), so the container no longer dies with an illegal instruction on an old server. It is very slow (about 5.5 times the audio's length on a 2010 Xeon); the gaming PC is still the way to transcribe.
+- **Operators: a Whisper for CPUs without AVX** (`compose.compat.yml`, image `vtt-chat-whisper-compat`), so the container no longer dies with an illegal instruction on an old server. It is very slow (about 5.5 times the audio's length on a 2010 Xeon); the gaming PC is still the way to transcribe.
 - **Operators: a Cloudflare Tunnel option for the website** (`--behind-tunnel`, an optional `cloudflared` service), for connections that block inbound 80/443: Caddy serves plain HTTP and the tunnel brings the traffic in; voice still goes direct.
 - **Operators: recording without local AI** (`--records-remote`, Compose profile `records-remote`): Egress and the worker run on the server while Whisper and the LLM run on another machine. The installer chooses it automatically on a CPU without AVX, which the local AI needs.
 - **The installer** works on a minimal Ubuntu (it installs `curl`-adjacent tools such as `tar`, `openssl`, `gnupg` and `nano` when missing), runs apt quietly with a log in `/var/log/vtt-install.log`, stops early and names what holds a needed port, falls back to the distribution's Docker on a release newer than Docker's own repository, and has `--no-admin`.
