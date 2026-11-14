@@ -105,7 +105,7 @@ first and tells you if the record is missing or points somewhere else. If the na
 cloud) that is fine and recommended for the website: the installer finds this machine's real public address and tells voice to
 use it ([voice and Cloudflare](#voice-and-cloudflare)).
 
-A **minimal** Ubuntu install may lack `curl` itself, which the one-liner needs: run `sudo apt-get update && sudo apt-get install -y curl` first (as root, leave `sudo` off). The installer then installs whatever else is missing (`tar`, `openssl`, `gnupg`, `iproute2`, `nano`), asks apt no questions, and keeps its output in `/var/log/vtt-install.log`. On Ubuntu releases newer than Docker's own repository knows, it uses the distribution's Docker packages.
+A **minimal** Ubuntu install may lack `curl` itself, which the one-liner needs: run `sudo apt-get update && sudo apt-get install -y curl` first (as root, leave `sudo` off). Docker itself comes from Docker's own apt repository (set up for you, so `sudo apt-get update && sudo apt-get upgrade` keeps it current; do that between sessions, because restarting Docker drops a live call), and the user who ran the installer is added to the `docker` group (it takes effect at their next login). The installer then installs whatever else is missing (`tar`, `openssl`, `gnupg`, `iproute2`, `nano`), asks apt no questions, and keeps its output in `/var/log/vtt-install.log`. On Ubuntu releases newer than Docker's own repository knows, it uses the distribution's Docker packages.
 
 After it finishes, `vtt-admin` works from any directory (`vtt-admin status`, `vtt-admin user code <email> signin`,
 `vtt-admin settings show`, `vtt-admin help`). Machine commands work the same way: `vtt-admin logs [service]`, `vtt-admin restart [service]`,

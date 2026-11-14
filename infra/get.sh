@@ -266,8 +266,17 @@ else
     install -m 0755 -d /etc/apt/keyrings
     curl -fsSL "https://download.docker.com/linux/$OS_ID/gpg" -o /etc/apt/keyrings/docker.asc
     chmod a+r /etc/apt/keyrings/docker.asc
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/$OS_ID $codename stable" \
-      > /etc/apt/sources.list.d/docker.list
+    # Docker's own repository, in the current deb822 format, so Docker updates with the rest of the system
+    # (sudo apt-get update && sudo apt-get upgrade). Nothing is upgraded behind your back: a Docker restart would drop a live session.
+    cat > /etc/apt/sources.list.d/docker.sources <<SRC
+Types: deb
+URIs: https://download.docker.com/linux/$OS_ID
+Suites: $codename
+Components: stable
+Architectures: $(dpkg --print-architecture)
+Signed-By: /etc/apt/keyrings/docker.asc
+SRC
+    rm -f /etc/apt/sources.list.d/docker.list
     apt_q update
     apt_q install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
   else
@@ -277,6 +286,13 @@ else
   fi
   systemctl enable --now docker >/dev/null 2>&1 || true
   docker compose version >/dev/null 2>&1 || die "Docker installed but \"docker compose\" does not work"
+fi
+
+# The person running the installer can then use docker (and vtt-admin) without sudo, after their next login.
+if [[ -n ${SUDO_USER:-} && $SUDO_USER != root ]] && getent group docker >/dev/null 2>&1; then
+  if ! id -nG "$SUDO_USER" 2>/dev/null | tr ' ' '\n' | grep -qx docker; then
+    usermod -aG docker "$SUDO_USER" && say "  added $SUDO_USER to the docker group (takes effect at their next login; or run: newgrp docker)"
+  fi
 fi
 
 # ---------- 5b. are the ports free? ----------
@@ -352,6 +368,9 @@ elif ((BEHIND_CLOUDFLARE)); then
     echo "CLIENT_IP_HEADERS=CF-Connecting-IP"
   } >> .env
 fi
+
+# .env holds the secrets: readable by root and the docker group (who can read everything through docker anyway), so vtt-admin works for them.
+if getent group docker >/dev/null 2>&1 && [[ -f .env ]]; then chgrp docker .env && chmod 640 .env; fi
 
 step "Downloading the server images"
 docker compose pull

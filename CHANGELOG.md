@@ -14,6 +14,8 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 - **Operators: `--records-compat`** runs the local AI on a CPU without AVX, with the Whisper built for it (very slow; for trying things out).
 
+- **Operators: the installer adds you to the `docker` group** (so `docker` and `vtt-admin` work without `sudo` after your next login), sets `.env` readable by that group, and installs Docker from Docker's own apt repository (the current deb822 format), so Docker updates with `sudo apt-get update && sudo apt-get upgrade`. Nothing upgrades Docker by itself: a Docker restart would drop a live session.
+
 ### Fixed
 
 - `vtt-admin` uses `sudo` when the settings file is not readable by your user (it said "permission denied"), and `--cloudflare-dns` also switches an existing install to the DNS-challenge certificate.
