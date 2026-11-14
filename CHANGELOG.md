@@ -43,6 +43,7 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ### Changed
 
+- **Enter sends, Ctrl+Enter makes a new line**, in both the desktop app and the web chat (Shift+Enter works too; on a phone Enter stays a new line and Send sends). The desktop app's message box is now a taller, three-line box that holds multi-line messages.
 - People using the web chat show as **On the web (chat only)** in the members lists of both apps, instead of "Offline (chat only)".
 - A web chat tab whose session has ended (expired, or signed out elsewhere) returns to the sign-in screen with "Your session ended. Sign in again." instead of reconnecting forever.
 - Sign out on the web waits for the server before showing signed-out, and says so if the server refuses.

@@ -97,7 +97,7 @@ item in the tray menu, and **Settings → Profile → Status**.
 
 ## 5. Chat and whispers
 
-Type in the message box and press Send (Ctrl or Cmd + Enter in the web app). **Type `/` to see the commands**:
+Type in the message box and press **Enter** to send. **Ctrl+Enter** (or Cmd+Enter, or Shift+Enter) starts a new line, so a message can run to several lines. On a phone the on-screen Enter key always makes a new line, and the Send button sends. **Type `/` to see the commands**:
 a list opens above the box. Up and Down move, Tab or Enter completes, Esc closes (or tap a row). A plain line is
 **in character**; the commands are for the exceptions and for style.
 

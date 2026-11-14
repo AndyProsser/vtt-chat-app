@@ -1,5 +1,12 @@
 import { Button, Flex, Text, TextArea } from '@radix-ui/themes';
-import { CHAT_TEXT_MAX, looksLikeTypo, parseComposerInput, suggest } from '@vtt-chat-app/shared';
+import {
+  CHAT_TEXT_MAX,
+  composerKeyAction,
+  insertNewline,
+  looksLikeTypo,
+  parseComposerInput,
+  suggest,
+} from '@vtt-chat-app/shared';
 import { useId, useMemo, useRef, useState } from 'react';
 
 import {
@@ -8,7 +15,6 @@ import {
   NARROW_COMPOSER_PX,
   nextUpcomingSession,
   planSend,
-  sendsOnKey,
   TYPO_WARNING,
   visibleSuggestions,
 } from '../../lib/phone/compose.js';
@@ -120,9 +126,17 @@ export function Composer({
         return;
       }
     }
-    if (sendsOnKey(e.nativeEvent, window.matchMedia('(pointer: coarse)').matches)) {
+    // Enter sends; Ctrl or Cmd+Enter is a new line (a browser does not make one by itself); Shift+Enter already is.
+    const action = composerKeyAction(e.nativeEvent, window.matchMedia('(pointer: coarse)').matches);
+    if (action === 'send') {
       e.preventDefault();
       send();
+    } else if (action === 'newline') {
+      e.preventDefault();
+      const box = e.currentTarget;
+      const next = insertNewline(text, box.selectionStart, box.selectionEnd);
+      setText(next.value);
+      requestAnimationFrame(() => box.setSelectionRange(next.caret, next.caret));
     }
   }
 

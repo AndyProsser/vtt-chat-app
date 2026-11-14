@@ -1,9 +1,11 @@
-import type {
-  ChatContext,
-  ChatRsvp,
-  ChatSuggestion,
-  ChatSuggestions,
-  ParsedComposerInput,
+import {
+  composerKeyAction,
+  type ChatContext,
+  type ComposerKey,
+  type ChatRsvp,
+  type ChatSuggestion,
+  type ChatSuggestions,
+  type ParsedComposerInput,
 } from '@vtt-chat-app/shared';
 
 import type { Member, SessionItem } from '../../types/phone.js';
@@ -82,23 +84,14 @@ export const ERROR_FRAME_MESSAGES: Record<string, string> = {
   invalid_lang: 'The server did not accept that language.',
 };
 
-export interface KeyLike {
-  key: string;
-  shiftKey: boolean;
-  ctrlKey: boolean;
-  metaKey: boolean;
-  isComposing?: boolean;
-}
+export type KeyLike = ComposerKey;
 
 /**
- * Whether a key press sends the line. Ctrl/Cmd+Enter always does. A bare Enter does on a device with a real
- * keyboard and pointer (like every desktop chat; Shift+Enter makes a new line) but not on a touch device,
- * where Enter is how you start a new line and the Send button sends.
+ * Whether this key sends the message: a bare Enter with a mouse and keyboard (Ctrl or Cmd+Enter is a new line, see
+ * `composerKeyAction` in shared/, and Shift+Enter too). On a touch device Enter is a new line and the Send button sends.
  */
 export function sendsOnKey(e: KeyLike, coarsePointer: boolean): boolean {
-  if (e.key !== 'Enter' || e.isComposing) return false;
-  if (e.ctrlKey || e.metaKey) return true;
-  return !coarsePointer && !e.shiftKey;
+  return composerKeyAction(e, coarsePointer) === 'send';
 }
 
 /** Widths at or below this (CSS px) get the short placeholder: the long one wraps to two lines on a phone. */

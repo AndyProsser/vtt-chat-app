@@ -513,9 +513,7 @@ flows.chat = async (b) => {
       if (enterKey) {
         // Enter with the suggestion list open picks the highlighted suggestion; close it first.
         await who.keyboard.press('Escape');
-        await who.keyboard.down('Control');
         await who.keyboard.press('Enter');
-        await who.keyboard.up('Control');
       } else await sendByButton(who);
       await sleep(900);
     };
@@ -655,16 +653,37 @@ flows.chat = async (b) => {
       c.length === 1 && c[0].cls.includes('phone-line-chat'),
       JSON.stringify(c[0]),
     );
-    // Ctrl+Enter and plain Enter
+    // Ctrl+Enter is a new line, not a send; Shift+Enter too; plain Enter sends (below)
     await typeInto(dm, `ctrl ${id}`);
     await dm.keyboard.down('Control');
     await dm.keyboard.press('Enter');
     await dm.keyboard.up('Control');
-    await sleep(800);
-    check(`${tag}: Ctrl+Enter sends`, (await lineLocator(pl, `ctrl ${id}`)).length === 1);
-    await typeInto(dm, `enterkey ${id}`);
+    await sleep(500);
+    check(`${tag}: Ctrl+Enter does not send`, (await lineLocator(pl, `ctrl ${id}`)).length === 0);
+    check(
+      `${tag}: Ctrl+Enter inserts a new line`,
+      (await val(dm)) === `ctrl ${id}\n`,
+      JSON.stringify(await val(dm)),
+    );
+    await dm.keyboard.type(`second ${id}`);
+    await dm.keyboard.down('Shift');
+    await dm.keyboard.press('Enter');
+    await dm.keyboard.up('Shift');
+    await dm.keyboard.type(`third ${id}`);
+    check(
+      `${tag}: Shift+Enter inserts a new line too`,
+      (await val(dm)).split('\n').length === 3,
+      JSON.stringify(await val(dm)),
+    );
     await dm.keyboard.press('Enter');
     await sleep(800);
+    check(
+      `${tag}: Enter sends the three-line message as one line`,
+      view === 'mobile' ? true : (await lineLocator(pl, `ctrl ${id}`)).length === 1,
+    );
+    await typeInto(dm, `enterkey ${id}`);
+    await dm.keyboard.press('Enter');
+    await sleep(2200);
     const enterSent = (await lineLocator(pl, `enterkey ${id}`)).length === 1;
     check(
       `${tag}: plain Enter sends (desktop expectation)`,

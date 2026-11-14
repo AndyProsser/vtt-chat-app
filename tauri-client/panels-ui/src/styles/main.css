@@ -333,6 +333,20 @@ body,
   outline: 2px solid var(--vtt-gold);
   outline-offset: 1px;
 }
+.vtt-compose-area {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 4.6em;
+  max-height: 9em;
+  background: var(--vtt-chat);
+  color: var(--vtt-ink);
+  border-radius: var(--vtt-radius-control);
+  font: inherit;
+  line-height: 1.35;
+}
+.vtt-compose-area textarea {
+  padding: 6px 10px;
+}
 .vtt-composer-error {
   position: absolute;
   bottom: 100%;

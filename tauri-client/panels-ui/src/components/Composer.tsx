@@ -1,6 +1,8 @@
-import { TextField } from '@radix-ui/themes';
+import { TextArea } from '@radix-ui/themes';
 import {
   CHAT_TEXT_MAX,
+  composerKeyAction,
+  insertNewline,
   looksLikeTypo,
   parseComposerInput,
   suggest,
@@ -139,15 +141,18 @@ export function Composer({ selfId, role }: { selfId: string | null; role: Role }
         </div>
       )}
       {note && <div className="vtt-composer-note">{note}</div>}
-      <TextField.Root
-        size="1"
+      <TextArea
+        size="2"
+        rows={3}
+        resize="none"
+        className="vtt-compose-area"
         aria-label="Message"
         role="combobox"
         aria-expanded={open}
         aria-controls="vtt-composer-list"
         aria-autocomplete="list"
         aria-activedescendant={open ? `vtt-composer-opt-${active}` : undefined}
-        placeholder="Message the table…  (type / for commands)"
+        placeholder="Message the table…  (/ for commands, Ctrl+Enter for a new line)"
         value={text}
         maxLength={CHAT_TEXT_MAX}
         onChange={(e) => {
@@ -156,19 +161,40 @@ export function Composer({ selfId, role }: { selfId: string | null; role: Role }
           setError(undefined);
         }}
         onKeyDown={(e) => {
-          if (!open) return;
-          if (e.key === 'ArrowDown') {
+          if (open) {
+            if (e.key === 'ArrowDown') {
+              e.preventDefault();
+              setPick((active + 1) % items.length);
+              return;
+            }
+            if (e.key === 'ArrowUp') {
+              e.preventDefault();
+              setPick((active - 1 + items.length) % items.length);
+              return;
+            }
+            if (e.key === 'Tab' || (e.key === 'Enter' && items[active]!.insert !== text)) {
+              e.preventDefault();
+              choose(items[active]!);
+              return;
+            }
+            if (e.key === 'Escape') {
+              e.preventDefault();
+              setDismissed(text);
+              return;
+            }
+          }
+          // Enter sends; Ctrl or Cmd+Enter is a new line (a text area does not make one by itself); Shift+Enter
+          // already is. Enter that confirms an input-method composition is left alone.
+          const action = composerKeyAction(e.nativeEvent, false);
+          if (action === 'send') {
             e.preventDefault();
-            setPick((active + 1) % items.length);
-          } else if (e.key === 'ArrowUp') {
+            void send();
+          } else if (action === 'newline') {
             e.preventDefault();
-            setPick((active - 1 + items.length) % items.length);
-          } else if (e.key === 'Tab' || (e.key === 'Enter' && items[active]!.insert !== text)) {
-            e.preventDefault();
-            choose(items[active]!);
-          } else if (e.key === 'Escape') {
-            e.preventDefault();
-            setDismissed(text);
+            const box = e.currentTarget;
+            const next = insertNewline(text, box.selectionStart, box.selectionEnd);
+            setText(next.value);
+            requestAnimationFrame(() => box.setSelectionRange(next.caret, next.caret));
           }
         }}
       />

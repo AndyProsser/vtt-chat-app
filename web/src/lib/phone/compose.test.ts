@@ -117,9 +117,9 @@ describe('sendsOnKey', () => {
   it('leaves a bare Enter as a new line on a touch device', () => {
     expect(sendsOnKey(k(), true)).toBe(false);
   });
-  it('sends on Ctrl or Cmd+Enter everywhere', () => {
-    expect(sendsOnKey(k({ ctrlKey: true }), true)).toBe(true);
-    expect(sendsOnKey(k({ metaKey: true }), false)).toBe(true);
+  it('does not send on Ctrl or Cmd+Enter: that is a new line', () => {
+    expect(sendsOnKey(k({ ctrlKey: true }), true)).toBe(false);
+    expect(sendsOnKey(k({ metaKey: true }), false)).toBe(false);
   });
   it('ignores Enter that confirms an IME composition, and other keys', () => {
     expect(sendsOnKey(k({ isComposing: true }), false)).toBe(false);
