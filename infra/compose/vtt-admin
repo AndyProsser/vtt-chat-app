@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
-# Runs the Admin CLI inside the backend container:  ./vtt-admin status | settings … | user …
-cd "$(dirname "$0")" || exit 1
+# Runs the Admin CLI inside the backend container:  vtt-admin status | settings … | user …
+# Works through a symlink (the installer links it to /usr/local/bin) and asks for sudo if the user is not in the docker group.
+here=$(dirname "$(readlink -f "$0")")
+cd "$here" || exit 1
+if ! docker info >/dev/null 2>&1; then
+  exec sudo -- docker compose exec backend node backend/dist/cli/main.js "$@"
+fi
 exec docker compose exec backend node backend/dist/cli/main.js "$@"

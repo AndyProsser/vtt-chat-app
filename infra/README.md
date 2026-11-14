@@ -15,7 +15,7 @@ Ubuntu Server deployment: install script, systemd units, config generation — s
   ```
 
 - [`compose/`](compose/README.md) — the primary Docker Compose bundle for a VM/server (voice works; Egress/AI come with Stage 5). `dev/` — throwaway Postgres + Valkey for tests.
-- Optional one-line `curl` installer (not built; the installer needs a repository checkout today)
+- [`get.sh`](get.sh) — the **one-command installer** for a blank Ubuntu/Debian server: asks for a domain and an email, installs Docker, downloads the release's Compose bundle to `/opt/vtt-chat`, runs `setup.sh`, starts the stack, creates the first Admin and prints a sign-in code and next steps; re-running updates. `curl -fsSL https://raw.githubusercontent.com/AndyProsser/vtt-chat-app/main/infra/get.sh | sudo bash`. Checks DNS (and warns about a Cloudflare-proxied record). Tested by `get.test.sh`.
 - First-run bootstrap of the instance (first DM) — shape depends on the identity decision
 
 ## Operator Firewall / Port-Forwarding Checklist

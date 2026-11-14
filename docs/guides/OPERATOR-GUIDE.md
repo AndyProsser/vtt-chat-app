@@ -89,6 +89,35 @@ Nothing here needs an outside account. Players' apps talk only to **your** serve
 
 ## 3. Install with Docker Compose (recommended)
 
+### The one-command install (easiest)
+
+On a **blank Ubuntu Server** (22.04 or 24.04), after you have pointed your domain's DNS "A" record at the machine,
+SSH in and run:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/AndyProsser/vtt-chat-app/main/infra/get.sh | sudo bash
+```
+
+It asks for your domain and your email, then does everything: installs Docker if needed, downloads the server
+bundle for the newest release into `/opt/vtt-chat`, writes fresh secrets, starts the stack, opens the needed ports in
+`ufw` if it is active, makes you the first Admin and prints a **sign-in code** and what to do next. It checks your DNS
+first and tells you if the record is missing, points elsewhere, or is a **Cloudflare proxied record** (orange cloud:
+switch it to **DNS only**, because voice cannot pass through Cloudflare's proxy).
+
+After it finishes, `vtt-admin` works from any directory (`vtt-admin status`, `vtt-admin user code <email> signin`,
+`vtt-admin settings show`, `vtt-admin help`). Run the same command again to **update**: data and settings are kept.
+
+Everything it asks can be a flag, for a pasted one-liner: `... | sudo bash -s -- --domain vtt.example.com --email you@example.com --name "You" --with-records --yes`.
+Other flags: `--version 0.4.0` (a specific release; a dev build needs its full name), `--public-ip` (behind NAT),
+`--dir`, `--dry-run` (shows the plan), `--skip-docker-install`, `--skip-firewall`. You still open the same ports at your
+router or cloud firewall (the table above); the script cannot do that part. Prefer to read it first? It is
+[`infra/get.sh`](../../infra/get.sh), one file.
+
+**(Rehearsed on a workstation with Docker already installed, against the published images; the Docker-install and
+`ufw` steps and the Let's Encrypt certificate are written but not yet run on a blank VM.)** The manual steps follow.
+
+### Or step by step
+
 ```bash
 sudo apt-get install -y docker.io docker-compose-v2 git   # or Docker's own packages
 git clone https://github.com/AndyProsser/vtt-chat-app.git

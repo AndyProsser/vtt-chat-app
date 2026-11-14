@@ -17,6 +17,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: tauri-client/scripts/release-version.sh
+      - run: infra/get.test.sh
+      - run: infra/compose/setup.test.sh
       - run: npm run lint
       - run: npm run format:check
       # Build before typecheck: panels-ui imports @vtt-chat-app/shared,
