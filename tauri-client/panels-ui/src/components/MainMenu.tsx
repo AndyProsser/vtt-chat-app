@@ -1,10 +1,10 @@
 import { Popover } from '@radix-ui/themes';
-import { Activity, ArrowLeft, Menu, Power, ScrollText, Settings } from 'lucide-react';
+import { Activity, ArrowLeft, Menu, Power, Settings } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 
 import { pendingCount } from '../lib/joinRequests.js';
 import { useJoinStore } from '../lib/joinStore.js';
-import { appQuit, panelOpen } from '../lib/tauriBridge.js';
+import { appQuit } from '../lib/tauriBridge.js';
 import { ConnectionPanel } from './ConnectionPanel.js';
 import { SettingsContent } from './SettingsWindow.js';
 import { ToolButton } from './ToolButton.js';
@@ -42,8 +42,7 @@ function Item({
 }
 
 /**
- * The burger menu at the right of the top bar: the things you reach for rarely (session history, the DM's connection quality,
- * settings, quit), so the bar keeps room for the record timer and the table tools. Settings and the connection view open inside
+ * The burger menu at the right of the top bar: the things you reach for rarely (the DM's connection quality, settings, quit), so the bar keeps room for the record timer and the table tools. Settings and the connection view open inside
  * the same popover with a back arrow. Your status is the pill above the microphone, not here.
  */
 export function MainMenu({ dm }: { dm: boolean }) {
@@ -63,7 +62,7 @@ export function MainMenu({ dm }: { dm: boolean }) {
           label={
             waiting > 0
               ? `Menu (${waiting} join request${waiting === 1 ? '' : 's'})`
-              : 'Menu: history, settings, quit'
+              : 'Menu: settings, quit'
           }
           className="vtt-cog"
         >
@@ -79,14 +78,6 @@ export function MainMenu({ dm }: { dm: boolean }) {
       >
         {view === 'menu' ? (
           <nav className="vtt-menu" aria-label="Menu">
-            <Item
-              icon={<ScrollText size={12} />}
-              label="Session history"
-              onClick={() => {
-                void panelOpen('history');
-                setOpen(false);
-              }}
-            />
             {dm && (
               <Item
                 icon={<Activity size={12} />}

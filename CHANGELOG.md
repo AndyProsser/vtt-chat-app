@@ -10,6 +10,10 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ## [Unreleased]
 
+### Changed
+
+- **Session history is back on the top bar** (last, just before the menu button). In the history, each recorded session has one **bin button** at the top right of its card (DM only); it opens a small panel saying what each choice removes: **the audio only** (frees disk space; the text stays) or **the whole session**. Both ask once more. It replaces the two stacked delete buttons.
+
 ### Fixed
 
 - **Settings looked misaligned and had a dashed outline.** The Settings cards shared a name with the chat's loot and handout cards, so they picked up its dashed border and centred rows; the rows now line up (label left, control right) like they were meant to. The extra gap above a tab's first title is gone.

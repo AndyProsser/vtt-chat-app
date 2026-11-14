@@ -1,4 +1,4 @@
-import { AudioLines, Backpack, FileText } from 'lucide-react';
+import { AudioLines, Backpack, FileText, ScrollText } from 'lucide-react';
 
 import { panelOpen } from '../lib/tauriBridge.js';
 import { CampaignSwitcher } from './CampaignSwitcher.js';
@@ -36,6 +36,9 @@ export function TopBar({ dm, effectsOpen, onToggleEffects }: Props) {
       </ToolButton>
       <ToolButton label="Party inventory" onClick={() => void panelOpen('inventory')}>
         <Backpack size={15} />
+      </ToolButton>
+      <ToolButton label="Session history" onClick={() => void panelOpen('history')}>
+        <ScrollText size={15} />
       </ToolButton>
       <MainMenu dm={dm} />
     </header>

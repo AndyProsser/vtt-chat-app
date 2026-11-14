@@ -1,5 +1,5 @@
 import { TextField } from '@radix-ui/themes';
-import { ChevronDown, ChevronRight, Search, Trash2, X } from 'lucide-react';
+import { ChevronDown, ChevronRight, Search, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { useAccount } from '../hooks/useAccount.js';
@@ -25,6 +25,7 @@ import { isDm } from '../lib/tableModel.js';
 import { useTableStore } from '../lib/tableStore.js';
 import { accountErrorMessage, campaignApi, recordsSearch } from '../lib/tauriBridge.js';
 import { MarkdownView } from './MarkdownView.js';
+import { SessionDelete } from './SessionDelete.js';
 import { ToolButton } from './ToolButton.js';
 import { EmptyState } from './EmptyState.js';
 
@@ -197,114 +198,38 @@ function Recording({
   onRemove: () => void;
   onAudioDeleted: () => void;
 }) {
-  const [confirming, setConfirming] = useState(false);
   const live = item.status === 'recording' || item.status === 'processing';
   return (
     <section className="vtt-session">
-      <button type="button" className="vtt-char-head" aria-expanded={open} onClick={onToggle}>
-        <span className="vtt-char-text">
-          <b>{dateOf(item.startedAt)}</b>
-          <span className="vtt-muted">
-            {durationLabel(item.startedAt, item.stoppedAt)}
-            {item.status !== 'processed' ? ` · ${statusWord(item.status)}` : ''}
-            {item.summaries.length > 0 ? ` · ${item.summaries.map(summaryLabel).join(', ')}` : ''}
-            {dm && item.audio === 'purged' ? ' · audio deleted' : ''}
+      <div className="vtt-session-top">
+        <button type="button" className="vtt-char-head" aria-expanded={open} onClick={onToggle}>
+          <span className="vtt-char-text">
+            <b>{dateOf(item.startedAt)}</b>
+            <span className="vtt-muted">
+              {durationLabel(item.startedAt, item.stoppedAt)}
+              {item.status !== 'processed' ? ` · ${statusWord(item.status)}` : ''}
+              {item.summaries.length > 0 ? ` · ${item.summaries.map(summaryLabel).join(', ')}` : ''}
+              {dm && item.audio === 'purged' ? ' · audio deleted' : ''}
+            </span>
           </span>
-        </span>
-        {open ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-      </button>
+          {open ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+        </button>
+        {dm && !live && (
+          <SessionDelete
+            id={item.id}
+            canDeleteAudio={audioActions(item, dm).canDelete}
+            onAudioDeleted={onAudioDeleted}
+            onRemoved={onRemove}
+          />
+        )}
+      </div>
       {open && <Detail id={item.id} />}
       {open && audioDeletionNote(item, dm) && (
         <span className="vtt-warning" role="status">
           {audioDeletionNote(item, dm)}
         </span>
       )}
-      {open && audioActions(item, dm).canDelete && (
-        <DeleteAudio id={item.id} onDone={onAudioDeleted} />
-      )}
-      {open && dm && !live && (
-        <div>
-          {confirming ? (
-            <div className="vtt-warning" role="alert">
-              <span>Delete this recording, its transcript and summaries for everyone?</span>
-              <span className="vtt-form-row">
-                <ToolButton label="Yes, delete it" danger text="Delete" onClick={onRemove}>
-                  <Trash2 size={14} />
-                </ToolButton>
-                <ToolButton label="Keep it" onClick={() => setConfirming(false)}>
-                  <X size={14} />
-                </ToolButton>
-              </span>
-            </div>
-          ) : (
-            <ToolButton label="Delete this recording…" danger onClick={() => setConfirming(true)}>
-              <Trash2 size={14} />
-            </ToolButton>
-          )}
-        </div>
-      )}
     </section>
-  );
-}
-
-/** The DM's go-ahead to delete the raw audio once they have read the summary. The text stays; this cannot be undone. */
-function DeleteAudio({ id, onDone }: { id: string; onDone: () => void }) {
-  const [confirming, setConfirming] = useState(false);
-  const [queued, setQueued] = useState(false);
-  const [error, setError] = useState<string>();
-
-  async function run() {
-    try {
-      setError(undefined);
-      await campaignApi('POST', `recordings/${id}/audio/delete`);
-      setConfirming(false);
-      setQueued(true);
-      onDone();
-    } catch (e) {
-      setError(accountErrorMessage(e));
-    }
-  }
-
-  if (queued)
-    return (
-      <span className="vtt-muted">Deleting the audio. The transcript and summaries stay.</span>
-    );
-  return (
-    <div>
-      {error && (
-        <div className="vtt-composer-error" role="alert" style={{ position: 'static' }}>
-          {error}
-        </div>
-      )}
-      {confirming ? (
-        <div className="vtt-warning" role="alert">
-          <span>
-            Delete the raw audio of this session? The transcript and summaries stay. This cannot be
-            undone, and the audio cannot be transcribed again.
-          </span>
-          <span className="vtt-form-row">
-            <ToolButton
-              label="Yes, delete the audio"
-              danger
-              text="Delete"
-              onClick={() => void run()}
-            >
-              <Trash2 size={14} />
-            </ToolButton>
-            <ToolButton label="Keep the audio" onClick={() => setConfirming(false)}>
-              <X size={14} />
-            </ToolButton>
-          </span>
-        </div>
-      ) : (
-        <ToolButton
-          label="The summary is good: delete the audio…"
-          onClick={() => setConfirming(true)}
-        >
-          <Trash2 size={14} />
-        </ToolButton>
-      )}
-    </div>
   );
 }
 

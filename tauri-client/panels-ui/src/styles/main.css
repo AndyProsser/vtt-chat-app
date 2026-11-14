@@ -2416,3 +2416,43 @@ body,
 .vtt-settings [role='tabpanel']:focus-visible {
   outline: none;
 }
+
+/* A recorded session's card: the title row has the expand button and, for the DM, one delete button at the right. */
+.vtt-session-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.vtt-session-top .vtt-char-head {
+  flex: 1;
+  min-width: 0;
+}
+.vtt-del {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 12px;
+}
+.vtt-del-choice {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px;
+  text-align: left;
+  border: 1px solid var(--vtt-edge);
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.vtt-del-choice:hover:not(:disabled) {
+  border-color: var(--vtt-gold);
+}
+.vtt-del-choice:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.vtt-del-danger b {
+  color: #e5675f;
+}

@@ -43,8 +43,8 @@ applications menu. [Fixing a missing tray icon](INSTALLING-THE-APP.md#linux-i-ca
 The window has, from top to bottom:
 
 - **The bar**: the campaign (click to switch), the **REC** timer when a session is being recorded, then
-  small buttons for handouts and the party inventory (and, for the DM, groups and sound effects), then a **menu button** (the burger) holding
-  session history, the DM's connection quality, **Settings** and **Quit**. Your **status** is the coloured pill above the microphone button (ONLINE green, AWAY amber, OFFLINE grey): click it to change it.
+  small buttons for handouts and the party inventory (and, for the DM, groups and sound effects) and **session history**, then a **menu button** (the burger) holding
+  the DM's connection quality, **Settings** and **Quit**. Your **status** is the coloured pill above the microphone button (ONLINE green, AWAY amber, OFFLINE grey): click it to change it.
 - **The rail** (the round portraits on the left): everyone at the table. Their portrait glows while they
   speak. Hover over one for a card with their character and, for the DM, how good their connection is.
 - **The chat** (middle): messages, whispers, and cards for handouts and loot.
@@ -228,8 +228,8 @@ different versions, update the app, or ask your DM to update the server if the a
 - **Record**: the record button in the bar starts, pauses, resumes and stops. A recording protects the
   session: you cannot switch campaigns or hand over the role until it stops.
 - **Audio is kept until you say otherwise.** The raw recordings are large. Once a session is written up and you
-  have read the summary, open it in the session history and choose **"The summary is good: delete the audio"**.
-  The transcript and summaries stay; the audio goes and cannot be got back, so it cannot be transcribed again.
+  have read the summary, open it in the session history and press the **bin button** at the top right of its card, then **"Delete the audio only"** (each choice says what it removes and asks once more).
+  The transcript and summaries stay; the audio goes and cannot be got back, so it cannot be transcribed again. The other choice, **"Delete the whole session"**, removes the recording, its transcript and its summaries for everyone.
   If the server's disk runs low you are warned (a notification, and a note on the session) three days before the
   oldest audio is deleted for you.
 - The first time, **invite your players**: Settings → Campaign → invites (a link by email, a code, or a QR).
