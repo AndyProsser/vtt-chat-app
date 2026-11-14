@@ -35,8 +35,22 @@ jobs:
         include:
           - image: vtt-chat-backend
             target: backend
+            file: infra/compose/backend.Dockerfile
+            context: .
           - image: vtt-chat-worker
             target: worker
+            file: infra/compose/backend.Dockerfile
+            context: .
+          # Whisper for CPUs without AVX (compose.compat.yml): a few minutes to compile, so it is built here rather than on every old server.
+          - image: vtt-chat-whisper-compat
+            target: ''
+            file: infra/compose/whisper-compat.Dockerfile
+            context: infra/compose
+          # Caddy with the Cloudflare DNS module (certificates without inbound 80/443).
+          - image: vtt-chat-caddy
+            target: ''
+            file: infra/compose/caddy.Dockerfile
+            context: infra/compose
     steps:
       - uses: actions/checkout@v7
         with:
@@ -62,8 +76,8 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - uses: docker/build-push-action@v6
         with:
-          context: .
-          file: infra/compose/backend.Dockerfile
+          context: ${{ matrix.context }}
+          file: ${{ matrix.file }}
           target: ${{ matrix.target }}
           push: true
           tags: ${{ steps.tags.outputs.list }}
@@ -71,5 +85,5 @@ jobs:
           labels: |
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
             org.opencontainers.image.version=${{ steps.tags.outputs.version }}
-          cache-from: type=gha,scope=${{ matrix.target }}
-          cache-to: type=gha,scope=${{ matrix.target }},mode=max
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,scope=${{ matrix.image }},mode=max

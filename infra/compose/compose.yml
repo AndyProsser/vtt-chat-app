@@ -250,7 +250,12 @@ services:
       - recordings:/out
 
   caddy:
-    image: caddy:2-alpine
+    # Caddy with the Cloudflare DNS module (certificates through the DNS challenge need no inbound 80/443); same as the stock
+    # caddy:2 otherwise. `docker compose up --build` builds it from caddy.Dockerfile.
+    image: ${VTT_REGISTRY:-ghcr.io/andyprosser}/vtt-chat-caddy:${VTT_VERSION:-latest}
+    build:
+      context: .
+      dockerfile: caddy.Dockerfile
     restart: unless-stopped
     depends_on: [backend]
     ports: ['80:80', '443:443', '443:443/udp']
@@ -262,8 +267,11 @@ services:
       # Only set when the site is behind Cloudflare's proxy (the installer does it): see Caddyfile.
       TRUSTED_PROXIES: ${TRUSTED_PROXIES:-private_ranges}
       CLIENT_IP_HEADERS: ${CLIENT_IP_HEADERS:-X-Forwarded-For}
+      # For the DNS challenge (--cloudflare-dns): a Cloudflare API token with Zone:DNS:Edit on your zone. A secret: it lives in .env.
+      CLOUDFLARE_API_TOKEN: ${CLOUDFLARE_API_TOKEN:-}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./tls.d:/etc/caddy/tls.d:ro
       - caddy-data:/data
       - caddy-config:/config
 

@@ -14,6 +14,9 @@
 {$CADDY_SITE} {
 	encode zstd gzip
 
+	# Optional certificate settings (the installer writes tls.d/cloudflare.caddy for --cloudflare-dns); nothing here by default.
+	import /etc/caddy/tls.d/*.caddy
+
 	# Signalling for LiveKit: the SDK appends /rtc, so strip our prefix. Media (UDP) bypasses Caddy.
 	handle_path /livekit/* {
 		reverse_proxy host.docker.internal:7880

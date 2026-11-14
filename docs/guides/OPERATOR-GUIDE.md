@@ -122,6 +122,16 @@ router or cloud firewall (the table above); the script cannot do that part. Pref
 **(Rehearsed on a workstation with Docker already installed, against the published images; the Docker-install and
 `ufw` steps and the Let's Encrypt certificate are written but not yet run on a blank VM.)** The manual steps follow.
 
+### HTTPS without opening 80/443 (the DNS challenge)
+
+Caddy normally proves it owns the domain over ports 80 and 443. If those are not reachable (a home line, or a Cloudflare Tunnel in front),
+use Cloudflare's **DNS challenge** instead: install with `--cloudflare-dns` and a Cloudflare API token (create one at Cloudflare, My Profile,
+API Tokens, with **Zone, DNS, Edit** on your zone). The installer reads it from `CLOUDFLARE_API_TOKEN` or asks for it with your typing hidden
+(never as an option, so it is not left in your shell history), writes it to `.env` (mode 600) and gives Caddy a `tls.d/cloudflare.caddy`.
+The certificate is real, so **everything can be HTTPS, even inside your network**: point a tunnel at `https://<this machine>:443` with the
+origin server name set to your domain, and nothing needs to skip certificate checks. Needs the `vtt-chat-caddy` image, which is Caddy with
+the Cloudflare DNS module (published with each release).
+
 ### Behind a Cloudflare Tunnel (a line that blocks 80/443)
 
 Most home connections block inbound 80 and 443, so Let's Encrypt and Cloudflare's proxy cannot reach the server. Use a **Cloudflare
@@ -390,6 +400,10 @@ details. A GPU PC does the same work in minutes with the better models. So:
    (Egress) and the worker but not Whisper or Ollama, and the AI must be remote: set the keys above and
    `./vtt-admin settings set ai.fallback.enabled false`, so a job waits for the PC instead of trying a local service that is not there.
    Keep the PC on during the hours after a session.
+   If you would rather try it locally anyway, `COMPOSE_FILE=compose.yml:compose.compat.yml` in `.env` swaps in a Whisper built without AVX
+   (`vtt-chat-whisper-compat`). It runs, but measured on a 2010 Xeon it took **5.5 times the audio's length** with the `small` model (a
+   four-hour session would take about a day), so it is a last resort, not a plan. Ollama is fine without AVX (it chooses a CPU
+   variant), so a summary model on a slow CPU, or on another machine on your network, works.
 4. Otherwise keep the local fallback ready on the VM: `small` Whisper and `llama3.2:3b` (the defaults for a CPU-only server).
    If the PC is off, a job waits ten minutes and then runs locally, slower and rougher but never lost.
 

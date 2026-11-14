@@ -17,6 +17,9 @@
 #   --voice-address 203.0.113.7   where voice (UDP) connects: an IP or DNS name. Found automatically; set it when the
 #                                 domain goes through Cloudflare's proxy or the machine is behind NAT (alias: --public-ip)
 #   --dir /opt/vtt-chat           where to put it
+#   --cloudflare-dns              get the certificate through Cloudflare's DNS challenge instead of ports 80/443 (needs a Cloudflare API token with
+#                                 Zone:DNS:Edit; read from $CLOUDFLARE_API_TOKEN or asked for, never taken as an option). HTTPS everywhere, even behind a
+#                                 tunnel: point the tunnel at https://<this machine>:443 with the origin server name set to your domain
 #   --behind-tunnel               the website arrives through a Cloudflare Tunnel (your line blocks 80/443, or you prefer it): Caddy serves plain
 #                                 HTTP and asks for no certificate; see the operator guide for the tunnel's hostname and token
 #   --no-admin                    do not create the first Admin now (make one later: vtt-admin user create <email> --name <name> --accept-consent)
@@ -26,7 +29,7 @@ set -euo pipefail
 
 REPO="${VTT_REPO:-AndyProsser/vtt-chat-app}"
 ASSUME_YES=0 DRY_RUN=0 SKIP_DOCKER=0 SKIP_FIREWALL=0 WITH_RECORDS=""
-RECORDS_PROFILE=records TUNNEL=0 NO_ADMIN=0 BEHIND_CLOUDFLARE=0 DOMAIN="" EMAIL="" NAME="" VERSION="" PUBLIC_IP="" DIR="/opt/vtt-chat"
+CFDNS=0 RECORDS_PROFILE=records TUNNEL=0 NO_ADMIN=0 BEHIND_CLOUDFLARE=0 DOMAIN="" EMAIL="" NAME="" VERSION="" PUBLIC_IP="" DIR="/opt/vtt-chat"
 
 # ---------- small helpers ----------
 if [[ -t 1 ]]; then B=$'\e[1m' G=$'\e[32m' Y=$'\e[33m' R=$'\e[31m' N=$'\e[0m'; else B="" G="" Y="" R="" N=""; fi
@@ -94,6 +97,7 @@ while (($#)); do
     --dir) DIR=${2:?--dir needs a value}; shift 2 ;;
     --no-admin) NO_ADMIN=1; shift ;;
     --behind-tunnel) TUNNEL=1; shift ;;
+    --cloudflare-dns) CFDNS=1; shift ;;
     --with-records) WITH_RECORDS=1; shift ;;
     --no-records) WITH_RECORDS=0; shift ;;
     --records-remote) WITH_RECORDS=1; RECORDS_PROFILE=records-remote; shift ;;
@@ -170,6 +174,18 @@ if [[ $WITH_RECORDS == 1 && $RECORDS_PROFILE == records && $(uname -m) == x86_64
   RECORDS_PROFILE=records-remote
 fi
 
+CF_TOKEN=""
+if ((CFDNS)) && ((EXISTING == 0)); then
+  CF_TOKEN=${CLOUDFLARE_API_TOKEN:-}
+  if [[ -z $CF_TOKEN ]]; then
+    have_tty || die "--cloudflare-dns needs a Cloudflare API token: set CLOUDFLARE_API_TOKEN in the environment, or run in a terminal to be asked"
+    printf 'Cloudflare API token (Zone:DNS:Edit on %s; typing is hidden): ' "${DOMAIN#*.}" >/dev/tty
+    IFS= read -rs CF_TOKEN </dev/tty || true
+    printf '\n' >/dev/tty
+  fi
+  [[ $CF_TOKEN =~ ^[A-Za-z0-9_-]{20,}$ ]] || die "that does not look like a Cloudflare API token"
+fi
+
 # ---------- 3. which release ----------
 step "Choosing the release"
 if [[ -z $VERSION && $EXISTING == 1 && -f $DIR/.installed-version ]]; then
@@ -202,7 +218,7 @@ if [[ -z $PUBLIC_IP ]]; then
     warn "could not find the public address; if this machine is behind a router, re-run with --public-ip <address>"
   fi
 fi
-if [[ $DOMAIN != localhost ]] && ((TUNNEL == 0)); then
+if [[ $DOMAIN != localhost ]] && ((TUNNEL == 0 && CFDNS == 0)); then
   resolved=$(getent ahostsv4 "$DOMAIN" 2>/dev/null | awk 'NR==1 {print $1}' || true)
   expected=${PUBLIC_IP:-${detected:-}}
   if [[ -z $resolved ]]; then
@@ -294,7 +310,7 @@ mkdir -p "$DIR"
 for f in "$tmp"/src/infra/compose/*; do
   base=$(basename "$f")
   [[ $base == .env || $base == livekit.yaml ]] && continue
-  cp -rf "$f" "$DIR/$base"
+  if [[ -d $f ]]; then mkdir -p "$DIR/$base" && cp -a "$f/." "$DIR/$base/"; else cp -rf "$f" "$DIR/$base"; fi
 done
 chmod +x "$DIR"/*.sh "$DIR/vtt-admin" 2>/dev/null || true
 echo "$TAG" > "$DIR/.installed-version"
@@ -310,6 +326,13 @@ else
   step "Writing the configuration (fresh secrets, never shown)"
   VTT_VERSION="$IMAGE_VERSION" ./setup.sh "$DOMAIN" ${PUBLIC_IP:+"$PUBLIC_IP"}
   if [[ $WITH_RECORDS == 1 ]]; then echo "COMPOSE_PROFILES=$RECORDS_PROFILE" >> .env; say "  recording and summaries: on ($RECORDS_PROFILE)"; fi
+fi
+if ((CFDNS)) && [[ -n $CF_TOKEN ]]; then
+  mkdir -p tls.d
+  printf 'tls {\n\tdns cloudflare {env.CLOUDFLARE_API_TOKEN}\n\tresolvers 1.1.1.1 1.0.0.1\n}\n' > tls.d/cloudflare.caddy
+  grep -q '^CLOUDFLARE_API_TOKEN=' .env || printf 'CLOUDFLARE_API_TOKEN=%s\n' "$CF_TOKEN" >> .env
+  chmod 600 .env
+  say "  certificate through Cloudflare's DNS challenge (no inbound 80/443 needed)"
 fi
 if ((TUNNEL)); then
   grep -q '^CADDY_SITE=' .env || echo "CADDY_SITE=http://$DOMAIN" >> .env
@@ -364,7 +387,14 @@ for _ in $(seq 1 30); do
   sleep 2
 done
 if ((local_ok)); then say "  the server answers on this machine"; else warn "the server did not answer locally; check: docker compose -f $DIR/compose.yml logs backend caddy"; fi
-if [[ $DOMAIN != localhost ]] && ((TUNNEL == 0)); then
+if ((CFDNS)); then
+  say "  waiting for the certificate from Cloudflare's DNS challenge (up to 4 minutes)..."
+  for _ in $(seq 1 48); do
+    if curl -fsS --max-time 6 --resolve "$DOMAIN:443:127.0.0.1" "https://$DOMAIN/api/health" >/dev/null 2>&1; then public_ok=1; break; fi
+    sleep 5
+  done
+  if ((public_ok)); then say "  https://$DOMAIN has a valid certificate"; else warn "no certificate yet: check the token's rights and  vtt-admin logs caddy"; fi
+elif [[ $DOMAIN != localhost ]] && ((TUNNEL == 0)); then
   say "  waiting for the secure certificate (up to 2 minutes)..."
   for _ in $(seq 1 24); do
     if curl -fsS --max-time 6 "https://$DOMAIN/api/health" >/dev/null 2>&1; then public_ok=1; break; fi
@@ -427,7 +457,14 @@ ${B}Next${N}
 
 Guide: https://github.com/$REPO/blob/main/docs/guides/OPERATOR-GUIDE.md
 EOF
-if ((TUNNEL)); then
+if ((CFDNS)); then
+  cat <<EOF
+
+${Y}If the website goes through a Cloudflare Tunnel${N} (your line blocks 80/443): point its public hostname ${B}$DOMAIN${N} at
+${B}https://$(hostname -I | awk '{print $1}'):443${N} with the origin server name ${B}$DOMAIN${N}; the certificate here is valid, so nothing is skipped.
+Without a tunnel, point a DNS "A" record for $DOMAIN at this machine and open 80/443 instead (or keep the record proxied by Cloudflare).
+EOF
+elif ((TUNNEL)); then
   cat <<EOF
 
 ${Y}One step is yours:${N} in Cloudflare (Zero Trust > Networks > Tunnels) give your tunnel a public hostname ${B}$DOMAIN${N} with the service

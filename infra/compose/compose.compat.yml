@@ -1,0 +1,16 @@
+# CPU-compatibility override for the records profile: a Whisper built for CPUs without AVX.
+#
+#   COMPOSE_FILE=compose.yml:compose.compat.yml   (in .env), then:  docker compose --profile records up -d --build
+#
+# Needed when the stock Whisper container dies at start with exit code 132 ("illegal instruction"): your CPU lacks the AVX2
+# the upstream image assumes (a server from before about 2013, or a VM given a generic CPU type; if the VM host's CPU is
+# modern, set the VM's CPU type to "host" instead, which is faster). Whisper then runs from whisper-compat.Dockerfile,
+# published as vtt-chat-whisper-compat with each release (`docker compose pull`), or built here (`up --build`, a few minutes). It is MUCH slower: measured on a 2010 Xeon (E5645, 4 vCPUs) it took 5.5x the audio's
+# length with the `small` model (a 4-hour session would take about a day), so it suits only short sessions or a patient operator;
+# put Whisper on a GPU or any modern PC instead (docs: a gaming PC as the AI). Better than a crash, not a plan. Ollama picks a suitable CPU variant by itself and needs no override.
+services:
+  whisper:
+    image: ${VTT_REGISTRY:-ghcr.io/andyprosser}/vtt-chat-whisper-compat:${VTT_VERSION:-latest}
+    build:
+      context: .
+      dockerfile: whisper-compat.Dockerfile
