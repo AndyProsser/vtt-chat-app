@@ -10,6 +10,10 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ## [Unreleased]
 
+## [0.4.3] - 2026-11-14
+
+Found by running 0.4.2 on a real server with a real recording.
+
 ### Added
 
 - **Party inventory in the web chat.** A new **Loot** tab shows what the DM has dropped and who has it, live. Players can take an item, store it for the party or put it back; the DM can give an item to a player. The same rules as the desktop app's party inventory (now shared code).
