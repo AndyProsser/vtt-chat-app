@@ -29,6 +29,16 @@ say() { printf '%s\n' "$*"; }
 step() { printf '\n%s==>%s %s%s%s\n' "$G" "$N" "$B" "$*" "$N"; }
 warn() { printf '%s!%s %s\n' "$Y" "$N" "$*" >&2; }
 die() { printf '%sError:%s %s\n' "$R" "$N" "$*" >&2; exit 1; }
+# apt is chatty and may ask questions: answer them, and keep the noise in a log shown only if something fails.
+export DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a
+LOG=/var/log/vtt-install.log
+apt_q() {
+  ((DRY_RUN)) && { say "  (dry run) apt-get $*"; return 0; }
+  if ! apt-get -o Dpkg::Progress-Fancy=0 -o Dpkg::Use-Pty=0 "$@" >>"$LOG" 2>&1; then
+    tail -n 25 "$LOG" >&2
+    die "apt-get $* failed; the full output is in $LOG"
+  fi
+}
 run() { if ((DRY_RUN)); then say "  (dry run) $*"; else "$@"; fi; }
 
 # The image version for a release tag: a stable release follows its MAJOR.MINOR line (the newest patch, never a
@@ -111,13 +121,15 @@ say "  memory ${mem_mb} MB, free disk ${disk_gb} GB"
 ((mem_mb >= 3500)) || warn "less than 4 GB of memory: chat and voice are fine, recording and summaries need more (8 GB or more)"
 ((disk_gb >= 15)) || warn "less than 15 GB free: recordings and the AI models need room (30 GB or more is comfortable)"
 
-for tool in curl tar openssl; do
-  command -v "$tool" >/dev/null 2>&1 && continue
-  step "Installing $tool"
-  run apt-get update -qq
-  run apt-get install -y -qq curl tar openssl ca-certificates
-  break
-done
+# A minimal Ubuntu install lacks things this script and the guide lean on (curl, tar, openssl, gpg, ss, nano...). Fetch what is missing.
+declare -A PKG_FOR=([curl]=curl [tar]=tar [openssl]=openssl [gpg]=gnupg [ss]=iproute2 [hostname]=hostname [getent]=libc-bin [nano]=nano [awk]=gawk [sed]=sed [grep]=grep)
+missing_pkgs=(ca-certificates)
+for tool in "${!PKG_FOR[@]}"; do command -v "$tool" >/dev/null 2>&1 || missing_pkgs+=("${PKG_FOR[$tool]}"); done
+if ((${#missing_pkgs[@]} > 1)) || ! dpkg -s ca-certificates >/dev/null 2>&1; then
+  step "Installing small tools this minimal system lacks: ${missing_pkgs[*]}"
+  apt_q update
+  apt_q install -y "${missing_pkgs[@]}"
+fi
 
 # ---------- 2. the questions ----------
 step "A few questions"
@@ -210,18 +222,25 @@ if docker compose version >/dev/null 2>&1; then
 elif ((SKIP_DOCKER)); then
   die "Docker with the Compose plugin is not installed (and --skip-docker-install was given)"
 else
-  step "Installing Docker (from the official Docker apt repository)"
+  step "Installing Docker"
   [[ $OS_ID == ubuntu || $OS_ID == debian ]] || die "automatic Docker install supports Ubuntu and Debian; install Docker and re-run with --skip-docker-install"
-  apt-get update -qq
-  apt-get install -y -qq ca-certificates curl gnupg
-  install -m 0755 -d /etc/apt/keyrings
-  curl -fsSL "https://download.docker.com/linux/$OS_ID/gpg" -o /etc/apt/keyrings/docker.asc
-  chmod a+r /etc/apt/keyrings/docker.asc
   codename=$(. /etc/os-release && echo "${VERSION_CODENAME:-}")
-  echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/$OS_ID $codename stable" \
-    > /etc/apt/sources.list.d/docker.list
-  apt-get update -qq
-  apt-get install -y -qq docker-ce docker-ce-cli containerd.io docker-compose-plugin
+  apt_q update
+  apt_q install -y ca-certificates curl gnupg
+  if curl -fsSI "https://download.docker.com/linux/$OS_ID/dists/$codename/InRelease" >/dev/null 2>&1; then
+    say "  from the official Docker apt repository ($codename)"
+    install -m 0755 -d /etc/apt/keyrings
+    curl -fsSL "https://download.docker.com/linux/$OS_ID/gpg" -o /etc/apt/keyrings/docker.asc
+    chmod a+r /etc/apt/keyrings/docker.asc
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/$OS_ID $codename stable" \
+      > /etc/apt/sources.list.d/docker.list
+    apt_q update
+    apt_q install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+  else
+    # A release newer than Docker's repository knows about: the distribution's own packages are current enough.
+    say "  Docker's repository has no $codename yet; using the distribution's docker.io and docker-compose-v2"
+    apt_q install -y docker.io docker-compose-v2
+  fi
   systemctl enable --now docker >/dev/null 2>&1 || true
   docker compose version >/dev/null 2>&1 || die "Docker installed but \"docker compose\" does not work"
 fi

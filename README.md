@@ -14,7 +14,7 @@ ability to open a few ports. About half an hour.
 1. **Point a domain at the server.** Add a DNS "A" record (for example `vtt.example.com`) pointing at the server's public IP. The
    website may sit behind Cloudflare's proxy; voice goes straight to the server.
 2. **Open the ports** at your router or cloud firewall: `80/tcp`, `443/tcp`, `7881/tcp` and `50000-50200/udp` (the last two carry voice).
-3. **SSH in and run one command.** It asks for your domain and email, installs everything (Docker included) and prints a sign-in code:
+3. **SSH in and run one command.** On a minimal Ubuntu install `curl` may be missing: `sudo apt-get update && sudo apt-get install -y curl` first (the installer then adds anything else it needs, such as `nano`). It asks for your domain and email, installs everything (Docker included) and prints a sign-in code:
 
    ```bash
    curl -fsSL https://raw.githubusercontent.com/AndyProsser/vtt-chat-app/main/infra/get.sh | sudo bash
