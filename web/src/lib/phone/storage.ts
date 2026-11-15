@@ -17,6 +17,10 @@ function write(key: string, value: string | undefined): void {
   }
 }
 
+const INSTALL_HINT = 'vtt.phone.installHintDismissed';
+export const installHintDismissed = () => read(INSTALL_HINT) === '1';
+export const dismissInstallHint = () => write(INSTALL_HINT, '1');
+
 export const savedCampaign = () => read(CAMPAIGN);
 export const saveCampaign = (id: string | undefined) => write(CAMPAIGN, id);
 

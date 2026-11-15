@@ -892,6 +892,29 @@ button.phone-picture-button {
   background: color-mix(in srgb, var(--accent-9) 18%, var(--color-background));
   border-bottom: 1px solid var(--gray-a5);
 }
+/* A dismissible one-line nudge to add the web app to the home screen. */
+.phone-install {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  font-size: 0.9em;
+  background: var(--accent-a3);
+  border-bottom: 1px solid var(--gray-a5);
+}
+.phone-install > span {
+  flex: 1;
+}
+.phone-install-close {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 1.4em;
+  line-height: 1;
+  padding: 2px 8px;
+  cursor: pointer;
+}
 /* A line in the chat about the table itself ("Mira joined Cellar"). */
 .phone-notice {
   display: block;

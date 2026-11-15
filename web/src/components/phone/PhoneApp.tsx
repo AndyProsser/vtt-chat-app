@@ -17,6 +17,7 @@ import { pendingIds } from '../../lib/phone/joinRequests.js';
 import { CampaignPicker } from './CampaignPicker.js';
 import { DecisionBanner } from './DecisionBanner.js';
 import { ChatTab } from './ChatTab.js';
+import { InstallHint } from './InstallHint.js';
 import { HandoutsTab } from './HandoutsTab.js';
 import { HistoryTab } from './HistoryTab.js';
 import { InventoryTab } from './InventoryTab.js';
@@ -318,6 +319,7 @@ function Shell({
             </Text>
           </Flex>
         </header>
+        <InstallHint />
         <DecisionBanner />
         <main className="phone-main">
           {screen === 'tables' && (

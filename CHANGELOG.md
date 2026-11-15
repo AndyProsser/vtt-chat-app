@@ -17,6 +17,7 @@ the GitHub release notes and refuses to build a release without one. How to writ
 - **Campaign name and description.** A DM can rename the campaign and write a markdown description (up to 4,000 characters) in Settings, then Campaign. Everyone in the campaign sees it there, and a rename reaches connected players straight away.
 - **A better invite page.** It now shows the campaign's name, who runs it, how many players are in, and the description, above the sign-in or create-account form. Invite links also **preview in chat apps** (Discord, WhatsApp, Messenger) with the dragon banner, the campaign name, the DM and the first line of the description.
 - **Copy invite message** in Settings, then Campaign: a ready-to-paste line plus the link.
+- **An "add to home screen" hint** in the phone web app, shown only in a phone or tablet browser tab and closable for good.
 - **Reset invite links.** The DM can stop every invite link still in use. People already in the campaign stay in.
 
 ### Changed

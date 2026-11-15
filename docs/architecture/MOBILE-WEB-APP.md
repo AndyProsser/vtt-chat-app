@@ -84,7 +84,7 @@ see the tabs exactly as before; the server refuses every one of these calls from
 - **Handout viewer.** Tap a picture to open it full screen: flip between a set's pictures with the buttons or a
   sideways swipe (wrapping round), and zoom to pan around a map. A swipe only flips while the picture fits; when
   zoomed, a drag pans. It is always dark inside, in both themes.
-- **Install to the home screen.** `/app.webmanifest`, three icons and the iOS meta tags. The server serves
+- **Install to the home screen.** `/app.webmanifest`, three icons and the iOS meta tags. In a phone or tablet browser tab the app shows a one-line, dismissible hint (iOS: Share, then Add to Home Screen; Android: the browser menu); it never shows once installed (`display-mode: standalone` / `navigator.standalone`) and is remembered per browser once closed. On a home-screen install the member strip runs along the top, as it does in a narrow tab. The server serves
   exactly those four files from the web folder and nothing else in it. There is deliberately **no service worker**:
   the app is live chat, so an offline shell would only show a stale page that cannot do anything. Whether a given
   browser offers "Install" without one is unverified; "Add to Home Screen" works without it on iOS and Android.
@@ -92,7 +92,8 @@ see the tabs exactly as before; the server refuses every one of these calls from
 ## Left out on purpose
 
 Voice (above). Push notifications when the phone app is closed (a web page cannot be woken without a push
-service, which would be a third party; the tray app is the answer for that). The DM's tools: those stay in the
+service, which would be a third party; the tray app is the answer for that). Web push is on the roadmap as an
+**optional, operator opt-in** item ([Stage 10](../../ROADMAP.md)), never assumed. The DM's tools: those stay in the
 tray app. Offline use. Pinch-zoom with two fingers inside the viewer is the browser's own; there is no custom
 gesture code.
 
