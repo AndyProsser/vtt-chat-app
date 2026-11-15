@@ -100,9 +100,7 @@ export function MainMenu({ dm }: { dm: boolean }) {
             />
           </nav>
         ) : (
-          <>
-            {view === 'settings' ? <SettingsContent /> : <ConnectionPanel />}
-          </>
+          <>{view === 'settings' ? <SettingsContent /> : <ConnectionPanel />}</>
         )}
       </Popover.Content>
     </Popover.Root>
