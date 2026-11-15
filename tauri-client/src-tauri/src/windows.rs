@@ -18,12 +18,12 @@ pub const PANELS: &[Panel] = &[
     Panel {
         name: "settings",
         title: "Settings — VTT Chat",
-        size: (400.0, 780.0),
+        size: (400.0, 900.0),
     },
     Panel {
         name: "handouts",
         title: "Handouts — VTT Chat",
-        size: (560.0, 700.0),
+        size: (520.0, 700.0),
     },
     Panel {
         name: "history",
@@ -33,7 +33,7 @@ pub const PANELS: &[Panel] = &[
     Panel {
         name: "inventory",
         title: "Party inventory — VTT Chat",
-        size: (560.0, 700.0),
+        size: (520.0, 700.0),
     },
 ];
 
@@ -317,11 +317,11 @@ pub fn window_ready(window: tauri::WebviewWindow) -> Result<(), String> {
     Ok(())
 }
 
-/// The window size to ask for: the panel's own size, but at most 85% of the monitor's height and
+/// The window size to ask for: the panel's own size, but at most 90% of the monitor's height and
 /// 90% of its width, so a window never opens with its bottom edge off the screen.
 fn fit_size(size: (f64, f64), screen: Option<(f64, f64)>) -> (f64, f64) {
     match screen {
-        Some((w, h)) => (size.0.min(w * 0.9), size.1.min(h * 0.85)),
+        Some((w, h)) => (size.0.min(w * 0.9), size.1.min(h * 0.9)),
         None => size,
     }
 }
@@ -403,32 +403,17 @@ fn open_page(
     // Wayland ignores programmatic positions, so what places the window is the parent link (a
     // transient child is centred on its parent by the compositor); `center()` covers X11 and Windows.
     let main = app.get_webview_window(MAIN_LABEL);
-    // The main window sets the limit: a panel is never taller than it (which is itself fitted to the screen),
-    // so a long panel such as Settings shrinks on a short screen and scrolls instead. The monitor is the fallback.
+    // Never taller or wider than the monitor the main window is on (see fit_size), so a long panel such as
+    // Settings shrinks and scrolls only on a short screen.
     let screen = main
         .as_ref()
-        .and_then(|m| {
-            let scale = m.scale_factor().ok()?;
-            let inner = m.inner_size().ok()?;
-            (inner.height > 0).then(|| {
-                // fit_size takes 90% / 85% of what it is given, so give it the main window's size scaled up
-                // to land exactly on that size.
-                (
-                    inner.width as f64 / scale / 0.9,
-                    inner.height as f64 / scale / 0.85,
-                )
-            })
-        })
-        .or_else(|| {
-            main.as_ref()
-                .and_then(|m| m.current_monitor().ok().flatten())
-                .map(|mon| {
-                    let scale = mon.scale_factor();
-                    (
-                        mon.size().width as f64 / scale,
-                        mon.size().height as f64 / scale,
-                    )
-                })
+        .and_then(|m| m.current_monitor().ok().flatten())
+        .map(|mon| {
+            let scale = mon.scale_factor();
+            (
+                mon.size().width as f64 / scale,
+                mon.size().height as f64 / scale,
+            )
         });
     let size = fit_size(size, screen);
     if let Some(main) = &main {
@@ -487,8 +472,8 @@ mod tests {
             (400.0, 540.0)
         );
         assert_eq!(
-            fit_size((400.0, 540.0), Some((1280.0, 600.0))),
-            (400.0, 510.0)
+            fit_size((400.0, 540.0), Some((1280.0, 500.0))),
+            (400.0, 450.0)
         );
         assert_eq!(
             fit_size((2000.0, 540.0), Some((1000.0, 1000.0))),
