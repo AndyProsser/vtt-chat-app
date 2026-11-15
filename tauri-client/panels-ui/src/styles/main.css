@@ -2347,8 +2347,9 @@ body,
 }
 /* Settings drops down from the cog: as tall as the window allows, so it rarely scrolls. */
 .vtt-settings-pop {
-  width: min(460px, calc(100vw - 16px));
-  max-height: calc(100vh - 70px);
+  width: min(520px, calc(100vw - 16px));
+  /* Clear of the bottom bar: the top bar above and the message box below stay visible. */
+  max-height: calc(100vh - 150px);
   padding: 0;
   overflow-y: auto;
 }
@@ -2477,4 +2478,38 @@ body,
 }
 ::-webkit-scrollbar-thumb:hover {
   background: color-mix(in srgb, var(--vtt-ink) 45%, transparent);
+}
+
+/* Settings tabs: tighter, and a chevron at either end when they do not all fit. */
+.vtt-tabs-wrap {
+  position: relative;
+}
+.vtt-tabs-wrap .rt-TabsList {
+  --tab-padding-x: 2px;
+  --tab-inner-padding-x: 7px;
+}
+.vtt-tabs-wrap .rt-TabsList {
+  scrollbar-width: none;
+}
+.vtt-tabs-wrap .rt-TabsList::-webkit-scrollbar {
+  display: none;
+}
+.vtt-tabs-more {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 4px;
+  border: 0;
+  color: var(--vtt-ink);
+  cursor: pointer;
+}
+.vtt-tabs-more-left {
+  left: 0;
+  background: linear-gradient(to right, var(--vtt-bg) 60%, transparent);
+}
+.vtt-tabs-more-right {
+  right: 0;
+  background: linear-gradient(to left, var(--vtt-bg) 60%, transparent);
 }

@@ -1,6 +1,8 @@
 import { Tabs } from '@radix-ui/themes';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 import { useJoinFeed } from '../hooks/useJoinFeed.js';
+import { useScrollEdges } from '../hooks/useScrollEdges.js';
 import { useTableFeed } from '../hooks/useTableFeed.js';
 import { pendingCount } from '../lib/joinRequests.js';
 import { useJoinStore } from '../lib/joinStore.js';
@@ -26,24 +28,47 @@ import { StatusSetting } from './settings/StatusSetting.js';
  */
 export function SettingsContent({ initialTab }: { initialTab?: string }) {
   const waiting = useJoinStore((s) => pendingCount(s.inbox));
+  const tabs = useScrollEdges<HTMLDivElement>();
   const account = useAccount();
   const members = useTableStore((s) => s.members);
   const dm = isDm(members, account.status?.userId ?? null);
   return (
     <div className="vtt-settings">
       <Tabs.Root defaultValue={normalizeSettingsTab(initialTab)}>
-        <Tabs.List>
-          {settingsTabsFor(dm).map((t) => (
-            <Tabs.Trigger key={t.id} value={t.id}>
-              {t.label}
-              {t.id === 'campaign' && waiting > 0 && (
-                <span className="vtt-tab-badge" aria-label={`${waiting} join requests waiting`}>
-                  {waiting}
-                </span>
-              )}
-            </Tabs.Trigger>
-          ))}
-        </Tabs.List>
+        <div className="vtt-tabs-wrap">
+          <Tabs.List ref={tabs.ref}>
+            {settingsTabsFor(dm).map((t) => (
+              <Tabs.Trigger key={t.id} value={t.id}>
+                {t.label}
+                {t.id === 'campaign' && waiting > 0 && (
+                  <span className="vtt-tab-badge" aria-label={`${waiting} join requests waiting`}>
+                    {waiting}
+                  </span>
+                )}
+              </Tabs.Trigger>
+            ))}
+          </Tabs.List>
+          {tabs.left && (
+            <button
+              type="button"
+              className="vtt-tabs-more vtt-tabs-more-left"
+              aria-label="Show earlier tabs"
+              onClick={() => tabs.scrollBy(-1)}
+            >
+              <ChevronLeft size={14} />
+            </button>
+          )}
+          {tabs.right && (
+            <button
+              type="button"
+              className="vtt-tabs-more vtt-tabs-more-right"
+              aria-label="Show more tabs"
+              onClick={() => tabs.scrollBy(1)}
+            >
+              <ChevronRight size={14} />
+            </button>
+          )}
+        </div>
         <Tabs.Content value="profile">
           <div className="vtt-settings-page">
             <AccountSection />
