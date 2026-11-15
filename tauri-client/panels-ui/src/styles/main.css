@@ -31,8 +31,7 @@ body,
   border-bottom-width: 2px;
 }
 .vtt-bottom {
-  /* No line across the top: the rail's divider runs straight down to the bottom of the window. */
-  border-top-width: 0;
+  border-top-width: 2px;
   /* The left cell sits under the rail and shares its width and divider line, so the two halves of the
      bar balance; the message box gets the same gap on every side. */
   --vtt-rail-av: 46px;
@@ -2310,7 +2309,6 @@ body,
   width: calc(var(--vtt-rail-av) + 18px);
   padding: 8px 7px;
   background: var(--vtt-rail);
-  border-right: 2px solid var(--vtt-edge);
 }
 .vtt-bottom .vtt-composer {
   display: flex;
