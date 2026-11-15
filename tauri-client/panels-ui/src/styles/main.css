@@ -32,6 +32,12 @@ body,
 }
 .vtt-bottom {
   border-top-width: 2px;
+  /* The left cell sits under the rail and shares its width and divider line, so the two halves of the
+     bar balance; the message box gets the same gap on every side. */
+  --vtt-rail-av: 46px;
+  align-items: stretch;
+  gap: 0;
+  padding: 0;
 }
 .vtt-spacer {
   flex: 1;
@@ -2294,9 +2300,24 @@ body,
 /* Your status as a pill above the mute button (ONLINE green, AWAY amber, OFFLINE grey). */
 .vtt-bottom-left {
   display: flex;
+  flex: none;
   flex-direction: column;
   align-items: stretch;
-  gap: 4px;
+  justify-content: center;
+  gap: 6px;
+  box-sizing: border-box;
+  width: calc(var(--vtt-rail-av) + 18px);
+  padding: 8px 7px;
+  background: var(--vtt-rail);
+  border-right: 2px solid var(--vtt-edge);
+}
+.vtt-bottom .vtt-composer {
+  display: flex;
+  padding: 8px;
+}
+.vtt-bottom .vtt-compose-area {
+  flex: 1;
+  height: auto;
 }
 .vtt-bottom-mic {
   display: flex;
@@ -2307,11 +2328,11 @@ body,
 .vtt-pill-status {
   font-family: var(--vtt-font-body, inherit);
   /* Small on purpose: it must fit the width of the left bar, even if it is hard to read. */
-  font-size: 7px;
+  font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.03em;
   line-height: 1;
-  padding: 2px 3px;
+  padding: 3px 4px;
   text-align: center;
   white-space: nowrap;
   border-radius: 999px;
