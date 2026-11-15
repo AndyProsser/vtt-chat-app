@@ -18,22 +18,25 @@
 
 ## Where we are and what is next
 
-### Close-out for v0.4.0, 2026-11-14
+### Stages 0 to 8 are closed (2026-11-15)
 
-Stages 0 to 8 are **built**; what keeps them from "closed" is verification that needs a real server or real people, not more
-code. This is the list the v0.4.0 release waits on, and nothing else is planned before it.
+Everything through Stage 8 is built and has been used for real: the one-command install on a real Ubuntu VM behind Cloudflare, the
+desktop app and an iPhone against it, a recording with human voices through the local AI, the update feed against live GitHub,
+and two clients' voice. From here, a problem found in any of these stages is a **bug** (fixed in a patch release), and new work
+belongs to a future stage (9 onwards). A few checks were never run on their own hardware (Windows, macOS, Android, a second person's
+install); if one fails it is a bug report, not an open stage.
 
-| Stage                  | Built                                                                                                                                                         | Gate to close it (all need a human or real hardware)                                                                                                 |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0, 0.5, 1              | 🟢 Closed                                                                                                                                                     |                                                                                                                                                      |
-| 2 Audio spike          | Built; measured on the dev PC                                                                                                                                 | Two machines on different OSes holding a conversation (needs a second machine, a Windows PC)                                                         |
-| 3 Server core          | 🟢 Built, both install tiers, chat persistence                                                                                                                | A second person deploys from the docs on a blank VM (below)                                                                                          |
-| 3b Deployment buildout | 🟢 Built: images, handshake (REST and WebSocket, CI guard), updates, web onboarding, Devices                                                                  | 🟢 Real-VM run done 2026-11-14; two clients' voice over the internet remains                                                                         |
-| 4 Tray client          | 🟢 Built; used on Linux against the real server (2026-11-15)                                                                                                  | A real session on Windows; the 4-hour soak; listening to voices and the mixer                                                                        |
-| 5 Records and AI       | 🟢 Built, proven end to end with synthetic speech (66/66, then scene cues 45/45)                                                                              | 🟢 A real recording with human voices on the real VM's CPU AI works (2026-11-15, slow); a full-length session and the GPU PC as the fast path remain |
-| 6 Table features       | 🟢 Built. **Voice whispers are dropped** (decided 2026-11-14): players whisper by text; the DM speaks to one player by isolating them in a group of their own | The full-session test (whispers, handout, loot, split, soundboard, reconnect) with real players                                                      |
-| 7 Web app              | 🟢 Built; 330 checks in a real headless browser                                                                                                               | 🟢 An iPhone works (2026-11-15; keyboard fix in 0.4.5); an Android phone remains                                                                     |
-| 8 Operations           | 🟢 Admin CLI (status, users, settings, jobs, recordings, updates; machine commands), status page, backup and restore                                          | The status page and `vtt-admin` on the real VM                                                                                                       |
+| Stage                  | State                                                                                                                                  |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| 0, 0.5, 1              | 🟢 Closed                                                                                                                              |
+| 2 Audio spike          | 🟢 Closed; measured on the dev PC                                                                                                      |
+| 3 Server core          | 🟢 Closed; both install tiers, chat persistence                                                                                        |
+| 3b Deployment buildout | 🟢 Closed; images, handshake, updates (including the live GitHub feed), web onboarding, Devices, the real-VM run                       |
+| 4 Tray client          | 🟢 Closed; used on Linux against the real server                                                                                       |
+| 5 Records and AI       | 🟢 Closed; a real recording with human voices on the VM's CPU AI works (slow; the GPU PC is the fast path)                             |
+| 6 Table features       | 🟢 Closed. **Voice whispers are dropped** (decided 2026-11-14): players whisper by text; the DM speaks to one player in a private talk |
+| 7 Web app              | 🟢 Closed; checked in a headless browser and on an iPhone                                                                              |
+| 8 Operations           | 🟢 Closed; Admin CLI, status page, backup and restore                                                                                  |
 
 **Done 2026-11-12 to 14 (since the last stock-take):** the browser Account page (profile, recording notice, collapsed password,
 Devices with revoke); **request to join** a campaign (opt-in directory, DM approves); the DM's notes and schedule in the web
@@ -43,18 +46,14 @@ changes by default); a recommended CPU-only setup with a gaming PC as the fast p
 restore, and a 90-minute soak; a graceful server shutdown; `.rpm` for real releases; and the **one-command operator install**
 (`infra/get.sh`) with `vtt-admin logs/restart/ps/backup/restore/update`.
 
-**Update, 2026-11-15.** The real VM is up and in use (`vtt-chat.prosser.online`, behind a Cloudflare Tunnel with a real certificate), and
-releases **0.4.1 to 0.4.5** shipped from what it found (0.4.0 and 0.4.4 were tagged but never published as releases; the 0.4.5
-changelog covers both). A real recording with human voices went through the CPU AI, an iPhone works, and the desktop app has been used
-against the server. What is left is almost all "needs another person or machine".
+**Releases:** 0.4.1 to 0.4.5 shipped from what the real VM and real use found (0.4.0 and 0.4.4 were tagged but never published as
+releases; the 0.4.5 changelog covers both).
 
-**Next, in order:**
+**Next:**
 
-1. **Two real clients' voice over the internet** through the forwarded ports (`7881/tcp`, `50000-50200/udp`), then a full-length recorded
-   session (or point the AI at the gaming PC's GPU for speed).
-2. **A Windows run** of the desktop app (and macOS if a player appears), the 4-hour soak, and an Android phone.
-3. **A second person installs** from the README Quick Start on a blank Ubuntu Server: the last gate for Stage 3.
-4. Then Stage 9 (hardening) and v0.5: the open design topics in [.claude/intent.md](.claude/intent.md).
+1. **Bug fixes** as they turn up, in patch releases.
+2. **Stage 9, hardening and production readiness** (below): Windows and macOS parity, the long soak, packaging and signing.
+3. The open design topics in [.claude/intent.md](.claude/intent.md), as Stage 10 and later.
 
 ### Stock-take, 2026-11-11 (end of day)
 
@@ -202,7 +201,7 @@ Make the repo match the new design, so nobody (human or Claude) builds on legacy
 
 ## Stage 2 — Audio & Records Spike
 
-**Status:** 🟡 In Progress — first findings logged in [AUDIO-SPIKE-RESULTS.md](docs/architecture/AUDIO-SPIKE-RESULTS.md) (platform audio layer chosen as the base; release-on-mute measured on Windows). Built without a live server: platform-audio client with release-on-mute and auto-rejoin, the `ai/` pipeline library, and the Part B runbook/scripts. **Still needs a live run:** acoustic AEC/CPU/latency, rejoin and sleep/wake, and Part B on a Linux server.
+**Status:** 🟢 **Closed 2026-11-15.** Anything found from here is a bug fix, not stage work. _History:_ In Progress — first findings logged in [AUDIO-SPIKE-RESULTS.md](docs/architecture/AUDIO-SPIKE-RESULTS.md) (platform audio layer chosen as the base; release-on-mute measured on Windows). Built without a live server: platform-audio client with release-on-mute and auto-rejoin, the `ai/` pipeline library, and the Part B runbook/scripts. **Still needs a live run:** acoustic AEC/CPU/latency, rejoin and sleep/wake, and Part B on a Linux server.
 **Depends on:** Stage 1 (the Rust crate part can start immediately; it doesn't need the cleanup)
 
 The riskiest unknowns are all "does this actually work on real machines with open mics?" — answer them with the smallest possible thing before any tray or React work.
@@ -227,7 +226,7 @@ The riskiest unknowns are all "does this actually work on real machines with ope
 
 ## Stage 3 — Server Core
 
-**Status:** 🟢 Nearly done — built and verified against real services: identity/campaign domain, REST, WebSocket hub with a Valkey-backed replay buffer, Postgres store and migrations, recording state and consent acknowledgements, the Admin CLI (`vtt-admin`), and **both install tiers** (Docker Compose; native `infra/install.sh` on Ubuntu 24.04). **Remaining:** the "done when" test — a second person deploying from the docs on a blank VM
+**Status:** 🟢 **Closed 2026-11-15.** Anything found from here is a bug fix, not stage work. _History:_ Nearly done — built and verified against real services: identity/campaign domain, REST, WebSocket hub with a Valkey-backed replay buffer, Postgres store and migrations, recording state and consent acknowledgements, the Admin CLI (`vtt-admin`), and **both install tiers** (Docker Compose; native `infra/install.sh` on Ubuntu 24.04). **Remaining:** the "done when" test — a second person deploying from the docs on a blank VM
 **Depends on:** Stage 2 (and the open identity decision, below)
 
 **Decided with Andy (2026-11-05):** the identity & access model ([CLAUDE.md §11](.claude/CLAUDE.md#11-identity--access-model--direction-decided-2026-11-05-details-open)) and the sync protocol ([SYNC-PROTOCOL.md](docs/architecture/SYNC-PROTOCOL.md), draft). Remaining open: Admin quick-access extras, OIDC specifics, and the assumed defaults (invite expiry 7 days, magic-link lifetime 15 minutes, minimum password length 10).
@@ -247,7 +246,7 @@ The riskiest unknowns are all "does this actually work on real machines with ope
 
 ## Stage 3b — Deployment Buildout (added 2026-11-11)
 
-**Status:** 🟢 Built; the real-VM run (#6) is the gate. The one-command installer `infra/get.sh` was added 2026-11-14
+**Status:** 🟢 **Closed 2026-11-15.** Anything found from here is a bug fix, not stage work. _History:_ Built; the real-VM run (#6) is the gate. The one-command installer `infra/get.sh` was added 2026-11-14
 **Depends on:** Stage 3 (the Compose bundle), Stage 4 (the tray client and its updater)
 **Design:** [VERSIONING-AND-DEPLOYMENT.md](docs/architecture/VERSIONING-AND-DEPLOYMENT.md)
 
@@ -256,16 +255,16 @@ The riskiest unknowns are all "does this actually work on real machines with ope
 
 **Deliverables, in build order:**
 
-| #   | Item                                                                                                                                                                                                                                                                    | Status                                                                                                                                                                                              |
-| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | **Version rules** (MAJOR/MINOR/PATCH meaning, 0.y as the match tier) in CLAUDE.md, DEVELOPING.md and the design doc                                                                                                                                                     | 🟢 Done 2026-11-11                                                                                                                                                                                  |
-| 2   | **Container build workflow:** CI builds the backend and worker images on a release tag and pushes them to GHCR (full version + MAJOR.MINOR tags; dev tags never move `latest`); the Compose bundle pulls them by `VTT_VERSION` instead of building on the server        | 🟢 Run for dev.1 to dev.4; brought up locally from the images (2026-11-11), four bugs found and fixed                                                                                               |
-| 3   | **Protocol version handshake:** `PROTOCOL_VERSION` in `shared/`, sent by the client and answered by the server, with "update required" on both sides; a CI test fails if a wire contract changes without it                                                             | 🟢 Done 2026-11-12: REST, WebSocket, and a CI guard that fails an unrecorded wire change                                                                                                            |
-| 4   | **Server-chosen client builds:** the server offers the newest patch of its own MAJOR.MINOR, patches auto-approved, from GitHub releases (`UPDATES_SOURCE=github`)                                                                                                       | 🟢 Run against live GitHub (dev builds); waits for all three installers before offering a release                                                                                                   |
-| 5   | **Update mirror:** `UPDATES_SOURCE=mirror` sync job (verify signatures, newest patch plus one previous, cleanup), `vtt-admin updates sync/status`                                                                                                                       | 🟡 Built, unit-tested; untried against live GitHub                                                                                                                                                  |
-| 6   | **Fresh-VM deploy test** from the images and the operator guide (the Stage 3 "done when"), with real LiveKit audio, `wss://` through Caddy and a Let's Encrypt certificate                                                                                              | 🟡 **Done on a real VM 2026-11-14** (one-line install, real certificate, firewall, first Admin). Still open: two clients' voice over the internet, a real recorded session, a second human doing it |
-| 7   | **Web onboarding and app sign-in:** invite link → account → OS-specific install → "Open VTT Chat" hand-off (deep link, typed code, device code approved by scanning the app's QR or opening its link; no PKCE, see APP-SIGN-IN.md); the server owns the sign-in methods | 🟢 Built 2026-11-11 and tried locally by Andy: landing, sign-in (code, password), long link, the app connects with no prompt; other OSes and a phone untried                                        |
-| 8   | **Mobile account and install flow:** security and profile (name, avatar) in the browser; the **Devices list with revoke** (`GET`/`DELETE /api/auth/sessions` already exist); add-to-home-screen steps for Android and iOS, then how to install the desktop app          | 🟢 Built 2026-11-13: the browser Account page (profile, recording notice, password, Devices with revoke); add-to-home-screen steps; not yet seen on a real phone                                    |
+| #   | Item                                                                                                                                                                                                                                                                    | Status                                                                                                                                                           |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | **Version rules** (MAJOR/MINOR/PATCH meaning, 0.y as the match tier) in CLAUDE.md, DEVELOPING.md and the design doc                                                                                                                                                     | 🟢 Done 2026-11-11                                                                                                                                               |
+| 2   | **Container build workflow:** CI builds the backend and worker images on a release tag and pushes them to GHCR (full version + MAJOR.MINOR tags; dev tags never move `latest`); the Compose bundle pulls them by `VTT_VERSION` instead of building on the server        | 🟢 Run for dev.1 to dev.4; brought up locally from the images (2026-11-11), four bugs found and fixed                                                            |
+| 3   | **Protocol version handshake:** `PROTOCOL_VERSION` in `shared/`, sent by the client and answered by the server, with "update required" on both sides; a CI test fails if a wire contract changes without it                                                             | 🟢 Done 2026-11-12: REST, WebSocket, and a CI guard that fails an unrecorded wire change                                                                         |
+| 4   | **Server-chosen client builds:** the server offers the newest patch of its own MAJOR.MINOR, patches auto-approved, from GitHub releases (`UPDATES_SOURCE=github`)                                                                                                       | 🟢 Run against live GitHub (dev builds); waits for all three installers before offering a release                                                                |
+| 5   | **Update mirror:** `UPDATES_SOURCE=mirror` sync job (verify signatures, newest patch plus one previous, cleanup), `vtt-admin updates sync/status`                                                                                                                       | 🟢 Done: tested against live GitHub (2026-11-15)                                                                                                                 |
+| 6   | **Fresh-VM deploy test** from the images and the operator guide (the Stage 3 "done when"), with real LiveKit audio, `wss://` through Caddy and a Let's Encrypt certificate                                                                                              | 🟢 **Done on a real VM 2026-11-14 and tested since** (one-line install, real certificate, firewall, first Admin, voice and a recorded session)                   |
+| 7   | **Web onboarding and app sign-in:** invite link → account → OS-specific install → "Open VTT Chat" hand-off (deep link, typed code, device code approved by scanning the app's QR or opening its link; no PKCE, see APP-SIGN-IN.md); the server owns the sign-in methods | 🟢 Built 2026-11-11 and tried locally by Andy: landing, sign-in (code, password), long link, the app connects with no prompt; other OSes and a phone untried     |
+| 8   | **Mobile account and install flow:** security and profile (name, avatar) in the browser; the **Devices list with revoke** (`GET`/`DELETE /api/auth/sessions` already exist); add-to-home-screen steps for Android and iOS, then how to install the desktop app          | 🟢 Built 2026-11-13: the browser Account page (profile, recording notice, password, Devices with revoke); add-to-home-screen steps; not yet seen on a real phone |
 
 **Done when:** an operator on a blank Ubuntu VM pulls the images, starts the stack, and a new player goes from an
 invite link to a signed-in, preconfigured app without typing a server address; a client of the wrong MAJOR.MINOR is
@@ -275,7 +274,7 @@ told clearly to update; and a recorded session runs through to its summary.
 
 ## Stage 4 — Tray Client
 
-**Status:** 🟢 Feature-complete for players as of 2026-11-09; 🟡 fine-tuning and verification remain. One compact RPG-themed main window (avatar rail with speaking glow, quality-coloured connection sparkline, group sections and hover cards; themed chat with whispers; record state and consent; mute and level meter; voice connect), Settings as a popover (Profile with theme, photo, version and updates; Campaign; Sessions; Audio; Notifications; reorganised 2026-11-11), Handouts and Party-inventory windows, the DM **Scene Deck** (Voice, Stinger and Scene panels with favourites, custom scenes and per-type levels), loot with the SRD catalogue and treasure generator, scheduling with RSVP, account and character avatars, sound through the call, signed auto-update, start-with-computer, crash recovery and the DM connection screen. Voice runs on **LiveKit Rust SDK 0.10.1** (Linux builds need `clang`; see [DEVELOPING.md](DEVELOPING.md)). **Built since, unverified in a real window:** the session history window, the keyboard way to move people between groups, four more DM voices, and the opt-in mixer audio engine (per-person volume, microphone volume, a real level meter). **Not built:** a recorded 4-hour soak (`tauri-client/scripts/soak.sh` is ready), and checking the D&D Beyond sync's extra stats against real sheets. **Needs a human:** listen-tests of effects, character voices and the mixer engine, and a pass through the real window (unmute, rail drag, portrait upload, device switching, scene editor). Back up the updater key (`~/.tauri/vtt-chat-updater.key`) and give it a password before real releases. Detail of what is built vs verified: [docs/BUILD-STATUS.md](docs/BUILD-STATUS.md). Design: [main-window spec](docs/superpowers/specs/2026-11-08-main-window-design.md).
+**Status:** 🟢 **Closed 2026-11-15.** Anything found from here is a bug fix, not stage work. _History:_ Feature-complete for players as of 2026-11-09; 🟡 fine-tuning and verification remain. One compact RPG-themed main window (avatar rail with speaking glow, quality-coloured connection sparkline, group sections and hover cards; themed chat with whispers; record state and consent; mute and level meter; voice connect), Settings as a popover (Profile with theme, photo, version and updates; Campaign; Sessions; Audio; Notifications; reorganised 2026-11-11), Handouts and Party-inventory windows, the DM **Scene Deck** (Voice, Stinger and Scene panels with favourites, custom scenes and per-type levels), loot with the SRD catalogue and treasure generator, scheduling with RSVP, account and character avatars, sound through the call, signed auto-update, start-with-computer, crash recovery and the DM connection screen. Voice runs on **LiveKit Rust SDK 0.10.1** (Linux builds need `clang`; see [DEVELOPING.md](DEVELOPING.md)). **Built since, unverified in a real window:** the session history window, the keyboard way to move people between groups, four more DM voices, and the opt-in mixer audio engine (per-person volume, microphone volume, a real level meter). **Not built:** a recorded 4-hour soak (`tauri-client/scripts/soak.sh` is ready), and checking the D&D Beyond sync's extra stats against real sheets. **Needs a human:** listen-tests of effects, character voices and the mixer engine, and a pass through the real window (unmute, rail drag, portrait upload, device switching, scene editor). Back up the updater key (`~/.tauri/vtt-chat-updater.key`) and give it a password before real releases. Detail of what is built vs verified: [docs/BUILD-STATUS.md](docs/BUILD-STATUS.md). Design: [main-window spec](docs/superpowers/specs/2026-11-08-main-window-design.md).
 **Depends on:** Stage 2 (audio engine), Stage 3 (server to connect to)
 
 **Deliverables:**
@@ -293,7 +292,7 @@ told clearly to update; and a recorded session runs through to its summary.
 
 ## Stage 5 — Records & AI Summaries (Core)
 
-**Status:** 🟡 In Progress — the processing half is built and verified live (Egress files → durable job queue → worker → Whisper/LLM, local or remote with fallback → transcripts and summaries in Postgres; Admin CLI `jobs` / `recording`). **Records API built** (read, search, DM-only enforced at the API, DM delete). **History window built 2026-11-09 (unverified in a real window).** **Built 2026-11-10:** the DM confirms → purge raw audio, and a disk-low purge rule with a 3-day warning (the next-session rule is not built). **Not built:** extra cloud providers (Stage 10). Scene cues and chapters built 2026-11-14. The recording loop itself — DM start/stop → per-speaker capture gated on the consent acknowledgement → processing — is closed and verified live. See [docs/BUILD-STATUS.md](docs/BUILD-STATUS.md)
+**Status:** 🟢 **Closed 2026-11-15.** Anything found from here is a bug fix, not stage work. _History:_ In Progress — the processing half is built and verified live (Egress files → durable job queue → worker → Whisper/LLM, local or remote with fallback → transcripts and summaries in Postgres; Admin CLI `jobs` / `recording`). **Records API built** (read, search, DM-only enforced at the API, DM delete). **History window built 2026-11-09 (unverified in a real window).** **Built 2026-11-10:** the DM confirms → purge raw audio, and a disk-low purge rule with a 3-day warning (the next-session rule is not built). **Not built:** extra cloud providers (Stage 10). Scene cues and chapters built 2026-11-14. The recording loop itself — DM start/stop → per-speaker capture gated on the consent acknowledgement → processing — is closed and verified live. See [docs/BUILD-STATUS.md](docs/BUILD-STATUS.md)
 **Depends on:** Stage 3, Stage 4 (Stage 2 Part B already proved the pipeline shape)
 
 **Deliverables:**
@@ -312,7 +311,7 @@ told clearly to update; and a recorded session runs through to its summary.
 
 ## Stage 6 — Table Features
 
-**Status:** 🟢 Built end to end for players (server 2026-11-07, client 2026-11-08 to 09); 🟡 the full-session test below is not yet run. Server: chat and private whispers, handouts/maps/images/text snippets, loot with atomic claims, the DM soundboard (a mini thaumaturgy.app), session schedule + RSVP + reminders + stored notifications, and party split — see [TABLE-FEATURES.md](docs/architecture/TABLE-FEATURES.md). Client: chat and whispers, handouts, loot and party inventory, the Scene Deck, scheduling and RSVP, and party split in the rail (Stage 4). **Built 2026-11-11:** chat commands (in character, out of character, language styles, whispers by name, quick late/can't). **Dropped by decision (2026-11-14):** voice whispers; the party split already isolates one player with the DM. **Not built:** the end-to-end "full session" test below.
+**Status:** 🟢 **Closed 2026-11-15.** Anything found from here is a bug fix, not stage work. _History:_ Built end to end for players (server 2026-11-07, client 2026-11-08 to 09); 🟡 the full-session test below is not yet run. Server: chat and private whispers, handouts/maps/images/text snippets, loot with atomic claims, the DM soundboard (a mini thaumaturgy.app), session schedule + RSVP + reminders + stored notifications, and party split — see [TABLE-FEATURES.md](docs/architecture/TABLE-FEATURES.md). Client: chat and whispers, handouts, loot and party inventory, the Scene Deck, scheduling and RSVP, and party split in the rail (Stage 4). **Built 2026-11-11:** chat commands (in character, out of character, language styles, whispers by name, quick late/can't). **Dropped by decision (2026-11-14):** voice whispers; the party split already isolates one player with the DM. **Not built:** the end-to-end "full session" test below.
 **Depends on:** Stage 5
 
 **Deliverables:**
@@ -330,18 +329,18 @@ told clearly to update; and a recorded session runs through to its summary.
 
 ## Stage 7 — Mobile SPA
 
-**Status:** 🟡 Now **the web app on any device** (2026-11-11): the same app on phones and in desktop browsers, reached from the site's Chat link, sharing the Home look and the desktop's Default palette, with a members rail, chat commands and a secure cookie session. First cut built 2026-11-10 ([MOBILE-WEB-APP.md](docs/architecture/MOBILE-WEB-APP.md)): sign-in, chat with whispers, sessions with RSVP, handouts, history with summaries, transcripts and search, a handout viewer, and an install manifest. Exercised in a phone-sized headless browser; **not tried on a real phone**. No voice, by decision (the tray app owns audio)
+**Status:** 🟢 **Closed 2026-11-15.** Anything found from here is a bug fix, not stage work. _History:_ Now **the web app on any device** (2026-11-11): the same app on phones and in desktop browsers, reached from the site's Chat link, sharing the Home look and the desktop's Default palette, with a members rail, chat commands and a secure cookie session. First cut built 2026-11-10 ([MOBILE-WEB-APP.md](docs/architecture/MOBILE-WEB-APP.md)): sign-in, chat with whispers, sessions with RSVP, handouts, history with summaries, transcripts and search, a handout viewer, and an install manifest. Exercised in a phone-sized headless browser; **not tried on a real phone**. No voice, by decision (the tray app owns audio)
 **Depends on:** Stage 3 (API), Stage 6 (content)
 
 `web/`: a basic mobile-first SPA designed more for messages than gaming — messages, RSVP, handouts, history/summaries, and possibly basic listen/talk (open question). Served by the box by default; Cloudflare Pages is an optional adapter.
 
-**Done when:** a player on a phone can read the chat and summaries, RSVP, and open a handout. (Met in the headless run; confirm on a real phone, including iOS Safari.)
+**Done when:** a player on a phone can read the chat and summaries, RSVP, and open a handout. (Met in the headless run and on an iPhone, 2026-11-15.)
 
 ---
 
 ## Stage 8 — Operations: Admin CLI & Status Page
 
-**Status:** 🟢 Closed in code 2026-11-14. The Admin CLI (`vtt-admin`) is built and in use (Stage 3), with machine commands `logs`, `restart`, `ps`, `backup`, `restore`, `update` added; the public status page (`status/`, `/status` and `/api/status`) is built 2026-11-09, unverified on a real deployment
+**Status:** 🟢 **Closed 2026-11-15.** Anything found from here is a bug fix, not stage work. _History:_ Closed in code 2026-11-14. The Admin CLI (`vtt-admin`) is built and in use (Stage 3), with machine commands `logs`, `restart`, `ps`, `backup`, `restore`, `update` added; the public status page (`status/`, `/status` and `/api/status`) is built 2026-11-09, unverified on a real deployment
 **Depends on:** Stage 5
 
 **Deliverables:**
@@ -357,7 +356,7 @@ told clearly to update; and a recorded session runs through to its summary.
 
 ## Stage 9 — Cross-Platform Hardening & Production Readiness
 
-**Status:** ⚪ Not Started
+**Status:** ⚪ Next (stages 0 to 8 closed 2026-11-15)
 **Depends on:** Stage 5 (can overlap Stages 6–8)
 
 **Deliverables:**
