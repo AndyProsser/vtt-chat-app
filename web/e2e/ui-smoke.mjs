@@ -1823,6 +1823,9 @@ flows.dmtools = async (b) => {
     await clickText(dm, /^Show$/, 'button');
     await waitText(pl, new RegExp(DRAFT), 10000);
     check(`${tag}: Show puts the draft in the player's list live`, true);
+    await dm.waitForFunction(() =>
+      [...document.querySelectorAll('button')].some((b) => b.innerText.trim() === 'Hide'),
+    );
     await clickText(dm, /^Hide$/, 'button');
     await waitGone(pl, new RegExp(DRAFT));
     check(`${tag}: Hide takes it away from the player live`, true);
@@ -2038,6 +2041,16 @@ async function sheetFit(b, t) {
       await sleep(250);
       await p.keyboard.type(LONG);
       await p.click('.phone-sheet textarea');
+      // On a touch screen the on-screen keyboard is up: the tab bar steps aside (and a mouse keeps it).
+      await sleep(250);
+      check(
+        `${tag}: the tab bar is ${w <= 640 ? 'hidden' : 'kept'} while typing`,
+        (await p.$eval('.phone-tabs', (n) => getComputedStyle(n).display !== 'none')) === w > 640,
+      );
+      check(
+        `${tag}: note fields opt out of password helpers`,
+        (await p.$eval('.phone-sheet textarea', (n) => n.getAttribute('autocomplete'))) === 'off',
+      );
       await p.keyboard.type(`${LONG} ${LONG}\n\n# ${LONG}`);
       await sheetFits(p, `${tag}: new note`);
       if (w === 320 || w === 1000) await shot(p, `fit-${w}-note`);

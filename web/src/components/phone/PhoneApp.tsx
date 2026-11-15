@@ -4,6 +4,7 @@ import { type ReactNode, useCallback, useEffect, useState } from 'react';
 import { Icon } from '../icons/index.js';
 import { TABS } from '../../consts/phone.js';
 import { useLiveChat } from '../../hooks/useLiveChat.js';
+import { useTypingOnTouch } from '../../hooks/useTypingOnTouch.js';
 import { takeHandoffToken } from '../../lib/handoff.js';
 import { appPromoHref } from '../../lib/phone/promo.js';
 import { isMobile } from '../../lib/platform.js';
@@ -204,11 +205,12 @@ function Shell({
       current = false;
     };
   }, [campaignId, isDm]);
+  const typing = useTypingOnTouch();
   // Another table has its own screens.
   useEffect(() => setScreen(undefined), [campaignId]);
   return (
     <div className="phone-page phone-page-app">
-      <div className="phone-shell">
+      <div className="phone-shell" data-typing={typing ? '' : undefined}>
         <header className="phone-header">
           <div className="phone-header-row">
             <a className="site-brand" href="/">

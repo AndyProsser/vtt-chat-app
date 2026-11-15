@@ -178,6 +178,9 @@ body,
   background: var(--vtt-bar);
   padding-bottom: env(safe-area-inset-bottom);
 }
+.phone-shell[data-typing] .phone-tabs {
+  display: none; /* the on-screen keyboard is up: give the space back to the form */
+}
 .phone-tab {
   appearance: none;
   border: 0;
