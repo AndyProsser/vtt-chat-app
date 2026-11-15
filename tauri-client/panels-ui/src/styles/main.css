@@ -31,7 +31,8 @@ body,
   border-bottom-width: 2px;
 }
 .vtt-bottom {
-  border-top-width: 2px;
+  /* No line across the top: the rail's divider runs straight down to the bottom of the window. */
+  border-top-width: 0;
   /* The left cell sits under the rail and shares its width and divider line, so the two halves of the
      bar balance; the message box gets the same gap on every side. */
   --vtt-rail-av: 46px;
@@ -352,7 +353,7 @@ body,
 .vtt-compose-area {
   width: 100%;
   box-sizing: border-box;
-  min-height: 4.6em;
+  min-height: 3em;
   max-height: 9em;
   background: var(--vtt-chat);
   color: var(--vtt-ink);

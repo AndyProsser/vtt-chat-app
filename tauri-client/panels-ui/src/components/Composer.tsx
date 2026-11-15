@@ -143,7 +143,7 @@ export function Composer({ selfId, role }: { selfId: string | null; role: Role }
       {note && <div className="vtt-composer-note">{note}</div>}
       <TextArea
         size="2"
-        rows={3}
+        rows={2}
         resize="none"
         className="vtt-compose-area"
         aria-label="Message"
