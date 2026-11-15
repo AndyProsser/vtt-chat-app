@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { renderMagicLinkMail, SmtpMailTransport } from './smtpTransport.js';
+import { SmtpMailTransport, type MailerLike } from './smtpTransport.js';
 
 const message = {
   email: 'a@example.com',
@@ -9,25 +9,30 @@ const message = {
   expiresAt: 0,
 };
 
+type Sent = Parameters<MailerLike['sendMail']>[0];
+
 describe('SmtpMailTransport', () => {
-  it('sends the code to the address with a plain-text body', async () => {
-    const sent: Record<string, string>[] = [];
+  it('sends the link as HTML and text, with the banner attached inline', async () => {
+    const sent: Sent[] = [];
     const transport = new SmtpMailTransport(
       { sendMail: async (m) => void sent.push(m) },
       'VTT <v@example.com>',
+      'https://x.test',
     );
     await transport.send(message);
     expect(sent).toHaveLength(1);
     expect(sent[0]).toMatchObject({ to: 'a@example.com', from: 'VTT <v@example.com>' });
-    expect(sent[0]!.text).toContain('TOKEN-123');
+    expect(sent[0]!.text).toContain('https://x.test/email-signin#token=TOKEN-123');
+    expect(sent[0]!.html).toContain('cid:vtt-banner');
+    expect(sent[0]!.attachments).toHaveLength(1);
+    expect(sent[0]!.attachments[0]).toMatchObject({
+      cid: 'vtt-banner',
+      contentType: 'image/jpeg',
+      contentDisposition: 'inline',
+    });
   });
 
-  it('words each purpose differently and states the lifetime', () => {
-    expect(renderMagicLinkMail({ ...message, purpose: 'reset' }).subject).toMatch(/reset/);
-    expect(renderMagicLinkMail(message).text).toMatch(/expires in \d+ minutes/);
-  });
-
-  it('logs a failure without the code or the address, and does not throw', async () => {
+  it('logs a failure without the token or the address, and does not throw', async () => {
     const lines: string[] = [];
     const transport = new SmtpMailTransport(
       {
@@ -36,6 +41,7 @@ describe('SmtpMailTransport', () => {
         },
       },
       'v@example.com',
+      'https://x.test',
       (l) => lines.push(l),
     );
     await expect(transport.send(message)).resolves.toBeUndefined();

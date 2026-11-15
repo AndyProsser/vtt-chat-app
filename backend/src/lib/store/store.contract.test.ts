@@ -21,6 +21,7 @@ beforeEach(async () => {
 const campaign = (): Campaign => ({
   id: backend.newId(),
   name: 'Curse of Strahd',
+  description: '',
   createdAt: 1,
   allowJoin: true,
 });

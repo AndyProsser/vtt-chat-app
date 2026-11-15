@@ -106,6 +106,8 @@ export interface Store {
 
   getInviteByHash(codeHash: string): Promise<Invite | undefined>;
   putInvite(invite: Invite): Promise<void>;
+  /** Revokes every invite of a campaign that is still usable. Returns how many were. */
+  revokeInvitesForCampaign(campaignId: string, at: number): Promise<number>;
 
   putChatMessage(message: ChatMessage): Promise<void>;
   /**

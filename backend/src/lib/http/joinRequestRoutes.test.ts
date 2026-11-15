@@ -35,6 +35,7 @@ let campaign: string;
 let schedule: MemoryScheduleStore;
 let frames: { to: string; type: string; data: Record<string, unknown> }[];
 let rosters: string[];
+let updates: string[];
 const ids: Record<string, string> = {};
 
 async function call(method: string, path: string, token?: string, body?: unknown) {
@@ -66,6 +67,7 @@ beforeEach(async () => {
   schedule = new MemoryScheduleStore();
   frames = [];
   rosters = [];
+  updates = [];
   const app = createApp({
     config: CONFIG,
     store,
@@ -73,6 +75,7 @@ beforeEach(async () => {
     realtime: {
       revokeSession: () => undefined,
       announceRosterChanged: (id) => void rosters.push(id),
+      announceCampaignUpdated: (id) => void updates.push(id),
       announceRecording: () => undefined,
       sendToUser: (to, type, data) => frames.push({ to, type, data }),
     },
@@ -326,6 +329,86 @@ describe('the DM’s side', () => {
     expect(
       (await call('PATCH', `/api/campaigns/${campaign}`, dm, { allowJoin: 'no' })).status,
     ).toBe(400);
+  });
+
+  describe('renaming a campaign and describing it', () => {
+    const patch = (token: string, body: unknown) =>
+      call('PATCH', `/api/campaigns/${campaign}`, token, body);
+    const mine = async () =>
+      (await call('GET', '/api/campaigns', member)).body.campaigns[0].campaign;
+
+    it('lets the DM rename it and write a description, which members then see, and announces it', async () => {
+      const res = await patch(dm, {
+        name: '  Curse of Strahd ',
+        description: '# Welcome\n\nBring garlic.',
+      });
+      expect(res.status).toBe(200);
+      expect(res.body.campaign).toMatchObject({
+        name: 'Curse of Strahd',
+        description: '# Welcome\n\nBring garlic.',
+      });
+      expect(await mine()).toMatchObject({
+        name: 'Curse of Strahd',
+        description: '# Welcome\n\nBring garlic.',
+      });
+      expect(updates).toEqual([campaign]);
+    });
+
+    it('leaves the description alone when only the name changes, and clears it with an empty string', async () => {
+      await patch(dm, { description: 'About us' });
+      await patch(dm, { name: 'Renamed' });
+      expect(await mine()).toMatchObject({ name: 'Renamed', description: 'About us' });
+      await patch(dm, { description: '' });
+      expect((await mine()).description).toBe('');
+    });
+
+    it('also changes Public/Private in the same request', async () => {
+      const res = await patch(dm, { name: 'Hidden', allowJoin: false });
+      expect(res.body.campaign).toMatchObject({ name: 'Hidden', allowJoin: false });
+    });
+
+    it('refuses everyone but the DM, and bad input', async () => {
+      expect((await patch(member, { name: 'Mine now' })).status).toBe(403);
+      expect((await patch(admin, { description: 'x' })).status).toBe(403);
+      expect((await patch(dm, { name: '   ' })).status).toBe(400);
+      expect((await patch(dm, { name: 'x'.repeat(121) })).status).toBe(400);
+      expect((await patch(dm, { description: 'x'.repeat(4001) })).status).toBe(400);
+      expect((await patch(dm, {})).status).toBe(400);
+      expect((await patch(dm, { description: null })).status).toBe(400);
+      expect(updates).toEqual([]);
+    });
+
+    it('counts characters, not bytes, and keeps line breaks', async () => {
+      const emoji = '🐉'.repeat(4000);
+      expect((await patch(dm, { description: emoji })).status).toBe(200);
+      expect((await mine()).description).toBe(emoji);
+      const lines = (await patch(dm, { description: 'a\r\nb\u202e' })).body.campaign.description;
+      expect(lines).toBe('a\nb');
+    });
+  });
+
+  describe('resetting invite links', () => {
+    const reset = (token: string) => call('DELETE', `/api/campaigns/${campaign}/invites`, token);
+
+    it('stops every link in use, keeps the people already in, and lets the DM make a new one', async () => {
+      const first = (await call('POST', `/api/campaigns/${campaign}/invites`, dm, {})).body.code;
+      const second = (await call('POST', `/api/campaigns/${campaign}/invites`, dm, {})).body.code;
+      const res = await reset(dm);
+      expect(res.status).toBe(200);
+      expect(res.body.revoked).toBeGreaterThanOrEqual(2);
+      for (const code of [first, second]) {
+        expect((await call('GET', `/api/invites/${code}`)).status).toBe(400);
+        expect((await call('POST', '/api/campaigns/join', asker, { code })).status).toBe(400);
+      }
+      expect((await call('GET', '/api/campaigns', member)).body.campaigns).toHaveLength(1);
+      const fresh = (await call('POST', `/api/campaigns/${campaign}/invites`, dm, {})).body.code;
+      expect((await call('POST', '/api/campaigns/join', asker, { code: fresh })).status).toBe(201);
+    });
+
+    it('is for the DM only', async () => {
+      expect((await reset(member)).status).toBe(403);
+      expect((await reset(admin)).status).toBe(403);
+    });
   });
 
   it('hands pending requests to the new DM at a swap', async () => {

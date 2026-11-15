@@ -2,7 +2,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
   acceptCurrentConsent,
+  emailResetLink,
+  emailSignInLink,
   redeemEmailCode,
+  redeemResetLink,
   request,
   requestAccount,
   signInPlain,
@@ -33,6 +36,26 @@ describe('request keepalive', () => {
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
+
+describe('emailed links', () => {
+  it('asks for a sign-in link or a reset, and redeems a reset with the new password', async () => {
+    const fetchMock = vi.fn((_url: string, _init?: RequestInit) =>
+      Promise.resolve(json({ ok: true, signedIn: true })),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    await emailSignInLink('a@b.co');
+    await emailResetLink('a@b.co');
+    await redeemResetLink('tok', 'a new password');
+    const bodies = fetchMock.mock.calls.map((c) =>
+      JSON.parse((c[1] as RequestInit).body as string),
+    );
+    expect(bodies).toEqual([
+      { email: 'a@b.co', purpose: 'signin' },
+      { email: 'a@b.co', purpose: 'reset' },
+      { token: 'tok', newPassword: 'a new password' },
+    ]);
+  });
+});
 
 describe('connect-page sign-in and the recording notice', () => {
   it('reports when the account has not accepted the current notice', async () => {

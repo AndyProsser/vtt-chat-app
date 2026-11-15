@@ -1,4 +1,4 @@
-import { Box, Callout, Card, Flex, Heading, Link, Spinner, Text } from '@radix-ui/themes';
+import { Box, Callout, Card, Flex, Heading, Link, Spinner } from '@radix-ui/themes';
 import { useState } from 'react';
 
 import posterJoin from '../assets/poster-join.webp';
@@ -7,6 +7,7 @@ import { useInvite } from '../hooks/useInvite.js';
 import { codeFromPath } from '../lib/platform.js';
 import { AccountForm } from './AccountForm.js';
 import { Banner } from './Banner.js';
+import { CampaignCard } from './CampaignCard.js';
 import { CodeEntry } from './CodeEntry.js';
 import { GetTheApp } from './GetTheApp.js';
 
@@ -50,9 +51,9 @@ export function JoinPage() {
             <GetTheApp campaignName={state.invite.campaignName} />
           ) : (
             <Box>
-              <Text as="p" mb="3" color="gray">
-                You&apos;ve been invited to <strong>{state.invite.campaignName}</strong>.
-              </Text>
+              <Box mb="4">
+                <CampaignCard invite={state.invite} />
+              </Box>
               <AccountForm
                 code={code}
                 consentVersion={state.invite.consentVersion}

@@ -10,6 +10,27 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ## [Unreleased]
 
+### Added
+
+- **Sign-in and password-reset emails**, in HTML with the dragon-and-d20 banner. The email has one button that opens the web app. Sign-in links last 15 minutes and reset links 60; each works once. Nothing in the email is a code to copy.
+- **Two new web pages** for those links (`/email-signin`, `/reset-password`), and **Email me a sign-in link** and **Forgot password?** on the sign-in form (shown only when the server can send mail).
+- **Campaign name and description.** A DM can rename the campaign and write a markdown description (up to 4,000 characters) in Settings, then Campaign. Everyone in the campaign sees it there, and a rename reaches connected players straight away.
+- **A better invite page.** It now shows the campaign's name, who runs it, how many players are in, and the description, above the sign-in or create-account form. Invite links also **preview in chat apps** (Discord, WhatsApp, Messenger) with the dragon banner, the campaign name, the DM and the first line of the description.
+- **Copy invite message** in Settings, then Campaign: a ready-to-paste line plus the link.
+- **Reset invite links.** The DM can stop every invite link still in use. People already in the campaign stay in.
+
+### Changed
+
+- **"Allow join" is now Public / Private.** Public tables can be found by other players and take join requests; Private ones are hidden. Invite links work for both.
+- **`SMTP_URL` now needs `PUBLIC_URL`** (the address the emailed links open). The server refuses to start with one and not the other.
+- **Protocol 3 (wire change).** This adds the campaign description, `PATCH /api/campaigns/:id` for names and descriptions, `DELETE /api/campaigns/:id/invites` and the `campaign.updated` event, so a server on this protocol needs a matching app (MINOR bump when released).
+
+### Known limits
+
+- The description is visible to anyone who has an invite link, so keep secrets out of it.
+- A link preview already cached by a chat app does not change until the app fetches it again.
+- Emailed links have only been tested against a fake mail server and in a browser against a local server, not yet against the real relay.
+
 ## [0.4.5] - 2026-11-15
 
 Mostly the desktop app's look and feel, tidied after using 0.4.3 on a real server, plus the phone's on-screen keyboard.

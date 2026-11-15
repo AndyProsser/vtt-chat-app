@@ -13,6 +13,12 @@ export interface Downloads {
 export interface InvitePreview {
   campaignName: string;
   consentVersion: string;
+  /** The DM's markdown description; empty when there is none. */
+  description: string;
+  /** The DM's display name, or null while there is no DM. */
+  dmName: string | null;
+  /** Players in the campaign, not counting the DM. */
+  playerCount: number;
 }
 
 export interface SignUpInput {

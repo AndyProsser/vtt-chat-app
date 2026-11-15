@@ -156,6 +156,8 @@ approved}`, after which the client refetches `GET /api/campaigns`. Notification 
 
 ## Roster: how someone is connected
 
+**`campaign.updated`** (`{campaignId}`, protocol 3) tells a campaign's connected members that its name, description or Public/Private setting changed. It carries no content: each client re-reads `GET /api/campaigns`, which is what enforces what they may see. The desktop app does this in the main window only, which also refreshes every open window. The REST side is `PATCH /api/campaigns/:id` (DM only: `name`, `description` up to 4,000 characters, `allowJoin`) and `DELETE /api/campaigns/:id/invites` (DM only: stop every invite link in use).
+
 Each roster member carries `via` (`'app'` or `'web'`, `null` when offline), and `presence.update` carries it when someone
 comes online. It is `app` if any of their connections is the desktop app (frame token), otherwise `web` (a browser
 session cookie). Clients use it only for wording: a person out of voice on the web app reads "On the web (chat only)"

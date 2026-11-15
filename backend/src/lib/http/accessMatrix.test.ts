@@ -140,6 +140,8 @@ const dmRoutes = (c: string): Route[] => [
   ['GET', `/api/campaigns/${c}/join-requests`],
   ['POST', `/api/campaigns/${c}/join-requests/${ID}/decision`, { approve: false }],
   ['PATCH', `/api/campaigns/${c}`, { allowJoin: true }],
+  ['PATCH', `/api/campaigns/${c}`, { name: 'Renamed', description: 'About' }],
+  ['DELETE', `/api/campaigns/${c}/invites`],
 ];
 
 const REFUSED = [401, 403, 404];

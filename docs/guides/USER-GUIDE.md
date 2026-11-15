@@ -209,8 +209,8 @@ says no, the card reads **Not this time** and shows the date you can ask again, 
 the DM answers, and if you are already in another campaign a strip appears with a **Switch** button. An invite link
 still works as before.
 
-**Letting people ask (DM).** In Settings, then Campaign, the **Join requests** section has an **Allow join** switch.
-When it is off your table is hidden from the list and takes no requests. Waiting requests show the person's name, their
+**Letting people ask (DM).** In Settings, then Campaign, the **Join requests** section has a **Public table** switch.
+Public means other players can find your table and ask to join; Private hides it. Invite links work either way. Waiting requests show the person's name, their
 note and how long ago they asked; **Approve** adds them as a player and **Decline** sends a no. A number on the Campaign
 tab and a dot on the Settings cog show that someone is waiting. Turn the pop-ups on or off in Settings, then
 Notifications.
@@ -231,7 +231,7 @@ different versions, update the app, or ask your DM to update the server if the a
   The transcript and summaries stay; the audio goes and cannot be got back, so it cannot be transcribed again. The other choice, **"Delete the whole session"**, removes the recording, its transcript and its summaries for everyone.
   If the server's disk runs low you are warned (a notification, and a note on the session) three days before the
   oldest audio is deleted for you.
-- The first time, **invite your players**: Settings → Campaign → invites (a link by email, a code, or a QR).
+- The first time, **invite your players**: Settings → Campaign → **Invite someone** makes one link for the whole group. Press **Copy invite message** and paste it into your group chat. If a link leaks, **Reset invite links** stops them all. Write a short description of the campaign first (the pencil next to its name): new players see it on the invite page.
 
 **Voices and groups**
 

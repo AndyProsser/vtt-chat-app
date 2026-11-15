@@ -191,3 +191,7 @@ VS Code is the recommended editor; enable format-on-save with Prettier and rust-
 - [docs/architecture/](docs/architecture/) — system diagram, records pipeline, deployment.
 - [docs/archive/](docs/archive/README.md) — the previous design, including the WebKitGTK/NVIDIA investigation, should you ever see those errors from a local panel.
 - Open an issue if something in this guide is wrong or missing — it should track reality as modules get built.
+
+## The banner image
+
+The dragon-and-d20 banner in emails (`backend/src/consts/emailBanner.ts`) and the invite link-preview image (`web/public/og-banner.jpg`) are generated from `web/src/assets/hero-1100.webp` by `scripts/build-email-banner.sh` (needs ImageMagick). Re-run it if the hero art changes; both outputs are committed.

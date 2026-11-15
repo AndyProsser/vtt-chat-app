@@ -176,6 +176,7 @@ pub fn is_table_frame(t: &str) -> bool {
             | "scene.stopped"
             | "party.state"
             | "roster.update"
+            | "campaign.updated"
             | "join.request"
             | "join.decided"
     ) || t.starts_with("loot.")
@@ -482,6 +483,7 @@ mod tests {
             "party.state",
             "loot.dropped",
             "notification",
+            "campaign.updated",
             "join.request",
             "join.decided",
         ] {

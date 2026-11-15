@@ -17,7 +17,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import { formatBytes, freePercent, isLow, measureDisk } from '../lib/status/storage.js';
-import { MAGIC_LINK_TTL_MINUTES } from '../consts/index.js';
+import { MAGIC_LINK_TTL_MINUTES, RESET_LINK_TTL_MINUTES } from '../consts/index.js';
 import type { AccountService } from '../lib/auth/accountService.js';
 import type { SignupService } from '../lib/auth/signupService.js';
 import type { Store } from '../lib/store/store.js';
@@ -79,7 +79,7 @@ const USAGE = `vtt-admin — system operations for this instance (gameplay is ma
   user create <email> --name <name> --accept-consent [--admin]
                                          make an account (no password; the first one is the Admin)
   user admin <email> grant|revoke        give or take away Admin (the last Admin cannot be removed)
-  user code <email> [signin|reset]       issue a one-time code to hand over on a side channel (${MAGIC_LINK_TTL_MINUTES} min); a signin code also connects the app (its Connect screen's code box) when no browser is at hand
+  user code <email> [signin|reset]       issue a one-time code to hand over on a side channel (${MAGIC_LINK_TTL_MINUTES} min, ${RESET_LINK_TTL_MINUTES} for reset); a signin code also connects the app (its Connect screen's code box) when no browser is at hand
   user revoke-sessions <email>           sign that account out on every device
   signup list [pending|approved|rejected]
                                          sign-up requests from visitors (default: pending)

@@ -56,6 +56,8 @@ export interface AppDeps {
   realtime?: {
     revokeSession(sessionId: string): void;
     announceRosterChanged(campaignId: string): void | Promise<void>;
+    /** A campaign's name, description or Public/Private setting changed. */
+    announceCampaignUpdated?(campaignId: string): void;
     /** Sends a frame to every live socket of a person. */
     sendToUser?(userId: string, type: string, data: unknown): void;
     announceRecording(change: RecordingChange): void;
@@ -195,7 +197,11 @@ export function createApp({
     if (page) app.use(page);
   }
   if (config.webDir) {
-    const pages = webPages(config.webDir);
+    const pages = webPages(config.webDir, {
+      campaigns,
+      publicUrl: config.publicUrl,
+      ogLimiter: new RateLimiter(60, MINUTE),
+    });
     if (pages) app.use(pages);
   }
 
@@ -260,7 +266,15 @@ export function createApp({
   );
   app.use(
     '/api/campaigns',
-    joinRequestRoutes({ accounts, joins, requestLimiter: new RateLimiter(10, 60 * MINUTE) }),
+    joinRequestRoutes({
+      accounts,
+      joins,
+      campaigns,
+      requestLimiter: new RateLimiter(10, 60 * MINUTE),
+      ...(realtime?.announceCampaignUpdated
+        ? { onCampaignChanged: (id: string) => realtime.announceCampaignUpdated!(id) }
+        : {}),
+    }),
   );
   app.use(
     '/api/campaigns',

@@ -33,6 +33,8 @@ export type TrustProxy = number | string[];
 export const DEFAULT_TRUST_PROXY: TrustProxy = ['loopback'];
 
 export interface BackendConfig {
+  /** The address people reach this server at (`PUBLIC_URL`): emailed links and link previews point at it. */
+  publicUrl?: string | undefined;
   port: number;
   /**
    * Which proxies may tell the backend the client's address (`X-Forwarded-For`), used by the per-IP
@@ -91,10 +93,10 @@ export interface BackendConfig {
    * Optional D&D Beyond character sync (`DDB_SYNC=1`). Off by default because it contacts a third
    * party; `DDB_SYNC_HOURS` is how stale a linked character may get before the timer refreshes it.
    */
-  /** Outbound mail for magic links (`SMTP_URL`, e.g. smtps://user:pass@mail.example.com:465, plus `MAIL_FROM`). Unset: the Admin CLI issues codes. */
+  /** Outbound mail for magic links (`SMTP_URL`, e.g. smtps://user:pass@mail.example.com:465, plus `MAIL_FROM`; also needs `PUBLIC_URL`, which the emailed links point at). Unset: the Admin CLI issues codes. */
   /** Optional single sign-on (`OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, and `PUBLIC_URL` for the redirect). */
   oidc: OidcConfig | undefined;
-  smtp: { url: string; from: string } | undefined;
+  smtp: { url: string; from: string; publicUrl: string } | undefined;
   ddbSync: { enabled: boolean; intervalHours: number };
 }
 
@@ -104,6 +106,10 @@ export interface BackendConfig {
  * own (see ROADMAP Stage 3, which also adds session secrets once accounts exist).
  */
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): BackendConfig {
+  // Emailed links need an address to point at; without one the mail would carry nothing to click.
+  if (env.SMTP_URL && !env.PUBLIC_URL) {
+    throw new Error('SMTP_URL needs PUBLIC_URL: emailed links must point somewhere');
+  }
   const proxy = parseTrustProxy(env.TRUST_PROXY);
   if (proxy.error) console.warn(`[backend] ${proxy.error}`);
   return {
@@ -137,8 +143,13 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): BackendConfig 
             redirectUri: `${env.PUBLIC_URL.replace(/\/$/, '')}/api/auth/oidc/callback`,
           }
         : undefined,
+    publicUrl: env.PUBLIC_URL || undefined,
     smtp: env.SMTP_URL
-      ? { url: env.SMTP_URL, from: env.MAIL_FROM ?? 'VTT Chat <no-reply@localhost>' }
+      ? {
+          url: env.SMTP_URL,
+          from: env.MAIL_FROM ?? 'VTT Chat <no-reply@localhost>',
+          publicUrl: env.PUBLIC_URL ?? '',
+        }
       : undefined,
     ddbSync: {
       enabled: env.DDB_SYNC === '1' || env.DDB_SYNC === 'true',

@@ -11,3 +11,13 @@ describe('parseRecordCues', () => {
     expect([...parseRecordCues('bogus')]).toEqual([]);
   });
 });
+
+describe('loadConfig mail settings', () => {
+  it('needs PUBLIC_URL when SMTP_URL is set', async () => {
+    const { loadConfig } = await import('./config.js');
+    expect(() => loadConfig({ SMTP_URL: 'smtp://relay:25' })).toThrow(/PUBLIC_URL/);
+    const both = loadConfig({ SMTP_URL: 'smtp://relay:25', PUBLIC_URL: 'https://x.test' });
+    expect(both.smtp?.url).toBe('smtp://relay:25');
+    expect(loadConfig({}).smtp).toBeUndefined();
+  });
+});

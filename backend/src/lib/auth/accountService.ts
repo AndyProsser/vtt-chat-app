@@ -4,6 +4,7 @@ import {
   DAY_MS,
   LINK_CODE_TTL_MINUTES,
   MAGIC_LINK_TTL_MINUTES,
+  RESET_LINK_TTL_MINUTES,
   MIN_PASSWORD_LENGTH,
   MINUTE_MS,
 } from '../../consts/index.js';
@@ -215,7 +216,8 @@ export class AccountService {
     // Emailed codes stay long, since nobody has to type them.
     const token = options.short ? generateShortCode() : generateSecret();
     const now = this.clock.now();
-    const expiresAt = now + MAGIC_LINK_TTL_MINUTES * MINUTE_MS;
+    const ttl = purpose === 'reset' ? RESET_LINK_TTL_MINUTES : MAGIC_LINK_TTL_MINUTES;
+    const expiresAt = now + ttl * MINUTE_MS;
     await this.store.putMagicLink({
       id: this.newId(),
       email: normalised,

@@ -1,5 +1,7 @@
 # Asking to join a campaign
 
+> **Renamed 2026-11-15:** the DM's **Allow join** switch is now shown as **Public / Private** (same flag, `allowJoin`). Public tables are listed and take requests; Private ones are hidden. Invite links work either way.
+
 Decided with Andy 2026-11-12. **Status: built 2026-11-12** (server, web app and desktop app; unit-tested, **not yet seen in a real window or browser**). Items marked _(my call)_ are my choices where the
 decisions left a gap; correct them first.
 

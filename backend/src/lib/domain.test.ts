@@ -4,6 +4,7 @@ import {
   DAY_MS,
   LINK_CODE_TTL_MINUTES,
   MAGIC_LINK_TTL_MINUTES,
+  RESET_LINK_TTL_MINUTES,
   MINUTE_MS,
 } from '../consts/index.js';
 import type { User } from '../types/index.js';
@@ -264,6 +265,15 @@ describe('magic links', () => {
     const link = await w.accounts.requestMagicLink(user.email, 'signin');
     w.clock.advance((MAGIC_LINK_TTL_MINUTES + 1) * MINUTE_MS);
     await rejects(w.accounts.redeemMagicLink(link?.token ?? ''), 'invalid_token');
+  });
+
+  it('gives a reset link longer to live than a sign-in link', async () => {
+    const signin = await w.accounts.requestMagicLink(user.email, 'signin');
+    const reset = await w.accounts.requestMagicLink(user.email, 'reset');
+    const now = w.clock.now();
+    expect(signin?.expiresAt).toBe(now + MAGIC_LINK_TTL_MINUTES * MINUTE_MS);
+    expect(reset?.expiresAt).toBe(now + RESET_LINK_TTL_MINUTES * MINUTE_MS);
+    expect(RESET_LINK_TTL_MINUTES).toBe(60);
   });
 
   describe('link codes', () => {
@@ -603,7 +613,13 @@ describe('MemoryStore transactions', () => {
     const store = new MemoryStore();
     await expect(
       store.transaction(async (tx) => {
-        await tx.putCampaign({ id: 'c', name: 'x', createdAt: 1, allowJoin: true });
+        await tx.putCampaign({
+          id: 'c',
+          name: 'x',
+          description: '',
+          createdAt: 1,
+          allowJoin: true,
+        });
         throw new Error('boom');
       }),
     ).rejects.toThrow('boom');

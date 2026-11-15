@@ -1,12 +1,14 @@
-import { Copy, Crown, LogOut, UserPlus } from 'lucide-react';
+import { Button } from '@radix-ui/themes';
+import { Copy, Crown, LogOut, RotateCcw, UserPlus } from 'lucide-react';
 import { useState } from 'react';
 
 import { useAccount } from '../../hooks/useAccount.js';
-import { inviteLink, otherPlayers } from '../../lib/invites.js';
+import { inviteLink, inviteMessage, otherPlayers } from '../../lib/invites.js';
 import { isDm } from '../../lib/tableModel.js';
 import { useTableStore } from '../../lib/tableStore.js';
 import { accountErrorMessage, campaignApi } from '../../lib/tauriBridge.js';
 import { MemberAvatar } from '../MemberAvatar.js';
+import { CampaignDetails } from './CampaignDetails.js';
 import { ToolButton } from '../ToolButton.js';
 
 /**
@@ -23,6 +25,8 @@ export function CampaignSection() {
   const recording = useTableStore((s) => s.recording !== null);
   const campaign = status?.campaigns.find((c) => c.id === status.campaignId);
   const [link, setLink] = useState<string>();
+  const [note, setNote] = useState<string>();
+  const [copied, setCopied] = useState(false);
   const [confirm, setConfirm] = useState<string>();
   const [error, setError] = useState<string>();
 
@@ -38,7 +42,11 @@ export function CampaignSection() {
   if (!campaign) return <span className="vtt-muted">Choose a campaign first.</span>;
   return (
     <div className="vtt-sessions">
-      <b className="vtt-head">{campaign.name}</b>
+      <CampaignDetails
+        campaign={campaign}
+        dm={dm}
+        onSaved={() => account.addCampaign('refresh', '')}
+      />
       <span className="vtt-muted">
         {dm ? 'You are the DM here.' : 'You are a player here.'} Roles belong to each campaign.
       </span>
@@ -56,6 +64,7 @@ export function CampaignSection() {
               onClick={() =>
                 void run(async () => {
                   const r = await campaignApi<{ code: string }>('POST', 'invites', {});
+                  setNote(undefined);
                   setLink(inviteLink(status?.server ?? '', r.code));
                 })
               }
@@ -63,17 +72,71 @@ export function CampaignSection() {
               <UserPlus size={14} />
             </ToolButton>
           </div>
+          <span className="vtt-muted">
+            One link works for the whole group until it expires. Paste it into your group chat.
+          </span>
+          {note && <span className="vtt-muted">{note}</span>}
           {link && (
-            <div className="vtt-form-row">
-              <code className="vtt-code">{link}</code>
-              <ToolButton
-                label="Copy the link"
-                onClick={() => void navigator.clipboard?.writeText(link)}
-              >
-                <Copy size={14} />
-              </ToolButton>
-            </div>
+            <>
+              <div className="vtt-form-row">
+                <code className="vtt-code">{link}</code>
+                <ToolButton
+                  label="Copy just the link"
+                  onClick={() => void navigator.clipboard?.writeText(link)}
+                >
+                  <Copy size={14} />
+                </ToolButton>
+              </div>
+              <div className="vtt-form-row">
+                <Button
+                  size="1"
+                  onClick={() => {
+                    void navigator.clipboard?.writeText(
+                      inviteMessage({
+                        campaignName: campaign.name,
+                        dmName: status?.displayName ?? undefined,
+                        link,
+                      }),
+                    );
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 2000);
+                  }}
+                >
+                  {copied ? 'Copied' : 'Copy invite message'}
+                </Button>
+              </div>
+            </>
           )}
+          <div className="vtt-session-head">
+            <span className="vtt-muted">Stop every invite link that is still in use.</span>
+            {confirm === 'reset-invites' ? (
+              <span className="vtt-form-row">
+                <ToolButton
+                  label="Yes, stop all invite links"
+                  danger
+                  onClick={() =>
+                    void run(async () => {
+                      await campaignApi('DELETE', 'invites');
+                      setLink(undefined);
+                      setConfirm(undefined);
+                      setNote(
+                        'Every invite link has stopped working. Make a new one when you need it.',
+                      );
+                    })
+                  }
+                >
+                  <RotateCcw size={14} />
+                </ToolButton>
+                <ToolButton label="Cancel" onClick={() => setConfirm(undefined)}>
+                  ×
+                </ToolButton>
+              </span>
+            ) : (
+              <ToolButton label="Reset invite links…" onClick={() => setConfirm('reset-invites')}>
+                <RotateCcw size={14} />
+              </ToolButton>
+            )}
+          </div>
         </section>
       )}
       {dm && (

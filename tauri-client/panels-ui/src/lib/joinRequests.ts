@@ -43,7 +43,7 @@ export function joinErrorMessage(error: unknown): string {
       if (/again|few days/i.test(message))
         return 'You asked this table recently. Try again in a few days.';
       if (/dealt with/i.test(message)) return 'That request was already dealt with.';
-      if (/allow join/i.test(message)) return 'Joining is closed. Turn Allow join on to approve.';
+      if (/allow join/i.test(message)) return 'This table is private. Make it public to approve.';
       return 'You have too many open requests. Withdraw one first.';
     case 'rate_limited':
       return 'Too many requests. Wait a little and try again.';

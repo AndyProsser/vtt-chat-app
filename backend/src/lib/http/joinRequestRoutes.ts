@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 
 import type { AccountService } from '../auth/accountService.js';
+import type { CampaignService } from '../campaigns/campaignService.js';
 import type { JoinRequestService } from '../campaigns/joinRequests.js';
 import { DomainError } from '../errors.js';
 import { authOf, requireAuth } from './middleware.js';
@@ -9,11 +10,25 @@ import type { RateLimiter } from './rateLimit.js';
 
 const requestBody = z.object({ message: z.string().max(2000).optional() });
 const decisionBody = z.object({ approve: z.boolean() });
-const settingsBody = z.object({ allowJoin: z.boolean() });
+// The campaign's settings: any of these, at least one. The service enforces the real limits (and counts
+// characters, not bytes); the schema only bounds the work.
+const settingsBody = z
+  .object({
+    allowJoin: z.boolean().optional(),
+    name: z.string().max(1000).optional(),
+    description: z.string().max(40_000).optional(),
+  })
+  .refine(
+    (b) => b.allowJoin !== undefined || b.name !== undefined || b.description !== undefined,
+    'nothing to change',
+  );
 
 export interface JoinRequestRouteDeps {
   accounts: AccountService;
   joins: JoinRequestService;
+  campaigns: CampaignService;
+  /** Called after a campaign's name, description or Public/Private switch changes, so live clients refresh. */
+  onCampaignChanged?: (campaignId: string) => void;
   /** Per client address, so the directory cannot be used to spam DMs. */
   requestLimiter: RateLimiter;
 }
@@ -30,6 +45,8 @@ function param(value: string | string[] | undefined): string {
 export function joinRequestRoutes({
   accounts,
   joins,
+  campaigns,
+  onCampaignChanged,
   requestLimiter,
 }: JoinRequestRouteDeps): Router {
   const router = Router();
@@ -70,14 +87,21 @@ export function joinRequestRoutes({
     res.json({ request: { id: request.id, status: request.status }, joined });
   });
 
-  // The DM's Allow-join switch (the campaign's settings update).
+  // The DM's changes to the campaign itself: its name, description and Public/Private switch.
   router.patch('/:id', auth, async (req, res) => {
     const body = settingsBody.parse(req.body);
-    const campaign = await joins.setAllowJoin(
-      param(req.params.id),
-      authOf(res).user.id,
-      body.allowJoin,
-    );
+    const id = param(req.params.id);
+    const user = authOf(res).user;
+    let campaign;
+    if (body.name !== undefined || body.description !== undefined) {
+      campaign = await campaigns.updateCampaign(user, id, {
+        ...(body.name === undefined ? {} : { name: body.name }),
+        ...(body.description === undefined ? {} : { description: body.description }),
+      });
+    }
+    if (body.allowJoin !== undefined)
+      campaign = await joins.setAllowJoin(id, user.id, body.allowJoin);
+    onCampaignChanged?.(id);
     res.json({ campaign });
   });
 

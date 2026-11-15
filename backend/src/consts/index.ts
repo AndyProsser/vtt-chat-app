@@ -47,7 +47,17 @@ export const MAX_TEXT_HANDOUT_CHARS = 20_000;
 /** Pictures in one picture handout (a PDF handout is one file). */
 export const MAX_HANDOUT_IMAGES = 12;
 
+/** A campaign's name, 1 to this many characters. */
+export const CAMPAIGN_NAME_MAX = 120;
+/** A campaign's markdown description, up to this many characters (code points). */
+export const CAMPAIGN_DESCRIPTION_MAX = 4000;
+
+/** The link-preview blurb for an invite whose campaign has no description, or whose code is not valid. */
+export const OG_FALLBACK_BLURB = 'Join the table on VTT Chat.';
+
 export const MAGIC_LINK_TTL_MINUTES = 15;
+/** A reset also needs a new password, and mail can be slow: it gets longer than a sign-in link. */
+export const RESET_LINK_TTL_MINUTES = 60;
 /** A link code is typed into the desktop app by someone already signed in on the web: short-lived. */
 export const LINK_CODE_TTL_MINUTES = 5;
 /** Speakable: no look-alike characters (no I, L, O, 0, 1). */

@@ -6,7 +6,17 @@ export interface AccountStatus {
   userId: string | null;
   displayName: string | null;
   avatarUrl?: string | null;
-  campaigns: { id: string; name: string; role: string }[];
+  campaigns: CampaignSummary[];
+}
+
+export interface CampaignSummary {
+  id: string;
+  name: string;
+  role: string;
+  /** The DM's markdown description; empty when there is none. */
+  description: string;
+  /** Public (true) or Private. Invite links work either way. */
+  allowJoin: boolean;
 }
 
 export interface AccountError {
@@ -299,7 +309,7 @@ export interface JoinRequestRow {
   createdAt: number;
   decidedAt: number | null;
   decidedBy: string | null;
-  /** Allow join is off: the request is kept but cannot be approved. */
+  /** The table is Private (Allow join is off): the request is kept but cannot be approved. */
   closed: boolean;
 }
 

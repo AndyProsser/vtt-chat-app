@@ -362,6 +362,15 @@ export class Hub {
     }
   }
 
+  /**
+   * Tells a campaign's connected members that its name, description or Public/Private setting changed, so
+   * each client re-reads the campaign list. The frame carries no content: the REST read is the source of
+   * truth and is what enforces who may see what.
+   */
+  announceCampaignUpdated(campaignId: string): void {
+    this.broadcast(campaignId, 'campaign.updated', { campaignId });
+  }
+
   /** Tells a campaign's subscribers that roles/characters changed (e.g. after a DM swap). */
   async announceRosterChanged(campaignId: string): Promise<void> {
     this.broadcast(campaignId, 'roster.changed', { campaignId });

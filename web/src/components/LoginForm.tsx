@@ -1,15 +1,15 @@
-import { Button, Callout, Checkbox, Flex, Text, TextField } from '@radix-ui/themes';
+import { Button, Callout, Flex, Text, TextField } from '@radix-ui/themes';
 import { useEffect, useState } from 'react';
 
-import { CONSENT_TEXT } from '../consts/index.js';
 import {
-  acceptCurrentConsent,
   ApiError,
-  emailSignInCode,
+  emailResetLink,
+  emailSignInLink,
   mailAvailable,
   redeemEmailCode,
   signInPlain,
 } from '../lib/api.js';
+import { ConsentStep } from './ConsentStep.js';
 
 const MESSAGES: Record<string, string> = {
   invalid_credentials: 'That email and password don’t match.',
@@ -18,19 +18,19 @@ const MESSAGES: Record<string, string> = {
 };
 
 /**
- * Sign in with a password, or (when the server can send mail) with an emailed code. If the recording
- * notice changed since the account last accepted it, it is shown and accepted here before
- * `onSignedIn`: the server refuses to approve a device (or issue a link code) until it is.
+ * Sign in with a password. When the server can send mail the person may instead be emailed a sign-in link,
+ * or a link to reset a forgotten password; both open the web app (`EmailLinkPage`). "I have a sign-in code"
+ * is for a code someone read out to them (the DM, the operator). If the recording notice changed since the
+ * account last accepted it, it is shown and accepted here before `onSignedIn`.
  */
 export function LoginForm({ onSignedIn }: { onSignedIn: () => void }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [mail, setMail] = useState(false);
-  const [codeSent, setCodeSent] = useState(false);
+  const [notice, setNotice] = useState<string>();
   const [haveCode, setHaveCode] = useState(false);
-  const [emailCode, setEmailCode] = useState('');
+  const [code, setCode] = useState('');
   const [needsConsent, setNeedsConsent] = useState(false);
-  const [consent, setConsent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
 
@@ -53,51 +53,22 @@ export function LoginForm({ onSignedIn }: { onSignedIn: () => void }) {
 
   const submit = () =>
     run(async () => {
-      if (needsConsent) {
-        await acceptCurrentConsent();
-        onSignedIn();
-        return;
-      }
-      const signedIn =
-        codeSent || haveCode
-          ? await redeemEmailCode(emailCode.trim())
-          : await signInPlain(email, password);
+      const signedIn = haveCode
+        ? await redeemEmailCode(code.trim())
+        : await signInPlain(email, password);
       if (signedIn.needsConsent) setNeedsConsent(true);
       else onSignedIn();
     });
 
-  if (needsConsent) {
-    return (
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (consent) void submit();
-        }}
-      >
-        <Flex direction="column" gap="3">
-          <Callout.Root color="amber">
-            <Callout.Text>Please read the recording notice and accept it to continue.</Callout.Text>
-          </Callout.Root>
-          <Text size="2">{CONSENT_TEXT}</Text>
-          <Text as="label" size="2">
-            <Flex gap="2" align="center">
-              <Checkbox checked={consent} onCheckedChange={(v) => setConsent(v === true)} />I accept
-              the recording notice
-            </Flex>
-          </Text>
-          {error && (
-            <Callout.Root color="red" role="alert">
-              <Callout.Text>{error}</Callout.Text>
-            </Callout.Root>
-          )}
-          <Button type="submit" size="3" loading={busy} disabled={!consent}>
-            Accept and continue
-          </Button>
-        </Flex>
-      </form>
-    );
-  }
+  const sendLink = (send: (email: string) => Promise<unknown>) =>
+    run(async () => {
+      await send(email);
+      setNotice('If that email has an account, a link is on its way. It can take a minute.');
+    });
 
+  if (needsConsent) return <ConsentStep onAccepted={onSignedIn} />;
+
+  const validEmail = email.includes('@');
   return (
     <form
       onSubmit={(e) => {
@@ -106,68 +77,79 @@ export function LoginForm({ onSignedIn }: { onSignedIn: () => void }) {
       }}
     >
       <Flex direction="column" gap="3">
-        {!haveCode && (
-          <TextField.Root
-            size="3"
-            type="email"
-            autoComplete="email"
-            aria-label="Email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-        )}
-        {codeSent || haveCode ? (
+        {haveCode ? (
           <TextField.Root
             size="3"
             autoComplete="one-time-code"
-            aria-label={haveCode ? 'Sign-in code' : 'Code from your email'}
-            placeholder={haveCode ? 'ABCD-EFGH' : 'Code from your email'}
-            value={emailCode}
-            onChange={(e) => setEmailCode(e.target.value)}
+            aria-label="Sign-in code"
+            placeholder="ABCD-EFGH"
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
           />
         ) : (
-          <TextField.Root
-            size="3"
-            type="password"
-            autoComplete="current-password"
-            aria-label="Password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
+          <>
+            <TextField.Root
+              size="3"
+              type="email"
+              autoComplete="email"
+              aria-label="Email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+            <TextField.Root
+              size="3"
+              type="password"
+              autoComplete="current-password"
+              aria-label="Password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </>
         )}
         {error && (
           <Callout.Root color="red" role="alert">
             <Callout.Text>{error}</Callout.Text>
           </Callout.Root>
         )}
+        {notice && (
+          <Callout.Root color="green" role="status">
+            <Callout.Text>{notice}</Callout.Text>
+          </Callout.Root>
+        )}
         <Button
           type="submit"
           size="3"
           loading={busy}
-          disabled={
-            codeSent || haveCode
-              ? (!haveCode && !email.includes('@')) || emailCode.trim() === ''
-              : !email.includes('@') || password === ''
-          }
+          disabled={haveCode ? code.trim() === '' : !validEmail || password === ''}
         >
           Sign in
         </Button>
-        {mail && !codeSent && (
-          <Button
-            type="button"
-            variant="ghost"
-            disabled={busy || !email.includes('@')}
-            onClick={() =>
-              void run(async () => {
-                await emailSignInCode(email);
-                setCodeSent(true);
-              })
-            }
-          >
-            Email me a code instead
-          </Button>
+        {mail && !haveCode && (
+          <Flex direction="column" gap="1" align="center">
+            <Text size="1" color="gray">
+              Type your email above, then:
+            </Text>
+            <Flex gap="3" wrap="wrap" justify="center">
+              <Button
+                type="button"
+                variant="ghost"
+                disabled={busy || !validEmail}
+                onClick={() => void sendLink(emailSignInLink)}
+              >
+                Email me a sign-in link
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                disabled={busy || !validEmail}
+                onClick={() => void sendLink(emailResetLink)}
+              >
+                Forgot password?
+              </Button>
+            </Flex>
+          </Flex>
         )}
         <Button
           type="button"
@@ -176,15 +158,11 @@ export function LoginForm({ onSignedIn }: { onSignedIn: () => void }) {
           onClick={() => {
             setHaveCode(!haveCode);
             setError(undefined);
+            setNotice(undefined);
           }}
         >
           {haveCode ? 'Use email and password instead' : 'I have a sign-in code'}
         </Button>
-        {codeSent && !haveCode && (
-          <Text size="1" color="gray">
-            If that email has an account, a code is on its way.
-          </Text>
-        )}
       </Flex>
     </form>
   );

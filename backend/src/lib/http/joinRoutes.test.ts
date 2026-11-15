@@ -82,14 +82,64 @@ async function makeInvite(): Promise<string> {
 }
 
 describe('the join page backend', () => {
-  it('previews a good invite with only the campaign name', async () => {
+  it('previews a good invite with the campaign’s details and nothing about individuals', async () => {
     const code = await makeInvite();
     const res = await json('GET', `/api/invites/${code}`);
     expect(res.status).toBe(200);
     expect(res.body).toEqual({
       campaignName: 'Lost Mine',
       consentVersion: expect.any(String),
+      description: '',
+      dmName: 'DM',
+      playerCount: 0,
     });
+  });
+
+  it('puts the invite’s own Open Graph tags in the page head, escaped, and the banner is served', async () => {
+    const dm = await json('POST', '/api/auth/register', {
+      email: 'dm2@example.com',
+      displayName: 'Dee "the" <DM>',
+      password: 'correct horse battery',
+      acceptedConsentVersion: '1',
+    });
+    const token = dm.body.sessionToken;
+    const made = await json('POST', '/api/campaigns', { name: 'Evil "><b>Mine' }, token);
+    const id = made.body.campaign.id;
+    await json(
+      'PATCH',
+      `/api/campaigns/${id}`,
+      { description: '# Welcome\n\nBring **garlic**.' },
+      token,
+    );
+    const { code } = (await json('POST', `/api/campaigns/${id}/invites`, {}, token)).body;
+
+    const html = await (await fetch(`${base}/join/${code}`)).text();
+    expect(html).toContain(
+      'property="og:title" content="Join Evil &#34;&#62;&#60;b&#62;Mine on VTT Chat"',
+    );
+    expect(html).toContain('Welcome Bring garlic.');
+    expect(html).toContain('Dee &#34;the&#34; &#60;DM&#62; is running');
+    expect(html).not.toContain('<b>Mine');
+    expect(html.match(/<title>/g)).toHaveLength(1);
+
+    const banner = await fetch(`${base}/og-banner.jpg`);
+    // No web/public file in this temp web dir, so the route steps aside rather than leaking anything.
+    expect([200, 404]).toContain(banner.status);
+  });
+
+  it('gives a bad code, and a crawler over its budget, the generic tags and the same 200', async () => {
+    const code = await makeInvite();
+    const bad = await fetch(`${base}/join/NOPENOPE12`);
+    expect(bad.status).toBe(200);
+    expect(await bad.text()).toContain('Join a table on VTT Chat');
+    let last = '';
+    for (let i = 0; i < 70; i += 1) {
+      const res = await fetch(`${base}/join/${code}`);
+      expect(res.status).toBe(200);
+      last = await res.text();
+    }
+    expect(last).toContain('Join a table on VTT Chat');
+    expect(last).not.toContain('Lost Mine');
   });
 
   it('answers a bad code exactly like any other invalid invite', async () => {
@@ -104,11 +154,13 @@ describe('the join page backend', () => {
       '/join/ABCD-EFGH',
       '/connect',
       '/account',
+      '/email-signin',
+      '/reset-password',
       '/connect?c=ABCD-2345',
     ]) {
       const res = await fetch(`${base}${path}`);
       expect(res.status).toBe(200);
-      expect(await res.text()).toContain('<title>join</title>');
+      expect(await res.text()).toMatch(/<title>(join|Join a table on VTT Chat)<\/title>/);
       expect(res.headers.get('content-security-policy')).toContain("default-src 'self'");
     }
     const asset = await fetch(`${base}/assets/app.js`);

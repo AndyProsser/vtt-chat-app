@@ -539,6 +539,13 @@ describe('Hub: live events', () => {
     expect(dm.of('chat.message').map((f) => f.d.text)).toEqual(['m1', 'm2', 'm3', 'm4', 'm5']);
   });
 
+  it('tells connected members when the campaign itself changes, and carries no content', () => {
+    t.hub.announceCampaignUpdated(t.campaignId);
+    for (const conn of [dm, player]) {
+      expect(conn.last('campaign.updated')?.d).toEqual({ campaignId: t.campaignId });
+    }
+  });
+
   it('announces roster changes', async () => {
     await t.hub.announceRosterChanged(t.campaignId);
     expect(dm.last('roster.changed')?.d).toEqual({ campaignId: t.campaignId });

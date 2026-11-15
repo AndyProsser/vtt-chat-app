@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 
 import { useAccount } from '../hooks/useAccount.js';
 import { usePanelBridge } from '../hooks/usePanelBridge.js';
+import { useCampaignUpdates } from '../hooks/useCampaignUpdates.js';
 import { useJoinFeed } from '../hooks/useJoinFeed.js';
 import { useTableFeed } from '../hooks/useTableFeed.js';
 import { gateState } from '../lib/gate.js';
@@ -33,6 +34,7 @@ function Table({ selfId }: { selfId: string | null }) {
   usePanelBridge();
   useTableFeed();
   useJoinFeed();
+  useCampaignUpdates();
   const members = useTableStore((s) => s.members);
   const dm = isDm(members, selfId);
   const [drawer, setDrawer] = useState(false);

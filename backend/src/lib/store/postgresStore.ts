@@ -104,6 +104,7 @@ const toMagicLink = (r: Row): MagicLink => ({
 const toCampaign = (r: Row): Campaign => ({
   id: r.id as string,
   name: r.name as string,
+  description: r.description as string,
   createdAt: r.created_at as number,
   allowJoin: r.allow_join as boolean,
 });
@@ -382,9 +383,9 @@ export class PostgresStore implements Store {
 
   async putCampaign(c: Campaign): Promise<void> {
     await this.db.query(
-      `INSERT INTO campaigns (id, name, created_at, allow_join) VALUES ($1, $2, $3, $4)
-       ON CONFLICT (id) DO UPDATE SET name = $2, created_at = $3, allow_join = $4`,
-      [c.id, c.name, c.createdAt, c.allowJoin],
+      `INSERT INTO campaigns (id, name, description, created_at, allow_join) VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT (id) DO UPDATE SET name = $2, description = $3, created_at = $4, allow_join = $5`,
+      [c.id, c.name, c.description, c.createdAt, c.allowJoin],
     );
   }
 
@@ -580,6 +581,14 @@ export class PostgresStore implements Store {
          created_at = $5, expires_at = $6, uses = $7, revoked_at = $8`,
       [i.id, i.campaignId, i.codeHash, i.createdBy, i.createdAt, i.expiresAt, i.uses, i.revokedAt],
     );
+  }
+
+  async revokeInvitesForCampaign(campaignId: string, at: number): Promise<number> {
+    const result = await this.db.query(
+      'UPDATE invites SET revoked_at = $2 WHERE campaign_id = $1 AND revoked_at IS NULL AND expires_at > $2',
+      [campaignId, at],
+    );
+    return result.rowCount ?? 0;
   }
 
   async putChatMessage(m: ChatMessage): Promise<void> {

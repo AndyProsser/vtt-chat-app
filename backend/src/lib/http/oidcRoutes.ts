@@ -3,9 +3,8 @@ import { Router, type Response } from 'express';
 import { MAGIC_LINK_TTL_MINUTES } from '../../consts/index.js';
 import type { AccountService } from '../auth/accountService.js';
 import { OidcError, type OidcClient } from '../auth/oidc.js';
+import { escapeHtml } from '../mail/escape.js';
 import { RateLimiter } from './rateLimit.js';
-
-const escapeHtml = (s: string): string => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
 function page(res: Response, status: number, title: string, body: string): void {
   res.status(status);

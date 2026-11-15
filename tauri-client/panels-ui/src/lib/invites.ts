@@ -5,6 +5,20 @@ export function inviteLink(server: string, code: string): string {
   return `${server.replace(/\/+$/, '')}/join/${encodeURIComponent(code)}`;
 }
 
+/**
+ * What the DM pastes into a group chat: one line saying what it is, then the link on a line of its own so
+ * every chat app turns it into a tappable link (and, with the server's link preview, a card).
+ */
+export function inviteMessage(input: {
+  campaignName: string;
+  dmName: string | undefined;
+  link: string;
+}): string {
+  const name = input.campaignName.trim();
+  const dm = input.dmName?.trim();
+  return `You're invited to join ${name} on VTT Chat${dm ? `, run by ${dm}` : ''}.\n${input.link}`;
+}
+
 /** Who the DM role can be handed to: the players, not oneself. */
 export function otherPlayers(members: Member[], selfId: string | null): Member[] {
   return members.filter((m) => m.role === 'player' && m.userId !== selfId);

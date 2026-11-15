@@ -1,10 +1,18 @@
 import { randomUUID } from 'node:crypto';
 
 import { DAY_MS } from '../../consts/index.js';
-import type { Campaign, Character, Invite, Membership, User } from '../../types/index.js';
+import type {
+  Campaign,
+  Character,
+  Invite,
+  InvitePreview,
+  Membership,
+  User,
+} from '../../types/index.js';
 import { generateCode, hashSecret, normaliseCode } from '../auth/crypto.js';
 import type { Clock } from '../auth/accountService.js';
 import { AVATAR_VALUE } from '../avatarValue.js';
+import { cleanCampaignDescription, cleanCampaignName } from './campaignText.js';
 import { DomainError } from '../errors.js';
 import type { Store } from '../store/store.js';
 
@@ -37,17 +45,20 @@ export class CampaignService {
    * anyone, players included. The creator becomes the campaign's DM.
    */
   async createCampaign(actor: User, name: string): Promise<Campaign> {
-    const trimmed = name.trim();
-    if (trimmed.length === 0 || trimmed.length > 120) {
-      throw new DomainError('invalid_input', 'campaign name must be 1–120 characters');
-    }
+    const trimmed = cleanCampaignName(name);
     const settings = await this.store.getSettings();
     if (settings.campaignCreation === 'closed' && !actor.isAdmin) {
       throw new DomainError('forbidden', 'only the instance admin can create campaigns here');
     }
 
     const now = this.clock.now();
-    const campaign: Campaign = { id: this.newId(), name: trimmed, createdAt: now, allowJoin: true };
+    const campaign: Campaign = {
+      id: this.newId(),
+      name: trimmed,
+      description: '',
+      createdAt: now,
+      allowJoin: true,
+    };
     await this.store.transaction(async (tx) => {
       await tx.putCampaign(campaign);
       await tx.putMembership(newMembership(campaign.id, actor.id, 'dm', now));
@@ -86,6 +97,44 @@ export class CampaignService {
     return { invite, code };
   }
 
+  /**
+   * The DM's "reset invite links": every invite still in use stops working at once, so a link that leaked
+   * (or a group that has settled) can be closed without hunting for codes. People already in the campaign
+   * are unaffected; the DM makes a fresh link when they want one. Returns how many were revoked.
+   */
+  async revokeAllInvites(actor: User, campaignId: string): Promise<number> {
+    await this.requireDm(actor.id, campaignId);
+    return this.store.revokeInvitesForCampaign(campaignId, this.clock.now());
+  }
+
+  /**
+   * Renames the campaign and/or changes its description. DM only; a field left out is left alone. The
+   * caller announces the change so connected clients refresh (the HTTP route does).
+   */
+  async updateCampaign(
+    actor: User,
+    campaignId: string,
+    patch: { name?: string; description?: string },
+  ): Promise<Campaign> {
+    if (patch.name === undefined && patch.description === undefined) {
+      throw new DomainError('invalid_input', 'nothing to change');
+    }
+    await this.requireDm(actor.id, campaignId);
+    return this.store.transaction(async (tx) => {
+      const campaign = await tx.getCampaign(campaignId);
+      if (!campaign) throw new DomainError('not_found');
+      const next: Campaign = {
+        ...campaign,
+        ...(patch.name === undefined ? {} : { name: cleanCampaignName(patch.name) }),
+        ...(patch.description === undefined
+          ? {}
+          : { description: cleanCampaignDescription(patch.description) }),
+      };
+      await tx.putCampaign(next);
+      return next;
+    });
+  }
+
   async revokeInvite(actor: User, campaignId: string, code: string): Promise<void> {
     await this.requireDm(actor.id, campaignId);
     const invite = await this.store.getInviteByHash(hashSecret(normaliseCode(code)));
@@ -94,11 +143,11 @@ export class CampaignService {
   }
 
   /**
-   * What the public join page may show for a code: the campaign's name and the consent version the sign-up form must submit. A bad,
+   * What the public join page may show for a code: the campaign's name, DM, player count and description, and the consent version the sign-up form must submit. A bad,
    * expired or revoked code is the same `invite_invalid` as when joining, so this can't be used to
    * tell the cases apart.
    */
-  async previewInvite(code: string): Promise<{ campaignName: string; consentVersion: string }> {
+  async previewInvite(code: string): Promise<InvitePreview> {
     const invite = await this.store.getInviteByHash(hashSecret(normaliseCode(code)));
     if (!invite || invite.revokedAt !== null || invite.expiresAt <= this.clock.now()) {
       throw new DomainError('invite_invalid');
@@ -106,7 +155,16 @@ export class CampaignService {
     const campaign = await this.store.getCampaign(invite.campaignId);
     if (!campaign) throw new DomainError('invite_invalid');
     const settings = await this.store.getSettings();
-    return { campaignName: campaign.name, consentVersion: settings.consentVersion };
+    const members = await this.store.listMemberships(campaign.id);
+    const dm = members.find((m) => m.role === 'dm');
+    const dmUser = dm ? await this.store.getUser(dm.userId) : undefined;
+    return {
+      campaignName: campaign.name,
+      consentVersion: settings.consentVersion,
+      description: campaign.description,
+      dmName: dmUser?.displayName ?? null,
+      playerCount: members.filter((m) => m.role === 'player').length,
+    };
   }
 
   /** Joins as a player. Using the code again while already a member is harmless and not counted. */

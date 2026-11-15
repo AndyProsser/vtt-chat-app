@@ -4,11 +4,12 @@ Three ways in, all ending in the same long-lived, revocable session ([CLAUDE.md 
 
 > **Changed 2026-11-11 (0.4):** all three now happen **in the browser** (the join page or `/connect`), never in the app. The app only _connects_: it takes a one-time link code (deep link or typed) or has a device request approved in a signed-in browser (the app's QR, scanned by a phone, opens that page) ([APP-SIGN-IN.md](APP-SIGN-IN.md)). The app's typed-code box ("Have a code? Type it here") accepts **any one-time sign-in code**: a link code, an emailed code, a `vtt-admin user code … signin` code, or the code the SSO page shows. A short code is normalised in the app; anything else is sent as typed and the server checks it. The password, code and SSO forms in the app exist only behind `VTT_DEV_SIGNIN=1` ([DEVELOPING.md](../../DEVELOPING.md)). The "in the app" wording below describes how those methods work, and how the dev forms behave.
 
-| Method         | Needs                                                                                   | How the player uses it                                                                     |
-| -------------- | --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| Password       | nothing                                                                                 | email + password (browser; in the app only with `VTT_DEV_SIGNIN`)                          |
-| Code           | nothing to issue by hand (`vtt-admin user code <email>`); `SMTP_URL` to have it emailed | "Use a code instead" → **Email me a code**, paste it                                       |
-| Single sign-on | `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, `PUBLIC_URL`                     | "Use a code instead" → **Sign in with single sign-on** → browser → paste the code it shows |
+| Method         | Needs                                                                              | How the player uses it                                                                     |
+| -------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| Password       | nothing                                                                            | email + password (browser; in the app only with `VTT_DEV_SIGNIN`)                          |
+| Emailed link   | `SMTP_URL` and `PUBLIC_URL`                                                        | **Email me a sign-in link**, press the button in the email                                 |
+| Code           | nothing (`vtt-admin user code <email>`): a person reads it out, the other types it | "I have a sign-in code", type it                                                           |
+| Single sign-on | `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, `PUBLIC_URL`                | "Use a code instead" → **Sign in with single sign-on** → browser → paste the code it shows |
 
 ## Why SSO ends in a code
 
@@ -39,8 +40,38 @@ sequenceDiagram
 - **The email must be verified by the provider** (`email_verified: true`), or the sign-in is refused: an unverified address could belong to someone else.
 - **Standard protections:** authorization code with PKCE (S256), a random single-use `state` (10 minutes, bounded), a `nonce` check, ID-token signature, issuer and audience verified against the provider's published keys.
 - **Codes are single-use and expire in 15 minutes**, are never logged, and requests are rate-limited. The "email me a code" reply is identical whether or not the address has an account or the server can send mail.
-- **Plain-text mail through the operator's own SMTP server** (`SMTP_URL`, e.g. `smtps://user:pass@mail.example.com:465`, `MAIL_FROM`). No tracking, nothing to click.
+- **HTML mail through the operator's own SMTP server** (`SMTP_URL`, e.g. `smtp://relay.lan:25` or `smtps://user:pass@mail.example.com:465`, `MAIL_FROM`, and `PUBLIC_URL`, which the links open). One button, the address repeated as text, a plain-text part, no tracking pixels. See _Emailed links_ below.
 - **Footprint:** SMTP adds the `nodemailer` library (pure JS); SSO adds nothing beyond `jose`, which the backend already used.
+
+## Emailed links (sign-in and password reset)
+
+**Rule: a long single-use token for anything a person clicks; a short code (`ABCD-EFGH`) only where a person has to type or read one out** (the DM handing a code over, the app's typed-code box). Emailed sign-in and reset therefore carry a link, never a code to copy, and the link always opens the **web app**: email never authenticates a desktop client directly. The app is connected from the signed-in web afterwards, as in [APP-SIGN-IN.md](APP-SIGN-IN.md).
+
+```mermaid
+sequenceDiagram
+  participant P as Person
+  participant W as Web page
+  participant S as Backend
+  participant M as Mail relay
+  P->>W: "Email me a sign-in link" / "Forgot password?"
+  W->>S: POST /api/auth/magic-link (email, purpose)
+  S-->>W: 202 (same answer whether or not the account exists)
+  S->>M: HTML + text mail, banner attached inline
+  M-->>P: email with /email-signin#token=…
+  P->>W: opens the link, presses the button
+  W->>S: POST /api/auth/magic-link/redeem (token, newPassword for a reset)
+  S-->>W: session cookie (a reset also signs out every other device)
+```
+
+Why it is shaped this way:
+
+- **The token is in the URL fragment** (`#token=…`). A fragment is never sent to the server, so it is not in access logs or a Referer header, and the page removes it from the address bar as soon as it has read it.
+- **The page redeems on a button press, not on load.** Mail scanners and chat apps open links to check or preview them; a link that signed you in on load would be spent before you clicked it. Cost: one extra tap.
+- **Lifetimes:** sign-in 15 minutes, reset 60 (it also needs a new password, and mail can be slow). Single use; only a hash is stored.
+- **`PUBLIC_URL` is required with `SMTP_URL`**: without it there is nothing for the link to point at, so the server refuses to start rather than send mail with nothing to click.
+- **The banner** (the dragon and the d20, 600x200 JPEG, about 34 KB) is attached inline (CID), so it shows with no remote fetch and works on every deployment. It is generated into `backend/src/consts/emailBanner.ts` by `scripts/build-email-banner.sh`; the same script makes the link-preview image.
+- **Layout:** one table-based column with inline styles (Outlook and Gmail need that), a coloured-cell button, and a `prefers-color-scheme` block for dark mode.
+- **Mail relay:** any SMTP server works. For the homelab, `SMTP_URL=smtp://<relay>:25` with `MAIL_FROM="VTT Chat <noreply@your-domain>"`; the relay must accept the server's address and be allowed to send as that domain.
 
 ## Visitor sign-up requests
 
@@ -87,4 +118,4 @@ cannot take a redirect.
 
 ## Not verified
 
-SSO was tested against a fake provider in the test suite (signing, PKCE, nonce, expiry, replay, unverified email), **not against a real Authelia or Keycloak**. SMTP is tested against a fake mailer, not a live mail server. Both need a first real run. Sign-up requests are unit and HTTP tested (memory store and Postgres), and have not been exercised in a browser.
+SSO was tested against a fake provider in the test suite (signing, PKCE, nonce, expiry, replay, unverified email), **not against a real Authelia or Keycloak**. SMTP is tested against a fake mailer, not a live mail server (the emails were also rendered in a browser to check the layout). Both need a first real run. Sign-up requests are unit and HTTP tested (memory store and Postgres), and have not been exercised in a browser.

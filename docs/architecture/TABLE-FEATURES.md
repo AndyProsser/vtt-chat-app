@@ -279,8 +279,8 @@ re-snapshot); the Party inventory window is the source of truth.
 
 ## Asking to join a table (built 2026-11-12)
 
-Design and rationale: [CAMPAIGN-JOIN-REQUESTS.md](CAMPAIGN-JOIN-REQUESTS.md). **Allow join** is on by default; a DM turns
-it off in campaign settings and the table disappears from the list and takes no requests. A person can have up to 5
+Design and rationale: [CAMPAIGN-JOIN-REQUESTS.md](CAMPAIGN-JOIN-REQUESTS.md). **Public** (the old Allow join) is on by default; a DM makes
+the table Private in campaign settings and it disappears from the list and takes no requests. A person can have up to 5
 open requests, a message up to 280 characters, and may ask again 7 days after a decline. The DM at the moment of the
 decision decides; a DM swap moves pending requests to the new DM. The operator can hide all listings with
 `campaign-directory off`.

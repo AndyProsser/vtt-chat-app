@@ -1,6 +1,6 @@
 {
-  "protocolVersion": 2,
-  "hash": "84136b2205a2341d8d8aa8ceed41fdfe04b99d7f75e569b21bb49a42789bc06c",
+  "protocolVersion": 3,
+  "hash": "dc49295b5139d96d47e63a9afc89ac494fec464e94f3964f579057157501d53c",
   "summary": {
     "clientFrames": [
       "audio.state",
@@ -26,6 +26,7 @@
       "audio.update",
       "auth.ok",
       "auth.revoked",
+      "campaign.updated",
       "chat.message",
       "chat.whisper",
       "chat.whispers",
@@ -93,6 +94,7 @@
       "http/authRoutes.ts POST /sessions/revoke-others",
       "http/avatarRoutes.ts GET /:id",
       "http/avatarRoutes.ts POST /upload",
+      "http/campaignRoutes.ts DELETE /:id/invites",
       "http/campaignRoutes.ts DELETE /:id/invites/:code",
       "http/campaignRoutes.ts GET /",
       "http/campaignRoutes.ts GET /:id/characters",
@@ -133,6 +135,7 @@
       "http/joinRequestRoutes.ts POST /:id/join-requests/:requestId/decision",
       "http/joinRoutes.ts GET /:code",
       "http/joinRoutes.ts GET /app",
+      "http/joinRoutes.ts GET /join/:code",
       "http/lootRoutes.ts DELETE /:itemId",
       "http/lootRoutes.ts GET /",
       "http/lootRoutes.ts POST /",

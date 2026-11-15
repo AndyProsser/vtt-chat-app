@@ -138,12 +138,24 @@ export const mailAvailable = () =>
     () => false,
   );
 
-export const emailSignInCode = (email: string) =>
+/** Asks for a sign-in link by email. The answer is the same whether or not the address has an account. */
+export const emailSignInLink = (email: string) =>
   request('POST', '/api/auth/magic-link', { body: { email, purpose: 'signin' } });
+
+/** Asks for a password-reset link by email; same answer either way. */
+export const emailResetLink = (email: string) =>
+  request('POST', '/api/auth/magic-link', { body: { email, purpose: 'reset' } });
 
 export async function redeemEmailCode(token: string): Promise<ConnectSignIn> {
   return connectSignIn(
     await request<Session>('POST', '/api/auth/magic-link/redeem', { body: { token } }),
+  );
+}
+
+/** Sets a new password with an emailed reset token; the person is signed in and every other device is signed out. */
+export async function redeemResetLink(token: string, newPassword: string): Promise<ConnectSignIn> {
+  return connectSignIn(
+    await request<Session>('POST', '/api/auth/magic-link/redeem', { body: { token, newPassword } }),
   );
 }
 

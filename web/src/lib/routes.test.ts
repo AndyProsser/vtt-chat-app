@@ -10,6 +10,8 @@ describe('resolveRoute', () => {
     expect(resolveRoute('/full-app')).toBe('full-app');
     expect(resolveRoute('/connect')).toBe('connect');
     expect(resolveRoute('/account/')).toBe('account');
+    expect(resolveRoute('/email-signin')).toBe('email-signin');
+    expect(resolveRoute('/reset-password/')).toBe('reset-password');
   });
 
   it('treats /join and /join/<code> as the join page', () => {

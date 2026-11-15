@@ -61,7 +61,7 @@ services:
       VALKEY_URL: redis://valkey:6379
       # Uploaded handouts and soundboard clips (type- and size-checked, served only to those allowed).
       MEDIA_DIR: /data/media
-      # Optional outbound mail for emailed sign-in codes, and single sign-on. All off unless set in .env.
+      # Optional outbound mail for emailed sign-in and reset links (needs PUBLIC_URL), and single sign-on. All off unless set in .env.
       SMTP_URL: ${SMTP_URL:-}
       MAIL_FROM: ${MAIL_FROM:-}
       OIDC_ISSUER: ${OIDC_ISSUER:-}

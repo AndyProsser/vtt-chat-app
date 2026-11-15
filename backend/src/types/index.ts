@@ -28,12 +28,27 @@ export type Role = 'dm' | 'player';
 export interface Campaign {
   id: string;
   name: string;
+  /** Markdown, up to CAMPAIGN_DESCRIPTION_MAX characters; empty when the DM has written none. */
+  description: string;
   createdAt: number;
-  /** The DM's switch: while true the campaign is listed in the directory and takes join requests. */
+  /** The DM's Public/Private switch: while true (Public) the campaign is listed in the directory and takes join
+   * requests. Invite links work either way. */
   allowJoin: boolean;
 }
 
 /** Roles are per campaign: one account can be DM in one campaign and a player in another. */
+/** What the public invite page may show about a campaign (`GET /api/invites/:code`). */
+export interface InvitePreview {
+  campaignName: string;
+  consentVersion: string;
+  /** The campaign's markdown description; empty when there is none. */
+  description: string;
+  /** The DM's display name, or null while there is no DM (mid-swap). */
+  dmName: string | null;
+  /** Players in the campaign, not counting the DM. */
+  playerCount: number;
+}
+
 export interface Membership {
   campaignId: string;
   userId: string;

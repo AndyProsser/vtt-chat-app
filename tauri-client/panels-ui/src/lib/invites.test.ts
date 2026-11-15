@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { inviteLink, otherPlayers } from './invites.js';
+import { inviteLink, inviteMessage, otherPlayers } from './invites.js';
 import type { Member } from '../types/index.js';
 
 describe('inviteLink', () => {
@@ -30,5 +30,20 @@ describe('otherPlayers', () => {
     expect(
       otherPlayers([m('dm', 'dm'), m('a', 'player'), m('b', 'player')], 'dm').map((x) => x.userId),
     ).toEqual(['a', 'b']);
+  });
+});
+
+describe('inviteMessage', () => {
+  const link = 'https://vtt.test/join/ABCD';
+
+  it('says what it is, then puts the link alone on the last line', () => {
+    const lines = inviteMessage({ campaignName: ' Strahd ', dmName: 'Dee', link }).split('\n');
+    expect(lines).toEqual(["You're invited to join Strahd on VTT Chat, run by Dee.", link]);
+  });
+
+  it('leaves out the DM clause when the name is unknown', () => {
+    expect(inviteMessage({ campaignName: 'Strahd', dmName: undefined, link })).toBe(
+      `You're invited to join Strahd on VTT Chat.\n${link}`,
+    );
   });
 });

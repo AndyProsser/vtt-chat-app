@@ -260,6 +260,17 @@ export class MemoryStore implements Store {
     this.data.invites.set(invite.id, copy(invite));
   };
 
+  revokeInvitesForCampaign = async (campaignId: string, at: number): Promise<number> => {
+    let revoked = 0;
+    for (const invite of this.data.invites.values()) {
+      if (invite.campaignId === campaignId && invite.revokedAt === null && invite.expiresAt > at) {
+        invite.revokedAt = at;
+        revoked += 1;
+      }
+    }
+    return revoked;
+  };
+
   putChatMessage = async (m: ChatMessage): Promise<void> => {
     this.data.chat.push(copy(m));
   };

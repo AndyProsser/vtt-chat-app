@@ -279,6 +279,14 @@ pub fn relay_path(campaign_id: &str, relative: &str) -> Result<String, AccountEr
             && s.chars()
                 .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
     };
+    // An empty path is the campaign itself (`PATCH` renames it, describes it, flips Public/Private); the
+    // server lets only the DM do that.
+    if relative.is_empty() {
+        if !plain(campaign_id) {
+            return Err(bad());
+        }
+        return Ok(format!("/api/campaigns/{campaign_id}"));
+    }
     if !segments.iter().all(|s| plain(s)) {
         return Err(bad());
     }
@@ -414,6 +422,16 @@ pub struct CampaignItem {
     pub id: String,
     pub name: String,
     pub role: String,
+    /// The DM's markdown description; empty when there is none (and for a server that predates it).
+    #[serde(default)]
+    pub description: String,
+    /// Public (listed to other players, takes join requests) or Private. Invite links work either way.
+    #[serde(default = "public_by_default")]
+    pub allow_join: bool,
+}
+
+fn public_by_default() -> bool {
+    true
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
@@ -715,6 +733,15 @@ impl AccountClient {
                             id: item.pointer("/campaign/id")?.as_str()?.to_string(),
                             name: item.pointer("/campaign/name")?.as_str()?.to_string(),
                             role: item.get("role")?.as_str()?.to_string(),
+                            description: item
+                                .pointer("/campaign/description")
+                                .and_then(Value::as_str)
+                                .unwrap_or_default()
+                                .to_string(),
+                            allow_join: item
+                                .pointer("/campaign/allowJoin")
+                                .and_then(Value::as_bool)
+                                .unwrap_or(true),
                         })
                     })
                     .collect()
@@ -1125,8 +1152,10 @@ mod tests {
                 format!("/api/campaigns/c1/{area}")
             );
         }
+        // The campaign itself, for the DM's rename, description and Public/Private.
+        assert_eq!(relay_path("c1", "").unwrap(), "/api/campaigns/c1");
+        assert!(relay_path("c1/../x", "").is_err());
         for bad in [
-            "",
             "auth/logout",
             "handouts/../auth/logout",
             "handouts//x",

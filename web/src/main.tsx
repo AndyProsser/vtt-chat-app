@@ -2,6 +2,7 @@ import '@radix-ui/themes/styles.css';
 import './styles/palette.css';
 import './styles/theme.css';
 import './styles/connect.css';
+import './styles/markdown.css';
 
 import { Theme } from '@radix-ui/themes';
 import { createRoot } from 'react-dom/client';
@@ -14,6 +15,7 @@ import { LandingPage } from './components/LandingPage.js';
 import { AccountPage } from './components/account/AccountPage.js';
 import { DownloadPage } from './components/DownloadPage.js';
 import { FullAppPage } from './components/FullAppPage.js';
+import { EmailLinkPage } from './components/EmailLinkPage.js';
 import { JoinPage } from './components/JoinPage.js';
 import { NotFoundPage } from './components/NotFoundPage.js';
 import { resolveRoute } from './lib/routes.js';
@@ -44,6 +46,8 @@ function Root() {
             <LandingPage />
           ) : route === 'join' ? (
             <JoinPage />
+          ) : route === 'email-signin' || route === 'reset-password' ? (
+            <EmailLinkPage kind={route === 'reset-password' ? 'reset' : 'signin'} />
           ) : (
             <NotFoundPage />
           )}

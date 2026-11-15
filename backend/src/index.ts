@@ -264,7 +264,11 @@ if (isEntryPoint) {
     store,
     ddb,
     status,
-    ...(config.smtp ? { sender: createSmtpMailTransport(config.smtp.url, config.smtp.from) } : {}),
+    ...(config.smtp
+      ? {
+          sender: createSmtpMailTransport(config.smtp.url, config.smtp.from, config.smtp.publicUrl),
+        }
+      : {}),
     realtime: hub,
     recording: hub.recording,
     records,

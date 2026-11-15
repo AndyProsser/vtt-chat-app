@@ -19,7 +19,7 @@ import { SectionHeading } from './SectionHeading.js';
 import { SettingRow } from './SettingRow.js';
 
 /**
- * The DM's side of "ask to join": the Allow join switch, the people waiting, and recent answers. The
+ * The DM's side of "ask to join": the Public/Private switch, the people waiting, and recent answers. The
  * store is fed by `useJoinFeed` (a read on open, then live frames); this view reads it again when it
  * opens so a Settings window of its own is never stale, and polls nothing.
  */
@@ -69,11 +69,11 @@ export function JoinRequestsSection({ campaignId }: { campaignId: string }) {
       )}
       <div className="vtt-set-card">
         <SettingRow
-          label="Allow join"
-          hint="When off, your table is hidden from the list and takes no requests."
+          label="Public table"
+          hint="Public: other players can find this table and ask to join. Private: hidden. Invite links work either way."
         >
           <Switch
-            aria-label="Allow join"
+            aria-label="Public table"
             checked={inbox.allowJoin}
             disabled={busy}
             onCheckedChange={(on) =>
@@ -90,7 +90,7 @@ export function JoinRequestsSection({ campaignId }: { campaignId: string }) {
         {waiting.map((r) => (
           <RequestRow key={r.id} row={r} now={now}>
             <ToolButton
-              label={r.closed ? 'Turn Allow join on to approve' : 'Approve'}
+              label={r.closed ? 'Make the table public to approve' : 'Approve'}
               disabled={busy || r.closed}
               onClick={() => void run(() => useJoinStore.getState().decide(campaignId, r.id, true))}
             >
@@ -141,7 +141,7 @@ function RequestRow({
           {answered
             ? `${row.status === 'approved' ? 'Approved' : 'Declined'} ${relativeTime(row.decidedAt ?? row.createdAt, now)}`
             : relativeTime(row.createdAt, now)}
-          {!answered && row.closed && ' · Allow join is off'}
+          {!answered && row.closed && ' · table is private'}
         </span>
         {row.message && <span className="vtt-join-msg">{row.message}</span>}
       </div>

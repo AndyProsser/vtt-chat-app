@@ -121,6 +121,12 @@ export function campaignRoutes(deps: CampaignRouteDeps): Router {
     res.status(201).json({ code, expiresAt: invite.expiresAt });
   });
 
+  // "Reset invite links": every link still in use stops working. People already in stay in.
+  router.delete('/:id/invites', async (req, res) => {
+    const revoked = await campaigns.revokeAllInvites(authOf(res).user, param(req.params.id));
+    res.json({ revoked });
+  });
+
   router.delete('/:id/invites/:code', async (req, res) => {
     await campaigns.revokeInvite(authOf(res).user, param(req.params.id), param(req.params.code));
     res.status(204).end();

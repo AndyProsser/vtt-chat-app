@@ -30,8 +30,10 @@ sequenceDiagram
 ## What the page may learn and do
 
 - `GET /api/invites/:code` is public and rate-limited (shares the join endpoint's budget). It returns
-  the campaign **name**, the instance's consent version and the configured download links — nothing
-  else. A bad, expired or revoked code is the same `invite_invalid` as when joining.
+  the campaign **name**, its **description**, the **DM's display name**, the **player count** and the instance's
+  consent version: what the invite page shows above the sign-in form (the description as markdown, structure only).
+  Nothing about individual players, and nothing the invite code did not already let its holder see in the group chat it
+  was pasted into. A DM should still not put secrets in the description; the editor says so. A bad, expired or revoked code is the same `invite_invalid` as when joining.
 - The page creates the account (or signs in to an existing one), joins, then offers the **Connect**
   step: _Open VTT Chat_ (a `vtt-chat://connect?server=…&code=…` link) and the code to type, with a countdown
   (5 minutes). There is no QR on this page: a phone has no app to open the deep link, and the app has no
@@ -55,7 +57,27 @@ allows only the page's own script and styles. Without `WEB_DIR` the invite API s
 
 - Deep links are unreliable on the Linux AppImage; there the typed code (or the app's own QR, approved from a
   signed-in phone) is the path. None of the three has been run on a real OS yet ([BUILD-STATUS.md](../BUILD-STATUS.md)).
-- Password reset by magic link needs SMTP; without it the DM/operator issues a one-time code.
+- Password reset by emailed link needs SMTP and `PUBLIC_URL` ([SIGN-IN-OPTIONS.md](SIGN-IN-OPTIONS.md)); without it the DM/operator issues a one-time code.
+
+## Sharing an invite, and what it looks like in a chat
+
+The DM makes a link in Settings, then Campaign, and presses **Copy invite message**: one line plus the link on a line
+of its own, ready for Discord, WhatsApp or Messenger. Players can **always** join with a valid link, whether the
+campaign is Public or Private (those only decide whether it is _listed_). **Reset invite links** stops every link in
+use at once; people already in stay in, and the DM makes a new link when needed.
+
+```mermaid
+sequenceDiagram
+  participant C as Chat app (crawler)
+  participant S as Backend
+  C->>S: GET /join/CODE
+  S->>S: look up the invite (rate-limited per address)
+  S-->>C: the page with Open Graph tags: campaign, DM, first 160 characters, banner
+  Note over C,S: a bad code, or too many fetches, gets generic tags and the same 200, so previews cannot be used to probe codes
+```
+
+The tags are escaped, the preview carries only the campaign name, the DM's name and a plain-text first line, and
+`og:image` / `og:url` need `PUBLIC_URL` (without it the card has text only).
 
 ## After joining
 

@@ -1,9 +1,10 @@
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import express, { Router, type RequestHandler } from 'express';
 
 import type { CampaignService } from '../campaigns/campaignService.js';
+import { ogMetaTags } from './ogTags.js';
 import type { RateLimiter } from './rateLimit.js';
 
 export interface JoinRouteDeps {
@@ -55,7 +56,28 @@ export function webNotFound(webDir: string): RequestHandler | undefined {
   };
 }
 
-export function webPages(webDir: string): Router | undefined {
+export interface WebPagesOptions {
+  campaigns: CampaignService;
+  publicUrl: string | undefined;
+  /** Crawlers fetch `/join/<code>` for the link preview; this keeps them from becoming a code-guessing oracle. */
+  ogLimiter: RateLimiter;
+}
+
+/**
+ * `index.html` with a page-specific head spliced in, re-read only when the file changes. The tags replace
+ * the page's own `<title>` so there is exactly one.
+ */
+function withHead(index: string): (tags: string) => string {
+  let cached: { mtime: number; html: string } | undefined;
+  return (tags) => {
+    const mtime = statSync(index).mtimeMs;
+    if (!cached || cached.mtime !== mtime) cached = { mtime, html: readFileSync(index, 'utf8') };
+    const html = cached.html.replace(/<title>[\s\S]*?<\/title>/i, '');
+    return html.includes('</head>') ? html.replace('</head>', `${tags}\n</head>`) : tags + html;
+  };
+}
+
+export function webPages(webDir: string, options?: WebPagesOptions): Router | undefined {
   const root = resolve(webDir);
   const index = resolve(root, 'index.html');
   if (!existsSync(index)) return undefined;
@@ -84,8 +106,34 @@ export function webPages(webDir: string): Router | undefined {
       fallthrough: false,
     }),
   );
+  const tagged = withHead(index);
+  // A pasted invite link unfurls in a chat app: the page's head carries this invite's Open Graph tags. A bad
+  // code, or a crawler over its budget, gets the generic tags and the same page (never a 429 or a 404 that
+  // would tell a prober which codes exist).
+  if (options) {
+    router.get('/join/:code', async (req, res) => {
+      let preview = null;
+      if (options.ogLimiter.allow(`og:${req.ip}`)) {
+        preview = await options.campaigns.previewInvite(String(req.params.code)).catch(() => null);
+      }
+      res.setHeader('Cache-Control', 'no-store');
+      res
+        .type('html')
+        .send(tagged(ogMetaTags({ preview, publicUrl: options.publicUrl, path: req.path })));
+    });
+  }
   router.get(
-    ['/', '/join', '/join/:code', '/connect', '/download', '/full-app', '/account'],
+    [
+      '/',
+      '/join',
+      '/join/:code',
+      '/connect',
+      '/download',
+      '/full-app',
+      '/account',
+      '/email-signin',
+      '/reset-password',
+    ],
     (_req, res) => {
       res.sendFile(index);
     },
@@ -102,6 +150,7 @@ export function webPages(webDir: string): Router | undefined {
     '/app-icon-192.png': 'image/png',
     '/app-icon-512.png': 'image/png',
     '/apple-touch-icon.png': 'image/png',
+    '/og-banner.jpg': 'image/jpeg',
   };
   router.get(Object.keys(installFiles), (req, res, next) => {
     const file = resolve(root, req.path.slice(1));
