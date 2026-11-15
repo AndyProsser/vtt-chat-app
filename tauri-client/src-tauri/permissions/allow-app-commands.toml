@@ -16,7 +16,6 @@ commands.allow = [
   "sync_command",
   "chat_send",
   "panel_open",
-  "app_quit",
   "handout_view_open",
   "window_ready",
   "take_pending_connect",

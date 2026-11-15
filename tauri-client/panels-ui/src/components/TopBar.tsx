@@ -4,7 +4,7 @@ import { panelOpen } from '../lib/tauriBridge.js';
 import { CampaignSwitcher } from './CampaignSwitcher.js';
 import { GroupsMenu } from './GroupsMenu.js';
 import { RecordingIndicator } from './RecordingIndicator.js';
-import { MainMenu } from './MainMenu.js';
+import { SettingsButton } from './SettingsButton.js';
 import { ToolButton } from './ToolButton.js';
 
 interface Props {
@@ -40,7 +40,7 @@ export function TopBar({ dm, effectsOpen, onToggleEffects }: Props) {
       <ToolButton label="Session history" onClick={() => void panelOpen('history')}>
         <ScrollText size={15} />
       </ToolButton>
-      <MainMenu dm={dm} />
+      <SettingsButton />
     </header>
   );
 }

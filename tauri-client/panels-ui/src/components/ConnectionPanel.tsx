@@ -18,7 +18,7 @@ function savedView(): View {
   }
 }
 
-/** DM-only: how each player's voice link is doing (latency, jitter, loss), refreshed every ~5 s. Shown in the main menu. */
+/** DM-only: how each player's voice link is doing (latency, jitter, loss), refreshed every ~5 s. Shown in the Quality tab of Settings. */
 export function ConnectionPanel() {
   const members = useTableStore((s) => s.members);
   const byUser = useStatsStore((s) => s.byUser);

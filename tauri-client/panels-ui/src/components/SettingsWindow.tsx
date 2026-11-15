@@ -4,8 +4,12 @@ import { useJoinFeed } from '../hooks/useJoinFeed.js';
 import { useTableFeed } from '../hooks/useTableFeed.js';
 import { pendingCount } from '../lib/joinRequests.js';
 import { useJoinStore } from '../lib/joinStore.js';
-import { normalizeSettingsTab, SETTINGS_TABS } from '../lib/settingsTabs.js';
+import { normalizeSettingsTab, settingsTabsFor } from '../lib/settingsTabs.js';
+import { isDm } from '../lib/tableModel.js';
+import { useTableStore } from '../lib/tableStore.js';
+import { useAccount } from '../hooks/useAccount.js';
 
+import { ConnectionPanel } from './ConnectionPanel.js';
 import { AccountSection } from './settings/AccountSection.js';
 import { AppearanceSection } from './settings/AppearanceSection.js';
 import { AppSection } from './settings/AppSection.js';
@@ -22,11 +26,14 @@ import { StatusSetting } from './settings/StatusSetting.js';
  */
 export function SettingsContent({ initialTab }: { initialTab?: string }) {
   const waiting = useJoinStore((s) => pendingCount(s.inbox));
+  const account = useAccount();
+  const members = useTableStore((s) => s.members);
+  const dm = isDm(members, account.status?.userId ?? null);
   return (
     <div className="vtt-settings">
       <Tabs.Root defaultValue={normalizeSettingsTab(initialTab)}>
         <Tabs.List>
-          {SETTINGS_TABS.map((t) => (
+          {settingsTabsFor(dm).map((t) => (
             <Tabs.Trigger key={t.id} value={t.id}>
               {t.label}
               {t.id === 'campaign' && waiting > 0 && (
@@ -65,6 +72,13 @@ export function SettingsContent({ initialTab }: { initialTab?: string }) {
             <NotificationsSection />
           </div>
         </Tabs.Content>
+        {dm && (
+          <Tabs.Content value="quality">
+            <div className="vtt-settings-page">
+              <ConnectionPanel />
+            </div>
+          </Tabs.Content>
+        )}
       </Tabs.Root>
     </div>
   );

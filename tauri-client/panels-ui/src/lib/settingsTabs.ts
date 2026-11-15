@@ -5,7 +5,13 @@ export const SETTINGS_TABS = [
   { id: 'sessions', label: 'Sessions' },
   { id: 'audio', label: 'Audio' },
   { id: 'notifications', label: 'Notifications' },
+  { id: 'quality', label: 'Quality' },
 ] as const;
+
+/** The Quality tab (how each player's voice link is doing) is the DM's; players do not see it. */
+export function settingsTabsFor(dm: boolean) {
+  return SETTINGS_TABS.filter((t) => dm || t.id !== 'quality');
+}
 
 export type SettingsTabId = (typeof SETTINGS_TABS)[number]['id'];
 

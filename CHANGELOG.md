@@ -12,6 +12,8 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ### Changed
 
+- App: the burger menu is a Settings cog again and opens the Settings window (the window is as tall as the screen allows, instead of a small drop-down). The DM's connection quality is a **Quality** tab in Settings. **Quit** is gone from the window and lives on the tray icon only, since the app is meant to run all the time.
+
 - App: Handouts, Session history and Party inventory have padding around their content, so dashed outlines are no longer cut off and the scrollbar sits beside the content. The bottom bar has one background across its width. Settings opens taller (so it rarely scrolls), Handouts and Party inventory open larger, scrollbars are slim and themed and is capped at 90% of the screen height, scrolling only when the screen is short.
 
 - App: the bottom bar is balanced. The status pill and mute/meter block is wider and sits under the avatar rail (same width, divider line continues to the bottom), and the message box fills the rest with an even gap on every side and the same height.
