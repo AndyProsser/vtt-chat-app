@@ -32,7 +32,7 @@ body,
 }
 .vtt-bottom {
   border-top-width: 2px;
-  /* The left cell sits under the rail and shares its width and divider line, so the two halves of the
+  /* The left cell sits under the rail and shares its width, so the two halves of the
      bar balance; the message box gets the same gap on every side. */
   --vtt-rail-av: 46px;
   align-items: stretch;
