@@ -43,7 +43,7 @@ applications menu. [Fixing a missing tray icon](INSTALLING-THE-APP.md#linux-i-ca
 The window has, from top to bottom:
 
 - **The bar**: the campaign (click to switch), the **REC** timer when a session is being recorded, then
-  small buttons for handouts and the party inventory (and, for the DM, groups and sound effects) and **session history**, then a **Settings** cog (a dot shows when join requests are waiting). It opens the Settings window; for the DM that includes a **Quality** tab with each player's connection. There is no Quit button in the window: the app is meant to keep running, so quit from the **tray icon**. Your **status** is the coloured pill above the microphone button (ONLINE green, AWAY amber, OFFLINE grey): click it to change it.
+  small buttons for handouts and the party inventory (and, for the DM, groups and sound effects) and **session history**, then a **Settings** cog (a dot shows when join requests are waiting). It drops the Settings panel down; for the DM that includes a **Quality** tab with each player's connection. There is no Quit button in the window: the app is meant to keep running, so quit from the **tray icon**. Your **status** is the coloured pill above the microphone button (ONLINE green, AWAY amber, OFFLINE grey): click it to change it.
 - **The rail** (the round portraits on the left): everyone at the table. Their portrait glows while they
   speak. Hover over one for a card with their character and, for the DM, how good their connection is.
 - **The chat** (middle): messages, whispers, and cards for handouts and loot.

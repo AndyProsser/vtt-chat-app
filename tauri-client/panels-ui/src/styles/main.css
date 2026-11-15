@@ -2345,6 +2345,20 @@ body,
   opacity: 0.6;
   cursor: progress;
 }
+/* Settings drops down from the cog: as tall as the window allows, so it rarely scrolls. */
+.vtt-settings-pop {
+  width: min(460px, calc(100vw - 16px));
+  max-height: calc(100vh - 70px);
+  padding: 0;
+  overflow-y: auto;
+}
+.vtt-settings-pop .vtt-settings {
+  height: auto;
+  overflow: visible;
+  padding: 0;
+  background: transparent;
+}
+
 /* A small "back" button (the delete choices in Session history). */
 .vtt-menu-back {
   display: flex;
