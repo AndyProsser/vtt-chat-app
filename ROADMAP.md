@@ -367,6 +367,20 @@ told clearly to update; and a recorded session runs through to its summary.
 - A real server-restart-mid-recording drill: recording recovers or fails loudly, never silently — **built and drilled 2026-11-10** (`infra/records-smoke/restart-drill.sh`; recovery stops the leftover egresses and keeps the audio; see [RECORDING-AND-SUMMARIES.md](docs/architecture/RECORDING-AND-SUMMARIES.md)); a `kill -9` of the packaged backend is still to try
 - Security pass: consent-cue bypass attempts, private-audio leakage into records, token/session expiry, ACL checks on every records endpoint — **done 2026-11-10** for the REST surface and live sockets (access matrix; found and fixed a player who left still receiving chat and voice); the Egress capture and whisper paths were already covered by tests
 - Packaging: installers per OS, signed where practical, updater verified
+- **Fewer moving parts at start-up: fold the one-shot containers into the services that need them** (added 2026-11-15, Andy's idea). The
+  Compose bundle runs four containers that do one job and exit, which is wasteful and adds start-up ordering (`service_completed_successfully`)
+  and an image or two to pull. The plan, to be designed and measured before it is built:
+
+  | One-shot today    | What it does                                         | Where it could go                                                                                                                                                                                              |
+  | ----------------- | ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+  | `media-init`      | `chown` the media volume to uid 1000                 | Nothing at runtime: create `/data/media` in the backend image owned by 1000, because Docker seeds an empty named volume from the image's directory (or the backend entrypoint fixes it, then drops privileges) |
+  | `recordings-init` | `chown` the recordings volume to uid 1001 for Egress | The same seeding trick on a tiny image we own, or the backend/worker prepares the directory before Egress is asked to write                                                                                    |
+  | `models-init`     | Downloads the Whisper model once                     | The worker (or our Whisper image's entrypoint) fetches it on first start, logging progress, and the transcription provider reports "model downloading" until it is there                                       |
+  | `ollama-pull`     | Pulls the LLM once                                   | The worker calls Ollama's `/api/pull` at start-up (it already speaks to Ollama) and holds jobs, not the whole stack, until the model is ready                                                                  |
+
+  The aim is the stack coming up with only long-running services, the same `vtt-admin status` story, and no behaviour change for a native
+  install. Things to settle first: the backend must keep running as a non-root user; a download that fails or stalls must show in the status
+  page and `vtt-admin`, not hang start-up; and a remote-AI-only install (`records-remote`) must not fetch models it will never use.
 
 **Done when:** a full real campaign session runs on all supported platforms without manual intervention.
 
