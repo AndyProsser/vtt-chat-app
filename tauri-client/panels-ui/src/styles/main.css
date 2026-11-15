@@ -2369,25 +2369,7 @@ body,
   gap: 2px;
 }
 .vtt-menu-item,
-.vtt-menu-back {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 5px 8px;
-  border: 0;
-  border-radius: 6px;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  font-size: 12px;
-  text-align: left;
-  cursor: pointer;
-}
 .vtt-menu-item:hover,
-.vtt-menu-back:hover {
-  background: color-mix(in srgb, var(--vtt-accent, #7c5cff) 22%, transparent);
-}
 .vtt-menu-item .vtt-tab-badge {
   margin-left: auto;
 }
@@ -2398,12 +2380,6 @@ body,
   border: 0;
   border-top: 1px solid var(--vtt-edge);
   margin: 4px 0;
-}
-.vtt-menu-back {
-  width: auto;
-  padding: 4px 8px;
-  margin: 4px 4px 0;
-  opacity: 0.8;
 }
 
 /* The first section of a Settings tab starts at the page padding, with no extra gap above its title. */

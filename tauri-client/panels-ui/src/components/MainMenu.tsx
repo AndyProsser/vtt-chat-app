@@ -1,5 +1,5 @@
 import { Popover } from '@radix-ui/themes';
-import { Activity, ArrowLeft, Menu, Power, Settings } from 'lucide-react';
+import { Activity, Menu, Power, Settings } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 
 import { pendingCount } from '../lib/joinRequests.js';
@@ -101,9 +101,6 @@ export function MainMenu({ dm }: { dm: boolean }) {
           </nav>
         ) : (
           <>
-            <button type="button" className="vtt-menu-back" onClick={() => setView('menu')}>
-              <ArrowLeft size={12} aria-hidden /> Menu
-            </button>
             {view === 'settings' ? <SettingsContent /> : <ConnectionPanel />}
           </>
         )}
