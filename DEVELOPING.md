@@ -154,15 +154,15 @@ pre-release, offered only to players who opted in). The full steps are in
   1. Write the release's section in [CHANGELOG.md](CHANGELOG.md): move what is under `## [Unreleased]` into a new
      `## [X.Y.Z] - YYYY-MM-DD` section, and fill it out (Added, Changed, Fixed, Security, Known limits). It becomes the
      release notes, so write it for players and operators, not as a commit list.
-  2. Set `X.Y.Z` in `tauri-client/src-tauri/tauri.conf.json` and `tauri-client/Cargo.toml` (`[workspace.package]`),
-     run `cargo update --workspace` in `tauri-client/`.
+  2. Run `tauri-client/scripts/set-version.sh X.Y.Z`: it sets the version in `tauri.conf.json`, `Cargo.toml` (+ lockfile) and
+     every `package.json`, so the app and the server stay in step.
   3. `tauri-client/scripts/release-version.sh vX.Y.Z` and `tauri-client/scripts/changelog-notes.sh X.Y.Z` must both pass.
   4. Commit, push, then `git tag vX.Y.Z && git push origin vX.Y.Z`.
   5. When the three builds finish, review the draft release on GitHub (notes and file list), then publish it
      (`gh release edit vX.Y.Z --draft=false --latest`).
   6. Roll it out: `infra/fetch-release.sh vX.Y.Z ./release`, then `vtt-admin updates publish` on each server.
 - The workflow refuses a release tag whose version files disagree with it, or that has no CHANGELOG section.
-  CI also checks on every push that `tauri.conf.json` and `Cargo.toml` agree.
+  CI also checks on every push that `tauri.conf.json`, `Cargo.toml` and the `package.json` files agree.
 
 Keep adding to `## [Unreleased]` in CHANGELOG.md as you merge user-visible changes, so the release section is
 mostly written before release day.

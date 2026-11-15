@@ -2,7 +2,7 @@
 
 > Self-hosted voice, chat and **session records with AI summaries** for tabletop groups. A tiny tray app for players, a mobile web app, and a server you run yourself — no cloud account required.
 
-**Status:** The player and DM experience is built (voice, chat, handouts, loot, recording with transcripts and AI summaries, status, noise filtering) and runs on a developer's machine; the server installs from Docker Compose or a native script. **It has not yet been installed by anyone but its author**, and much has not been run against real infrastructure. **[docs/BUILD-STATUS.md](docs/BUILD-STATUS.md) says exactly what is built, what is verified, and what is next.** Start with the **[operator guide](docs/guides/OPERATOR-GUIDE.md)** (to host) or the **[user guide](docs/guides/USER-GUIDE.md)** (to play). See [CLAUDE.md](.claude/CLAUDE.md) for the spec and [ROADMAP.md](ROADMAP.md) for the plan.
+**Status:** v0.4.x. The player and DM experience is built (voice, chat, handouts, loot, recording with transcripts and AI summaries, status, noise filtering). The server has been installed with one command on a real Ubuntu VM and used from the Linux desktop app and an iPhone; a recorded session went through the local AI. **It has not yet been installed by anyone but its author**, and voice between two clients over the internet, Windows and Android are still to be proven. **[docs/BUILD-STATUS.md](docs/BUILD-STATUS.md) says exactly what is built, what is verified, and what is next.** Start with the **[operator guide](docs/guides/OPERATOR-GUIDE.md)** (to host) or the **[user guide](docs/guides/USER-GUIDE.md)** (to play). See [CLAUDE.md](.claude/CLAUDE.md) for the spec and [ROADMAP.md](ROADMAP.md) for the plan.
 
 ---
 

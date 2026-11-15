@@ -563,7 +563,8 @@ Rules Claude must follow:
   last release tag, and check that nothing user-visible in `git log vLAST..HEAD` is missing. The workflow uses
   this section as the release notes and fails without it.
 - **Version files:** a release's version is committed in `tauri-client/src-tauri/tauri.conf.json` and
-  `tauri-client/Cargo.toml` (+ `Cargo.lock`) and must equal the tag (`release-version.sh`). Dev builds are
+  `tauri-client/Cargo.toml` (+ `Cargo.lock`) and every npm `package.json`, and must equal the tag (`release-version.sh`;
+  `tauri-client/scripts/set-version.sh X.Y.Z` sets them all). Dev builds are
   stamped from the tag and need no commit.
 - **Publishing the draft release is a separate, explicit step** (`gh release edit vX.Y.Z --draft=false --latest`):
   do it only when Andy has said to, after checking the draft's notes and file list. Rolling out to servers

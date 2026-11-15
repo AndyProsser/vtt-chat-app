@@ -23,17 +23,17 @@
 Stages 0 to 8 are **built**; what keeps them from "closed" is verification that needs a real server or real people, not more
 code. This is the list the v0.4.0 release waits on, and nothing else is planned before it.
 
-| Stage                  | Built                                                                                                                                                         | Gate to close it (all need a human or real hardware)                                                          |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| 0, 0.5, 1              | 🟢 Closed                                                                                                                                                     |                                                                                                               |
-| 2 Audio spike          | Built; measured on the dev PC                                                                                                                                 | Two machines on different OSes holding a conversation (needs a second machine, a Windows PC)                  |
-| 3 Server core          | 🟢 Built, both install tiers, chat persistence                                                                                                                | A second person deploys from the docs on a blank VM (below)                                                   |
-| 3b Deployment buildout | 🟢 Built: images, handshake (REST and WebSocket, CI guard), updates, web onboarding, Devices                                                                  | The real-VM run below                                                                                         |
-| 4 Tray client          | 🟢 Built                                                                                                                                                      | A real session in the desktop window on Windows and Linux; the 4-hour soak; listening to voices and the mixer |
-| 5 Records and AI       | 🟢 Built, proven end to end with synthetic speech (66/66, then scene cues 45/45)                                                                              | One real session with human voices on the real VM (CPU defaults); the GPU PC as the fast path                 |
-| 6 Table features       | 🟢 Built. **Voice whispers are dropped** (decided 2026-11-14): players whisper by text; the DM speaks to one player by isolating them in a group of their own | The full-session test (whispers, handout, loot, split, soundboard, reconnect) with real players               |
-| 7 Web app              | 🟢 Built; 330 checks in a real headless browser                                                                                                               | A real phone, including iOS Safari                                                                            |
-| 8 Operations           | 🟢 Admin CLI (status, users, settings, jobs, recordings, updates; machine commands), status page, backup and restore                                          | The status page and `vtt-admin` on the real VM                                                                |
+| Stage                  | Built                                                                                                                                                         | Gate to close it (all need a human or real hardware)                                                                                                 |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0, 0.5, 1              | 🟢 Closed                                                                                                                                                     |                                                                                                                                                      |
+| 2 Audio spike          | Built; measured on the dev PC                                                                                                                                 | Two machines on different OSes holding a conversation (needs a second machine, a Windows PC)                                                         |
+| 3 Server core          | 🟢 Built, both install tiers, chat persistence                                                                                                                | A second person deploys from the docs on a blank VM (below)                                                                                          |
+| 3b Deployment buildout | 🟢 Built: images, handshake (REST and WebSocket, CI guard), updates, web onboarding, Devices                                                                  | 🟢 Real-VM run done 2026-11-14; two clients' voice over the internet remains                                                                         |
+| 4 Tray client          | 🟢 Built; used on Linux against the real server (2026-11-15)                                                                                                  | A real session on Windows; the 4-hour soak; listening to voices and the mixer                                                                        |
+| 5 Records and AI       | 🟢 Built, proven end to end with synthetic speech (66/66, then scene cues 45/45)                                                                              | 🟢 A real recording with human voices on the real VM's CPU AI works (2026-11-15, slow); a full-length session and the GPU PC as the fast path remain |
+| 6 Table features       | 🟢 Built. **Voice whispers are dropped** (decided 2026-11-14): players whisper by text; the DM speaks to one player by isolating them in a group of their own | The full-session test (whispers, handout, loot, split, soundboard, reconnect) with real players                                                      |
+| 7 Web app              | 🟢 Built; 330 checks in a real headless browser                                                                                                               | 🟢 An iPhone works (2026-11-15; keyboard fix in 0.4.5); an Android phone remains                                                                     |
+| 8 Operations           | 🟢 Admin CLI (status, users, settings, jobs, recordings, updates; machine commands), status page, backup and restore                                          | The status page and `vtt-admin` on the real VM                                                                                                       |
 
 **Done 2026-11-12 to 14 (since the last stock-take):** the browser Account page (profile, recording notice, collapsed password,
 Devices with revoke); **request to join** a campaign (opt-in directory, DM approves); the DM's notes and schedule in the web
@@ -43,13 +43,18 @@ changes by default); a recommended CPU-only setup with a gaming PC as the fast p
 restore, and a 90-minute soak; a graceful server shutdown; `.rpm` for real releases; and the **one-command operator install**
 (`infra/get.sh`) with `vtt-admin logs/restart/ps/backup/restore/update`.
 
+**Update, 2026-11-15.** The real VM is up and in use (`vtt-chat.prosser.online`, behind a Cloudflare Tunnel with a real certificate), and
+releases **0.4.1 to 0.4.5** shipped from what it found (0.4.0 and 0.4.4 were tagged but never published as releases; the 0.4.5
+changelog covers both). A real recording with human voices went through the CPU AI, an iPhone works, and the desktop app has been used
+against the server. What is left is almost all "needs another person or machine".
+
 **Next, in order:**
 
-1. **The real VM** (`vtt-chat.prosser.online`, 4 vCPU, 8 GB): run the one-command install on a blank Ubuntu Server, then the
-   operator guide from there: DNS "DNS only" (not Cloudflare-proxied), Let's Encrypt, UDP voice from two real clients, a
-   recorded session with the CPU defaults, `vtt-admin backup` and `update`. Findings feed back into `get.sh` and the guide.
-2. **v0.4.0 release**: CHANGELOG section, version files, tag, draft release, publish (each on Andy's word).
-3. Everything in the table's right-hand column, as real people and machines are available.
+1. **Two real clients' voice over the internet** through the forwarded ports (`7881/tcp`, `50000-50200/udp`), then a full-length recorded
+   session (or point the AI at the gaming PC's GPU for speed).
+2. **A Windows run** of the desktop app (and macOS if a player appears), the 4-hour soak, and an Android phone.
+3. **A second person installs** from the README Quick Start on a blank Ubuntu Server: the last gate for Stage 3.
+4. Then Stage 9 (hardening) and v0.5: the open design topics in [.claude/intent.md](.claude/intent.md).
 
 ### Stock-take, 2026-11-11 (end of day)
 

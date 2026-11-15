@@ -160,6 +160,12 @@ redeemed once and now sets the cookie. If the session ends the app returns to si
   Escape or an outside press closes it, and only one is open at a time.
 - **Header:** a burger menu and a "Get the app" button, which goes to `/download` on a computer and `/full-app` on a
   phone or tablet.
+- **On-screen keyboard:** while a field has focus on a touch screen (`(pointer: coarse)`), the tab bar is hidden
+  (`useTypingOnTouch`, `data-typing` on the shell) so a note, a session form or the chat gets the space the keyboard leaves;
+  a mouse keeps the tabs. The same hook marks ordinary fields `autocomplete="off"` (plus the 1Password, LastPass and
+  Bitwarden ignore hints) as they appear, because iOS otherwise offers its "Passwords / verification code" bar above the
+  keyboard on forms it takes for a login; the sign-in page names its own `autocomplete` values and is left alone. Checked in
+  an emulated touch browser (`ui-smoke.mjs dmtools`), not yet on an iPhone's own keyboard.
 - **Height:** the page never scrolls; the chat scrolls inside it (dynamic viewport height, so a phone's address bar
   does not push the bottom off screen).
 

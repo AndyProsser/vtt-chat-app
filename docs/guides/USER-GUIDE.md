@@ -42,7 +42,7 @@ applications menu. [Fixing a missing tray icon](INSTALLING-THE-APP.md#linux-i-ca
 
 The window has, from top to bottom:
 
-- **The bar**: the campaign (click to switch), the **REC** timer when a session is being recorded, then
+- **The bar**: the campaign (click to switch), a red **recording timer** (a dot and the time) when a session is being recorded, then
   small buttons for handouts and the party inventory (and, for the DM, groups and sound effects) and **session history**, then a **Settings** cog (a dot shows when join requests are waiting). It drops the Settings panel down; for the DM that includes a **Quality** tab with each player's connection. There is no Quit button in the window: the app is meant to keep running, so quit from the **tray icon**. Your **status** is the coloured pill above the microphone button (ONLINE green, AWAY amber, OFFLINE grey): click it to change it.
 - **The rail** (the round portraits on the left): everyone at the table. Their portrait glows while they
   speak. Hover over one for a card with their character and, for the DM, how good their connection is.
@@ -155,7 +155,7 @@ The DM drops items and coin into the **party inventory**, and a card appears in 
 
 ## 8. Recording and summaries
 
-When the DM starts a recording, **every app plays a clear "recording" cue** and the **REC timer** shows in the
+When the DM starts a recording, **every app plays a clear "recording" cue** and the **recording timer** shows in the
 bar and on the tray icon. Your voice is only recorded **after your app has played the cue**; if you join late
 you hear it first.
 
@@ -212,7 +212,7 @@ still works as before.
 **Letting people ask (DM).** In Settings, then Campaign, the **Join requests** section has an **Allow join** switch.
 When it is off your table is hidden from the list and takes no requests. Waiting requests show the person's name, their
 note and how long ago they asked; **Approve** adds them as a player and **Decline** sends a no. A number on the Campaign
-tab and a dot on the menu button show that someone is waiting. Turn the pop-ups on or off in Settings, then
+tab and a dot on the Settings cog show that someone is waiting. Turn the pop-ups on or off in Settings, then
 Notifications.
 
 By default you only get finished releases. To try early versions, turn on **Settings → Profile → App → Include dev

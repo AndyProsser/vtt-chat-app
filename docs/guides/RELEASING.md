@@ -8,10 +8,10 @@ signed installers; each operator then publishes them to their server.
 
 Two channels, told apart by the tag's **name** alone.
 
-| Tag                                | Channel       | What the pipeline does                                                                                                                                           | Who gets it                                     |
-| ---------------------------------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
-| `v0.4.0`                           | **release**   | Checks the tag matches `tauri.conf.json` and `Cargo.toml`, builds, attaches installers to a **draft** GitHub release. Nothing is public until you press Publish. | Every player                                    |
-| `v0.4.0-dev.2`, `-rc.1`, `-beta.1` | **dev build** | Stamps the version from the tag (no commit needed), builds, attaches installers to a **pre-release** that is public at once.                                     | Only players who turned on "Include dev builds" |
+| Tag                                | Channel       | What the pipeline does                                                                                                                                                                     | Who gets it                                     |
+| ---------------------------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------- |
+| `v0.4.0`                           | **release**   | Checks the tag matches `tauri.conf.json`, `Cargo.toml` and the `package.json` files, builds, attaches installers to a **draft** GitHub release. Nothing is public until you press Publish. | Every player                                    |
+| `v0.4.0-dev.2`, `-rc.1`, `-beta.1` | **dev build** | Stamps the version from the tag (no commit needed), builds, attaches installers to a **pre-release** that is public at once.                                                               | Only players who turned on "Include dev builds" |
 
 A normal cycle: work on `main`, tag `v0.4.0-dev.1`, `-dev.2`… as you want testers to try things, then when it
 is ready bump the version files to `0.4.0`, tag `v0.4.0`, review the draft and publish it. Dev builds sort
@@ -22,7 +22,7 @@ release automatically.
 flowchart LR
   T[git tag] --> W[release.yml]
   W --> K{tag name}
-  K -- "vX.Y.Z" --> V{tag = tauri.conf.json = Cargo.toml?}
+  K -- "vX.Y.Z" --> V{tag = tauri.conf.json = Cargo.toml = package.json?}
   V -- no --> X[stop]
   V -- yes --> D[draft release]
   K -- "vX.Y.Z-dev.N" --> S[stamp the version from the tag]
@@ -62,9 +62,9 @@ flowchart LR
    players and operators. Check `git log vLAST..HEAD` so nothing user-visible is missing. The section becomes the
    release notes, and the workflow refuses a release without one (`tauri-client/scripts/changelog-notes.sh X.Y.Z`
    prints it so you can read it first).
-1. Set the same version in `tauri-client/src-tauri/tauri.conf.json` and `tauri-client/Cargo.toml`
-   (`[workspace.package]`), run `cargo update --workspace` in `tauri-client/`, commit.
-   `tauri-client/scripts/release-version.sh vX.Y.Z` checks all three agree; the workflow runs it first.
+1. Run `tauri-client/scripts/set-version.sh X.Y.Z`: it sets the same version in `tauri.conf.json`, `Cargo.toml` (+ `Cargo.lock`)
+   and every npm `package.json` (server, web, app UI), then commit.
+   `tauri-client/scripts/release-version.sh vX.Y.Z` checks they all agree with the tag; the workflow runs it first.
 2. `git tag vX.Y.Z && git push origin vX.Y.Z`. (To rebuild an existing tag: Actions → Release → Run workflow.)
 3. Wait for the three builds. They attach `.AppImage`, `.deb`, `.rpm`, `-setup.exe`, `.msi`, `.dmg`,
    `.app.tar.gz` and a `.sig` beside each updater artifact to a **draft** release. Open it, check the

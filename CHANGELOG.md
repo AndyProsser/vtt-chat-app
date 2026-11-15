@@ -10,23 +10,52 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ## [Unreleased]
 
+## [0.4.5] - 2026-11-15
+
+Mostly the desktop app's look and feel, tidied after using 0.4.3 on a real server, plus the phone's on-screen keyboard.
+(`v0.4.4` was tagged on the way, but its release build stopped because the version files and this section were not ready,
+so no 0.4.4 app was ever published. Its server images exist; everything in it is here.)
+
+### Added
+
+- **Slim, themed scrollbars** in every desktop window, in the app's colours (the system's wide grey ones are gone).
+- **Tab arrows in Settings.** When the tabs do not all fit the panel, a `<` or `>` appears at the end that has more.
+
 ### Changed
 
-- App: the Settings drop-down stops short of the message box, is a little wider, and its tabs are tighter; when the tabs still do not fit, a chevron appears at the end(s) to scroll them.
-
-- App: the burger menu is a Settings cog again and drops the Settings panel down (as tall as the window allows, so it rarely scrolls). The DM's connection quality is a **Quality** tab in Settings. **Quit** is gone from the window and lives on the tray icon only, since the app is meant to run all the time.
-
-- App: Handouts, Session history and Party inventory have padding around their content, so dashed outlines are no longer cut off and the scrollbar sits beside the content. The bottom bar has one background across its width. Settings opens taller (so it rarely scrolls), Handouts and Party inventory open larger, scrollbars are slim and themed and is capped at 90% of the screen height, scrolling only when the screen is short.
-
-- App: the bottom bar is balanced. The status pill and mute/meter block is wider and sits under the avatar rail (same width, divider line continues to the bottom), and the message box fills the rest with an even gap on every side and the same height.
-
-- **Session history is back on the top bar** (last, just before the menu button). In the history, each recorded session has one **bin button** at the top right of its card (DM only); it opens a small panel saying what each choice removes: **the audio only** (frees disk space; the text stays) or **the whole session**. Both ask once more. It replaces the two stacked delete buttons.
+- **A tidier top bar.** **Session history** is back on the bar (last, just before the cog). The menu button is a **Settings cog**
+  again and drops the Settings panel down; a dot shows when join requests are waiting. The DM's connection quality is a
+  **Quality** tab in Settings. **Quit** is gone from the window: the app is meant to run all the time, so quit from the tray icon.
+- **A balanced bottom bar.** Your status pill (ONLINE green, AWAY amber, OFFLINE grey) sits above the mute button and level
+  meter, under the avatar rail; the message box fills the rest with an even gap and is two lines tall. The recording timer is a
+  red dot and the time, with no "REC" word.
+- **One delete button per recorded session** in the history (DM only, top right of the card). It opens a small panel saying what
+  each choice removes: **the audio only** (frees disk space; the text stays) or **the whole session**. Both ask once more.
+- **Roomier windows.** Handouts, Session history and Party inventory have padding around their content (dashed outlines are no
+  longer cut off, and the scrollbar sits beside the content); Handouts and Party inventory open larger; the Settings window opens
+  taller. Windows are never taller than 90% of the screen.
+- **Settings drop-down** is wider, stops short of the message box, and has tighter tabs.
 
 ### Fixed
 
-- **Settings looked misaligned and had a dashed outline.** The Settings cards shared a name with the chat's loot and handout cards, so they picked up its dashed border and centred rows; the rows now line up (label left, control right) like they were meant to. The extra gap above a tab's first title is gone.
-- **Dropdowns, switches and sliders follow the theme** (violet surfaces and accent, light and dark) instead of Radix's neutral grey, in every window.
-- The status pill sits above both the mute button and the level meter, smaller, and the burger menu's text is smaller.
+- **Settings looked misaligned and had a dashed outline.** The Settings cards shared a name with the chat's loot and handout
+  cards, so they picked up its dashed border and centred rows; the rows now line up (label left, control right). The extra gap
+  above a tab's first title is gone.
+- **Dropdowns, switches and sliders follow the theme** (violet surfaces and accent, light and dark) instead of Radix's grey.
+- **Phone: the on-screen keyboard.** While you type in a note, a scheduled session or the chat, the tab bar steps aside, so the
+  keyboard leaves more of the form visible (a desktop browser keeps its tabs). The text fields also tell the phone they are not
+  sign-in fields, which should stop the "Passwords / verification code" bar above the keyboard.
+
+### Changed (operators)
+
+- The server's own version (`/api/version`, also when run natively) now matches the app and the release: every package is stamped
+  with the release version, and the release build refuses a tag that disagrees with any of them.
+
+### Known limits
+
+- The phone keyboard fix was checked in an emulated touch browser, not on an iPhone: if the Passwords bar still appears, say so.
+- On Linux the tray prints a harmless `libayatana-appindicator is deprecated` warning in a terminal; it goes away when Tauri's
+  tray library moves to the newer one.
 
 ## [0.4.3] - 2026-11-14
 

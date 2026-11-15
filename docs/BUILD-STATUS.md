@@ -384,5 +384,9 @@ verification); ufw installed, enabled and correct (SSH first); the first Admin s
 feed offering the release to the app. **Found and fixed on the way (0.4.1 to 0.4.2):** the web strip broke the image build; the installer
 needed to cope with a minimal Ubuntu, busy ports and a CPU without AVX (Whisper died with an illegal instruction: a compat build runs but
 at 5.5 times the audio's length, so the gaming PC is the real answer); a home line needs the tunnel and the DNS challenge; `vtt-admin` needed
-`sudo` when `.env` was unreadable. **Not yet verified:** voice between two real clients over the internet (ports are forwarded), a recording
-through the CPU AI on that VM, and a second person doing the install.
+`sudo` when `.env` was unreadable. **Verified since (2026-11-15):** the desktop app (Linux) signed in to that server and recorded a few minutes of real voice, which the
+CPU Whisper and Ollama on the VM turned into a transcript and summaries ("not fast, but it works"); the web chat on an iPhone works
+(its on-screen keyboard took too much room and offered a Passwords bar on the note, schedule and loot forms: fixed in 0.4.5 and
+checked only in an emulated touch browser). The desktop's top bar, status pill, Settings and history were reworked from that
+hands-on use (0.4.3 to 0.4.5). **Not yet verified:** voice between two real clients over the internet (ports are forwarded), the 0.4.5
+iPhone keyboard fix on the phone itself, and a second person doing the install.

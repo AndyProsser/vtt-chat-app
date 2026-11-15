@@ -25,5 +25,15 @@ if [ "$cargo" != "$want" ]; then
   echo "tauri-client/Cargo.toml says ${cargo:-<none>} but the tag says $want" >&2
   fail=1
 fi
+# The npm packages (server, web, app UI, ...) carry the same version, so a server run outside an image reports it too.
+repo="$(cd "$root/.." && pwd)"
+for pkg in "$repo/package.json" "$repo"/*/package.json "$repo/tauri-client/panels-ui/package.json"; do
+  [ -f "$pkg" ] || continue
+  v="$(sed -n 's/^[[:space:]]*"version":[[:space:]]*"\([^"]*\)".*/\1/p' "$pkg" | head -1)"
+  if [ "$v" != "$want" ]; then
+    echo "${pkg#"$repo"/} says ${v:-<none>} but the tag says $want" >&2
+    fail=1
+  fi
+done
 [ "$fail" = 0 ] || exit 1
 echo "$want"
