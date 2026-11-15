@@ -2482,3 +2482,24 @@ body,
 .vtt-del-danger b {
   color: #e5675f;
 }
+
+/* Slim scrollbars in the app's colours, everywhere (the system ones are wide and grey). The standard properties cover
+   WebView2 and recent WebKitGTK; the ::-webkit rules cover older WebKit builds. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--vtt-ink) 28%, transparent) transparent;
+}
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--vtt-ink) 28%, transparent);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--vtt-ink) 45%, transparent);
+}
