@@ -495,6 +495,13 @@ body,
   background: var(--vtt-bg);
   color: var(--vtt-ink);
 }
+/* Handouts, history and inventory: room on every side so dashed outlines are not clipped by the window edge and the
+   scrollbar sits beside the content, not on it. */
+.vtt-panel-pad {
+  box-sizing: border-box;
+  padding: 14px 16px;
+  scrollbar-gutter: stable;
+}
 /* One inner padding for every Settings tab. */
 .vtt-settings-page {
   padding: 18px;
@@ -2308,7 +2315,6 @@ body,
   box-sizing: border-box;
   width: calc(var(--vtt-rail-av) + 18px);
   padding: 8px 7px;
-  background: var(--vtt-rail);
 }
 .vtt-bottom .vtt-composer {
   display: flex;

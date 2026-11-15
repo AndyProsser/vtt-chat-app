@@ -12,6 +12,8 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ### Changed
 
+- App: Handouts, Session history and Party inventory have padding around their content, so dashed outlines are no longer cut off and the scrollbar sits beside the content. The bottom bar has one background across its width. Settings opens taller (so it rarely scrolls) and is capped at the main window's height, scrolling when the screen is short.
+
 - App: the bottom bar is balanced. The status pill and mute/meter block is wider and sits under the avatar rail (same width, divider line continues to the bottom), and the message box fills the rest with an even gap on every side and the same height.
 
 - **Session history is back on the top bar** (last, just before the menu button). In the history, each recorded session has one **bin button** at the top right of its card (DM only); it opens a small panel saying what each choice removes: **the audio only** (frees disk space; the text stays) or **the whole session**. Both ask once more. It replaces the two stacked delete buttons.

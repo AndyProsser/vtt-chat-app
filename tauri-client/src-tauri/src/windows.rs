@@ -18,7 +18,7 @@ pub const PANELS: &[Panel] = &[
     Panel {
         name: "settings",
         title: "Settings — VTT Chat",
-        size: (400.0, 460.0),
+        size: (400.0, 680.0),
     },
     Panel {
         name: "handouts",
@@ -403,15 +403,32 @@ fn open_page(
     // Wayland ignores programmatic positions, so what places the window is the parent link (a
     // transient child is centred on its parent by the compositor); `center()` covers X11 and Windows.
     let main = app.get_webview_window(MAIN_LABEL);
+    // The main window sets the limit: a panel is never taller than it (which is itself fitted to the screen),
+    // so a long panel such as Settings shrinks on a short screen and scrolls instead. The monitor is the fallback.
     let screen = main
         .as_ref()
-        .and_then(|m| m.current_monitor().ok().flatten())
-        .map(|mon| {
-            let scale = mon.scale_factor();
-            (
-                mon.size().width as f64 / scale,
-                mon.size().height as f64 / scale,
-            )
+        .and_then(|m| {
+            let scale = m.scale_factor().ok()?;
+            let inner = m.inner_size().ok()?;
+            (inner.height > 0).then(|| {
+                // fit_size takes 90% / 85% of what it is given, so give it the main window's size scaled up
+                // to land exactly on that size.
+                (
+                    inner.width as f64 / scale / 0.9,
+                    inner.height as f64 / scale / 0.85,
+                )
+            })
+        })
+        .or_else(|| {
+            main.as_ref()
+                .and_then(|m| m.current_monitor().ok().flatten())
+                .map(|mon| {
+                    let scale = mon.scale_factor();
+                    (
+                        mon.size().width as f64 / scale,
+                        mon.size().height as f64 / scale,
+                    )
+                })
         });
     let size = fit_size(size, screen);
     if let Some(main) = &main {

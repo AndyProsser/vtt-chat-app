@@ -12,7 +12,7 @@ export function PanelRoot() {
       return <SettingsWindow />;
     case 'handouts':
       return (
-        <div className="vtt-settings">
+        <div className="vtt-settings vtt-panel-pad">
           <HandoutsPanel />
         </div>
       );
@@ -20,13 +20,13 @@ export function PanelRoot() {
       return <HandoutViewer />;
     case 'history':
       return (
-        <div className="vtt-settings">
+        <div className="vtt-settings vtt-panel-pad">
           <HistoryPanel />
         </div>
       );
     case 'inventory':
       return (
-        <div className="vtt-settings">
+        <div className="vtt-settings vtt-panel-pad">
           <LootPanel />
         </div>
       );
