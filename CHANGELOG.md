@@ -14,7 +14,8 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 Mostly the desktop app's look and feel, tidied after using 0.4.3 on a real server, plus the phone's on-screen keyboard.
 (`v0.4.4` was tagged on the way, but its release build stopped because the version files and this section were not ready,
-so no 0.4.4 app was ever published. Its server images exist; everything in it is here.)
+so no 0.4.4 app was ever published. Its server images exist; everything in it is here. The GitHub page for `v0.4.4`
+showed the 0.4.0 notes, which are kept in full under 0.4.0 below.)
 
 ### Added
 
