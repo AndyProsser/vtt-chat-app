@@ -847,6 +847,7 @@ export class Hub {
             soundId: d.soundId,
             ...(d.takeId !== undefined ? { takeId: d.takeId } : {}),
             ...(d.mode !== undefined ? { mode: d.mode } : {}),
+            ...(d.playId !== undefined ? { playId: d.playId } : {}),
             ...(d.volume !== undefined ? { volume: d.volume } : {}),
             ...(d.to !== undefined ? { to: d.to } : {}),
           });

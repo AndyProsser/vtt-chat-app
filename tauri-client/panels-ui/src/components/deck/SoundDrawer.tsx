@@ -132,7 +132,21 @@ export function SoundDrawer() {
       {panels.stingers && (
         <div className="vtt-deck-panel">
           <Zap size={15} className="vtt-deck-ic" aria-label="Stingers" />
-          <StingerPanel sounds={sounds} pins={pins} onPlay={play} onTogglePin={togglePin} />
+          <StingerPanel
+            sounds={sounds}
+            pins={pins}
+            onPlay={play}
+            onHoldStart={(s, playId) =>
+              void send('sound.play', {
+                soundId: s.soundId,
+                mode: 'loop',
+                playId,
+                volume: s.volume,
+              })
+            }
+            onHoldEnd={(playId) => void send('sound.stop', { playId })}
+            onTogglePin={togglePin}
+          />
         </div>
       )}
       {panels.scenes && (

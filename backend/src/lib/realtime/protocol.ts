@@ -59,6 +59,11 @@ export const clientData = {
     soundId: z.string().min(1).max(64),
     takeId: z.string().min(1).max(64).optional(),
     mode: z.enum(['oneshot', 'loop']).optional(),
+    /** Chosen by the sender so it can stop this exact play later (a held stinger); the server makes one if absent. */
+    playId: z
+      .string()
+      .regex(/^[A-Za-z0-9-]{8,64}$/)
+      .optional(),
     volume: z.number().min(0).max(1).optional(),
     to: z.array(z.string().min(1).max(64)).max(50).optional(),
   }),

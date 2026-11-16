@@ -20,6 +20,10 @@ export interface PlayRecord {
   targets: string[] | null;
 }
 
+/** A DM may use their own library and the server's shared catalogue (`ownerId` null), and nobody else's. */
+export const usableBy = (ownerId: string | null, dmId: string): boolean =>
+  ownerId === null || ownerId === dmId;
+
 /** What the runtime tells the world; the hub turns it into WebSocket frames. */
 export interface RuntimeEvents {
   emit(campaignId: string, type: string, data: unknown, only?: ReadonlySet<string>): void;
@@ -93,7 +97,7 @@ export class SoundboardRuntime {
 
   private async ownedSound(ownerId: string, soundId: string): Promise<Sound> {
     const sound = await this.deps.sounds.getSound(soundId);
-    if (!sound || sound.ownerId !== ownerId)
+    if (!sound || !usableBy(sound.ownerId, ownerId))
       throw new DomainError('not_found', 'that sound is not in your library');
     if (sound.takes.length === 0) throw new DomainError('conflict', 'that sound has no recordings');
     return sound;
@@ -124,12 +128,22 @@ export class SoundboardRuntime {
   async play(
     campaignId: string,
     dmId: string,
-    input: { soundId: string; takeId?: string; mode?: ButtonMode; volume?: number; to?: string[] },
+    input: {
+      soundId: string;
+      takeId?: string;
+      mode?: ButtonMode;
+      /** Chosen by the caller so it can stop this exact play (a held stinger). */
+      playId?: string;
+      volume?: number;
+      to?: string[];
+    },
   ): Promise<PlayRecord> {
     const sound = await this.ownedSound(dmId, input.soundId);
     const take = this.pickTake(sound, input.takeId);
+    if (input.playId !== undefined && this.state(campaignId).loops.has(input.playId))
+      throw new DomainError('conflict', 'that play id is already in use');
     const rec: PlayRecord = {
-      playId: this.newId(),
+      playId: input.playId ?? this.newId(),
       soundId: sound.id,
       takeId: take.id,
       mode: input.mode === 'loop' ? 'loop' : 'oneshot',
@@ -159,7 +173,7 @@ export class SoundboardRuntime {
 
   async startScene(campaignId: string, dmId: string, sceneId: string): Promise<void> {
     const scene = await this.deps.sounds.getScene(sceneId);
-    if (!scene || scene.ownerId !== dmId)
+    if (!scene || !usableBy(scene.ownerId, dmId))
       throw new DomainError('not_found', 'that scene is not in your library');
     this.stopScene(campaignId);
     const s = this.state(campaignId);
@@ -173,7 +187,7 @@ export class SoundboardRuntime {
 
     for (const layer of scene.layers) {
       const sound = await this.deps.sounds.getSound(layer.soundId);
-      if (!sound || sound.ownerId !== dmId || sound.takes.length === 0) continue; // a deleted sound just drops out
+      if (!sound || !usableBy(sound.ownerId, dmId) || sound.takes.length === 0) continue; // a deleted sound just drops out
       if (layer.mode === 'loop') {
         const take = this.pickTake(sound);
         const rec: PlayRecord = {

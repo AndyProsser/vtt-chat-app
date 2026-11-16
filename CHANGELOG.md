@@ -20,6 +20,7 @@ the GitHub release notes and refuses to build a release without one. How to writ
 - **An "add to home screen" hint** in the phone web app, shown only in a phone or tablet browser tab and closable for good.
 - **Reset invite links.** The DM can stop every invite link still in use. People already in the campaign stay in.
 - **Scenes are icon buttons** on the DM's sound deck, with the name on hover, like stingers. The **plus** opens a popup to find a scene, start it, show or hide it on the deck, or make a new one (it appears on the deck straight away). Right-click a scene to hide it.
+- **Hold a stinger to keep it playing.** A click still plays it once; holding the button loops it until you let go. Letting go stops only that sound, so a running scene is not touched.
 
 ### Changed
 

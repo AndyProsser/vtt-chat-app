@@ -20,7 +20,7 @@ const take = (id: string, soundId: string, level = 1) => ({
   level,
   position: 0,
 });
-const sound = (id: string, takes = 1, ownerId = DM): Sound => ({
+const sound = (id: string, takes = 1, ownerId: string | null = DM): Sound => ({
   id,
   ownerId,
   name: id,
@@ -213,5 +213,46 @@ describe('volume', () => {
     runtime.setPlayerGain('c', 'bob', -1);
     expect(runtime.snapshot('c', 'x')).toMatchObject({ master: 1, gains: { alice: 2, bob: 0 } });
     expect(events.map((e) => e.type)).toEqual(['sound.volume', 'sound.volume', 'sound.volume']);
+  });
+});
+
+describe('the shared catalogue', () => {
+  it("any DM can play a shared sound and start a shared scene, but not another DM's", async () => {
+    await sounds.putSound(sound('chime', 1, null));
+    await sounds.putScene({
+      id: 'shared-scene',
+      ownerId: null,
+      name: 'Rainfall',
+      createdAt: 1,
+      layers: [
+        {
+          id: 'l1',
+          soundId: 'chime',
+          mode: 'loop',
+          volume: 1,
+          minIntervalSec: null,
+          maxIntervalSec: null,
+        },
+      ],
+    });
+    const rec = await runtime.play('c', DM, { soundId: 'chime', volume: 1 });
+    expect(rec.soundId).toBe('chime');
+    await runtime.startScene('c', DM, 'shared-scene');
+    expect(types()).toContain('scene.started');
+    await expect(runtime.play('c', DM, { soundId: 'foreign', volume: 1 })).rejects.toThrow();
+  });
+});
+
+describe('a play the caller can stop by its own id', () => {
+  it('uses the id it is given, stops only that loop, and refuses a reused id', async () => {
+    await runtime.play('c', DM, { soundId: 'rain', mode: 'loop', playId: 'held-1111' });
+    await runtime.play('c', DM, { soundId: 'drip', mode: 'loop', playId: 'held-2222' });
+    await expect(
+      runtime.play('c', DM, { soundId: 'rain', mode: 'loop', playId: 'held-1111' }),
+    ).rejects.toThrow();
+    runtime.stop('c', 'held-1111');
+    const stops = events.filter((e) => e.type === 'sound.stop');
+    expect(stops).toHaveLength(1);
+    expect(stops[0]?.data.playId).toBe('held-1111');
   });
 });
