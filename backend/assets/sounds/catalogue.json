@@ -80,12 +80,6 @@
       "takes": ["music/music-tavern.ogg"]
     },
     {
-      "key": "music-battle",
-      "name": "Battle music",
-      "category": "music",
-      "takes": ["music/music-battle.ogg"]
-    },
-    {
       "key": "fx-sword-clash",
       "name": "Sword clash",
       "category": "effect",
@@ -187,7 +181,133 @@
       "key": "fx-coins",
       "name": "Coins",
       "category": "effect",
-      "takes": ["effect/fx-coins.ogg"]
+      "takes": ["effect/fx-coins-1.ogg", "effect/fx-coins-2.ogg", "effect/fx-coins-3.ogg"]
+    },
+    {
+      "key": "fx-fireball",
+      "name": "Fireball",
+      "category": "effect",
+      "takes": ["effect/fx-fireball.ogg"]
+    },
+    {
+      "key": "fx-missile",
+      "name": "Magic missile",
+      "category": "effect",
+      "takes": ["effect/fx-missile.ogg"]
+    },
+    {
+      "key": "fx-lightning",
+      "name": "Lightning bolt",
+      "category": "effect",
+      "takes": ["effect/fx-lightning.ogg"]
+    },
+    {
+      "key": "fx-cave-in",
+      "name": "Cave-in",
+      "category": "effect",
+      "takes": ["effect/fx-cave-in.ogg"]
+    },
+    {
+      "key": "fx-chains",
+      "name": "Chains",
+      "category": "effect",
+      "takes": ["effect/fx-chains.ogg"]
+    },
+    {
+      "key": "fx-nat1",
+      "name": "Critical fail",
+      "category": "effect",
+      "takes": ["effect/fx-nat1.ogg"]
+    },
+    {
+      "key": "fx-nat20",
+      "name": "Critical hit",
+      "category": "effect",
+      "takes": ["effect/fx-nat20.ogg"]
+    },
+    {
+      "key": "fx-ghost",
+      "name": "Ghost",
+      "category": "effect",
+      "takes": ["effect/fx-ghost.ogg"]
+    },
+    {
+      "key": "fx-ghoul",
+      "name": "Ghoul",
+      "category": "effect",
+      "takes": ["effect/fx-ghoul-1.ogg", "effect/fx-ghoul-2.ogg"]
+    },
+    {
+      "key": "fx-zombie",
+      "name": "Zombie",
+      "category": "effect",
+      "takes": ["effect/fx-zombie.ogg"]
+    },
+    {
+      "key": "fx-arrow",
+      "name": "Arrow",
+      "category": "effect",
+      "takes": ["effect/fx-arrow.ogg"]
+    },
+    {
+      "key": "fx-cackle",
+      "name": "Cackle",
+      "category": "effect",
+      "takes": ["effect/fx-cackle.ogg"]
+    },
+    {
+      "key": "fx-crows",
+      "name": "Crows",
+      "category": "effect",
+      "takes": ["effect/fx-crows.ogg"]
+    },
+    {
+      "key": "fx-slime",
+      "name": "Slime",
+      "category": "effect",
+      "takes": ["effect/fx-slime.ogg"]
+    },
+    {
+      "key": "fx-potion",
+      "name": "Potion",
+      "category": "effect",
+      "takes": ["effect/fx-potion.ogg"]
+    },
+    {
+      "key": "fx-lock",
+      "name": "Key in lock",
+      "category": "effect",
+      "takes": ["effect/fx-lock.ogg"]
+    },
+    {
+      "key": "fx-latch",
+      "name": "Latch",
+      "category": "effect",
+      "takes": ["effect/fx-latch-1.ogg", "effect/fx-latch-2.ogg"]
+    },
+    {
+      "key": "fx-book",
+      "name": "Spellbook",
+      "category": "effect",
+      "takes": ["effect/fx-book-1.ogg", "effect/fx-book-2.ogg", "effect/fx-book-3.ogg"]
+    },
+    {
+      "key": "fx-footsteps",
+      "name": "Footsteps",
+      "category": "effect",
+      "takes": ["effect/fx-footsteps.ogg"]
+    },
+    {
+      "key": "fx-footsteps-wood",
+      "name": "Footsteps (wood)",
+      "category": "effect",
+      "takes": ["effect/fx-footsteps-wood.ogg"]
+    },
+    {
+      "key": "fx-running",
+      "name": "Running",
+      "category": "effect",
+      "takes": ["effect/fx-running.ogg"]
     }
   ],
   "boards": [
@@ -204,8 +324,50 @@
           "sound": "fx-draw-blade"
         },
         {
+          "label": "Arrow",
+          "sound": "fx-arrow"
+        },
+        {
+          "label": "Critical hit",
+          "sound": "fx-nat20"
+        },
+        {
+          "label": "Critical fail",
+          "sound": "fx-nat1"
+        },
+        {
           "label": "War horn",
           "sound": "fx-war-horn"
+        }
+      ]
+    },
+    {
+      "key": "spells",
+      "name": "Spells",
+      "buttons": [
+        {
+          "label": "Spell",
+          "sound": "fx-spell"
+        },
+        {
+          "label": "Fireball",
+          "sound": "fx-fireball"
+        },
+        {
+          "label": "Lightning bolt",
+          "sound": "fx-lightning"
+        },
+        {
+          "label": "Magic missile",
+          "sound": "fx-missile"
+        },
+        {
+          "label": "Spellbook",
+          "sound": "fx-book"
+        },
+        {
+          "label": "Potion",
+          "sound": "fx-potion"
         }
       ]
     },
@@ -228,11 +390,45 @@
         {
           "label": "Scream",
           "sound": "fx-scream"
+        },
+        {
+          "label": "Slime",
+          "sound": "fx-slime"
+        },
+        {
+          "label": "Crows",
+          "sound": "fx-crows"
         }
       ]
     },
     {
-      "key": "doors",
+      "key": "undead",
+      "name": "Undead and horrors",
+      "buttons": [
+        {
+          "label": "Ghost",
+          "sound": "fx-ghost"
+        },
+        {
+          "label": "Ghoul",
+          "sound": "fx-ghoul"
+        },
+        {
+          "label": "Zombie",
+          "sound": "fx-zombie"
+        },
+        {
+          "label": "Cackle",
+          "sound": "fx-cackle"
+        },
+        {
+          "label": "Dark sting",
+          "sound": "fx-dark-sting"
+        }
+      ]
+    },
+    {
+      "key": "dungeon",
       "name": "Doors, traps and loot",
       "buttons": [
         {
@@ -248,23 +444,49 @@
           "sound": "fx-creak"
         },
         {
+          "label": "Chains",
+          "sound": "fx-chains"
+        },
+        {
+          "label": "Cave-in",
+          "sound": "fx-cave-in"
+        },
+        {
+          "label": "Latch",
+          "sound": "fx-latch"
+        },
+        {
+          "label": "Key in lock",
+          "sound": "fx-lock"
+        },
+        {
           "label": "Coins",
           "sound": "fx-coins"
         }
       ]
     },
     {
-      "key": "magic",
-      "name": "Magic and mood",
+      "key": "moving",
+      "name": "Movement",
       "buttons": [
         {
-          "label": "Spell",
-          "sound": "fx-spell"
+          "label": "Footsteps",
+          "sound": "fx-footsteps"
         },
         {
-          "label": "Dark sting",
-          "sound": "fx-dark-sting"
+          "label": "Footsteps (wood)",
+          "sound": "fx-footsteps-wood"
         },
+        {
+          "label": "Running",
+          "sound": "fx-running"
+        }
+      ]
+    },
+    {
+      "key": "mood",
+      "name": "Mood",
+      "buttons": [
         {
           "label": "Thunder",
           "sound": "fx-thunder"
@@ -325,17 +547,6 @@
       "layers": [
         {
           "sound": "amb-rain",
-          "mode": "loop",
-          "volume": 0.6
-        }
-      ]
-    },
-    {
-      "key": "battle",
-      "name": "Battle",
-      "layers": [
-        {
-          "sound": "music-battle",
           "mode": "loop",
           "volume": 0.6
         }

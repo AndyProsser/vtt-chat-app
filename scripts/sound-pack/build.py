@@ -114,6 +114,20 @@ def encode(src, dst, pick):
                            '-ar', '44100', '-c:a', 'libvorbis', '-q:a', '3', str(dst)])
 
 
+def sequence(srcs, dst_wav, gap, count):
+    """Lays `count` steps (cycling through `srcs`) `gap` seconds apart into one wav, so single footsteps become a walk."""
+    inputs, labels, parts = [], [], []
+    for i in range(count):
+        src = srcs[i % len(srcs)]
+        inputs += ['-i', str(src)]
+        # a small deterministic wobble in timing so the walk is not a metronome
+        offset = int((i * gap + (0.03 if i % 2 else 0.0)) * 1000)
+        parts.append(f'[{i}:a]aformat=channel_layouts=mono,adelay={offset}[s{i}]')
+        labels.append(f'[s{i}]')
+    graph = ';'.join(parts) + ';' + ''.join(labels) + f'amix=inputs={count}:normalize=0[out]'
+    subprocess.check_call(['ffmpeg', '-v', 'error', '-y', *inputs, '-filter_complex', graph, '-map', '[out]', str(dst_wav)])
+
+
 def main():
     picks = json.loads((HERE / 'picks.json').read_text())
     CACHE.mkdir(exist_ok=True)
@@ -122,6 +136,18 @@ def main():
         specs = p.get('takes') or [p]
         (OUT / p['category']).mkdir(parents=True, exist_ok=True)
         rels = []
+        if p.get('sequence'):
+            seq = p['sequence']
+            fetched = [fetch(spec) for spec in specs]
+            wav = CACHE / f"seq_{p['key']}.wav"
+            sequence([f[0] for f in fetched], wav, seq['gap'], seq['count'])
+            rel = f"{p['category']}/{p['key']}.ogg"
+            encode(wav, OUT / rel, {**p, 'maxSec': p.get('maxSec', seq['count'] * seq['gap'] + 1.0)})
+            size = (OUT / rel).stat().st_size
+            print(f"{rel}  {size // 1024} KB  <- {fetched[0][3]} ({fetched[0][2]}) x{seq['count']} steps")
+            sounds.append({'key': p['key'], 'name': p['name'], 'category': p['category'], 'takes': [rel]})
+            sources.append((rel, fetched[0][1] + f" (+{len(fetched) - 1} more, sequenced)", fetched[0][2], fetched[0][3], size))
+            continue
         for i, spec in enumerate(specs):
             cached, title, author, page = fetch(spec)
             rel = f"{p['category']}/{p['key']}{'' if len(specs) == 1 else '-' + str(i + 1)}.ogg"
