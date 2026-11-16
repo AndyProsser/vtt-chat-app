@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
 import type { SoundBoard, SoundButton } from '../types/index.js';
-import { defaultPins, flattenSounds, searchSounds, togglePin, MAX_PINS } from './stingers.js';
+import {
+  defaultPins,
+  flattenSounds,
+  searchSounds,
+  togglePin,
+  MAX_PINS,
+  type FlatSound,
+} from './stingers.js';
 
 const b = (label: string, soundId = label, mode: SoundButton['mode'] = 'oneshot'): SoundButton => ({
   id: `${soundId}-btn`,
@@ -44,7 +51,24 @@ describe('pins', () => {
     const full = Array.from({ length: MAX_PINS }, (_, i) => `s${i}`);
     expect(togglePin(full, 'new')).toEqual(full);
   });
-  it('starts with the first few sounds pinned', () => {
-    expect(defaultPins(flattenSounds(boards))).toEqual(['open', 'close', 'grass']);
+  it('starts with the first sound of each board, then the rest', () => {
+    expect(defaultPins(flattenSounds(boards))).toEqual(['open', 'grass', 'close']);
+  });
+});
+
+describe('defaultPins', () => {
+  const fx = (label: string, board: string): FlatSound => ({
+    soundId: label,
+    label,
+    board,
+    volume: 1,
+  });
+  it('starts the deck with the first sound of each board before any second ones', () => {
+    const sounds = [fx('a1', 'A'), fx('a2', 'A'), fx('b1', 'B'), fx('c1', 'C'), fx('c2', 'C')];
+    expect(defaultPins(sounds)).toEqual(['a1', 'b1', 'c1', 'a2', 'c2']);
+  });
+  it('stops at six', () => {
+    const many = Array.from({ length: 10 }, (_, i) => fx(`s${i}`, `B${i}`));
+    expect(defaultPins(many)).toHaveLength(6);
   });
 });

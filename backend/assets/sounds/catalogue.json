@@ -2,6 +2,72 @@
   "version": 1,
   "sounds": [
     {
+      "key": "amb-tavern",
+      "name": "Tavern crowd",
+      "category": "ambience",
+      "takes": ["ambience/amb-tavern.ogg"]
+    },
+    {
+      "key": "amb-dungeon",
+      "name": "Dungeon",
+      "category": "ambience",
+      "takes": ["ambience/amb-dungeon.ogg"]
+    },
+    {
+      "key": "amb-forest",
+      "name": "Forest",
+      "category": "ambience",
+      "takes": ["ambience/amb-forest.ogg"]
+    },
+    {
+      "key": "amb-rain",
+      "name": "Rain",
+      "category": "ambience",
+      "takes": ["ambience/amb-rain.ogg"]
+    },
+    {
+      "key": "amb-bazaar",
+      "name": "Bazaar",
+      "category": "ambience",
+      "takes": ["ambience/amb-bazaar.ogg"]
+    },
+    {
+      "key": "amb-forest-night",
+      "name": "Forest at night",
+      "category": "ambience",
+      "takes": ["ambience/amb-forest-night.ogg"]
+    },
+    {
+      "key": "amb-storm",
+      "name": "Storm",
+      "category": "ambience",
+      "takes": ["ambience/amb-storm.ogg"]
+    },
+    {
+      "key": "amb-campfire",
+      "name": "Campfire",
+      "category": "ambience",
+      "takes": ["ambience/amb-campfire.ogg"]
+    },
+    {
+      "key": "amb-harbour",
+      "name": "Harbour",
+      "category": "ambience",
+      "takes": ["ambience/amb-harbour.ogg"]
+    },
+    {
+      "key": "amb-cave",
+      "name": "Cave",
+      "category": "ambience",
+      "takes": ["ambience/amb-cave.ogg"]
+    },
+    {
+      "key": "amb-castle",
+      "name": "Castle hall",
+      "category": "ambience",
+      "takes": ["ambience/amb-castle.ogg"]
+    },
+    {
       "key": "mountain-wind",
       "name": "Mountain wind",
       "category": "ambience",
@@ -20,38 +86,245 @@
       "takes": ["music/music-battle.ogg"]
     },
     {
-      "key": "music-cave",
-      "name": "Cave music",
-      "category": "music",
-      "takes": ["music/music-cave.ogg"]
+      "key": "fx-sword-clash",
+      "name": "Sword clash",
+      "category": "effect",
+      "takes": [
+        "effect/fx-sword-clash-1.ogg",
+        "effect/fx-sword-clash-2.ogg",
+        "effect/fx-sword-clash-3.ogg"
+      ]
     },
     {
-      "key": "amb-dungeon",
-      "name": "Dungeon",
-      "category": "ambience",
-      "takes": ["ambience/amb-dungeon.ogg"]
+      "key": "fx-draw-blade",
+      "name": "Draw blade",
+      "category": "effect",
+      "takes": [
+        "effect/fx-draw-blade-1.ogg",
+        "effect/fx-draw-blade-2.ogg",
+        "effect/fx-draw-blade-3.ogg"
+      ]
     },
     {
-      "key": "amb-forest-night",
-      "name": "Forest at night",
-      "category": "ambience",
-      "takes": ["ambience/amb-forest-night.ogg"]
+      "key": "fx-war-horn",
+      "name": "War horn",
+      "category": "effect",
+      "takes": ["effect/fx-war-horn.ogg"]
     },
     {
-      "key": "amb-bazaar",
-      "name": "Bazaar",
-      "category": "ambience",
-      "takes": ["ambience/amb-bazaar.ogg"]
+      "key": "fx-growl",
+      "name": "Monster growl",
+      "category": "effect",
+      "takes": ["effect/fx-growl.ogg"]
+    },
+    {
+      "key": "fx-roar",
+      "name": "Dragon roar",
+      "category": "effect",
+      "takes": ["effect/fx-roar.ogg"]
+    },
+    {
+      "key": "fx-wolf",
+      "name": "Wolf howl",
+      "category": "effect",
+      "takes": ["effect/fx-wolf.ogg"]
+    },
+    {
+      "key": "fx-scream",
+      "name": "Scream",
+      "category": "effect",
+      "takes": ["effect/fx-scream.ogg"]
+    },
+    {
+      "key": "fx-door-slam",
+      "name": "Door slam",
+      "category": "effect",
+      "takes": ["effect/fx-door-slam.ogg"]
+    },
+    {
+      "key": "fx-gate",
+      "name": "Iron gate",
+      "category": "effect",
+      "takes": ["effect/fx-gate.ogg"]
+    },
+    {
+      "key": "fx-creak",
+      "name": "Creak",
+      "category": "effect",
+      "takes": ["effect/fx-creak-1.ogg", "effect/fx-creak-2.ogg", "effect/fx-creak-3.ogg"]
+    },
+    {
+      "key": "fx-spell",
+      "name": "Spell",
+      "category": "effect",
+      "takes": ["effect/fx-spell.ogg"]
+    },
+    {
+      "key": "fx-dark-sting",
+      "name": "Dark sting",
+      "category": "effect",
+      "takes": ["effect/fx-dark-sting.ogg"]
+    },
+    {
+      "key": "fx-thunder",
+      "name": "Thunder",
+      "category": "effect",
+      "takes": ["effect/fx-thunder.ogg"]
+    },
+    {
+      "key": "fx-boom",
+      "name": "Explosion",
+      "category": "effect",
+      "takes": ["effect/fx-boom.ogg"]
+    },
+    {
+      "key": "fx-bell",
+      "name": "Ship's bell",
+      "category": "effect",
+      "takes": ["effect/fx-bell.ogg"]
+    },
+    {
+      "key": "fx-coins",
+      "name": "Coins",
+      "category": "effect",
+      "takes": ["effect/fx-coins.ogg"]
     }
   ],
-  "boards": [],
+  "boards": [
+    {
+      "key": "combat",
+      "name": "Combat",
+      "buttons": [
+        {
+          "label": "Sword clash",
+          "sound": "fx-sword-clash"
+        },
+        {
+          "label": "Draw blade",
+          "sound": "fx-draw-blade"
+        },
+        {
+          "label": "War horn",
+          "sound": "fx-war-horn"
+        }
+      ]
+    },
+    {
+      "key": "creatures",
+      "name": "Creatures",
+      "buttons": [
+        {
+          "label": "Monster growl",
+          "sound": "fx-growl"
+        },
+        {
+          "label": "Dragon roar",
+          "sound": "fx-roar"
+        },
+        {
+          "label": "Wolf howl",
+          "sound": "fx-wolf"
+        },
+        {
+          "label": "Scream",
+          "sound": "fx-scream"
+        }
+      ]
+    },
+    {
+      "key": "doors",
+      "name": "Doors, traps and loot",
+      "buttons": [
+        {
+          "label": "Door slam",
+          "sound": "fx-door-slam"
+        },
+        {
+          "label": "Iron gate",
+          "sound": "fx-gate"
+        },
+        {
+          "label": "Creak",
+          "sound": "fx-creak"
+        },
+        {
+          "label": "Coins",
+          "sound": "fx-coins"
+        }
+      ]
+    },
+    {
+      "key": "magic",
+      "name": "Magic and mood",
+      "buttons": [
+        {
+          "label": "Spell",
+          "sound": "fx-spell"
+        },
+        {
+          "label": "Dark sting",
+          "sound": "fx-dark-sting"
+        },
+        {
+          "label": "Thunder",
+          "sound": "fx-thunder"
+        },
+        {
+          "label": "Explosion",
+          "sound": "fx-boom"
+        },
+        {
+          "label": "Ship's bell",
+          "sound": "fx-bell"
+        }
+      ]
+    }
+  ],
   "scenes": [
     {
       "key": "tavern",
       "name": "Tavern",
       "layers": [
         {
+          "sound": "amb-tavern",
+          "mode": "loop",
+          "volume": 0.6
+        },
+        {
           "sound": "music-tavern",
+          "mode": "loop",
+          "volume": 0.25
+        }
+      ]
+    },
+    {
+      "key": "dungeon",
+      "name": "Dungeon",
+      "layers": [
+        {
+          "sound": "amb-dungeon",
+          "mode": "loop",
+          "volume": 0.6
+        }
+      ]
+    },
+    {
+      "key": "forest",
+      "name": "Forest",
+      "layers": [
+        {
+          "sound": "amb-forest",
+          "mode": "loop",
+          "volume": 0.6
+        }
+      ]
+    },
+    {
+      "key": "rainfall",
+      "name": "Rainfall",
+      "layers": [
+        {
+          "sound": "amb-rain",
           "mode": "loop",
           "volume": 0.6
         }
@@ -64,38 +337,16 @@
         {
           "sound": "music-battle",
           "mode": "loop",
-          "volume": 0.7
-        }
-      ]
-    },
-    {
-      "key": "cave",
-      "name": "Cave",
-      "layers": [
-        {
-          "sound": "music-cave",
-          "mode": "loop",
           "volume": 0.6
         }
       ]
     },
     {
-      "key": "mountain",
-      "name": "Mountain",
+      "key": "market",
+      "name": "Market",
       "layers": [
         {
-          "sound": "mountain-wind",
-          "mode": "loop",
-          "volume": 0.7
-        }
-      ]
-    },
-    {
-      "key": "dungeon",
-      "name": "Dungeon",
-      "layers": [
-        {
-          "sound": "amb-dungeon",
+          "sound": "amb-bazaar",
           "mode": "loop",
           "volume": 0.6
         }
@@ -113,13 +364,68 @@
       ]
     },
     {
-      "key": "market",
-      "name": "Market",
+      "key": "storm",
+      "name": "Storm",
       "layers": [
         {
-          "sound": "amb-bazaar",
+          "sound": "amb-storm",
+          "mode": "loop",
+          "volume": 0.7
+        }
+      ]
+    },
+    {
+      "key": "campfire",
+      "name": "Campfire",
+      "layers": [
+        {
+          "sound": "amb-campfire",
           "mode": "loop",
           "volume": 0.6
+        }
+      ]
+    },
+    {
+      "key": "harbour",
+      "name": "Harbour",
+      "layers": [
+        {
+          "sound": "amb-harbour",
+          "mode": "loop",
+          "volume": 0.6
+        }
+      ]
+    },
+    {
+      "key": "cave",
+      "name": "Cave",
+      "layers": [
+        {
+          "sound": "amb-cave",
+          "mode": "loop",
+          "volume": 0.6
+        }
+      ]
+    },
+    {
+      "key": "castle",
+      "name": "Castle hall",
+      "layers": [
+        {
+          "sound": "amb-castle",
+          "mode": "loop",
+          "volume": 0.6
+        }
+      ]
+    },
+    {
+      "key": "mountain",
+      "name": "Mountain",
+      "layers": [
+        {
+          "sound": "mountain-wind",
+          "mode": "loop",
+          "volume": 0.7
         }
       ]
     }

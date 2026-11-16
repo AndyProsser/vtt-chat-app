@@ -39,7 +39,9 @@ export function togglePin(pins: string[], soundId: string): string[] {
   return pins.length >= MAX_PINS ? pins : [...pins, soundId];
 }
 
-/** What is pinned before the DM chooses: the first few sounds. */
+/** What is pinned before the DM chooses: the first sound of each board, so the deck starts varied, then the rest in order. */
 export function defaultPins(sounds: FlatSound[]): string[] {
-  return sounds.slice(0, DEFAULT_PINS).map((s) => s.soundId);
+  const firstOfEach = sounds.filter((s, i) => sounds.findIndex((o) => o.board === s.board) === i);
+  const rest = sounds.filter((s) => !firstOfEach.includes(s));
+  return [...firstOfEach, ...rest].slice(0, DEFAULT_PINS).map((s) => s.soundId);
 }

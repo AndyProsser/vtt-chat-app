@@ -14,5 +14,15 @@
     "id": 819223,
     "by": "sounds_from_palestine",
     "note": "Andy: bazaar / market"
+  },
+  "bell": {
+    "id": 353233,
+    "by": "Sojan",
+    "note": "Andy: bell toll"
+  },
+  "harbour": {
+    "id": 254130,
+    "by": "clif_creates",
+    "note": "Andy: harbour ambience (27 s source; needs a longer crossfade or a seamless-loop check)"
   }
 }

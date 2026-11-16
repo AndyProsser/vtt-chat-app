@@ -12,7 +12,8 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ### Changed
 
-- **The starter sound pack was trimmed** to the six clips that passed a listening test (Tavern, Market, Battle, Cave, Dungeon and Mountain). The rain, forest and town beds and the stings were music or sounded wrong, and come back in 0.5.1 from better sources.
+- **The starter sounds are on by default**, and the pack is rebuilt from listened-to, CC0 sources (Freesound, Kenney, OpenGameArt; credits in `backend/assets/sounds/SOURCES.md`): 13 quiet scenes (Tavern, Dungeon, Forest, Rain, Battle, Market, Forest night, Storm, Campfire, Harbour, Cave, Castle hall, Mountain) and 19 stingers in five boards (Combat, Creatures, Doors, traps and loot, Magic and mood). `STARTER_SOUNDS=0` turns them off.
+- **A fresh sound deck** starts with the first stinger of each board rather than the first six.
 
 ## [0.5.0] - 2026-11-16
 

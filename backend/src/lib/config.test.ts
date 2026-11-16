@@ -23,10 +23,10 @@ describe('loadConfig mail settings', () => {
 });
 
 describe('loadConfig starter sounds', () => {
-  it('are off unless STARTER_SOUNDS=1', async () => {
+  it('are on unless STARTER_SOUNDS=0', async () => {
     const { loadConfig } = await import('./config.js');
-    expect(loadConfig({}).starterSounds).toBe(false);
-    expect(loadConfig({ STARTER_SOUNDS: '0' }).starterSounds).toBe(false);
+    expect(loadConfig({}).starterSounds).toBe(true);
     expect(loadConfig({ STARTER_SOUNDS: '1' }).starterSounds).toBe(true);
+    expect(loadConfig({ STARTER_SOUNDS: '0' }).starterSounds).toBe(false);
   });
 });

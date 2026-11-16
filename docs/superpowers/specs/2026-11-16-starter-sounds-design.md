@@ -27,7 +27,7 @@ Stingers: door, coins, bell, blade, magic, footsteps, creature, impact, and a fe
   usable by every DM, read-only in the app, downloadable by any campaign member.
 - `scripts/sound-pack/build.py` builds the pack from `picks.json`: it refuses a page that does not list CC0,
   normalises loudness, crossfades beds into seamless loops and writes `SOURCES.md`.
-- A first pack of 14 clips (about 7 MB): ambience beds and music loops from OpenGameArt.
+- The pack (2026-11-16): 13 scenes and 19 stingers, about 11 MB, from Freesound, Kenney and OpenGameArt (`SOURCES.md`).
 
 ## Not built yet
 
