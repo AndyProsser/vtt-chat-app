@@ -2,11 +2,11 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { togglePin } from '../lib/stingers.js';
 
-const key = (campaignId: string) => `vtt.stingers.${campaignId}`;
+const key = (kind: string, campaignId: string) => `vtt.${kind}.${campaignId}`;
 
-function read(campaignId: string): string[] | undefined {
+function read(kind: string, campaignId: string): string[] | undefined {
   try {
-    const raw = localStorage.getItem(key(campaignId));
+    const raw = localStorage.getItem(key(kind, campaignId));
     const parsed: unknown = raw ? JSON.parse(raw) : undefined;
     return Array.isArray(parsed) && parsed.every((p) => typeof p === 'string')
       ? (parsed as string[])
@@ -16,25 +16,25 @@ function read(campaignId: string): string[] | undefined {
   }
 }
 
-/** The DM's pinned stingers for this campaign, remembered on this machine (a convenience, not shared state). */
-export function usePins(campaignId: string | null, fallback: string[]) {
+/** The DM's pinned stingers (or scenes: `kind`) for this campaign, remembered on this machine (a convenience, not shared state). */
+export function usePins(campaignId: string | null, fallback: string[], kind = 'stingers') {
   const [pins, setPins] = useState<string[] | undefined>(() =>
-    campaignId ? read(campaignId) : undefined,
+    campaignId ? read(kind, campaignId) : undefined,
   );
-  useEffect(() => setPins(campaignId ? read(campaignId) : undefined), [campaignId]);
+  useEffect(() => setPins(campaignId ? read(kind, campaignId) : undefined), [campaignId, kind]);
   const toggle = useCallback(
     (soundId: string) => {
       setPins((current) => {
         const next = togglePin(current ?? fallback, soundId);
         try {
-          if (campaignId) localStorage.setItem(key(campaignId), JSON.stringify(next));
+          if (campaignId) localStorage.setItem(key(kind, campaignId), JSON.stringify(next));
         } catch {
           /* not remembering is acceptable */
         }
         return next;
       });
     },
-    [campaignId, fallback],
+    [campaignId, fallback, kind],
   );
   return { pins: pins ?? fallback, toggle };
 }

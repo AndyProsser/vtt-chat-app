@@ -1,5 +1,5 @@
 import { Clapperboard, Mic, RotateCcw, Zap } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { useAccount } from '../../hooks/useAccount.js';
 import { useActiveScene } from '../../hooks/useActiveScene.js';
@@ -9,6 +9,7 @@ import { usePins } from '../../hooks/usePins.js';
 import { useSoundLevels } from '../../hooks/useSoundLevels.js';
 import { VOICES } from '../../lib/commands.js';
 import type { PanelName } from '../../lib/deckPanels.js';
+import { defaultShownScenes } from '../../lib/scenes.js';
 import { defaultPins, flattenSounds, type FlatSound } from '../../lib/stingers.js';
 import { accountErrorMessage, syncCommand, voiceEffectSet } from '../../lib/tauriBridge.js';
 import type { SoundLibrary } from '../../types/index.js';
@@ -33,7 +34,24 @@ export function SoundDrawer() {
   const sounds = useMemo(() => flattenSounds(data?.boards ?? []), [data]);
   const fallback = useMemo(() => defaultPins(sounds), [sounds]);
   const { pins, toggle: togglePin } = usePins(status?.campaignId ?? null, fallback);
-  const scenes = data?.scenes ?? [];
+  const scenes = useMemo(() => data?.scenes ?? [], [data]);
+  const sceneFallback = useMemo(() => defaultShownScenes(scenes), [scenes]);
+  const { pins: shownScenes, toggle: toggleScene } = usePins(
+    status?.campaignId ?? null,
+    sceneFallback,
+    'scenes',
+  );
+  // A scene made after the deck first loaded is shown straight away, so "New scene" is one step.
+  const knownScenes = useRef<Set<string> | undefined>(undefined);
+  useEffect(() => {
+    if (!data) return;
+    const known = knownScenes.current;
+    if (known) {
+      for (const sc of scenes)
+        if (!known.has(sc.id) && !shownScenes.includes(sc.id)) toggleScene(sc.id);
+    }
+    knownScenes.current = new Set(scenes.map((s) => s.id));
+  }, [data, scenes, shownScenes, toggleScene]);
   const favCount = pins.filter((id) => sounds.some((s) => s.soundId === id)).length;
 
   async function send(t: string, d: Record<string, unknown>) {
@@ -55,7 +73,12 @@ export function SoundDrawer() {
     [
       { name: 'voice', label: 'Voice', icon: Mic, count: VOICES.length },
       { name: 'stingers', label: 'Stingers', icon: Zap, count: favCount },
-      { name: 'scenes', label: 'Scenes', icon: Clapperboard, count: scenes.length },
+      {
+        name: 'scenes',
+        label: 'Scenes',
+        icon: Clapperboard,
+        count: shownScenes.filter((id) => scenes.some((s) => s.id === id)).length,
+      },
     ];
   const problem = error ?? actionError;
   return (
@@ -117,7 +140,11 @@ export function SoundDrawer() {
           <Clapperboard size={15} className="vtt-deck-ic" aria-label="Scenes" />
           <ScenePanel
             scenes={scenes}
+            shown={shownScenes}
             active={activeScene}
+            allSounds={data?.sounds ?? []}
+            onToggleShown={toggleScene}
+            onChanged={reload}
             onToggle={(scene, on) =>
               void send(on ? 'scene.start' : 'scene.stop', on ? { sceneId: scene.id } : {})
             }
