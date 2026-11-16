@@ -1,6 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- tests inspect loosely-typed JSON bodies */
+import { mkdtemp, writeFile } from 'node:fs/promises';
 import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 
 import { afterAll, afterEach, beforeEach, describe, expect, it } from 'vitest';
 
@@ -8,6 +11,7 @@ import { MAX_SOUND_BYTES } from '../../consts/index.js';
 import { createApp } from '../app.js';
 import type { BackendConfig } from '../config.js';
 import { MemoryMediaStorage } from '../media/mediaStorage.js';
+import { seedCatalogue } from '../soundboard/catalogue.js';
 import { MemorySoundStore } from '../soundboard/memorySoundStore.js';
 import { PostgresSoundStore } from '../soundboard/postgresSoundStore.js';
 import { openTestBackend } from '../store/testing.js';
@@ -46,6 +50,8 @@ const PNG = Buffer.concat([
 let server: Server;
 let base: string;
 let media: MemoryMediaStorage;
+let soundStore: MemorySoundStore | PostgresSoundStore;
+let tableStore: MemoryTableStore | PostgresTableStore;
 let dm: { id: string; token: string };
 let dm2: { id: string; token: string };
 let alice: { id: string; token: string };
@@ -94,6 +100,8 @@ beforeEach(async () => {
   const table = pg ? new PostgresTableStore(backend.pool!) : new MemoryTableStore();
   const sounds = pg ? new PostgresSoundStore(backend.pool!) : new MemorySoundStore();
   media = new MemoryMediaStorage();
+  soundStore = sounds;
+  tableStore = table;
   const app = createApp({ config: CONFIG, store, table, sounds, media });
   await new Promise<void>((resolve) => {
     server = app.listen(0, '127.0.0.1', resolve);
@@ -309,5 +317,74 @@ describe('players fetching a clip', () => {
     expect((await call('GET', `/api/campaigns/${campaign}/sounds/takes/${take}/file`)).status).toBe(
       401,
     );
+  });
+});
+
+describe('the shared starter catalogue', () => {
+  async function seed() {
+    const dir = await mkdtemp(path.join(tmpdir(), 'shared-sounds-'));
+    await writeFile(path.join(dir, 'rain.ogg'), OGG);
+    await writeFile(
+      path.join(dir, 'catalogue.json'),
+      JSON.stringify({
+        version: 1,
+        sounds: [{ key: 'rain', name: 'Rain', category: 'ambience', takes: ['rain.ogg'] }],
+        boards: [],
+        scenes: [
+          {
+            key: 'rainfall',
+            name: 'Rainfall',
+            layers: [{ sound: 'rain', mode: 'loop', volume: 0.7 }],
+          },
+        ],
+      }),
+    );
+    await seedCatalogue({ dir, sounds: soundStore, table: tableStore, media });
+  }
+
+  it('shows up in every DM’s library, marked shared, ahead of their own', async () => {
+    await seed();
+    await upload(dm.token);
+    const { body } = await call('GET', '/api/soundboard/library', dm.token);
+    expect(body.sounds.map((x: any) => [x.name, x.shared])).toEqual([
+      ['Rain', true],
+      ['Door', false],
+    ]);
+    expect(body.scenes.map((x: any) => [x.name, x.shared])).toEqual([['Rainfall', true]]);
+    const other = await call('GET', '/api/soundboard/library', dm2.token);
+    expect(other.body.sounds.map((x: any) => x.name)).toEqual(['Rain']);
+  });
+
+  it('cannot be edited or deleted, but can be used in your own boards and scenes', async () => {
+    await seed();
+    const rain = (await call('GET', '/api/soundboard/library', dm.token)).body.sounds[0];
+    expect(
+      (await call('PATCH', `/api/soundboard/sounds/${rain.id}`, dm.token, { name: 'X' })).status,
+    ).toBe(404);
+    expect((await call('DELETE', `/api/soundboard/sounds/${rain.id}`, dm.token)).status).toBe(404);
+    const board = await call('POST', '/api/soundboard/boards', dm.token, {
+      name: 'Mine',
+      buttons: [{ label: 'Rain', soundId: rain.id, mode: 'loop', volume: 1, note: '' }],
+    });
+    expect(board.status).toBe(201);
+  });
+
+  it('can be fetched by a member of a campaign, and not by a stranger', async () => {
+    await seed();
+    const rain = (await call('GET', '/api/soundboard/library', dm.token)).body.sounds[0];
+    const take = rain.takes[0].id;
+    const ok = await call(
+      'GET',
+      `/api/campaigns/${campaign}/sounds/takes/${take}/file`,
+      alice.token,
+    );
+    expect(ok.status).toBe(200);
+    expect(ok.bytes.equals(OGG)).toBe(true);
+    const no = await call(
+      'GET',
+      `/api/campaigns/${campaign}/sounds/takes/${take}/file`,
+      outsider.token,
+    );
+    expect(no.status).toBe(403);
   });
 });

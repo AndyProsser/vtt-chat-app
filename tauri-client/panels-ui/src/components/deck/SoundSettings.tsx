@@ -160,7 +160,7 @@ function Scenes({ allSounds, scenes, onChanged }: Props) {
   return (
     <div className="vtt-set-pane">
       <div className="vtt-set-head">
-        <span className="vtt-set-sub">Your scenes</span>
+        <span className="vtt-set-sub">Scenes</span>
         <ToolButton label="New scene" text="New" onClick={() => setEditing('new')}>
           <Plus size={14} />
         </ToolButton>
@@ -179,12 +179,18 @@ function Scenes({ allSounds, scenes, onChanged }: Props) {
               {sc.layers.length} {sc.layers.length === 1 ? 'layer' : 'layers'}
             </small>
           </span>
-          <ToolButton label={`Edit ${sc.name}`} onClick={() => setEditing(sc)}>
-            <Pencil size={14} />
-          </ToolButton>
-          <ToolButton label={`Delete ${sc.name}`} danger onClick={() => void remove(sc)}>
-            <Trash2 size={14} />
-          </ToolButton>
+          {sc.shared ? (
+            <small className="vtt-muted">Included</small>
+          ) : (
+            <>
+              <ToolButton label={`Edit ${sc.name}`} onClick={() => setEditing(sc)}>
+                <Pencil size={14} />
+              </ToolButton>
+              <ToolButton label={`Delete ${sc.name}`} danger onClick={() => void remove(sc)}>
+                <Trash2 size={14} />
+              </ToolButton>
+            </>
+          )}
         </div>
       ))}
     </div>

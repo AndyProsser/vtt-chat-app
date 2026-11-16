@@ -157,11 +157,13 @@ export interface SoundButton {
 export interface SoundBoard {
   id: string;
   name: string;
+  shared?: boolean;
   buttons: SoundButton[];
 }
 export interface SoundRecord {
   id: string;
   name: string;
+  shared?: boolean;
   category?: string;
 }
 export type SoundScene = import('../lib/sceneDraft.js').SceneRecord;

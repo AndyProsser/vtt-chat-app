@@ -54,6 +54,8 @@ COPY --from=build /app/ddb/dist ddb/dist
 COPY --from=build /app/backend/package.json backend/package.json
 COPY --from=build /app/backend/dist backend/dist
 COPY backend/migrations backend/migrations
+# The shared starter sounds (catalogue.json and the clips), seeded at start-up.
+COPY backend/assets backend/assets
 # The browser join page (invite → account → app download), served by the backend at /join.
 COPY --from=web /app/web/dist web/dist
 # The public status page, served at /status.

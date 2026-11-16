@@ -85,7 +85,11 @@ export class SoundLibraryService {
     ]);
     const mark = <T extends { ownerId: string | null }>(rows: T[]): Shared<T>[] =>
       rows.map((r) => ({ ...r, shared: r.ownerId === null }));
-    return { sounds: mark([...ss, ...s]), boards: mark([...sb, ...b]), scenes: mark([...sc, ...c]) };
+    return {
+      sounds: mark([...ss, ...s]),
+      boards: mark([...sb, ...b]),
+      scenes: mark([...sc, ...c]),
+    };
   }
 
   // ---- sounds and takes ----

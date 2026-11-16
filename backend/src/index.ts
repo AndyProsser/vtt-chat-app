@@ -3,7 +3,7 @@ export * from './consts/index.js';
 export * from './lib/index.js';
 
 import { createServer } from 'node:http';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { Valkey } from 'iovalkey';
 
@@ -31,6 +31,8 @@ import {
   PartyService,
   createLiveKitAudioRouter,
   MemorySoundStore,
+  seedCatalogue,
+  DEFAULT_CATALOGUE_DIR,
   NotificationRelay,
   PostgresScheduleStore,
   ScheduleService,
@@ -87,6 +89,23 @@ if (isEntryPoint) {
   const sounds = pool ? new PostgresSoundStore(pool) : new MemorySoundStore();
   const schedule = pool ? new PostgresScheduleStore(pool) : new MemoryScheduleStore();
   const media = config.mediaDir ? new DiskMediaStorage(config.mediaDir) : undefined;
+  if (config.starterSounds && media) {
+    // The shared starter catalogue (backend/assets/sounds). A bad pack is logged, never fatal.
+    try {
+      const seeded = await seedCatalogue({
+        dir: fileURLToPath(DEFAULT_CATALOGUE_DIR),
+        sounds,
+        table,
+        media,
+      });
+      if (seeded.sounds > 0)
+        console.log(
+          `[backend] starter sounds: ${seeded.sounds} sounds, ${seeded.boards} boards, ${seeded.scenes} scenes`,
+        );
+    } catch (error) {
+      console.error('[backend] starter sounds not loaded:', error);
+    }
+  }
   // The acknowledgement store is shared: the hub records who heard the cue, and audio capture only
   // starts a player's track once they have.
   const acks = new MemoryAckStore();

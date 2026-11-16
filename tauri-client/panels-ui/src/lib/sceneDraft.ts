@@ -9,6 +9,8 @@ export interface SceneLayerRecord {
 export interface SceneRecord {
   id: string;
   name: string;
+  /** From the server's starter catalogue: usable by every DM, not editable or deletable. */
+  shared?: boolean;
   layers: SceneLayerRecord[];
 }
 
