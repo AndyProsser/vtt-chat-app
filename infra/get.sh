@@ -418,7 +418,7 @@ step "Downloading the server images"
 docker compose pull
 
 step "Starting VTT Chat"
-# --remove-orphans: an update from before 0.6 leaves behind the stopped one-shot containers (media-init, models-init...)
+# --remove-orphans: an update from before 0.5.2 leaves behind the stopped one-shot containers (media-init, models-init...)
 # that the bundle no longer has. The models now download in the background, so this no longer waits for them.
 docker compose up -d --wait --wait-timeout 600 --remove-orphans || {
   warn "the stack did not become healthy in time; recent logs:"

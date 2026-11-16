@@ -110,9 +110,10 @@ to stand this up, and LiveKit Egress is only officially distributed as a contain
 
 Both tiers must generate the same configuration; application code never branches on the tier.
 
-### Start-up and idle cost (0.6.0)
+### Start-up and idle cost
 
-Two things about the Compose bundle were changed in ROADMAP Stage 9, both measured first.
+Two things about the Compose bundle were changed in ROADMAP Stage 9, both measured first: the health checks (0.5.1) and
+the one-shot containers (0.5.2). Neither changes the protocol, so both are patch releases.
 
 **Health checks were the idle CPU.** Andy saw the test server (4 vCPUs of a 2010 Xeon E5645) sit at about 15% CPU with
 nobody connected. Measured over 60 s on 2026-11-16, as a share of **one** core:

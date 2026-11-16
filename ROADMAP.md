@@ -52,7 +52,7 @@ releases; the 0.4.5 changelog covers both).
 **Next:**
 
 1. **Bug fixes** as they turn up, in patch releases.
-2. **Stage 9, hardening and production readiness** (below), in progress for **0.6.0** on the `stage-9-hardening` branch: the idle
+2. **Stage 9, hardening and production readiness** (below), in progress for **0.5.2** on the `stage-9-hardening` branch: the idle
    CPU fix and the removal of the one-shot containers are built (2026-11-16); Windows and macOS parity, the long soak, packaging
    and signing are still to do.
 3. The open design topics in [.claude/intent.md](.claude/intent.md), as Stage 10 and later.
@@ -358,7 +358,7 @@ told clearly to update; and a recorded session runs through to its summary.
 
 ## Stage 9 — Cross-Platform Hardening & Production Readiness
 
-**Status:** 🟡 In progress (started 2026-11-16 on the `stage-9-hardening` branch, for 0.6.0): the idle-CPU fix and the removal of
+**Status:** 🟡 In progress (started 2026-11-16 on the `stage-9-hardening` branch, for 0.5.2; the health-check, transcription and purge fixes went to `main` for 0.5.1): the idle-CPU fix and the removal of
 the one-shot containers are built; the platform checks, the long soak and signing are not started
 **Depends on:** Stage 5 (can overlap Stages 6–8)
 
@@ -371,20 +371,20 @@ the one-shot containers are built; the platform checks, the long soak and signin
 - Security pass: consent-cue bypass attempts, private-audio leakage into records, token/session expiry, ACL checks on every records endpoint — **done 2026-11-10** for the REST surface and live sockets (access matrix; found and fixed a player who left still receiving chat and voice); the Egress capture and whisper paths were already covered by tests
 - Packaging: installers per OS, signed where practical, updater verified
 - **Fewer moving parts at start-up: the one-shot containers are folded into the services that need them** (Andy's idea,
-  2026-11-15) — **built 2026-11-16** on the `stage-9-hardening` branch for 0.6.0. `media-init`, `recordings-init`, `models-init` and
+  2026-11-15) — **built 2026-11-16** on the `stage-9-hardening` branch for 0.5.2. `media-init`, `recordings-init`, `models-init` and
   `ollama-pull` are gone: volume ownership comes from the images, the Whisper container fetches its own model
   (`whisper-start.sh`), and the worker pulls the summary model in the background and reports it to `vtt-admin status` and the
   status page. Checked on the dev PC: a fresh stack is healthy in 6 s, an in-place upgrade of the dev stack (GPU override)
   removes the old one-shots and comes up clean, failed downloads show as `FAIL local AI`, backup and restore still work. It
   also found and fixed a real bug: on a Compose install the worker could not delete raw audio (wrong user). Design, rules and
-  the before/after: [DEPLOYMENT-AND-TRANSPORT.md](docs/architecture/DEPLOYMENT-AND-TRANSPORT.md#start-up-and-idle-cost-060).
+  the before/after: [DEPLOYMENT-AND-TRANSPORT.md](docs/architecture/DEPLOYMENT-AND-TRANSPORT.md#start-up-and-idle-cost).
   The Compose end-to-end records test passes on the new images (46 of 46), after it found and we fixed a shipped bug: since
   0.4.3 no audio reached Whisper over HTTP (see the changelog). **Not yet run:** the compatibility Whisper image, and the real VM.
 - **Idle CPU on the server** (added 2026-11-16, Andy saw about 15% on the test VM) — **cause found and fixed 2026-11-16** on
   the same branch. It was not our code (backend 0.17% of a core, worker 0.10%): it was Docker running 43 health-check
   commands a minute, two of them expensive, plus the Docker daemon's own cost of launching them; about half a core of a 2010
   Xeon in all. Health checks now poll every 2 s only while a container starts and once a minute after that, with cheap
-  commands (needs Docker Engine 25+). On the dev PC: 43 → 6 commands a minute. **Still to measure on the VM** once a 0.6
+  commands (needs Docker Engine 25+). On the dev PC: 43 → 6 commands a minute. On `main` since `v0.5.1-dev.2`. **Still to measure on the VM** once that
   build is installed there.
 
 **Done when:** a full real campaign session runs on all supported platforms without manual intervention.

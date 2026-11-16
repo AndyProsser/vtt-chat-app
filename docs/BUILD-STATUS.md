@@ -15,13 +15,13 @@ cd tauri-client && cargo fmt --check && cargo clippy --workspace --all-targets -
 
 Last run (2026-11-09, memory stores): backend 406 (+18 skipped without Postgres), panels-ui 213, ddb 9, status 3; Rust: src-tauri 88 (+2 ignored), rust-livekit and rust-sync as before, with the LiveKit live tests passing individually on SDK 0.10.1. `cargo clippy -D warnings` still fails on the old unused `capture_allowed`. Not run: anything in CI (the workflow exists, nothing has run it since the pivot).
 
-## Stage 9, 2026-11-16: idle CPU and the one-shot containers (branch `stage-9-hardening`, 0.6.0)
+## Stage 9, 2026-11-16: idle CPU and the one-shot containers (branch `stage-9-hardening`, 0.5.2)
 
 **Built and checked on the dev PC** (local images, the `vtt-smoke` stack with the GPU override, and a throwaway project with new
 volumes and tiny models):
 
 - **Idle CPU.** Measured on the real VM first (read-only): about half a core, nearly all of it Docker health-check commands and
-  the daemon launching them ([the table](architecture/DEPLOYMENT-AND-TRANSPORT.md#start-up-and-idle-cost-060)). After the change,
+  the daemon launching them ([the table](architecture/DEPLOYMENT-AND-TRANSPORT.md#start-up-and-idle-cost)). After the change,
   on the dev PC: 43 → 6 health-check commands a minute; containers 5.7% → 2.4% of a core.
 - **No one-shot containers.** A fresh stack (`postgres valkey backend worker whisper ollama`) was healthy in 6 s; the Whisper
   model and the summary model then downloaded in the background and `vtt-admin status` printed `local AI   summary model ready,
@@ -41,7 +41,7 @@ Whisper ready`. New volumes came up owned by uid 1000 (media) and 1001 (recordin
   (`ai/src/lib/providers/openaiCompat.ts`), with a test that goes through the real default fetch to a local server. Rerun:
   **46 of 46**, including the worker killed mid-job, on the worker running as uid 1001.
 
-**UNVERIFIED:** the real VM (it needs a 0.6 build: the CPU figure there is a projection until then); a records job that arrives _while_ a model is downloading (unit-tested
+**UNVERIFIED:** the real VM (it needs `v0.5.1-dev.2` or later installed: the CPU figure there is a projection until then); a records job that arrives _while_ a model is downloading (unit-tested
 only); the compatibility Whisper image (`compose.compat.yml`) with the new entrypoint; a real multi-GB pull over a slow line
 (the stall rule is unit-tested); Docker Engine older than 25 (the installer refuses; not tried).
 
