@@ -169,17 +169,21 @@ export function buildStoryPrompt(
   ].join('\n\n');
 }
 
-/** The Game Master's working brief: plain and practical, from the same notes. Not a story. */
+/**
+ * The Game Master's brief: a summary of the key points, to recall the last session and prepare the next one
+ * (Andy, 2026-11-17). Not a story, and not the scribe's notes again: those are kept in full beside it.
+ */
 export function buildBriefPrompt(notes: readonly string[], context: SummaryContext): string {
   return [
-    `You are helping a Game Master prepare. From the scribe's notes below, write a private brief of this tabletop role-playing session${campaignOf(context)}, for the Game Master only.`,
+    `You are helping a Game Master prepare. From the scribe's notes below, write a private brief of this tabletop role-playing session${campaignOf(context)}, for the Game Master only: what to remember from this session and what to have ready for the next.`,
     [
-      'Write short headed sections, plainly, with no story-telling:',
-      '- What happened, in order, in a few lines.',
-      '- Secrets that were revealed, and secrets still hidden.',
-      '- Plot hooks the players pursued, and ones they ignored.',
-      '- Promises made to or by non-player characters.',
-      '- What to prepare for next session.',
+      `A summary of the key points, not a retelling: at most ${taleWords(250, notes)} words in all. The Game Master has the full notes; leave out routine detail, and anything that changes nothing for next time.`,
+      'Short headed sections of a few brief bullet points each, plainly, with no story-telling:',
+      '- Last session: the few things that happened that matter from here on, in order.',
+      '- Where things stand: where the party is, what they have gained or lost, who is hurt, angry or in debt.',
+      '- Open threads: secrets still hidden, questions the players asked that have no answer yet, hooks they took up and hooks they passed by.',
+      '- Promises: what was promised to or by non-player characters.',
+      '- Prepare for next session: what the players are most likely to do next, and what the Game Master will need ready for it.',
       'Use only what is in the notes. Leave out a section that has nothing in it, and do not say that it is empty.',
     ].join('\n'),
     "The scribe's notes of what happened, in order:",

@@ -244,6 +244,9 @@ describe('prompts', () => {
     expect(brief).toMatch(/for the Game Master only/);
     expect(brief).toMatch(/no story-telling/);
     expect(brief).not.toMatch(/bard/);
+    // A summary of key points for recall and preparation, never the notes again.
+    expect(brief).toMatch(/key points, not a retelling: at most 30 words/);
+    expect(brief).toMatch(/Prepare for next session/);
   });
 });
 

@@ -455,9 +455,10 @@ flowchart LR
 - **Notes are taken once and shared.** With chapters, each chapter is noted once and the session's notes are the
   chapters' notes in order. Before, every summary re-read the whole transcript: for five players, about eight readings;
   now one, plus one short call per summary. Notes too long for one call are shortened by the scribe first.
-- **The Game Master's brief stays** (Andy, 2026-11-17): the same content as the notes, sorted for a quick scan. So the
-  Game Master reads the tale and the brief; the notes and the transcript are the hidden items, the notes behind a
-  "Scribe's notes" button and the transcript in dev mode.
+- **The Game Master's brief is a summary of key points** (Andy, 2026-11-17): to recall the last session and prepare
+  the next, never the scribe's notes again. At most 250 words (less when the notes are short): last session, where
+  things stand, open threads, promises, what to prepare. So the Game Master reads the tale and the brief; the notes and
+  the transcript are the hidden items, the notes behind a "Scribe's notes" button and the transcript in dev mode.
 - **The notes are stored for the Game Master** (2026-11-17): one `summaries` row per recording, kind `notes`,
   visibility `dm`, as Markdown (a bullet per event, a heading per part). They are for reading: a job that dies still
   takes its notes again (the transcripts, the slow part, are kept).
