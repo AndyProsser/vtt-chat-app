@@ -69,24 +69,29 @@ PACKS = {}
 
 
 def pack_extract(spec):
-    """A file from a zip pack on OpenGameArt: {pack: name, member: file name}. The pack's page must list the licence
-    the pack was allowed under in picks.json (CC0 by default); CC BY needs `require` and carries its credit."""
+    """A file from the archive(s) of a pack page on OpenGameArt: {pack: name, member: file name}. The pack's page must
+    list the licence picks.json allows for it (CC0 by default); CC BY carries its credit into SOURCES.md."""
     pk = PACKS[spec['pack']]
     require = pk.get('require', 'CC0')
     title, author, _files = page_facts(pk['page'], require)
-    zpath = CACHE / f"pack_{spec['pack']}.zip"
-    if not zpath.exists():
+    folder = CACHE / f"pack_{spec['pack']}"
+    if not folder.exists():
+        folder.mkdir()
         h = get('https://opengameart.org/content/' + pk['page'])
-        links = re.findall(r'href="(https://opengameart.org/sites/default/files/[^"]+\.zip)"', h)
-        zpath.write_bytes(get(links[0], binary=True))
-    with zipfile.ZipFile(zpath) as z:
-        names = [n for n in z.namelist() if '__MACOSX' not in n and os.path.basename(n) == spec['member']]
-        if not names:
-            sys.exit(f"no {spec['member']!r} in pack {spec['pack']}")
-        out = CACHE / re.sub(r'[^A-Za-z0-9._-]', '_', f"{spec['pack']}_{spec['member']}")
-        out.write_bytes(z.read(names[0]))
-    credit = f" - {pk['credit']}" if pk.get('credit') else ''
-    return out, f"{title}: {spec['member']}", author + credit, 'https://opengameart.org/content/' + pk['page']
+        links = re.findall(r'href="(https://opengameart.org/sites/default/files/[^"]+\.(?:zip|7z))"', h)
+        for n, link in enumerate(links):
+            arc = folder / f'archive{n}.{link.rsplit(".", 1)[-1]}'
+            arc.write_bytes(get(link, binary=True))
+            if arc.suffix == '.7z':
+                subprocess.check_call(['7z', 'x', '-y', f'-o{folder}', str(arc)], stdout=subprocess.DEVNULL)
+            else:
+                with zipfile.ZipFile(arc) as z:
+                    z.extractall(folder)  # zipfile drops absolute and ".." paths
+    hits = [p for p in folder.rglob('*') if p.is_file() and p.name == spec['member'] and '__MACOSX' not in p.parts]
+    if not hits:
+        sys.exit(f"no {spec['member']!r} in pack {spec['pack']}")
+    credit = f" - {pk['credit']}" if pk.get('credit') else (f" ({require}, credit required)" if require != 'CC0' else '')
+    return hits[0], f"{title}: {spec['member']}", author + credit, 'https://opengameart.org/content/' + pk['page']
 
 
 def fetch(spec):
@@ -99,7 +104,10 @@ def fetch(spec):
         title, author, page, url = freesound_facts(spec['freesound'])
         cached = CACHE / f"freesound_{spec['freesound']}.mp3"
     else:
-        title, author, files = page_facts(spec['page'])
+        require = spec.get('require', 'CC0')
+        title, author, files = page_facts(spec['page'], require)
+        if require != 'CC0':
+            author = f"{author} (opengameart.org/users/{author}), {require}"
         page = 'https://opengameart.org/content/' + spec['page']
         match = [f for f in files if spec['file'].lower() in urllib.parse.unquote(f).lower()]
         if not match:
@@ -134,7 +142,7 @@ def encode(src, dst, pick):
     elif pick['kind'] == 'oneshot':
         trim = 'silenceremove=start_periods=1:start_threshold=-50dB'
         low = f"{pick['filter']}," if pick.get('filter') else ''
-        args = ['-t', str(take), '-af', f"{trim},areverse,{trim},areverse,{low}volume={peak_gain_db(src, pick.get('peakDb', -4.5)):.1f}dB,afade=t=out:st={max(take - 0.05, 0):.2f}:d=0.05"]
+        args = ['-t', str(take), '-af', f"{trim},areverse,{trim},areverse,{low}volume={peak_gain_db(src, pick.get('peakDb', -4.5)):.1f}dB,alimiter=limit=0.85:level=disabled,afade=t=out:st={max(take - 0.05, 0):.2f}:d=0.05"]
     else:
         args = ['-t', str(take), '-af', norm]
     subprocess.check_call(['ffmpeg', '-v', 'error', '-y', '-i', str(src), *args,

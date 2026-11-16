@@ -1,4 +1,27 @@
 [
-  { "key": "thunder-rumble", "name": "Thunder rumble", "kind": "oneshot", "category": "effect", "min": 4, "max": 25, "top": 6, "queries": ["thunder rumble low", "distant thunder rolling", "deep thunder rumble", "thunder far away rolling"] },
-  { "key": "groan", "name": "Groan", "kind": "oneshot", "category": "effect", "min": 1, "max": 8, "top": 5, "queries": ["male groan pain", "man groaning hurt", "cry of pain male"] }
+  {
+    "key": "thunder-rumble",
+    "name": "Thunder rumble",
+    "kind": "oneshot",
+    "category": "effect",
+    "min": 4,
+    "max": 25,
+    "top": 6,
+    "queries": [
+      "thunder rumble low",
+      "distant thunder rolling",
+      "deep thunder rumble",
+      "thunder far away rolling"
+    ]
+  },
+  {
+    "key": "groan",
+    "name": "Groan",
+    "kind": "oneshot",
+    "category": "effect",
+    "min": 1,
+    "max": 8,
+    "top": 5,
+    "queries": ["male groan pain", "man groaning hurt", "cry of pain male"]
+  }
 ]

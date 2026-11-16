@@ -90,15 +90,6 @@
       "maxSec": 90
     },
     {
-      "key": "mountain-wind",
-      "name": "Mountain wind",
-      "category": "ambience",
-      "kind": "bed",
-      "page": "icy-heights",
-      "file": "wind.ogg",
-      "maxSec": 60
-    },
-    {
       "key": "music-tavern",
       "name": "Tavern music",
       "category": "music",
@@ -121,6 +112,18 @@
         },
         {
           "freesound": 326862
+        },
+        {
+          "pack": "sword20",
+          "member": "sword_clash.1.ogg"
+        },
+        {
+          "pack": "sword20",
+          "member": "sword_clash.2.ogg"
+        },
+        {
+          "pack": "sword20",
+          "member": "sword_clash.3.ogg"
         }
       ]
     },
@@ -344,6 +347,18 @@
       "takes": [
         {
           "freesound": 433827
+        },
+        {
+          "pack": "water",
+          "member": "slime_01.ogg"
+        },
+        {
+          "pack": "water",
+          "member": "slime_02.ogg"
+        },
+        {
+          "pack": "water",
+          "member": "slime_03.ogg"
         }
       ]
     },
@@ -355,6 +370,14 @@
       "takes": [
         {
           "freesound": 539823
+        },
+        {
+          "pack": "water",
+          "member": "bubble_01.ogg"
+        },
+        {
+          "pack": "water",
+          "member": "bubble_02.ogg"
         }
       ]
     },
@@ -498,6 +521,14 @@
         {
           "pack": "combat150",
           "member": "EnergyZap_s01.wav"
+        },
+        {
+          "pack": "iceelec",
+          "member": "qubodupElectricityDamage01.flac"
+        },
+        {
+          "pack": "iceelec",
+          "member": "qubodupElectricityDamage02.flac"
         }
       ]
     },
@@ -535,6 +566,14 @@
         {
           "pack": "rpg80",
           "member": "creature_die_01.ogg"
+        },
+        {
+          "pack": "spooky",
+          "member": "groan.wav"
+        },
+        {
+          "pack": "spooky",
+          "member": "crackly_groan.wav"
         }
       ]
     },
@@ -870,6 +909,462 @@
       "quality": 2,
       "page": "running-from-something",
       "file": "running"
+    },
+    {
+      "key": "fx-ghost-voice",
+      "name": "Ghost voices",
+      "category": "effect",
+      "kind": "oneshot",
+      "takes": [
+        {
+          "pack": "ghost",
+          "member": "output (1).wav"
+        },
+        {
+          "pack": "ghost",
+          "member": "output (3).wav"
+        },
+        {
+          "pack": "ghost",
+          "member": "output (5).wav"
+        },
+        {
+          "pack": "ghost",
+          "member": "output (7).wav"
+        },
+        {
+          "pack": "ghost",
+          "member": "output (9).wav"
+        },
+        {
+          "pack": "ghost",
+          "member": "output (11).wav"
+        },
+        {
+          "pack": "ghost",
+          "member": "output (13).wav"
+        },
+        {
+          "pack": "ghost",
+          "member": "output (15).wav"
+        }
+      ]
+    },
+    {
+      "key": "fx-smash",
+      "name": "Smash",
+      "category": "effect",
+      "kind": "oneshot",
+      "takes": [
+        {
+          "pack": "hits37",
+          "member": "hit03.mp3.flac"
+        },
+        {
+          "pack": "hits37",
+          "member": "hit10.mp3.flac"
+        },
+        {
+          "pack": "hits37",
+          "member": "hit17.mp3.flac"
+        },
+        {
+          "pack": "hits37",
+          "member": "hit24.mp3.flac"
+        },
+        {
+          "pack": "hits37",
+          "member": "hit31.mp3.flac"
+        }
+      ]
+    },
+    {
+      "key": "fx-punch",
+      "name": "Punch",
+      "category": "effect",
+      "kind": "oneshot",
+      "takes": [
+        {
+          "pack": "hits37",
+          "member": "hit05.mp3.flac"
+        },
+        {
+          "pack": "hits37",
+          "member": "hit12.mp3.flac"
+        },
+        {
+          "pack": "hits37",
+          "member": "hit20.mp3.flac"
+        }
+      ]
+    },
+    {
+      "key": "fx-big-explosion",
+      "name": "Big explosion",
+      "category": "effect",
+      "kind": "oneshot",
+      "takes": [
+        {
+          "page": "big-explosion",
+          "file": "DeathFlash",
+          "require": "CC-BY 3.0"
+        }
+      ]
+    },
+    {
+      "key": "fx-shield",
+      "name": "Shield block",
+      "category": "effect",
+      "kind": "oneshot",
+      "takes": [
+        {
+          "pack": "shield",
+          "member": "impact.1.ogg"
+        },
+        {
+          "pack": "shield",
+          "member": "impact.3.ogg"
+        },
+        {
+          "pack": "shield",
+          "member": "impact.5.ogg"
+        },
+        {
+          "pack": "shield",
+          "member": "impact.7.ogg"
+        }
+      ]
+    },
+    {
+      "key": "fx-sword-swing",
+      "name": "Sword swing",
+      "category": "effect",
+      "kind": "oneshot",
+      "takes": [
+        {
+          "pack": "sword20",
+          "member": "sword.1.ogg"
+        },
+        {
+          "pack": "sword20",
+          "member": "sword.2.ogg"
+        },
+        {
+          "pack": "sword20",
+          "member": "sword.3.ogg"
+        },
+        {
+          "pack": "sword20",
+          "member": "sword.4.ogg"
+        }
+      ]
+    },
+    {
+      "key": "fx-taunt",
+      "name": "Taunt",
+      "category": "effect",
+      "kind": "oneshot",
+      "takes": [
+        {
+          "pack": "taunts",
+          "member": "1.ogg"
+        },
+        {
+          "pack": "taunts",
+          "member": "2.ogg"
+        },
+        {
+          "pack": "taunts",
+          "member": "3.ogg"
+        },
+        {
+          "pack": "taunts",
+          "member": "4.ogg"
+        },
+        {
+          "pack": "taunts",
+          "member": "5.ogg"
+        },
+        {
+          "pack": "taunts",
+          "member": "6.ogg"
+        }
+      ]
+    },
+    {
+      "key": "fx-fight",
+      "name": "Fight!",
+      "category": "effect",
+      "kind": "oneshot",
+      "takes": [
+        {
+          "pack": "taunts",
+          "member": "fight.ogg"
+        }
+      ]
+    },
+    {
+      "key": "fx-prepare",
+      "name": "Prepare yourself",
+      "category": "effect",
+      "kind": "oneshot",
+      "takes": [
+        {
+          "pack": "taunts",
+          "member": "prepare_yourself.ogg"
+        }
+      ]
+    },
+    {
+      "key": "fx-you-lose",
+      "name": "You lose",
+      "category": "effect",
+      "kind": "oneshot",
+      "takes": [
+        {
+          "pack": "taunts",
+          "member": "you_lose.ogg"
+        }
+      ]
+    },
+    {
+      "key": "fx-devil-destroy",
+      "name": "I will destroy you",
+      "category": "effect",
+      "kind": "oneshot",
+      "takes": [
+        {
+          "pack": "devil",
+          "member": "I will destroy you.mp3"
+        }
+      ]
+    },
+    {
+      "key": "fx-devil-defeat",
+      "name": "Your defeat is inevitable",
+      "category": "effect",
+      "kind": "oneshot",
+      "takes": [
+        {
+          "pack": "devil",
+          "member": "your defeat is inevitable.mp3"
+        }
+      ]
+    },
+    {
+      "key": "fx-devil-kill",
+      "name": "Kill me if you can",
+      "category": "effect",
+      "kind": "oneshot",
+      "takes": [
+        {
+          "pack": "devil",
+          "member": "kill me if you can.mp3"
+        }
+      ]
+    },
+    {
+      "key": "fx-devil-mortal",
+      "name": "Mortal, but the devil is not",
+      "category": "effect",
+      "kind": "oneshot",
+      "takes": [
+        {
+          "pack": "devil",
+          "member": "men is mortal but, devil is not.mp3"
+        }
+      ]
+    },
+    {
+      "key": "fx-ice",
+      "name": "Ice spell",
+      "category": "effect",
+      "kind": "oneshot",
+      "takes": [
+        {
+          "pack": "iceelec",
+          "member": "qubodupIceDamage01.flac"
+        },
+        {
+          "pack": "iceelec",
+          "member": "qubodupIceDamage02.flac"
+        },
+        {
+          "pack": "iceelec",
+          "member": "qubodupIceDamage03.flac"
+        }
+      ]
+    },
+    {
+      "key": "fx-brains",
+      "name": "Brains",
+      "category": "effect",
+      "kind": "oneshot",
+      "takes": [
+        {
+          "pack": "spooky",
+          "member": "brains.wav"
+        },
+        {
+          "pack": "spooky",
+          "member": "brains2.wav"
+        },
+        {
+          "pack": "spooky",
+          "member": "brains3.wav"
+        }
+      ]
+    },
+    {
+      "key": "fx-knock",
+      "name": "Knocking",
+      "category": "effect",
+      "kind": "oneshot",
+      "takes": [
+        {
+          "pack": "spooky",
+          "member": "knocking.wav"
+        }
+      ]
+    },
+    {
+      "key": "fx-thud",
+      "name": "Heavy thud",
+      "category": "effect",
+      "kind": "oneshot",
+      "takes": [
+        {
+          "pack": "spooky",
+          "member": "thud.wav"
+        },
+        {
+          "pack": "spooky",
+          "member": "thuds.wav"
+        },
+        {
+          "pack": "spooky",
+          "member": "thud2.wav"
+        }
+      ]
+    },
+    {
+      "key": "fx-spider",
+      "name": "Spiders",
+      "category": "effect",
+      "kind": "oneshot",
+      "takes": [
+        {
+          "page": "spider-chattering",
+          "file": "Spider",
+          "require": "CC-BY 3.0"
+        }
+      ]
+    },
+    {
+      "key": "fx-splash",
+      "name": "Splash",
+      "category": "effect",
+      "kind": "oneshot",
+      "takes": [
+        {
+          "pack": "water",
+          "member": "splash_01.ogg"
+        },
+        {
+          "pack": "water",
+          "member": "splash_05.ogg"
+        },
+        {
+          "pack": "water",
+          "member": "splash_10.ogg"
+        }
+      ]
+    },
+    {
+      "key": "fx-fall",
+      "name": "Fall",
+      "category": "effect",
+      "kind": "oneshot",
+      "takes": [
+        {
+          "freesound": 417994
+        }
+      ]
+    },
+    {
+      "key": "fx-bats",
+      "name": "Bats",
+      "category": "effect",
+      "kind": "oneshot",
+      "takes": [
+        {
+          "pack": "bat",
+          "member": "bat_01.ogg"
+        },
+        {
+          "pack": "bat",
+          "member": "bat_02.ogg"
+        },
+        {
+          "pack": "bat",
+          "member": "bat_03.ogg"
+        }
+      ]
+    },
+    {
+      "key": "music-drums",
+      "name": "War drums",
+      "category": "music",
+      "kind": "loop",
+      "maxSec": 120,
+      "quality": 2,
+      "page": "horde-war-drums-loop",
+      "file": "horde_war_drums"
+    },
+    {
+      "key": "amb-dungeon-halls",
+      "name": "Dungeon halls",
+      "category": "ambience",
+      "kind": "bed",
+      "maxSec": 90,
+      "page": "loopable-dungeon-ambience",
+      "file": "dungeon_ambient"
+    },
+    {
+      "key": "amb-wind",
+      "name": "Wind",
+      "category": "ambience",
+      "kind": "bed",
+      "maxSec": 90,
+      "page": "wind-whoosh-loop",
+      "file": "wind"
+    },
+    {
+      "key": "amb-crickets",
+      "name": "Crickets",
+      "category": "ambience",
+      "kind": "bed",
+      "maxSec": 90,
+      "page": "crickets-ambient-noise-loopable",
+      "file": "crickets"
+    },
+    {
+      "key": "amb-drips",
+      "name": "Dripping water",
+      "category": "ambience",
+      "kind": "bed",
+      "maxSec": 90,
+      "page": "dripping-water-loop",
+      "file": "atmosbasement"
+    },
+    {
+      "key": "amb-fire",
+      "name": "Fireplace",
+      "category": "ambience",
+      "kind": "bed",
+      "maxSec": 90,
+      "page": "fireplace-sound-loop",
+      "file": "fire"
     }
   ],
   "boards": [
@@ -882,8 +1377,16 @@
           "sound": "fx-sword-clash"
         },
         {
+          "label": "Sword swing",
+          "sound": "fx-sword-swing"
+        },
+        {
           "label": "Draw blade",
           "sound": "fx-draw-blade"
+        },
+        {
+          "label": "Shield block",
+          "sound": "fx-shield"
         },
         {
           "label": "Stab",
@@ -920,6 +1423,10 @@
           "sound": "fx-fireball"
         },
         {
+          "label": "Big explosion",
+          "sound": "fx-big-explosion"
+        },
+        {
           "label": "Fire spell",
           "sound": "fx-fire-spell"
         },
@@ -930,6 +1437,10 @@
         {
           "label": "Lightning bolt",
           "sound": "fx-lightning"
+        },
+        {
+          "label": "Ice spell",
+          "sound": "fx-ice"
         },
         {
           "label": "Magic missile",
@@ -984,6 +1495,14 @@
         {
           "label": "Crows",
           "sound": "fx-crows"
+        },
+        {
+          "label": "Bats",
+          "sound": "fx-bats"
+        },
+        {
+          "label": "Spiders",
+          "sound": "fx-spider"
         }
       ]
     },
@@ -992,7 +1511,11 @@
       "name": "Undead and horrors",
       "buttons": [
         {
-          "label": "Ghost",
+          "label": "Ghost voices",
+          "sound": "fx-ghost-voice"
+        },
+        {
+          "label": "Ghost whispers",
           "sound": "fx-ghost"
         },
         {
@@ -1002,6 +1525,10 @@
         {
           "label": "Zombie",
           "sound": "fx-zombie"
+        },
+        {
+          "label": "Brains",
+          "sound": "fx-brains"
         },
         {
           "label": "Bones",
@@ -1052,6 +1579,36 @@
         {
           "label": "Coins",
           "sound": "fx-coins"
+        },
+        {
+          "label": "Knocking",
+          "sound": "fx-knock"
+        }
+      ]
+    },
+    {
+      "key": "hits",
+      "name": "Hits and falls",
+      "buttons": [
+        {
+          "label": "Smash",
+          "sound": "fx-smash"
+        },
+        {
+          "label": "Punch",
+          "sound": "fx-punch"
+        },
+        {
+          "label": "Heavy thud",
+          "sound": "fx-thud"
+        },
+        {
+          "label": "Fall",
+          "sound": "fx-fall"
+        },
+        {
+          "label": "Splash",
+          "sound": "fx-splash"
         }
       ]
     },
@@ -1108,6 +1665,50 @@
           "sound": "fx-jingle-lose"
         }
       ]
+    },
+    {
+      "key": "taunts",
+      "name": "Taunts",
+      "buttons": [
+        {
+          "label": "Taunt",
+          "sound": "fx-taunt"
+        },
+        {
+          "label": "Fight!",
+          "sound": "fx-fight"
+        },
+        {
+          "label": "Prepare yourself",
+          "sound": "fx-prepare"
+        },
+        {
+          "label": "You lose",
+          "sound": "fx-you-lose"
+        }
+      ]
+    },
+    {
+      "key": "villain",
+      "name": "Villain",
+      "buttons": [
+        {
+          "label": "I will destroy you",
+          "sound": "fx-devil-destroy"
+        },
+        {
+          "label": "Your defeat is inevitable",
+          "sound": "fx-devil-defeat"
+        },
+        {
+          "label": "Kill me if you can",
+          "sound": "fx-devil-kill"
+        },
+        {
+          "label": "Mortal, but the devil is not",
+          "sound": "fx-devil-mortal"
+        }
+      ]
     }
   ],
   "scenes": [
@@ -1124,6 +1725,11 @@
           "sound": "music-tavern",
           "mode": "loop",
           "volume": 0.25
+        },
+        {
+          "sound": "amb-fire",
+          "mode": "loop",
+          "volume": 0.2
         }
       ]
     },
@@ -1205,6 +1811,17 @@
       ]
     },
     {
+      "key": "drums",
+      "name": "War drums",
+      "layers": [
+        {
+          "sound": "music-drums",
+          "mode": "loop",
+          "volume": 0.6
+        }
+      ]
+    },
+    {
       "key": "run",
       "name": "Run away!",
       "layers": [
@@ -1249,6 +1866,17 @@
       ]
     },
     {
+      "key": "night",
+      "name": "Night crickets",
+      "layers": [
+        {
+          "sound": "amb-crickets",
+          "mode": "loop",
+          "volume": 0.6
+        }
+      ]
+    },
+    {
       "key": "storm",
       "name": "Storm",
       "layers": [
@@ -1265,6 +1893,17 @@
       "layers": [
         {
           "sound": "amb-campfire",
+          "mode": "loop",
+          "volume": 0.6
+        }
+      ]
+    },
+    {
+      "key": "fireplace",
+      "name": "Fireplace",
+      "layers": [
+        {
+          "sound": "amb-fire",
           "mode": "loop",
           "volume": 0.6
         }
@@ -1289,6 +1928,22 @@
           "sound": "amb-cave",
           "mode": "loop",
           "volume": 0.6
+        },
+        {
+          "sound": "amb-drips",
+          "mode": "loop",
+          "volume": 0.3
+        }
+      ]
+    },
+    {
+      "key": "halls",
+      "name": "Dungeon halls",
+      "layers": [
+        {
+          "sound": "amb-dungeon-halls",
+          "mode": "loop",
+          "volume": 0.6
         }
       ]
     },
@@ -1308,7 +1963,7 @@
       "name": "Mountain",
       "layers": [
         {
-          "sound": "mountain-wind",
+          "sound": "amb-wind",
           "mode": "loop",
           "volume": 0.7
         }
@@ -1348,6 +2003,39 @@
       "page": "horror-sound-effects-library",
       "require": "CC-BY 3.0",
       "credit": "Little Robot Sound Factory (www.littlerobotsoundfactory.com), CC BY 3.0"
+    },
+    "ghost": {
+      "page": "ghost-voice-pack"
+    },
+    "hits37": {
+      "page": "37-hitspunches"
+    },
+    "shield": {
+      "page": "10-impactshield-blocks"
+    },
+    "sword20": {
+      "page": "20-sword-sound-effects-attacks-and-clashes"
+    },
+    "taunts": {
+      "page": "voiceover-pack-fighter-40-taunts"
+    },
+    "water": {
+      "page": "40-cc0-water-splash-slime-sfx"
+    },
+    "bat": {
+      "page": "bat-screeches"
+    },
+    "devil": {
+      "page": "devilmonster-voice-line",
+      "require": "CC-BY 3.0"
+    },
+    "iceelec": {
+      "page": "ice-electricity-magic",
+      "require": "CC-BY 3.0"
+    },
+    "spooky": {
+      "page": "25-spooky-sound-effects",
+      "require": "CC-BY 3.0"
     }
   }
 }
