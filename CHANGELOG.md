@@ -12,15 +12,25 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ### Added
 
-- **The status page shows the server's version** (and its protocol), so you can tell at a glance which release a server is running.
-
 - **Model downloads show on the status page and in `vtt-admin status`.** A new `local AI` line says whether the summary model and Whisper are ready, downloading (with a percentage), or why a download failed; the status page shows a "Summary model" row while it downloads, and marks it when a download failed or stalled.
 
 ### Changed
 
-- **An idle server uses much less CPU.** About half of the 13 to 15% a quiet server used was Docker running the containers' health checks (43 commands a minute); on the test server the containers fell from 27% of a core to 6%. They now run every 2 seconds only while a container starts, and once a minute after that, with cheaper commands. If the Docker daemon itself still looks busy, look at monitoring agents that list Docker images, and at old images left by updates (`docker image prune -a`). Operators: this needs **Docker Engine 25 or newer** (`docker version`); the installer and `vtt-admin update` check and tell you before changing anything.
 - **Recording and summaries are ready to start in seconds on a new install.** The four containers that ran once and exited (`media-init`, `recordings-init`, `models-init`, `ollama-pull`) are gone. The models now download in the background after everything is up: the Whisper container fetches its own, and the worker asks Ollama for the summary model. A recording made before they arrive waits for them. On update, the old one-shot containers are removed by themselves. If you have scripts that name them (for example `docker compose logs models-init`), use `vtt-admin logs whisper worker`.
-- **The worker starts after the app server** (which prepares the database), and runs as the same user as the recorder (uid 1001).
+- **The worker starts after the app server** (which prepares the database).
+- **Updates clean up old server images.** `vtt-admin update` (and re-running the installer) now removes VTT Chat images from versions before the previous one, once the new version is up and healthy; a test server had collected 19 GB of them. The version you came from is kept so going back is quick. Only VTT Chat's own images are touched. Pass `--keep-images` to skip it.
+
+## [0.5.1] - 2026-11-16
+
+Transcription fixed on Docker installs, a much quieter idle server, and the starter sounds on by default. A **PATCH** release: no protocol change, so 0.5.0 apps and servers work with it. Operators: update the server (it needs Docker Engine 25 or newer), then reprocess any recording that ended as "failed".
+
+### Added
+
+- **The status page shows the server's version** (and its protocol), so you can tell at a glance which release a server is running.
+
+### Changed
+
+- **An idle server uses much less CPU.** About half of the 13 to 15% a quiet server used was Docker running the containers' health checks (43 commands a minute); on the test server the containers fell from 27% of a core to 6%. They now run every 2 seconds only while a container starts, and once a minute after that, with cheaper commands. Operators: this needs **Docker Engine 25 or newer** (`docker version`); the installer and `vtt-admin update` check and tell you before changing anything. If the Docker daemon itself still looks busy, look at monitoring agents that list Docker images on a short interval, and at old images left by updates (`docker image prune -a`).
 - **The starter sounds are on by default**, rebuilt from listened-to sources (Freesound, Kenney and OpenGameArt; credits in `backend/assets/sounds/SOURCES.md`). 23 quiet scenes: Tavern (with a fireplace), Dungeon, Dungeon halls, Forest, Forest night, Night crickets, Rain, Market, Storm, Campfire, Fireplace, Harbour, Cave (with dripping water), Castle hall, Mountain, Infernal, and battle moods (Battle, Epic battle, Pending doom, Boss: fire dragon, Boss: symphonic metal, War drums, Run away!). About 90 stingers in eleven boards: Combat (including Critical hit and Critical fail), Spells (fireball, ice, lightning, flash bang), Creatures (bats, spiders, insects), Undead and horrors, Doors, traps and loot, Hits and falls, Movement, Mood, Jingles, Taunts and Villain lines. `STARTER_SOUNDS=0` turns them off.
 - **Some starter sounds are CC BY 3.0, not CC0**: the Fantasy and Horror sound libraries by Little Robot Sound Factory (www.littlerobotsoundfactory.com), and a few single clips (Big Explosion, the devil voice lines, Ice and Electricity spells, Spider Chattering, Spooky Sound Effects). They are credited in `SOURCES.md`, and the credit must stay with the pack. Share-alike (CC BY-SA) and GPL sounds are not used.
 - **A fresh sound deck** starts with the first stinger of each board rather than the first six.
@@ -28,7 +38,7 @@ the GitHub release notes and refuses to build a release without one. How to writ
 ### Fixed
 
 - **Transcription works again on a Docker install.** Since 0.4.3, recordings sent to Whisper over the network (every Docker install, and any remote Whisper) failed with "Invalid request" and ended as "failed": the audio file was left out of the request. Recordings made in that time still have their audio (unless a purge rule removed it); run `vtt-admin recording reprocess <id>` for each after updating.
-- **Deleting raw audio works on a Docker install.** The worker could not delete recorded audio (the age rule, the low-disk rule, `vtt-admin recording purge` and the DM's "delete the audio" all failed with "permission denied"), because the files belong to the recorder's user. Transcripts and summaries were never affected.
+- **Deleting raw audio works on a Docker install.** The worker could not delete recorded audio (the age rule, the low-disk rule, `vtt-admin recording purge` and the DM's "delete the audio" all failed with "permission denied"), because the files belong to the recorder's user. The worker now runs as that user. Transcripts and summaries were never affected.
 
 ## [0.5.0] - 2026-11-16
 
