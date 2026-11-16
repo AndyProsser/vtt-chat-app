@@ -163,7 +163,7 @@ you hear it first.
   session. Lines typed in the **public chat** during a recording are included, marked "(typed)".
 - **Never recorded or transcribed:** whispers, sound effects from the DM's soundboard, and anything private.
 - **Read them later** with the **session history** button: the tale of the session, of each part and of each hero, and a search across them.
-  The DM also sees a private brief and the scribe's notes (the plain list of what happened that the tales were told from). The word-for-word transcript is not shown to players; a DM can read it in the desktop app after turning on **Settings → App → Include dev builds**.
+  The DM also sees a private brief, and can open the scribe's notes (the plain list of what happened that the tales were told from) with a button. The word-for-word transcript is not shown to players; a DM can read it in the desktop app after turning on **Settings → App → Include dev builds**.
 - **If the DM drops** (their computer crashes or their network goes), the recording carries on for a short
   grace period (30 seconds by default). After that **any player** can pause, resume or stop it from the top
   bar. If everyone disconnects, it stops by itself.

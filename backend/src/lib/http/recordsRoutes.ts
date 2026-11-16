@@ -110,7 +110,10 @@ export function recordsRoutes(deps: RecordsRouteDeps): Router {
     const list = await records.listRecordingsForCampaign(campaignId);
     const items = [];
     for (const r of list) {
-      const summaries = visible(await records.listSummaries(r.id), isDm);
+      // The list names what there is to read; the scribe's notes are folded away in the detail, so not here.
+      const summaries = visible(await records.listSummaries(r.id), isDm).filter(
+        (s) => s.kind !== 'notes',
+      );
       items.push({
         id: r.id,
         startedAt: r.startedAt,

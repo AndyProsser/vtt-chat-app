@@ -74,7 +74,11 @@ function RecordingView({
   onBack: () => void;
 }) {
   const detail = useLoad(() => recording(campaignId, item.id), item.id);
-  const summaries = detail.data?.summaries ?? [];
+  // The scribe's notes come to the DM alone and stay folded away: the tale and the brief are what is read.
+  const [showNotes, setShowNotes] = useState(false);
+  const all = detail.data?.summaries ?? [];
+  const hasNotes = all.some((s) => s.kind === 'notes');
+  const summaries = all.filter((s) => s.kind !== 'notes' || showNotes);
   return (
     <Flex direction="column" gap="3" className="phone-pad">
       <Flex align="center" gap="3">
@@ -108,6 +112,11 @@ function RecordingView({
           </Flex>
         </Card>
       ))}
+      {hasNotes && (
+        <Button variant="soft" onClick={() => setShowNotes((v) => !v)}>
+          {showNotes ? 'Hide the scribe’s notes' : 'Show the scribe’s notes'}
+        </Button>
+      )}
     </Flex>
   );
 }

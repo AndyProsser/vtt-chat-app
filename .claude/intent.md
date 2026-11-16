@@ -49,9 +49,9 @@ Update this file as threads open, progress, or close — stale entries here are 
     transcript is for the operator (to reprocess) and for the GM in dev mode ("install dev builds enabled"). Built:
     notes stored (kind `notes`), transcript and its search hits DM-only at the API, the desktop app shows them only with
     dev builds on, the phone has no transcript view. The tale need not include every player or NPC, just the key ones.
-    **Open:** Andy "doesn't think we need" the plain DM brief and asked for details; it is still written until he says.
-    **Open:** this changes what a 0.5.1 app gets from the API (a player's transcript request is refused), which the
-    version rules call a MINOR change; Andy to say whether this goes out as 0.5.2 or 0.6.0.
+    The DM brief stays (Andy: it is quicker to scan than the notes); the notes are folded behind a button. Dev mode is
+    enforced by the app, not the server (Andy). Stays 0.5.2 although a 0.5.1 player's transcript request is now
+    refused (Andy accepts the error: nobody uses the app yet).
   - **Summary model: `qwen3.5:4b` for both roles** (confirmed by Andy 2026-11-17, in place of granite4.1:3b).
     `OLLAMA_STORY_MODEL` can split the roles.
   - **Security pass (2026-11-17, Andy: go ahead, but keep LiveKit open to the LAN and remember not every install has

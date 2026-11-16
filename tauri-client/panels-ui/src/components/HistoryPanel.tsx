@@ -245,6 +245,9 @@ function Detail({ id, canReadTranscript }: { id: string; canReadTranscript: bool
   const [summaries, setSummaries] = useState<SummaryView[]>();
   const [error, setError] = useState<string>();
   const [transcript, setTranscript] = useState<TranscriptRow[]>();
+  // The scribe's notes come to the DM alone and stay folded away: the tale and the brief are what is read.
+  const [showNotes, setShowNotes] = useState(false);
+  const notes = summaries?.filter((s) => s.kind === 'notes') ?? [];
   useEffect(() => {
     let cancelled = false;
     campaignApi<{ summaries: SummaryView[] }>('GET', `recordings/${id}`)
@@ -277,16 +280,29 @@ function Detail({ id, canReadTranscript }: { id: string; canReadTranscript: bool
       {summaries?.length === 0 && (
         <span className="vtt-muted">No summary yet: it appears once processing finishes.</span>
       )}
-      {summaries?.map((s, i) => (
-        <article key={i} className="vtt-session">
-          <b>
-            {summaryLabel(s.kind)}
-            {s.subject ? `: ${s.subject}` : ''}
-            {s.title ? ` · ${s.title}` : ''}
-          </b>
-          <MarkdownView text={s.text} />
-        </article>
-      ))}
+      {summaries
+        ?.filter((s) => s.kind !== 'notes' || showNotes)
+        .map((s, i) => (
+          <article key={i} className="vtt-session">
+            <b>
+              {summaryLabel(s.kind)}
+              {s.subject ? `: ${s.subject}` : ''}
+              {s.title ? ` · ${s.title}` : ''}
+            </b>
+            <MarkdownView text={s.text} />
+          </article>
+        ))}
+      {notes.length > 0 && (
+        <div>
+          <ToolButton
+            label={showNotes ? 'Hide the scribe’s notes' : 'Show the scribe’s notes'}
+            text="Scribe’s notes"
+            onClick={() => setShowNotes((v) => !v)}
+          >
+            {showNotes ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+          </ToolButton>
+        </div>
+      )}
       {transcript ? (
         <div className="vtt-transcript">
           {transcript.length === 0 && <span className="vtt-muted">No transcript yet.</span>}
