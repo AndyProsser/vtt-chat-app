@@ -1,1 +1,253 @@
-{ "version": 1, "sounds": [], "boards": [], "scenes": [] }
+{
+  "version": 1,
+  "sounds": [
+    {
+      "key": "rain-heavy",
+      "name": "Heavy rain",
+      "category": "ambience",
+      "takes": [
+        "ambience/rain-heavy.ogg"
+      ]
+    },
+    {
+      "key": "rain-thunder",
+      "name": "Rain and thunder",
+      "category": "ambience",
+      "takes": [
+        "ambience/rain-thunder.ogg"
+      ]
+    },
+    {
+      "key": "forest-day",
+      "name": "Forest",
+      "category": "ambience",
+      "takes": [
+        "ambience/forest-day.ogg"
+      ]
+    },
+    {
+      "key": "street-calm",
+      "name": "Town street",
+      "category": "ambience",
+      "takes": [
+        "ambience/street-calm.ogg"
+      ]
+    },
+    {
+      "key": "dungeon-drone",
+      "name": "Dungeon",
+      "category": "ambience",
+      "takes": [
+        "ambience/dungeon-drone.ogg"
+      ]
+    },
+    {
+      "key": "mountain-wind",
+      "name": "Mountain wind",
+      "category": "ambience",
+      "takes": [
+        "ambience/mountain-wind.ogg"
+      ]
+    },
+    {
+      "key": "music-tavern",
+      "name": "Tavern music",
+      "category": "music",
+      "takes": [
+        "music/music-tavern.ogg"
+      ]
+    },
+    {
+      "key": "music-market",
+      "name": "Market music",
+      "category": "music",
+      "takes": [
+        "music/music-market.ogg"
+      ]
+    },
+    {
+      "key": "music-battle",
+      "name": "Battle music",
+      "category": "music",
+      "takes": [
+        "music/music-battle.ogg"
+      ]
+    },
+    {
+      "key": "music-cave",
+      "name": "Cave music",
+      "category": "music",
+      "takes": [
+        "music/music-cave.ogg"
+      ]
+    },
+    {
+      "key": "sting-victory",
+      "name": "Victory",
+      "category": "effect",
+      "takes": [
+        "effect/sting-victory.ogg"
+      ]
+    },
+    {
+      "key": "sting-fail",
+      "name": "Fail",
+      "category": "effect",
+      "takes": [
+        "effect/sting-fail.ogg"
+      ]
+    },
+    {
+      "key": "sting-twist",
+      "name": "Surprise",
+      "category": "effect",
+      "takes": [
+        "effect/sting-twist.ogg"
+      ]
+    },
+    {
+      "key": "sting-fanfare",
+      "name": "Fanfare",
+      "category": "effect",
+      "takes": [
+        "effect/sting-fanfare.ogg"
+      ]
+    }
+  ],
+  "boards": [
+    {
+      "key": "stings",
+      "name": "Stings",
+      "buttons": [
+        {
+          "label": "Victory",
+          "sound": "sting-victory"
+        },
+        {
+          "label": "Fanfare",
+          "sound": "sting-fanfare"
+        },
+        {
+          "label": "Surprise",
+          "sound": "sting-twist"
+        },
+        {
+          "label": "Fail",
+          "sound": "sting-fail"
+        }
+      ]
+    }
+  ],
+  "scenes": [
+    {
+      "key": "rainfall",
+      "name": "Rainfall",
+      "layers": [
+        {
+          "sound": "rain-heavy",
+          "mode": "loop",
+          "volume": 0.7
+        }
+      ]
+    },
+    {
+      "key": "storm",
+      "name": "Storm",
+      "layers": [
+        {
+          "sound": "rain-thunder",
+          "mode": "loop",
+          "volume": 0.8
+        }
+      ]
+    },
+    {
+      "key": "forest",
+      "name": "Forest",
+      "layers": [
+        {
+          "sound": "forest-day",
+          "mode": "loop",
+          "volume": 0.7
+        }
+      ]
+    },
+    {
+      "key": "town",
+      "name": "Town",
+      "layers": [
+        {
+          "sound": "street-calm",
+          "mode": "loop",
+          "volume": 0.7
+        }
+      ]
+    },
+    {
+      "key": "tavern",
+      "name": "Tavern",
+      "layers": [
+        {
+          "sound": "music-tavern",
+          "mode": "loop",
+          "volume": 0.6
+        }
+      ]
+    },
+    {
+      "key": "market",
+      "name": "Market",
+      "layers": [
+        {
+          "sound": "music-market",
+          "mode": "loop",
+          "volume": 0.6
+        }
+      ]
+    },
+    {
+      "key": "battle",
+      "name": "Battle",
+      "layers": [
+        {
+          "sound": "music-battle",
+          "mode": "loop",
+          "volume": 0.7
+        }
+      ]
+    },
+    {
+      "key": "cave",
+      "name": "Cave",
+      "layers": [
+        {
+          "sound": "music-cave",
+          "mode": "loop",
+          "volume": 0.6
+        }
+      ]
+    },
+    {
+      "key": "dungeon",
+      "name": "Dungeon",
+      "layers": [
+        {
+          "sound": "dungeon-drone",
+          "mode": "loop",
+          "volume": 0.7
+        }
+      ]
+    },
+    {
+      "key": "mountain",
+      "name": "Mountain",
+      "layers": [
+        {
+          "sound": "mountain-wind",
+          "mode": "loop",
+          "volume": 0.7
+        }
+      ]
+    }
+  ]
+}

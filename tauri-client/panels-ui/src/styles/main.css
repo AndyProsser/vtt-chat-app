@@ -402,13 +402,14 @@ body,
   display: inline-flex;
   flex-direction: column;
   justify-content: space-between;
-  gap: 2px;
-  width: 6px;
-  height: 28px;
+  gap: 1px;
+  /* Twice the old width, and the height of the mute button beside it (Radix IconButton size 1). */
+  width: 12px;
+  height: 24px;
 }
 .vtt-meter i {
   flex: 1;
-  border-radius: 2px;
+  border-radius: 1px;
   background: var(--vtt-edge);
 }
 .vtt-meter .vtt-meter-on {

@@ -19,16 +19,23 @@ Rainfall, storm, forest, tavern, city / town, market, battle / fight, cave, dung
 swamp, night, castle, temple. Each is a loop (a bed) plus, where it helps, random layers (drips, birds, distant bells).
 Stingers: door, coins, bell, blade, magic, footsteps, creature, impact, and a few short musical stings.
 
-## Built
+## Built (2026-11-16)
 
-- Scenes deck: icon buttons, find / show / hide / new-scene popup (2026-11-16).
+- Scenes deck: icon buttons, find / show / hide / new-scene popup; hold a stinger to loop it until released.
+- The shared catalogue: `ownerId` null rows (migration 0035), seeded at start-up from `backend/assets/sounds`
+  by `lib/soundboard/catalogue.ts` (idempotent, prunes what the pack drops, never touches a DM's own library),
+  usable by every DM, read-only in the app, downloadable by any campaign member.
+- `scripts/sound-pack/build.py` builds the pack from `picks.json`: it refuses a page that does not list CC0,
+  normalises loudness, crossfades beds into seamless loops and writes `SOURCES.md`.
+- A first pack of 14 clips (about 7 MB): ambience beds and music loops from OpenGameArt.
 
 ## Not built yet
 
-- The shared catalogue: sounds, boards and scenes are owner-only today (`owner_id` references a user; ten checks in
-  `soundLibraryService.ts` and `runtime.ts`). It needs system-owned rows (nullable owner), read access for every DM,
-  and clip download authorisation for system clips.
-- The audio pack itself, and `docs/guides/SOUND-PACK.md` listing every file with its licence.
+- **Sound effects.** OpenGameArt is mostly music: it has no good CC0 doors, coins, blades, footsteps, spells or
+  creatures, and no crowd, ocean, campfire, swamp or night beds. Freesound (CC0 filter, API key) and the Kenney
+  packs (downloads are browser-only) are the sources; either needs Andy (a free Freesound API key kept in a file,
+  or the Kenney zips downloaded by hand).
+- Nobody has listened to the first pack: clip choice, loop seams and levels need ears.
 
 ## Left to the builder
 

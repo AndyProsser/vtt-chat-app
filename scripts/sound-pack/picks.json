@@ -1,0 +1,39 @@
+{
+  "_comment": "Each pick is one CC0 clip from OpenGameArt. `page` is the content slug, `file` a substring of the file name to take. kind: bed = a continuous ambience made seamless; loop = an already-looping music file, used as is; oneshot = a short sound, trimmed of silence.",
+  "sounds": [
+    { "key": "rain-heavy",   "name": "Heavy rain",       "category": "ambience", "kind": "bed",     "page": "heavy-rain",                         "file": "heavy_rain_mastered", "maxSec": 60 },
+    { "key": "rain-thunder", "name": "Rain and thunder", "category": "ambience", "kind": "bed",     "page": "rain-and-thunders",                  "file": "Dark_Rainy_Night",    "maxSec": 90 },
+    { "key": "forest-day",   "name": "Forest",           "category": "ambience", "kind": "bed",     "page": "forest-ambience",                    "file": "Forest_Ambience",     "maxSec": 60 },
+    { "key": "street-calm",  "name": "Town street",      "category": "ambience", "kind": "bed",     "page": "busy-but-calm-street",               "file": "busy_but_calm_street","maxSec": 60 },
+    { "key": "dungeon-drone","name": "Dungeon",          "category": "ambience", "kind": "bed",     "page": "dungeon-ambience",                   "file": "dungeon002",          "maxSec": 60 },
+    { "key": "mountain-wind","name": "Mountain wind",    "category": "ambience", "kind": "bed",     "page": "icy-heights",                        "file": "wind.ogg",            "maxSec": 60 },
+    { "key": "music-tavern", "name": "Tavern music",     "category": "music",    "kind": "loop",    "page": "medieval-the-old-tower-inn",         "file": "Loop_The_Old_Tower_Inn", "maxSec": 150 },
+    { "key": "music-market", "name": "Market music",     "category": "music",    "kind": "loop",    "page": "medieval-market-day",                "file": "Loop_Market_Day.wav", "maxSec": 150 },
+    { "key": "music-battle", "name": "Battle music",     "category": "music",    "kind": "loop",    "page": "fast-fight-battle-music-looped",     "file": "fight_looped",        "maxSec": 150 },
+    { "key": "music-cave",   "name": "Cave music",       "category": "music",    "kind": "bed",     "page": "crystal-cave-song18",                "file": "song18",              "maxSec": 120 },
+    { "key": "sting-victory","name": "Victory",          "category": "effect",   "kind": "oneshot", "page": "victory-sting",                      "file": "victory" },
+    { "key": "sting-fail",   "name": "Fail",             "category": "effect",   "kind": "oneshot", "page": "total-fail",                         "file": "total" },
+    { "key": "sting-twist",  "name": "Surprise",         "category": "effect",   "kind": "oneshot", "page": "a-surprising-twist-nes-sting",       "file": "surprise" },
+    { "key": "sting-fanfare","name": "Fanfare",          "category": "effect",   "kind": "oneshot", "page": "glorious-victory-fanfare-nes",       "file": "victory2" }
+  ],
+  "boards": [
+    { "key": "stings", "name": "Stings", "buttons": [
+      { "label": "Victory", "sound": "sting-victory" },
+      { "label": "Fanfare", "sound": "sting-fanfare" },
+      { "label": "Surprise", "sound": "sting-twist" },
+      { "label": "Fail", "sound": "sting-fail" }
+    ] }
+  ],
+  "scenes": [
+    { "key": "rainfall", "name": "Rainfall", "layers": [ { "sound": "rain-heavy", "mode": "loop", "volume": 0.7 } ] },
+    { "key": "storm",    "name": "Storm",    "layers": [ { "sound": "rain-thunder", "mode": "loop", "volume": 0.8 } ] },
+    { "key": "forest",   "name": "Forest",   "layers": [ { "sound": "forest-day", "mode": "loop", "volume": 0.7 } ] },
+    { "key": "town",     "name": "Town",     "layers": [ { "sound": "street-calm", "mode": "loop", "volume": 0.7 } ] },
+    { "key": "tavern",   "name": "Tavern",   "layers": [ { "sound": "music-tavern", "mode": "loop", "volume": 0.6 } ] },
+    { "key": "market",   "name": "Market",   "layers": [ { "sound": "music-market", "mode": "loop", "volume": 0.6 } ] },
+    { "key": "battle",   "name": "Battle",   "layers": [ { "sound": "music-battle", "mode": "loop", "volume": 0.7 } ] },
+    { "key": "cave",     "name": "Cave",     "layers": [ { "sound": "music-cave", "mode": "loop", "volume": 0.6 } ] },
+    { "key": "dungeon",  "name": "Dungeon",  "layers": [ { "sound": "dungeon-drone", "mode": "loop", "volume": 0.7 } ] },
+    { "key": "mountain", "name": "Mountain", "layers": [ { "sound": "mountain-wind", "mode": "loop", "volume": 0.7 } ] }
+  ]
+}

@@ -21,6 +21,7 @@ the GitHub release notes and refuses to build a release without one. How to writ
 - **Reset invite links.** The DM can stop every invite link still in use. People already in the campaign stay in.
 - **Scenes are icon buttons** on the DM's sound deck, with the name on hover, like stingers. The **plus** opens a popup to find a scene, start it, show or hide it on the deck, or make a new one (it appears on the deck straight away). Right-click a scene to hide it.
 - **Hold a stinger to keep it playing.** A click still plays it once; holding the button loops it until you let go. Letting go stops only that sound, so a running scene is not touched.
+- **Starter sounds for every DM.** The server ships a small shared pack (rain, storm, forest, town, tavern, market, battle, cave, dungeon and mountain scenes, plus a few stings), all CC0 and credited in `backend/assets/sounds/SOURCES.md`. A DM sees them from their first minute, can use them in their own boards and scenes, and cannot edit or delete them. `STARTER_SOUNDS=0` turns it off.
 
 ### Changed
 
@@ -28,7 +29,7 @@ the GitHub release notes and refuses to build a release without one. How to writ
 - **`SMTP_URL` now needs `PUBLIC_URL`** (the address the emailed links open). The server refuses to start with one and not the other.
 - **Protocol 3 (wire change).** This adds the campaign description, `PATCH /api/campaigns/:id` for names and descriptions, `DELETE /api/campaigns/:id/invites` and the `campaign.updated` event, so a server on this protocol needs a matching app (MINOR bump when released).
 - **Tab titles** are one word then the app name (Login, Join, Download, Account, Chat, Status).
-- **The microphone meter** sits to the left of the mute button.
+- **The microphone meter** sits to the left of the mute button, twice as wide as before and as tall as the button.
 
 ### Fixed
 
