@@ -36,7 +36,10 @@ Update this file as threads open, progress, or close — stale entries here are 
     from the branch. The branch itself is 0.5.2 (Andy, 2026-11-16: no protocol change, so it stays on 0.5).
   - **VM re-measured 2026-11-16 on `0.5.1-dev.2`:** containers 26.7% → 6.4% of a core, machine 52.8% → ~35%. The remaining
     27% is `dockerd`/`containerd` serving Andy's host monitoring agent (image list + inspects every 30 s over 52 images),
-    not this stack. **Open, ask Andy:** should updates prune old images (19 GB had piled up)?
+    not this stack. Andy pruned the images and had the agent's interval raised to 5 min (2026-11-16); updates now remove
+    old VTT Chat images themselves (keep the running and the replaced version; `--keep-images` opts out).
+  - **0.5.1 was released from `main` on 2026-11-16** (tag `v0.5.1`, draft until Andy publishes). 0.5.2 dev builds are tagged
+    from this branch (`v0.5.2-dev.N`).
   - **Next:** run a whole records job on the VM's new images; then the rest of Stage 9 (platform parity, the 8-hour soak, packaging), which needs real machines.
   - **0.6.0 is reserved** for the first change that bumps `PROTOCOL_VERSION` (the soundboard work is expected to).
 

@@ -111,7 +111,8 @@ After it finishes, `vtt-admin` works from any directory (`vtt-admin status`, `vt
 `vtt-admin settings show`, `vtt-admin help`). Machine commands work the same way: `vtt-admin logs [service]`, `vtt-admin restart [service]`,
 `vtt-admin ps`, `vtt-admin config show|set`, `vtt-admin voice-address`, `vtt-admin backup`, `vtt-admin restore <folder> --yes` and `vtt-admin update`. `update` (or running the
 install command again) moves to the newest release of your **current line** (`0.4.x`); data and settings are kept, and a new
-minor (`0.5`) is only installed when you ask for it with `--version`.
+minor (`0.5`) is only installed when you ask for it with `--version`. An update also deletes the images of
+older VTT Chat versions once the new one is healthy, keeping the version it replaced (add `--keep-images` to keep them all).
 
 Everything it asks can be a flag, for a pasted one-liner: `... | sudo bash -s -- --domain vtt.example.com --email you@example.com --name "You" --with-records --yes`.
 Other flags: `--version 0.4.0` (a specific release; a dev build needs its full name), `--public-ip` (behind NAT),

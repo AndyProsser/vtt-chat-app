@@ -26,11 +26,13 @@
 #                                 HTTP and asks for no certificate; see the operator guide for the tunnel's hostname and token
 #   --no-admin                    do not create the first Admin now (make one later: vtt-admin user create <email> --name <name> --accept-consent)
 #   --yes                         do not ask anything; every value must come from flags
+#   --keep-images                 on an update, do not delete the images of older VTT Chat versions (by default the version
+#                                 you came from is kept and anything older is removed once the new one is healthy)
 #   --skip-docker-install  --skip-firewall  --dry-run
 set -euo pipefail
 
 REPO="${VTT_REPO:-AndyProsser/vtt-chat-app}"
-ASSUME_YES=0 DRY_RUN=0 SKIP_DOCKER=0 SKIP_FIREWALL=0 WITH_RECORDS=""
+ASSUME_YES=0 DRY_RUN=0 SKIP_DOCKER=0 SKIP_FIREWALL=0 KEEP_IMAGES=0 PREV_IMAGE_VERSION="" WITH_RECORDS=""
 COMPAT=0 CFDNS=0 RECORDS_PROFILE=records TUNNEL=0 NO_ADMIN=0 BEHIND_CLOUDFLARE=0 DOMAIN="" EMAIL="" NAME="" VERSION="" PUBLIC_IP="" DIR="/opt/vtt-chat"
 
 # ---------- small helpers ----------
@@ -64,6 +66,17 @@ CLOUDFLARE_RANGES="173.245.48.0/20 103.21.244.0/22 103.22.200.0/22 103.31.4.0/22
 # Cloudflare proxy addresses (the orange cloud). The website may sit behind it; voice (UDP) goes straight to the machine instead.
 is_cloudflare_ip() { [[ $1 =~ ^(104\.(1[6-9]|2[0-9]|3[01])\.|172\.(6[4-9]|7[01])\.|188\.114\.(9[6-9]|1[01][0-9])\.|162\.15[89]\.|141\.101\.(6[4-9]|[7-9][0-9]|1[01][0-9]|12[0-7])\.|108\.162\.|173\.245\.|131\.0\.7[2-5]\.|103\.2[12]\.) ]]; }
 
+# Which images an update may delete. Reads "repository tag id" lines (docker image ls) and prints what to remove: VTT Chat's
+# own images whose tag is neither of the two to keep (the version now running and the one it replaced), and its untagged
+# leftovers (a release-line tag such as 0.5 moves on every pull and leaves the old image without a name). Nothing else is
+# ever listed: Postgres, LiveKit, Ollama and anything unrelated on the machine are not ours to delete.
+old_images() { # old_images KEEP [KEEP_PREVIOUS]  < "repo tag id" lines
+  local keep=$1 prev=${2:-} repo tag id
+  while read -r repo tag id; do
+    [[ $repo =~ /vtt-chat-(backend|worker|caddy|whisper-compat)$ ]] || continue
+    if [[ $tag == "<none>" ]]; then echo "$id"; elif [[ $tag != "$keep" && $tag != "$prev" ]]; then echo "$repo:$tag"; fi
+  done
+}
 valid_domain() { [[ $1 =~ ^([a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$ || $1 == localhost ]]; }
 valid_email() { [[ $1 =~ ^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$ ]]; }
 
@@ -108,6 +121,7 @@ while (($#)); do
     --dry-run) DRY_RUN=1; shift ;;
     --skip-docker-install) SKIP_DOCKER=1; shift ;;
     --skip-firewall) SKIP_FIREWALL=1; shift ;;
+    --keep-images) KEEP_IMAGES=1; shift ;;
     -h | --help) sed -n '2,/^set -euo/p' "$0" | sed '$d' | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) die "unknown option: $1 (try --help)" ;;
   esac
@@ -382,6 +396,7 @@ cd "$DIR"
 if ((EXISTING)); then
   step "Updating the existing install"
   # Keep the operator's settings; only move the image version (and the domain if it changed).
+  PREV_IMAGE_VERSION=$(sed -n 's/^VTT_VERSION=//p' .env | head -1)
   sed -i "s|^VTT_VERSION=.*|VTT_VERSION=$IMAGE_VERSION|; s|^SITE_ADDRESS=.*|SITE_ADDRESS=$DOMAIN|" .env
   if [[ $WITH_RECORDS == 1 ]] && ! grep -q '^COMPOSE_PROFILES=' .env; then echo "COMPOSE_PROFILES=$RECORDS_PROFILE" >> .env; say "  recording and summaries: on"; fi
   if ((COMPAT)) && ! grep -q '^COMPOSE_FILE=' .env; then echo "COMPOSE_FILE=compose.yml:compose.compat.yml" >> .env; fi
@@ -426,6 +441,18 @@ docker compose up -d --wait --wait-timeout 600 --remove-orphans || {
   docker compose logs --tail 30 backend caddy 2>/dev/null || true
   die "see the lines above; fix and run this installer again (it is safe to repeat)"
 }
+
+# Old versions' images pile up otherwise (a test server reached 52 images, 19 GB, and every image listing by a monitoring
+# agent walked them all). Only after the new version is healthy, only VTT Chat's own images, and the version just replaced
+# stays for a quick way back. An image a container still uses is refused by Docker and left alone.
+if ((EXISTING)) && ((KEEP_IMAGES == 0)); then
+  removed=0
+  while read -r ref; do
+    [[ -n $ref ]] || continue
+    docker image rm "$ref" >/dev/null 2>&1 && removed=$((removed + 1))
+  done < <(docker image ls --format '{{.Repository}} {{.Tag}} {{.ID}}' 2>/dev/null | old_images "$IMAGE_VERSION" "$PREV_IMAGE_VERSION")
+  if ((removed)); then say "  removed $removed image(s) of older versions (kept: $IMAGE_VERSION${PREV_IMAGE_VERSION:+ and $PREV_IMAGE_VERSION}; --keep-images skips this)"; fi
+fi
 
 # The command everyone uses afterwards: a small launcher, so it works whichever bundle version is installed.
 printf '#!/bin/sh\nexec "%s/vtt-admin" "$@"\n' "$DIR" > /usr/local/bin/vtt-admin 2>/dev/null && chmod 755 /usr/local/bin/vtt-admin || warn "could not link /usr/local/bin/vtt-admin; run it as $DIR/vtt-admin"

@@ -174,8 +174,10 @@ the new ones and removes nothing. Two lessons for operators, neither a code chan
 
 - A monitoring agent that lists Docker images on a short interval costs real CPU on an old machine; lengthen its interval
   or turn off its image collection.
-- Old images pile up after updates (`docker image prune -a` removes the unused ones). Whether the updater should do this
-  itself is an open Stage 9 question (it removes the quick way back to the previous version).
+- Old images pile up after updates. From 0.5.2 the installer (so `vtt-admin update` too) removes VTT Chat's own images
+  from versions older than the one just replaced, after the new version is healthy; the replaced version stays as the
+  quick way back, other software's images are never touched, and `--keep-images` turns it off. Third-party images the
+  bundle has moved on from (an older LiveKit, say) are left for `docker image prune -a`.
 
 Not confirmed by experiment: the agent was not stopped to see the daemon's CPU fall; the attribution is from the profile
 and the socket's single client.
