@@ -10,13 +10,17 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-11-16
+
+Transcription fixed on Docker installs, a much quieter idle server, and the starter sounds on by default. A **PATCH** release: no protocol change, so 0.5.0 apps and servers work with it. Operators: update the server (it needs Docker Engine 25 or newer), then reprocess any recording that ended as "failed".
+
 ### Added
 
 - **The status page shows the server's version** (and its protocol), so you can tell at a glance which release a server is running.
 
 ### Changed
 
-- **An idle server now uses almost no CPU.** Nearly all of the 13 to 15% a quiet server used was Docker running the containers' health checks (43 commands a minute). They now run every 2 seconds only while a container starts, and once a minute after that, with cheaper commands. Operators: this needs **Docker Engine 25 or newer** (`docker version`); the installer and `vtt-admin update` check and tell you before changing anything.
+- **An idle server uses much less CPU.** About half of the 13 to 15% a quiet server used was Docker running the containers' health checks (43 commands a minute); on the test server the containers fell from 27% of a core to 6%. They now run every 2 seconds only while a container starts, and once a minute after that, with cheaper commands. Operators: this needs **Docker Engine 25 or newer** (`docker version`); the installer and `vtt-admin update` check and tell you before changing anything. If the Docker daemon itself still looks busy, look at monitoring agents that list Docker images on a short interval, and at old images left by updates (`docker image prune -a`).
 - **The starter sounds are on by default**, rebuilt from listened-to sources (Freesound, Kenney and OpenGameArt; credits in `backend/assets/sounds/SOURCES.md`). 23 quiet scenes: Tavern (with a fireplace), Dungeon, Dungeon halls, Forest, Forest night, Night crickets, Rain, Market, Storm, Campfire, Fireplace, Harbour, Cave (with dripping water), Castle hall, Mountain, Infernal, and battle moods (Battle, Epic battle, Pending doom, Boss: fire dragon, Boss: symphonic metal, War drums, Run away!). About 90 stingers in eleven boards: Combat (including Critical hit and Critical fail), Spells (fireball, ice, lightning, flash bang), Creatures (bats, spiders, insects), Undead and horrors, Doors, traps and loot, Hits and falls, Movement, Mood, Jingles, Taunts and Villain lines. `STARTER_SOUNDS=0` turns them off.
 - **Some starter sounds are CC BY 3.0, not CC0**: the Fantasy and Horror sound libraries by Little Robot Sound Factory (www.littlerobotsoundfactory.com), and a few single clips (Big Explosion, the devil voice lines, Ice and Electricity spells, Spider Chattering, Spooky Sound Effects). They are credited in `SOURCES.md`, and the credit must stay with the pack. Share-alike (CC BY-SA) and GPL sounds are not used.
 - **A fresh sound deck** starts with the first stinger of each board rather than the first six.
