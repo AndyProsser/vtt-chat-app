@@ -44,7 +44,9 @@ Whisper ready`. New volumes came up owned by uid 1000 (media) and 1001 (recordin
   (`ai/src/lib/providers/openaiCompat.ts`), with a test that goes through the real default fetch to a local server. Rerun:
   **46 of 46**, including the worker killed mid-job, on the worker running as uid 1001.
 
-**UNVERIFIED:** that the daemon's remaining CPU on the VM falls when the monitoring agent stops listing images (profile only); a records job on the VM since the update; a records job that arrives _while_ a model is downloading (unit-tested
+**Confirmed on the VM the same day:** with the old images pruned and the agent polling every 5 min, the whole machine idles at 8.8% of one core (was 52.8%).
+
+**UNVERIFIED:** the image cleanup in a real update (unit-tested, and tried on throwaway tags); a records job on the VM since the update; a records job that arrives _while_ a model is downloading (unit-tested
 only); the compatibility Whisper image (`compose.compat.yml`) with the new entrypoint; a real multi-GB pull over a slow line
 (the stall rule is unit-tested); Docker Engine older than 25 (the installer refuses; not tried).
 

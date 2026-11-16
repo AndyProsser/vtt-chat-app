@@ -179,8 +179,10 @@ the new ones and removes nothing. Two lessons for operators, neither a code chan
   quick way back, other software's images are never touched, and `--keep-images` turns it off. Third-party images the
   bundle has moved on from (an older LiveKit, say) are left for `docker image prune -a`.
 
-Not confirmed by experiment: the agent was not stopped to see the daemon's CPU fall; the attribution is from the profile
-and the socket's single client.
+**Confirmed 2026-11-16.** After the old images were pruned (52 → 11) and the agent's interval raised from 30 s to 5 min,
+a 10-minute sample on the same VM read: all containers 5.1% of a core, `dockerd` + `containerd` 2.4% (was 27%), the whole
+machine **8.8% of one core**, about 2% of its 4 cores (it started at 52.8%). The two changes were made together, so their
+separate effects were not measured.
 
 **No one-shot containers.** The bundle used to run four containers that did one job and exited (`media-init`,
 `recordings-init`, `models-init`, `ollama-pull`). They added start-up ordering, two extra images, and made the first

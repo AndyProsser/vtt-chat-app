@@ -385,7 +385,7 @@ the one-shot containers are built; the platform checks, the long soak and signin
   commands a minute, two of them expensive, about a quarter of a core of a 2010 Xeon. Health checks now poll every 2 s only while a container starts and once a minute after that, with cheap
   commands (needs Docker Engine 25+). On the dev PC: 43 → 6 commands a minute. On `main` since `v0.5.1-dev.2`. **Measured on the VM 2026-11-16:**
   the containers fell from 26.7% to 6.4% of a core and the machine from 52.8% to about 35%. The rest is the Docker daemon
-  (27%), which a profile traces to a host monitoring agent listing 52 images every 30 s, not to this stack.
+  (27%), which a profile traces to a host monitoring agent listing 52 images every 30 s, not to this stack; with the images pruned and the agent at 5 min the machine idles at 8.8% of one core.
 - **Old images after updates** (found 2026-11-16) — the VM held 52 images, 19 GB, eight past versions of each of ours. **Built
   2026-11-16** (Andy: yes, automatically): an update removes VTT Chat's own images older than the version it replaced, once
   the new one is healthy; `--keep-images` skips it.
