@@ -66,7 +66,7 @@ export interface BackendConfig {
    * Off by default, because effects are deliberately not part of the session record.
    */
   recordSoundboard: boolean;
-  /** Seed the shared starter sounds at start-up (default on; `STARTER_SOUNDS=0` turns it off). */
+  /** Seed the shared starter sounds at start-up (off until 0.5.1 ships the full pack; `STARTER_SOUNDS=1` turns it on). */
   starterSounds: boolean;
   /** Which table cues go into a recording's metadata (names and ids only, never audio). Default: scene changes only. */
   recordCues: ReadonlySet<CueKind>;
@@ -125,7 +125,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): BackendConfig 
     recordingsDir: env.RECORDINGS_DIR || undefined,
     recordingGraceSeconds: graceSeconds(env.RECORDING_GRACE_SECONDS),
     recordSoundboard: env.RECORD_SOUNDBOARD === '1',
-    starterSounds: env.STARTER_SOUNDS !== '0',
+    starterSounds: env.STARTER_SOUNDS === '1',
     recordCues: parseRecordCues(env.RECORD_CUES),
     mediaDir: env.MEDIA_DIR || undefined,
     webDir: env.WEB_DIR || undefined,

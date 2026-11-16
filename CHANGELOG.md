@@ -10,6 +10,10 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-16
+
+Email that works, easy group invites, and a faster sound deck. This is a **MINOR** release: the server and the apps must both be on 0.5 (protocol 3).
+
 ### Added
 
 - **Sign-in and password-reset emails**, in HTML with the dragon-and-d20 banner. The email has one button that opens the web app. Sign-in links last 15 minutes and reset links 60; each works once. Nothing in the email is a code to copy.
@@ -21,7 +25,7 @@ the GitHub release notes and refuses to build a release without one. How to writ
 - **Reset invite links.** The DM can stop every invite link still in use. People already in the campaign stay in.
 - **Scenes are icon buttons** on the DM's sound deck, with the name on hover, like stingers. The **plus** opens a popup to find a scene, start it, show or hide it on the deck, or make a new one (it appears on the deck straight away). Right-click a scene to hide it.
 - **Hold a stinger to keep it playing.** A click still plays it once; holding the button loops it until you let go. Letting go stops only that sound, so a running scene is not touched.
-- **Starter sounds for every DM.** The server ships a small shared pack (rain, storm, forest, town, tavern, market, battle, cave, dungeon and mountain scenes, plus a few stings), all CC0 and credited in `backend/assets/sounds/SOURCES.md`. A DM sees them from their first minute, can use them in their own boards and scenes, and cannot edit or delete them. `STARTER_SOUNDS=0` turns it off.
+- **A shared catalogue of starter sounds** (groundwork). Sounds, stingers and scenes can now belong to the server rather than a DM: every DM can use them and none can edit or delete them. The first small pack (ten scenes and a few stings, all CC0 and credited in `backend/assets/sounds/SOURCES.md`) is included but **off by default**; the full pack arrives in 0.5.1. Operators can try it with `STARTER_SOUNDS=1`.
 
 ### Changed
 
@@ -39,6 +43,8 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ### Known limits
 
+- **Update the apps first.** A 0.4.x app is refused by a 0.5 server (protocol 3) until it is updated; on a `.deb` or `.rpm` that means installing the new package from the server's download page.
+- Nobody has listened to the starter pack yet, so its clip choice and levels may change in 0.5.1.
 - The description is visible to anyone who has an invite link, so keep secrets out of it.
 - A link preview already cached by a chat app does not change until the app fetches it again.
 - Emailed links have only been tested against a fake mail server and in a browser against a local server, not yet against the real relay.
