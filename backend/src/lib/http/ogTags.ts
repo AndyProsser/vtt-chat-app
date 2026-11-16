@@ -57,7 +57,7 @@ export function ogMetaTags(input: {
     );
   }
   return [
-    `<title>${escapeHtml(title)}</title>`,
+    '<title>Join | VTT Chat</title>',
     `<meta name="description" content="${escapeHtml(description)}">`,
     ...tags.map(([k, v]) => `<meta property="${k}" content="${escapeHtml(v)}">`),
   ].join('\n');

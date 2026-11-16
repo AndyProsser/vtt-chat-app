@@ -10,6 +10,21 @@ export type SiteRoute =
   | 'reset-password'
   | 'not-found';
 
+/** The one-word tab title for a page, shown as "Word | VTT Chat". */
+export const PAGE_TITLES: Record<SiteRoute, string> = {
+  landing: 'Login',
+  connect: 'Connect',
+  download: 'Download',
+  account: 'Account',
+  'full-app': 'App',
+  join: 'Join',
+  'email-signin': 'Login',
+  'reset-password': 'Reset',
+  'not-found': 'Missing',
+};
+
+export const pageTitle = (route: SiteRoute): string => `${PAGE_TITLES[route]} | VTT Chat`;
+
 /**
  * The server answers any unknown browser path with this same page (status 404), so the page itself has to
  * tell "a real page" from "nothing here". Anything that is not one of the known paths is not-found.

@@ -55,7 +55,9 @@ export function ConnectApp({ server }: { server: string }) {
         <Text size="2" color="gray">
           That link has expired.
         </Text>
-        <Button onClick={refresh}>Try again</Button>
+        <Button size="3" style={{ width: '100%' }} onClick={refresh}>
+          Try again
+        </Button>
       </Flex>
     );
   }

@@ -20,11 +20,11 @@ export function BottomBar({ selfId, role }: { selfId: string | null; role: Role 
       <div className="vtt-bottom-left">
         <StatusPill />
         <div className="vtt-bottom-mic">
-          <MuteIcon />
           <LevelMeter
             level={engine?.active === 'mixer' ? real : speaking && !muted ? 1 : 0}
             dim={muted}
           />
+          <MuteIcon />
         </div>
       </div>
       <Composer selfId={selfId} role={role} />

@@ -160,7 +160,7 @@ describe('the join page backend', () => {
     ]) {
       const res = await fetch(`${base}${path}`);
       expect(res.status).toBe(200);
-      expect(await res.text()).toMatch(/<title>(join|Join a table on VTT Chat)<\/title>/);
+      expect(await res.text()).toMatch(/<title>(join|Join \| VTT Chat)<\/title>/);
       expect(res.headers.get('content-security-policy')).toContain("default-src 'self'");
     }
     const asset = await fetch(`${base}/assets/app.js`);

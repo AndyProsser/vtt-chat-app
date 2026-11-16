@@ -5,6 +5,7 @@ import './styles/connect.css';
 import './styles/markdown.css';
 
 import { Theme } from '@radix-ui/themes';
+import { useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 
 import { useSystemAppearance } from './hooks/useSystemAppearance.js';
@@ -18,7 +19,7 @@ import { FullAppPage } from './components/FullAppPage.js';
 import { EmailLinkPage } from './components/EmailLinkPage.js';
 import { JoinPage } from './components/JoinPage.js';
 import { NotFoundPage } from './components/NotFoundPage.js';
-import { resolveRoute } from './lib/routes.js';
+import { pageTitle, resolveRoute } from './lib/routes.js';
 
 const container = document.getElementById('root');
 if (!container) throw new Error('web: #root element missing from index.html');
@@ -27,6 +28,9 @@ if (!container) throw new Error('web: #root element missing from index.html');
 function Root() {
   const appearance = useSystemAppearance();
   const route = resolveRoute(window.location.pathname);
+  useEffect(() => {
+    document.title = pageTitle(route);
+  }, [route]);
   return (
     <Theme appearance={appearance} accentColor="violet" radius="large">
       <div className="site-shell">

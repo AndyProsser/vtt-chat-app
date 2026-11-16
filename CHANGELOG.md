@@ -25,11 +25,14 @@ the GitHub release notes and refuses to build a release without one. How to writ
 - **"Allow join" is now Public / Private.** Public tables can be found by other players and take join requests; Private ones are hidden. Invite links work for both.
 - **`SMTP_URL` now needs `PUBLIC_URL`** (the address the emailed links open). The server refuses to start with one and not the other.
 - **Protocol 3 (wire change).** This adds the campaign description, `PATCH /api/campaigns/:id` for names and descriptions, `DELETE /api/campaigns/:id/invites` and the `campaign.updated` event, so a server on this protocol needs a matching app (MINOR bump when released).
+- **Tab titles** are one word then the app name (Login, Join, Download, Account, Chat, Status).
+- **The microphone meter** sits to the left of the mute button.
 
 ### Fixed
 
 - **The Include dev builds switch** in Settings, then App, did nothing: the app was not allowed to read or save the choice.
 - **A `.deb` or `.rpm` install** cannot update itself, so the update button now reads **Download update** and opens the server's download page, instead of failing.
+- **The "Try again" button** on the expired connect link is now full width, like Open VTT Chat.
 
 ### Known limits
 
