@@ -44,11 +44,20 @@ Update this file as threads open, progress, or close — stale entries here are 
   - **Summaries are a story, not minutes (Andy, 2026-11-16):** "a heroic retelling of key events, even the dumb ones that
     were an epic fail"; "glorious feats and humiliating fumbles", "dry wit and gallows humour"; short, not War and Peace;
     "the full transcript is searchable, but the story is what will be remembered". Built as **scribe then bard** (Andy
-    agreed): facts extracted as fully as possible first, the tale told from the notes. The DM-only summary stays a plain
-    brief (Claude's choice, not yet confirmed by Andy).
-  - **Summary model: `qwen3.5:4b` for both roles** (Claude's pick from the tests: granite4.1:3b, which Andy had chosen
-    before the scribe/bard idea, took thin notes and wrote flat tales). **Confirm with Andy.** `OLLAMA_STORY_MODEL` can
-    split the roles.
+    agreed): facts extracted as fully as possible first, the tale told from the notes.
+  - **Who reads what (Andy, 2026-11-17):** players get the tale only; the GM gets the tale and the scribe's notes; the
+    transcript is for the operator (to reprocess) and for the GM in dev mode ("install dev builds enabled"). Built:
+    notes stored (kind `notes`), transcript and its search hits DM-only at the API, the desktop app shows them only with
+    dev builds on, the phone has no transcript view. The tale need not include every player or NPC, just the key ones.
+    **Open:** Andy "doesn't think we need" the plain DM brief and asked for details; it is still written until he says.
+    **Open:** this changes what a 0.5.1 app gets from the API (a player's transcript request is refused), which the
+    version rules call a MINOR change; Andy to say whether this goes out as 0.5.2 or 0.6.0.
+  - **Summary model: `qwen3.5:4b` for both roles** (confirmed by Andy 2026-11-17, in place of granite4.1:3b).
+    `OLLAMA_STORY_MODEL` can split the roles.
+  - **Security pass (2026-11-17, Andy: go ahead, but keep LiveKit open to the LAN and remember not every install has
+    HTTPS or Cloudflare):** containers drop capabilities, Whisper/Ollama/cloudflared pinned, HSTS written by the
+    installer only after a real certificate is seen. The `ufw` rule for 7880 and Valkey's missing password were left
+    alone on purpose (DEPLOYMENT-AND-TRANSPORT.md).
   - **0.6.0 is reserved** for the first change that bumps `PROTOCOL_VERSION` (the soundboard work is expected to).
 
 - **Stage 6 table features — server first, then UI.** Decided 2026-11-07, in build order:

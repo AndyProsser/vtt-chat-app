@@ -25,6 +25,12 @@ the GitHub release notes and refuses to build a release without one. How to writ
 - **The worker starts after the app server** (which prepares the database).
 - **Updates clean up old server images.** `vtt-admin update` (and re-running the installer) now removes VTT Chat images from versions before the previous one, once the new version is up and healthy; a test server had collected 19 GB of them. The version you came from is kept so going back is quick. Only VTT Chat's own images are touched. Pass `--keep-images` to skip it.
 
+### Security
+
+- **Containers run with fewer privileges.** Every server container now drops all Linux capabilities except the few it needs and cannot gain privileges; a bug in one service has less to work with. Nothing to set.
+- **Browsers are told to use HTTPS only** (HSTS, 30 days, this hostname only), once the installer has seen your domain answer with a valid certificate. Not on `localhost` or behind a Cloudflare Tunnel. To turn it off, see the operator guide's security checklist.
+- **Whisper, Ollama and cloudflared run at fixed, tested versions** instead of whatever was newest on the day of an update. Operators: set `WHISPER_IMAGE`, `OLLAMA_VERSION` or `CLOUDFLARED_VERSION` in `.env` to choose your own.
+
 ## [0.5.1] - 2026-11-16
 
 Transcription fixed on Docker installs, a much quieter idle server, and the starter sounds on by default. A **PATCH** release: no protocol change, so 0.5.0 apps and servers work with it. Operators: update the server (it needs Docker Engine 25 or newer), then reprocess any recording that ended as "failed".

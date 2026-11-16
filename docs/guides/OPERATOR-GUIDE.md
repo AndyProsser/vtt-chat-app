@@ -645,6 +645,21 @@ When you report a problem, include `./vtt-admin status`, the relevant log lines,
 - Keep `.env`, `livekit.yaml` and `/etc/vtt/vtt.env` private; they are the keys to your server. Do not
   paste them into chat or issues.
 - Open only the ports in section 2. Postgres and Valkey stay on the machine.
+- **HTTPS only (HSTS).** When the installer has seen your domain answer with a valid certificate, it writes
+  `tls.d/hsts.caddy`, which tells browsers to use HTTPS only for that hostname for the next 30 days. It does not do
+  this for `localhost`, for a site behind a Cloudflare Tunnel (turn HSTS on in Cloudflare there), or for a step-by-step
+  install. To turn it off, delete the `header` line but keep the file, then `docker compose restart caddy`; browsers
+  that already saw it remember for up to 30 days.
+- **Containers run with as little privilege as they need** (Compose): no Linux capabilities except the few a service
+  names in `compose.yml`, and no gaining privileges inside a container. Nothing to set.
+- **Whisper, Ollama and cloudflared run at fixed versions**, the ones each release was tested with, so an update never
+  brings in an untested build. To run a different one, set `WHISPER_IMAGE`, `OLLAMA_VERSION` or `CLOUDFLARED_VERSION`
+  in `.env` (the same way `LIVEKIT_VERSION` and `EGRESS_VERSION` work).
+- **The firewall rule for port 7880** (the installer's `ufw` rules) admits Docker's private ranges, `172.16.0.0/12` and
+  `192.168.0.0/16`, because Caddy and the backend reach LiveKit from a Docker network that can sit in either. On a home
+  network that uses `192.168.x.x`, machines on your LAN can therefore reach 7880 as well. That is LiveKit's
+  signalling, which accepts nothing without a token signed by your server; players never use it directly (the app
+  goes through 443). Left as it is on purpose: narrowing it risks cutting Caddy off from LiveKit.
 - Keep the machine updated (`apt upgrade`) and update this software when new versions come out.
 - Back up before updating; test a restore once.
 - Players are asked to consent to being recorded when they join; if you change the consent text, bump

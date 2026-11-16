@@ -233,6 +233,42 @@ the DM's "delete the audio") failed with "permission denied". Confirmed on the r
 fixed by running the worker as uid 1001. Backups and restores now read and write the volumes through throwaway containers
 of the backend and worker images (as root, then `chown`), since the busybox one-shots they borrowed are gone.
 
+### Container privileges, fixed versions and HSTS (2026-11-17)
+
+Three hardening changes for 0.5.2, each chosen so a deployment that worked before still works.
+
+- **Privileges.** Every Compose service has `no-new-privileges` and `cap_drop: [ALL]`, and adds back by name only what it
+  needs. Checked on the dev PC by reading `/proc/1/status` in each container and running the end-to-end records test.
+
+  | Service                 | Runs as          | Capabilities added back                   | Why                                                                                  |
+  | ----------------------- | ---------------- | ----------------------------------------- | ------------------------------------------------------------------------------------ |
+  | backend, worker, egress | uid 1000 / 1001  | none                                      | never root                                                                           |
+  | ollama                  | root             | none                                      | only writes its own root-owned volume                                                |
+  | postgres, valkey        | root, then drops | `CHOWN DAC_OVERRIDE FOWNER SETGID SETUID` | the image takes ownership of its volume and switches to its own user                 |
+  | livekit                 | root             | `DAC_READ_SEARCH NET_BIND_SERVICE`        | `livekit.yaml` is mode 600 and owned by the operator; a low port if TURN moves there |
+  | caddy                   | root             | `DAC_READ_SEARCH NET_BIND_SERVICE`        | ports 80 and 443; reads the mounted `Caddyfile` and `tls.d` whatever their mode      |
+  | whisper                 | root             | `DAC_READ_SEARCH`                         | reads the mounted `whisper-start.sh` whatever its mode                               |
+
+  Found on the way: without `DAC_READ_SEARCH`, LiveKit restart-looped on `open /etc/livekit.yaml: permission denied`.
+  The file is private on purpose (it holds the API secret), so the container gets read access back and nothing else.
+
+- **Fixed versions.** `ollama/ollama:latest` and `cloudflared:latest` are now version tags, and whisper.cpp, which
+  publishes only a moving `main`, is pinned by digest to the build tested on 2026-11-14. Each has an override in `.env`.
+  The cost is that upstream fixes arrive with our releases, not by themselves; the gain is that an update never changes
+  the AI stack under a release that was not tested with it. Still floating: `whisper-cuda.Dockerfile` builds whisper.cpp
+  from `master` (the GPU path builds on the operator's machine), and the base images follow their major version
+  (`postgres:17-alpine`, `valkey:8-alpine`, `node:26-alpine`, `caddy:2`).
+
+- **HSTS** is the installer's job, not the Caddyfile's, because the Caddyfile serves every kind of install: `localhost`
+  with Caddy's own CA, plain HTTP behind a tunnel, and real certificates. Only the last should send it. `get.sh` writes
+  `tls.d/hsts.caddy` after it has seen `https://<domain>` answer with a valid certificate, reloads Caddy, and never
+  rewrites an existing file. `max-age` is 30 days and covers the one hostname: long enough for a weekly group, short
+  enough that a mistake heals, and no claim over the rest of the operator's domain.
+
+- **Not changed.** The `ufw` rule that admits `192.168.0.0/16` to 7880 (a Docker network can be in that range, and
+  LiveKit's signalling needs a signed token anyway), and Valkey without a password (loopback only; a password touches
+  LiveKit, Egress and every existing install's generated config, for a threat that needs a shell on the server).
+
 ### AI backends: local or remote
 
 Decided 2026-11-07. Whisper and the LLM are provider interfaces, each independently **local**,

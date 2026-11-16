@@ -15,8 +15,20 @@ x-healthcheck: &healthcheck
   start_period: 60s
   start_interval: 2s
 
+# Every container gives up what it does not need (2026-11-17): no Linux capabilities beyond the few a service adds
+# back by name, and no gaining privileges through setuid programs. A bug in one service then has less to work with.
+x-hardened: &hardened
+  security_opt: ['no-new-privileges:true']
+  cap_drop: [ALL]
+# DAC_READ_SEARCH, where a service adds it, lets the container's root read the files mounted in from this folder even when
+# they belong to your user and are private (livekit.yaml holds the API secret and is mode 600). Reading only: no writing.
+# What an image needs when it starts as root, takes ownership of its data volume and then drops to its own user.
+x-drops-to-user: &drops-to-user [CHOWN, DAC_OVERRIDE, FOWNER, SETGID, SETUID]
+
 services:
   postgres:
+    <<: *hardened
+    cap_add: *drops-to-user
     image: postgres:17-alpine
     restart: unless-stopped
     environment:
@@ -29,6 +41,8 @@ services:
       test: ['CMD-SHELL', 'pg_isready -U vtt -d vtt']
 
   valkey:
+    <<: *hardened
+    cap_add: *drops-to-user
     image: valkey/valkey:8-alpine
     restart: unless-stopped
     # LiveKit runs on the host network (below) and reaches Valkey through this loopback-only port.
@@ -39,6 +53,7 @@ services:
       test: ['CMD', 'valkey-cli', 'ping']
 
   backend:
+    <<: *hardened
     # Pulled from the registry by default (`docker compose pull`); `docker compose up --build` builds it from
     # this checkout instead and tags it with the same name. VTT_VERSION is a release line (e.g. 0.3: newest
     # patch, never a new minor) or an exact version; setup.sh writes the line this checkout belongs to.
@@ -109,6 +124,9 @@ services:
   # Host networking is deliberate: a NATed UDP range of thousands of ports is slow to start and
   # breaks ICE candidate addresses. Config (keys, ports, external-IP) is in the generated livekit.yaml.
   livekit:
+    <<: *hardened
+    # NET_BIND_SERVICE only matters if you move a port (for example TURN) below 1024.
+    cap_add: [DAC_READ_SEARCH, NET_BIND_SERVICE]
     image: livekit/livekit-server:${LIVEKIT_VERSION:-v1.13.5}
     restart: unless-stopped
     network_mode: host
@@ -121,6 +139,7 @@ services:
   # Per-speaker track egress writes files into /out. Host network like LiveKit: it talks to LiveKit
   # and Valkey on loopback. The image is large (~4 GB, it bundles Chrome for web egress we don't use).
   egress:
+    <<: *hardened
     profiles: [records, records-remote]
     image: livekit/egress:${EGRESS_VERSION:-v1.15.0}
     restart: unless-stopped
@@ -154,8 +173,12 @@ services:
   # Both speak the OpenAI-compatible API. Whisper runs on CPU here; for an NVIDIA GPU add the
   # compose.gpu.yml override (it builds whisper-cuda.Dockerfile, which also covers GTX 10-series cards).
   whisper:
+    <<: *hardened
+    cap_add: [DAC_READ_SEARCH]
     profiles: [records]
-    image: ghcr.io/ggml-org/whisper.cpp:main
+    # Upstream publishes only a moving `main` tag, so the default is the exact build this release was tested with
+    # (2026-11-14). WHISPER_IMAGE in .env overrides it.
+    image: ${WHISPER_IMAGE:-ghcr.io/ggml-org/whisper.cpp@sha256:203ed2a39087406689e78ea5a664fef7ae596ee548f3323a4ffc63169da84933}
     restart: unless-stopped
     # whisper-start.sh fetches the model into the volume when it is missing (first start only: small.en, quantised, ~190 MB,
     # the measured CPU default; English only, so for another language set WHISPER_MODEL_FILE=ggml-small-q5_1.bin and
@@ -185,8 +208,10 @@ services:
       test: ['CMD', 'sh', '/whisper-start.sh', 'health']
 
   ollama:
+    <<: *hardened
     profiles: [records]
-    image: ollama/ollama:latest
+    # A fixed version, the one this release was tested with: `latest` meant every update could bring a different Ollama.
+    image: ollama/ollama:${OLLAMA_VERSION:-0.40.16}
     restart: unless-stopped
     volumes: [ollama-data:/root/.ollama]
     environment:
@@ -208,6 +233,7 @@ services:
   # It also fetches the summary model into Ollama when it is missing (first start downloads ~3.3 GB, in the
   # background: only summaries wait for it), and reports that and Whisper's readiness to `vtt-admin status`.
   worker:
+    <<: *hardened
     profiles: [records, records-remote]
     image: ${VTT_REGISTRY:-ghcr.io/andyprosser}/vtt-chat-worker:${VTT_VERSION:-latest}
     build:
@@ -244,6 +270,8 @@ services:
       - recordings:/out
 
   caddy:
+    <<: *hardened
+    cap_add: [DAC_READ_SEARCH, NET_BIND_SERVICE] # NET_BIND_SERVICE: ports 80 and 443
     # Caddy with the Cloudflare DNS module (certificates through the DNS challenge need no inbound 80/443); same as the stock
     # caddy:2 otherwise. `docker compose up --build` builds it from caddy.Dockerfile.
     image: ${VTT_REGISTRY:-ghcr.io/andyprosser}/vtt-chat-caddy:${VTT_VERSION:-latest}
@@ -274,8 +302,9 @@ services:
   # for your domain with the service http://caddy:80, put its token in .env as CLOUDFLARE_TUNNEL_TOKEN, and set
   # CADDY_SITE=http://<your domain> and CLIENT_IP_HEADERS=CF-Connecting-IP. Voice does not use the tunnel (it is UDP, direct).
   cloudflared:
+    <<: *hardened
     profiles: [tunnel]
-    image: cloudflare/cloudflared:latest
+    image: cloudflare/cloudflared:${CLOUDFLARED_VERSION:-2026.11.0}
     restart: unless-stopped
     command: tunnel --no-autoupdate run
     environment:

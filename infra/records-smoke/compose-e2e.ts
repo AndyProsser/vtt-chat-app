@@ -794,6 +794,20 @@ async function main(): Promise<void> {
   if (verifyIds) {
     ids = verifyIds.split(',');
   } else {
+    // Earlier runs leave their recordings in the test's own campaign. Every one says the same lines, so after a
+    // few runs their summaries fill a search's 20 hits and this run's lines drop out of it (seen 2026-11-17 with
+    // 21 recordings). Start from an empty history; `--verify` leaves it alone.
+    const old = (await ok('GET', `/api/campaigns/${campaignId}/recordings`, seats.get('dm')!.token))
+      .recordings as Json[];
+    for (const r of old) {
+      if (r.status === 'recording' || r.status === 'processing') continue;
+      await api(
+        'DELETE',
+        `/api/campaigns/${campaignId}/recordings/${String(r.id)}`,
+        seats.get('dm')!.token,
+      );
+    }
+    if (old.length > 0) log(`removed ${old.length} recordings left by earlier runs`);
     const tts = piperTts(path.join(STATE_DIR, 'tts-cache'));
     // Render every line first, so speech timing during the scene is not held up by the TTS.
     for (const s of [...RECORDING_A, ...RECORDING_B]) {

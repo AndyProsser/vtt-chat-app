@@ -77,6 +77,22 @@ old_images() { # old_images KEEP [KEEP_PREVIOUS]  < "repo tag id" lines
     if [[ $tag == "<none>" ]]; then echo "$id"; elif [[ $tag != "$keep" && $tag != "$prev" ]]; then echo "$repo:$tag"; fi
   done
 }
+# Tells browsers to use HTTPS only for this site (HSTS), by a file Caddy imports. Written once, and only after the certificate
+# is known to work: a browser that has seen the header refuses plain HTTP and certificate warnings for this hostname for the
+# next 30 days, which is right for a real certificate and wrong for anything else. Not for localhost, and not behind a tunnel
+# (there the browser talks to Cloudflare, and HSTS is a Cloudflare setting). An existing file is left alone, so an operator
+# who empties it keeps it off. Prints nothing; succeeds only when it wrote the file.
+enable_hsts() { # <install dir>
+  local f=$1/tls.d/hsts.caddy
+  [[ -e $f ]] && return 1
+  mkdir -p "$1/tls.d"
+  cat > "$f" <<'HSTS'
+# Browsers that have visited this site use HTTPS only for it for the next 30 days (written by the installer once the
+# certificate worked). To turn it off, delete the "header" line but keep this file, then: docker compose restart caddy
+# This hostname only: other names under your domain are not affected.
+header Strict-Transport-Security "max-age=2592000"
+HSTS
+}
 valid_domain() { [[ $1 =~ ^([a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$ || $1 == localhost ]]; }
 valid_email() { [[ $1 =~ ^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$ ]]; }
 
@@ -482,6 +498,14 @@ elif [[ $DOMAIN != localhost ]] && ((TUNNEL == 0)); then
   done
   if ((public_ok)); then say "  https://$DOMAIN works with a valid certificate"; else
     warn "https://$DOMAIN is not reachable with a valid certificate yet. This is usually DNS (not pointing here yet) or ports 80/443 blocked at your router or cloud firewall. It retries by itself; see the notes below."
+  fi
+fi
+
+if ((public_ok)) && [[ $DOMAIN != localhost ]] && ((TUNNEL == 0)) && enable_hsts .; then
+  if docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile >/dev/null 2>&1; then
+    say "  browsers will now use HTTPS only for $DOMAIN (tls.d/hsts.caddy)"
+  else
+    rm -f tls.d/hsts.caddy; warn "could not turn on HTTPS-only (HSTS); the next update tries again"
   fi
 fi
 

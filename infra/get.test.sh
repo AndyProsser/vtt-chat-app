@@ -13,6 +13,15 @@ for d in "" nodots "a b.com" "-x.com" "http://x.com"; do ! valid_domain "$d" || 
 valid_email a@b.co || fail "email"; ! valid_email a@b || fail "bad email"; ! valid_email "a b@c.de" || fail "email space"
 for ip in 104.21.67.121 172.67.1.1 188.114.97.3 162.159.0.1; do is_cloudflare_ip "$ip" || fail "cloudflare $ip"; done
 for ip in 148.222.0.23 8.8.8.8 104.15.0.1 172.63.0.1; do ! is_cloudflare_ip "$ip" || fail "not cloudflare $ip"; done
+# HSTS is written once, and an existing file (even one the operator emptied) is left alone
+hsts_dir=$(mktemp -d)
+enable_hsts "$hsts_dir" || fail "hsts first write"
+grep -q '^header Strict-Transport-Security "max-age=2592000"$' "$hsts_dir/tls.d/hsts.caddy" || fail "hsts header"
+! grep -qi 'includeSubDomains\|preload' "$hsts_dir/tls.d/hsts.caddy" || fail "hsts must cover this hostname only"
+: > "$hsts_dir/tls.d/hsts.caddy"
+! enable_hsts "$hsts_dir" || fail "hsts rewritten"
+[[ ! -s $hsts_dir/tls.d/hsts.caddy ]] || fail "hsts overwrote the operator's file"
+rm -rf "$hsts_dir"
 # an update removes only VTT Chat's own images, keeps the running version and the one before, and removes untagged leftovers
 imgs='ghcr.io/andyprosser/vtt-chat-backend 0.5.2 aaa
 ghcr.io/andyprosser/vtt-chat-backend 0.5.1 bbb
