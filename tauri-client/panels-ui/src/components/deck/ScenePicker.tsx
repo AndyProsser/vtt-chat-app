@@ -56,20 +56,25 @@ export function ScenePicker({
           />
         ) : (
           <div className="vtt-picker">
-            <label className="vtt-picker-search">
-              <Search size={14} aria-hidden />
-              <TextField.Root
-                size="1"
-                autoFocus
-                aria-label="Find a scene"
-                placeholder="rain, tavern, cave…"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && hits[0]) onStart(hits[0]);
-                }}
-              />
-            </label>
+            <div className="vtt-picker-head">
+              <label className="vtt-picker-search">
+                <Search size={14} aria-hidden />
+                <TextField.Root
+                  size="1"
+                  autoFocus
+                  aria-label="Find a scene"
+                  placeholder="rain, tavern, cave…"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && hits[0]) onStart(hits[0]);
+                  }}
+                />
+              </label>
+              <ToolButton label="New scene" onClick={() => setCreating(true)}>
+                <Plus size={15} />
+              </ToolButton>
+            </div>
             <ul className="vtt-picker-list">
               {hits.length === 0 && <li className="vtt-muted">Nothing matches.</li>}
               {hits.map((sc) => {
@@ -94,9 +99,6 @@ export function ScenePicker({
                 );
               })}
             </ul>
-            <ToolButton label="New scene" text="New scene" onClick={() => setCreating(true)}>
-              <Plus size={14} />
-            </ToolButton>
           </div>
         )}
       </Popover.Content>
