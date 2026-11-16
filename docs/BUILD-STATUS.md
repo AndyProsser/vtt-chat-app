@@ -23,6 +23,9 @@ volumes and tiny models):
 - **Idle CPU.** Measured on the real VM first (read-only): about half a core, nearly all of it Docker health-check commands and
   the daemon launching them ([the table](architecture/DEPLOYMENT-AND-TRANSPORT.md#start-up-and-idle-cost)). After the change,
   on the dev PC: 43 → 6 health-check commands a minute; containers 5.7% → 2.4% of a core.
+  **On the VM (2026-11-16, `0.5.1-dev.2` installed with the installer as an update):** containers 26.7% → 6.4% of a core, the
+  whole machine 52.8% → 34 to 37%. The Docker daemon's own 27% did not move: a profile shows it is a host monitoring agent
+  listing and inspecting 52 images every 30 s, not the health checks (same link).
 - **No one-shot containers.** A fresh stack (`postgres valkey backend worker whisper ollama`) was healthy in 6 s; the Whisper
   model and the summary model then downloaded in the background and `vtt-admin status` printed `local AI   summary model ready,
 Whisper ready`. New volumes came up owned by uid 1000 (media) and 1001 (recordings); a file written as Egress's user was
@@ -41,7 +44,7 @@ Whisper ready`. New volumes came up owned by uid 1000 (media) and 1001 (recordin
   (`ai/src/lib/providers/openaiCompat.ts`), with a test that goes through the real default fetch to a local server. Rerun:
   **46 of 46**, including the worker killed mid-job, on the worker running as uid 1001.
 
-**UNVERIFIED:** the real VM (it needs `v0.5.1-dev.2` or later installed: the CPU figure there is a projection until then); a records job that arrives _while_ a model is downloading (unit-tested
+**UNVERIFIED:** that the daemon's remaining CPU on the VM falls when the monitoring agent stops listing images (profile only); a records job on the VM since the update; a records job that arrives _while_ a model is downloading (unit-tested
 only); the compatibility Whisper image (`compose.compat.yml`) with the new entrypoint; a real multi-GB pull over a slow line
 (the stall rule is unit-tested); Docker Engine older than 25 (the installer refuses; not tried).
 

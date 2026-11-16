@@ -115,7 +115,7 @@ Both tiers must generate the same configuration; application code never branches
 Two things about the Compose bundle were changed in ROADMAP Stage 9, both measured first: the health checks (0.5.1) and
 the one-shot containers (0.5.2). Neither changes the protocol, so both are patch releases.
 
-**Health checks were the idle CPU.** Andy saw the test server (4 vCPUs of a 2010 Xeon E5645) sit at about 15% CPU with
+**Health checks were the stack's share of the idle CPU.** Andy saw the test server (4 vCPUs of a 2010 Xeon E5645) sit at about 15% CPU with
 nobody connected. Measured over 60 s on 2026-11-16, as a share of **one** core:
 
 | Container | Long-lived processes | Whole container (with health-check commands) |
@@ -131,9 +131,10 @@ nobody connected. Measured over 60 s on 2026-11-16, as a share of **one** core:
 
 Our own code was idle (backend 0.17%, worker 0.10%). The cost was the health checks: **43 commands a minute** launched
 inside containers by Docker (every 5 to 15 s per service), two of them expensive (a second Node process to `fetch` the
-backend's health; the whole `ollama` binary to run `ollama list`). On top of the 20% of a core spent inside the containers,
-`dockerd` and `containerd` spent about as much again setting each command up. Together: roughly half a core, which is
-the 13 to 15% of a 4-core machine that was seen.
+backend's health; the whole `ollama` binary to run `ollama list`). That was about 20 to 27% of a core spent inside the
+containers. `dockerd` and `containerd` used about as much again, which was first put down to launching those commands;
+the measurement after the fix (below) showed that part has a different cause. Together: roughly half a core, which is the
+13 to 15% of a 4-core machine that was seen.
 
 What changed:
 
@@ -145,8 +146,39 @@ What changed:
 - Nothing reads the health state at rest except `vtt-admin ps`; the status page and `vtt-admin status` probe the services
   themselves. A minute's staleness in `ps` is the whole price.
 
-Measured after, on the dev PC only (a much faster CPU, so the absolute numbers are small): commands 43 → 6 a minute, the
-containers' CPU 5.7% → 2.4% of a core. **Still to measure on the 2010 Xeon**, once a build with this change is installed there.
+Measured after on the dev PC (a much faster CPU, so the absolute numbers are small): commands 43 → 6 a minute, the
+containers' CPU 5.7% → 2.4% of a core.
+
+Measured on the 2010 Xeon, 2026-11-16, before (`0.5.1-dev.1`, 120 s) and after (`0.5.1-dev.2`, 180 s and 60 s), as a
+share of one core:
+
+| What                       | Before | After     |
+| -------------------------- | ------ | --------- |
+| All containers together    | 26.7%  | 6.4%      |
+| of which backend           | 5.85%  | 0.6%      |
+| of which ollama            | 4.33%  | 0.2%      |
+| of which postgres + valkey | 5.2%   | 1.3%      |
+| of which egress            | 3.6%   | 3.1%      |
+| `dockerd` + `containerd`   | 28.4%  | 27%       |
+| Whole machine              | 52.8%  | 34 to 37% |
+
+So the stack itself went from about a quarter of a core to 6%, and half of what is left is Egress (its headless Chrome
+and PulseAudio stay up between recordings). The machine as a whole went from about 13% to about 9% of its 4 cores.
+
+**The Docker daemon's 27% is not the health checks and not this stack.** A profile of `dockerd` (`perf`, 60 s) put its
+time in listing and inspecting images (`ImageService.Images` → `walkReachableImageManifests`, every manifest read from
+containerd over gRPC). The only client on the Docker socket was a host monitoring agent on that VM, which every 30 s asks
+for `images/json?all=1`, inspects each image and each container. With Docker 29's containerd image store that walk is
+expensive, and the VM held **52 images (19 GB)**: eight past versions of each of our four images, because an update pulls
+the new ones and removes nothing. Two lessons for operators, neither a code change in the stack:
+
+- A monitoring agent that lists Docker images on a short interval costs real CPU on an old machine; lengthen its interval
+  or turn off its image collection.
+- Old images pile up after updates (`docker image prune -a` removes the unused ones). Whether the updater should do this
+  itself is an open Stage 9 question (it removes the quick way back to the previous version).
+
+Not confirmed by experiment: the agent was not stopped to see the daemon's CPU fall; the attribution is from the profile
+and the socket's single client.
 
 **No one-shot containers.** The bundle used to run four containers that did one job and exited (`media-init`,
 `recordings-init`, `models-init`, `ollama-pull`). They added start-up ordering, two extra images, and made the first

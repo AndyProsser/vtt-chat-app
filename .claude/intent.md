@@ -34,8 +34,10 @@ Update this file as threads open, progress, or close — stale entries here are 
     Details and measurements: `docs/architecture/DEPLOYMENT-AND-TRANSPORT.md` ("Start-up and idle cost"), BUILD-STATUS.md.
   - **0.5.1 (on `main`, tagged `v0.5.1-dev.2`):** the health-check fix, the transcription fix and the purge fix, picked
     from the branch. The branch itself is 0.5.2 (Andy, 2026-11-16: no protocol change, so it stays on 0.5).
-  - **Next:** install the 0.5.1 dev build on the test VM and re-measure idle CPU there; run a whole records job on the new
-    images; then the rest of Stage 9 (platform parity, the 8-hour soak, packaging), which needs real machines.
+  - **VM re-measured 2026-11-16 on `0.5.1-dev.2`:** containers 26.7% → 6.4% of a core, machine 52.8% → ~35%. The remaining
+    27% is `dockerd`/`containerd` serving Andy's host monitoring agent (image list + inspects every 30 s over 52 images),
+    not this stack. **Open, ask Andy:** should updates prune old images (19 GB had piled up)?
+  - **Next:** run a whole records job on the VM's new images; then the rest of Stage 9 (platform parity, the 8-hour soak, packaging), which needs real machines.
   - **0.6.0 is reserved** for the first change that bumps `PROTOCOL_VERSION` (the soundboard work is expected to).
 
 - **Stage 6 table features — server first, then UI.** Decided 2026-11-07, in build order:

@@ -382,10 +382,12 @@ the one-shot containers are built; the platform checks, the long soak and signin
   0.4.3 no audio reached Whisper over HTTP (see the changelog). **Not yet run:** the compatibility Whisper image, and the real VM.
 - **Idle CPU on the server** (added 2026-11-16, Andy saw about 15% on the test VM) — **cause found and fixed 2026-11-16** on
   the same branch. It was not our code (backend 0.17% of a core, worker 0.10%): it was Docker running 43 health-check
-  commands a minute, two of them expensive, plus the Docker daemon's own cost of launching them; about half a core of a 2010
-  Xeon in all. Health checks now poll every 2 s only while a container starts and once a minute after that, with cheap
-  commands (needs Docker Engine 25+). On the dev PC: 43 → 6 commands a minute. On `main` since `v0.5.1-dev.2`. **Still to measure on the VM** once that
-  build is installed there.
+  commands a minute, two of them expensive, about a quarter of a core of a 2010 Xeon. Health checks now poll every 2 s only while a container starts and once a minute after that, with cheap
+  commands (needs Docker Engine 25+). On the dev PC: 43 → 6 commands a minute. On `main` since `v0.5.1-dev.2`. **Measured on the VM 2026-11-16:**
+  the containers fell from 26.7% to 6.4% of a core and the machine from 52.8% to about 35%. The rest is the Docker daemon
+  (27%), which a profile traces to a host monitoring agent listing 52 images every 30 s, not to this stack.
+- **Old images after updates** (found 2026-11-16) — the VM held 52 images, 19 GB, eight past versions of each of ours. **Open:**
+  should the installer or `vtt-admin update` remove old versions (and keep how many for going back)? Ask Andy.
 
 **Done when:** a full real campaign session runs on all supported platforms without manual intervention.
 
