@@ -1,0 +1,18 @@
+{
+  "_comment": "Clips Andy has listened to and approved for the starter pack (Freesound ids, all CC0). Only these go into picks.json.",
+  "dungeon": {
+    "id": 516566,
+    "by": "Kinoton",
+    "note": "Andy: a great example of a dungeon ambience loop"
+  },
+  "night": {
+    "id": 719558,
+    "by": "fribergmusic2024",
+    "note": "Andy: forest night"
+  },
+  "market": {
+    "id": 819223,
+    "by": "sounds_from_palestine",
+    "note": "Andy: bazaar / market"
+  }
+}

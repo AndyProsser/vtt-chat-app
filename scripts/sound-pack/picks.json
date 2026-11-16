@@ -2,15 +2,6 @@
   "_comment": "Each pick is one CC0 clip from OpenGameArt. `page` is the content slug, `file` a substring of the file name to take. kind: bed = a continuous ambience made seamless; loop = an already-looping music file, used as is; oneshot = a short sound, trimmed of silence.",
   "sounds": [
     {
-      "key": "dungeon-drone",
-      "name": "Dungeon",
-      "category": "ambience",
-      "kind": "bed",
-      "page": "dungeon-ambience",
-      "file": "dungeon002",
-      "maxSec": 60
-    },
-    {
       "key": "mountain-wind",
       "name": "Mountain wind",
       "category": "ambience",
@@ -26,15 +17,6 @@
       "kind": "loop",
       "page": "medieval-the-old-tower-inn",
       "file": "Loop_The_Old_Tower_Inn",
-      "maxSec": 150
-    },
-    {
-      "key": "music-market",
-      "name": "Market music",
-      "category": "music",
-      "kind": "loop",
-      "page": "medieval-market-day",
-      "file": "Loop_Market_Day.wav",
       "maxSec": 150
     },
     {
@@ -54,6 +36,30 @@
       "page": "crystal-cave-song18",
       "file": "song18",
       "maxSec": 120
+    },
+    {
+      "key": "amb-dungeon",
+      "name": "Dungeon",
+      "category": "ambience",
+      "kind": "bed",
+      "freesound": 516566,
+      "maxSec": 90
+    },
+    {
+      "key": "amb-forest-night",
+      "name": "Forest at night",
+      "category": "ambience",
+      "kind": "bed",
+      "freesound": 719558,
+      "maxSec": 90
+    },
+    {
+      "key": "amb-bazaar",
+      "name": "Bazaar",
+      "category": "ambience",
+      "kind": "bed",
+      "freesound": 819223,
+      "maxSec": 90
     }
   ],
   "boards": [],
@@ -64,17 +70,6 @@
       "layers": [
         {
           "sound": "music-tavern",
-          "mode": "loop",
-          "volume": 0.6
-        }
-      ]
-    },
-    {
-      "key": "market",
-      "name": "Market",
-      "layers": [
-        {
-          "sound": "music-market",
           "mode": "loop",
           "volume": 0.6
         }
@@ -103,17 +98,6 @@
       ]
     },
     {
-      "key": "dungeon",
-      "name": "Dungeon",
-      "layers": [
-        {
-          "sound": "dungeon-drone",
-          "mode": "loop",
-          "volume": 0.7
-        }
-      ]
-    },
-    {
       "key": "mountain",
       "name": "Mountain",
       "layers": [
@@ -121,6 +105,39 @@
           "sound": "mountain-wind",
           "mode": "loop",
           "volume": 0.7
+        }
+      ]
+    },
+    {
+      "key": "dungeon",
+      "name": "Dungeon",
+      "layers": [
+        {
+          "sound": "amb-dungeon",
+          "mode": "loop",
+          "volume": 0.6
+        }
+      ]
+    },
+    {
+      "key": "forest-night",
+      "name": "Forest night",
+      "layers": [
+        {
+          "sound": "amb-forest-night",
+          "mode": "loop",
+          "volume": 0.6
+        }
+      ]
+    },
+    {
+      "key": "market",
+      "name": "Market",
+      "layers": [
+        {
+          "sound": "amb-bazaar",
+          "mode": "loop",
+          "volume": 0.6
         }
       ]
     }

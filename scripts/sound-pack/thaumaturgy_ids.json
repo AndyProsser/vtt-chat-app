@@ -1,0 +1,21 @@
+{
+  "_comment": "Freesound recordings that thaumaturgy.app/docs/sounds lists as ambience for each place (found by Andy, 2026-11-16). They are only leads: freesound.py --ids checks each is CC0 on Freesound before it becomes a candidate.",
+  "rain":   [507902, 200273],
+  "storm":  [278867],
+  "forest": [577623, 578056],
+  "night":  [719558, 333221],
+  "tavern": [326313, 243373],
+  "market": [819223, 457618],
+  "campfire": [350757, 563766, 714566],
+  "sea":    [371169, 254130, 427086, 368389],
+  "cave":   [343742, 476318, 135483, 714699],
+  "dungeon":[516566, 266413, 103340, 249985],
+  "castle": [657538, 483127],
+  "crypt":  [468235, 543541, 159509],
+  "wind":   [697217, 104320, 156414, 117136],
+  "swamp":  [391520, 432490],
+  "war-horn": [539956],
+  "war-cry":  [521830],
+  "battle-clash": [175951],
+  "thunder-hit":  [327986]
+}

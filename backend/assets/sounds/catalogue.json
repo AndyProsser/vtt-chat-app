@@ -2,12 +2,6 @@
   "version": 1,
   "sounds": [
     {
-      "key": "dungeon-drone",
-      "name": "Dungeon",
-      "category": "ambience",
-      "takes": ["ambience/dungeon-drone.ogg"]
-    },
-    {
       "key": "mountain-wind",
       "name": "Mountain wind",
       "category": "ambience",
@@ -20,12 +14,6 @@
       "takes": ["music/music-tavern.ogg"]
     },
     {
-      "key": "music-market",
-      "name": "Market music",
-      "category": "music",
-      "takes": ["music/music-market.ogg"]
-    },
-    {
       "key": "music-battle",
       "name": "Battle music",
       "category": "music",
@@ -36,6 +24,24 @@
       "name": "Cave music",
       "category": "music",
       "takes": ["music/music-cave.ogg"]
+    },
+    {
+      "key": "amb-dungeon",
+      "name": "Dungeon",
+      "category": "ambience",
+      "takes": ["ambience/amb-dungeon.ogg"]
+    },
+    {
+      "key": "amb-forest-night",
+      "name": "Forest at night",
+      "category": "ambience",
+      "takes": ["ambience/amb-forest-night.ogg"]
+    },
+    {
+      "key": "amb-bazaar",
+      "name": "Bazaar",
+      "category": "ambience",
+      "takes": ["ambience/amb-bazaar.ogg"]
     }
   ],
   "boards": [],
@@ -46,17 +52,6 @@
       "layers": [
         {
           "sound": "music-tavern",
-          "mode": "loop",
-          "volume": 0.6
-        }
-      ]
-    },
-    {
-      "key": "market",
-      "name": "Market",
-      "layers": [
-        {
-          "sound": "music-market",
           "mode": "loop",
           "volume": 0.6
         }
@@ -85,17 +80,6 @@
       ]
     },
     {
-      "key": "dungeon",
-      "name": "Dungeon",
-      "layers": [
-        {
-          "sound": "dungeon-drone",
-          "mode": "loop",
-          "volume": 0.7
-        }
-      ]
-    },
-    {
       "key": "mountain",
       "name": "Mountain",
       "layers": [
@@ -103,6 +87,39 @@
           "sound": "mountain-wind",
           "mode": "loop",
           "volume": 0.7
+        }
+      ]
+    },
+    {
+      "key": "dungeon",
+      "name": "Dungeon",
+      "layers": [
+        {
+          "sound": "amb-dungeon",
+          "mode": "loop",
+          "volume": 0.6
+        }
+      ]
+    },
+    {
+      "key": "forest-night",
+      "name": "Forest night",
+      "layers": [
+        {
+          "sound": "amb-forest-night",
+          "mode": "loop",
+          "volume": 0.6
+        }
+      ]
+    },
+    {
+      "key": "market",
+      "name": "Market",
+      "layers": [
+        {
+          "sound": "amb-bazaar",
+          "mode": "loop",
+          "volume": 0.6
         }
       ]
     }

@@ -8,13 +8,13 @@ its licence). Downloads are cached in scripts/sound-pack/.cache (git-ignored); o
 
     scripts/sound-pack/build.py            # needs ffmpeg
 """
-import json, pathlib, re, subprocess, sys, time, urllib.parse, urllib.request, html
+import json, os, pathlib, re, subprocess, sys, time, urllib.parse, urllib.request, html
 
 HERE = pathlib.Path(__file__).parent
 OUT = HERE.parent.parent / 'backend' / 'assets' / 'sounds'
 CACHE = HERE / '.cache'
 UA = {'User-Agent': 'vtt-chat-sound-pack/1.0 (licence-checked CC0 curation)'}
-LOUD = {'ambience': -24, 'music': -20, 'effect': -18}   # integrated LUFS target per kind of sound
+LOUD = {'ambience': -28, 'music': -22, 'effect': -18}   # integrated LUFS target per kind of sound
 FADE = 3.0                                               # seconds of loop crossfade for beds
 
 
@@ -35,6 +35,15 @@ def page_facts(slug):
     user = re.search(r'href="/users/([^"]+)"', h)
     files = re.findall(r'href="(https://opengameart.org/sites/default/files/[^"]+\.(?:ogg|mp3|wav|flac))"', h)
     return title, urllib.parse.unquote(user.group(1)) if user else 'unknown', files
+
+
+def freesound_facts(sound_id):
+    key = pathlib.Path(os.path.expanduser('~/.config/vtt-chat/freesound.key')).read_text().strip()
+    fields = 'id,name,license,username,url,previews'
+    r = json.loads(get(f'https://freesound.org/apiv2/sounds/{sound_id}/?fields={fields}&token={key}'))
+    if 'publicdomain/zero' not in r['license']:
+        sys.exit(f"REFUSED: freesound {sound_id} is not CC0 ({r['license']})")
+    return r['name'], r['username'], r['url'], r['previews']['preview-hq-mp3']
 
 
 def encode(src, dst, pick):
@@ -64,26 +73,31 @@ def main():
     CACHE.mkdir(exist_ok=True)
     sources, sounds = [], []
     for p in picks['sounds']:
-        title, author, files = page_facts(p['page'])
-        match = [f for f in files if p['file'].lower() in urllib.parse.unquote(f).lower()]
-        if not match:
-            sys.exit(f"no file matching {p['file']!r} on {p['page']}: {files}")
-        url = match[0]
-        cached = CACHE / re.sub(r'[^A-Za-z0-9._-]', '_', urllib.parse.unquote(url.rsplit('/', 1)[-1]))
+        if 'freesound' in p:
+            title, author, page, url = freesound_facts(p['freesound'])
+            cached = CACHE / f"freesound_{p['freesound']}.mp3"
+        else:
+            title, author, files = page_facts(p['page'])
+            page = 'https://opengameart.org/content/' + p['page']
+            match = [f for f in files if p['file'].lower() in urllib.parse.unquote(f).lower()]
+            if not match:
+                sys.exit(f"no file matching {p['file']!r} on {p['page']}: {files}")
+            url = match[0]
+            cached = CACHE / re.sub(r'[^A-Za-z0-9._-]', '_', urllib.parse.unquote(url.rsplit('/', 1)[-1]))
         if not cached.exists():
             cached.write_bytes(get(url, binary=True))
         rel = f"{p['category']}/{p['key']}.ogg"
         (OUT / p['category']).mkdir(parents=True, exist_ok=True)
         encode(cached, OUT / rel, p)
         size = (OUT / rel).stat().st_size
-        print(f"{rel}  {size // 1024} KB  <- {p['page']} ({author})")
+        print(f"{rel}  {size // 1024} KB  <- {page} ({author})")
         sounds.append({'key': p['key'], 'name': p['name'], 'category': p['category'], 'takes': [rel]})
-        sources.append((rel, title, author, 'https://opengameart.org/content/' + p['page'], size))
+        sources.append((rel, title, author, page, size))
     catalogue = {'version': 1, 'sounds': sounds, 'boards': picks['boards'], 'scenes': picks['scenes']}
     (OUT / 'catalogue.json').write_text(json.dumps(catalogue, indent=2) + '\n')
     lines = ['# Starter sound pack: sources and licences', '',
-             'Every clip is CC0 (public domain) from [OpenGameArt](https://opengameart.org), checked against the page\'s',
-             'licence list by `scripts/sound-pack/build.py`, which refuses anything that does not list CC0. Clips are',
+             'Every clip is CC0 (public domain), from [Freesound](https://freesound.org), [OpenGameArt](https://opengameart.org)',
+             'or [Kenney](https://kenney.nl), checked against the source\'s licence by `scripts/sound-pack/build.py`, which refuses anything that is not CC0. Clips are',
              'loudness-normalised and re-encoded to Ogg Vorbis; beds are crossfaded to loop. No credit is required;',
              'it is given here anyway.', '', '| File | Work | Author | Page | Size |', '| --- | --- | --- | --- | --- |']
     for rel, title, author, page, size in sources:

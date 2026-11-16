@@ -46,3 +46,4 @@ Cargo.lock
 # Output of web/e2e/ui-smoke.mjs runs
 ui-smoke-out/
 scripts/sound-pack/.cache/
+scripts/sound-pack/candidates.json
