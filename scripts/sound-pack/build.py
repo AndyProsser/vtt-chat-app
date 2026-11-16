@@ -91,6 +91,7 @@ def main():
     lines.append(f'\nTotal: {sum(s[4] for s in sources) // 1024} KB.')
     (OUT / 'SOURCES.md').write_text('\n'.join(lines) + '\n')
     print('total', sum(s[4] for s in sources) // 1024, 'KB')
+    print('now run: npx prettier --write backend/assets/sounds/catalogue.json')
 
 
 if __name__ == '__main__':

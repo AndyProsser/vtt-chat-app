@@ -5,113 +5,85 @@
       "key": "rain-heavy",
       "name": "Heavy rain",
       "category": "ambience",
-      "takes": [
-        "ambience/rain-heavy.ogg"
-      ]
+      "takes": ["ambience/rain-heavy.ogg"]
     },
     {
       "key": "rain-thunder",
       "name": "Rain and thunder",
       "category": "ambience",
-      "takes": [
-        "ambience/rain-thunder.ogg"
-      ]
+      "takes": ["ambience/rain-thunder.ogg"]
     },
     {
       "key": "forest-day",
       "name": "Forest",
       "category": "ambience",
-      "takes": [
-        "ambience/forest-day.ogg"
-      ]
+      "takes": ["ambience/forest-day.ogg"]
     },
     {
       "key": "street-calm",
       "name": "Town street",
       "category": "ambience",
-      "takes": [
-        "ambience/street-calm.ogg"
-      ]
+      "takes": ["ambience/street-calm.ogg"]
     },
     {
       "key": "dungeon-drone",
       "name": "Dungeon",
       "category": "ambience",
-      "takes": [
-        "ambience/dungeon-drone.ogg"
-      ]
+      "takes": ["ambience/dungeon-drone.ogg"]
     },
     {
       "key": "mountain-wind",
       "name": "Mountain wind",
       "category": "ambience",
-      "takes": [
-        "ambience/mountain-wind.ogg"
-      ]
+      "takes": ["ambience/mountain-wind.ogg"]
     },
     {
       "key": "music-tavern",
       "name": "Tavern music",
       "category": "music",
-      "takes": [
-        "music/music-tavern.ogg"
-      ]
+      "takes": ["music/music-tavern.ogg"]
     },
     {
       "key": "music-market",
       "name": "Market music",
       "category": "music",
-      "takes": [
-        "music/music-market.ogg"
-      ]
+      "takes": ["music/music-market.ogg"]
     },
     {
       "key": "music-battle",
       "name": "Battle music",
       "category": "music",
-      "takes": [
-        "music/music-battle.ogg"
-      ]
+      "takes": ["music/music-battle.ogg"]
     },
     {
       "key": "music-cave",
       "name": "Cave music",
       "category": "music",
-      "takes": [
-        "music/music-cave.ogg"
-      ]
+      "takes": ["music/music-cave.ogg"]
     },
     {
       "key": "sting-victory",
       "name": "Victory",
       "category": "effect",
-      "takes": [
-        "effect/sting-victory.ogg"
-      ]
+      "takes": ["effect/sting-victory.ogg"]
     },
     {
       "key": "sting-fail",
       "name": "Fail",
       "category": "effect",
-      "takes": [
-        "effect/sting-fail.ogg"
-      ]
+      "takes": ["effect/sting-fail.ogg"]
     },
     {
       "key": "sting-twist",
       "name": "Surprise",
       "category": "effect",
-      "takes": [
-        "effect/sting-twist.ogg"
-      ]
+      "takes": ["effect/sting-twist.ogg"]
     },
     {
       "key": "sting-fanfare",
       "name": "Fanfare",
       "category": "effect",
-      "takes": [
-        "effect/sting-fanfare.ogg"
-      ]
+      "takes": ["effect/sting-fanfare.ogg"]
     }
   ],
   "boards": [
