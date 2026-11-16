@@ -170,13 +170,6 @@
       "freesound": 753896
     },
     {
-      "key": "fx-scream",
-      "name": "Scream",
-      "category": "effect",
-      "kind": "oneshot",
-      "freesound": 547189
-    },
-    {
       "key": "fx-door-slam",
       "name": "Door slam",
       "category": "effect",
@@ -220,13 +213,6 @@
       "category": "effect",
       "kind": "oneshot",
       "freesound": 578376
-    },
-    {
-      "key": "fx-thunder",
-      "name": "Thunder",
-      "category": "effect",
-      "kind": "oneshot",
-      "freesound": 327986
     },
     {
       "key": "fx-boom",
@@ -282,25 +268,6 @@
       ]
     },
     {
-      "key": "fx-lightning",
-      "name": "Lightning bolt",
-      "category": "effect",
-      "kind": "oneshot",
-      "takes": [
-        {
-          "freesound": 87976
-        },
-        {
-          "freesound": 327986
-        }
-      ],
-      "sequence": {
-        "gap": 0.12,
-        "count": 2
-      },
-      "maxSec": 4
-    },
-    {
       "key": "fx-cave-in",
       "name": "Cave-in",
       "category": "effect",
@@ -321,36 +288,6 @@
           "freesound": 611669
         }
       ]
-    },
-    {
-      "key": "fx-nat1",
-      "name": "Critical fail",
-      "category": "effect",
-      "kind": "oneshot",
-      "takes": [
-        {
-          "freesound": 834512
-        }
-      ]
-    },
-    {
-      "key": "fx-nat20",
-      "name": "Critical hit",
-      "category": "effect",
-      "kind": "oneshot",
-      "takes": [
-        {
-          "freesound": 326795
-        },
-        {
-          "kenney": "impact-sounds/impactBell_heavy_000"
-        }
-      ],
-      "sequence": {
-        "gap": 0.0,
-        "count": 2
-      },
-      "maxSec": 3
     },
     {
       "key": "fx-ghost",
@@ -378,17 +315,6 @@
       ]
     },
     {
-      "key": "fx-zombie",
-      "name": "Zombie",
-      "category": "effect",
-      "kind": "oneshot",
-      "takes": [
-        {
-          "freesound": 643766
-        }
-      ]
-    },
-    {
       "key": "fx-arrow",
       "name": "Arrow",
       "category": "effect",
@@ -396,17 +322,6 @@
       "takes": [
         {
           "freesound": 534940
-        }
-      ]
-    },
-    {
-      "key": "fx-cackle",
-      "name": "Cackle",
-      "category": "effect",
-      "kind": "oneshot",
-      "takes": [
-        {
-          "freesound": 371284
         }
       ]
     },
@@ -565,6 +480,396 @@
         "gap": 0.27,
         "count": 12
       }
+    },
+    {
+      "key": "fx-lightning",
+      "name": "Lightning bolt",
+      "category": "effect",
+      "kind": "oneshot",
+      "takes": [
+        {
+          "pack": "combat150",
+          "member": "ElectroZap_s01.wav"
+        },
+        {
+          "pack": "combat150",
+          "member": "HeavyZap_s01.wav"
+        },
+        {
+          "pack": "combat150",
+          "member": "EnergyZap_s01.wav"
+        }
+      ]
+    },
+    {
+      "key": "fx-thunder",
+      "name": "Thunder",
+      "category": "effect",
+      "kind": "oneshot",
+      "takes": [
+        {
+          "freesound": 675992
+        }
+      ],
+      "filter": "lowpass=f=700,bass=g=6",
+      "peakDb": -10,
+      "maxSec": 12
+    },
+    {
+      "key": "fx-groan",
+      "name": "Groan or cry",
+      "category": "effect",
+      "kind": "oneshot",
+      "takes": [
+        {
+          "freesound": 166124
+        },
+        {
+          "pack": "rpg80",
+          "member": "creature_hurt_01.ogg"
+        },
+        {
+          "pack": "rpg80",
+          "member": "creature_hurt_02.ogg"
+        },
+        {
+          "pack": "rpg80",
+          "member": "creature_die_01.ogg"
+        }
+      ]
+    },
+    {
+      "key": "fx-nat1",
+      "name": "Critical fail (fumble)",
+      "category": "effect",
+      "kind": "oneshot",
+      "takes": [
+        {
+          "kenney": "rpg-audio/drawKnife1"
+        },
+        {
+          "pack": "rpg80",
+          "member": "metal_02.ogg"
+        },
+        {
+          "pack": "fantasy",
+          "member": "Jingle_Lose_00.wav"
+        }
+      ],
+      "sequence": {
+        "offsets": [0, 0.55, 1.1]
+      },
+      "maxSec": 4
+    },
+    {
+      "key": "fx-nat20",
+      "name": "Critical hit (massive)",
+      "category": "effect",
+      "kind": "oneshot",
+      "takes": [
+        {
+          "pack": "combat150",
+          "member": "BlastImpact_02_s01.wav"
+        },
+        {
+          "pack": "combat150",
+          "member": "Earth Spell Impact 2_s07.wav"
+        },
+        {
+          "freesound": 326795
+        },
+        {
+          "pack": "fantasy",
+          "member": "Jingle_Achievement_00.wav"
+        }
+      ],
+      "sequence": {
+        "offsets": [0, 0, 0.02, 1.0]
+      },
+      "maxSec": 5
+    },
+    {
+      "key": "fx-flash-bang",
+      "name": "Flash bang",
+      "category": "effect",
+      "kind": "oneshot",
+      "takes": [
+        {
+          "page": "flash-bang-sound",
+          "file": "flash_bang"
+        }
+      ]
+    },
+    {
+      "key": "fx-fire-spell",
+      "name": "Fire spell",
+      "category": "effect",
+      "kind": "oneshot",
+      "takes": [
+        {
+          "pack": "combat150",
+          "member": "Fire Spell Impact 1_s06.wav"
+        },
+        {
+          "pack": "combat150",
+          "member": "Fire Spell Impact 2_s06.wav"
+        },
+        {
+          "pack": "combat150",
+          "member": "Fire Spell Impact 3_s06.wav"
+        }
+      ]
+    },
+    {
+      "key": "fx-heal",
+      "name": "Healing",
+      "category": "effect",
+      "kind": "oneshot",
+      "takes": [
+        {
+          "pack": "combat150",
+          "member": "Healing Spell Impact 1_s08.wav"
+        },
+        {
+          "pack": "combat150",
+          "member": "Healing Spell Impact 5_s08.wav"
+        },
+        {
+          "pack": "combat150",
+          "member": "Healing Spell Impact 9_s08.wav"
+        }
+      ]
+    },
+    {
+      "key": "fx-insects",
+      "name": "Insects",
+      "category": "effect",
+      "kind": "oneshot",
+      "takes": [
+        {
+          "pack": "insect",
+          "member": "insect0.ogg"
+        },
+        {
+          "pack": "insect",
+          "member": "insect1.ogg"
+        },
+        {
+          "pack": "insect",
+          "member": "insect2.ogg"
+        },
+        {
+          "pack": "insect",
+          "member": "insect3.ogg"
+        }
+      ]
+    },
+    {
+      "key": "fx-skeleton",
+      "name": "Bones",
+      "category": "effect",
+      "kind": "oneshot",
+      "takes": [
+        {
+          "pack": "horror",
+          "member": "Bonecrack_00.wav"
+        },
+        {
+          "pack": "horror",
+          "member": "Bonecrack_01.wav"
+        },
+        {
+          "pack": "horror",
+          "member": "Bonecrack_02.wav"
+        }
+      ]
+    },
+    {
+      "key": "fx-zombie",
+      "name": "Zombie",
+      "category": "effect",
+      "kind": "oneshot",
+      "takes": [
+        {
+          "freesound": 643766
+        },
+        {
+          "pack": "horror",
+          "member": "Zombie_00.wav"
+        },
+        {
+          "pack": "horror",
+          "member": "Zombie_01.wav"
+        }
+      ]
+    },
+    {
+      "key": "fx-cackle",
+      "name": "Evil laugh",
+      "category": "effect",
+      "kind": "oneshot",
+      "takes": [
+        {
+          "freesound": 371284
+        },
+        {
+          "pack": "horror",
+          "member": "Laugh_Evil_00.wav"
+        },
+        {
+          "pack": "horror",
+          "member": "Laugh_Evil_01.wav"
+        }
+      ]
+    },
+    {
+      "key": "fx-monster",
+      "name": "Monster",
+      "category": "effect",
+      "kind": "oneshot",
+      "takes": [
+        {
+          "pack": "horror",
+          "member": "Monster_00.wav"
+        },
+        {
+          "pack": "horror",
+          "member": "Monster_01.wav"
+        },
+        {
+          "pack": "horror",
+          "member": "Monster_02.wav"
+        },
+        {
+          "pack": "horror",
+          "member": "Monster_03.wav"
+        }
+      ]
+    },
+    {
+      "key": "fx-stab",
+      "name": "Stab",
+      "category": "effect",
+      "kind": "oneshot",
+      "takes": [
+        {
+          "pack": "horror",
+          "member": "Stab_Knife_00.wav"
+        },
+        {
+          "pack": "horror",
+          "member": "Stab_Knife_01.wav"
+        },
+        {
+          "pack": "horror",
+          "member": "Stab_Knife_02.wav"
+        }
+      ]
+    },
+    {
+      "key": "fx-jingle-win",
+      "name": "Victory",
+      "category": "effect",
+      "kind": "oneshot",
+      "takes": [
+        {
+          "pack": "fantasy",
+          "member": "Jingle_Win_00.wav"
+        }
+      ]
+    },
+    {
+      "key": "fx-jingle-achievement",
+      "name": "Achievement",
+      "category": "effect",
+      "kind": "oneshot",
+      "takes": [
+        {
+          "pack": "fantasy",
+          "member": "Jingle_Achievement_00.wav"
+        }
+      ]
+    },
+    {
+      "key": "fx-jingle-lose",
+      "name": "Defeat",
+      "category": "effect",
+      "kind": "oneshot",
+      "takes": [
+        {
+          "pack": "fantasy",
+          "member": "Jingle_Lose_00.wav"
+        }
+      ]
+    },
+    {
+      "key": "amb-hell",
+      "name": "Infernal",
+      "category": "ambience",
+      "kind": "bed",
+      "maxSec": 90,
+      "pack": "horror",
+      "member": "Ambience_Hell_00.wav"
+    },
+    {
+      "key": "music-doom",
+      "name": "Pending doom",
+      "category": "music",
+      "kind": "bed",
+      "maxSec": 180,
+      "quality": 2,
+      "page": "laments-of-the-war",
+      "file": "Lossless FLAC"
+    },
+    {
+      "key": "music-skirmish",
+      "name": "Skirmish",
+      "category": "music",
+      "kind": "bed",
+      "maxSec": 180,
+      "quality": 2,
+      "page": "battle-rocky-cliffs",
+      "file": "battle_rocky_cliffs"
+    },
+    {
+      "key": "music-dragon",
+      "name": "Fire dragon",
+      "category": "music",
+      "kind": "loop",
+      "maxSec": 180,
+      "quality": 2,
+      "page": "the-fire-dragon",
+      "file": "the_fire_dragon_loop.wav"
+    },
+    {
+      "key": "music-boss-metal",
+      "name": "Symphonic metal boss",
+      "category": "music",
+      "kind": "loop",
+      "maxSec": 180,
+      "quality": 2,
+      "pack": "bossmetal",
+      "member": "boss_battle_#2_metal_loop.wav"
+    },
+    {
+      "key": "music-epic",
+      "name": "Epic battle",
+      "category": "music",
+      "kind": "bed",
+      "maxSec": 180,
+      "quality": 2,
+      "page": "qazijamjam-orchestral-battle-theme",
+      "file": "QaziJamJam"
+    },
+    {
+      "key": "music-run",
+      "name": "Run away",
+      "category": "music",
+      "kind": "bed",
+      "maxSec": 150,
+      "quality": 2,
+      "page": "running-from-something",
+      "file": "running"
     }
   ],
   "boards": [
@@ -579,6 +884,10 @@
         {
           "label": "Draw blade",
           "sound": "fx-draw-blade"
+        },
+        {
+          "label": "Stab",
+          "sound": "fx-stab"
         },
         {
           "label": "Arrow",
@@ -611,12 +920,24 @@
           "sound": "fx-fireball"
         },
         {
+          "label": "Fire spell",
+          "sound": "fx-fire-spell"
+        },
+        {
+          "label": "Flash bang",
+          "sound": "fx-flash-bang"
+        },
+        {
           "label": "Lightning bolt",
           "sound": "fx-lightning"
         },
         {
           "label": "Magic missile",
           "sound": "fx-missile"
+        },
+        {
+          "label": "Healing",
+          "sound": "fx-heal"
         },
         {
           "label": "Spellbook",
@@ -637,6 +958,10 @@
           "sound": "fx-growl"
         },
         {
+          "label": "Monster",
+          "sound": "fx-monster"
+        },
+        {
           "label": "Dragon roar",
           "sound": "fx-roar"
         },
@@ -645,12 +970,16 @@
           "sound": "fx-wolf"
         },
         {
-          "label": "Scream",
-          "sound": "fx-scream"
+          "label": "Groan or cry",
+          "sound": "fx-groan"
         },
         {
           "label": "Slime",
           "sound": "fx-slime"
+        },
+        {
+          "label": "Insects",
+          "sound": "fx-insects"
         },
         {
           "label": "Crows",
@@ -675,7 +1004,11 @@
           "sound": "fx-zombie"
         },
         {
-          "label": "Cackle",
+          "label": "Bones",
+          "sound": "fx-skeleton"
+        },
+        {
+          "label": "Evil laugh",
           "sound": "fx-cackle"
         },
         {
@@ -757,6 +1090,24 @@
           "sound": "fx-bell"
         }
       ]
+    },
+    {
+      "key": "jingles",
+      "name": "Jingles",
+      "buttons": [
+        {
+          "label": "Victory",
+          "sound": "fx-jingle-win"
+        },
+        {
+          "label": "Achievement",
+          "sound": "fx-jingle-achievement"
+        },
+        {
+          "label": "Defeat",
+          "sound": "fx-jingle-lose"
+        }
+      ]
     }
   ],
   "scenes": [
@@ -793,6 +1144,72 @@
       "layers": [
         {
           "sound": "amb-forest",
+          "mode": "loop",
+          "volume": 0.6
+        }
+      ]
+    },
+    {
+      "key": "battle",
+      "name": "Battle",
+      "layers": [
+        {
+          "sound": "music-skirmish",
+          "mode": "loop",
+          "volume": 0.6
+        }
+      ]
+    },
+    {
+      "key": "doom",
+      "name": "Pending doom",
+      "layers": [
+        {
+          "sound": "music-doom",
+          "mode": "loop",
+          "volume": 0.6
+        }
+      ]
+    },
+    {
+      "key": "boss-dragon",
+      "name": "Boss: fire dragon",
+      "layers": [
+        {
+          "sound": "music-dragon",
+          "mode": "loop",
+          "volume": 0.6
+        }
+      ]
+    },
+    {
+      "key": "boss-metal",
+      "name": "Boss: symphonic metal",
+      "layers": [
+        {
+          "sound": "music-boss-metal",
+          "mode": "loop",
+          "volume": 0.6
+        }
+      ]
+    },
+    {
+      "key": "epic",
+      "name": "Epic battle",
+      "layers": [
+        {
+          "sound": "music-epic",
+          "mode": "loop",
+          "volume": 0.6
+        }
+      ]
+    },
+    {
+      "key": "run",
+      "name": "Run away!",
+      "layers": [
+        {
+          "sound": "music-run",
           "mode": "loop",
           "volume": 0.6
         }
@@ -896,6 +1313,41 @@
           "volume": 0.7
         }
       ]
+    },
+    {
+      "key": "infernal",
+      "name": "Infernal",
+      "layers": [
+        {
+          "sound": "amb-hell",
+          "mode": "loop",
+          "volume": 0.6
+        }
+      ]
     }
-  ]
+  ],
+  "packs": {
+    "combat150": {
+      "page": "150-combat-sound-effects"
+    },
+    "rpg80": {
+      "page": "80-cc0-rpg-sfx"
+    },
+    "insect": {
+      "page": "insect-sounds"
+    },
+    "bossmetal": {
+      "page": "boss-battle-2-symphonic-metal"
+    },
+    "fantasy": {
+      "page": "fantasy-sound-effects-library",
+      "require": "CC-BY 3.0",
+      "credit": "Little Robot Sound Factory (www.littlerobotsoundfactory.com), CC BY 3.0"
+    },
+    "horror": {
+      "page": "horror-sound-effects-library",
+      "require": "CC-BY 3.0",
+      "credit": "Little Robot Sound Factory (www.littlerobotsoundfactory.com), CC BY 3.0"
+    }
+  }
 }

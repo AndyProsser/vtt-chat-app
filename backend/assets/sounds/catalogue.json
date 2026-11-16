@@ -124,12 +124,6 @@
       "takes": ["effect/fx-wolf.ogg"]
     },
     {
-      "key": "fx-scream",
-      "name": "Scream",
-      "category": "effect",
-      "takes": ["effect/fx-scream.ogg"]
-    },
-    {
       "key": "fx-door-slam",
       "name": "Door slam",
       "category": "effect",
@@ -158,12 +152,6 @@
       "name": "Dark sting",
       "category": "effect",
       "takes": ["effect/fx-dark-sting.ogg"]
-    },
-    {
-      "key": "fx-thunder",
-      "name": "Thunder",
-      "category": "effect",
-      "takes": ["effect/fx-thunder.ogg"]
     },
     {
       "key": "fx-boom",
@@ -196,12 +184,6 @@
       "takes": ["effect/fx-missile.ogg"]
     },
     {
-      "key": "fx-lightning",
-      "name": "Lightning bolt",
-      "category": "effect",
-      "takes": ["effect/fx-lightning.ogg"]
-    },
-    {
       "key": "fx-cave-in",
       "name": "Cave-in",
       "category": "effect",
@@ -212,18 +194,6 @@
       "name": "Chains",
       "category": "effect",
       "takes": ["effect/fx-chains.ogg"]
-    },
-    {
-      "key": "fx-nat1",
-      "name": "Critical fail",
-      "category": "effect",
-      "takes": ["effect/fx-nat1.ogg"]
-    },
-    {
-      "key": "fx-nat20",
-      "name": "Critical hit",
-      "category": "effect",
-      "takes": ["effect/fx-nat20.ogg"]
     },
     {
       "key": "fx-ghost",
@@ -238,22 +208,10 @@
       "takes": ["effect/fx-ghoul-1.ogg", "effect/fx-ghoul-2.ogg"]
     },
     {
-      "key": "fx-zombie",
-      "name": "Zombie",
-      "category": "effect",
-      "takes": ["effect/fx-zombie.ogg"]
-    },
-    {
       "key": "fx-arrow",
       "name": "Arrow",
       "category": "effect",
       "takes": ["effect/fx-arrow.ogg"]
-    },
-    {
-      "key": "fx-cackle",
-      "name": "Cackle",
-      "category": "effect",
-      "takes": ["effect/fx-cackle.ogg"]
     },
     {
       "key": "fx-crows",
@@ -308,6 +266,173 @@
       "name": "Running",
       "category": "effect",
       "takes": ["effect/fx-running.ogg"]
+    },
+    {
+      "key": "fx-lightning",
+      "name": "Lightning bolt",
+      "category": "effect",
+      "takes": [
+        "effect/fx-lightning-1.ogg",
+        "effect/fx-lightning-2.ogg",
+        "effect/fx-lightning-3.ogg"
+      ]
+    },
+    {
+      "key": "fx-thunder",
+      "name": "Thunder",
+      "category": "effect",
+      "takes": ["effect/fx-thunder.ogg"]
+    },
+    {
+      "key": "fx-groan",
+      "name": "Groan or cry",
+      "category": "effect",
+      "takes": [
+        "effect/fx-groan-1.ogg",
+        "effect/fx-groan-2.ogg",
+        "effect/fx-groan-3.ogg",
+        "effect/fx-groan-4.ogg"
+      ]
+    },
+    {
+      "key": "fx-nat1",
+      "name": "Critical fail (fumble)",
+      "category": "effect",
+      "takes": ["effect/fx-nat1.ogg"]
+    },
+    {
+      "key": "fx-nat20",
+      "name": "Critical hit (massive)",
+      "category": "effect",
+      "takes": ["effect/fx-nat20.ogg"]
+    },
+    {
+      "key": "fx-flash-bang",
+      "name": "Flash bang",
+      "category": "effect",
+      "takes": ["effect/fx-flash-bang.ogg"]
+    },
+    {
+      "key": "fx-fire-spell",
+      "name": "Fire spell",
+      "category": "effect",
+      "takes": [
+        "effect/fx-fire-spell-1.ogg",
+        "effect/fx-fire-spell-2.ogg",
+        "effect/fx-fire-spell-3.ogg"
+      ]
+    },
+    {
+      "key": "fx-heal",
+      "name": "Healing",
+      "category": "effect",
+      "takes": ["effect/fx-heal-1.ogg", "effect/fx-heal-2.ogg", "effect/fx-heal-3.ogg"]
+    },
+    {
+      "key": "fx-insects",
+      "name": "Insects",
+      "category": "effect",
+      "takes": [
+        "effect/fx-insects-1.ogg",
+        "effect/fx-insects-2.ogg",
+        "effect/fx-insects-3.ogg",
+        "effect/fx-insects-4.ogg"
+      ]
+    },
+    {
+      "key": "fx-skeleton",
+      "name": "Bones",
+      "category": "effect",
+      "takes": ["effect/fx-skeleton-1.ogg", "effect/fx-skeleton-2.ogg", "effect/fx-skeleton-3.ogg"]
+    },
+    {
+      "key": "fx-zombie",
+      "name": "Zombie",
+      "category": "effect",
+      "takes": ["effect/fx-zombie-1.ogg", "effect/fx-zombie-2.ogg", "effect/fx-zombie-3.ogg"]
+    },
+    {
+      "key": "fx-cackle",
+      "name": "Evil laugh",
+      "category": "effect",
+      "takes": ["effect/fx-cackle-1.ogg", "effect/fx-cackle-2.ogg", "effect/fx-cackle-3.ogg"]
+    },
+    {
+      "key": "fx-monster",
+      "name": "Monster",
+      "category": "effect",
+      "takes": [
+        "effect/fx-monster-1.ogg",
+        "effect/fx-monster-2.ogg",
+        "effect/fx-monster-3.ogg",
+        "effect/fx-monster-4.ogg"
+      ]
+    },
+    {
+      "key": "fx-stab",
+      "name": "Stab",
+      "category": "effect",
+      "takes": ["effect/fx-stab-1.ogg", "effect/fx-stab-2.ogg", "effect/fx-stab-3.ogg"]
+    },
+    {
+      "key": "fx-jingle-win",
+      "name": "Victory",
+      "category": "effect",
+      "takes": ["effect/fx-jingle-win.ogg"]
+    },
+    {
+      "key": "fx-jingle-achievement",
+      "name": "Achievement",
+      "category": "effect",
+      "takes": ["effect/fx-jingle-achievement.ogg"]
+    },
+    {
+      "key": "fx-jingle-lose",
+      "name": "Defeat",
+      "category": "effect",
+      "takes": ["effect/fx-jingle-lose.ogg"]
+    },
+    {
+      "key": "amb-hell",
+      "name": "Infernal",
+      "category": "ambience",
+      "takes": ["ambience/amb-hell.ogg"]
+    },
+    {
+      "key": "music-doom",
+      "name": "Pending doom",
+      "category": "music",
+      "takes": ["music/music-doom.ogg"]
+    },
+    {
+      "key": "music-skirmish",
+      "name": "Skirmish",
+      "category": "music",
+      "takes": ["music/music-skirmish.ogg"]
+    },
+    {
+      "key": "music-dragon",
+      "name": "Fire dragon",
+      "category": "music",
+      "takes": ["music/music-dragon.ogg"]
+    },
+    {
+      "key": "music-boss-metal",
+      "name": "Symphonic metal boss",
+      "category": "music",
+      "takes": ["music/music-boss-metal.ogg"]
+    },
+    {
+      "key": "music-epic",
+      "name": "Epic battle",
+      "category": "music",
+      "takes": ["music/music-epic.ogg"]
+    },
+    {
+      "key": "music-run",
+      "name": "Run away",
+      "category": "music",
+      "takes": ["music/music-run.ogg"]
     }
   ],
   "boards": [
@@ -322,6 +447,10 @@
         {
           "label": "Draw blade",
           "sound": "fx-draw-blade"
+        },
+        {
+          "label": "Stab",
+          "sound": "fx-stab"
         },
         {
           "label": "Arrow",
@@ -354,12 +483,24 @@
           "sound": "fx-fireball"
         },
         {
+          "label": "Fire spell",
+          "sound": "fx-fire-spell"
+        },
+        {
+          "label": "Flash bang",
+          "sound": "fx-flash-bang"
+        },
+        {
           "label": "Lightning bolt",
           "sound": "fx-lightning"
         },
         {
           "label": "Magic missile",
           "sound": "fx-missile"
+        },
+        {
+          "label": "Healing",
+          "sound": "fx-heal"
         },
         {
           "label": "Spellbook",
@@ -380,6 +521,10 @@
           "sound": "fx-growl"
         },
         {
+          "label": "Monster",
+          "sound": "fx-monster"
+        },
+        {
           "label": "Dragon roar",
           "sound": "fx-roar"
         },
@@ -388,12 +533,16 @@
           "sound": "fx-wolf"
         },
         {
-          "label": "Scream",
-          "sound": "fx-scream"
+          "label": "Groan or cry",
+          "sound": "fx-groan"
         },
         {
           "label": "Slime",
           "sound": "fx-slime"
+        },
+        {
+          "label": "Insects",
+          "sound": "fx-insects"
         },
         {
           "label": "Crows",
@@ -418,7 +567,11 @@
           "sound": "fx-zombie"
         },
         {
-          "label": "Cackle",
+          "label": "Bones",
+          "sound": "fx-skeleton"
+        },
+        {
+          "label": "Evil laugh",
           "sound": "fx-cackle"
         },
         {
@@ -500,6 +653,24 @@
           "sound": "fx-bell"
         }
       ]
+    },
+    {
+      "key": "jingles",
+      "name": "Jingles",
+      "buttons": [
+        {
+          "label": "Victory",
+          "sound": "fx-jingle-win"
+        },
+        {
+          "label": "Achievement",
+          "sound": "fx-jingle-achievement"
+        },
+        {
+          "label": "Defeat",
+          "sound": "fx-jingle-lose"
+        }
+      ]
     }
   ],
   "scenes": [
@@ -536,6 +707,72 @@
       "layers": [
         {
           "sound": "amb-forest",
+          "mode": "loop",
+          "volume": 0.6
+        }
+      ]
+    },
+    {
+      "key": "battle",
+      "name": "Battle",
+      "layers": [
+        {
+          "sound": "music-skirmish",
+          "mode": "loop",
+          "volume": 0.6
+        }
+      ]
+    },
+    {
+      "key": "doom",
+      "name": "Pending doom",
+      "layers": [
+        {
+          "sound": "music-doom",
+          "mode": "loop",
+          "volume": 0.6
+        }
+      ]
+    },
+    {
+      "key": "boss-dragon",
+      "name": "Boss: fire dragon",
+      "layers": [
+        {
+          "sound": "music-dragon",
+          "mode": "loop",
+          "volume": 0.6
+        }
+      ]
+    },
+    {
+      "key": "boss-metal",
+      "name": "Boss: symphonic metal",
+      "layers": [
+        {
+          "sound": "music-boss-metal",
+          "mode": "loop",
+          "volume": 0.6
+        }
+      ]
+    },
+    {
+      "key": "epic",
+      "name": "Epic battle",
+      "layers": [
+        {
+          "sound": "music-epic",
+          "mode": "loop",
+          "volume": 0.6
+        }
+      ]
+    },
+    {
+      "key": "run",
+      "name": "Run away!",
+      "layers": [
+        {
+          "sound": "music-run",
           "mode": "loop",
           "volume": 0.6
         }
@@ -637,6 +874,17 @@
           "sound": "mountain-wind",
           "mode": "loop",
           "volume": 0.7
+        }
+      ]
+    },
+    {
+      "key": "infernal",
+      "name": "Infernal",
+      "layers": [
+        {
+          "sound": "amb-hell",
+          "mode": "loop",
+          "volume": 0.6
         }
       ]
     }

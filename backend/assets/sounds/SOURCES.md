@@ -2,8 +2,9 @@
 
 Every clip is CC0 (public domain), from [Freesound](https://freesound.org), [OpenGameArt](https://opengameart.org)
 or [Kenney](https://kenney.nl), checked against the source's licence by `scripts/sound-pack/build.py`, which refuses anything that is not CC0. Clips are
-loudness-normalised and re-encoded to Ogg Vorbis; beds are crossfaded to loop. No credit is required;
-it is given here anyway.
+loudness-normalised and re-encoded to Ogg Vorbis; beds are crossfaded to loop. CC0 needs no credit (given here anyway).
+Rows marked **CC BY 3.0** are used under that licence (https://creativecommons.org/licenses/by/3.0/): the credit in the
+Author column must stay with the pack, and the clips are adapted (trimmed, normalised, re-encoded, layered).
 
 | File | Work | Author | Page | Size |
 | --- | --- | --- | --- | --- |
@@ -26,11 +27,10 @@ it is given here anyway.
 | `effect/fx-draw-blade-1.ogg` | Kenney rpg-audio: drawKnife1 | Kenney (kenney.nl) | https://kenney.nl/assets/rpg-audio | 6 KB |
 | `effect/fx-draw-blade-2.ogg` | Kenney rpg-audio: drawKnife2 | Kenney (kenney.nl) | https://kenney.nl/assets/rpg-audio | 7 KB |
 | `effect/fx-draw-blade-3.ogg` | Kenney rpg-audio: drawKnife3 | Kenney (kenney.nl) | https://kenney.nl/assets/rpg-audio | 6 KB |
-| `effect/fx-war-horn.ogg` | war horn.wav | adharca | https://freesound.org/people/adharca/sounds/539956/ | 60 KB |
+| `effect/fx-war-horn.ogg` | war horn.wav | adharca | https://freesound.org/people/adharca/sounds/539956/ | 59 KB |
 | `effect/fx-growl.ogg` | Monster Growl | Kurlyjoe | https://freesound.org/people/Kurlyjoe/sounds/476947/ | 19 KB |
-| `effect/fx-roar.ogg` | dragon roar mild 18.aiff | bevibeldesign | https://freesound.org/people/bevibeldesign/sounds/315823/ | 19 KB |
+| `effect/fx-roar.ogg` | dragon roar mild 18.aiff | bevibeldesign | https://freesound.org/people/bevibeldesign/sounds/315823/ | 18 KB |
 | `effect/fx-wolf.ogg` | Adult and young wolves howling far away | Sacha.Julien | https://freesound.org/people/Sacha.Julien/sounds/753896/ | 36 KB |
-| `effect/fx-scream.ogg` | Voice_AdultMale_DeathScream_10.wav | MrFossy | https://freesound.org/people/MrFossy/sounds/547189/ | 15 KB |
 | `effect/fx-door-slam.ogg` | Heavy_wooden_door_close_mansion.wav | elliott.klein | https://freesound.org/people/elliott.klein/sounds/367221/ | 16 KB |
 | `effect/fx-gate.ogg` | cemeterygate16.aif | celadon_noise | https://freesound.org/people/celadon_noise/sounds/399449/ | 27 KB |
 | `effect/fx-creak-1.ogg` | Kenney rpg-audio: creak1 | Kenney (kenney.nl) | https://kenney.nl/assets/rpg-audio | 10 KB |
@@ -38,27 +38,21 @@ it is given here anyway.
 | `effect/fx-creak-3.ogg` | Kenney rpg-audio: creak3 | Kenney (kenney.nl) | https://kenney.nl/assets/rpg-audio | 7 KB |
 | `effect/fx-spell.ogg` | Magic Spell Effect (Delayed) | SecureSubset | https://freesound.org/people/SecureSubset/sounds/786290/ | 9 KB |
 | `effect/fx-dark-sting.ogg` | Shock Stab 02 | nomiqbomi | https://freesound.org/people/nomiqbomi/sounds/578376/ | 24 KB |
-| `effect/fx-thunder.ogg` | Thunder 1 (No Reverb) | Terry93D | https://freesound.org/people/Terry93D/sounds/327986/ | 46 KB |
 | `effect/fx-boom.ogg` | cannon_boom10.wav | ReadeOnly | https://freesound.org/people/ReadeOnly/sounds/186930/ | 25 KB |
 | `effect/fx-bell.ogg` | Ship Bell Single Ring | Sojan | https://freesound.org/people/Sojan/sounds/353233/ | 17 KB |
 | `effect/fx-coins-1.ogg` | Pouch of Gold Coins Emptying out Onto Wood.wav | The_Frisbee_of_Peace | https://freesound.org/people/The_Frisbee_of_Peace/sounds/575571/ | 35 KB |
 | `effect/fx-coins-2.ogg` | Kenney rpg-audio: handleCoins | Kenney (kenney.nl) | https://kenney.nl/assets/rpg-audio | 15 KB |
 | `effect/fx-coins-3.ogg` | Kenney rpg-audio: handleCoins2 | Kenney (kenney.nl) | https://kenney.nl/assets/rpg-audio | 8 KB |
-| `effect/fx-fireball.ogg` | Magic - Blast or Whoosh | Vrymaa | https://freesound.org/people/Vrymaa/sounds/802725/ | 78 KB |
-| `effect/fx-missile.ogg` | Magic Missiles.wav | spookymodem | https://freesound.org/people/spookymodem/sounds/249817/ | 30 KB |
-| `effect/fx-lightning.ogg` | electric.wav (+1 more, sequenced) | TreasureBoxFilms | https://freesound.org/people/TreasureBoxFilms/sounds/87976/ | 38 KB |
-| `effect/fx-cave-in.ogg` | Rocks.wav | adamgryu | https://freesound.org/people/adamgryu/sounds/336023/ | 98 KB |
+| `effect/fx-fireball.ogg` | Magic - Blast or Whoosh | Vrymaa | https://freesound.org/people/Vrymaa/sounds/802725/ | 77 KB |
+| `effect/fx-missile.ogg` | Magic Missiles.wav | spookymodem | https://freesound.org/people/spookymodem/sounds/249817/ | 29 KB |
+| `effect/fx-cave-in.ogg` | Rocks.wav | adamgryu | https://freesound.org/people/adamgryu/sounds/336023/ | 96 KB |
 | `effect/fx-chains.ogg` | RATTLING CHAIN.wav | genel | https://freesound.org/people/genel/sounds/611669/ | 77 KB |
-| `effect/fx-nat1.ogg` | Fail Sound (Wa-Wa-Wah) | YoshikaMiyafuji | https://freesound.org/people/YoshikaMiyafuji/sounds/834512/ | 34 KB |
-| `effect/fx-nat20.ogg` | Sword_Clash (46).wav (+1 more, sequenced) | JohnBuhr | https://freesound.org/people/JohnBuhr/sounds/326795/ | 12 KB |
 | `effect/fx-ghost.ogg` | Phantoms' Whispers | NicknameLarry | https://freesound.org/people/NicknameLarry/sounds/489897/ | 49 KB |
 | `effect/fx-ghoul-1.ogg` | Zombie gargles 2 | Breviceps | https://freesound.org/people/Breviceps/sounds/445991/ | 16 KB |
 | `effect/fx-ghoul-2.ogg` | Zombie gargles 3 | Breviceps | https://freesound.org/people/Breviceps/sounds/445992/ | 24 KB |
-| `effect/fx-zombie.ogg` | Monster Moan Groan Growl.mp3 | SnowFightStudios | https://freesound.org/people/SnowFightStudios/sounds/643766/ | 52 KB |
 | `effect/fx-arrow.ogg` | ARROW_SHOOT_SINGLE_03.wav | JoeDinesSound | https://freesound.org/people/JoeDinesSound/sounds/534940/ | 8 KB |
-| `effect/fx-cackle.ogg` | Cackle.wav | morganpurkis | https://freesound.org/people/morganpurkis/sounds/371284/ | 58 KB |
 | `effect/fx-crows.ogg` | Hooded Crow: Panic Cawing | Mish7913 | https://freesound.org/people/Mish7913/sounds/741365/ | 31 KB |
-| `effect/fx-slime.ogg` | Slime 7.wav | Archos | https://freesound.org/people/Archos/sounds/433827/ | 23 KB |
+| `effect/fx-slime.ogg` | Slime 7.wav | Archos | https://freesound.org/people/Archos/sounds/433827/ | 22 KB |
 | `effect/fx-potion.ogg` | Bubbles 001.wav | ristooooo1 | https://freesound.org/people/ristooooo1/sounds/539823/ | 50 KB |
 | `effect/fx-lock.ogg` | Key Turning in Lock.wav | Solar01 | https://freesound.org/people/Solar01/sounds/662888/ | 102 KB |
 | `effect/fx-latch-1.ogg` | Kenney rpg-audio: metalLatch | Kenney (kenney.nl) | https://kenney.nl/assets/rpg-audio | 6 KB |
@@ -69,5 +63,52 @@ it is given here anyway.
 | `effect/fx-footsteps.ogg` | Kenney impact-sounds: footstep_concrete_000 (+4 more, sequenced) | Kenney (kenney.nl) | https://kenney.nl/assets/impact-sounds | 11 KB |
 | `effect/fx-footsteps-wood.ogg` | Kenney impact-sounds: footstep_wood_000 (+4 more, sequenced) | Kenney (kenney.nl) | https://kenney.nl/assets/impact-sounds | 14 KB |
 | `effect/fx-running.ogg` | Kenney impact-sounds: footstep_concrete_000 (+4 more, sequenced) | Kenney (kenney.nl) | https://kenney.nl/assets/impact-sounds | 15 KB |
+| `effect/fx-lightning-1.ogg` | 150 Combat Sound Effects: ElectroZap_s01.wav | untamedpixels | https://opengameart.org/content/150-combat-sound-effects | 6 KB |
+| `effect/fx-lightning-2.ogg` | 150 Combat Sound Effects: HeavyZap_s01.wav | untamedpixels | https://opengameart.org/content/150-combat-sound-effects | 10 KB |
+| `effect/fx-lightning-3.ogg` | 150 Combat Sound Effects: EnergyZap_s01.wav | untamedpixels | https://opengameart.org/content/150-combat-sound-effects | 4 KB |
+| `effect/fx-thunder.ogg` | S23-14 Thunder; long distant rolling sound.wav | craigsmith | https://freesound.org/people/craigsmith/sounds/675992/ | 47 KB |
+| `effect/fx-groan-1.ogg` | Groan_male.wav | deleted_user_2104797 | https://freesound.org/people/deleted_user_2104797/sounds/166124/ | 22 KB |
+| `effect/fx-groan-2.ogg` | 80 CC0 RPG SFX: creature_hurt_01.ogg | rubberduck | https://opengameart.org/content/80-cc0-rpg-sfx | 7 KB |
+| `effect/fx-groan-3.ogg` | 80 CC0 RPG SFX: creature_hurt_02.ogg | rubberduck | https://opengameart.org/content/80-cc0-rpg-sfx | 7 KB |
+| `effect/fx-groan-4.ogg` | 80 CC0 RPG SFX: creature_die_01.ogg | rubberduck | https://opengameart.org/content/80-cc0-rpg-sfx | 7 KB |
+| `effect/fx-nat1.ogg` | Kenney rpg-audio: drawKnife1 (+2 more, sequenced) | Kenney (kenney.nl) | https://kenney.nl/assets/rpg-audio | 34 KB |
+| `effect/fx-nat20.ogg` | 150 Combat Sound Effects: BlastImpact_02_s01.wav (+3 more, sequenced) | untamedpixels | https://opengameart.org/content/150-combat-sound-effects | 40 KB |
+| `effect/fx-flash-bang.ogg` | flash bang sound | teeeece | https://opengameart.org/content/flash-bang-sound | 28 KB |
+| `effect/fx-fire-spell-1.ogg` | 150 Combat Sound Effects: Fire Spell Impact 1_s06.wav | untamedpixels | https://opengameart.org/content/150-combat-sound-effects | 28 KB |
+| `effect/fx-fire-spell-2.ogg` | 150 Combat Sound Effects: Fire Spell Impact 2_s06.wav | untamedpixels | https://opengameart.org/content/150-combat-sound-effects | 37 KB |
+| `effect/fx-fire-spell-3.ogg` | 150 Combat Sound Effects: Fire Spell Impact 3_s06.wav | untamedpixels | https://opengameart.org/content/150-combat-sound-effects | 29 KB |
+| `effect/fx-heal-1.ogg` | 150 Combat Sound Effects: Healing Spell Impact 1_s08.wav | untamedpixels | https://opengameart.org/content/150-combat-sound-effects | 27 KB |
+| `effect/fx-heal-2.ogg` | 150 Combat Sound Effects: Healing Spell Impact 5_s08.wav | untamedpixels | https://opengameart.org/content/150-combat-sound-effects | 27 KB |
+| `effect/fx-heal-3.ogg` | 150 Combat Sound Effects: Healing Spell Impact 9_s08.wav | untamedpixels | https://opengameart.org/content/150-combat-sound-effects | 20 KB |
+| `effect/fx-insects-1.ogg` | Insect Sounds: insect0.ogg | fvcalderan | https://opengameart.org/content/insect-sounds | 9 KB |
+| `effect/fx-insects-2.ogg` | Insect Sounds: insect1.ogg | fvcalderan | https://opengameart.org/content/insect-sounds | 6 KB |
+| `effect/fx-insects-3.ogg` | Insect Sounds: insect2.ogg | fvcalderan | https://opengameart.org/content/insect-sounds | 9 KB |
+| `effect/fx-insects-4.ogg` | Insect Sounds: insect3.ogg | fvcalderan | https://opengameart.org/content/insect-sounds | 7 KB |
+| `effect/fx-skeleton-1.ogg` | Horror Sound Effects Library: Bonecrack_00.wav | little-robot-sound-factory - Little Robot Sound Factory (www.littlerobotsoundfactory.com), CC BY 3.0 | https://opengameart.org/content/horror-sound-effects-library | 8 KB |
+| `effect/fx-skeleton-2.ogg` | Horror Sound Effects Library: Bonecrack_01.wav | little-robot-sound-factory - Little Robot Sound Factory (www.littlerobotsoundfactory.com), CC BY 3.0 | https://opengameart.org/content/horror-sound-effects-library | 4 KB |
+| `effect/fx-skeleton-3.ogg` | Horror Sound Effects Library: Bonecrack_02.wav | little-robot-sound-factory - Little Robot Sound Factory (www.littlerobotsoundfactory.com), CC BY 3.0 | https://opengameart.org/content/horror-sound-effects-library | 5 KB |
+| `effect/fx-zombie-1.ogg` | Monster Moan Groan Growl.mp3 | SnowFightStudios | https://freesound.org/people/SnowFightStudios/sounds/643766/ | 50 KB |
+| `effect/fx-zombie-2.ogg` | Horror Sound Effects Library: Zombie_00.wav | little-robot-sound-factory - Little Robot Sound Factory (www.littlerobotsoundfactory.com), CC BY 3.0 | https://opengameart.org/content/horror-sound-effects-library | 38 KB |
+| `effect/fx-zombie-3.ogg` | Horror Sound Effects Library: Zombie_01.wav | little-robot-sound-factory - Little Robot Sound Factory (www.littlerobotsoundfactory.com), CC BY 3.0 | https://opengameart.org/content/horror-sound-effects-library | 12 KB |
+| `effect/fx-cackle-1.ogg` | Cackle.wav | morganpurkis | https://freesound.org/people/morganpurkis/sounds/371284/ | 58 KB |
+| `effect/fx-cackle-2.ogg` | Horror Sound Effects Library: Laugh_Evil_00.wav | little-robot-sound-factory - Little Robot Sound Factory (www.littlerobotsoundfactory.com), CC BY 3.0 | https://opengameart.org/content/horror-sound-effects-library | 28 KB |
+| `effect/fx-cackle-3.ogg` | Horror Sound Effects Library: Laugh_Evil_01.wav | little-robot-sound-factory - Little Robot Sound Factory (www.littlerobotsoundfactory.com), CC BY 3.0 | https://opengameart.org/content/horror-sound-effects-library | 25 KB |
+| `effect/fx-monster-1.ogg` | Horror Sound Effects Library: Monster_00.wav | little-robot-sound-factory - Little Robot Sound Factory (www.littlerobotsoundfactory.com), CC BY 3.0 | https://opengameart.org/content/horror-sound-effects-library | 30 KB |
+| `effect/fx-monster-2.ogg` | Horror Sound Effects Library: Monster_01.wav | little-robot-sound-factory - Little Robot Sound Factory (www.littlerobotsoundfactory.com), CC BY 3.0 | https://opengameart.org/content/horror-sound-effects-library | 17 KB |
+| `effect/fx-monster-3.ogg` | Horror Sound Effects Library: Monster_02.wav | little-robot-sound-factory - Little Robot Sound Factory (www.littlerobotsoundfactory.com), CC BY 3.0 | https://opengameart.org/content/horror-sound-effects-library | 30 KB |
+| `effect/fx-monster-4.ogg` | Horror Sound Effects Library: Monster_03.wav | little-robot-sound-factory - Little Robot Sound Factory (www.littlerobotsoundfactory.com), CC BY 3.0 | https://opengameart.org/content/horror-sound-effects-library | 36 KB |
+| `effect/fx-stab-1.ogg` | Horror Sound Effects Library: Stab_Knife_00.wav | little-robot-sound-factory - Little Robot Sound Factory (www.littlerobotsoundfactory.com), CC BY 3.0 | https://opengameart.org/content/horror-sound-effects-library | 7 KB |
+| `effect/fx-stab-2.ogg` | Horror Sound Effects Library: Stab_Knife_01.wav | little-robot-sound-factory - Little Robot Sound Factory (www.littlerobotsoundfactory.com), CC BY 3.0 | https://opengameart.org/content/horror-sound-effects-library | 7 KB |
+| `effect/fx-stab-3.ogg` | Horror Sound Effects Library: Stab_Knife_02.wav | little-robot-sound-factory - Little Robot Sound Factory (www.littlerobotsoundfactory.com), CC BY 3.0 | https://opengameart.org/content/horror-sound-effects-library | 8 KB |
+| `effect/fx-jingle-win.ogg` | Fantasy Sound Effects Library: Jingle_Win_00.wav | little-robot-sound-factory - Little Robot Sound Factory (www.littlerobotsoundfactory.com), CC BY 3.0 | https://opengameart.org/content/fantasy-sound-effects-library | 100 KB |
+| `effect/fx-jingle-achievement.ogg` | Fantasy Sound Effects Library: Jingle_Achievement_00.wav | little-robot-sound-factory - Little Robot Sound Factory (www.littlerobotsoundfactory.com), CC BY 3.0 | https://opengameart.org/content/fantasy-sound-effects-library | 46 KB |
+| `effect/fx-jingle-lose.ogg` | Fantasy Sound Effects Library: Jingle_Lose_00.wav | little-robot-sound-factory - Little Robot Sound Factory (www.littlerobotsoundfactory.com), CC BY 3.0 | https://opengameart.org/content/fantasy-sound-effects-library | 65 KB |
+| `ambience/amb-hell.ogg` | Horror Sound Effects Library: Ambience_Hell_00.wav | little-robot-sound-factory - Little Robot Sound Factory (www.littlerobotsoundfactory.com), CC BY 3.0 | https://opengameart.org/content/horror-sound-effects-library | 288 KB |
+| `music/music-doom.ogg` | Laments of the War | cethiel | https://opengameart.org/content/laments-of-the-war | 2109 KB |
+| `music/music-skirmish.ogg` | Battle! (Rocky Cliffs) | umplix | https://opengameart.org/content/battle-rocky-cliffs | 1111 KB |
+| `music/music-dragon.ogg` | The Fire Dragon | umplix | https://opengameart.org/content/the-fire-dragon | 1084 KB |
+| `music/music-boss-metal.ogg` | Boss Battle #2 [Symphonic Metal]: boss_battle_#2_metal_loop.wav | nene | https://opengameart.org/content/boss-battle-2-symphonic-metal | 426 KB |
+| `music/music-epic.ogg` | QaziJamJam (orchestral battle theme) | emmama | https://opengameart.org/content/qazijamjam-orchestral-battle-theme | 1982 KB |
+| `music/music-run.ogg` | Running from something | haeldb | https://opengameart.org/content/running-from-something | 1169 KB |
 
-Total: 11437 KB.
+Total: 20348 KB.

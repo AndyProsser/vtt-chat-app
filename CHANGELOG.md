@@ -16,7 +16,8 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ### Changed
 
-- **The starter sounds are on by default**, and the pack is rebuilt from listened-to, CC0 sources (Freesound, Kenney, OpenGameArt; credits in `backend/assets/sounds/SOURCES.md`): 12 quiet scenes (Tavern, Dungeon, Forest, Rain, Market, Forest night, Storm, Campfire, Harbour, Cave, Castle hall, Mountain) and about 40 stingers in seven boards: Combat (including Critical hit and Critical fail), Spells (fireball, lightning bolt, magic missile), Creatures, Undead and horrors, Doors, traps and loot (cave-in, chains), Movement (footsteps, running) and Mood. Battle music is still to come. `STARTER_SOUNDS=0` turns them off.
+- **The starter sounds are on by default**, rebuilt from listened-to sources (Freesound, Kenney and OpenGameArt; credits in `backend/assets/sounds/SOURCES.md`). 19 quiet scenes: Tavern, Dungeon, Forest, Forest night, Rain, Market, Storm, Campfire, Harbour, Cave, Castle hall, Mountain, Infernal, and six battle moods (Battle, Epic battle, Pending doom, Boss: fire dragon, Boss: symphonic metal, Run away!). About 50 stingers in eight boards: Combat (Critical hit, Critical fail), Spells, Creatures, Undead and horrors, Doors, traps and loot, Movement, Mood and Jingles. `STARTER_SOUNDS=0` turns them off.
+- **Some starter sounds are CC BY 3.0, not CC0**: the Fantasy and Horror sound libraries by Little Robot Sound Factory (www.littlerobotsoundfactory.com). They are credited in `SOURCES.md`, and the credit must stay with the pack.
 - **A fresh sound deck** starts with the first stinger of each board rather than the first six.
 
 ## [0.5.0] - 2026-11-16

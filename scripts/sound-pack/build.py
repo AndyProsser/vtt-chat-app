@@ -25,12 +25,12 @@ def get(url, binary=False):
     return data if binary else data.decode('utf-8', 'replace')
 
 
-def page_facts(slug):
+def page_facts(slug, require='CC0'):
     h = get('https://opengameart.org/content/' + slug)
     lic = re.search(r'field-name-field-art-licenses.*?field-items">(.*?)</div></div></div>', h, re.S)
     text = re.sub(r'<[^>]+>', ' ', lic.group(1)) if lic else ''
-    if 'CC0' not in text:
-        sys.exit(f'REFUSED: {slug} does not list CC0 ({text.strip()!r})')
+    if require not in text:
+        sys.exit(f'REFUSED: {slug} does not list {require} ({text.strip()!r})')
     title = html.unescape(re.search(r'<title>(.*?) \|', h).group(1))
     user = re.search(r'href="/users/([^"]+)"', h)
     files = re.findall(r'href="(https://opengameart.org/sites/default/files/[^"]+\.(?:ogg|mp3|wav|flac))"', h)
@@ -65,8 +65,34 @@ def kenney_extract(spec):
     return out, f'Kenney {pack}: {name}', 'Kenney (kenney.nl)', f'https://kenney.nl/assets/{pack}'
 
 
+PACKS = {}
+
+
+def pack_extract(spec):
+    """A file from a zip pack on OpenGameArt: {pack: name, member: file name}. The pack's page must list the licence
+    the pack was allowed under in picks.json (CC0 by default); CC BY needs `require` and carries its credit."""
+    pk = PACKS[spec['pack']]
+    require = pk.get('require', 'CC0')
+    title, author, _files = page_facts(pk['page'], require)
+    zpath = CACHE / f"pack_{spec['pack']}.zip"
+    if not zpath.exists():
+        h = get('https://opengameart.org/content/' + pk['page'])
+        links = re.findall(r'href="(https://opengameart.org/sites/default/files/[^"]+\.zip)"', h)
+        zpath.write_bytes(get(links[0], binary=True))
+    with zipfile.ZipFile(zpath) as z:
+        names = [n for n in z.namelist() if '__MACOSX' not in n and os.path.basename(n) == spec['member']]
+        if not names:
+            sys.exit(f"no {spec['member']!r} in pack {spec['pack']}")
+        out = CACHE / re.sub(r'[^A-Za-z0-9._-]', '_', f"{spec['pack']}_{spec['member']}")
+        out.write_bytes(z.read(names[0]))
+    credit = f" - {pk['credit']}" if pk.get('credit') else ''
+    return out, f"{title}: {spec['member']}", author + credit, 'https://opengameart.org/content/' + pk['page']
+
+
 def fetch(spec):
     """One source spec -> (cached file, title, author, page)."""
+    if 'pack' in spec:
+        return pack_extract(spec)
     if 'kenney' in spec:
         return kenney_extract(spec['kenney'])
     if 'freesound' in spec:
@@ -107,21 +133,22 @@ def encode(src, dst, pick):
         args = ['-filter_complex', graph, '-map', '[out]']
     elif pick['kind'] == 'oneshot':
         trim = 'silenceremove=start_periods=1:start_threshold=-50dB'
-        args = ['-t', str(take), '-af', f'{trim},areverse,{trim},areverse,volume={peak_gain_db(src):.1f}dB,afade=t=out:st={max(take - 0.05, 0):.2f}:d=0.05']
+        low = f"{pick['filter']}," if pick.get('filter') else ''
+        args = ['-t', str(take), '-af', f"{trim},areverse,{trim},areverse,{low}volume={peak_gain_db(src, pick.get('peakDb', -4.5)):.1f}dB,afade=t=out:st={max(take - 0.05, 0):.2f}:d=0.05"]
     else:
         args = ['-t', str(take), '-af', norm]
     subprocess.check_call(['ffmpeg', '-v', 'error', '-y', '-i', str(src), *args,
-                           '-ar', '44100', '-c:a', 'libvorbis', '-q:a', '3', str(dst)])
+                           '-ar', '44100', '-c:a', 'libvorbis', '-q:a', str(pick.get('quality', 3)), str(dst)])
 
 
-def sequence(srcs, dst_wav, gap, count):
+def sequence(srcs, dst_wav, gap, count, offsets=None):
     """Lays `count` steps (cycling through `srcs`) `gap` seconds apart into one wav, so single footsteps become a walk."""
     inputs, labels, parts = [], [], []
     for i in range(count):
         src = srcs[i % len(srcs)]
         inputs += ['-i', str(src)]
         # a small deterministic wobble in timing so the walk is not a metronome
-        offset = int((i * gap + (0.03 if i % 2 else 0.0)) * 1000)
+        offset = int((offsets[i] if offsets else i * gap + (0.03 if i % 2 else 0.0)) * 1000)
         parts.append(f'[{i}:a]aformat=channel_layouts=mono,adelay={offset}[s{i}]')
         labels.append(f'[s{i}]')
     graph = ';'.join(parts) + ';' + ''.join(labels) + f'amix=inputs={count}:normalize=0[out]'
@@ -130,6 +157,7 @@ def sequence(srcs, dst_wav, gap, count):
 
 def main():
     picks = json.loads((HERE / 'picks.json').read_text())
+    PACKS.update(picks.get('packs', {}))
     CACHE.mkdir(exist_ok=True)
     sources, sounds = [], []
     for p in picks['sounds']:
@@ -140,9 +168,10 @@ def main():
             seq = p['sequence']
             fetched = [fetch(spec) for spec in specs]
             wav = CACHE / f"seq_{p['key']}.wav"
-            sequence([f[0] for f in fetched], wav, seq['gap'], seq['count'])
+            seq.setdefault('count', len(seq.get('offsets', [])))
+            sequence([f[0] for f in fetched], wav, seq.get('gap', 0), seq['count'], seq.get('offsets'))
             rel = f"{p['category']}/{p['key']}.ogg"
-            encode(wav, OUT / rel, {**p, 'maxSec': p.get('maxSec', seq['count'] * seq['gap'] + 1.0)})
+            encode(wav, OUT / rel, {**p, 'maxSec': p.get('maxSec', seq['count'] * seq.get('gap', 0) + 1.0)})
             size = (OUT / rel).stat().st_size
             print(f"{rel}  {size // 1024} KB  <- {fetched[0][3]} ({fetched[0][2]}) x{seq['count']} steps")
             sounds.append({'key': p['key'], 'name': p['name'], 'category': p['category'], 'takes': [rel]})
@@ -162,8 +191,9 @@ def main():
     lines = ['# Starter sound pack: sources and licences', '',
              'Every clip is CC0 (public domain), from [Freesound](https://freesound.org), [OpenGameArt](https://opengameart.org)',
              'or [Kenney](https://kenney.nl), checked against the source\'s licence by `scripts/sound-pack/build.py`, which refuses anything that is not CC0. Clips are',
-             'loudness-normalised and re-encoded to Ogg Vorbis; beds are crossfaded to loop. No credit is required;',
-             'it is given here anyway.', '', '| File | Work | Author | Page | Size |', '| --- | --- | --- | --- | --- |']
+             'loudness-normalised and re-encoded to Ogg Vorbis; beds are crossfaded to loop. CC0 needs no credit (given here anyway).',
+             'Rows marked **CC BY 3.0** are used under that licence (https://creativecommons.org/licenses/by/3.0/): the credit in the',
+             'Author column must stay with the pack, and the clips are adapted (trimmed, normalised, re-encoded, layered).', '', '| File | Work | Author | Page | Size |', '| --- | --- | --- | --- | --- |']
     for rel, title, author, page, size in sources:
         lines.append(f'| `{rel}` | {title} | {author} | {page} | {size // 1024} KB |')
     lines.append(f'\nTotal: {sum(s[4] for s in sources) // 1024} KB.')

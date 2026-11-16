@@ -1,32 +1,276 @@
 [
-  { "key": "rain",       "name": "Rainfall",         "kind": "bed", "category": "ambience", "min": 30, "max": 240, "queries": ["rain ambience steady", "rain on leaves", "rainfall loop"] },
-  { "key": "storm",      "name": "Storm",            "kind": "bed", "category": "ambience", "min": 30, "max": 240, "queries": ["thunderstorm rain thunder", "storm thunder rain heavy"] },
-  { "key": "forest",     "name": "Forest",           "kind": "bed", "category": "ambience", "min": 30, "max": 240, "queries": ["forest ambience birds leaves", "woodland birdsong wind trees"] },
-  { "key": "town",       "name": "Town",             "kind": "bed", "category": "ambience", "min": 30, "max": 240, "queries": ["medieval town ambience", "village ambience distant people", "city street ambience crowd"] },
-  { "key": "market",     "name": "Market",           "kind": "bed", "category": "ambience", "min": 30, "max": 240, "queries": ["market crowd ambience", "marketplace crowd chatter"] },
-  { "key": "tavern",     "name": "Tavern",           "kind": "bed", "category": "ambience", "min": 30, "max": 240, "queries": ["tavern crowd murmur", "pub ambience chatter", "restaurant crowd murmur"] },
-  { "key": "sea",        "name": "Sea",              "kind": "bed", "category": "ambience", "min": 30, "max": 240, "queries": ["ocean waves ambience", "sea waves shore"] },
-  { "key": "campfire",   "name": "Campfire",         "kind": "bed", "category": "ambience", "min": 30, "max": 240, "queries": ["campfire crackling", "fire crackle loop"] },
-  { "key": "swamp",      "name": "Swamp",            "kind": "bed", "category": "ambience", "min": 30, "max": 240, "queries": ["swamp ambience frogs insects", "marsh night frogs"] },
-  { "key": "night",      "name": "Night",            "kind": "bed", "category": "ambience", "min": 30, "max": 240, "queries": ["night ambience crickets", "night forest owl crickets"] },
-  { "key": "cave",       "name": "Cave",             "kind": "bed", "category": "ambience", "min": 30, "max": 240, "queries": ["cave ambience dripping", "cavern drips echo"] },
-  { "key": "dungeon",    "name": "Dungeon",          "kind": "bed", "category": "ambience", "min": 30, "max": 240, "queries": ["dungeon ambience dark", "dark drone cellar"] },
-  { "key": "castle",     "name": "Castle hall",      "kind": "bed", "category": "ambience", "min": 30, "max": 240, "queries": ["castle hall ambience", "stone hall echo room tone"] },
-  { "key": "wind",       "name": "Wind",             "kind": "bed", "category": "ambience", "min": 30, "max": 240, "queries": ["wind howling mountain", "strong wind ambience"] },
-  { "key": "door-creak", "name": "Door creak",       "kind": "oneshot", "category": "effect", "min": 1, "max": 8, "queries": ["wooden door creak", "old door creaking open", "heavy door creak"] },
-  { "key": "door-slam",  "name": "Door slam",        "kind": "oneshot", "category": "effect", "min": 1, "max": 6, "queries": ["heavy wooden door slam", "dungeon door slam"] },
-  { "key": "gate",       "name": "Iron gate",        "kind": "oneshot", "category": "effect", "min": 1, "max": 10, "queries": ["iron gate creak", "portcullis chain", "dungeon gate"] },
-  { "key": "chest",      "name": "Chest and coins",  "kind": "oneshot", "category": "effect", "min": 1, "max": 8, "queries": ["treasure chest open", "coins pouch", "gold coins drop"] },
-  { "key": "sword",      "name": "Sword",            "kind": "oneshot", "category": "effect", "min": 1, "max": 6, "queries": ["sword unsheathe", "sword clash metal", "sword hit"] },
-  { "key": "steps-stone","name": "Stone footsteps",  "kind": "oneshot", "category": "effect", "min": 2, "max": 15, "queries": ["footsteps stone dungeon", "footsteps echo corridor"] },
-  { "key": "growl",      "name": "Monster growl",    "kind": "oneshot", "category": "effect", "min": 1, "max": 10, "queries": ["monster growl", "creature growl low", "beast snarl"] },
-  { "key": "roar",       "name": "Roar",             "kind": "oneshot", "category": "effect", "min": 1, "max": 12, "queries": ["dragon roar", "monster roar"] },
-  { "key": "wolf",       "name": "Wolf howl",        "kind": "oneshot", "category": "effect", "min": 1, "max": 15, "queries": ["wolf howl", "wolves howling distant"] },
-  { "key": "bell",       "name": "Bell toll",        "kind": "oneshot", "category": "effect", "min": 2, "max": 20, "queries": ["church bell toll", "dark bell toll", "large bell ring"] },
-  { "key": "magic",      "name": "Spell",            "kind": "oneshot", "category": "effect", "min": 1, "max": 8, "queries": ["magic spell cast", "magic whoosh energy", "spell charge"] },
-  { "key": "boom",       "name": "Explosion",        "kind": "oneshot", "category": "effect", "min": 1, "max": 10, "queries": ["explosion boom", "deep impact boom cinematic"] },
-  { "key": "sting-dark", "name": "Dark stinger",     "kind": "oneshot", "category": "effect", "min": 1, "max": 8, "queries": ["horror stinger", "dark cinematic hit", "tension sting dark"] },
-  { "key": "sting-drone","name": "Ominous swell",    "kind": "oneshot", "category": "effect", "min": 2, "max": 15, "queries": ["ominous swell", "dark drone rise", "sinister riser"] },
-  { "key": "trap",       "name": "Trap click",       "kind": "oneshot", "category": "effect", "min": 1, "max": 6, "queries": ["trap spring click", "mechanism click clank", "pressure plate"] },
-  { "key": "scream",     "name": "Scream",           "kind": "oneshot", "category": "effect", "min": 1, "max": 6, "queries": ["scream distant", "death scream male"] }
+  {
+    "key": "rain",
+    "name": "Rainfall",
+    "kind": "bed",
+    "category": "ambience",
+    "min": 30,
+    "max": 240,
+    "queries": ["rain ambience steady", "rain on leaves", "rainfall loop"]
+  },
+  {
+    "key": "storm",
+    "name": "Storm",
+    "kind": "bed",
+    "category": "ambience",
+    "min": 30,
+    "max": 240,
+    "queries": ["thunderstorm rain thunder", "storm thunder rain heavy"]
+  },
+  {
+    "key": "forest",
+    "name": "Forest",
+    "kind": "bed",
+    "category": "ambience",
+    "min": 30,
+    "max": 240,
+    "queries": ["forest ambience birds leaves", "woodland birdsong wind trees"]
+  },
+  {
+    "key": "town",
+    "name": "Town",
+    "kind": "bed",
+    "category": "ambience",
+    "min": 30,
+    "max": 240,
+    "queries": [
+      "medieval town ambience",
+      "village ambience distant people",
+      "city street ambience crowd"
+    ]
+  },
+  {
+    "key": "market",
+    "name": "Market",
+    "kind": "bed",
+    "category": "ambience",
+    "min": 30,
+    "max": 240,
+    "queries": ["market crowd ambience", "marketplace crowd chatter"]
+  },
+  {
+    "key": "tavern",
+    "name": "Tavern",
+    "kind": "bed",
+    "category": "ambience",
+    "min": 30,
+    "max": 240,
+    "queries": ["tavern crowd murmur", "pub ambience chatter", "restaurant crowd murmur"]
+  },
+  {
+    "key": "sea",
+    "name": "Sea",
+    "kind": "bed",
+    "category": "ambience",
+    "min": 30,
+    "max": 240,
+    "queries": ["ocean waves ambience", "sea waves shore"]
+  },
+  {
+    "key": "campfire",
+    "name": "Campfire",
+    "kind": "bed",
+    "category": "ambience",
+    "min": 30,
+    "max": 240,
+    "queries": ["campfire crackling", "fire crackle loop"]
+  },
+  {
+    "key": "swamp",
+    "name": "Swamp",
+    "kind": "bed",
+    "category": "ambience",
+    "min": 30,
+    "max": 240,
+    "queries": ["swamp ambience frogs insects", "marsh night frogs"]
+  },
+  {
+    "key": "night",
+    "name": "Night",
+    "kind": "bed",
+    "category": "ambience",
+    "min": 30,
+    "max": 240,
+    "queries": ["night ambience crickets", "night forest owl crickets"]
+  },
+  {
+    "key": "cave",
+    "name": "Cave",
+    "kind": "bed",
+    "category": "ambience",
+    "min": 30,
+    "max": 240,
+    "queries": ["cave ambience dripping", "cavern drips echo"]
+  },
+  {
+    "key": "dungeon",
+    "name": "Dungeon",
+    "kind": "bed",
+    "category": "ambience",
+    "min": 30,
+    "max": 240,
+    "queries": ["dungeon ambience dark", "dark drone cellar"]
+  },
+  {
+    "key": "castle",
+    "name": "Castle hall",
+    "kind": "bed",
+    "category": "ambience",
+    "min": 30,
+    "max": 240,
+    "queries": ["castle hall ambience", "stone hall echo room tone"]
+  },
+  {
+    "key": "wind",
+    "name": "Wind",
+    "kind": "bed",
+    "category": "ambience",
+    "min": 30,
+    "max": 240,
+    "queries": ["wind howling mountain", "strong wind ambience"]
+  },
+  {
+    "key": "door-creak",
+    "name": "Door creak",
+    "kind": "oneshot",
+    "category": "effect",
+    "min": 1,
+    "max": 8,
+    "queries": ["wooden door creak", "old door creaking open", "heavy door creak"]
+  },
+  {
+    "key": "door-slam",
+    "name": "Door slam",
+    "kind": "oneshot",
+    "category": "effect",
+    "min": 1,
+    "max": 6,
+    "queries": ["heavy wooden door slam", "dungeon door slam"]
+  },
+  {
+    "key": "gate",
+    "name": "Iron gate",
+    "kind": "oneshot",
+    "category": "effect",
+    "min": 1,
+    "max": 10,
+    "queries": ["iron gate creak", "portcullis chain", "dungeon gate"]
+  },
+  {
+    "key": "chest",
+    "name": "Chest and coins",
+    "kind": "oneshot",
+    "category": "effect",
+    "min": 1,
+    "max": 8,
+    "queries": ["treasure chest open", "coins pouch", "gold coins drop"]
+  },
+  {
+    "key": "sword",
+    "name": "Sword",
+    "kind": "oneshot",
+    "category": "effect",
+    "min": 1,
+    "max": 6,
+    "queries": ["sword unsheathe", "sword clash metal", "sword hit"]
+  },
+  {
+    "key": "steps-stone",
+    "name": "Stone footsteps",
+    "kind": "oneshot",
+    "category": "effect",
+    "min": 2,
+    "max": 15,
+    "queries": ["footsteps stone dungeon", "footsteps echo corridor"]
+  },
+  {
+    "key": "growl",
+    "name": "Monster growl",
+    "kind": "oneshot",
+    "category": "effect",
+    "min": 1,
+    "max": 10,
+    "queries": ["monster growl", "creature growl low", "beast snarl"]
+  },
+  {
+    "key": "roar",
+    "name": "Roar",
+    "kind": "oneshot",
+    "category": "effect",
+    "min": 1,
+    "max": 12,
+    "queries": ["dragon roar", "monster roar"]
+  },
+  {
+    "key": "wolf",
+    "name": "Wolf howl",
+    "kind": "oneshot",
+    "category": "effect",
+    "min": 1,
+    "max": 15,
+    "queries": ["wolf howl", "wolves howling distant"]
+  },
+  {
+    "key": "bell",
+    "name": "Bell toll",
+    "kind": "oneshot",
+    "category": "effect",
+    "min": 2,
+    "max": 20,
+    "queries": ["church bell toll", "dark bell toll", "large bell ring"]
+  },
+  {
+    "key": "magic",
+    "name": "Spell",
+    "kind": "oneshot",
+    "category": "effect",
+    "min": 1,
+    "max": 8,
+    "queries": ["magic spell cast", "magic whoosh energy", "spell charge"]
+  },
+  {
+    "key": "boom",
+    "name": "Explosion",
+    "kind": "oneshot",
+    "category": "effect",
+    "min": 1,
+    "max": 10,
+    "queries": ["explosion boom", "deep impact boom cinematic"]
+  },
+  {
+    "key": "sting-dark",
+    "name": "Dark stinger",
+    "kind": "oneshot",
+    "category": "effect",
+    "min": 1,
+    "max": 8,
+    "queries": ["horror stinger", "dark cinematic hit", "tension sting dark"]
+  },
+  {
+    "key": "sting-drone",
+    "name": "Ominous swell",
+    "kind": "oneshot",
+    "category": "effect",
+    "min": 2,
+    "max": 15,
+    "queries": ["ominous swell", "dark drone rise", "sinister riser"]
+  },
+  {
+    "key": "trap",
+    "name": "Trap click",
+    "kind": "oneshot",
+    "category": "effect",
+    "min": 1,
+    "max": 6,
+    "queries": ["trap spring click", "mechanism click clank", "pressure plate"]
+  },
+  {
+    "key": "scream",
+    "name": "Scream",
+    "kind": "oneshot",
+    "category": "effect",
+    "min": 1,
+    "max": 6,
+    "queries": ["scream distant", "death scream male"]
+  }
 ]
