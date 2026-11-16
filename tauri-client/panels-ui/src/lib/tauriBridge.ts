@@ -242,6 +242,10 @@ export const updateCheck = () => invoke<UpdateInfo | null>('update_check');
 export const updateDevBuildsGet = () => invoke<boolean>('update_dev_builds_get');
 export const updateDevBuildsSet = (enabled: boolean) =>
   invoke<void>('update_dev_builds_set', { enabled });
+/** False for a `.deb`/`.rpm` install, which cannot replace itself (`update_can_install`). */
+export const updateCanInstall = () => invoke<boolean>('update_can_install');
+/** Opens the server's download page in the browser (`update_open_download`). */
+export const updateOpenDownload = () => invoke<void>('update_open_download');
 /** Installs what `updateCheck` found, then the app restarts itself (`update_install`). */
 export const updateInstall = () => invoke<void>('update_install');
 

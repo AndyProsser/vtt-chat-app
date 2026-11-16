@@ -1,7 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import type { UpdateInfo } from '../lib/updateInfo.js';
-import { accountErrorMessage, updateCheck, updateInstall } from '../lib/tauriBridge.js';
+import {
+  accountErrorMessage,
+  updateCanInstall,
+  updateCheck,
+  updateInstall,
+  updateOpenDownload,
+} from '../lib/tauriBridge.js';
 
 const FIRST_CHECK_MS = 15_000; // not during start-up, when the window is still settling
 const RECHECK_MS = 6 * 60 * 60 * 1000;
@@ -15,6 +21,11 @@ export function useUpdate(automatic: boolean) {
   const [available, setAvailable] = useState<UpdateInfo>();
   const [busy, setBusy] = useState<'checking' | 'installing'>();
   const [error, setError] = useState<string>();
+  // A `.deb`/`.rpm` cannot replace itself: "install" then opens the download page instead.
+  const [canInstall, setCanInstall] = useState(true);
+  useEffect(() => {
+    void updateCanInstall().then(setCanInstall, () => undefined);
+  }, []);
 
   const check = useCallback(async (manual: boolean) => {
     setBusy('checking');
@@ -42,12 +53,17 @@ export function useUpdate(automatic: boolean) {
     setBusy('installing');
     setError(undefined);
     try {
-      await updateInstall(); // restarts the app on success
+      if (canInstall) {
+        await updateInstall(); // restarts the app on success
+      } else {
+        await updateOpenDownload();
+        setBusy(undefined);
+      }
     } catch (e) {
       setError(accountErrorMessage(e));
       setBusy(undefined);
     }
-  }, []);
+  }, [canInstall]);
 
-  return { available, busy, error, check, install };
+  return { available, busy, canInstall, error, check, install };
 }

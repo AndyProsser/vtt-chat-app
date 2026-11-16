@@ -51,7 +51,7 @@ export function AppSection() {
             </Button>
             {update.available && (
               <Button size="1" onClick={() => void update.install()}>
-                Restart to update
+                {update.canInstall ? 'Restart to update' : 'Download update'}
               </Button>
             )}
           </Flex>

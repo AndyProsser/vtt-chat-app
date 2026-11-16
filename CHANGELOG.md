@@ -26,6 +26,11 @@ the GitHub release notes and refuses to build a release without one. How to writ
 - **`SMTP_URL` now needs `PUBLIC_URL`** (the address the emailed links open). The server refuses to start with one and not the other.
 - **Protocol 3 (wire change).** This adds the campaign description, `PATCH /api/campaigns/:id` for names and descriptions, `DELETE /api/campaigns/:id/invites` and the `campaign.updated` event, so a server on this protocol needs a matching app (MINOR bump when released).
 
+### Fixed
+
+- **The Include dev builds switch** in Settings, then App, did nothing: the app was not allowed to read or save the choice.
+- **A `.deb` or `.rpm` install** cannot update itself, so the update button now reads **Download update** and opens the server's download page, instead of failing.
+
 ### Known limits
 
 - The description is visible to anyone who has an invite link, so keep secrets out of it.

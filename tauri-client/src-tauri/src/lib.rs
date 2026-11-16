@@ -136,6 +136,8 @@ pub fn run() {
             updater::update_install,
             updater::update_dev_builds_get,
             updater::update_dev_builds_set,
+            updater::update_can_install,
+            updater::update_open_download,
             autostart::autostart_enabled,
             autostart::autostart_set,
             account_commands::account_status,

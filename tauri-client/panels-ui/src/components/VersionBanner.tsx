@@ -4,8 +4,10 @@ import { useVersionCheck } from '../hooks/useVersionCheck.js';
 import {
   accountErrorMessage,
   onSessionSignedOut,
+  updateCanInstall,
   updateCheck,
   updateInstall,
+  updateOpenDownload,
 } from '../lib/tauriBridge.js';
 import { INCOMPATIBLE_WARNING, versionWarning } from '../lib/versionWarning.js';
 
@@ -33,9 +35,11 @@ export function VersionBanner() {
     setBusy(true);
     setNote(undefined);
     try {
-      if (await updateCheck())
-        await updateInstall(); // restarts the app on success
-      else setNote('Your server has no newer app yet. Ask your DM.');
+      if (await updateCheck()) {
+        if (await updateCanInstall()) await updateInstall();
+        // restarts the app on success
+        else await updateOpenDownload(); // a .deb/.rpm: the player installs the newer package
+      } else setNote('Your server has no newer app yet. Ask your DM.');
     } catch (e) {
       setNote(accountErrorMessage(e));
     } finally {

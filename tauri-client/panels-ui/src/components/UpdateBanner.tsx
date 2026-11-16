@@ -5,7 +5,7 @@ import { updateMessage } from '../lib/updateInfo.js';
 
 /** A quiet strip when a newer client is available. Nothing installs, or restarts, until it is clicked. */
 export function UpdateBanner() {
-  const { available, busy, error, install } = useUpdate(true);
+  const { available, busy, canInstall, error, install } = useUpdate(true);
   const [dismissed, setDismissed] = useState<string>();
   if (!available || dismissed === available.version) return null;
   return (
@@ -17,7 +17,11 @@ export function UpdateBanner() {
         disabled={busy === 'installing'}
         onClick={() => void install()}
       >
-        {busy === 'installing' ? 'Installing…' : 'Restart to update'}
+        {busy === 'installing'
+          ? 'Installing…'
+          : canInstall
+            ? 'Restart to update'
+            : 'Download update'}
       </button>
       <button type="button" className="vtt-pill" onClick={() => setDismissed(available.version)}>
         Later

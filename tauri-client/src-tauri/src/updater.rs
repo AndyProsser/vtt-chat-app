@@ -75,6 +75,43 @@ pub fn update_dev_builds_set(app: AppHandle, enabled: bool) -> Result<(), String
     .map_err(|e| e.to_string())
 }
 
+/// Whether this install can replace itself. The updater swaps files in place, which works on Windows,
+/// macOS and the Linux AppImage; a `.deb` or `.rpm` is owned by the package manager, so the player
+/// installs the newer package from the server's download page instead.
+fn self_update_supported(on_linux: bool, running_as_appimage: bool) -> bool {
+    !on_linux || running_as_appimage
+}
+
+#[tauri::command]
+pub fn update_can_install() -> bool {
+    self_update_supported(
+        cfg!(target_os = "linux"),
+        std::env::var_os("APPIMAGE").is_some(),
+    )
+}
+
+/// The server's download page, where the newest installers for every platform are listed.
+fn download_page_url(server: &str) -> String {
+    format!("{}/download", server.trim_end_matches('/'))
+}
+
+/// Opens the signed-in server's download page in the system browser. The address is built here from
+/// the server the app is signed in to, so the webview cannot ask for any other page.
+#[tauri::command]
+pub async fn update_open_download(
+    app: AppHandle,
+    accounts: State<'_, AccountState>,
+) -> Result<(), String> {
+    use tauri_plugin_opener::OpenerExt;
+    let server = accounts
+        .server()
+        .await
+        .ok_or("sign in to a server first: the download page is on it")?;
+    app.opener()
+        .open_url(download_page_url(&server), None::<&str>)
+        .map_err(|_| "could not open your browser".to_string())
+}
+
 /// An update found by [`update_check`], waiting for the player to accept it.
 #[derive(Default)]
 pub struct PendingUpdate(tokio::sync::Mutex<Option<tauri_plugin_updater::Update>>);
@@ -189,6 +226,48 @@ mod tests {
         assert_eq!(
             update_endpoint("https://example.com/vtt", false),
             "https://example.com/vtt/updates/latest.json"
+        );
+    }
+
+    /// A command that is registered but not allowed fails in the webview with a permission error and
+    /// nothing else (the "Include dev builds" switch once stayed dead this way), so keep them in step.
+    #[test]
+    fn every_registered_command_is_allowed_to_the_panels() {
+        let lib = include_str!("lib.rs");
+        let allowed = include_str!("../permissions/allow-app-commands.toml");
+        let body = lib
+            .split("generate_handler![")
+            .nth(1)
+            .and_then(|rest| rest.split("])").next())
+            .expect("the command list in lib.rs");
+        for name in body
+            .split(',')
+            .filter_map(|entry| entry.trim().rsplit("::").next())
+            .filter(|name| !name.is_empty())
+        {
+            assert!(
+                allowed.contains(&format!("\"{name}\"")),
+                "{name} is not allowed"
+            );
+        }
+    }
+
+    #[test]
+    fn only_package_manager_installs_cannot_replace_themselves() {
+        assert!(self_update_supported(false, false)); // Windows, macOS
+        assert!(self_update_supported(true, true)); // Linux AppImage
+        assert!(!self_update_supported(true, false)); // .deb / .rpm
+    }
+
+    #[test]
+    fn the_download_page_is_under_the_server_whatever_its_trailing_slash() {
+        assert_eq!(
+            download_page_url("https://play.example.com/"),
+            "https://play.example.com/download"
+        );
+        assert_eq!(
+            download_page_url("http://localhost:3000"),
+            "http://localhost:3000/download"
         );
     }
 
