@@ -10,6 +10,10 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ## [Unreleased]
 
+### Changed
+
+- **The starter sound pack was trimmed** to the six clips that passed a listening test (Tavern, Market, Battle, Cave, Dungeon and Mountain). The rain, forest and town beds and the stings were music or sounded wrong, and come back in 0.5.1 from better sources.
+
 ## [0.5.0] - 2026-11-16
 
 Email that works, easy group invites, and a faster sound deck. This is a **MINOR** release: the server and the apps must both be on 0.5 (protocol 3).

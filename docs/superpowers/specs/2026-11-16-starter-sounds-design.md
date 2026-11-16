@@ -35,7 +35,11 @@ Stingers: door, coins, bell, blade, magic, footsteps, creature, impact, and a fe
   creatures, and no crowd, ocean, campfire, swamp or night beds. Freesound (CC0 filter, API key) and the Kenney
   packs (downloads are browser-only) are the sources; either needs Andy (a free Freesound API key kept in a file,
   or the Kenney zips downloaded by hand).
-- Nobody has listened to the first pack: clip choice, loop seams and levels need ears.
+- **Listening test, 2026-11-16 (Andy).** Dropped: `rain-heavy` and `street-calm` (music, not background sound),
+  `rain-thunder` (just heavy rain, no thunder), `forest-day` (wind chimes, not leaves and birdsong) and all four stings
+  (video-game "Sonic" stingers; the target is gritty RPG / dungeon). Kept: tavern, market, battle, cave, dungeon, mountain.
+- **Lesson:** an OpenGameArt title or description does not tell you what a clip sounds like, and most of its audio
+  is music. Choose ambience by Freesound tags, duration and preview, then have Andy listen before it ships.
 
 ## Left to the builder
 
