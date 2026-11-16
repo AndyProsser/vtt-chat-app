@@ -12,7 +12,8 @@ export interface Take {
 
 export interface Sound {
   id: string;
-  ownerId: string;
+  /** `null` is the server's shared catalogue: usable by every DM, editable by none. */
+  ownerId: string | null;
   name: string;
   category: SoundCategory;
   tags: string[];
@@ -35,7 +36,7 @@ export interface BoardButton {
 
 export interface Board {
   id: string;
-  ownerId: string;
+  ownerId: string | null;
   name: string;
   buttons: BoardButton[];
   createdAt: number;
@@ -56,7 +57,7 @@ export interface SceneLayer {
 
 export interface Scene {
   id: string;
-  ownerId: string;
+  ownerId: string | null;
   name: string;
   layers: SceneLayer[];
   createdAt: number;
@@ -67,7 +68,8 @@ export interface SoundStore {
   /** Inserts or replaces a sound together with its takes. */
   putSound(sound: Sound): Promise<void>;
   getSound(id: string): Promise<Sound | undefined>;
-  listSounds(ownerId: string): Promise<Sound[]>;
+  /** One owner's sounds; `null` lists the shared catalogue. */
+  listSounds(ownerId: string | null): Promise<Sound[]>;
   /** Removes the sound and its take rows; the caller deletes the media files they pointed at. */
   deleteSound(id: string): Promise<void>;
   /** A take and the sound it belongs to, for playback and for authorising the download. */
@@ -75,11 +77,11 @@ export interface SoundStore {
 
   putBoard(board: Board): Promise<void>;
   getBoard(id: string): Promise<Board | undefined>;
-  listBoards(ownerId: string): Promise<Board[]>;
+  listBoards(ownerId: string | null): Promise<Board[]>;
   deleteBoard(id: string): Promise<void>;
 
   putScene(scene: Scene): Promise<void>;
   getScene(id: string): Promise<Scene | undefined>;
-  listScenes(ownerId: string): Promise<Scene[]>;
+  listScenes(ownerId: string | null): Promise<Scene[]>;
   deleteScene(id: string): Promise<void>;
 }

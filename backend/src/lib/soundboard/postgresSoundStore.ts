@@ -25,7 +25,7 @@ const toTake = (r: Row): Take => ({
 
 const toSound = (r: Row, takes: Take[]): Sound => ({
   id: r.id as string,
-  ownerId: r.owner_id as string,
+  ownerId: (r.owner_id as string | null) ?? null,
   name: r.name as string,
   category: r.category as SoundCategory,
   tags: (r.tags as string[]) ?? [],
@@ -79,9 +79,9 @@ export class PostgresSoundStore implements SoundStore {
       return r ? toSound(r, (await this.takesFor([id])).get(id) ?? []) : undefined;
     }, undefined);
 
-  async listSounds(ownerId: string): Promise<Sound[]> {
+  async listSounds(ownerId: string | null): Promise<Sound[]> {
     const { rows } = await this.pool.query<Row>(
-      'SELECT * FROM sounds WHERE owner_id = $1 ORDER BY created_at, id',
+      'SELECT * FROM sounds WHERE owner_id IS NOT DISTINCT FROM $1::uuid ORDER BY created_at, id',
       [ownerId],
     );
     const takes = await this.takesFor(rows.map((r) => r.id as string));
@@ -115,9 +115,9 @@ export class PostgresSoundStore implements SoundStore {
       const { rows } = await this.pool.query<Row>('SELECT * FROM soundboards WHERE id = $1', [id]);
       return rows[0] ? this.toBoard(rows[0]) : undefined;
     }, undefined);
-  async listBoards(ownerId: string): Promise<Board[]> {
+  async listBoards(ownerId: string | null): Promise<Board[]> {
     const { rows } = await this.pool.query<Row>(
-      'SELECT * FROM soundboards WHERE owner_id = $1 ORDER BY created_at, id',
+      'SELECT * FROM soundboards WHERE owner_id IS NOT DISTINCT FROM $1::uuid ORDER BY created_at, id',
       [ownerId],
     );
     return rows.map((r) => this.toBoard(r));
@@ -128,7 +128,7 @@ export class PostgresSoundStore implements SoundStore {
   private toBoard(r: Row): Board {
     return {
       id: r.id as string,
-      ownerId: r.owner_id as string,
+      ownerId: (r.owner_id as string | null) ?? null,
       name: r.name as string,
       buttons: r.buttons as Board['buttons'],
       createdAt: r.created_at as number,
@@ -147,9 +147,9 @@ export class PostgresSoundStore implements SoundStore {
       const { rows } = await this.pool.query<Row>('SELECT * FROM scenes WHERE id = $1', [id]);
       return rows[0] ? this.toScene(rows[0]) : undefined;
     }, undefined);
-  async listScenes(ownerId: string): Promise<Scene[]> {
+  async listScenes(ownerId: string | null): Promise<Scene[]> {
     const { rows } = await this.pool.query<Row>(
-      'SELECT * FROM scenes WHERE owner_id = $1 ORDER BY created_at, id',
+      'SELECT * FROM scenes WHERE owner_id IS NOT DISTINCT FROM $1::uuid ORDER BY created_at, id',
       [ownerId],
     );
     return rows.map((r) => this.toScene(r));
@@ -160,7 +160,7 @@ export class PostgresSoundStore implements SoundStore {
   private toScene(r: Row): Scene {
     return {
       id: r.id as string,
-      ownerId: r.owner_id as string,
+      ownerId: (r.owner_id as string | null) ?? null,
       name: r.name as string,
       layers: r.layers as Scene['layers'],
       createdAt: r.created_at as number,

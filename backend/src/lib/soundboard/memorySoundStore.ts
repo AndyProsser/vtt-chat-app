@@ -14,7 +14,7 @@ export class MemorySoundStore implements SoundStore {
     const s = this.sounds.get(id);
     return s ? copy(s) : undefined;
   };
-  listSounds = async (ownerId: string) =>
+  listSounds = async (ownerId: string | null) =>
     [...this.sounds.values()]
       .filter((s) => s.ownerId === ownerId)
       .sort(byCreated)
@@ -33,7 +33,7 @@ export class MemorySoundStore implements SoundStore {
     const b = this.boards.get(id);
     return b ? copy(b) : undefined;
   };
-  listBoards = async (ownerId: string) =>
+  listBoards = async (ownerId: string | null) =>
     [...this.boards.values()]
       .filter((b) => b.ownerId === ownerId)
       .sort(byCreated)
@@ -45,7 +45,7 @@ export class MemorySoundStore implements SoundStore {
     const s = this.scenes.get(id);
     return s ? copy(s) : undefined;
   };
-  listScenes = async (ownerId: string) =>
+  listScenes = async (ownerId: string | null) =>
     [...this.scenes.values()]
       .filter((s) => s.ownerId === ownerId)
       .sort(byCreated)

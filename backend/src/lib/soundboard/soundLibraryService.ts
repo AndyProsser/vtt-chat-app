@@ -33,6 +33,9 @@ export interface SoundLibraryDeps {
   newId?: () => string;
 }
 
+/** A library item as the app sees it: `shared` ones come from the server's catalogue and cannot be changed. */
+export type Shared<T> = T & { shared: boolean };
+
 const CATEGORIES: SoundCategory[] = ['effect', 'ambience', 'music'];
 const clamp01 = (v: unknown, fallback = 1): number =>
   typeof v === 'number' && Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : fallback;
@@ -65,14 +68,24 @@ export class SoundLibraryService {
     this.newId = deps.newId ?? randomUUID;
   }
 
-  async library(owner: User): Promise<{ sounds: Sound[]; boards: Board[]; scenes: Scene[] }> {
+  /** The DM's own sounds, boards and scenes after the server's shared catalogue (each marked `shared`). */
+  async library(owner: User): Promise<{
+    sounds: Shared<Sound>[];
+    boards: Shared<Board>[];
+    scenes: Shared<Scene>[];
+  }> {
     const { sounds } = this.deps;
-    const [s, b, c] = await Promise.all([
+    const [s, b, c, ss, sb, sc] = await Promise.all([
       sounds.listSounds(owner.id),
       sounds.listBoards(owner.id),
       sounds.listScenes(owner.id),
+      sounds.listSounds(null),
+      sounds.listBoards(null),
+      sounds.listScenes(null),
     ]);
-    return { sounds: s, boards: b, scenes: c };
+    const mark = <T extends { ownerId: string | null }>(rows: T[]): Shared<T>[] =>
+      rows.map((r) => ({ ...r, shared: r.ownerId === null }));
+    return { sounds: mark([...ss, ...s]), boards: mark([...sb, ...b]), scenes: mark([...sc, ...c]) };
   }
 
   // ---- sounds and takes ----
@@ -334,10 +347,14 @@ export class SoundLibraryService {
     if (!(await store.getMembership(campaignId, user.id)))
       throw new DomainError('forbidden', 'not a member of this campaign');
     const found = await sounds.getTake(takeId);
-    const ownerMembership = found
-      ? await store.getMembership(campaignId, found.sound.ownerId)
-      : undefined;
-    if (!found || ownerMembership?.role !== 'dm' || !media) throw new DomainError('not_found');
+    // A shared clip belongs to no one, so any member may fetch it; a DM's own clip only while that DM runs the table.
+    const sharedClip = found?.sound.ownerId === null;
+    const ownerMembership =
+      found && found.sound.ownerId !== null
+        ? await store.getMembership(campaignId, found.sound.ownerId)
+        : undefined;
+    if (!found || !media || (!sharedClip && ownerMembership?.role !== 'dm'))
+      throw new DomainError('not_found');
     const [file, bytes] = await Promise.all([
       table.getMedia(found.take.mediaId),
       media.get(found.take.mediaId),
@@ -360,7 +377,7 @@ export class SoundLibraryService {
   private async requireSound(owner: User, id: string | undefined): Promise<void> {
     if (!id) throw new DomainError('invalid_input', 'every button and layer needs a sound');
     const s = await this.deps.sounds.getSound(id);
-    if (!s || s.ownerId !== owner.id)
+    if (!s || (s.ownerId !== owner.id && s.ownerId !== null))
       throw new DomainError('invalid_input', 'that sound is not in your library');
   }
   private async ownBoard(owner: User, id: string): Promise<Board> {
