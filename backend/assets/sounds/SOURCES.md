@@ -15,7 +15,7 @@ it is given here anyway.
 | `ambience/amb-forest-night.ogg` | Forest At Night Ambience | fribergmusic2024 | https://freesound.org/people/fribergmusic2024/sounds/719558/ | 369 KB |
 | `ambience/amb-storm.ogg` | Thunderstorm 1.WAV | Sandermotions | https://freesound.org/people/Sandermotions/sounds/278867/ | 1326 KB |
 | `ambience/amb-campfire.ogg` | campfire.wav | aerror | https://freesound.org/people/aerror/sounds/350757/ | 448 KB |
-| `ambience/amb-harbour.ogg` | Harbor Ambience 2 | clif_creates | https://freesound.org/people/clif_creates/sounds/254130/ | 199 KB |
+| `ambience/amb-harbour.ogg` | Whitby Harbour | gingernuts73 | https://freesound.org/people/gingernuts73/sounds/748894/ | 177 KB |
 | `ambience/amb-cave.ogg` | cave 01 | rucisko | https://freesound.org/people/rucisko/sounds/343742/ | 1009 KB |
 | `ambience/amb-castle.ogg` | Gap Cathedral France | Astounded | https://freesound.org/people/Astounded/sounds/483127/ | 1123 KB |
 | `ambience/mountain-wind.ogg` | Icy Heights | écrivain | https://opengameart.org/content/icy-heights | 637 KB |
@@ -44,4 +44,4 @@ it is given here anyway.
 | `effect/fx-bell.ogg` | Ship Bell Single Ring | Sojan | https://freesound.org/people/Sojan/sounds/353233/ | 17 KB |
 | `effect/fx-coins.ogg` | Pouch of Gold Coins Emptying out Onto Wood.wav | The_Frisbee_of_Peace | https://freesound.org/people/The_Frisbee_of_Peace/sounds/575571/ | 35 KB |
 
-Total: 10892 KB.
+Total: 10870 KB.
