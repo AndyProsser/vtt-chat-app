@@ -110,6 +110,92 @@ to stand this up, and LiveKit Egress is only officially distributed as a contain
 
 Both tiers must generate the same configuration; application code never branches on the tier.
 
+### Start-up and idle cost (0.6.0)
+
+Two things about the Compose bundle were changed in ROADMAP Stage 9, both measured first.
+
+**Health checks were the idle CPU.** Andy saw the test server (4 vCPUs of a 2010 Xeon E5645) sit at about 15% CPU with
+nobody connected. Measured over 60 s on 2026-11-16, as a share of **one** core:
+
+| Container | Long-lived processes | Whole container (with health-check commands) |
+| --------- | -------------------- | -------------------------------------------- |
+| backend   | 0.17%                | 6.65%                                        |
+| ollama    | 0.13%                | 5.58%                                        |
+| egress    | 1.17%                | 3.89%                                        |
+| postgres  | 0.20%                | 2.90%                                        |
+| valkey    | 0.67%                | 2.75%                                        |
+| whisper   | 0.02%                | 0.99%                                        |
+| livekit   | 0.52%                | 0.51% (no health check)                      |
+| worker    | 0.10%                | 0.11% (no health check)                      |
+
+Our own code was idle (backend 0.17%, worker 0.10%). The cost was the health checks: **43 commands a minute** launched
+inside containers by Docker (every 5 to 15 s per service), two of them expensive (a second Node process to `fetch` the
+backend's health; the whole `ollama` binary to run `ollama list`). On top of the 20% of a core spent inside the containers,
+`dockerd` and `containerd` spent about as much again setting each command up. Together: roughly half a core, which is
+the 13 to 15% of a 4-core machine that was seen.
+
+What changed:
+
+- **Fast only while starting.** Every health check uses `start_interval: 2s` inside a 60 s `start_period`, then
+  `interval: 60s`. `up --wait` and `depends_on: service_healthy` are as quick as before (a fresh stack is healthy in about
+  6 s on the dev PC); at rest it is 6 commands a minute, not 43. Needs Docker Engine 25 or newer; `get.sh` checks.
+- **Cheap commands.** The backend check is busybox `wget` (was `node -e fetch`); Ollama's is a plain HTTP GET from bash
+  (was `ollama list`).
+- Nothing reads the health state at rest except `vtt-admin ps`; the status page and `vtt-admin status` probe the services
+  themselves. A minute's staleness in `ps` is the whole price.
+
+Measured after, on the dev PC only (a much faster CPU, so the absolute numbers are small): commands 43 → 6 a minute, the
+containers' CPU 5.7% → 2.4% of a core. **Still to measure on the 2010 Xeon**, once a build with this change is installed there.
+
+**No one-shot containers.** The bundle used to run four containers that did one job and exited (`media-init`,
+`recordings-init`, `models-init`, `ollama-pull`). They added start-up ordering, two extra images, and made the first
+`up --wait` take as long as two model downloads. They are gone:
+
+```mermaid
+flowchart LR
+  subgraph before[Before: start-up waits for one-shots]
+    mi[media-init<br/>chown] --> be1[backend]
+    ri[recordings-init<br/>chown] --> eg1[egress]
+    mo[models-init<br/>curl model] --> wh1[whisper]
+    wh1 --> wk1[worker]
+    op[ollama-pull] --> wk1
+  end
+  subgraph after[After: only services]
+    be2[backend<br/>image owns /data/media] --> wk2[worker<br/>image owns /out<br/>pulls the LLM in the background]
+    wk2 --> eg2[egress]
+    wh2[whisper<br/>fetches its own model, then serves]
+  end
+```
+
+| Was               | Now                                                                                                                                                                                                                                                                                    |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `media-init`      | The backend image owns `/data/media` as uid 1000. Docker gives a new, empty named volume the ownership of the image directory it is mounted on, so nothing runs.                                                                                                                       |
+| `recordings-init` | The worker image owns `/out` as uid 1001 (the user Egress writes as) and the worker **runs as** 1001, and Egress starts after the worker so the worker's image seeds the volume. This also fixed a bug: the worker used to run as uid 1000 and could not delete raw audio (see below). |
+| `models-init`     | `whisper-start.sh`, the Whisper container's entrypoint in all three variants (stock, compatibility, CUDA), downloads the model when it is missing (resumable, retried for ever with a growing pause), then becomes `whisper-server`.                                                   |
+| `ollama-pull`     | The worker checks Ollama for the summary model at start-up and asks it to pull a missing one (`ai/src/lib/localAi/`), in the background.                                                                                                                                               |
+
+Rules that came out of the design:
+
+- **A download never holds up start-up.** The stack is healthy in seconds. Only the work that needs a model waits: a
+  transcription waits for Whisper to answer, a summary for the model, each for up to 30 minutes per attempt before the job
+  fails and is retried in the usual way.
+- **A download that fails or stalls is visible.** The worker writes what it knows to the database
+  (`instance_settings.local_ai`); `vtt-admin status` prints it (`FAIL local AI ...` with the reason) and the public status
+  page shows "Summary model: Downloading (43%)", "Download failed" or "Download has stalled" (states only, never the error
+  text). The Whisper container's health check passes while a download attempt is running and fails between failed attempts.
+- **A remote-only install fetches nothing it will not use.** Under the `records-remote` profile there is no Whisper or
+  Ollama container to download into. Under `records` with summaries on a remote server _and_ the local fallback switched
+  off, the worker does not pull the model; if the setting changes later, the first job that needs it fetches it.
+- **The worker starts after the backend is healthy**, because the backend creates the database schema. (The one-shots used
+  to hide this race by being slow.)
+- **The native install is unchanged** apart from the worker also pulling a missing Ollama model, which `install.sh` already does.
+
+**The purge bug this found.** With `recordings-init` the volume belonged to uid 1001 with mode 755 and the worker ran as
+uid 1000, so in the Compose install every deletion of raw audio (the age rule, the disk rule, `vtt-admin recording purge`,
+the DM's "delete the audio") failed with "permission denied". Confirmed on the running dev stack before the change, and
+fixed by running the worker as uid 1001. Backups and restores now read and write the volumes through throwaway containers
+of the backend and worker images (as root, then `chown`), since the busybox one-shots they borrowed are gone.
+
 ### AI backends: local or remote
 
 Decided 2026-11-07. Whisper and the LLM are provider interfaces, each independently **local**,

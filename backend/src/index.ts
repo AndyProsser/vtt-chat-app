@@ -51,6 +51,7 @@ import {
   MemoryRecordsStore,
   PostgresJobQueue,
   PostgresRecordsStore,
+  readLocalAiStatus,
   type RecordsStore,
 } from '@vtt-chat-app/ai';
 import type pg from 'pg';
@@ -273,7 +274,7 @@ if (isEntryPoint) {
     probes: statusProbes,
     onlinePlayers: () => hub.presence.onlineUsers(),
     activeRecordings: () => hub.recording.activeCount(),
-    ...(pool ? { jobs: new PostgresJobQueue(pool) } : {}),
+    ...(pool ? { jobs: new PostgresJobQueue(pool), localAi: () => readLocalAiStatus(pool) } : {}),
     ...(config.recordingsDir !== undefined
       ? { storage: () => measureDisk(config.recordingsDir as string) }
       : {}),

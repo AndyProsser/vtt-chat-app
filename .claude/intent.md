@@ -28,6 +28,15 @@ Update this file as threads open, progress, or close — stale entries here are 
   - **Next (when the dev box is back):** the verification list in BUILD-STATUS.md (Postgres, Valkey,
     two-machine voice test, Part B on a Linux server). Then Stage 4 (tray shell wiring).
 
+- **Stage 9 hardening for 0.6.0, on the `stage-9-hardening` branch (started 2026-11-16).** Andy asked for a hardening,
+  performance and optimisation pass, built on a separate branch (not `main`) because many changes are expected.
+  - **Done:** the idle-CPU cause (Docker health checks, not our code) and fix; the four one-shot containers removed.
+    Details and measurements: `docs/architecture/DEPLOYMENT-AND-TRANSPORT.md` ("Start-up and idle cost"), BUILD-STATUS.md.
+  - **Next:** install a 0.6 dev build on the test VM and re-measure idle CPU there; run a whole records job on the new
+    images; then the rest of Stage 9 (platform parity, the 8-hour soak, packaging), which needs real machines.
+  - **Open (ask Andy):** `PROTOCOL_VERSION` is still 3 although the version files say 0.6.0. Nothing on the branch changes
+    the wire yet; bump it to 4 with the first change that does (the soundboard work is expected to).
+
 - **Stage 6 table features — server first, then UI.** Decided 2026-11-07, in build order:
   - **Whispers:** DM↔player and player↔player, **private to the two** (the DM cannot read player↔player).
     Never in the shared replay stream; delivered only to sender and recipient; persisted; history is

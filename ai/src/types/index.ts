@@ -70,3 +70,4 @@ export type GenerateText = (prompt: string) => Promise<string>;
 export type TranscribeWav = (wavPath: string) => Promise<Segment[]>;
 
 export * from './records.js';
+export * from './localAi.js';

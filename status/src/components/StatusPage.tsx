@@ -6,7 +6,7 @@ import { PictureBanner } from './PictureBanner.js';
 import { SiteHeader } from './SiteHeader.js';
 import { useServerVersion } from '../hooks/useServerVersion.js';
 import { useStatus } from '../hooks/useStatus.js';
-import { ago, headline, pipelineLine, versionLine } from '../lib/summary.js';
+import { ago, headline, modelLine, pipelineLine, versionLine } from '../lib/summary.js';
 import type { StatusSnapshot } from '../types/index.js';
 
 export function StatusPage() {
@@ -59,6 +59,7 @@ function Banner({
 
 function Body({ snapshot, stale = false }: { snapshot: StatusSnapshot; stale?: boolean }) {
   const h = headline(snapshot);
+  const summaryModel = modelLine(snapshot.localAi?.summaryModel);
   const version = useServerVersion();
   return (
     <>
@@ -98,6 +99,7 @@ function Body({ snapshot, stale = false }: { snapshot: StatusSnapshot; stale?: b
             />
           )}
           <Row label="Summaries queue" value={pipelineLine(snapshot.pipeline)} />
+          {summaryModel && <Row label="Summary model" value={summaryModel} />}
           {snapshot.pipeline?.last && (
             <Row
               label="Last summary job"

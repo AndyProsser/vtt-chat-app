@@ -3,6 +3,18 @@
 # (to build from this checkout instead of pulling the published images:  docker compose up -d --build)
 # Design and rationale: docs/architecture/DEPLOYMENT-AND-TRANSPORT.md
 name: vtt
+
+# Health checks poll every 2 s while a container starts (so `up --wait` and depends_on stay quick) and once a minute
+# after that. Every check is a process launched inside the container by Docker; at the old 5 to 15 s intervals those
+# launches were nearly all of an idle server's CPU (measured 2026-11-16: about half a core on a 2010 Xeon, none of it
+# our code; docs/architecture/DEPLOYMENT-AND-TRANSPORT.md). `start_interval` needs Docker Engine 25 or newer.
+x-healthcheck: &healthcheck
+  interval: 60s
+  timeout: 5s
+  retries: 3
+  start_period: 60s
+  start_interval: 2s
+
 services:
   postgres:
     image: postgres:17-alpine
@@ -13,9 +25,8 @@ services:
       POSTGRES_DB: vtt
     volumes: [postgres-data:/var/lib/postgresql/data]
     healthcheck:
+      <<: *healthcheck
       test: ['CMD-SHELL', 'pg_isready -U vtt -d vtt']
-      interval: 5s
-      retries: 10
 
   valkey:
     image: valkey/valkey:8-alpine
@@ -24,15 +35,8 @@ services:
     ports: ['127.0.0.1:${VALKEY_HOST_PORT:-6379}:6379']
     volumes: [valkey-data:/data]
     healthcheck:
+      <<: *healthcheck
       test: ['CMD', 'valkey-cli', 'ping']
-      interval: 5s
-      retries: 10
-
-  # One-shot: the backend image runs as uid 1000 and a fresh named volume is root-owned.
-  media-init:
-    image: busybox:stable
-    command: ['chown', '-R', '1000:1000', '/data/media']
-    volumes: [media:/data/media]
 
   backend:
     # Pulled from the registry by default (`docker compose pull`); `docker compose up --build` builds it from
@@ -50,7 +54,8 @@ services:
     depends_on:
       postgres: { condition: service_healthy }
       valkey: { condition: service_healthy }
-      media-init: { condition: service_completed_successfully }
+    # The image runs as uid 1000 and owns /data/media, and Docker gives a new, empty named volume the ownership of the
+    # image directory it is mounted on, so no start-up chown is needed (a bind mount instead must be writable by uid 1000).
     volumes: [media:/data/media]
     environment:
       DATABASE_URL: postgres://vtt:${POSTGRES_PASSWORD}@postgres:5432/vtt
@@ -113,13 +118,6 @@ services:
       valkey: { condition: service_healthy }
 
   # --- Records pipeline (profile "records": docker compose --profile records up -d) ---
-  # One-shot: the Egress image runs as uid 1001, a fresh named volume is root-owned.
-  recordings-init:
-    profiles: [records, records-remote]
-    image: busybox:stable
-    command: ['chown', '-R', '1001:0', '/out']
-    volumes: [recordings:/out]
-
   # Per-speaker track egress writes files into /out. Host network like LiveKit: it talks to LiveKit
   # and Valkey on loopback. The image is large (~4 GB, it bundles Chrome for web egress we don't use).
   egress:
@@ -143,36 +141,26 @@ services:
     volumes:
       - recordings:/out
     healthcheck:
+      <<: *healthcheck
       test: ['CMD', 'curl', '-fsS', '-o', '/dev/null', 'http://127.0.0.1:18180/']
-      interval: 15s
-      retries: 5
     depends_on:
-      recordings-init: { condition: service_completed_successfully }
       livekit: { condition: service_started }
+      # Order matters for a new install: the Egress image runs as uid 1001 and has no /out of its own, so the recordings
+      # volume must first be mounted by the worker, whose image owns /out as 1001 (Docker copies that onto an empty volume).
+      worker: { condition: service_started }
 
   # --- Local AI: the default, and the fallback for a remote backend (profile "records"). A CPU without AVX (some old servers)
   # cannot run it; the profile "records-remote" runs recording and the worker only, and the AI runs on another machine. ---
   # Both speak the OpenAI-compatible API. Whisper runs on CPU here; for an NVIDIA GPU add the
   # compose.gpu.yml override (it builds whisper-cuda.Dockerfile, which also covers GTX 10-series cards).
-  models-init:
-    profiles: [records]
-    image: curlimages/curl:latest
-    user: root
-    # Fetches the Whisper model once into a volume. WHISPER_MODEL_FILE is a ggml file name from
-    # huggingface.co/ggerganov/whisper.cpp (small, quantised: ~190 MB, the measured CPU default).
-    entrypoint:
-      [
-        'sh',
-        '-c',
-        'f=/models/${WHISPER_MODEL_FILE:-ggml-small-q5_1.bin}; [ -s "$$f" ] || curl -fL -o "$$f" https://huggingface.co/ggerganov/whisper.cpp/resolve/main/${WHISPER_MODEL_FILE:-ggml-small-q5_1.bin}',
-      ]
-    volumes: [whisper-models:/models]
-
   whisper:
     profiles: [records]
     image: ghcr.io/ggml-org/whisper.cpp:main
     restart: unless-stopped
-    entrypoint: ['/app/build/bin/whisper-server']
+    # whisper-start.sh fetches the model into the volume when it is missing (first start only: small, quantised, ~190 MB,
+    # the measured CPU default), then becomes whisper-server. The stack does not wait for the download: the worker holds
+    # transcription until Whisper answers, and `vtt-admin status` and the status page say what is happening.
+    entrypoint: ['sh', '/whisper-start.sh', 'run', '/app/build/bin/whisper-server']
     command:
       - -m
       - /models/${WHISPER_MODEL_FILE:-ggml-small-q5_1.bin}
@@ -184,13 +172,16 @@ services:
       - /v1/audio/transcriptions
       - -l
       - en
-    volumes: [whisper-models:/models:ro]
+    environment:
+      # A ggml file name from huggingface.co/ggerganov/whisper.cpp.
+      WHISPER_MODEL_FILE: ${WHISPER_MODEL_FILE:-ggml-small-q5_1.bin}
+    volumes:
+      - whisper-models:/models
+      - ./whisper-start.sh:/whisper-start.sh:ro
     healthcheck:
-      test: ['CMD', 'curl', '-fsS', '-o', '/dev/null', 'http://127.0.0.1:8080/health']
-      interval: 15s
-      retries: 10
-    depends_on:
-      models-init: { condition: service_completed_successfully }
+      <<: *healthcheck
+      # Passes while the model is downloading (the container is doing its job); fails if a download attempt failed.
+      test: ['CMD', 'sh', '/whisper-start.sh', 'health']
 
   ollama:
     profiles: [records]
@@ -202,22 +193,19 @@ services:
       # A job's summaries run back to back, so the model stays loaded for the whole job.
       OLLAMA_KEEP_ALIVE: ${OLLAMA_KEEP_ALIVE:-2m}
     healthcheck:
-      test: ['CMD', 'ollama', 'list']
-      interval: 10s
-      retries: 10
-
-  # One-shot: pulls the summary model into the volume (first run downloads ~2 GB).
-  ollama-pull:
-    profiles: [records]
-    image: ollama/ollama:latest
-    entrypoint: ['sh', '-c', 'ollama pull ${OLLAMA_MODEL:-llama3.2:3b}']
-    environment:
-      OLLAMA_HOST: ollama:11434
-    depends_on:
-      ollama: { condition: service_healthy }
+      <<: *healthcheck
+      # A plain HTTP GET from bash. `ollama list` works too, but starting that large binary for every check cost more
+      # CPU than anything else in an idle stack.
+      test:
+        - CMD
+        - bash
+        - -c
+        - exec 3<>/dev/tcp/127.0.0.1/11434 && printf 'GET / HTTP/1.0\r\n\r\n' >&3 && grep -q '200 OK' <&3
 
   # Claims process-recording jobs, cuts tracks into speech windows (ffmpeg) and calls Whisper/the LLM
   # as the operator's AI settings say (vtt-admin settings), falling back to the local services above.
+  # It also fetches the summary model into Ollama when it is missing (first start downloads ~2 GB, in the
+  # background: only summaries wait for it), and reports that and Whisper's readiness to `vtt-admin status`.
   worker:
     profiles: [records, records-remote]
     image: ${VTT_REGISTRY:-ghcr.io/andyprosser}/vtt-chat-worker:${VTT_VERSION:-latest}
@@ -228,10 +216,8 @@ services:
     restart: unless-stopped
     depends_on:
       postgres: { condition: service_healthy }
-      # Absent under the records-remote profile (the AI runs on another machine): required: false lets the worker start without them.
-      whisper: { condition: service_healthy, required: false }
-      ollama-pull: { condition: service_completed_successfully, required: false }
-      recordings-init: { condition: service_completed_successfully }
+      # The backend creates and migrates the database schema as it starts; the worker needs the schema to be there.
+      backend: { condition: service_healthy }
     environment:
       # A stable name: after a restart this worker takes its own interrupted job back at once.
       WORKER_ID: worker-1
@@ -247,7 +233,8 @@ services:
       # 0 turns off the disk rule (warn the DM, then delete the oldest audio when the disk is below 10% free).
       AUDIO_DISK_PURGE: ${AUDIO_DISK_PURGE:-}
     volumes:
-      # Writable so the worker can purge raw audio (retention or `vtt-admin recording purge`).
+      # Writable so the worker can purge raw audio (retention or `vtt-admin recording purge`): the worker image runs as
+      # uid 1001, the same user Egress writes the files as.
       - recordings:/out
 
   caddy:

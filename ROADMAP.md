@@ -52,7 +52,9 @@ releases; the 0.4.5 changelog covers both).
 **Next:**
 
 1. **Bug fixes** as they turn up, in patch releases.
-2. **Stage 9, hardening and production readiness** (below): Windows and macOS parity, the long soak, packaging and signing.
+2. **Stage 9, hardening and production readiness** (below), in progress for **0.6.0** on the `stage-9-hardening` branch: the idle
+   CPU fix and the removal of the one-shot containers are built (2026-11-16); Windows and macOS parity, the long soak, packaging
+   and signing are still to do.
 3. The open design topics in [.claude/intent.md](.claude/intent.md), as Stage 10 and later.
 
 ### Stock-take, 2026-11-11 (end of day)
@@ -356,7 +358,8 @@ told clearly to update; and a recorded session runs through to its summary.
 
 ## Stage 9 — Cross-Platform Hardening & Production Readiness
 
-**Status:** ⚪ Next (stages 0 to 8 closed 2026-11-15)
+**Status:** 🟡 In progress (started 2026-11-16 on the `stage-9-hardening` branch, for 0.6.0): the idle-CPU fix and the removal of
+the one-shot containers are built; the platform checks, the long soak and signing are not started
 **Depends on:** Stage 5 (can overlap Stages 6–8)
 
 **Deliverables:**
@@ -367,20 +370,21 @@ told clearly to update; and a recorded session runs through to its summary.
 - A real server-restart-mid-recording drill: recording recovers or fails loudly, never silently — **built and drilled 2026-11-10** (`infra/records-smoke/restart-drill.sh`; recovery stops the leftover egresses and keeps the audio; see [RECORDING-AND-SUMMARIES.md](docs/architecture/RECORDING-AND-SUMMARIES.md)); a `kill -9` of the packaged backend is still to try
 - Security pass: consent-cue bypass attempts, private-audio leakage into records, token/session expiry, ACL checks on every records endpoint — **done 2026-11-10** for the REST surface and live sockets (access matrix; found and fixed a player who left still receiving chat and voice); the Egress capture and whisper paths were already covered by tests
 - Packaging: installers per OS, signed where practical, updater verified
-- **Fewer moving parts at start-up: fold the one-shot containers into the services that need them** (added 2026-11-15, Andy's idea). The
-  Compose bundle runs four containers that do one job and exit, which is wasteful and adds start-up ordering (`service_completed_successfully`)
-  and an image or two to pull. The plan, to be designed and measured before it is built:
-
-  | One-shot today    | What it does                                         | Where it could go                                                                                                                                                                                              |
-  | ----------------- | ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-  | `media-init`      | `chown` the media volume to uid 1000                 | Nothing at runtime: create `/data/media` in the backend image owned by 1000, because Docker seeds an empty named volume from the image's directory (or the backend entrypoint fixes it, then drops privileges) |
-  | `recordings-init` | `chown` the recordings volume to uid 1001 for Egress | The same seeding trick on a tiny image we own, or the backend/worker prepares the directory before Egress is asked to write                                                                                    |
-  | `models-init`     | Downloads the Whisper model once                     | The worker (or our Whisper image's entrypoint) fetches it on first start, logging progress, and the transcription provider reports "model downloading" until it is there                                       |
-  | `ollama-pull`     | Pulls the LLM once                                   | The worker calls Ollama's `/api/pull` at start-up (it already speaks to Ollama) and holds jobs, not the whole stack, until the model is ready                                                                  |
-
-  The aim is the stack coming up with only long-running services, the same `vtt-admin status` story, and no behaviour change for a native
-  install. Things to settle first: the backend must keep running as a non-root user; a download that fails or stalls must show in the status
-  page and `vtt-admin`, not hang start-up; and a remote-AI-only install (`records-remote`) must not fetch models it will never use.
+- **Fewer moving parts at start-up: the one-shot containers are folded into the services that need them** (Andy's idea,
+  2026-11-15) — **built 2026-11-16** on the `stage-9-hardening` branch for 0.6.0. `media-init`, `recordings-init`, `models-init` and
+  `ollama-pull` are gone: volume ownership comes from the images, the Whisper container fetches its own model
+  (`whisper-start.sh`), and the worker pulls the summary model in the background and reports it to `vtt-admin status` and the
+  status page. Checked on the dev PC: a fresh stack is healthy in 6 s, an in-place upgrade of the dev stack (GPU override)
+  removes the old one-shots and comes up clean, failed downloads show as `FAIL local AI`, backup and restore still work. It
+  also found and fixed a real bug: on a Compose install the worker could not delete raw audio (wrong user). Design, rules and
+  the before/after: [DEPLOYMENT-AND-TRANSPORT.md](docs/architecture/DEPLOYMENT-AND-TRANSPORT.md#start-up-and-idle-cost-060).
+  **Not yet run:** a full records job on the new images, the compatibility Whisper image, and the real VM.
+- **Idle CPU on the server** (added 2026-11-16, Andy saw about 15% on the test VM) — **cause found and fixed 2026-11-16** on
+  the same branch. It was not our code (backend 0.17% of a core, worker 0.10%): it was Docker running 43 health-check
+  commands a minute, two of them expensive, plus the Docker daemon's own cost of launching them; about half a core of a 2010
+  Xeon in all. Health checks now poll every 2 s only while a container starts and once a minute after that, with cheap
+  commands (needs Docker Engine 25+). On the dev PC: 43 → 6 commands a minute. **Still to measure on the VM** once a 0.6
+  build is installed there.
 
 **Done when:** a full real campaign session runs on all supported platforms without manual intervention.
 

@@ -18,17 +18,6 @@
 # ggml-small-q5_1.bin and llama3.2:3b. These override the CPU defaults in compose.yml, so the services
 # that name a model are repeated here.
 services:
-  models-init:
-    entrypoint:
-      [
-        'sh',
-        '-c',
-        'f=/models/${WHISPER_MODEL_FILE:-ggml-large-v3-turbo-q5_0.bin}; [ -s "$$f" ] || curl -fL -o "$$f" https://huggingface.co/ggerganov/whisper.cpp/resolve/main/${WHISPER_MODEL_FILE:-ggml-large-v3-turbo-q5_0.bin}',
-      ]
-
-  ollama-pull:
-    entrypoint: ['sh', '-c', 'ollama pull ${OLLAMA_MODEL:-qwen3:8b}']
-
   worker:
     environment:
       OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3:8b}
@@ -41,7 +30,15 @@ services:
       args:
         CUDA_ARCHS: ${CUDA_ARCHS:-61;75;86;89}
     devices: ['nvidia.com/gpu=all']
-    entrypoint: ['python3', '/app/whisper-idle.py', '/app/build/bin/whisper-server']
+    entrypoint:
+      [
+        'sh',
+        '/whisper-start.sh',
+        'run',
+        'python3',
+        '/app/whisper-idle.py',
+        '/app/build/bin/whisper-server',
+      ]
     command:
       - -m
       - /models/${WHISPER_MODEL_FILE:-ggml-large-v3-turbo-q5_0.bin}
@@ -50,16 +47,9 @@ services:
       - -l
       - en
     environment:
+      WHISPER_MODEL_FILE: ${WHISPER_MODEL_FILE:-ggml-large-v3-turbo-q5_0.bin}
       # The worker sends windows back to back, so a minute of quiet means the transcription is done.
       WHISPER_IDLE_SECONDS: ${WHISPER_IDLE_SECONDS:-60}
-    healthcheck:
-      test:
-        - CMD
-        - python3
-        - -c
-        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=3)"
-      interval: 15s
-      retries: 5
 
   ollama:
     devices: ['nvidia.com/gpu=all']

@@ -14,11 +14,20 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 - **The status page shows the server's version** (and its protocol), so you can tell at a glance which release a server is running.
 
+- **Model downloads show on the status page and in `vtt-admin status`.** A new `local AI` line says whether the summary model and Whisper are ready, downloading (with a percentage), or why a download failed; the status page shows a "Summary model" row while it downloads, and marks it when a download failed or stalled.
+
 ### Changed
 
+- **An idle server now uses almost no CPU.** Nearly all of the 13 to 15% a quiet server used was Docker running the containers' health checks (43 commands a minute). They now run every 2 seconds only while a container starts, and once a minute after that, with cheaper commands. Operators: this needs **Docker Engine 25 or newer** (`docker version`); the installer and `vtt-admin update` check and tell you before changing anything.
+- **Recording and summaries are ready to start in seconds on a new install.** The four containers that ran once and exited (`media-init`, `recordings-init`, `models-init`, `ollama-pull`) are gone. The models now download in the background after everything is up: the Whisper container fetches its own, and the worker asks Ollama for the summary model. A recording made before they arrive waits for them. On update, the old one-shot containers are removed by themselves. If you have scripts that name them (for example `docker compose logs models-init`), use `vtt-admin logs whisper worker`.
+- **The worker starts after the app server** (which prepares the database), and runs as the same user as the recorder (uid 1001).
 - **The starter sounds are on by default**, rebuilt from listened-to sources (Freesound, Kenney and OpenGameArt; credits in `backend/assets/sounds/SOURCES.md`). 23 quiet scenes: Tavern (with a fireplace), Dungeon, Dungeon halls, Forest, Forest night, Night crickets, Rain, Market, Storm, Campfire, Fireplace, Harbour, Cave (with dripping water), Castle hall, Mountain, Infernal, and battle moods (Battle, Epic battle, Pending doom, Boss: fire dragon, Boss: symphonic metal, War drums, Run away!). About 90 stingers in eleven boards: Combat (including Critical hit and Critical fail), Spells (fireball, ice, lightning, flash bang), Creatures (bats, spiders, insects), Undead and horrors, Doors, traps and loot, Hits and falls, Movement, Mood, Jingles, Taunts and Villain lines. `STARTER_SOUNDS=0` turns them off.
 - **Some starter sounds are CC BY 3.0, not CC0**: the Fantasy and Horror sound libraries by Little Robot Sound Factory (www.littlerobotsoundfactory.com), and a few single clips (Big Explosion, the devil voice lines, Ice and Electricity spells, Spider Chattering, Spooky Sound Effects). They are credited in `SOURCES.md`, and the credit must stay with the pack. Share-alike (CC BY-SA) and GPL sounds are not used.
 - **A fresh sound deck** starts with the first stinger of each board rather than the first six.
+
+### Fixed
+
+- **Deleting raw audio works on a Docker install.** The worker could not delete recorded audio (the age rule, the low-disk rule, `vtt-admin recording purge` and the DM's "delete the audio" all failed with "permission denied"), because the files belong to the recorder's user. Transcripts and summaries were never affected.
 
 ## [0.5.0] - 2026-11-16
 

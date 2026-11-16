@@ -1,4 +1,4 @@
-import type { Pipeline, StatusSnapshot } from '../types/index.js';
+import type { ModelView, Pipeline, StatusSnapshot } from '../types/index.js';
 
 /** The one line at the top: what a player wants to know first. */
 export function headline(s: StatusSnapshot): { tone: 'ok' | 'warn' | 'down'; text: string } {
@@ -19,6 +19,23 @@ export function pipelineLine(p: Pipeline | null): string {
   if (p.queued > 0) parts.push(`${p.queued} waiting`);
   if (p.failed > 0) parts.push(`${p.failed} failed`);
   return parts.length > 0 ? parts.join(', ') : 'Idle';
+}
+
+/**
+ * A model that is not simply ready: "Downloading (43%)", "Download failed", "Download has stalled at 43%".
+ * Null when there is nothing worth a row (ready, not reported, or a local AI that is not running by design).
+ */
+export function modelLine(m: ModelView | null | undefined): string | null {
+  switch (m?.state) {
+    case 'downloading':
+      return `Downloading (${m.percent ?? 0}%)`;
+    case 'stalled':
+      return `Download has stalled at ${m.percent ?? 0}%`;
+    case 'failed':
+      return 'Download failed';
+    default:
+      return null;
+  }
 }
 
 /** "just now", "5 minutes ago", "3 hours ago", "2 days ago". */

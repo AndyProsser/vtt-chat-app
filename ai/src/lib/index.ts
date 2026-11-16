@@ -5,6 +5,7 @@ export * from './cues.js';
 export * from './ffmpeg.js';
 export * from './format.js';
 export * from './jobs/index.js';
+export * from './localAi/index.js';
 export * from './merge.js';
 export * from './ollama.js';
 export * from './prompts.js';

@@ -34,12 +34,13 @@ echo "  database…"
 docker compose exec -T postgres pg_dump -U vtt -d vtt --no-owner | gzip > "$out/database.sql.gz"
 [[ -s $out/database.sql.gz ]] || { echo "the database dump is empty; stopping" >&2; exit 1; }
 
+# The volumes are read through throwaway containers of the services that own them (as root, so any file is readable).
 echo "  uploaded files…"
-docker compose run --rm --no-deps -T --entrypoint sh media-init -c 'tar -C /data/media -cz .' > "$out/media.tar.gz" 2> >(grep -v '^ Container ' >&2)
+docker compose run --rm --no-deps -T --user 0 --entrypoint sh backend -c 'tar -C /data/media -cz .' > "$out/media.tar.gz" 2> >(grep -v '^ Container ' >&2)
 
 if ((audio)); then
   echo "  recorded audio (this can be large)…"
-  docker compose --profile records run --rm --no-deps -T --entrypoint sh recordings-init -c 'tar -C /out -cz .' > "$out/recordings.tar.gz" 2> >(grep -v '^ Container ' >&2)
+  docker compose --profile records run --rm --no-deps -T --user 0 --entrypoint sh worker -c 'tar -C /out -cz .' > "$out/recordings.tar.gz" 2> >(grep -v '^ Container ' >&2)
 fi
 
 echo "  configuration (contains secrets)…"

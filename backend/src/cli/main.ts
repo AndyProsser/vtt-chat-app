@@ -1,7 +1,14 @@
 #!/usr/bin/env node
 import { Valkey } from 'iovalkey';
 
-import { PostgresJobQueue, PostgresRecordsStore } from '@vtt-chat-app/ai';
+import {
+  describeLocalAi,
+  needsAttention,
+  PostgresJobQueue,
+  PostgresRecordsStore,
+  readLocalAiStatus,
+  shownState,
+} from '@vtt-chat-app/ai';
 
 import { AccountService } from '../lib/auth/accountService.js';
 import { SignupService } from '../lib/auth/signupService.js';
@@ -70,6 +77,22 @@ async function main(): Promise<number> {
         return `${url} answered ${response.status}`;
       },
     });
+    // The local AI's models, as the records worker last reported them (it downloads them in the background on a
+    // first start). Shown only when a worker has reported; FAIL when a download failed or stalled.
+    const localAi = await readLocalAiStatus(pool).catch(() => null);
+    if (localAi) {
+      probes.push({
+        name: 'local AI',
+        run: async () => {
+          const line = describeLocalAi(localAi, Date.now());
+          const bad = [localAi.llm, localAi.whisper].some((model) =>
+            needsAttention(shownState(model, localAi.at, Date.now())),
+          );
+          if (bad) throw new Error(`${line} (see: vtt-admin logs worker)`);
+          return line;
+        },
+      });
+    }
 
     const accounts = new AccountService({ store });
     return await runAdmin(process.argv.slice(2), {

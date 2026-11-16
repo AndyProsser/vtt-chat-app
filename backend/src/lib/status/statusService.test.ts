@@ -51,6 +51,58 @@ describe('StatusService', () => {
     expect((await s.snapshot()).pipeline).toEqual({ queued: 1, running: 0, failed: 0, last: null });
   });
 
+  it('shows the local AI models as the worker reported them, without the error text', async () => {
+    const s = new StatusService({
+      ...base,
+      probes: [],
+      now: () => 60_000,
+      localAi: async () => ({
+        at: 50_000,
+        llm: { state: 'downloading', percent: 43, detail: 'internal detail' },
+        whisper: { state: 'ready' },
+      }),
+    });
+    const snap = await s.snapshot();
+    expect(snap.localAi).toEqual({
+      summaryModel: { state: 'downloading', percent: 43 },
+      whisper: { state: 'ready' },
+    });
+    expect(snap.ok).toBe(true);
+    expect(JSON.stringify(snap)).not.toContain('internal detail');
+  });
+
+  it('is not ok when the summary model download failed or stopped reporting', async () => {
+    const failed = new StatusService({
+      ...base,
+      probes: [],
+      localAi: async () => ({ at: 0, llm: { state: 'failed', detail: 'x' }, whisper: null }),
+    });
+    expect((await failed.snapshot()).services).toContainEqual({ name: 'summary model', ok: false });
+
+    const stalled = new StatusService({
+      ...base,
+      probes: [],
+      now: () => 10 * 60_000,
+      localAi: async () => ({ at: 0, llm: { state: 'downloading', percent: 12 }, whisper: null }),
+    });
+    const snap = await stalled.snapshot();
+    expect(snap.ok).toBe(false);
+    expect(snap.localAi?.summaryModel).toEqual({ state: 'stalled', percent: 12 });
+  });
+
+  it('reports no local AI when no worker has (and when reading it fails)', async () => {
+    expect((await new StatusService({ ...base, probes: [] }).snapshot()).localAi).toBeNull();
+    const broken = new StatusService({
+      ...base,
+      probes: [],
+      localAi: async () => {
+        throw new Error('no such column');
+      },
+    });
+    expect((await broken.snapshot()).localAi).toBeNull();
+    expect((await broken.snapshot()).ok).toBe(true);
+  });
+
   it('reuses a snapshot inside the cache window', async () => {
     let calls = 0;
     let clock = 1000;

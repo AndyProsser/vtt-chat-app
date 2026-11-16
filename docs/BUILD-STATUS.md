@@ -15,6 +15,29 @@ cd tauri-client && cargo fmt --check && cargo clippy --workspace --all-targets -
 
 Last run (2026-11-09, memory stores): backend 406 (+18 skipped without Postgres), panels-ui 213, ddb 9, status 3; Rust: src-tauri 88 (+2 ignored), rust-livekit and rust-sync as before, with the LiveKit live tests passing individually on SDK 0.10.1. `cargo clippy -D warnings` still fails on the old unused `capture_allowed`. Not run: anything in CI (the workflow exists, nothing has run it since the pivot).
 
+## Stage 9, 2026-11-16: idle CPU and the one-shot containers (branch `stage-9-hardening`, 0.6.0)
+
+**Built and checked on the dev PC** (local images, the `vtt-smoke` stack with the GPU override, and a throwaway project with new
+volumes and tiny models):
+
+- **Idle CPU.** Measured on the real VM first (read-only): about half a core, nearly all of it Docker health-check commands and
+  the daemon launching them ([the table](architecture/DEPLOYMENT-AND-TRANSPORT.md#start-up-and-idle-cost-060)). After the change,
+  on the dev PC: 43 → 6 health-check commands a minute; containers 5.7% → 2.4% of a core.
+- **No one-shot containers.** A fresh stack (`postgres valkey backend worker whisper ollama`) was healthy in 6 s; the Whisper
+  model and the summary model then downloaded in the background and `vtt-admin status` printed `local AI   summary model ready,
+Whisper ready`. New volumes came up owned by uid 1000 (media) and 1001 (recordings); a file written as Egress's user was
+  deleted by the worker. With model names that do not exist the stack still started, `vtt-admin status` printed `FAIL local AI`
+  with the reason, `/api/status` reported `summary model` down, and a `docker stop` of the retrying Whisper container returned at once.
+- **Upgrade in place.** `up -d --wait --remove-orphans` on the existing dev stack removed the four old one-shots and came up
+  healthy in 26 s on the existing volumes, including the CUDA Whisper image (whose health check falls back to python3).
+- **Backup and restore.** `backup.sh --audio` on the dev stack (182 media and 112 recording entries), restored into new volumes
+  with the right owners. The full `restore.sh` (database included) was not rerun.
+
+**UNVERIFIED:** the real VM (it needs a 0.6 build: the CPU figure there is a projection until then); a whole records job
+(record → transcribe → summarise) on the new images; a records job that arrives _while_ a model is downloading (unit-tested
+only); the compatibility Whisper image (`compose.compat.yml`) with the new entrypoint; a real multi-GB pull over a slow line
+(the stall rule is unit-tested); Docker Engine older than 25 (the installer refuses; not tried).
+
 ## Rehearsed 2026-11-13: the "second person" deploy from the docs, a backup/restore drill and a 90-minute server soak
 
 An agent standing in for the second operator followed [OPERATOR-GUIDE.md](guides/OPERATOR-GUIDE.md) literally on this machine,

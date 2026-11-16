@@ -308,7 +308,13 @@ docker compose --profile records up -d --wait
 
 This adds **Egress** (about 4 GB of image), **Whisper** (speech to text; about 190 MB model),
 **Ollama** (a language model, about 2 GB for the default `llama3.2:3b`) and the **worker** that runs the
-jobs. The first start downloads the models; give it time (`docker compose logs -f models-init ollama-pull`).
+jobs. The stack is up in seconds; the **first start then downloads the two models in the background** (the Whisper
+container fetches its own, the worker asks Ollama for the summary model). You can record straight away: a
+recording made before the models are there waits for them. Watch it with `./vtt-admin status` (the `local AI`
+line says "downloading (43%)", "ready", or why it failed) or `./vtt-admin logs whisper worker`; the status page
+shows a "Summary model" row while it downloads. A download that fails (no route out, a mistyped model name) is
+retried with a growing pause and shows as `FAIL local AI` in `vtt-admin status`. Needs Docker Engine 25 or newer
+(`docker version`); the installer checks.
 
 **What to expect on a CPU-only server** (measured on an 8-core desktop, 2026-11-12): Whisper `small` takes
 about 0.3 × the length of each player's speech, and each summary 1–2 minutes with `llama3.2:3b`. A 4-hour
@@ -567,7 +573,7 @@ cd vtt-chat-app && git pull
 cd infra/compose
 ./backup.sh --to /mnt/backups                  # first: migrations only move forward
 grep VTT_VERSION .env                          # which images are pinned (edit it to move to a new patch or line)
-docker compose pull && docker compose up -d --wait   # add --profile records if you use it
+docker compose pull && docker compose up -d --wait --remove-orphans   # add --profile records if you use it
 ./vtt-admin status
 ```
 

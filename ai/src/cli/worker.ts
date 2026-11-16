@@ -7,7 +7,8 @@
  *   DATABASE_URL        Postgres (required)
  *   WHISPER_LOCAL_URL   the local Whisper as an OpenAI-compatible server (the Compose bundle's `whisper`), OR
  *   WHISPER_BIN / WHISPER_MODEL / WHISPER_THREADS   a local whisper.cpp binary (default whisper-cli)
- *   OLLAMA_URL / OLLAMA_MODEL   the local LLM (default http://127.0.0.1:11434; model required)
+ *   OLLAMA_URL / OLLAMA_MODEL   the local LLM (default http://127.0.0.1:11434; model required). A model that is
+ *                       not in Ollama yet is downloaded at start-up, in the background; summaries wait for it
  *   OLLAMA_KEEP_ALIVE   how long Ollama keeps the model loaded after a request (e.g. 2m; unset: the
  *                       Ollama server's own setting)
  *   WORKER_ID           this worker's stable name (default: the hostname). A restarted worker with the
@@ -29,6 +30,14 @@ import path from 'node:path';
 
 import { PostgresJobQueue } from '../lib/jobs/postgresQueue.js';
 import { processNext, resolveWorkerId, runWorker } from '../lib/jobs/worker.js';
+import {
+  holdForModel,
+  holdForWhisper,
+  keepTrying,
+  OllamaModelKeeper,
+  WhisperReadiness,
+} from '../lib/localAi/keepers.js';
+import { createLocalAiReporter, writeLocalAiStatus } from '../lib/localAi/status.js';
 import { createOllamaGenerate } from '../lib/ollama.js';
 import { PostgresRecordsStore, createPool } from '../lib/records/postgresRecordsStore.js';
 import {
@@ -59,11 +68,37 @@ async function main(): Promise<void> {
   const threads = process.env.WHISPER_THREADS ? Number(process.env.WHISPER_THREADS) : undefined;
   const log = (line: string): void => console.log(`${new Date().toISOString()} ${line}`);
 
+  const once = process.argv.includes('--once');
+  const abort = new AbortController();
+  for (const signal of ['SIGINT', 'SIGTERM'] as const) process.once(signal, () => abort.abort());
+
+  // The local AI may not be ready when the worker starts: on a first start the Whisper container is still fetching
+  // its model, and the summary model is fetched here (lib/localAi/keepers.ts). Neither holds up start-up; the state
+  // goes to the database for the status page and `vtt-admin status`, and a job waits only for the part it needs.
+  const reporter = createLocalAiReporter({ write: (status) => writeLocalAiStatus(pool, status) });
+  const ollamaUrl = process.env.OLLAMA_URL ?? DEFAULT_OLLAMA_URL;
+  const ollamaModel = required('OLLAMA_MODEL');
+  const modelKeeper = new OllamaModelKeeper({
+    baseUrl: ollamaUrl,
+    model: ollamaModel,
+    report: reporter.llm,
+    signal: abort.signal,
+    log,
+  });
+  const whisperReady = localUrl
+    ? new WhisperReadiness({ baseUrl: localUrl, report: reporter.whisper, log })
+    : undefined;
+  const hold = { signal: abort.signal };
+
   const handler = createProcessRecordingHandler({
     records: new PostgresRecordsStore(pool),
     localTranscribe: (language) =>
-      localUrl
-        ? createOpenAiTranscribe({ baseUrl: localUrl, model: 'whisper-1', language })
+      localUrl && whisperReady
+        ? holdForWhisper(
+            createOpenAiTranscribe({ baseUrl: localUrl, model: 'whisper-1', language }),
+            whisperReady,
+            hold,
+          )
         : (wav) =>
             transcribeWavWithWhisperCli(wav, wav.replace(/\.wav$/, ''), {
               ...(process.env.WHISPER_BIN ? { bin: process.env.WHISPER_BIN } : {}),
@@ -71,12 +106,16 @@ async function main(): Promise<void> {
               ...(threads ? { threads } : {}),
               language,
             }),
-    localGenerate: createOllamaGenerate({
-      model: required('OLLAMA_MODEL'),
-      baseUrl: process.env.OLLAMA_URL ?? DEFAULT_OLLAMA_URL,
-      numCtx: 8192,
-      ...(process.env.OLLAMA_KEEP_ALIVE ? { keepAlive: process.env.OLLAMA_KEEP_ALIVE } : {}),
-    }),
+    localGenerate: holdForModel(
+      createOllamaGenerate({
+        model: ollamaModel,
+        baseUrl: ollamaUrl,
+        numCtx: 8192,
+        ...(process.env.OLLAMA_KEEP_ALIVE ? { keepAlive: process.env.OLLAMA_KEEP_ALIVE } : {}),
+      }),
+      modelKeeper,
+      hold,
+    ),
     transcribeAudioFile: (file, transcribeWav) => transcribeTrackFile(file, transcribeWav),
     env: process.env,
     log,
@@ -131,9 +170,19 @@ async function main(): Promise<void> {
       })
       .catch((error: unknown) => log(`disk sweep failed: ${String(error)}`));
   };
-  const once = process.argv.includes('--once');
-  const abort = new AbortController();
-  for (const signal of ['SIGINT', 'SIGTERM'] as const) process.once(signal, () => abort.abort());
+  /**
+   * Whether this install will ever use the local LLM: not when summaries go to a remote server and falling back to
+   * local is switched off. Then the model is not downloaded (it would be gigabytes nobody uses); a job that needs
+   * it after all, because the setting changed, still fetches it on demand.
+   */
+  const usesLocalLlm = async (): Promise<boolean> => {
+    try {
+      const ai = await records.getAiSettings();
+      return !(ai.llm.kind === 'remote' && ai.llm.url !== null && !ai.fallback.enabled);
+    } catch {
+      return true; // the database is not ready yet (a first start): assume the default, which is local
+    }
+  };
 
   try {
     if (once) {
@@ -151,9 +200,18 @@ async function main(): Promise<void> {
         sweep();
         setInterval(sweep, 3_600_000).unref();
       }
+      if (whisperReady) void keepTrying(whisperReady, { signal: abort.signal });
+      void usesLocalLlm().then((wanted) => {
+        if (wanted) return keepTrying(modelKeeper, { signal: abort.signal });
+        log(`summaries use the remote LLM only: not downloading the local model ${ollamaModel}`);
+        return undefined;
+      });
       await runWorker({ ...options, signal: abort.signal });
     }
   } finally {
+    // Also when the job loop died (the database went away): the background model checks must not keep a worker
+    // alive that no longer takes jobs. It exits, and the service manager starts a fresh one.
+    abort.abort();
     await pool.end();
   }
 }

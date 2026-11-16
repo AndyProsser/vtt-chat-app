@@ -51,12 +51,14 @@ gunzip -c "$src/database.sql.gz" | docker compose exec -T postgres psql -U vtt -
 echo "Clearing the live-chat replay buffer…"
 docker compose exec -T valkey sh -c 'valkey-cli --scan --pattern "replay:*" | xargs -r valkey-cli del' >/dev/null
 
+# Written through throwaway containers of the services that own the volumes: as root, then handed to the user each
+# service runs as (the backend is uid 1000; Egress and the worker are uid 1001).
 echo "Replacing the uploaded files…"
-docker compose run --rm --no-deps -T --entrypoint sh media-init -c 'rm -rf /data/media/* /data/media/.[!.]* 2>/dev/null; tar -C /data/media -xz && chown -R 1000:1000 /data/media' < "$src/media.tar.gz"
+docker compose run --rm --no-deps -T --user 0 --entrypoint sh backend -c 'rm -rf /data/media/* /data/media/.[!.]* 2>/dev/null; tar -C /data/media -xz && chown -R 1000:1000 /data/media' < "$src/media.tar.gz"
 
 if [[ -s $src/recordings.tar.gz ]]; then
   echo "Replacing the recorded audio…"
-  docker compose --profile records run --rm --no-deps -T --entrypoint sh recordings-init -c 'rm -rf /out/* 2>/dev/null; tar -C /out -xz && chown -R 1001:0 /out' < "$src/recordings.tar.gz"
+  docker compose --profile records run --rm --no-deps -T --user 0 --entrypoint sh worker -c 'rm -rf /out/* 2>/dev/null; tar -C /out -xz && chown -R 1001:0 /out' < "$src/recordings.tar.gz"
 fi
 
 echo "Starting everything…"

@@ -1,4 +1,11 @@
-import type { JobQueue } from '@vtt-chat-app/ai';
+import {
+  needsAttention,
+  shownState,
+  type JobQueue,
+  type LocalAiStatus,
+  type LocalModelStatus,
+  type ShownModelState,
+} from '@vtt-chat-app/ai';
 
 import { freePercent, isLow, type DiskUse } from './storage.js';
 
@@ -29,6 +36,17 @@ export interface StatusSnapshot {
   } | null;
   /** The recordings disk: only the free share, never paths or sizes. Null when not measured. */
   storage: { freePercent: number; low: boolean } | null;
+  /**
+   * The local AI's models as the records worker last reported them: a first start downloads them in the background,
+   * and this is where that shows. Null when no worker has reported. States only: never the error text.
+   */
+  localAi: { summaryModel: ModelView | null; whisper: ModelView | null } | null;
+}
+
+export interface ModelView {
+  state: ShownModelState;
+  /** 0 to 100, while downloading (or where a stalled download stopped). */
+  percent?: number;
 }
 
 export interface StatusDeps {
@@ -38,6 +56,8 @@ export interface StatusDeps {
   jobs?: JobQueue;
   /** Measures the disk that holds recordings; null when there is none to measure. */
   storage?: () => Promise<DiskUse | null>;
+  /** What the records worker last reported about the local AI's models; null when it never has. */
+  localAi?: () => Promise<LocalAiStatus | null>;
   now?: () => number;
   /** How long a snapshot is reused, so a busy status page cannot hammer the services. */
   cacheMs?: number;
@@ -88,6 +108,24 @@ export class StatusService {
         services.push({ name: 'storage', ok: !storage.low });
       }
     }
+    let localAi: StatusSnapshot['localAi'] = null;
+    if (this.deps.localAi) {
+      const reported = await this.deps.localAi().catch(() => null);
+      if (reported) {
+        const view = (model: LocalModelStatus | null): ModelView | null => {
+          const state = shownState(model, reported.at, at);
+          if (!model || !state) return null;
+          const downloading = state === 'downloading' || state === 'stalled';
+          return { state, ...(downloading ? { percent: model.percent ?? 0 } : {}) };
+        };
+        localAi = { summaryModel: view(reported.llm), whisper: view(reported.whisper) };
+        // Downloading and waiting are normal (a first start; an install whose AI runs elsewhere). A download that
+        // failed or stalled is not, and nothing else on this page would show it.
+        if (needsAttention(localAi.summaryModel?.state ?? null)) {
+          services.push({ name: 'summary model', ok: false });
+        }
+      }
+    }
     const snapshot: StatusSnapshot = {
       at,
       ok: services.every((s) => s.ok),
@@ -96,6 +134,7 @@ export class StatusService {
       recording: { active: this.deps.activeRecordings() },
       pipeline,
       storage,
+      localAi,
     };
     this.cached = snapshot;
     return snapshot;

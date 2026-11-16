@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { StatusSnapshot } from '../types/index.js';
-import { ago, headline, pipelineLine, versionLine } from './summary.js';
+import { ago, headline, modelLine, pipelineLine, versionLine } from './summary.js';
 
 const snap = (services: [string, boolean][]): StatusSnapshot => ({
   at: 0,
@@ -43,6 +43,18 @@ describe('headline', () => {
         ]),
       ).tone,
     ).toBe('warn');
+  });
+});
+
+describe('modelLine', () => {
+  it('shows a download, and nothing for a model that is simply there', () => {
+    expect(modelLine({ state: 'downloading', percent: 43 })).toBe('Downloading (43%)');
+    expect(modelLine({ state: 'stalled', percent: 43 })).toBe('Download has stalled at 43%');
+    expect(modelLine({ state: 'failed' })).toBe('Download failed');
+    expect(modelLine({ state: 'ready' })).toBeNull();
+    expect(modelLine({ state: 'waiting' })).toBeNull();
+    expect(modelLine(null)).toBeNull();
+    expect(modelLine(undefined)).toBeNull();
   });
 });
 
