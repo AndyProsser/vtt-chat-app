@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { RecordingEvent, SummaryCue } from '../types/index.js';
 import { compactCues, eventCues } from './cues.js';
 import { formatTimeline } from './format.js';
-import { buildChunkPrompt, buildSinglePrompt } from './prompts.js';
+import { buildNotesPrompt, buildStoryPrompt } from './prompts.js';
 import { summarise } from './summarise.js';
 import { planChapters } from './chapters.js';
 import { planSummaries } from './summaryPlan.js';
@@ -192,11 +192,13 @@ describe('prompts with cues', () => {
   });
 
   it('puts the cue-not-fact rule in the prompt only when there are cues', () => {
-    const withCues = buildSinglePrompt('session', lines.join('\n'), { cues });
+    // The scribe reads the transcript, so the rule about cues is the scribe's; the bard only ever sees notes.
+    const withCues = buildNotesPrompt(lines.join('\n'), 0, 1, { cues });
     expect(withCues).toContain('(cue) Scene started: "Drowned Crypt"');
     expect(withCues).toMatch(/not events: do not invent/);
-    expect(buildChunkPrompt('session', 'x', 0, 2, { cues })).toMatch(/cues noted by the app/);
-    expect(buildSinglePrompt('session', 'x', {})).not.toMatch(/cue/);
+    expect(buildNotesPrompt('x', 0, 2, { cues })).toMatch(/cues noted by the app/);
+    expect(buildNotesPrompt('x', 0, 1, {})).not.toMatch(/cue/);
+    expect(buildStoryPrompt('session', ['x'], { cues })).not.toMatch(/cue/);
   });
 
   it('names the chapter scene, and the model sees the cue lines when summarising', async () => {
@@ -212,7 +214,8 @@ describe('prompts with cues', () => {
         context: { chapter: { number: 2, of: 3, title: 'Drowned Crypt' }, cues },
       },
     );
-    expect(seen[0]).toContain('which began in the scene "Drowned Crypt"');
+    expect(seen[0]).toContain('(cue) Scene started: "Drowned Crypt"'); // the scribe reads the cue lines
+    expect(seen[1]).toContain('which began in the scene "Drowned Crypt"'); // the bard is told the scene
     expect(seen[0]).toContain('(cue) Scene started');
   });
 });

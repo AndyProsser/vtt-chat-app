@@ -23,7 +23,41 @@ export interface OpenAiTranscribeOptions extends OpenAiCompatOptions {
   language?: string;
   /** Drops segments the server rates as probably silence. Servers that don't report it are unaffected. */
   maxNoSpeechProb?: number;
+  /**
+   * Sends whisper.cpp's `audio_ctx` sized to each window. Whisper always encodes 30 s of audio, so a 6 s
+   * line costs as much as a 30 s one; `audio_ctx` tells whisper.cpp to encode only the part that holds sound.
+   * A whisper.cpp extension, so it is for the local Whisper only, and only for the models it was measured on
+   * ({@link fitsAudioContext}). Measured 2026-11-16 on a table-like track (one line, then 5 s of quiet): 2.2 to 2.9 times
+   * faster with word accuracy unchanged on `small`, `small.en` and `base.en`. **`large-v3-turbo` repeats itself** with a
+   * shortened context ("Both arrows hit. Both arrows hit. Both arrows hit."), found by the end-to-end test the same day.
+   */
+  fitAudioContext?: boolean;
+  /** Encoder positions kept past the end of the sound (50 a second). Default {@link AUDIO_CTX_MARGIN}. */
+  audioContextMargin?: number;
 }
+
+/** Whisper's encoder covers 30 s in 1500 positions (50 a second). */
+const AUDIO_CTX_FULL = 1500;
+/** Extra positions past the end of the sound (about 5 s). 128 cost accuracy in the measurement; 256 did not, and 400 was no better. */
+export const AUDIO_CTX_MARGIN = 256;
+/** Below this the decoder gets erratic, however short the clip. */
+const AUDIO_CTX_MIN = 384;
+
+/** The `audio_ctx` for a clip of this length, or undefined when the full context is needed anyway. */
+export function audioContextFor(seconds: number, margin = AUDIO_CTX_MARGIN): number | undefined {
+  const fitted = Math.max(AUDIO_CTX_MIN, Math.ceil(seconds * 50) + margin);
+  return fitted < AUDIO_CTX_FULL ? fitted : undefined;
+}
+
+/**
+ * Whether a ggml model file is one the fitted context was measured safe on: the `base` and `small` models. Anything
+ * else (the `large` family and `turbo` above all, `medium`, `tiny`, an unknown name) gets Whisper's full context.
+ */
+export const fitsAudioContext = (modelFile: string | undefined): boolean =>
+  modelFile !== undefined && /^ggml-(base|small)(\.en)?[-.]/.test(modelFile);
+
+/** Seconds of audio in a 16 kHz mono 16-bit WAV of this size (what ffmpeg cuts for Whisper), header ignored. */
+const wavSeconds = (bytes: number): number => Math.max(0, bytes - 44) / 32_000;
 
 const trimSlash = (url: string): string => url.replace(/\/+$/, '');
 
@@ -115,17 +149,18 @@ export function parseVerboseTranscription(json: unknown, maxNoSpeechProb: number
 export function createOpenAiTranscribe(options: OpenAiTranscribeOptions): TranscribeWav {
   return async (wavPath) => {
     const form = new FormData();
-    form.append(
-      'file',
-      new Blob([await readFile(wavPath)], { type: 'audio/wav' }),
-      path.basename(wavPath),
-    );
+    const audio = await readFile(wavPath);
+    form.append('file', new Blob([audio], { type: 'audio/wav' }), path.basename(wavPath));
     form.append('model', options.model);
     form.append('response_format', 'verbose_json');
     form.append('timestamp_granularities[]', 'segment');
     // Deterministic output: a summary is built on this text, so no sampling randomness.
     form.append('temperature', '0');
     if (options.language) form.append('language', options.language);
+    const audioCtx = options.fitAudioContext
+      ? audioContextFor(wavSeconds(audio.length), options.audioContextMargin)
+      : undefined;
+    if (audioCtx !== undefined) form.append('audio_ctx', String(audioCtx));
     const json = await post(options, '/v1/audio/transcriptions', form);
     return parseVerboseTranscription(json, options.maxNoSpeechProb ?? DEFAULT_MAX_NO_SPEECH_PROB);
   };

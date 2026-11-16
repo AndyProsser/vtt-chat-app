@@ -17,8 +17,8 @@ set -euo pipefail
 NODE_VERSION="${NODE_VERSION:-26.13.0}"          # Node 26 "Lithium" LTS
 LIVEKIT_VERSION="${LIVEKIT_VERSION:-1.13.5}"     # the version the Compose bundle was tested with
 WHISPER_REF="${WHISPER_REF:-v1.9.5}"
-WHISPER_MODEL_FILE="${WHISPER_MODEL_FILE:-ggml-small-q5_1.bin}"
-OLLAMA_MODEL="${OLLAMA_MODEL:-llama3.2:3b}"
+WHISPER_MODEL_FILE="${WHISPER_MODEL_FILE:-ggml-small.en-q5_1.bin}"
+OLLAMA_MODEL="${OLLAMA_MODEL:-qwen3.5:4b}"
 
 # --- Layout ---------------------------------------------------------------------------------------
 APP_USER=vtt
@@ -420,6 +420,7 @@ Wants=vtt-whisper.service
 User=$APP_USER
 EnvironmentFile=$ENV_FILE
 Environment=WHISPER_LOCAL_URL=http://127.0.0.1:8080
+Environment=WHISPER_MODEL_FILE=$WHISPER_MODEL_FILE
 Environment=OLLAMA_URL=http://127.0.0.1:11434
 Environment=OLLAMA_MODEL=$OLLAMA_MODEL
 WorkingDirectory=$APP_DIR

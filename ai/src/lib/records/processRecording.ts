@@ -1,12 +1,19 @@
 import type { AiSettings } from '@vtt-chat-app/shared';
 
-import type { GenerateText, Job, Segment, TranscribeWav } from '../../types/index.js';
+import type {
+  GenerateText,
+  Job,
+  Segment,
+  SummaryContext,
+  TranscribeWav,
+  Utterance,
+} from '../../types/index.js';
 import { chatUtterances, mergeTimeline } from '../chat.js';
 import { formatTranscript } from '../format.js';
 import type { JobHandler } from '../jobs/worker.js';
 import { mergeTranscripts } from '../merge.js';
 import { buildJobProviders } from '../providers/fromSettings.js';
-import { summarise } from '../summarise.js';
+import { takeNotes, writeFromNotes, type SummaryModels } from '../summarise.js';
 import { planSummaries } from '../summaryPlan.js';
 import type { RecordsStore } from './recordsStore.js';
 
@@ -17,6 +24,8 @@ export interface ProcessRecordingDeps {
   /** The always-configured local backends: the default, and the fallback for a remote one. */
   localTranscribe: (language: string) => TranscribeWav;
   localGenerate: GenerateText;
+  /** The local story-teller, when it is a different model from `localGenerate` (the scribe). */
+  localStory?: GenerateText;
   /** Cuts a track file into speech windows and transcribes them (`transcribeTrackFile` in production). */
   transcribeAudioFile: (file: string, transcribeWav: TranscribeWav) => Promise<Segment[]>;
   env?: { WHISPER_API_KEY?: string | undefined; LLM_API_KEY?: string | undefined };
@@ -52,6 +61,7 @@ export function createProcessRecordingHandler(deps: ProcessRecordingDeps): JobHa
         ...(deps.env ? { env: deps.env } : {}),
         localTranscribe: deps.localTranscribe,
         localGenerate: deps.localGenerate,
+        ...(deps.localStory ? { localStory: deps.localStory } : {}),
         onFallback: (what, reason) =>
           log(`${recording.id}: ${what} fell back to local — ${reason}`),
       });
@@ -84,6 +94,42 @@ export function createProcessRecordingHandler(deps: ProcessRecordingDeps): JobHa
         playerIds: new Set(await deps.records.playerIds(recording.campaignId)),
         ...(campaignName ? { campaignName } : {}),
       });
+
+      // The scribe's notes are taken once per stretch of recording and shared by every summary of it. With
+      // chapters, each chapter is one stretch and the whole session is their notes in order; without, the
+      // session is one stretch. Taken only when a summary still needs them, so a finished job re-run costs nothing.
+      // They are not stored: a job that died mid-way takes them again (the transcripts, the slow part, are kept).
+      const models: SummaryModels = { scribe: providers.generate.call, bard: providers.story.call };
+      const chapters = plan.filter((p) => p.kind === 'chapter');
+      const byChapter =
+        chapters.length > 0 &&
+        chapters.reduce((n, c) => n + c.utterances.length, 0) === utterances.length;
+      let uncounted = 0; // note-taking calls not yet attributed to a stored summary
+      const taken = new Map<string, Promise<string[]>>();
+      const notesOf = (
+        key: string,
+        lines: Utterance[],
+        context: SummaryContext,
+      ): Promise<string[]> => {
+        let notes = taken.get(key);
+        if (!notes) {
+          log(`${recording.id}: taking notes${key ? ` (part ${key})` : ''}`);
+          notes = takeNotes(models.scribe, lines, { context }).then((result) => {
+            uncounted += result.modelCalls;
+            return result.notes;
+          });
+          taken.set(key, notes);
+        }
+        return notes;
+      };
+      const sessionNotes = async (context: SummaryContext): Promise<string[]> => {
+        if (!byChapter) return notesOf('', utterances, context);
+        const parts: string[] = [];
+        for (const c of chapters)
+          parts.push(...(await notesOf(c.subject, c.utterances, c.context)));
+        return parts;
+      };
+
       for (const { kind, subject, visibility, utterances: covered, context } of plan) {
         if (await deps.records.getSummary(recording.id, kind, subject)) continue;
         if (covered.length === 0) {
@@ -100,14 +146,20 @@ export function createProcessRecordingHandler(deps: ProcessRecordingDeps): JobHa
           continue;
         }
         log(`${recording.id}: writing ${kind}${subject ? ` (${subject})` : ''} summary`);
-        const result = await summarise(providers.generate.call, covered, { kind, context });
+        const notes =
+          kind === 'chapter'
+            ? await notesOf(byChapter ? subject : `chapter ${subject}`, covered, context)
+            : await sessionNotes(context);
+        const result = await writeFromNotes(models, notes, { kind, context });
+        const modelCalls = result.modelCalls + uncounted;
+        uncounted = 0;
         await deps.records.putSummary({
           recordingId: recording.id,
           kind,
           subject,
           visibility,
           text: result.text,
-          modelCalls: result.modelCalls,
+          modelCalls,
           createdAt: now(),
         });
       }

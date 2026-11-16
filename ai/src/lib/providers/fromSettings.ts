@@ -11,6 +11,8 @@ export interface ProviderDeps {
   /** Builds the local transcriber for the operator's configured language. */
   localTranscribe: (language: string) => TranscribeWav;
   localGenerate: GenerateText;
+  /** The local story-teller (the bard), when it is a different model from `localGenerate`; else that one. */
+  localStory?: GenerateText;
   /** Called when a job moves to the local backend because the remote was unreachable. */
   onFallback?: (what: 'transcription' | 'llm', reason: string) => void;
   signal?: AbortSignal;
@@ -19,7 +21,10 @@ export interface ProviderDeps {
 
 export interface JobProviders {
   transcribe: Failover<string, Segment[]>;
+  /** The scribe: notes and the Game Master's brief. */
   generate: Failover<string, string>;
+  /** The bard: the tales. A remote LLM does both jobs; locally it may be a second model. */
+  story: Failover<string, string>;
 }
 
 /**
@@ -56,19 +61,28 @@ export function buildJobProviders(settings: AiSettings, deps: ProviderDeps): Job
         )
       : createFailover(localTranscribe, undefined, timing);
 
-  const generate =
+  // One remote model plays both roles (a remote is usually a bigger model that does both well). Each role has its
+  // own failover, so each falls back to its own local model.
+  const remote =
     settings.llm.kind === 'remote' && settings.llm.url !== null
-      ? createFailover(
-          createOpenAiGenerate({
-            baseUrl: settings.llm.url,
-            model: settings.llm.model ?? 'default',
-            ...(deps.env?.LLM_API_KEY ? { apiKey: deps.env.LLM_API_KEY } : {}),
-            ...common,
-          }),
-          fallback.enabled ? deps.localGenerate : undefined,
-          { ...timing, onFallback: (reason) => deps.onFallback?.('llm', reason) },
-        )
-      : createFailover(deps.localGenerate, undefined, timing);
+      ? createOpenAiGenerate({
+          baseUrl: settings.llm.url,
+          model: settings.llm.model ?? 'default',
+          ...(deps.env?.LLM_API_KEY ? { apiKey: deps.env.LLM_API_KEY } : {}),
+          ...common,
+        })
+      : undefined;
+  const role = (local: GenerateText): Failover<string, string> =>
+    remote
+      ? createFailover(remote, fallback.enabled ? local : undefined, {
+          ...timing,
+          onFallback: (reason) => deps.onFallback?.('llm', reason),
+        })
+      : createFailover(local, undefined, timing);
 
-  return { transcribe, generate };
+  return {
+    transcribe,
+    generate: role(deps.localGenerate),
+    story: role(deps.localStory ?? deps.localGenerate),
+  };
 }

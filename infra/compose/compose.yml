@@ -157,13 +157,14 @@ services:
     profiles: [records]
     image: ghcr.io/ggml-org/whisper.cpp:main
     restart: unless-stopped
-    # whisper-start.sh fetches the model into the volume when it is missing (first start only: small, quantised, ~190 MB,
-    # the measured CPU default), then becomes whisper-server. The stack does not wait for the download: the worker holds
+    # whisper-start.sh fetches the model into the volume when it is missing (first start only: small.en, quantised, ~190 MB,
+    # the measured CPU default; English only, so for another language set WHISPER_MODEL_FILE=ggml-small-q5_1.bin and
+    # `vtt-admin settings` ai.transcription.language), then becomes whisper-server. The stack does not wait for the download: the worker holds
     # transcription until Whisper answers, and `vtt-admin status` and the status page say what is happening.
     entrypoint: ['sh', '/whisper-start.sh', 'run', '/app/build/bin/whisper-server']
     command:
       - -m
-      - /models/${WHISPER_MODEL_FILE:-ggml-small-q5_1.bin}
+      - /models/${WHISPER_MODEL_FILE:-ggml-small.en-q5_1.bin}
       - --host
       - 0.0.0.0
       - --port
@@ -174,7 +175,7 @@ services:
       - en
     environment:
       # A ggml file name from huggingface.co/ggerganov/whisper.cpp.
-      WHISPER_MODEL_FILE: ${WHISPER_MODEL_FILE:-ggml-small-q5_1.bin}
+      WHISPER_MODEL_FILE: ${WHISPER_MODEL_FILE:-ggml-small.en-q5_1.bin}
     volumes:
       - whisper-models:/models
       - ./whisper-start.sh:/whisper-start.sh:ro
@@ -204,7 +205,7 @@ services:
 
   # Claims process-recording jobs, cuts tracks into speech windows (ffmpeg) and calls Whisper/the LLM
   # as the operator's AI settings say (vtt-admin settings), falling back to the local services above.
-  # It also fetches the summary model into Ollama when it is missing (first start downloads ~2 GB, in the
+  # It also fetches the summary model into Ollama when it is missing (first start downloads ~3.3 GB, in the
   # background: only summaries wait for it), and reports that and Whisper's readiness to `vtt-admin status`.
   worker:
     profiles: [records, records-remote]
@@ -223,8 +224,13 @@ services:
       WORKER_ID: worker-1
       DATABASE_URL: postgres://vtt:${POSTGRES_PASSWORD}@postgres:5432/vtt
       WHISPER_LOCAL_URL: http://whisper:8080
+      # The worker sizes Whisper's work to each clip for the models that cope with it (base and small); it goes by this name.
+      WHISPER_MODEL_FILE: ${WHISPER_MODEL_FILE:-ggml-small.en-q5_1.bin}
+      WHISPER_FIT_AUDIO_CTX: ${WHISPER_FIT_AUDIO_CTX:-}
       OLLAMA_URL: http://ollama:11434
-      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.2:3b}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3.5:4b}
+      # Optional second model that tells the tales from the notes (blank: OLLAMA_MODEL takes the notes and tells the tales).
+      OLLAMA_STORY_MODEL: ${OLLAMA_STORY_MODEL:-}
       WHISPER_API_KEY: ${WHISPER_API_KEY:-}
       LLM_API_KEY: ${LLM_API_KEY:-}
       # Delete raw audio this many days after a recording is processed (blank or 0: keep it).

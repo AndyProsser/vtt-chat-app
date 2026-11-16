@@ -6,7 +6,12 @@ import {
 import type { GenerateText, SummaryContext, SummaryKind, Utterance } from '../types/index.js';
 import { chunkLines } from './chunk.js';
 import { formatTimeline } from './format.js';
-import { buildChunkPrompt, buildReducePrompt, buildSinglePrompt } from './prompts.js';
+import {
+  buildBriefPrompt,
+  buildCondensePrompt,
+  buildNotesPrompt,
+  buildStoryPrompt,
+} from './prompts.js';
 
 /** Greedily packs whole notes into groups of at most `maxChars`; an oversize note stands alone. */
 export function groupByBudget(notes: readonly string[], maxChars: number): string[][] {
@@ -37,11 +42,39 @@ export function stripThinking(text: string): string {
     .trim();
 }
 
-export interface SummariseOptions {
-  kind: SummaryKind;
+/**
+ * The two roles a summary needs (prompts.ts). They may be one model or two: the scribe wants a model that
+ * sticks to the text, the bard one that writes well. A plain `GenerateText` is used for both.
+ */
+/** A bard with nothing left unresolved sometimes still writes the closing "Next time:" and stops; drop the stub. */
+export function tidyTale(text: string): string {
+  return text.replace(/\n+\s*\**Next time:?\**:?\s*$/i, '').trim();
+}
+
+export interface SummaryModels {
+  /** Takes the notes, shortens them when they outgrow one call, and writes the Game Master's brief. */
+  scribe: GenerateText;
+  /** Tells the tale from the notes. */
+  bard: GenerateText;
+}
+
+const asModels = (models: GenerateText | SummaryModels): SummaryModels =>
+  typeof models === 'function' ? { scribe: models, bard: models } : models;
+
+export interface NotesOptions {
   context?: SummaryContext;
   chunkChars?: number;
   overlapLines?: number;
+}
+
+export interface Notes {
+  /** One block of notes per piece of the transcript, in order. */
+  notes: string[];
+  modelCalls: number;
+}
+
+export interface SummariseOptions extends NotesOptions {
+  kind: SummaryKind;
 }
 
 export interface SummaryResult {
@@ -54,59 +87,78 @@ export interface SummaryResult {
 }
 
 /**
- * Summarises a merged transcript with any text-generation function (Ollama by default).
+ * Pass one: the scribe reads the transcript, piece by piece, and writes down what happened. A 4 to 8 hour
+ * session is far past one context window, so several pieces is the normal case, not the edge case.
  *
- * Short sessions are one call. Long ones are map-reduce: summarise overlapping chunks, then
- * combine the notes, combining again if the notes themselves are still too long. A 4–8 hour
- * session is far past one context window, so this is the normal path, not the edge case.
+ * Done **once per stretch of recording** and shared by every summary of it (the tale, each character's tale,
+ * the Game Master's brief). Before 0.5.2 each summary re-read the whole transcript: about eight full readings
+ * for a five-player session, where this is one.
  */
-export async function summarise(
-  generate: GenerateText,
+export async function takeNotes(
+  scribe: GenerateText,
   utterances: readonly Utterance[],
-  options: SummariseOptions,
-): Promise<SummaryResult> {
-  const context = options.context ?? {};
-  const chunkChars = options.chunkChars ?? DEFAULT_CHUNK_CHARS;
-  const overlap = options.overlapLines ?? DEFAULT_CHUNK_OVERLAP_LINES;
-  let modelCalls = 0;
-  const call = async (prompt: string): Promise<string> => {
-    modelCalls += 1;
-    return stripThinking(await generate(prompt));
-  };
-
+  options: NotesOptions = {},
+): Promise<Notes> {
   if (utterances.length === 0) {
     throw new Error('nothing to summarise: the transcript is empty');
   }
-
+  const context = options.context ?? {};
   const lines = formatTimeline(utterances, context.cues);
-  const chunks = chunkLines(lines, chunkChars, overlap);
-  const result = (text: string): SummaryResult => ({
-    kind: options.kind,
-    text,
-    dmOnly: options.kind === 'dm-only',
-    modelCalls,
-  });
-
-  const [onlyChunk] = chunks;
-  if (chunks.length === 1 && onlyChunk !== undefined) {
-    return result(await call(buildSinglePrompt(options.kind, onlyChunk, context)));
-  }
-
-  let notes: string[] = [];
+  const chunks = chunkLines(
+    lines,
+    options.chunkChars ?? DEFAULT_CHUNK_CHARS,
+    options.overlapLines ?? DEFAULT_CHUNK_OVERLAP_LINES,
+  );
+  const notes: string[] = [];
   for (const [index, chunk] of chunks.entries()) {
-    notes.push(await call(buildChunkPrompt(options.kind, chunk, index, chunks.length, context)));
+    notes.push(stripThinking(await scribe(buildNotesPrompt(chunk, index, chunks.length, context))));
   }
+  return { notes, modelCalls: notes.length };
+}
 
+/**
+ * Pass two: one summary written from the notes. The bard tells the tale (session, chapter, character); the
+ * scribe writes the Game Master's brief. Notes too long for one call are shortened first, round by round.
+ */
+export async function writeFromNotes(
+  models: GenerateText | SummaryModels,
+  taken: readonly string[],
+  options: SummariseOptions,
+): Promise<SummaryResult> {
+  const { scribe, bard } = asModels(models);
+  const context = options.context ?? {};
+  const chunkChars = options.chunkChars ?? DEFAULT_CHUNK_CHARS;
+  let modelCalls = 0;
+  const call = async (model: GenerateText, prompt: string): Promise<string> => {
+    modelCalls += 1;
+    return stripThinking(await model(prompt));
+  };
+
+  let notes = [...taken];
   for (let depth = 0; depth < MAX_REDUCE_DEPTH; depth += 1) {
-    const joined = notes.join('\n\n');
-    if (joined.length <= chunkChars) break;
-    // Combine groups of notes that each fit, then go round again on the shorter result.
-    const combined: string[] = [];
+    if (notes.join('\n\n').length <= chunkChars) break;
+    // Shorten groups of notes that each fit, then go round again on the shorter result.
+    const shorter: string[] = [];
     for (const group of groupByBudget(notes, chunkChars)) {
-      combined.push(await call(buildReducePrompt(options.kind, group, context, false)));
+      shorter.push(await call(scribe, buildCondensePrompt(group, context)));
     }
-    notes = combined;
+    notes = shorter;
   }
 
-  return result(await call(buildReducePrompt(options.kind, notes, context, true)));
+  const text =
+    options.kind === 'dm-only'
+      ? await call(scribe, buildBriefPrompt(notes, context))
+      : tidyTale(await call(bard, buildStoryPrompt(options.kind, notes, context)));
+  return { kind: options.kind, text, dmOnly: options.kind === 'dm-only', modelCalls };
+}
+
+/** Both passes for one summary: notes, then the summary. The records job shares the notes instead (see `takeNotes`). */
+export async function summarise(
+  models: GenerateText | SummaryModels,
+  utterances: readonly Utterance[],
+  options: SummariseOptions,
+): Promise<SummaryResult> {
+  const taken = await takeNotes(asModels(models).scribe, utterances, options);
+  const result = await writeFromNotes(models, taken.notes, options);
+  return { ...result, modelCalls: result.modelCalls + taken.modelCalls };
 }

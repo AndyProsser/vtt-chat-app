@@ -7,6 +7,8 @@ import { describe, expect, it, vi } from 'vitest';
 import { ProviderUnavailableError } from './errors.js';
 import { createFailover } from './failover.js';
 import {
+  audioContextFor,
+  fitsAudioContext,
   createOpenAiGenerate,
   createOpenAiTranscribe,
   parseVerboseTranscription,
@@ -56,6 +58,39 @@ describe('parseVerboseTranscription', () => {
   });
 });
 
+describe('audioContextFor', () => {
+  it('covers the sound plus a margin, never below the floor, and gives up at the full context', () => {
+    expect(audioContextFor(1)).toBe(384);
+    expect(audioContextFor(10)).toBe(756);
+    expect(audioContextFor(20)).toBe(1256);
+    expect(audioContextFor(25)).toBeUndefined();
+    expect(audioContextFor(60)).toBeUndefined();
+  });
+});
+
+describe('fitsAudioContext', () => {
+  it('is yes only for the base and small models it was measured on', () => {
+    for (const ok of [
+      'ggml-small.en-q5_1.bin',
+      'ggml-small-q5_1.bin',
+      'ggml-base.en-q8_0.bin',
+      'ggml-small.bin',
+    ]) {
+      expect(fitsAudioContext(ok)).toBe(true);
+    }
+    // turbo repeats itself with a shortened context; the rest were never measured
+    for (const no of [
+      'ggml-large-v3-turbo-q5_0.bin',
+      'ggml-medium-q5_0.bin',
+      'ggml-tiny.en.bin',
+      'my-model.bin',
+      undefined,
+    ]) {
+      expect(fitsAudioContext(no)).toBe(false);
+    }
+  });
+});
+
 describe('createOpenAiTranscribe', () => {
   it('posts the audio as multipart with the settings that favour accuracy', async () => {
     const fetchImpl = vi.fn(async () => json({ segments: [{ start: 0, end: 1, text: 'hi' }] }));
@@ -81,6 +116,28 @@ describe('createOpenAiTranscribe', () => {
     expect(form.get('temperature')).toBe('0');
     expect(form.get('language')).toBe('en');
     expect(form.get('file')).toBeInstanceOf(Blob);
+  });
+
+  it("sizes whisper.cpp's audio context to the window only when asked", async () => {
+    const formOf = async (fitAudioContext: boolean, seconds: number): Promise<FormData> => {
+      const fetchImpl = vi.fn(async () => json({ segments: [] }));
+      const dir = await mkdtemp(path.join(tmpdir(), 'prov-'));
+      const file = path.join(dir, 'window.wav');
+      await writeFile(file, Buffer.alloc(44 + seconds * 32_000)); // 16 kHz mono 16-bit
+      await createOpenAiTranscribe({
+        baseUrl: 'http://whisper:8080',
+        model: 'whisper-1',
+        fitAudioContext,
+        fetchImpl: asFetch(fetchImpl),
+      })(file);
+      const [, init] = fetchImpl.mock.calls[0] as unknown as [string, RequestInit];
+      return new Response(init.body, {
+        headers: { 'Content-Type': (init.headers as Record<string, string>)['Content-Type'] ?? '' },
+      }).formData();
+    };
+    expect((await formOf(false, 6)).has('audio_ctx')).toBe(false);
+    expect((await formOf(true, 6)).get('audio_ctx')).toBe('556'); // 6 s x 50 + 256
+    expect((await formOf(true, 28)).has('audio_ctx')).toBe(false); // needs the full context anyway
   });
 
   it('reaches a real server through the default long-timeout fetch with the file intact', async () => {

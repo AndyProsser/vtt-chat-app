@@ -6,9 +6,14 @@
  *
  *   DATABASE_URL        Postgres (required)
  *   WHISPER_LOCAL_URL   the local Whisper as an OpenAI-compatible server (the Compose bundle's `whisper`), OR
+ *   WHISPER_MODEL_FILE        the ggml file the local whisper-server runs (Compose passes the same value to both).
+ *                             For `base` and `small` models each window is sent with whisper.cpp's audio context
+ *                             sized to it (2 to 3 times faster); other models, and an unset name, get the full 30 s.
+ *   WHISPER_FIT_AUDIO_CTX     1 or 0 overrides that choice
  *   WHISPER_BIN / WHISPER_MODEL / WHISPER_THREADS   a local whisper.cpp binary (default whisper-cli)
  *   OLLAMA_URL / OLLAMA_MODEL   the local LLM (default http://127.0.0.1:11434; model required). A model that is
  *                       not in Ollama yet is downloaded at start-up, in the background; summaries wait for it
+ *   OLLAMA_STORY_MODEL  the model that tells the tale from the notes (the bard). Unset: OLLAMA_MODEL does both.
  *   OLLAMA_KEEP_ALIVE   how long Ollama keeps the model loaded after a request (e.g. 2m; unset: the
  *                       Ollama server's own setting)
  *   WORKER_ID           this worker's stable name (default: the hostname). A restarted worker with the
@@ -37,7 +42,8 @@ import {
   OllamaModelKeeper,
   WhisperReadiness,
 } from '../lib/localAi/keepers.js';
-import { createLocalAiReporter, writeLocalAiStatus } from '../lib/localAi/status.js';
+import { createLocalAiReporter, reportWorst, writeLocalAiStatus } from '../lib/localAi/status.js';
+import type { GenerateText } from '../types/index.js';
 import { createOllamaGenerate } from '../lib/ollama.js';
 import { PostgresRecordsStore, createPool } from '../lib/records/postgresRecordsStore.js';
 import {
@@ -52,13 +58,20 @@ import {
 } from '../lib/records/purgeRecording.js';
 import { freePercentOf, sweepDiskPurges } from '../lib/records/diskPurge.js';
 import { transcribeTrackFile } from '../lib/records/transcribeTrack.js';
-import { createOpenAiTranscribe } from '../lib/providers/openaiCompat.js';
+import { createOpenAiTranscribe, fitsAudioContext } from '../lib/providers/openaiCompat.js';
 import { transcribeWavWithWhisperCli } from '../lib/whisperCli.js';
 
 function required(name: string): string {
   const value = process.env[name];
   if (!value) throw new Error(`${name} is not set`);
   return value;
+}
+
+/** Fitted audio context: the operator's explicit choice, else by the model's name (lib/providers/openaiCompat.ts). */
+function fitAudioContext(env: NodeJS.ProcessEnv): boolean {
+  if (env.WHISPER_FIT_AUDIO_CTX === '1') return true;
+  if (env.WHISPER_FIT_AUDIO_CTX === '0') return false;
+  return fitsAudioContext(env.WHISPER_MODEL_FILE);
 }
 
 async function main(): Promise<void> {
@@ -78,13 +91,21 @@ async function main(): Promise<void> {
   const reporter = createLocalAiReporter({ write: (status) => writeLocalAiStatus(pool, status) });
   const ollamaUrl = process.env.OLLAMA_URL ?? DEFAULT_OLLAMA_URL;
   const ollamaModel = required('OLLAMA_MODEL');
-  const modelKeeper = new OllamaModelKeeper({
-    baseUrl: ollamaUrl,
-    model: ollamaModel,
-    report: reporter.llm,
-    signal: abort.signal,
-    log,
-  });
+  // Two roles, one or two models (lib/prompts.ts): the scribe takes the notes, the bard tells the tale from them.
+  const storyModel = process.env.OLLAMA_STORY_MODEL || ollamaModel;
+  const twoModels = storyModel !== ollamaModel;
+  const [reportScribe, reportBard] = reportWorst(reporter.llm, twoModels ? 2 : 1);
+  const keeperFor = (model: string, report: typeof reporter.llm): OllamaModelKeeper =>
+    new OllamaModelKeeper({ baseUrl: ollamaUrl, model, report, signal: abort.signal, log });
+  const modelKeeper = keeperFor(ollamaModel, reportScribe ?? reporter.llm);
+  const storyKeeper = twoModels ? keeperFor(storyModel, reportBard ?? reporter.llm) : modelKeeper;
+  const ollamaGenerate = (model: string): GenerateText =>
+    createOllamaGenerate({
+      model,
+      baseUrl: ollamaUrl,
+      numCtx: 8192,
+      ...(process.env.OLLAMA_KEEP_ALIVE ? { keepAlive: process.env.OLLAMA_KEEP_ALIVE } : {}),
+    });
   const whisperReady = localUrl
     ? new WhisperReadiness({ baseUrl: localUrl, report: reporter.whisper, log })
     : undefined;
@@ -95,7 +116,14 @@ async function main(): Promise<void> {
     localTranscribe: (language) =>
       localUrl && whisperReady
         ? holdForWhisper(
-            createOpenAiTranscribe({ baseUrl: localUrl, model: 'whisper-1', language }),
+            createOpenAiTranscribe({
+              baseUrl: localUrl,
+              model: 'whisper-1',
+              language,
+              // The local Whisper is whisper.cpp: have it encode only as much audio as each window holds, when the
+              // model is one that was measured to cope (not turbo: it repeats itself).
+              fitAudioContext: fitAudioContext(process.env),
+            }),
             whisperReady,
             hold,
           )
@@ -106,16 +134,10 @@ async function main(): Promise<void> {
               ...(threads ? { threads } : {}),
               language,
             }),
-    localGenerate: holdForModel(
-      createOllamaGenerate({
-        model: ollamaModel,
-        baseUrl: ollamaUrl,
-        numCtx: 8192,
-        ...(process.env.OLLAMA_KEEP_ALIVE ? { keepAlive: process.env.OLLAMA_KEEP_ALIVE } : {}),
-      }),
-      modelKeeper,
-      hold,
-    ),
+    localGenerate: holdForModel(ollamaGenerate(ollamaModel), modelKeeper, hold),
+    ...(twoModels
+      ? { localStory: holdForModel(ollamaGenerate(storyModel), storyKeeper, hold) }
+      : {}),
     transcribeAudioFile: (file, transcribeWav) => transcribeTrackFile(file, transcribeWav),
     env: process.env,
     log,
@@ -202,9 +224,14 @@ async function main(): Promise<void> {
       }
       if (whisperReady) void keepTrying(whisperReady, { signal: abort.signal });
       void usesLocalLlm().then((wanted) => {
-        if (wanted) return keepTrying(modelKeeper, { signal: abort.signal });
-        log(`summaries use the remote LLM only: not downloading the local model ${ollamaModel}`);
-        return undefined;
+        if (!wanted) {
+          log(`summaries use the remote LLM only: not downloading the local model ${ollamaModel}`);
+          return undefined;
+        }
+        // One after the other: two multi-gigabyte downloads at once only slow each other down.
+        return keepTrying(modelKeeper, { signal: abort.signal }).then(() =>
+          twoModels ? keepTrying(storyKeeper, { signal: abort.signal }) : undefined,
+        );
       });
       await runWorker({ ...options, signal: abort.signal });
     }

@@ -44,6 +44,13 @@ Whisper ready`. New volumes came up owned by uid 1000 (media) and 1001 (recordin
   (`ai/src/lib/providers/openaiCompat.ts`), with a test that goes through the real default fetch to a local server. Rerun:
   **46 of 46**, including the worker killed mid-job, on the worker running as uid 1001.
 
+- **Whisper and summaries on CPU (2026-11-16).** Measured, then changed: fitted `audio_ctx` for the local Whisper, OpenBLAS in the
+  no-AVX image, `small.en` and `qwen3.5:4b` as CPU defaults ([tables](architecture/RECORDING-AND-SUMMARIES.md)). The OpenBLAS image was
+  run on the VM's Xeon as a throwaway container (1.68× the audio on a table-like track; the 0.5.1 image and defaults took 19.3×). **Not yet run:** a whole records job on these
+  defaults; the published no-AVX image (it builds in CI on the next tag); the scribe and bard on a long transcript (several pieces, notes shortened before the tale), which no test recording is long enough to exercise with a real model.
+- **Scribe and bard (2026-11-16).** Summaries are two passes: notes once per stretch of recording, then every summary from the notes
+  (`ai/src/lib/prompts.ts`, `summarise.ts`). Unit-tested; read by Claude on two short scenes with real models on CPU.
+
 **Confirmed on the VM the same day:** with the old images pruned and the agent polling every 5 min, the whole machine idles at 8.8% of one core (was 52.8%).
 
 **UNVERIFIED:** the image cleanup in a real update (unit-tested, and tried on throwaway tags); a records job on the VM since the update; a records job that arrives _while_ a model is downloading (unit-tested
@@ -340,18 +347,18 @@ In dependency order:
 
 Each is one constant or setting; change freely.
 
-| Assumption                                                                                                                                              | Where                                   |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
-| Playback uses WebRTC's audio layer as-is (**no per-player gain, no soundboard mixer yet**); revisit with our own mixer only if acoustic tests demand it | `AUDIO-SPIKE-RESULTS.md`                |
-| Recording-start acknowledgement expires after **30 min**                                                                                                | `backend/src/lib/recording/ackStore.ts` |
-| Invite expiry **7 days**; magic link **15 min**; min password **10**; scrypt N=2^15                                                                     | `backend/src/consts/index.ts`           |
-| Rate limits: 10 logins/15 min per IP+email; 10 chat msgs/10 s; 20 invite tries/15 min                                                                   | `backend/src/lib/app.ts`, `hub.ts`      |
-| Replay buffer 500 events / 10 min; stats every 5 s in a voice session; idle = online/offline only                                                       | `SYNC-PROTOCOL.md`                      |
-| Whisper/LLM defaults: CPU `small` q5_1 + llama3.2:3b, GPU `large-v3-turbo` + qwen3:8b — measured 2026-11-12, choice not yet confirmed by Andy           | `compose.yml`, `compose.gpu.yml`        |
-| Panel-toggle hotkey is **Ctrl+Shift+P** (was Ctrl+Shift+O)                                                                                              | `src-tauri/src/hotkeys.rs`              |
-| Cues are synthesised tones; **a spoken "Session recording in progress" clip is not built** and needs an asset decision                                  | `rust-livekit/src/cue/`                 |
-| The Admin CLI talks to the database directly (no HTTP, no sign-in); AI API keys live in the environment, never the database                             | `backend/README.md`                     |
-| AI fallback: switch to local after **600 s** unreachable, retry every **30 s**; local is always configured                                              | `shared/src/lib/aiSettings.ts`          |
+| Assumption                                                                                                                                                                                                                                                   | Where                                   |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------- |
+| Playback uses WebRTC's audio layer as-is (**no per-player gain, no soundboard mixer yet**); revisit with our own mixer only if acoustic tests demand it                                                                                                      | `AUDIO-SPIKE-RESULTS.md`                |
+| Recording-start acknowledgement expires after **30 min**                                                                                                                                                                                                     | `backend/src/lib/recording/ackStore.ts` |
+| Invite expiry **7 days**; magic link **15 min**; min password **10**; scrypt N=2^15                                                                                                                                                                          | `backend/src/consts/index.ts`           |
+| Rate limits: 10 logins/15 min per IP+email; 10 chat msgs/10 s; 20 invite tries/15 min                                                                                                                                                                        | `backend/src/lib/app.ts`, `hub.ts`      |
+| Replay buffer 500 events / 10 min; stats every 5 s in a voice session; idle = online/offline only                                                                                                                                                            | `SYNC-PROTOCOL.md`                      |
+| Whisper/LLM defaults: CPU `small.en` q5_1 (Andy, 2026-11-16) + qwen3.5:4b (Claude's pick after the scribe/bard tests; Andy had said granite4.1:3b before them, to confirm), GPU `large-v3-turbo` + qwen3:8b (measured 2026-11-12, not yet confirmed by Andy) | `compose.yml`, `compose.gpu.yml`        |
+| Panel-toggle hotkey is **Ctrl+Shift+P** (was Ctrl+Shift+O)                                                                                                                                                                                                   | `src-tauri/src/hotkeys.rs`              |
+| Cues are synthesised tones; **a spoken "Session recording in progress" clip is not built** and needs an asset decision                                                                                                                                       | `rust-livekit/src/cue/`                 |
+| The Admin CLI talks to the database directly (no HTTP, no sign-in); AI API keys live in the environment, never the database                                                                                                                                  | `backend/README.md`                     |
+| AI fallback: switch to local after **600 s** unreachable, retry every **30 s**; local is always configured                                                                                                                                                   | `shared/src/lib/aiSettings.ts`          |
 
 ## Open decisions
 

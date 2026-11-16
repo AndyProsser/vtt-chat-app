@@ -38,6 +38,12 @@ const container = option('--container');
 const gpu = argv.includes('--gpu');
 const label = option('--label', url)!;
 const repeat = Number(option('--repeat', '3'));
+// Seconds of silence between lines. 1 (the default) is a monologue: the worker joins it into 60 s windows. 5 is a
+// table: each line becomes its own short window, which is what a player's own track mostly looks like.
+const pauseSec = Number(option('--pause', '1'));
+const fitAudioContext = argv.includes('--fit-audio-ctx');
+// Names to look for in the output, to see what a prompt does for spelling: --names Cassiel,Bram,Aria
+const names = (option('--names', '') ?? '').split(',').filter((n) => n !== '');
 const dir = path.join(
   process.env.E2E_STATE ?? path.join(homedir(), '.local/state/vtt-compose-e2e'),
   'bench',
@@ -45,7 +51,10 @@ const dir = path.join(
 
 /** The scene's spoken lines, each in its speaker's voice, joined with pauses: one long Opus track. */
 async function buildTrack(): Promise<{ file: string; reference: string }> {
-  const file = path.join(dir, `bench-${repeat}.ogg`);
+  const file = path.join(
+    dir,
+    pauseSec === 1 ? `bench-${repeat}.ogg` : `bench-${repeat}-p${pauseSec}.ogg`,
+  );
   const lines = [...RECORDING_A, ...RECORDING_B].filter(
     (s): s is Extract<typeof s, { do: 'say' }> => s.do === 'say',
   );
@@ -55,7 +64,7 @@ async function buildTrack(): Promise<{ file: string; reference: string }> {
   if (existsSync(file)) return { file, reference };
   await mkdir(dir, { recursive: true });
   const tts = piperTts(path.join(dir, '..', 'tts-cache'));
-  const pause = new Int16Array(SAMPLE_RATE); // 1 s between lines
+  const pause = new Int16Array(Math.round(SAMPLE_RATE * pauseSec));
   const parts: Int16Array[] = [];
   for (let r = 0; r < repeat; r += 1) {
     for (const line of lines) {
@@ -124,7 +133,13 @@ function sampler() {
 async function main(): Promise<void> {
   const { file, reference } = await buildTrack();
   const durationMs = await probeDurationMs(file);
-  const transcribe = createOpenAiTranscribe({ baseUrl: url!, model: 'whisper-1', language: 'en' });
+  const transcribe = createOpenAiTranscribe({
+    baseUrl: url!,
+    model: option('--model', 'whisper-1')!,
+    language: 'en',
+    fitAudioContext,
+    ...(option('--fit-margin') ? { audioContextMargin: Number(option('--fit-margin')) } : {}),
+  });
   // One short warm-up request, so a model load (or an idle front starting the server) is not timed.
   const clip = path.join(dir, 'warmup.wav');
   await run('ffmpeg', [
@@ -147,6 +162,13 @@ async function main(): Promise<void> {
     rtf: Number((elapsedMs / durationMs).toFixed(3)),
     wordAccuracy: Number(wordAccuracy(reference, text).toFixed(3)),
     segments: segments.length,
+    ...(names.length > 0
+      ? {
+          names: Object.fromEntries(
+            names.map((n) => [n, text.split(new RegExp(`\\b${n}\\b`)).length - 1]),
+          ),
+        }
+      : {}),
     warmupSeconds: Number((warmupMs / 1000).toFixed(1)),
     ...peaks,
   };

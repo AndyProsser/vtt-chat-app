@@ -109,10 +109,23 @@ describe('process-recording handler', () => {
         'session::members',
       ].sort(),
     );
-    const chapter2 = prompts.find((p) => p.includes('part 2 of 2'));
-    expect(chapter2).toContain('said in /audio/t-bob.ogg');
-    expect(chapter2).not.toContain('said in /audio/t-alice.ogg');
-    expect(prompts.find((p) => p.includes('point of view of the character "BOB"'))).toBeDefined();
+    // The scribe reads each part once (two readings for five summaries); everything else is written from its notes.
+    const readings = prompts.filter((p) => p.startsWith('You are the scribe'));
+    expect(readings).toHaveLength(2);
+    expect(readings[1]).toContain('said in /audio/t-bob.ogg');
+    expect(readings[1]).not.toContain('said in /audio/t-alice.ogg');
+    expect(prompts.filter((p) => p.includes('said in /audio/'))).toHaveLength(2);
+    const chapter2 = prompts.find((p) => p.includes('part 2 of 2 of this session'));
+    expect(chapter2).toMatch(/^You are the bard/);
+    expect(chapter2).toContain('summary #2'); // the notes the scribe took of part 2
+    expect(chapter2).not.toContain('summary #1');
+    // The session's tale is told from both parts' notes, in order.
+    const session = prompts.find((p) =>
+      p.includes('Tell the tale of this session of the campaign'),
+    );
+    expect(session?.indexOf('summary #1')).toBeLessThan(session?.indexOf('summary #2') ?? 0);
+    expect(prompts.find((p) => p.includes('as the story of "BOB"'))).toBeDefined();
+    expect(prompts.find((p) => p.includes('for the Game Master only'))).toBeDefined();
     // The model is told whose lines are the Game Master's narration.
     expect(prompts[0]).toContain('"ALICE" is the Game Master');
   });
@@ -144,16 +157,16 @@ describe('process-recording handler', () => {
           ? [{ startMs: 121_000, endMs: 191_000, text: 'we descend the stairs' }]
           : say(`said in ${file}`),
     }).run(job());
-    const chapter = prompts.find((p) => p.includes('part 2 of 2'));
-    expect(chapter).toContain('which began in the scene "Drowned Crypt"');
+    expect(prompts.find((p) => p.includes('part 2 of 2 of this session'))).toContain(
+      'which began in the scene "Drowned Crypt"',
+    );
+    const [part1, chapter] = prompts.filter((p) => p.startsWith('You are the scribe'));
     expect(chapter).toContain('(cue) Scene started: "Drowned Crypt" (sounds: Eerie hum)');
     expect(chapter).toContain('(cue) ALICE switched to the character voice "dragon"');
     expect(chapter).toContain('not events');
-    const part1 = prompts.find((p) => p.includes('part 1 of 2'));
     expect(part1).not.toContain('Drowned Crypt"');
-    // The session summary sees every cue, in time order among the lines.
-    const session = prompts.find((p) => p.includes('a shared summary'));
-    expect(session?.indexOf('Scene started')).toBeLessThan(session?.indexOf('we descend') ?? 0);
+    // Cues sit among the lines in time order.
+    expect(chapter?.indexOf('Scene started')).toBeLessThan(chapter?.indexOf('we descend') ?? 0);
   });
 
   it('puts the speakers and their track offsets into what the model reads', async () => {

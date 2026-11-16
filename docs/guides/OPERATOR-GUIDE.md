@@ -308,7 +308,7 @@ docker compose --profile records up -d --wait
 ```
 
 This adds **Egress** (about 4 GB of image), **Whisper** (speech to text; about 190 MB model),
-**Ollama** (a language model, about 2 GB for the default `llama3.2:3b`) and the **worker** that runs the
+**Ollama** (a language model, about 3.3 GB for the default `qwen3.5:4b`) and the **worker** that runs the
 jobs. The stack is up in seconds; the **first start then downloads the two models in the background** (the Whisper
 container fetches its own, the worker asks Ollama for the summary model). You can record straight away: a
 recording made before the models are there waits for them. Watch it with `./vtt-admin status` (the `local AI`
@@ -317,8 +317,17 @@ shows a "Summary model" row while it downloads. A download that fails (no route 
 retried with a growing pause and shows as `FAIL local AI` in `vtt-admin status`. Needs Docker Engine 25 or newer
 (`docker version`); the installer checks.
 
-**What to expect on a CPU-only server** (measured on an 8-core desktop, 2026-11-12): Whisper `small` takes
-about 0.3 × the length of each player's speech, and each summary 1–2 minutes with `llama3.2:3b`. A 4-hour
+**What the summaries are.** A recording is summarised in two passes. A _scribe_ reads the transcript once and writes
+down what happened, big and small. A _bard_ then tells it, from the scribe's notes, as a short heroic tale with dry
+wit: one for the session, one for each part when it was paused or the scene changed, and one for each hero. The
+Game Master also gets a plain brief (secrets, hooks, promises, what to prepare). The tale takes small liberties with
+how things happened, never with what happened; the transcript stays searchable for anyone who wants the record.
+`OLLAMA_MODEL` plays both roles; set `OLLAMA_STORY_MODEL` in `.env` to give the bard a different model.
+
+**What to expect on a CPU-only server** (measured on a 4-core 2014 desktop, 2026-11-16): Whisper `small.en` takes
+about 0.25 × the length of each player's speech, and with `qwen3.5:4b` the notes take a minute or two for each ten minutes of talk, then about a minute for each tale. The Whisper default is
+**English only**: for another language set `WHISPER_MODEL_FILE=ggml-small-q5_1.bin` in `.env` and the language with
+`vtt-admin settings set ai.transcription.language <code>`. A 4-hour
 session with five players is a few hours of work, done after the game; nothing is lost if it takes all night.
 Memory while it runs: Whisper about 0.5 GB, the language model about 3 GB.
 
@@ -335,8 +344,8 @@ docker compose --profile records up -d --build --wait
 
 Defaults for an 8 GB card: Whisper **`large-v3-turbo`** (q5_0, ~574 MB download, ~1 GB of VRAM, ~27×
 faster than real time) and **`qwen3:8b`** for the summaries (~5.2 GB download, ~5.5 GB of VRAM, ~15 s a
-summary on a GTX 1080). On a 4–6 GB card set `WHISPER_MODEL_FILE=ggml-small-q5_1.bin` and
-`OLLAMA_MODEL=llama3.2:3b` in `.env`. `CUDA_ARCHS` (default `61;75;86;89`) picks which card generations
+summary on a GTX 1080). On a 4–6 GB card set `WHISPER_MODEL_FILE=ggml-small.en-q5_1.bin` and
+`OLLAMA_MODEL=qwen3.5:4b` in `.env`. `CUDA_ARCHS` (default `61;75;86;89`) picks which card generations
 the build supports. **The GPU is free between jobs:** Whisper stops after `WHISPER_IDLE_SECONDS` (60) without
 work and Ollama unloads its model after `OLLAMA_KEEP_ALIVE` (2m), so a machine that is also a gaming PC
 gets its VRAM back a minute or two after the summaries are written. The worker runs Whisper and the
@@ -411,7 +420,7 @@ details. A GPU PC does the same work in minutes with the better models. So:
    (`vtt-chat-whisper-compat`). It runs, but measured on a 2010 Xeon it took **5.5 times the audio's length** with the `small` model (a
    four-hour session would take about a day), so it is a last resort, not a plan. Ollama is fine without AVX (it chooses a CPU
    variant), so a summary model on a slow CPU, or on another machine on your network, works.
-4. Otherwise keep the local fallback ready on the VM: `small` Whisper and `llama3.2:3b` (the defaults for a CPU-only server).
+4. Otherwise keep the local fallback ready on the VM: `small.en` Whisper and `qwen3.5:4b` (the defaults for a CPU-only server).
    If the PC is off, a job waits ten minutes and then runs locally, slower and rougher but never lost.
 
 Sessions are about weekly, so a slow fallback is acceptable. Expanding the VM's CPUs helps the fallback a little but

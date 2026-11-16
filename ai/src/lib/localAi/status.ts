@@ -113,3 +113,26 @@ export function describeLocalAi(status: LocalAiStatus, now: number): string {
   );
   return parts.length > 0 ? parts.join(', ') : 'nothing reported';
 }
+
+const SEVERITY: Record<LocalModelState, number> = {
+  ready: 0,
+  waiting: 1,
+  downloading: 2,
+  failed: 3,
+};
+
+/**
+ * One status line for several models (the scribe's and the bard's): the worst of them, so "ready" means every
+ * model is there. Returns one `report` function per model; each call passes the combined state on.
+ */
+export function reportWorst(
+  report: (status: LocalModelStatus) => void,
+  count: number,
+): ((status: LocalModelStatus) => void)[] {
+  const latest: (LocalModelStatus | undefined)[] = Array.from({ length: count });
+  return latest.map((_, index) => (status) => {
+    latest[index] = status;
+    const known = latest.filter((s): s is LocalModelStatus => s !== undefined);
+    report(known.reduce((worst, s) => (SEVERITY[s.state] > SEVERITY[worst.state] ? s : worst)));
+  });
+}

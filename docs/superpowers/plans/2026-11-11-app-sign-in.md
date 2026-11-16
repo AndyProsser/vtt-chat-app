@@ -4,7 +4,7 @@
 
 **Goal:** The desktop app has no sign-in form: a signed-in browser page connects it through a deep link, a QR, or a typed short code, and a hidden dev mode keeps the old forms while this is built and if deep links fail.
 
-**Architecture:** A *link code* is a short single-use code issued to an already signed-in browser session and redeemed by the app through the existing `POST /api/auth/magic-link/redeem`. A *device request* (new, small) lets the app show a code and have a signed-in phone or browser approve it; the app polls for the session. Both end in the existing long-lived, revocable session.
+**Architecture:** A _link code_ is a short single-use code issued to an already signed-in browser session and redeemed by the app through the existing `POST /api/auth/magic-link/redeem`. A _device request_ (new, small) lets the app show a code and have a signed-in phone or browser approve it; the app polls for the session. Both end in the existing long-lived, revocable session.
 
 **Tech Stack:** Node/Express/zod/vitest (backend, Postgres + MemoryStore), React 19 + Radix + Vite (web, panels-ui), Rust/Tauri 2/reqwest (src-tauri), `qrcode` (pure JS, SVG output) for QR rendering.
 
@@ -40,6 +40,7 @@
 ### Task 1: Short codes and link-code issuance (backend)
 
 **Files:**
+
 - Modify: `backend/src/lib/auth/crypto.ts` (add `generateShortCode`, `normaliseShortCode`)
 - Modify: `backend/src/types/index.ts:95` (`MagicLinkPurpose` gains `'link'`), `backend/src/consts/index.ts` (`LINK_CODE_TTL_MINUTES = 5`, `SHORT_CODE_ALPHABET`, `SHORT_CODE_LENGTH = 8`)
 - Modify: `backend/src/lib/auth/accountService.ts` (`issueLinkCode`, redeem normalises short codes)
@@ -48,12 +49,13 @@
 - Test: `backend/src/lib/auth/crypto.test.ts` (create if absent), `backend/src/lib/domain.test.ts`, `backend/src/lib/http/http.test.ts`
 
 **Interfaces:**
+
 - Produces: `generateShortCode(): string` (8 chars, alphabet above, no separator); `normaliseShortCode(input: string): string` (uppercase, strips `-` and whitespace); `AccountService.issueLinkCode(userId: string): Promise<{ code: string; expiresAt: number }>`; `POST /api/auth/link-codes` → `200 { code: "ABCD-2345", expiresAt }` (authenticated session required, 401 otherwise).
 
 - [ ] **Step 1: Write failing tests**
   - `crypto.test.ts`: `generateShortCode()` is 8 chars all in the alphabet; 1000 calls are not all equal; `normaliseShortCode(' abcd-2345 ')` → `'ABCD2345'`.
   - `domain.test.ts`: `issueLinkCode` then `redeemMagicLink(normalise(code))` signs in as that user; a second redeem rejects `invalid_token`; after `clock` advances 5 min + 1 ms redeem rejects `invalid_token`; redeeming with lower case and a hyphen works.
-  - `http.test.ts`: `POST /api/auth/link-codes` without a session → 401; with one → 200, body `code` matches `/^[A-Z2-9]{4}-[A-Z2-9]{4}$/`; redeeming it via `/magic-link/redeem` returns a *different* session token than the caller's and `user.id` equal.
+  - `http.test.ts`: `POST /api/auth/link-codes` without a session → 401; with one → 200, body `code` matches `/^[A-Z2-9]{4}-[A-Z2-9]{4}$/`; redeeming it via `/magic-link/redeem` returns a _different_ session token than the caller's and `user.id` equal.
 - [ ] **Step 2: Run** `npm test -w backend -- crypto domain http` → FAIL (functions undefined).
 - [ ] **Step 3: Implement** the helpers with `crypto.randomInt` per character (no modulo bias). `issueLinkCode` stores a magic link with `purpose: 'link'`, `email` of the user, `tokenHash = hashSecret(normalised)`, TTL from the constant. `redeemMagicLink` hashes `normaliseShortCode(token)` first when the input matches the short-code shape, else the raw token (emailed tokens unchanged). The route returns the code formatted `XXXX-XXXX`.
 - [ ] **Step 4: Run** the same command → PASS; then `npm run lint -w backend && npm run typecheck -w backend` if those scripts exist.
@@ -62,6 +64,7 @@
 ### Task 2: Device requests (backend)
 
 **Files:**
+
 - Create: `backend/migrations/0024_device_requests.sql` (table `device_requests`: `id`, `user_code_hash`, `poll_secret_hash`, `device_label`, `request_ip`, `created_at`, `expires_at`, `approved_user_id` nullable, `delivered_at` nullable)
 - Modify: `backend/src/types/index.ts` (`DeviceRequest`), `backend/src/lib/store/store.ts`, `memoryStore.ts`, `postgresStore.ts` (`putDeviceRequest`, `getDeviceRequestByCodeHash`, `getDeviceRequest(id)`, `deleteExpiredDeviceRequests(now)`), `store.contract.test.ts`
 - Create: `backend/src/lib/auth/deviceFlow.ts` (service over the store; keeps `accountService.ts` from growing)
@@ -69,6 +72,7 @@
 - Test: `backend/src/lib/auth/deviceFlow.test.ts`, `http.test.ts`
 
 **Interfaces:**
+
 - Consumes: `generateShortCode`, `normaliseShortCode` (Task 1), `AccountService.startSession` equivalent via a new public `accounts.signInUser(user, deviceLabel)` (expose the existing private `startSession`).
 - Produces (all `application/json`):
   - `POST /api/auth/device` `{ deviceLabel?: string }` → `201 { requestId, userCode: "ABCD-2345", pollSecret, expiresAt }` (unauthenticated, `linkLimiter` by IP)
@@ -85,14 +89,16 @@
 ### Task 3: Web — keep the session after joining; Connect step
 
 **Files:**
+
 - Modify: `web/src/components/AccountForm.tsx` (`onJoined(token: string)`), `JoinPage.tsx`, `web/src/lib/api.ts` (stop the immediate `logout` after join; add `createLinkCode(token)`)
 - Create: `web/src/components/ConnectApp.tsx` (replaces step 2 text of `GetTheApp.tsx`; props `{ token: string; server: string }`), `web/src/components/QrCode.tsx` (props `{ text: string; label: string }`, renders `qrcode` SVG), `web/src/lib/connect.ts` (`connectLink(server, code): string` → `vtt-chat://connect?server=<enc>&code=<code>`)
 - Modify: `web/package.json` (add `qrcode` and `@types/qrcode`, exact versions, ≥2 weeks old)
 - Test: `web/src/lib/connect.test.ts`, `web/src/components/ConnectApp.test.tsx` if a component test setup exists, else logic-only in `connect.ts`
 
 **Interfaces:**
+
 - Consumes: `POST /api/auth/link-codes` (Task 1).
-- Produces: `connectLink(server: string, code: string): string`; `<ConnectApp token server />` shows: **Open VTT Chat** button (the deep link), the QR of the *same deep link*, the typed code in groups of four, a "New code" button (re-issues after expiry), and the OS-detected download as today. Signs the token out (`/logout`) when the page unloads or after 10 minutes.
+- Produces: `connectLink(server: string, code: string): string`; `<ConnectApp token server />` shows: **Open VTT Chat** button (the deep link), the QR of the _same deep link_, the typed code in groups of four, a "New code" button (re-issues after expiry), and the OS-detected download as today. Signs the token out (`/logout`) when the page unloads or after 10 minutes.
 
 - [ ] **Step 1: Write failing tests** for `connectLink` (encodes server, includes code, round-trips through `new URL`) and for the component's states (loading, code shown formatted `ABCD-2345`, expired → "New code").
 - [ ] **Step 2: Run** `npm test -w web` → FAIL.
@@ -103,11 +109,13 @@
 ### Task 4: Web — `/connect` approval page
 
 **Files:**
+
 - Create: `web/src/components/ConnectDevicePage.tsx` (route `/connect?c=ABCD-2345`), `web/src/components/LoginForm.tsx` (email+password, plus "email me a code" when `GET /api/auth/providers` says `mail`), `web/src/lib/device.ts` (`describeDevice`, `approveDevice`)
 - Modify: `web/src/main.tsx` (route), `backend` static fallback only if `/connect` is not already served by the SPA catch-all (check `app.ts` web serving; add it if not), `web/src/lib/api.ts`
 - Test: `web/src/lib/device.test.ts`
 
 **Interfaces:**
+
 - Consumes: `GET /api/auth/device/:userCode`, `POST /api/auth/device/approve`, `POST /api/auth/login` (Task 2, existing).
 - Produces: page flow: not signed in → `LoginForm`; signed in → "**Connect this device?** Linux · Andy-PC · from 203.0.113.4" with **Approve** and **Cancel**; success → "Done. Return to the app."; expired/unknown → "That code has expired. Start again in the app."
 
@@ -118,10 +126,12 @@
 ### Task 5: Rust — device flow, link codes, dev switch
 
 **Files:**
+
 - Modify: `tauri-client/src-tauri/src/account.rs` (add `device_start(&self) -> Result<DeviceStart>`, `device_poll(&self, request_id, poll_secret) -> Result<Option<LoginOutcome>>`; existing `redeem_code` stays), `account_commands.rs` (`account_device_start`, `account_device_poll`, `dev_signin_enabled`; `account_sign_in`, `account_sign_in_code`, `account_request_code`, `account_open_sso` return an error `dev_only` unless dev mode is on), `deeplink.rs`, `lib.rs` (register commands), `consts.rs` (`PROTOCOL_VERSION` handled in Task 8)
 - Test: unit tests in the same files
 
 **Interfaces:**
+
 - Consumes: Task 2 endpoints.
 - Produces (Tauri commands): `account_device_start(server: String) -> { requestId, userCode, pollSecret, expiresAt, approveUrl }` where `approveUrl = {server}/connect?c={userCode}`; `account_device_poll(server, requestId, pollSecret) -> AccountStatus | null` (null while pending; maps `invalid_token` to the error `expired`); `dev_signin_enabled() -> bool` (true iff env `VTT_DEV_SIGNIN` is `1`); `deeplink::connect_from_link(link: &str) -> Option<ConnectLink { server: String, code: Option<String> }>` and the event `deeplink:connect` carrying `{ server, code }`, **replacing** `deeplink:server`/`server_from_link`/`PendingServer` payload (keep the pending-until-window-asks behaviour; `take_pending_connect` replaces `take_pending_server`).
 
@@ -134,11 +144,13 @@
 ### Task 6: Panels UI — the Connect screen
 
 **Files:**
+
 - Create: `tauri-client/panels-ui/src/components/settings/ConnectScreen.tsx` (server field, **Connect**, code + QR + "Open in browser" + typed-code box, expiry countdown without a running timer while hidden: derive from `expiresAt` on render and poll only while the window is visible), `components/settings/DevSignIn.tsx` (collapsed block, the old forms and "Paste a connect link"), `hooks/useDeviceConnect.ts`, `components/QrCode.tsx` (own copy: panels-ui is a separate package; same props as web)
 - Modify: `components/settings/AccountSection.tsx` (the signed-out branch renders `ConnectScreen`; the password/code/SSO form moves into `DevSignIn`), `lib/tauriBridge.ts` (`accountDeviceStart`, `accountDevicePoll`, `devSigninEnabled`, `onConnectLink`, `takePendingConnect`), `hooks/useAccount.ts` (drop `signIn`/`signInWithCode` from the default surface; keep them for `DevSignIn`), `types/index.ts`, `package.json` (`qrcode`)
 - Test: `hooks/useDeviceConnect.test.ts` (state machine over a mocked bridge)
 
 **Interfaces:**
+
 - Consumes: Task 5 commands/events.
 - Produces: `useDeviceConnect(server)` → `{ phase: 'idle' | 'waiting' | 'expired' | 'error', userCode?, approveUrl?, start(), cancel() }`; on a `deeplink:connect` event the screen fills server+code and **waits for the player to press Connect**; typed code → `account.signInWithCode`.
 
@@ -151,6 +163,7 @@
 ### Task 7: Operator and device list polish
 
 **Files:**
+
 - Modify: `web/src/components/` account/devices: show `GET /api/auth/sessions` with a revoke button **only if** an account page already exists on the web (check `web/src/components/phone`); otherwise record it in `ROADMAP.md` item 8 and skip.
 - Modify: `backend/src/cli/admin.ts` help text: mention that `user code` doubles as the dev/no-browser connect code.
 - Test: existing admin tests unchanged.
@@ -160,6 +173,7 @@
 ### Task 8: Protocol bump, docs, changelog, verification
 
 **Files:**
+
 - Modify: `shared/src/consts/index.ts` (`PROTOCOL_VERSION = 2`), `tauri-client/src-tauri/src/consts.rs` (`2`), `backend/src/lib/version.test.ts` expectations
 - Modify docs: `docs/architecture/APP-SIGN-IN.md` (status → built, record the dev switch and final names), `JOIN-FLOW.md` (replace "app signs in with the same email and password" with the Connect step), `SIGN-IN-OPTIONS.md` (SSO and email codes now happen in the browser; the app's typed-code box is for link codes), `SYNC-PROTOCOL.md` (new endpoints), `VERSIONING-AND-DEPLOYMENT.md` §4 status, `DEVELOPING.md` (`VTT_DEV_SIGNIN`), `docs/guides/INSTALLING-THE-APP.md` (first-run steps), `docs/BUILD-STATUS.md`, `ROADMAP.md` (item 7 built/untried), `CHANGELOG.md` `[Unreleased]` (Added: connect through the browser; Changed: the app no longer has a sign-in form — wire change, needs matching 0.4 server and app; Known limits: deep links on Linux AppImage may need the typed code)
 - Test: whole repo

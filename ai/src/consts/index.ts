@@ -4,11 +4,12 @@ export const DEFAULT_OLLAMA_URL = 'http://127.0.0.1:11434';
 export const DEFAULT_COALESCE_GAP_MS = 1_500;
 
 /**
- * How much transcript goes into one model call. Characters, not tokens: cheap and
- * model-agnostic. ~24k chars is roughly 6k tokens, which leaves room for the prompt and the
- * answer inside a modest context window on a CPU-only server.
+ * How much transcript (or how many notes) goes into one model call. Characters, not tokens: cheap and
+ * model-agnostic. ~12k chars is roughly 3k tokens. The scribe's notes of a piece can run nearly as long as the
+ * piece itself (it is asked to keep everything), so input and output together must fit the 8k context the
+ * worker asks Ollama for; 24k, the size before the scribe (0.5.2), would have cut long notes off.
  */
-export const DEFAULT_CHUNK_CHARS = 24_000;
+export const DEFAULT_CHUNK_CHARS = 12_000;
 export const DEFAULT_CHUNK_OVERLAP_LINES = 4;
 
 /** Map-reduce gives up recursing past this many levels rather than loop on a stubborn model. */

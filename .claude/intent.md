@@ -41,6 +41,14 @@ Update this file as threads open, progress, or close — stale entries here are 
   - **0.5.1 was released from `main` on 2026-11-16** (tag `v0.5.1`, draft until Andy publishes). 0.5.2 dev builds are tagged
     from this branch (`v0.5.2-dev.N`).
   - **Next:** run a whole records job on the VM's new images; then the rest of Stage 9 (platform parity, the 8-hour soak, packaging), which needs real machines.
+  - **Summaries are a story, not minutes (Andy, 2026-11-16):** "a heroic retelling of key events, even the dumb ones that
+    were an epic fail"; "glorious feats and humiliating fumbles", "dry wit and gallows humour"; short, not War and Peace;
+    "the full transcript is searchable, but the story is what will be remembered". Built as **scribe then bard** (Andy
+    agreed): facts extracted as fully as possible first, the tale told from the notes. The DM-only summary stays a plain
+    brief (Claude's choice, not yet confirmed by Andy).
+  - **Summary model: `qwen3.5:4b` for both roles** (Claude's pick from the tests: granite4.1:3b, which Andy had chosen
+    before the scribe/bard idea, took thin notes and wrote flat tales). **Confirm with Andy.** `OLLAMA_STORY_MODEL` can
+    split the roles.
   - **0.6.0 is reserved** for the first change that bumps `PROTOCOL_VERSION` (the soundboard work is expected to).
 
 - **Stage 6 table features — server first, then UI.** Decided 2026-11-07, in build order:

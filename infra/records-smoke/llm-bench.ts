@@ -2,7 +2,12 @@
 // the Ollama client): time per summary, model calls, peak VRAM, and the text, written out for reading.
 //
 //   node infra/records-smoke/llm-bench.ts --transcript <transcript-<id>.json> --gm <account id> \
-//        --model llama3.2:3b --model llama3.1:8b [--ollama http://127.0.0.1:11434] [--out DIR] [--cpu]
+//        --model granite4.1:3b --model qwen3:8b [--story-model gemma3:4b …] [--ollama http://127.0.0.1:11434]
+//        [--out DIR] [--cpu]
+//
+// A summary is two passes (ai/src/lib/prompts.ts): a scribe takes notes of the transcript once, then a bard tells
+// each tale from the notes. Without --story-model every --model plays both roles in turn. With it, the FIRST
+// --model is the scribe and each --story-model is tried as the bard on the same kind of notes.
 //
 // The transcript is what compose-e2e.ts saves from the Records API (`transcript-<recording>.json`, in
 // E2E_STATE); `--gm` is the DM's account id (everyone else counts as a player, so gets a character
@@ -14,7 +19,13 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
 
-import { createOllamaGenerate, planSummaries, summarise, type Utterance } from '@vtt-chat-app/ai';
+import {
+  createOllamaGenerate,
+  planSummaries,
+  takeNotes,
+  writeFromNotes,
+  type Utterance,
+} from '@vtt-chat-app/ai';
 
 const run = promisify(execFile);
 const argv = process.argv.slice(2);
@@ -22,6 +33,7 @@ const options = (name: string) => argv.flatMap((a, i) => (a === name ? [argv[i +
 const transcriptFile = options('--transcript')[0];
 const gm = options('--gm')[0];
 const models = options('--model');
+const storyModels = options('--story-model');
 const baseUrl = options('--ollama')[0] ?? 'http://127.0.0.1:11434';
 if (!transcriptFile || !gm || models.length === 0) {
   throw new Error('usage: --transcript <file> --gm <dm account id> --model <name> [--model …]');
@@ -66,35 +78,61 @@ async function main(): Promise<void> {
   const sample = plan.filter((p) => !kinds.has(p.kind) && kinds.add(p.kind));
   await mkdir(out, { recursive: true });
   const results = [];
-  for (const model of models) {
-    const generate = createOllamaGenerate({
+  const generator = (model: string) =>
+    createOllamaGenerate({
       model,
       baseUrl,
       numCtx: 8192,
       keepAlive: '0',
       ...(cpu ? { fetchImpl: cpuFetch } : {}),
     });
+  const scribeModel = models[0]!;
+  const pairs =
+    storyModels.length > 0
+      ? storyModels.map((bard) => ({ scribe: scribeModel, bard }))
+      : models.map((m) => ({ scribe: m, bard: m }));
+  for (const pair of pairs) {
+    const name = pair.scribe === pair.bard ? pair.scribe : `${pair.scribe} + ${pair.bard}`;
+    const scribe = generator(pair.scribe);
+    const bard = generator(pair.bard);
     const base = await vram();
     let peak = base;
     const timer = setInterval(() => void vram().then((v) => (peak = Math.max(peak, v))), 500);
     const texts: string[] = [];
     const timings: Record<string, number> = {};
-    const loadStart = Date.now();
-    await generate('Reply with OK.'); // the model load, timed on its own
-    timings.load = Number(((Date.now() - loadStart) / 1000).toFixed(1));
-    for (const p of sample) {
+    const timed = async <T>(label: string, work: () => Promise<T>): Promise<T> => {
       const started = Date.now();
-      const result = await summarise(generate, p.utterances, { kind: p.kind, context: p.context });
-      const label = `${p.kind}${p.subject ? `-${p.subject}` : ''}`;
+      const value = await work();
       timings[label] = Number(((Date.now() - started) / 1000).toFixed(1));
-      texts.push(
-        `## ${label} (${timings[label]} s, ${result.modelCalls} call(s))\n\n${result.text}\n`,
+      return value;
+    };
+    await timed('load', () => scribe('Reply with OK.')); // the model load, timed on its own
+    // Notes once, as the records job does; every summary below is written from them.
+    const all = plan[0]!;
+    const taken = await timed('notes', () =>
+      takeNotes(scribe, all.utterances, { context: all.context }),
+    );
+    texts.push(
+      `## notes (${timings.notes} s, ${taken.modelCalls} call(s))\n\n${taken.notes.join('\n\n')}\n`,
+    );
+    for (const p of sample) {
+      const label = `${p.kind}${p.subject ? `-${p.subject}` : ''}`;
+      const result = await timed(label, () =>
+        writeFromNotes({ scribe, bard }, taken.notes, { kind: p.kind, context: p.context }),
       );
+      const words = result.text.split(/\s+/).length;
+      texts.push(`## ${label} (${timings[label]} s, ${words} words)\n\n${result.text}\n`);
     }
     clearInterval(timer);
-    const file = path.join(out, `${model.replace(/[^a-z0-9.]+/gi, '_')}.md`);
-    await writeFile(file, `# ${model}\n\n${texts.join('\n')}`);
-    const row = { model, seconds: timings, peakVramMiB: peak, vramOverIdleMiB: peak - base, file };
+    const file = path.join(out, `${name.replace(/[^a-z0-9.]+/gi, '_')}.md`);
+    await writeFile(file, `# ${name}\n\n${texts.join('\n')}`);
+    const row = {
+      model: name,
+      seconds: timings,
+      peakVramMiB: peak,
+      vramOverIdleMiB: peak - base,
+      file,
+    };
     results.push(row);
     console.log(JSON.stringify(row));
   }

@@ -15,12 +15,13 @@
 # Defaults for a card with 8 GB (measured on a GTX 1080, docs/architecture/RECORDING-AND-SUMMARIES.md):
 # Whisper large-v3-turbo q5_0 (~1 GB of VRAM, about 27x faster than real time) and qwen3:8b for the
 # summaries (~5.5 GB). Set WHISPER_MODEL_FILE / OLLAMA_MODEL in .env to change them; on a 4-6 GB card use
-# ggml-small-q5_1.bin and llama3.2:3b. These override the CPU defaults in compose.yml, so the services
+# ggml-small.en-q5_1.bin and qwen3.5:4b (the CPU defaults). These override the CPU defaults in compose.yml, so the services
 # that name a model are repeated here.
 services:
   worker:
     environment:
       OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3:8b}
+      WHISPER_MODEL_FILE: ${WHISPER_MODEL_FILE:-ggml-large-v3-turbo-q5_0.bin}
 
   whisper:
     image: ${WHISPER_GPU_IMAGE:-vtt-whisper-cuda}

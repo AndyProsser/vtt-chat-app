@@ -5,8 +5,15 @@ import { chunkLines } from './chunk.js';
 import { formatTimestamp, formatUtterance } from './format.js';
 import { mergeTranscripts } from './merge.js';
 import { createOllamaGenerate } from './ollama.js';
-import { buildChunkPrompt } from './prompts.js';
-import { groupByBudget, stripThinking, summarise } from './summarise.js';
+import { buildBriefPrompt, buildNotesPrompt, buildStoryPrompt, taleWords } from './prompts.js';
+import {
+  groupByBudget,
+  stripThinking,
+  summarise,
+  takeNotes,
+  tidyTale,
+  writeFromNotes,
+} from './summarise.js';
 import { isNonSpeech, parseWhisperJson } from './whisperJson.js';
 
 const alice = { id: 'alice', name: 'Aria (Alice)' };
@@ -168,10 +175,51 @@ describe('groupByBudget', () => {
 
 describe('prompts', () => {
   it('requires a character name for character summaries', () => {
-    expect(() => buildChunkPrompt('character', 'text', 0, 1, {})).toThrow(/characterName/);
-    expect(buildChunkPrompt('character', 'text', 0, 2, { characterName: 'Aria' })).toContain(
-      'Aria',
+    expect(() => buildStoryPrompt('character', ['notes'], {})).toThrow(/characterName/);
+    expect(buildStoryPrompt('character', ['notes'], { characterName: 'Aria' })).toContain(
+      'as the story of "Aria"',
     );
+  });
+
+  it('asks the scribe for the record and the bard for the tale', () => {
+    const scribe = buildNotesPrompt('[0:01] Aria: I open the door', 0, 1, { gameMaster: 'Morgan' });
+    expect(scribe).toMatch(/one event per line/);
+    expect(scribe).toMatch(/fumbles/);
+    expect(scribe).toContain('"Morgan" is the Game Master');
+    expect(scribe).toContain('[0:01] Aria: I open the door');
+    expect(scribe).not.toMatch(/bard/);
+
+    const bard = buildStoryPrompt('session', ['Aria opened the door.'], {
+      campaignName: 'The Sunken Temple',
+      gameMaster: 'Morgan',
+    });
+    expect(bard).toMatch(/humiliating fumbles/);
+    expect(bard).toMatch(/Dry wit and gallows humour/);
+    expect(bard).toMatch(/may not change WHAT happened/);
+    expect(bard).toMatch(/at most 30 words/); // four words of notes: the limit follows the notes, not the cap
+    expect(bard).toContain('campaign "The Sunken Temple"');
+    expect(bard).toContain('Aria opened the door.');
+    expect(bard).not.toContain('--- part'); // one block of notes is shown as it is
+    expect(buildStoryPrompt('session', ['a', 'b'], {})).toContain('--- part 2 ---');
+  });
+
+  it('never lets a tale run longer than the notes it retells', () => {
+    const notes = (words: number): string[] => [
+      Array.from({ length: words }, () => 'word').join(' '),
+    ];
+    expect(taleWords(350, notes(60))).toBe(50);
+    expect(taleWords(350, notes(300))).toBe(240);
+    expect(taleWords(350, notes(2000))).toBe(350);
+    expect(taleWords(200, notes(2000))).toBe(200);
+    expect(taleWords(350, notes(3))).toBe(30);
+    expect(buildStoryPrompt('session', notes(2000), {})).toMatch(/at most 350 words/);
+  });
+
+  it('keeps the Game Master brief plain', () => {
+    const brief = buildBriefPrompt(['Aria opened the door.'], {});
+    expect(brief).toMatch(/for the Game Master only/);
+    expect(brief).toMatch(/no story-telling/);
+    expect(brief).not.toMatch(/bard/);
   });
 });
 
@@ -185,13 +233,53 @@ function manyLines(count: number): Utterance[] {
 }
 
 describe('summarise', () => {
-  it('uses a single call when the transcript fits', async () => {
+  it('takes notes, then tells the tale from them: two calls when the transcript fits', async () => {
     const generate = vi.fn(async () => '  The party went to the cellar.  ');
     const result = await summarise(generate, manyLines(3), { kind: 'session' });
-    expect(generate).toHaveBeenCalledTimes(1);
+    expect(generate).toHaveBeenCalledTimes(2);
     expect(result.text).toBe('The party went to the cellar.');
-    expect(result.modelCalls).toBe(1);
+    expect(result.modelCalls).toBe(2);
     expect(result.dmOnly).toBe(false);
+  });
+
+  it('gives the transcript to the scribe and only the notes to the bard', async () => {
+    const scribe = vi.fn(async (_prompt: string) => 'Alice found a key.');
+    const bard = vi.fn(async (_prompt: string) => 'A key! Glory.');
+    const result = await summarise({ scribe, bard }, manyLines(3), { kind: 'session' });
+    expect(result.text).toBe('A key! Glory.');
+    expect(scribe.mock.calls[0]?.[0]).toContain('line number 0');
+    expect(bard.mock.calls[0]?.[0]).toContain('Alice found a key.');
+    expect(bard.mock.calls[0]?.[0]).not.toContain('line number 0');
+  });
+
+  it('drops a "Next time:" line the bard left empty, and keeps one that says something', () => {
+    expect(tidyTale('They won.\n\nNext time:')).toBe('They won.');
+    expect(tidyTale('They won.\n\n**Next time:**  ')).toBe('They won.');
+    expect(tidyTale('They won.\n\nNext time: the door.')).toBe('They won.\n\nNext time: the door.');
+  });
+
+  it('has the scribe, not the bard, write the Game Master brief', async () => {
+    const scribe = vi.fn(async () => 'plain');
+    const bard = vi.fn(async () => 'ornate');
+    const result = await summarise({ scribe, bard }, manyLines(3), { kind: 'dm-only' });
+    expect(result.text).toBe('plain');
+    expect(bard).not.toHaveBeenCalled();
+  });
+
+  it('writes any number of summaries from notes taken once', async () => {
+    const scribe = vi.fn(async () => 'notes');
+    const bard = vi.fn(async () => 'tale');
+    const taken = await takeNotes(scribe, manyLines(40), { chunkChars: 600, overlapLines: 1 });
+    expect(taken.notes.length).toBeGreaterThan(1);
+    expect(taken.modelCalls).toBe(taken.notes.length);
+    const readings = scribe.mock.calls.length;
+    await writeFromNotes({ scribe, bard }, taken.notes, { kind: 'session' });
+    await writeFromNotes({ scribe, bard }, taken.notes, {
+      kind: 'character',
+      context: { characterName: 'Aria' },
+    });
+    expect(scribe.mock.calls.length).toBe(readings); // the transcript was not read again
+    expect(bard).toHaveBeenCalledTimes(2);
   });
 
   it('map-reduces a long transcript: one call per chunk plus a final combine', async () => {
@@ -207,7 +295,7 @@ describe('summarise', () => {
     });
     expect(result.modelCalls).toBeGreaterThan(2);
     expect(prompts[0]).toContain('part 1 of');
-    expect(prompts.at(-1)).toContain('Summary:');
+    expect(prompts.at(-1)).toContain('The tale:');
   });
 
   it('keeps combining when the notes themselves are too long, then stops', async () => {

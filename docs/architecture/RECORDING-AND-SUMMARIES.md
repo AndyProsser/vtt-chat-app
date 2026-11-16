@@ -344,11 +344,11 @@ Opus track of the scene's lines in four voices; LLM through `llm-bench.ts` on th
 | CPU `small` q5_1, 8 thr   | 0.32 (no faster)   | 0.982         | 0.4 GB RAM          |
 | CPU `medium` q5_0, 8 thr  | 0.95               | 0.984         | 0.9 GB RAM          |
 
-| LLM (one summary of a 3-min scene) | GTX 1080 | CPU    | VRAM    | Judged quality                                                                                                 |
-| ---------------------------------- | -------- | ------ | ------- | -------------------------------------------------------------------------------------------------------------- |
-| llama3.2:3b                        | ~7 s     | ~50 s  | ~2.7 GB | Readable, but **invents** (an NPC "Cattil" and her promise; the eel "defeated"; the party "entering" the door) |
-| llama3.1:8b                        | ~14 s    | —      | ~5.2 GB | Faithful and well ordered; a stray meta remark, one invented "promise" in a character summary                  |
-| qwen3:8b (thinking off)            | ~15 s    | ~150 s | ~5.5 GB | **Most faithful**, best structure, correct who-did-what (one slip: who asked about the inscription)            |
+| LLM, single pass as it was before 0.5.2 (one summary of a 3-min scene) | GTX 1080 | CPU    | VRAM    | Judged quality                                                                                                 |
+| ---------------------------------------------------------------------- | -------- | ------ | ------- | -------------------------------------------------------------------------------------------------------------- |
+| llama3.2:3b                                                            | ~7 s     | ~50 s  | ~2.7 GB | Readable, but **invents** (an NPC "Cattil" and her promise; the eel "defeated"; the party "entering" the door) |
+| llama3.1:8b                                                            | ~14 s    | —      | ~5.2 GB | Faithful and well ordered; a stray meta remark, one invented "promise" in a character summary                  |
+| qwen3:8b (thinking off)                                                | ~15 s    | ~150 s | ~5.5 GB | **Most faithful**, best structure, correct who-did-what (one slip: who asked about the inscription)            |
 
 Peaks during a full e2e run on the GPU: VRAM 7.1 GB of 8 (desktop 1.1 GB + Ollama), Ollama 6.3 GB RAM, Whisper
 0.35 GB, Egress 0.18 GB and ~1.3 cores while recording four tracks, worker 75 MB. **Idle, the card is back at the
@@ -366,6 +366,106 @@ desktop's ~1.1 GB** (Whisper stops after 60 s idle, Ollama unloads after 2 min).
   ~6 GB of RAM, so it stays an opt-in (`OLLAMA_MODEL=qwen3:8b`) for CPU servers with the memory and patience.
 - Ollama is always called with thinking off (reasoning models otherwise spend minutes on hidden text), and any
   `<think>` block a server returns is stripped.
+
+**Re-measured for CPU, 2026-11-16 (Stage 9).** Same harness, but a **table-like track**: one line, then 5 s of quiet, so
+each line is its own short window (a player's own track mostly looks like this; the 2026-11-12 track was a monologue).
+Four cores throughout. "Fitted" means the worker sends whisper.cpp an `audio_ctx` sized to the window: Whisper otherwise
+encodes a full 30 s for every window, however short.
+
+| Whisper on CPU (time ÷ audio, word accuracy)                    | Full 30 s context | Fitted (margin 256) |
+| --------------------------------------------------------------- | ----------------- | ------------------- |
+| 2014 desktop, stock AVX2 image, `small`                         | 0.72, 0.986       | 0.25, 0.989         |
+| 2014 desktop, stock AVX2 image, `small.en`                      | 0.72, 0.979       | **0.25, 0.989**     |
+| 2014 desktop, no-AVX image as it was, `small`                   | 5.54, 0.986       | 1.52, 0.961 (m 128) |
+| 2014 desktop, no-AVX image + OpenBLAS (SSE), `small.en`         | 1.02, 0.979       | 0.46, 0.982         |
+| **2010 Xeon VM**, no-AVX image + OpenBLAS, `small.en`           | 3.38, 0.979       | **1.68, 0.982**     |
+| 2010 Xeon VM, no-AVX image as it was, `small.en`                | —                 | 6.80, 0.989         |
+| 2010 Xeon VM, no-AVX image as it was, `small` (what 0.5.1 runs) | **19.3, 0.986**   | —                   |
+| 2010 Xeon VM, no-AVX image + OpenBLAS, `small`                  | —                 | 1.78, 0.972         |
+
+What it showed, and what changed:
+
+- **The no-AVX image was slow because of its maths, not the CPU's age:** the same 5.5× appeared on a 2014 desktop. Built
+  with OpenBLAS it is 5.4× faster there with identical output, and 4× faster on the Xeon (`whisper-compat.Dockerfile`).
+  **On the Xeon, like for like on this track: 19.3× the audio as shipped in 0.5.1, 1.68× with all three changes**, about
+  11 times faster. (The 5.5× quoted for that VM on 2026-11-13 was a monologue track, which wastes far less.)
+- **Fitting the encoder to the window is 2.2 to 2.9× faster with no accuracy cost** at a margin of 256 positions (about
+  5 s); 128 cost accuracy and 400 gained nothing. **Only for the `base` and `small` models**, which is what was measured:
+  the worker goes by the model's file name (`WHISPER_MODEL_FILE`; `WHISPER_FIT_AUDIO_CTX=1` or `0` overrides).
+  `large-v3-turbo` **repeats itself** with a shortened context ("Both arrows hit. Both arrows hit. Both arrows hit."),
+  which the end-to-end test caught on the GPU stack the same day, so the GPU default keeps the full context (it does
+  not need the speed). Never sent to a remote or cloud server: `audio_ctx` is a whisper.cpp extension.
+- **`small.en` is the CPU default** (Andy, 2026-11-16): same speed as `small`, equal or better on English, and it spelled
+  a character's name right more often. English only; other languages go back to `ggml-small-q5_1.bin`.
+- `base.en` was not worth it (0.937 fitted). A **name prompt** (character and place names sent as Whisper's `prompt`)
+  made accuracy worse (0.930) and was dropped. **Parakeet** (reported about 4× Whisper `small` on CPU) was not measured:
+  it needs a third-party server we have not vetted, and it takes no vocabulary hints.
+- 280 words of clean TTS: a difference of one point is three words. Compare rows, do not predict a real table.
+
+| Summary model on CPU (2014 desktop, one summary of the scene) | Time      | Judged                                                             |
+| ------------------------------------------------------------- | --------- | ------------------------------------------------------------------ |
+| llama3.2:3b (the old default)                                 | 28–41 s   | Invents (the eel "accepted" the toll; Bram "promised")             |
+| granite4.1:3b                                                 | 35–68 s   | Most faithful single-pass summary; plain and structured            |
+| qwen3.5:4b                                                    | 32–106 s  | Good prose, careful about what is unconfirmed; one invented detail |
+| phi4-mini                                                     | 25–45 s   | Fast and short; invents cause and effect                           |
+| gemma3:4b                                                     | 45–79 s   | Liveliest voice; the character summary pasted the transcript       |
+| qwen3:4b                                                      | 130–171 s | Three to four times slower, no better                              |
+
+One short scene, one run each, read against the transcript by Claude: a guide, not a ranking.
+
+### Scribe and bard: how a summary is written (decided 2026-11-16)
+
+Andy's brief: _accuracy isn't critical, the story is_. A heroic retelling of the key events, "even the dumb ones that were
+an epic fail", in "glorious prose" with "dry wit and gallows humour", short ("not War and Peace"). And: _"the full
+transcript is searchable, but the story is what will be remembered."_ So a summary is two passes by two roles
+(`ai/src/lib/prompts.ts`, `summarise.ts`):
+
+```mermaid
+flowchart LR
+    T["Transcript\n(one stretch of recording)"] --> S["Scribe\nnotes: every event, big or small"]
+    S --> N[("Notes\n(in memory, per job)")]
+    N --> B1["Bard: the session's tale (≤350 words)"]
+    N --> B2["Bard: each part's tale (≤200)"]
+    N --> B3["Bard: each hero's tale (≤200)"]
+    N --> G["Scribe: the Game Master's brief (plain)"]
+```
+
+- **The scribe** reads the transcript, a piece at a time, and writes plain notes in whole sentences: who did what and
+  how it turned out, dice results (above all natural ones and twenties), failed plans, in-character jokes quoted, names
+  as spoken, what was found, lost, promised or left open. Accuracy lives here.
+- **The bard** never sees the transcript, only the notes. It may embellish _how_ a thing happened and may not change
+  _what_ happened, who did it, or a name. Fumbles are told as proudly as feats. An unresolved thread ends the tale with
+  "Next time:"; an empty one is removed.
+- **The Game Master's summary is not a tale**: a plain brief from the same notes (what happened, secrets, hooks,
+  promises, preparation), written by the scribe. Claude's choice; Andy has not been asked to confirm it.
+- **Notes are taken once and shared.** With chapters, each chapter is noted once and the session's notes are the
+  chapters' notes in order. Before, every summary re-read the whole transcript: for five players, about eight readings;
+  now one, plus one short call per summary. Notes too long for one call are shortened by the scribe first.
+- **Notes are not stored.** A job that dies takes them again (the transcripts, the slow part, are kept). Storing them,
+  or showing them as a "what happened" list, would be a schema and API change; not done.
+- **A tale is never longer than its notes.** The word limit in the bard's prompt is the kind's cap or 0.8 × the notes'
+  word count, whichever is less (floor 30). Given six lines of notes and "at most 350 words", a bard fills the space
+  with invention: the end-to-end test's four-line recap came back as a dungeon crawl. The scribe is likewise told that
+  notes never run past the transcript. Still seen after both rules: `qwen3:8b` adds a small invented beat to a
+  four-line recording, and a bard may name the Game Master's account when the notes do.
+- **A piece is 12,000 characters** (was 24,000): thorough notes run nearly as long as what they describe, and both must
+  fit the 8k context the worker asks Ollama for.
+- **One model or two.** `OLLAMA_MODEL` plays both roles; `OLLAMA_STORY_MODEL` gives the bard its own (the status line
+  then reports the worse of the two). A remote LLM plays both.
+
+**Tried 2026-11-16** on a written scene with fumbles in it (a natural 1 on stealth, a strength check that snaps a statue's
+arm off), CPU only, read by Claude:
+
+| Scribe → bard                 | Notes                                                      | Tale                                                                                   |
+| ----------------------------- | ---------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| granite4.1:3b → gemma3:4b     | Thin shorthand (before the scribe was told otherwise)      | Mannered and vague; left "Next time:" dangling                                         |
+| granite4.1:3b → granite4.1:3b | Thin                                                       | Purple, no humour, events wrong (a splash became a "demise")                           |
+| granite4.1:3b → qwen3.5:4b    | One paragraph even when asked for more; dropped the banter | Good voice, starved of detail                                                          |
+| **qwen3.5:4b → qwen3.5:4b**   | A line per exchange, nearly all right                      | The best: dry, specific, uses the fumbles; small liberties (a damage roll became fish) |
+
+So **`qwen3.5:4b` is the CPU default for both roles** (3.3 GB; notes about 100 s and each tale about a minute for that
+scene on a 2014 desktop). This replaces granite4.1:3b, which Andy had picked from the single-pass table above before
+the two-pass design existed; flagged to him. The GPU default stays qwen3:8b, untested as scribe and bard.
 
 **Still unverified:** real human voices, room noise, echo and crosstalk (TTS flatters accuracy); a real
 4-hour session's map-reduce summaries (the scene fits one model call); the Rust desktop client and phone app as
