@@ -75,6 +75,25 @@ const joinNotes = (notes: readonly string[]): string =>
     ? (notes[0] ?? '').trim()
     : notes.map((note, i) => `--- part ${i + 1} ---\n${note.trim()}`).join('\n\n');
 
+/**
+ * The scribe's notes as the Game Master reads them: Markdown, one bullet per event, a heading per part when
+ * the recording had parts. Models already bullet some lines and not others; this makes them all alike.
+ */
+export function formatNotes(
+  parts: readonly { title?: string; notes: readonly string[] }[],
+): string {
+  const bullets = (notes: readonly string[]): string =>
+    notes
+      .flatMap((block) => block.split('\n'))
+      .map((line) => line.trim().replace(/^(?:[-*•]|\d+[.)])\s+/, ''))
+      .filter((line) => line !== '')
+      .map((line) => `- ${line}`)
+      .join('\n');
+  return parts
+    .map((p) => (p.title ? `### ${p.title}\n\n${bullets(p.notes)}` : bullets(p.notes)))
+    .join('\n\n');
+}
+
 /** Shortens notes that have outgrown one model call, keeping the events (map-reduce's middle step). */
 export function buildCondensePrompt(notes: readonly string[], context: SummaryContext): string {
   return [
@@ -139,6 +158,7 @@ export function buildStoryPrompt(
       "- Glorious prose, past tense: the heroes' great feats told as legend, and their humiliating fumbles told just as proudly. A plan that failed, a roll that betrayed them, a dumb idea that somehow worked: these are the best parts.",
       '- Dry wit and gallows humour. Understate the disasters. Never explain a joke, never address the audience, never praise the story.',
       '- You may embellish HOW a thing happened (the look of it, the sound of it, a wry aside). You may not change WHAT happened: who did it, what came of it, who won, what was found, and every name stay exactly as the notes have them. No new events, characters, treasure or speeches.',
+      '- Tell the moments that mattered and the people who made them. Not everyone in the notes belongs in the tale: a character or creature who did little may be left out or pass in a clause. Never list who was present, and never give someone a moment just to include them.',
       '- Nothing happens in the tale that the notes do not say happened. A plan for next time is still only a plan, and a recap is told as a recap. When the notes are short, the tale is a few sentences: never pad, and never mention the notes, the recording or what is missing.',
       '- No headings, no lists, no title.',
       `- If something was left unresolved, end with one line that starts "Next time:". If nothing was, leave that line out.${gm}`,

@@ -3,6 +3,7 @@ import { ChevronDown, ChevronRight, Search, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { useAccount } from '../hooks/useAccount.js';
+import { useDevBuilds } from '../hooks/useDevBuilds.js';
 import { useCampaignQuery } from '../hooks/useCampaignQuery.js';
 import { useTableFeed } from '../hooks/useTableFeed.js';
 import {
@@ -10,6 +11,7 @@ import {
   audioDeletionNote,
   clock,
   durationLabel,
+  shownHits,
   snippetParts,
   speakerName,
   summaryLabel,
@@ -47,15 +49,18 @@ const dateOf = (ms: number) =>
   });
 
 /**
- * The campaign's recorded sessions: when, how long, their summaries and (on request) the transcript,
- * plus a search across all of it. What each person sees is decided by the server: DM-only summaries
- * come back to the DM alone, so this screen shows whatever it is given.
+ * The campaign's recorded sessions: when, how long, and their tales, plus a search across them. What each
+ * person sees is decided by the server: the DM's brief and the scribe's notes come back to the DM alone, so
+ * this screen shows whatever it is given. The one choice made here: the raw transcript (which the server
+ * gives only to the DM) is shown only when the DM has dev builds on. It is a diagnostic view, not the record
+ * the table reads (decided 2026-11-17).
  */
 export function HistoryPanel() {
   useTableFeed();
   const { status } = useAccount();
   const members = useTableStore((s) => s.members);
   const dm = isDm(members, status?.userId ?? null);
+  const transcript = useDevBuilds() && dm;
   const { data, error, reload } = useCampaignQuery<{ recordings: RecordingItem[] }>(
     'recordings',
     [],
@@ -77,7 +82,7 @@ export function HistoryPanel() {
 
   return (
     <div className="vtt-sessions">
-      <SearchBox onOpen={setOpenId} />
+      <SearchBox onOpen={setOpenId} transcript={transcript} />
       {(error ?? actionError) && (
         <div className="vtt-composer-error" role="alert" style={{ position: 'static' }}>
           {error ?? actionError}
@@ -94,6 +99,7 @@ export function HistoryPanel() {
           key={r.id}
           item={r}
           dm={dm}
+          transcript={transcript}
           open={openId === r.id}
           onToggle={() => setOpenId(openId === r.id ? undefined : r.id)}
           onRemove={() => remove(r.id)}
@@ -104,7 +110,7 @@ export function HistoryPanel() {
   );
 }
 
-function SearchBox({ onOpen }: { onOpen: (id: string) => void }) {
+function SearchBox({ onOpen, transcript }: { onOpen: (id: string) => void; transcript: boolean }) {
   const [text, setText] = useState('');
   const [hits, setHits] = useState<SearchHit[]>();
   const [error, setError] = useState<string>();
@@ -113,7 +119,7 @@ function SearchBox({ onOpen }: { onOpen: (id: string) => void }) {
     if (text.trim().length < 2) return;
     try {
       setError(undefined);
-      setHits((await recordsSearch(text)).hits);
+      setHits(shownHits((await recordsSearch(text)).hits, transcript));
     } catch (e) {
       setError(accountErrorMessage(e));
     }
@@ -132,7 +138,7 @@ function SearchBox({ onOpen }: { onOpen: (id: string) => void }) {
           size="1"
           style={{ flex: 1, minWidth: 140 }}
           aria-label="Search the history"
-          placeholder="Search what was said or summarised"
+          placeholder={transcript ? 'Search the tales and what was said' : 'Search the tales'}
           value={text}
           onChange={(e) => {
             setText(e.target.value);
@@ -186,6 +192,7 @@ function SearchBox({ onOpen }: { onOpen: (id: string) => void }) {
 function Recording({
   item,
   dm,
+  transcript,
   open,
   onToggle,
   onRemove,
@@ -193,6 +200,7 @@ function Recording({
 }: {
   item: RecordingItem;
   dm: boolean;
+  transcript: boolean;
   open: boolean;
   onToggle: () => void;
   onRemove: () => void;
@@ -223,7 +231,7 @@ function Recording({
           />
         )}
       </div>
-      {open && <Detail id={item.id} />}
+      {open && <Detail id={item.id} canReadTranscript={transcript} />}
       {open && audioDeletionNote(item, dm) && (
         <span className="vtt-warning" role="status">
           {audioDeletionNote(item, dm)}
@@ -233,7 +241,7 @@ function Recording({
   );
 }
 
-function Detail({ id }: { id: string }) {
+function Detail({ id, canReadTranscript }: { id: string; canReadTranscript: boolean }) {
   const [summaries, setSummaries] = useState<SummaryView[]>();
   const [error, setError] = useState<string>();
   const [transcript, setTranscript] = useState<TranscriptRow[]>();
@@ -301,7 +309,7 @@ function Detail({ id }: { id: string }) {
             ),
           )}
         </div>
-      ) : (
+      ) : !canReadTranscript ? null : (
         <div>
           <ToolButton
             label="Show the full transcript"

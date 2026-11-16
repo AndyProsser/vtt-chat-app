@@ -58,9 +58,15 @@ export interface RecordingEvent {
 
 export type SummaryVisibility = 'members' | 'dm';
 
+/**
+ * What the summaries table holds: the summaries a model writes, plus the scribe's notes they were written
+ * from (kind `notes`, one per recording, Game Master only).
+ */
+export type StoredSummaryKind = SummaryKind | 'notes';
+
 export interface StoredSummary {
   recordingId: string;
-  kind: SummaryKind;
+  kind: StoredSummaryKind;
   /** The character, for `kind: 'character'`; empty otherwise. */
   subject: string;
   visibility: SummaryVisibility;
@@ -73,7 +79,7 @@ export interface SearchHit {
   recordingId: string;
   source: 'transcript' | 'summary' | 'chat';
   /** For a summary hit, which summary. */
-  kind?: SummaryKind;
+  kind?: StoredSummaryKind;
   speakerName?: string;
   /** For a transcript hit: where in the recording the line was said. */
   atMs?: number;

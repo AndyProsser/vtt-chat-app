@@ -3,8 +3,8 @@ import { Badge, Button, Callout, Card, Flex, Heading, Text, TextField } from '@r
 import { useEffect, useState } from 'react';
 
 import { useLoad } from '../../hooks/useLoad.js';
-import { clock, recordingTitle } from '../../lib/phone/format.js';
-import { recording, recordings, searchHistory, transcript } from '../../lib/phone/phoneApi.js';
+import { recordingTitle, summaryTitle } from '../../lib/phone/format.js';
+import { recording, recordings, searchHistory } from '../../lib/phone/phoneApi.js';
 import { hitLabel, snippetParts } from '../../lib/phone/search.js';
 import type { RecordingItem } from '../../types/phone.js';
 
@@ -14,7 +14,7 @@ const STATUS_NOTE: Record<string, string> = {
   failed: 'Could not be summarised',
 };
 
-/** Past sessions: the summaries first, the full transcript when you want it. */
+/** Past sessions and their tales. The Game Master also sees the brief and the scribe's notes. */
 export function HistoryTab({ campaignId }: { campaignId: string }) {
   const { data, error, loading } = useLoad(() => recordings(campaignId), campaignId);
   const [open, setOpen] = useState<RecordingItem>();
@@ -54,7 +54,7 @@ export function HistoryTab({ campaignId }: { campaignId: string }) {
                   {STATUS_NOTE[r.status]}
                 </Badge>
               ) : (
-                <Badge color="gray">{r.summaries.length} summaries</Badge>
+                <Badge color="gray">{r.summaries.length > 0 ? 'Tale ready' : 'No tale yet'}</Badge>
               )}
             </Flex>
           </button>
@@ -74,11 +74,6 @@ function RecordingView({
   onBack: () => void;
 }) {
   const detail = useLoad(() => recording(campaignId, item.id), item.id);
-  const [showTranscript, setShowTranscript] = useState(false);
-  const lines = useLoad(
-    () => (showTranscript ? transcript(campaignId, item.id) : Promise.resolve([])),
-    `${item.id}:${showTranscript}`,
-  );
   const summaries = detail.data?.summaries ?? [];
   return (
     <Flex direction="column" gap="3" className="phone-pad">
@@ -102,8 +97,8 @@ function RecordingView({
         <Card key={`${s.kind}:${s.subject ?? ''}:${i}`} size="2">
           <Flex direction="column" gap="2">
             <Flex gap="2" align="center">
-              <Text size="2" weight="medium" className="phone-kind">
-                {s.kind}
+              <Text size="2" weight="medium">
+                {summaryTitle(s.kind)}
                 {s.subject ? `: ${s.subject}` : ''}
                 {s.title ? ` · ${s.title}` : ''}
               </Text>
@@ -113,30 +108,6 @@ function RecordingView({
           </Flex>
         </Card>
       ))}
-      <Button variant="soft" onClick={() => setShowTranscript((v) => !v)}>
-        {showTranscript ? 'Hide the transcript' : 'Read the transcript'}
-      </Button>
-      {showTranscript && (
-        <Flex direction="column" gap="2">
-          {lines.loading && <Text color="gray">Loading…</Text>}
-          {lines.error && <Text color="red">{lines.error}</Text>}
-          {(lines.data ?? []).map((row, i) =>
-            row.kind === 'scene' ? (
-              <Text key={i} size="1" color="gray" weight="medium" className="phone-scene">
-                {clock(row.atMs)} · Scene: {row.name}
-              </Text>
-            ) : (
-              <div key={i} className="phone-utterance">
-                <Text size="1" color="gray">
-                  {clock(row.line.startMs)} · {row.line.speaker.name}
-                  {row.line.typed ? ' (typed)' : ''}
-                </Text>
-                <Text size="2">{row.line.text}</Text>
-              </div>
-            ),
-          )}
-        </Flex>
-      )}
     </Flex>
   );
 }
@@ -144,7 +115,7 @@ function RecordingView({
 const MIN_QUERY = 2;
 const TYPING_PAUSE_MS = 400;
 
-/** A search box over everything said, typed and summarised. Waits for a pause in typing before asking. */
+/** A search box over the tales and summaries. Waits for a pause in typing before asking. */
 function HistorySearch({
   campaignId,
   onOpen,
@@ -167,7 +138,7 @@ function HistorySearch({
     <Flex direction="column" gap="2">
       <TextField.Root
         type="search"
-        placeholder="Search what was said"
+        placeholder="Search the tales"
         aria-label="Search the history"
         value={text}
         onChange={(e) => setText(e.target.value)}

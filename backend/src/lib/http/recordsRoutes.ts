@@ -59,7 +59,11 @@ const summaryView = (s: StoredSummary) => ({
  *
  * Access rules (CLAUDE.md §8.4), enforced here at the API and not by hiding things in a UI:
  * - only members of the campaign can read anything; everyone else gets `forbidden`;
- * - **DM-only summaries are returned to the DM alone** — in lists, detail and search alike;
+ * - **DM-only summaries are returned to the DM alone** — in lists, detail and search alike. The scribe's
+ *   notes are one of them;
+ * - **the transcript is the DM's alone** (decided 2026-11-17): players get the tale, not the raw record, and
+ *   their search covers the summaries only. The apps show the transcript only to a DM who turned on dev
+ *   builds; that part is a display choice, the DM rule here is the access rule;
  * - a recording is only reachable through its own campaign, so knowing a recording id from
  *   another campaign reveals nothing (`not_found`, indistinguishable from a missing one);
  * - private tracks never appear: the store does not return them.
@@ -92,8 +96,14 @@ export function recordsRoutes(deps: RecordsRouteDeps): Router {
     return purged === 0 ? 'kept' : purged === tracks.length ? 'purged' : 'partly';
   };
 
+  // The tales first, the Game Master's working material (brief, scribe's notes) after them.
+  const rank = (s: StoredSummary) => (s.kind === 'notes' ? 2 : s.visibility === 'dm' ? 1 : 0);
   const visible = (summaries: StoredSummary[], isDm: boolean) =>
-    summaries.filter((s) => s.visibility === 'members' || isDm);
+    summaries
+      .filter((s) => s.visibility === 'members' || isDm)
+      .map((s, i) => ({ s, i }))
+      .sort((a, b) => rank(a.s) - rank(b.s) || a.i - b.i)
+      .map(({ s }) => s);
 
   router.get('/', async (req, res) => {
     const { campaignId, isDm } = await membership(req, authOf(res).user.id);
@@ -137,6 +147,7 @@ export function recordsRoutes(deps: RecordsRouteDeps): Router {
     if (!parsed.success) throw new DomainError('invalid_input', 'q must be 2–200 characters');
     const hits = await records.search(campaignId, parsed.data.q, {
       includeDmOnly: isDm,
+      includeTranscript: isDm,
       limit: parsed.data.limit,
     });
     res.json({ hits });
@@ -186,7 +197,8 @@ export function recordsRoutes(deps: RecordsRouteDeps): Router {
   });
 
   router.get('/:recordingId/transcript', async (req, res) => {
-    const { campaignId } = await membership(req, authOf(res).user.id);
+    const { campaignId, isDm } = await membership(req, authOf(res).user.id);
+    if (!isDm) throw new DomainError('forbidden', 'only the DM can read the transcript');
     const recording = await ownRecording(campaignId, param(req.params.recordingId));
     // What was said and what was typed into the public chat, on one timeline: the same lines the
     // summaries were written from. Typed lines are marked; whispers and out-of-character lines never

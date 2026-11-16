@@ -5,15 +5,12 @@ import type {
   HandoutItem,
   RecordingItem,
   RsvpStatus,
-  SceneMarker,
   SearchHit,
   SessionItem,
   SummaryItem,
-  Utterance,
 } from '../../types/phone.js';
 import { lineFromHistory } from './chat.js';
 import type { DmRequest, OpenTable } from './joinRequests.js';
-import { transcriptRows, type TranscriptRow } from './transcriptRows.js';
 
 interface Login {
   signedIn?: boolean;
@@ -187,14 +184,6 @@ export async function recording(campaignId: string, id: string) {
   );
 }
 
-export async function transcript(campaignId: string, id: string): Promise<TranscriptRow[]> {
-  const res = await request<{ utterances: Utterance[]; markers?: SceneMarker[] }>(
-    'GET',
-    `/api/campaigns/${campaignId}/recordings/${id}/transcript`,
-  );
-  return transcriptRows(res.utterances, res.markers);
-}
-
 /** A handout's file, as a Blob. Fetched (with the session cookie) so a failure can be told from a missing picture, then shown from a blob URL. */
 export async function handoutFile(
   campaignId: string,
@@ -209,11 +198,14 @@ export async function handoutFile(
   return response.blob();
 }
 
-/** Searches what was said, typed and summarised in the campaign's recorded sessions. */
+/**
+ * Searches the campaign's tales and summaries. The server also gives a DM the lines of the transcript; the
+ * phone has no transcript view (that is the desktop app's, in dev mode), so they are left out here.
+ */
 export async function searchHistory(campaignId: string, q: string): Promise<SearchHit[]> {
   const res = await request<{ hits: SearchHit[] }>(
     'GET',
     `/api/campaigns/${campaignId}/recordings/search?q=${encodeURIComponent(q)}`,
   );
-  return res.hits;
+  return res.hits.filter((h) => h.source === 'summary');
 }

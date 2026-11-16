@@ -321,7 +321,8 @@ retried with a growing pause and shows as `FAIL local AI` in `vtt-admin status`.
 down what happened, big and small. A _bard_ then tells it, from the scribe's notes, as a short heroic tale with dry
 wit: one for the session, one for each part when it was paused or the scene changed, and one for each hero. The
 Game Master also gets a plain brief (secrets, hooks, promises, what to prepare). The tale takes small liberties with
-how things happened, never with what happened; the transcript stays searchable for anyone who wants the record.
+how things happened, never with what happened. Players read the tales only; the Game Master also reads the
+scribe's notes, and can read and search the transcript in the desktop app with "Include dev builds" on.
 `OLLAMA_MODEL` plays both roles; set `OLLAMA_STORY_MODEL` in `.env` to give the bard a different model.
 
 **What to expect on a CPU-only server** (measured on a 4-core 2014 desktop, 2026-11-16): Whisper `small.en` takes

@@ -56,13 +56,14 @@ export interface RecordsStore {
   /** Removes a recording and everything derived from it (tracks, transcripts, summaries, jobs). */
   deleteRecording(recordingId: string): Promise<void>;
   /**
-   * Full-text search over one campaign's transcripts and summaries. Private tracks are never
-   * searched, and DM-only summaries only when `includeDmOnly` is set.
+   * Full-text search over one campaign's summaries and, with `includeTranscript`, what was said and typed.
+   * Private tracks are never searched, and DM-only summaries (the scribe's notes among them) only when
+   * `includeDmOnly` is set.
    */
   search(
     campaignId: string,
     query: string,
-    options: { includeDmOnly: boolean; limit: number },
+    options: { includeDmOnly: boolean; includeTranscript: boolean; limit: number },
   ): Promise<SearchHit[]>;
 
   getSummary(

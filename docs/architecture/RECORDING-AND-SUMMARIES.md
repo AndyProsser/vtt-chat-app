@@ -146,8 +146,22 @@ and the timeline event, and records whether a summary names the scene as a metri
 
 ## Access & retention
 
-- Campaign members read their campaign's transcripts and non-DM-only summaries. Search across
-  history is in scope.
+- **Who reads what (decided 2026-11-17).** The tale is the record the table reads; the rest is working material.
+
+  | What                                              | Players | Game Master                | Operator        |
+  | ------------------------------------------------- | ------- | -------------------------- | --------------- |
+  | The tales (session, each part, each hero)         | yes     | yes                        | in the database |
+  | The scribe's notes, the Game Master's brief       | no      | yes                        | in the database |
+  | The transcript (spoken and typed lines), searched | no      | desktop app, dev builds on | in the database |
+
+  The API enforces the first two columns: a player asking for the transcript gets `forbidden`, and a player's
+  search covers the tales only. "Dev builds on" is the desktop app's own setting (Settings → App → Include dev
+  builds), so that last step is a display choice made by the app, not an access rule: the server gives the
+  transcript to any Game Master who asks. The reason is that the transcript is a diagnostic view (is Whisper
+  hearing the table?), and a Game Master is already trusted with everything said at their table. The phone app
+  has no transcript view. The operator needs the transcript only so a recording can be reprocessed, which works
+  from the database; there is no CLI command that prints one.
+
 - **Retention is operator-controlled** via the Admin CLI (raw tracks are the big files; transcripts
   and summaries are small). Backup/restore/delete exist for recordings, transcripts and summaries
   separately ([CLAUDE.md §7](../../.claude/CLAUDE.md)).
@@ -423,7 +437,7 @@ transcript is searchable, but the story is what will be remembered."_ So a summa
 ```mermaid
 flowchart LR
     T["Transcript\n(one stretch of recording)"] --> S["Scribe\nnotes: every event, big or small"]
-    S --> N[("Notes\n(in memory, per job)")]
+    S --> N[("Notes\n(stored for the Game Master)")]
     N --> B1["Bard: the session's tale (≤350 words)"]
     N --> B2["Bard: each part's tale (≤200)"]
     N --> B3["Bard: each hero's tale (≤200)"]
@@ -437,12 +451,17 @@ flowchart LR
   _what_ happened, who did it, or a name. Fumbles are told as proudly as feats. An unresolved thread ends the tale with
   "Next time:"; an empty one is removed.
 - **The Game Master's summary is not a tale**: a plain brief from the same notes (what happened, secrets, hooks,
-  promises, preparation), written by the scribe. Claude's choice; Andy has not been asked to confirm it.
+  promises, preparation), written by the scribe. Open (2026-11-17): Andy leans towards dropping it now that the
+  Game Master reads the scribe's notes; it costs one model call per recording.
 - **Notes are taken once and shared.** With chapters, each chapter is noted once and the session's notes are the
   chapters' notes in order. Before, every summary re-read the whole transcript: for five players, about eight readings;
   now one, plus one short call per summary. Notes too long for one call are shortened by the scribe first.
-- **Notes are not stored.** A job that dies takes them again (the transcripts, the slow part, are kept). Storing them,
-  or showing them as a "what happened" list, would be a schema and API change; not done.
+- **The notes are stored for the Game Master** (2026-11-17): one `summaries` row per recording, kind `notes`,
+  visibility `dm`, as Markdown (a bullet per event, a heading per part). They are for reading: a job that dies still
+  takes its notes again (the transcripts, the slow part, are kept).
+- **The tale is about the people who mattered.** The bard is told that not everyone in the notes belongs in the tale:
+  a player or creature who did little may be left out or pass in a clause, and nobody is given a moment just to be
+  included. Each hero still gets their own tale.
 - **A tale is never longer than its notes.** The word limit in the bard's prompt is the kind's cap or 0.8 × the notes'
   word count, whichever is less (floor 30). Given six lines of notes and "at most 350 words", a bard fills the space
   with invention: the end-to-end test's four-line recap came back as a dungeon crawl. The scribe is likewise told that

@@ -67,10 +67,11 @@ export interface SearchHit {
 }
 
 export const SUMMARY_LABELS: Record<string, string> = {
-  session: 'Session summary',
+  session: 'The tale',
   chapter: 'Chapter',
-  character: 'Character',
-  'dm-only': 'DM only',
+  character: 'Hero',
+  'dm-only': 'DM brief',
+  notes: 'Scribe’s notes',
 };
 export const summaryLabel = (kind: string): string => SUMMARY_LABELS[kind] ?? kind;
 
@@ -117,6 +118,13 @@ export function snippetParts(snippet: string): { text: string; mark: boolean }[]
   if (last < snippet.length) parts.push({ text: decode(snippet.slice(last)), mark: false });
   return parts;
 }
+
+/**
+ * The search hits this person is shown. Lines from the transcript (spoken or typed) are for a DM with dev
+ * builds on, like the transcript itself; the server already keeps them from players.
+ */
+export const shownHits = (hits: readonly SearchHit[], transcript: boolean): SearchHit[] =>
+  hits.filter((h) => transcript || h.source === 'summary');
 
 /** The name to show for an utterance's speaker. */
 export const speakerName = (speaker: Utterance['speaker']): string =>

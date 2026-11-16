@@ -497,7 +497,7 @@ async function verify(
     const playerView = await ok('GET', `${base}/${id}`, player.token);
     check(`${short}: processed`, dmView.recording.status === 'processed', dmView.recording.status);
 
-    const transcript = (await ok('GET', `${base}/${id}/transcript`, player.token))
+    const transcript = (await ok('GET', `${base}/${id}/transcript`, dm.token))
       .utterances as Utterance[];
     // Kept for llm-bench.ts (the same transcript for every model) and for reading.
     await writeFile(
@@ -580,6 +580,17 @@ async function verify(
       `${short}: DM-only summary (DM view)`,
       summaries.some((s) => s.kind === 'dm-only'),
     );
+    check(
+      `${short}: the scribe's notes (DM view)`,
+      summaries.some((s) => s.kind === 'notes'),
+    );
+    const refused = await api('GET', `${base}/${id}/transcript`, player.token);
+    check(
+      `${short}: a player cannot read the transcript or the scribe's notes`,
+      refused.status === 403 &&
+        !(playerView.summaries as Json[]).some((s) => s.kind === 'notes' || s.kind === 'dm-only'),
+      String(refused.status),
+    );
     const speakingCharacters = CAST.filter(
       (c) =>
         c.character &&
@@ -606,7 +617,7 @@ async function verify(
     for (const scene of steps.filter(
       (s): s is Extract<Step, { do: 'scene' }> => s.do === 'scene',
     )) {
-      const t = await ok('GET', `${base}/${id}/transcript`, player.token);
+      const t = await ok('GET', `${base}/${id}/transcript`, dm.token);
       check(
         `${short}: the scene "${scene.name}" is a marker in the transcript`,
         (t.markers as Json[] | undefined)?.some((m) => m.text === scene.name) === true,
@@ -682,10 +693,11 @@ async function verify(
     );
   }
 
-  // Search finds a spoken phrase and a typed one, for a player (both are in recording A).
+  // Search finds a spoken phrase and a typed one for the DM (both are in recording A); a player's search
+  // covers the tales only.
   if (recordings.some((r) => r.steps === RECORDING_A)) {
     const spoken = (
-      await ok('GET', `${base}/search?q=${encodeURIComponent(SEARCH_SPOKEN)}`, player.token)
+      await ok('GET', `${base}/search?q=${encodeURIComponent(SEARCH_SPOKEN)}`, dm.token)
     ).hits as Json[];
     check(
       `search finds the spoken phrase "${SEARCH_SPOKEN}"`,
@@ -694,16 +706,23 @@ async function verify(
       ),
     );
     const typed = (
-      await ok('GET', `${base}/search?q=${encodeURIComponent(SEARCH_TYPED)}`, player.token)
+      await ok('GET', `${base}/search?q=${encodeURIComponent(SEARCH_TYPED)}`, dm.token)
     ).hits as Json[];
     check(
       `search finds the typed line "${SEARCH_TYPED}" as chat`,
       typed.some((h) => h.source === 'chat' && recordings.some((r) => r.id === h.recordingId)),
     );
   }
-  // DM-only summaries never surface in a player's search.
-  const dmOnly = (await ok('GET', `${base}/search?q=session`, player.token)).hits as Json[];
-  check('player search never returns a DM-only summary', !dmOnly.some((h) => h.kind === 'dm-only'));
+  // DM-only summaries, the scribe's notes and what was said never surface in a player's search.
+  const asPlayer = [
+    ...((await ok('GET', `${base}/search?q=session`, player.token)).hits as Json[]),
+    ...((await ok('GET', `${base}/search?q=${encodeURIComponent(SEARCH_SPOKEN)}`, player.token))
+      .hits as Json[]),
+  ];
+  check(
+    'player search returns only the tales (no DM-only summary, notes or transcript line)',
+    !asPlayer.some((h) => h.source !== 'summary' || h.kind === 'dm-only' || h.kind === 'notes'),
+  );
   // Someone outside the campaign gets nothing.
   const outsider = await api('GET', base, undefined);
   check(

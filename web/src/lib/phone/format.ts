@@ -70,3 +70,14 @@ export function clock(ms: number): string {
   const sec = String(s % 60).padStart(2, '0');
   return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${sec}` : `${m}:${sec}`;
 }
+
+const SUMMARY_TITLES: Record<string, string> = {
+  session: 'The tale',
+  chapter: 'Chapter',
+  character: 'Hero',
+  'dm-only': 'DM brief',
+  notes: 'Scribe’s notes',
+};
+
+/** The heading for a summary of this kind; an unknown kind is shown as it is. */
+export const summaryTitle = (kind: string): string => SUMMARY_TITLES[kind] ?? kind;

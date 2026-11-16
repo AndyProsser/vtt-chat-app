@@ -130,7 +130,7 @@ export class MemoryRecordsStore implements RecordsStore {
   search = async (
     campaignId: string,
     query: string,
-    options: { includeDmOnly: boolean; limit: number },
+    options: { includeDmOnly: boolean; includeTranscript: boolean; limit: number },
   ): Promise<SearchHit[]> => {
     const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
     const matches = (text: string): boolean => {
@@ -141,7 +141,7 @@ export class MemoryRecordsStore implements RecordsStore {
     for (const r of this.recordings.values()) {
       if (r.campaignId !== campaignId) continue;
       for (const t of this.tracks.values()) {
-        if (t.recordingId !== r.id || t.private) continue;
+        if (!options.includeTranscript || t.recordingId !== r.id || t.private) continue;
         for (const s of this.segments.get(t.id) ?? []) {
           if (matches(s.text)) {
             hits.push({
@@ -156,7 +156,8 @@ export class MemoryRecordsStore implements RecordsStore {
       }
       for (const e of this.events) {
         const d = e.detail;
-        if (e.recordingId !== r.id || e.event !== 'chat' || !d) continue;
+        if (!options.includeTranscript || e.recordingId !== r.id || e.event !== 'chat' || !d)
+          continue;
         if (d.to !== undefined || d.recipientId !== undefined) continue; // never a whisper
         if (d.kind === 'ooc') continue; // never out of character
         if (typeof d.text === 'string' && matches(d.text)) {

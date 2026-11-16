@@ -29,7 +29,7 @@ describe('hitLabel', () => {
       'Ann at 1:05',
     );
     expect(hitLabel({ source: 'chat', speakerName: 'Bo', atMs: 5_000 })).toBe('Bo typed at 0:05');
-    expect(hitLabel({ source: 'summary', kind: 'session' })).toBe('Summary: session');
+    expect(hitLabel({ source: 'summary', kind: 'session' })).toBe('The tale');
     expect(hitLabel({ source: 'transcript' })).toBe('Spoken');
   });
 });

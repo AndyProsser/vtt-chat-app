@@ -370,7 +370,10 @@ Claude must implement:
 
 #### **Access**
 
-- Players can read their campaign's history and summaries; DM‑only summaries are DM‑only
+- Players read their campaign's **tales** (the bard's summaries) and can search them. The DM also reads the
+  DM‑only summaries, which include the **scribe's notes**. The **transcript** is the DM's alone at the API, and
+  the desktop app shows it only with "Include dev builds" on; the operator reaches it through the database
+  (decided 2026‑11‑17, RECORDING-AND-SUMMARIES.md "Access & retention")
 - Retention and deletion are operator‑controlled (CLI) and DM‑visible
 
 ### **8.5 LiveKit (Native)**

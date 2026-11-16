@@ -5,6 +5,7 @@ import {
   audioDeletionNote,
   clock,
   durationLabel,
+  shownHits,
   snippetParts,
   speakerName,
   summaryLabel,
@@ -41,7 +42,8 @@ describe('snippetParts', () => {
 
 describe('summaryLabel', () => {
   it('names the kinds and passes unknown ones through', () => {
-    expect(summaryLabel('dm-only')).toBe('DM only');
+    expect(summaryLabel('dm-only')).toBe('DM brief');
+    expect(summaryLabel('notes')).toBe('Scribe’s notes');
     expect(summaryLabel('odd')).toBe('odd');
   });
 });
@@ -80,6 +82,18 @@ describe('audioDeletionNote', () => {
     expect(audioDeletionNote({ audioDeletedOn: on }, true, 'en-AU')).toMatch(/13 Nov/);
     expect(audioDeletionNote({ audioDeletedOn: on }, false, 'en-AU')).toBeNull();
     expect(audioDeletionNote({}, true, 'en-AU')).toBeNull();
+  });
+});
+
+describe('shownHits', () => {
+  const hits = [
+    { recordingId: 'r', source: 'transcript' as const, snippet: 'a' },
+    { recordingId: 'r', source: 'chat' as const, snippet: 'b' },
+    { recordingId: 'r', source: 'summary' as const, kind: 'session', snippet: 'c' },
+  ];
+  it('keeps only the summaries unless the transcript is shown', () => {
+    expect(shownHits(hits, false).map((h) => h.source)).toEqual(['summary']);
+    expect(shownHits(hits, true)).toHaveLength(3);
   });
 });
 

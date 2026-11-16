@@ -1,4 +1,4 @@
-import { clock } from './format.js';
+import { clock, summaryTitle } from './format.js';
 
 export interface SnippetPart {
   text: string;
@@ -34,9 +34,9 @@ export interface HitSource {
   atMs?: number | undefined;
 }
 
-/** "Ann at 1:05", "Bo typed at 0:05", "Summary: session". */
+/** "Ann at 1:05", "Bo typed at 0:05", "The tale". */
 export function hitLabel(hit: HitSource): string {
-  if (hit.source === 'summary') return `Summary: ${hit.kind ?? 'session'}`;
+  if (hit.source === 'summary') return summaryTitle(hit.kind ?? 'session');
   const at = hit.atMs === undefined ? '' : ` at ${clock(hit.atMs)}`;
   if (hit.source === 'chat') return `${hit.speakerName ?? 'Someone'} typed${at}`;
   return hit.speakerName ? `${hit.speakerName}${at}` : 'Spoken';

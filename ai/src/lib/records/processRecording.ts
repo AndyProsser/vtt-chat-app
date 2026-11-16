@@ -13,6 +13,7 @@ import { formatTranscript } from '../format.js';
 import type { JobHandler } from '../jobs/worker.js';
 import { mergeTranscripts } from '../merge.js';
 import { buildJobProviders } from '../providers/fromSettings.js';
+import { formatNotes } from '../prompts.js';
 import { takeNotes, writeFromNotes, type SummaryModels } from '../summarise.js';
 import { planSummaries } from '../summaryPlan.js';
 import type { RecordsStore } from './recordsStore.js';
@@ -98,7 +99,8 @@ export function createProcessRecordingHandler(deps: ProcessRecordingDeps): JobHa
       // The scribe's notes are taken once per stretch of recording and shared by every summary of it. With
       // chapters, each chapter is one stretch and the whole session is their notes in order; without, the
       // session is one stretch. Taken only when a summary still needs them, so a finished job re-run costs nothing.
-      // They are not stored: a job that died mid-way takes them again (the transcripts, the slow part, are kept).
+      // The notes of the whole session are also stored, for the Game Master to read (below). A job that died
+      // mid-way still takes them again: the stored copy is for reading, the transcripts (the slow part) are kept.
       const models: SummaryModels = { scribe: providers.generate.call, bard: providers.story.call };
       const chapters = plan.filter((p) => p.kind === 'chapter');
       const byChapter =
@@ -129,6 +131,34 @@ export function createProcessRecordingHandler(deps: ProcessRecordingDeps): JobHa
           parts.push(...(await notesOf(c.subject, c.utterances, c.context)));
         return parts;
       };
+
+      // The scribe's notes, kept for the Game Master (decided 2026-11-17): players get the tale, the Game Master
+      // also gets the plain record it was told from. Stored first, so the note-taking calls are counted here.
+      const session = plan.find((p) => p.kind === 'session');
+      if (
+        session &&
+        utterances.length > 0 &&
+        !(await deps.records.getSummary(recording.id, 'notes', ''))
+      ) {
+        const parts = byChapter
+          ? await Promise.all(
+              chapters.map(async (c) => ({
+                title: `Part ${c.subject}${c.context.chapter?.title ? `: ${c.context.chapter.title}` : ''}`,
+                notes: await notesOf(c.subject, c.utterances, c.context),
+              })),
+            )
+          : [{ notes: await sessionNotes(session.context) }];
+        await deps.records.putSummary({
+          recordingId: recording.id,
+          kind: 'notes',
+          subject: '',
+          visibility: 'dm',
+          text: formatNotes(parts),
+          modelCalls: uncounted,
+          createdAt: now(),
+        });
+        uncounted = 0;
+      }
 
       for (const { kind, subject, visibility, utterances: covered, context } of plan) {
         if (await deps.records.getSummary(recording.id, kind, subject)) continue;

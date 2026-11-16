@@ -10,7 +10,7 @@ import type {
   SearchHit,
   Segment,
   StoredSummary,
-  SummaryKind,
+  StoredSummaryKind,
   TrackTranscript,
 } from '../../types/index.js';
 import type { RecordsStore } from './recordsStore.js';
@@ -279,7 +279,7 @@ export class PostgresRecordsStore implements RecordsStore {
     );
     return rows.map((r) => ({
       recordingId,
-      kind: r.kind as SummaryKind,
+      kind: r.kind as StoredSummaryKind,
       subject: r.subject as string,
       visibility: r.visibility as StoredSummary['visibility'],
       text: r.text as string,
@@ -296,11 +296,15 @@ export class PostgresRecordsStore implements RecordsStore {
   async search(
     campaignId: string,
     query: string,
-    options: { includeDmOnly: boolean; limit: number },
+    options: { includeDmOnly: boolean; includeTranscript: boolean; limit: number },
   ): Promise<SearchHit[]> {
     const opts = "'StartSel=<mark>,StopSel=</mark>,MaxWords=30,MinWords=10,MaxFragments=1'";
-    const transcript = await this.pool.query<Row>(
-      `SELECT r.id AS recording_id, t.speaker_name, t.start_offset_ms + s.start_ms AS at_ms,
+    const none = { rows: [] as Row[] };
+    // What was said and typed is the Game Master's to search, not the players' (they have the tale).
+    const transcript = !options.includeTranscript
+      ? none
+      : await this.pool.query<Row>(
+          `SELECT r.id AS recording_id, t.speaker_name, t.start_offset_ms + s.start_ms AS at_ms,
               ts_headline('english', s.text, q, ${opts}) AS snippet, ts_rank(to_tsvector('english', s.text), q) AS rank
          FROM transcript_segments s
          JOIN recording_tracks t ON t.id = s.track_id
@@ -308,10 +312,12 @@ export class PostgresRecordsStore implements RecordsStore {
               plainto_tsquery('english', $2) q
         WHERE r.campaign_id = $1 AND NOT t.private AND to_tsvector('english', s.text) @@ q
         ORDER BY rank DESC, r.started_at DESC LIMIT $3`,
-      [campaignId, query, options.limit],
-    );
-    const chat = await this.pool.query<Row>(
-      `SELECT r.id AS recording_id, e.detail->>'senderName' AS speaker_name, e.at - r.started_at AS at_ms,
+          [campaignId, query, options.limit],
+        );
+    const chat = !options.includeTranscript
+      ? none
+      : await this.pool.query<Row>(
+          `SELECT r.id AS recording_id, e.detail->>'senderName' AS speaker_name, e.at - r.started_at AS at_ms,
               ts_headline('english', e.detail->>'text', q, ${opts}) AS snippet,
               ts_rank(to_tsvector('english', e.detail->>'text'), q) AS rank
          FROM recording_events e
@@ -322,8 +328,8 @@ export class PostgresRecordsStore implements RecordsStore {
           AND COALESCE(e.detail->>'kind', '') <> 'ooc'
           AND to_tsvector('english', COALESCE(e.detail->>'text', '')) @@ q
         ORDER BY rank DESC, r.started_at DESC LIMIT $3`,
-      [campaignId, query, options.limit],
-    );
+          [campaignId, query, options.limit],
+        );
     const summaries = await this.pool.query<Row>(
       `SELECT r.id AS recording_id, m.kind,
               ts_headline('english', m.text, q, ${opts}) AS snippet, ts_rank(to_tsvector('english', m.text), q) AS rank
@@ -355,7 +361,7 @@ export class PostgresRecordsStore implements RecordsStore {
       ...summaries.rows.map((r) => ({
         recordingId: r.recording_id as string,
         source: 'summary' as const,
-        kind: r.kind as SummaryKind,
+        kind: r.kind as StoredSummaryKind,
         snippet: r.snippet as string,
         rank: Number(r.rank),
       })),
@@ -379,7 +385,7 @@ export class PostgresRecordsStore implements RecordsStore {
     return r
       ? {
           recordingId,
-          kind: r.kind as SummaryKind,
+          kind: r.kind as StoredSummaryKind,
           subject: r.subject as string,
           visibility: r.visibility as StoredSummary['visibility'],
           text: r.text as string,

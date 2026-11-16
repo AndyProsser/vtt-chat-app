@@ -93,22 +93,6 @@ export interface SummaryItem {
   title?: string;
 }
 
-export interface Utterance {
-  speaker: { id: string; name: string };
-  startMs: number;
-  endMs: number;
-  text: string;
-  /** Typed into the table chat during the recording, not spoken. */
-  typed?: boolean;
-}
-
-/** A scene the DM started during the recording, shown as a divider among the transcript lines. */
-export interface SceneMarker {
-  atMs: number;
-  kind: 'scene';
-  text: string;
-}
-
 export type LiveState = 'connecting' | 'live' | 'offline';
 
 /** One match from the history search. The snippet is escaped text with the matches in <mark> tags. */

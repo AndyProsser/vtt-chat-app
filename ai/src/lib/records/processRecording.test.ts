@@ -106,8 +106,13 @@ describe('process-recording handler', () => {
         'chapter:2:members',
         'character:BOB:members',
         'dm-only::dm',
+        'notes::dm',
         'session::members',
       ].sort(),
+    );
+    // The Game Master's copy of the notes: a heading per part, a bullet per event.
+    expect((await records.getSummary(REC, 'notes', ''))?.text).toBe(
+      '### Part 1\n\n- summary #1\n\n### Part 2\n\n- summary #2',
     );
     // The scribe reads each part once (two readings for five summaries); everything else is written from its notes.
     const readings = prompts.filter((p) => p.startsWith('You are the scribe'));

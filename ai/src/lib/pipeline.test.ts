@@ -5,7 +5,13 @@ import { chunkLines } from './chunk.js';
 import { formatTimestamp, formatUtterance } from './format.js';
 import { mergeTranscripts } from './merge.js';
 import { createOllamaGenerate } from './ollama.js';
-import { buildBriefPrompt, buildNotesPrompt, buildStoryPrompt, taleWords } from './prompts.js';
+import {
+  buildBriefPrompt,
+  buildNotesPrompt,
+  buildStoryPrompt,
+  formatNotes,
+  taleWords,
+} from './prompts.js';
 import {
   groupByBudget,
   stripThinking,
@@ -213,6 +219,24 @@ describe('prompts', () => {
     expect(taleWords(200, notes(2000))).toBe(200);
     expect(taleWords(350, notes(3))).toBe(30);
     expect(buildStoryPrompt('session', notes(2000), {})).toMatch(/at most 350 words/);
+  });
+
+  it('tells the bard that not everyone belongs in the tale', () => {
+    expect(buildStoryPrompt('session', ['Aria opened the door.'], {})).toMatch(
+      /may be left out or pass in a clause/,
+    );
+  });
+
+  it('shows the scribe’s notes as one bullet per event, with a heading per part', () => {
+    expect(
+      formatNotes([{ notes: ['Aria opened the door.\n\n- Bram fell in.', '2. The eel fled.'] }]),
+    ).toBe('- Aria opened the door.\n- Bram fell in.\n- The eel fled.');
+    expect(
+      formatNotes([
+        { title: 'Part 1: Crypt', notes: ['* A.'] },
+        { title: 'Part 2', notes: ['B.'] },
+      ]),
+    ).toBe('### Part 1: Crypt\n\n- A.\n\n### Part 2\n\n- B.');
   });
 
   it('keeps the Game Master brief plain', () => {

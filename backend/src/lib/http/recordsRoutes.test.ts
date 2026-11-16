@@ -231,12 +231,36 @@ describe('reading history', () => {
     expect(asDm.events.map((e: { event: string }) => e.event)).toEqual(['started', 'stopped']);
   });
 
+  it('keeps the transcript and the scribe’s notes from a player', async () => {
+    const id = await seed();
+    await records.putSummary({
+      recordingId: id,
+      kind: 'notes',
+      subject: '',
+      visibility: 'dm',
+      text: '- Aria opened the iron door.',
+      modelCalls: 1,
+      createdAt: 1, // written first, shown last
+    });
+    const url = `/api/campaigns/${campaign}/recordings/${id}`;
+    expect((await call('GET', `${url}/transcript`, player.token)).status).toBe(403);
+    const asPlayer = await call('GET', url, player.token);
+    expect(asPlayer.body.summaries.map((x: { kind: string }) => x.kind)).toEqual(['session']);
+    expect(JSON.stringify(asPlayer.body)).not.toContain('iron door');
+    const asDm = await call('GET', url, dm.token);
+    expect(asDm.body.summaries.map((x: { kind: string }) => x.kind)).toEqual([
+      'session',
+      'dm-only',
+      'notes',
+    ]);
+  });
+
   it('serves the merged transcript with speakers, and never a private track', async () => {
     const id = await seed();
     const { body } = await call(
       'GET',
       `/api/campaigns/${campaign}/recordings/${id}/transcript`,
-      player.token,
+      dm.token,
     );
     expect(
       body.utterances.map((u: { speaker: { name: string }; text: string }) => [
@@ -261,7 +285,7 @@ describe('reading history', () => {
     const { body } = await call(
       'GET',
       `/api/campaigns/${campaign}/recordings/${id}/transcript`,
-      player.token,
+      dm.token,
     );
     expect(
       body.utterances.map((u: { speaker: { name: string }; text: string; typed?: boolean }) => [
@@ -331,7 +355,7 @@ describe('scenes', () => {
     const { body } = await call(
       'GET',
       `/api/campaigns/${campaign}/recordings/${id}/transcript`,
-      player.token,
+      dm.token,
     );
     expect(body.markers).toEqual([{ atMs: 120_000, kind: 'scene', text: 'Drowned Crypt' }]);
     expect(JSON.stringify(body.utterances)).not.toContain('Drowned');
@@ -376,9 +400,9 @@ describe('search', () => {
   const search = (token: string, q: string, c = campaign) =>
     call('GET', `/api/campaigns/${c}/recordings/search?q=${encodeURIComponent(q)}`, token);
 
-  it('finds a spoken line with who said it and when', async () => {
+  it('finds a spoken line with who said it and when, for the DM', async () => {
     const id = await seed();
-    const { status, body } = await search(player.token, 'dragon');
+    const { status, body } = await search(dm.token, 'dragon');
     expect(status).toBe(200);
     const hit = body.hits.find(
       (h: { source: string; speakerName?: string }) => h.source === 'transcript',
@@ -408,7 +432,8 @@ describe('search', () => {
       event: 'chat',
       detail: { senderId: 'a', senderName: 'Aria', text: 'brimstone pizza ooc', kind: 'ooc' },
     });
-    const { body } = await search(player.token, 'brimstone');
+    expect((await search(player.token, 'brimstone')).body.hits).toEqual([]);
+    const { body } = await search(dm.token, 'brimstone');
     expect(body.hits).toHaveLength(1);
     expect(body.hits[0]).toMatchObject({
       recordingId: id,
@@ -417,6 +442,12 @@ describe('search', () => {
       atMs: 4_000,
     });
     expect(JSON.stringify(body)).not.toContain('Carol');
+  });
+
+  it('gives a player the summaries only, never what was said', async () => {
+    await seed();
+    const { body } = await search(player.token, 'dragon');
+    expect(body.hits.map((h: { source: string }) => h.source)).toEqual(['summary']);
   });
 
   it('finds summaries too', async () => {
@@ -453,7 +484,7 @@ describe('search', () => {
 
   it('stays inside the campaign', async () => {
     await seed(otherCampaign);
-    expect((await search(player.token, 'dragon')).body.hits).toEqual([]);
+    expect((await search(dm.token, 'dragon')).body.hits).toEqual([]);
   });
 
   it('rejects an empty or one-letter query, and treats query syntax as plain text', async () => {
