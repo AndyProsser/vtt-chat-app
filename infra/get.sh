@@ -288,6 +288,13 @@ SRC
   docker compose version >/dev/null 2>&1 || die "Docker installed but \"docker compose\" does not work"
 fi
 
+# The bundle's health checks poll quickly only while a container starts (start_interval), which keeps an idle server's
+# CPU near zero and needs Docker Engine 25 (January 2024) or newer. Say so here, before anything is replaced.
+engine=$(docker version --format '{{.Server.Version}}' 2>/dev/null || true)
+if [[ ${engine%%.*} =~ ^[0-9]+$ ]] && ((${engine%%.*} < 25)); then
+  die "Docker Engine $engine is too old: VTT Chat needs 25 or newer. Update Docker (sudo apt-get update && sudo apt-get install --only-upgrade docker-ce docker.io) and run this again"
+fi
+
 # The person running the installer can then use docker (and vtt-admin) without sudo, after their next login.
 if [[ -n ${SUDO_USER:-} && $SUDO_USER != root ]] && getent group docker >/dev/null 2>&1; then
   if ! id -nG "$SUDO_USER" 2>/dev/null | tr ' ' '\n' | grep -qx docker; then

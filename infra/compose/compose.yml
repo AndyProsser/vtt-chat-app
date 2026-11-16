@@ -3,6 +3,18 @@
 # (to build from this checkout instead of pulling the published images:  docker compose up -d --build)
 # Design and rationale: docs/architecture/DEPLOYMENT-AND-TRANSPORT.md
 name: vtt
+
+# Health checks poll every 2 s while a container starts (so `up --wait` and depends_on stay quick) and once a minute
+# after that. Every check is a process launched inside the container by Docker; at the old 5 to 15 s intervals those
+# launches were nearly all of an idle server's CPU (measured 2026-11-16: about half a core on a 2010 Xeon, none of it
+# our code; docs/architecture/DEPLOYMENT-AND-TRANSPORT.md). `start_interval` needs Docker Engine 25 or newer.
+x-healthcheck: &healthcheck
+  interval: 60s
+  timeout: 5s
+  retries: 3
+  start_period: 60s
+  start_interval: 2s
+
 services:
   postgres:
     image: postgres:17-alpine
@@ -13,9 +25,8 @@ services:
       POSTGRES_DB: vtt
     volumes: [postgres-data:/var/lib/postgresql/data]
     healthcheck:
+      <<: *healthcheck
       test: ['CMD-SHELL', 'pg_isready -U vtt -d vtt']
-      interval: 5s
-      retries: 10
 
   valkey:
     image: valkey/valkey:8-alpine
@@ -24,9 +35,8 @@ services:
     ports: ['127.0.0.1:${VALKEY_HOST_PORT:-6379}:6379']
     volumes: [valkey-data:/data]
     healthcheck:
+      <<: *healthcheck
       test: ['CMD', 'valkey-cli', 'ping']
-      interval: 5s
-      retries: 10
 
   # One-shot: the backend image runs as uid 1000 and a fresh named volume is root-owned.
   media-init:
@@ -143,9 +153,8 @@ services:
     volumes:
       - recordings:/out
     healthcheck:
+      <<: *healthcheck
       test: ['CMD', 'curl', '-fsS', '-o', '/dev/null', 'http://127.0.0.1:18180/']
-      interval: 15s
-      retries: 5
     depends_on:
       recordings-init: { condition: service_completed_successfully }
       livekit: { condition: service_started }
@@ -186,9 +195,8 @@ services:
       - en
     volumes: [whisper-models:/models:ro]
     healthcheck:
+      <<: *healthcheck
       test: ['CMD', 'curl', '-fsS', '-o', '/dev/null', 'http://127.0.0.1:8080/health']
-      interval: 15s
-      retries: 10
     depends_on:
       models-init: { condition: service_completed_successfully }
 
@@ -202,9 +210,14 @@ services:
       # A job's summaries run back to back, so the model stays loaded for the whole job.
       OLLAMA_KEEP_ALIVE: ${OLLAMA_KEEP_ALIVE:-2m}
     healthcheck:
-      test: ['CMD', 'ollama', 'list']
-      interval: 10s
-      retries: 10
+      <<: *healthcheck
+      # A plain HTTP GET from bash. `ollama list` works too, but starting that large binary for every check cost more
+      # CPU than anything else in an idle stack.
+      test:
+        - CMD
+        - bash
+        - -c
+        - exec 3<>/dev/tcp/127.0.0.1/11434 && printf 'GET / HTTP/1.0\r\n\r\n' >&3 && grep -q '200 OK' <&3
 
   # One-shot: pulls the summary model into the volume (first run downloads ~2 GB).
   ollama-pull:
@@ -247,7 +260,8 @@ services:
       # 0 turns off the disk rule (warn the DM, then delete the oldest audio when the disk is below 10% free).
       AUDIO_DISK_PURGE: ${AUDIO_DISK_PURGE:-}
     volumes:
-      # Writable so the worker can purge raw audio (retention or `vtt-admin recording purge`).
+      # Writable so the worker can purge raw audio (retention or `vtt-admin recording purge`): the worker image runs as
+      # uid 1001, the user Egress writes the files as (recordings-init gives the volume to that user).
       - recordings:/out
 
   caddy:

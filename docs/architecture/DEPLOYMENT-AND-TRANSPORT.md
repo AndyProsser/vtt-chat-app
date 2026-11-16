@@ -110,6 +110,40 @@ to stand this up, and LiveKit Egress is only officially distributed as a contain
 
 Both tiers must generate the same configuration; application code never branches on the tier.
 
+### Idle cost: health checks (0.5.1)
+
+Andy saw the test server (4 vCPUs of a 2010 Xeon E5645) sit at about 15% CPU with nobody connected. Measured over 60 s on
+2026-11-16, as a share of **one** core:
+
+| Container | Long-lived processes | Whole container (with health-check commands) |
+| --------- | -------------------- | -------------------------------------------- |
+| backend   | 0.17%                | 6.65%                                        |
+| ollama    | 0.13%                | 5.58%                                        |
+| egress    | 1.17%                | 3.89%                                        |
+| postgres  | 0.20%                | 2.90%                                        |
+| valkey    | 0.67%                | 2.75%                                        |
+| whisper   | 0.02%                | 0.99%                                        |
+| livekit   | 0.52%                | 0.51% (no health check)                      |
+| worker    | 0.10%                | 0.11% (no health check)                      |
+
+Our own code was idle. The cost was the health checks: **43 commands a minute** launched inside containers by Docker
+(every 5 to 15 s per service), two of them expensive (a second Node process to `fetch` the backend's health; the whole
+`ollama` binary to run `ollama list`). On top of the 20% of a core spent inside the containers, `dockerd` and `containerd`
+spent about as much again setting each command up. Together: roughly half a core, the 13 to 15% of a 4-core machine that was seen.
+
+What changed:
+
+- **Fast only while starting.** Every health check uses `start_interval: 2s` inside a 60 s `start_period`, then
+  `interval: 60s`. `up --wait` and `depends_on: service_healthy` are as quick as before; at rest it is 6 commands a minute,
+  not 43. Needs Docker Engine 25 or newer; `get.sh` checks.
+- **Cheap commands.** The backend check is busybox `wget` (was `node -e fetch`); Ollama's is a plain HTTP GET from bash
+  (was `ollama list`).
+- Nothing reads the health state at rest except `vtt-admin ps`; the status page and `vtt-admin status` probe the services
+  themselves. A minute's staleness in `ps` is the whole price.
+
+Measured after, on the dev PC (a much faster CPU, so the absolute numbers are small): commands 43 → 6 a minute, the
+containers' CPU 5.7% → 2.4% of a core. **Still to measure on the 2010 Xeon** with a build that has the change.
+
 ### AI backends: local or remote
 
 Decided 2026-11-07. Whisper and the LLM are provider interfaces, each independently **local**,

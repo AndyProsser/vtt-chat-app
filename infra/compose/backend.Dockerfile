@@ -64,7 +64,9 @@ COPY --from=statuspage /app/status/dist status/dist
 FROM app AS worker
 # ffmpeg/ffprobe cut each track into speech windows; Whisper and the LLM are separate services.
 RUN apk add --no-cache ffmpeg
-USER node
+# Runs as uid 1001, gid 0: the user LiveKit Egress writes the audio files as, so the worker can delete raw audio (the
+# purge rules). As uid 1000 every deletion failed with "permission denied" on a Compose install.
+USER 1001:0
 CMD ["node", "ai/dist/cli/worker.js"]
 
 FROM app AS backend
@@ -74,6 +76,8 @@ ENV VTT_VERSION=$VTT_VERSION
 USER node
 EXPOSE 3000
 ENV PORT=3000 WEB_DIR=/app/web/dist STATUS_DIR=/app/status/dist
-HEALTHCHECK --interval=10s --timeout=3s --retries=5 \
-  CMD node -e "fetch('http://127.0.0.1:'+process.env.PORT+'/api/health').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"
+# Every 2 s while starting, then once a minute, with busybox wget: starting a second Node for each check, every 10 s,
+# was the largest single cost on an idle server (compose.yml has the measurements). --start-interval needs Docker 25+.
+HEALTHCHECK --interval=60s --timeout=5s --retries=3 --start-period=60s --start-interval=2s \
+  CMD wget -q -O /dev/null "http://127.0.0.1:$PORT/api/health"
 CMD ["node", "backend/dist/index.js"]
