@@ -28,9 +28,11 @@ def search(query, lo, hi, n):
 
 
 def main():
-    slots = json.loads((HERE / 'slots.json').read_text())
-    only = set(sys.argv[1:])
-    out = {}
+    args = sys.argv[1:]
+    slots_file = args.pop(0)[len('--slots='):] if args and args[0].startswith('--slots=') else 'slots.json'
+    slots = json.loads((HERE / slots_file).read_text())
+    only = set(args)
+    out = json.loads((HERE / 'candidates.json').read_text()) if slots_file != 'slots.json' and (HERE / 'candidates.json').exists() else {}
     for slot in slots:
         if only and slot['key'] not in only:
             continue

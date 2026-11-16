@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { StatusSnapshot } from '../types/index.js';
-import { ago, headline, pipelineLine } from './summary.js';
+import { ago, headline, pipelineLine, versionLine } from './summary.js';
 
 const snap = (services: [string, boolean][]): StatusSnapshot => ({
   at: 0,
@@ -61,5 +61,12 @@ describe('ago', () => {
     expect(ago(0, 30_000)).toBe('just now');
     expect(ago(0, 90 * 60_000)).toBe('1 hour ago');
     expect(ago(0, 3 * 86_400_000)).toBe('3 days ago');
+  });
+});
+
+describe('versionLine', () => {
+  it('shows the release and its protocol, keeping a dev suffix', () => {
+    expect(versionLine({ version: '0.5.0', protocol: 3 })).toBe('0.5.0 (protocol 3)');
+    expect(versionLine({ version: '0.5.1-dev.1', protocol: 3 })).toBe('0.5.1-dev.1 (protocol 3)');
   });
 });

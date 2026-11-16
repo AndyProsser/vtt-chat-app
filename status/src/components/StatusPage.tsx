@@ -4,8 +4,9 @@ import { SERVICE_LABELS } from '../consts/index.js';
 import poster from '../assets/poster-fumble.webp';
 import { PictureBanner } from './PictureBanner.js';
 import { SiteHeader } from './SiteHeader.js';
+import { useServerVersion } from '../hooks/useServerVersion.js';
 import { useStatus } from '../hooks/useStatus.js';
-import { ago, headline, pipelineLine } from '../lib/summary.js';
+import { ago, headline, pipelineLine, versionLine } from '../lib/summary.js';
 import type { StatusSnapshot } from '../types/index.js';
 
 export function StatusPage() {
@@ -58,6 +59,7 @@ function Banner({
 
 function Body({ snapshot, stale = false }: { snapshot: StatusSnapshot; stale?: boolean }) {
   const h = headline(snapshot);
+  const version = useServerVersion();
   return (
     <>
       {!stale && <Banner tone={h.tone} text={h.text} />}
@@ -79,6 +81,7 @@ function Body({ snapshot, stale = false }: { snapshot: StatusSnapshot; stale?: b
           <Heading size="3" as="h2">
             Right now
           </Heading>
+          {version && <Row label="Server version" value={versionLine(version)} />}
           <Row label="Players connected" value={String(snapshot.players.online)} />
           <Row
             label="Session recording"

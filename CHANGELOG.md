@@ -10,6 +10,10 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ## [Unreleased]
 
+### Added
+
+- **The status page shows the server's version** (and its protocol), so you can tell at a glance which release a server is running.
+
 ### Changed
 
 - **The starter sounds are on by default**, and the pack is rebuilt from listened-to, CC0 sources (Freesound, Kenney, OpenGameArt; credits in `backend/assets/sounds/SOURCES.md`): 13 quiet scenes (Tavern, Dungeon, Forest, Rain, Battle, Market, Forest night, Storm, Campfire, Harbour, Cave, Castle hall, Mountain) and 19 stingers in five boards (Combat, Creatures, Doors, traps and loot, Magic and mood). `STARTER_SOUNDS=0` turns them off.

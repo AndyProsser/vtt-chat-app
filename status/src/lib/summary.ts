@@ -30,3 +30,8 @@ export function ago(at: number, now: number): string {
   if (hours < 48) return `${hours} hour${hours === 1 ? '' : 's'} ago`;
   return `${Math.floor(hours / 24)} days ago`;
 }
+
+/** "0.5.0 (protocol 3)"; a dev build keeps its suffix ("0.5.1-dev.1"). */
+export function versionLine(v: { version: string; protocol: number }): string {
+  return `${v.version} (protocol ${v.protocol})`;
+}
