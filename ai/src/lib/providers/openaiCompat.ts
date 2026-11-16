@@ -36,13 +36,26 @@ async function post(
   const doFetch = options.fetchImpl ?? longFetch;
   let response: Response;
   try {
+    // A form is turned into its bytes here, with Node's own classes, and sent as plain bytes. `longFetch` is the
+    // `undici` package's fetch, which does not recognise Node's built-in FormData and sent the text "[object FormData]"
+    // instead of the audio: every HTTP transcription failed with "no 'file' field" (0.4.3 to 0.5.0; found by the
+    // Compose end-to-end test on 2026-11-16).
+    let payload: string | Uint8Array = '';
+    let type = contentType;
+    if (typeof body === 'string') {
+      payload = body;
+    } else {
+      const encoded = new Response(body);
+      type = encoded.headers.get('content-type') ?? undefined;
+      payload = new Uint8Array(await encoded.arrayBuffer());
+    }
     response = await doFetch(`${trimSlash(options.baseUrl)}${route}`, {
       method: 'POST',
       headers: {
-        ...(contentType ? { 'Content-Type': contentType } : {}),
+        ...(type ? { 'Content-Type': type } : {}),
         ...(options.apiKey ? { Authorization: `Bearer ${options.apiKey}` } : {}),
       },
-      body,
+      body: payload,
       signal: AbortSignal.timeout(options.timeoutMs ?? DEFAULT_PROVIDER_TIMEOUT_MS),
     });
   } catch (error) {
