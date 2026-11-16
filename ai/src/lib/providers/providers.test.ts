@@ -71,12 +71,51 @@ describe('createOpenAiTranscribe', () => {
     const [url, init] = fetchImpl.mock.calls[0] as unknown as [string, RequestInit];
     expect(url).toBe('http://gpu-box:8080/v1/audio/transcriptions');
     expect((init.headers as Record<string, string>).Authorization).toBe('Bearer sk-test');
-    const form = init.body as FormData;
+    // The body goes out as bytes with its own multipart header, never as a FormData object (see `post`): parse it back.
+    expect(init.body).toBeInstanceOf(Uint8Array);
+    const form = await new Response(init.body, {
+      headers: { 'Content-Type': (init.headers as Record<string, string>)['Content-Type'] ?? '' },
+    }).formData();
     expect(form.get('model')).toBe('large-v3-turbo');
     expect(form.get('response_format')).toBe('verbose_json');
     expect(form.get('temperature')).toBe('0');
     expect(form.get('language')).toBe('en');
     expect(form.get('file')).toBeInstanceOf(Blob);
+  });
+
+  it('reaches a real server through the default long-timeout fetch with the file intact', async () => {
+    // No injected fetch: this is the path every install uses, and the one that sent "[object FormData]".
+    const { createServer } = await import('node:http');
+    let contentType = '';
+    let received = Buffer.alloc(0);
+    const server = createServer((request, response) => {
+      contentType = request.headers['content-type'] ?? '';
+      const chunks: Buffer[] = [];
+      request.on('data', (chunk: Buffer) => chunks.push(chunk));
+      request.on('end', () => {
+        received = Buffer.concat(chunks);
+        response.setHeader('Content-Type', 'application/json');
+        response.end(JSON.stringify({ segments: [{ start: 0, end: 1, text: 'hi' }] }));
+      });
+    });
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+    try {
+      const { port } = server.address() as { port: number };
+      const segments = await createOpenAiTranscribe({
+        baseUrl: `http://127.0.0.1:${port}`,
+        model: 'whisper-1',
+      })(await wavFile());
+      expect(segments).toHaveLength(1);
+      expect(contentType).toMatch(/^multipart\/form-data; boundary=/);
+      const form = await new Response(received, {
+        headers: { 'Content-Type': contentType },
+      }).formData();
+      const file = form.get('file') as File;
+      expect(file.size).toBeGreaterThan(0);
+      expect(file.name).toMatch(/\.wav$/);
+    } finally {
+      server.close();
+    }
   });
 
   it('sends no Authorization header when there is no key', async () => {

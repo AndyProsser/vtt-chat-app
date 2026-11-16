@@ -33,8 +33,15 @@ Whisper ready`. New volumes came up owned by uid 1000 (media) and 1001 (recordin
 - **Backup and restore.** `backup.sh --audio` on the dev stack (182 media and 112 recording entries), restored into new volumes
   with the right owners. The full `restore.sh` (database included) was not rerun.
 
-**UNVERIFIED:** the real VM (it needs a 0.6 build: the CPU figure there is a projection until then); a whole records job
-(record → transcribe → summarise) on the new images; a records job that arrives _while_ a model is downloading (unit-tested
+- **A whole records job, and a shipped bug it found.** `infra/records-smoke/compose-e2e.ts` on the upgraded dev stack first
+  scored 28 of 46: every transcription failed with "Invalid request". Not from this branch: since 0.4.3 the worker's
+  long-timeout fetch (`longFetch`, the `undici` package) was handed Node's built-in `FormData`, did not recognise it, and sent
+  the text `[object FormData]` in place of the audio. The published `0.5.1-dev.1` worker on the VM does the same (checked
+  with a loopback request; no recording had been processed there since). Fixed by sending the form as bytes
+  (`ai/src/lib/providers/openaiCompat.ts`), with a test that goes through the real default fetch to a local server. Rerun:
+  **46 of 46**, including the worker killed mid-job, on the worker running as uid 1001.
+
+**UNVERIFIED:** the real VM (it needs a 0.6 build: the CPU figure there is a projection until then); a records job that arrives _while_ a model is downloading (unit-tested
 only); the compatibility Whisper image (`compose.compat.yml`) with the new entrypoint; a real multi-GB pull over a slow line
 (the stall rule is unit-tested); Docker Engine older than 25 (the installer refuses; not tried).
 

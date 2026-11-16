@@ -27,6 +27,7 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ### Fixed
 
+- **Transcription works again on a Docker install.** Since 0.4.3, recordings sent to Whisper over the network (every Docker install, and any remote Whisper) failed with "Invalid request" and ended as "failed": the audio file was left out of the request. Recordings made in that time still have their audio (unless a purge rule removed it); run `vtt-admin recording reprocess <id>` for each after updating.
 - **Deleting raw audio works on a Docker install.** The worker could not delete recorded audio (the age rule, the low-disk rule, `vtt-admin recording purge` and the DM's "delete the audio" all failed with "permission denied"), because the files belong to the recorder's user. Transcripts and summaries were never affected.
 
 ## [0.5.0] - 2026-11-16

@@ -378,7 +378,8 @@ the one-shot containers are built; the platform checks, the long soak and signin
   removes the old one-shots and comes up clean, failed downloads show as `FAIL local AI`, backup and restore still work. It
   also found and fixed a real bug: on a Compose install the worker could not delete raw audio (wrong user). Design, rules and
   the before/after: [DEPLOYMENT-AND-TRANSPORT.md](docs/architecture/DEPLOYMENT-AND-TRANSPORT.md#start-up-and-idle-cost-060).
-  **Not yet run:** a full records job on the new images, the compatibility Whisper image, and the real VM.
+  The Compose end-to-end records test passes on the new images (46 of 46), after it found and we fixed a shipped bug: since
+  0.4.3 no audio reached Whisper over HTTP (see the changelog). **Not yet run:** the compatibility Whisper image, and the real VM.
 - **Idle CPU on the server** (added 2026-11-16, Andy saw about 15% on the test VM) — **cause found and fixed 2026-11-16** on
   the same branch. It was not our code (backend 0.17% of a core, worker 0.10%): it was Docker running 43 health-check
   commands a minute, two of them expensive, plus the Docker daemon's own cost of launching them; about half a core of a 2010
