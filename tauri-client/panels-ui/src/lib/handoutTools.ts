@@ -72,14 +72,8 @@ export function fileFromBase64(base64: string, type: string, name: string): File
   return new File([bytes], name, { type });
 }
 
-/** A note's words without its Markdown marks, on one line: what a chat card shows before it is opened. */
-export function plainPreview(markdown: string): string {
-  return markdown
-    .replace(/^\s{0,3}(#{1,6}|>|[-*+])\s+/gm, '')
-    .replace(/(\*\*|__|\*|_)(?=\S)(.+?)(?<=\S)\1/g, '$2')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
+// The plain-words preview of a note lives in `shared/` (the phone app uses it too).
+export { plainPreview } from '@vtt-chat-app/shared';
 
 /** Pictures in one handout; the server's limit, repeated so the form can say so before uploading. */
 export const MAX_PICTURES = 12;

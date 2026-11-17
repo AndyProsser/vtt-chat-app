@@ -1,4 +1,5 @@
 import { Badge, Button, Callout, Card, Flex, Heading, Text } from '@radix-ui/themes';
+import { plainPreview } from '@vtt-chat-app/shared';
 import { useEffect, useState } from 'react';
 
 import { useConfirmClick } from '../../hooks/useConfirmClick.js';
@@ -127,7 +128,7 @@ export function HandoutsTab({ campaignId }: { campaignId: string }) {
                 </Text>
                 {h.kind === 'text' && h.body && (
                   <Text size="2" color="gray" className="phone-clamp">
-                    {h.body}
+                    {plainPreview(h.body)}
                   </Text>
                 )}
               </Flex>
