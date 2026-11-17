@@ -90,6 +90,13 @@ export function addOlder(state: TableState, lines: ChatLine[], done: boolean): T
   return { ...state, chat: mergeChat(state.chat, lines), historyDone: done };
 }
 
+/** Cards rebuilt from the server (`historyCards`): adds the missing ones; a card already here is live, so it stays. */
+export function restoreCards(state: TableState, cards: TableCard[]): TableState {
+  const have = new Set(state.cards.map((c) => c.id));
+  const added = cards.filter((c) => !have.has(c.id));
+  return added.length === 0 ? state : { ...state, cards: [...state.cards, ...added] };
+}
+
 function toMembers(raw: unknown): Member[] {
   return (Array.isArray(raw) ? raw : []).map((m) => {
     const o = asObj(m);

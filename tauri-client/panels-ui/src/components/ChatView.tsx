@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 
 import { useOlderChat } from '../hooks/useOlderChat.js';
+import { useRestoredCards } from '../hooks/useRestoredCards.js';
 import { timeline } from '../lib/timeline.js';
 import { useTableStore } from '../lib/tableStore.js';
 import { ChatCard } from './ChatCard.js';
@@ -20,6 +21,7 @@ export function ChatView({ selfId }: { selfId: string | null }) {
   const top = useRef<HTMLDivElement>(null);
   const end = useRef<HTMLDivElement>(null);
   const older = useOlderChat(scroller, top);
+  useRestoredCards();
   // Follow the conversation when something new arrives at the bottom, not when older lines load above.
   const last = entries.at(-1);
   const lastKey = last

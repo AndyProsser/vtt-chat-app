@@ -1,12 +1,13 @@
 import { create } from 'zustand';
 
-import type { ChatLine, Hydration, SyncEvent, TableState } from '../types/index.js';
-import { addOlder, applyEvent, emptyTable } from './tableModel.js';
+import type { ChatLine, Hydration, SyncEvent, TableCard, TableState } from '../types/index.js';
+import { addOlder, applyEvent, emptyTable, restoreCards } from './tableModel.js';
 
 interface TableStore extends TableState {
   apply: (event: SyncEvent) => void;
   hydrate: (hydration: Hydration) => void;
   addOlder: (lines: ChatLine[], done: boolean) => void;
+  restoreCards: (cards: TableCard[]) => void;
 }
 
 /**
@@ -51,5 +52,10 @@ export const useTableStore = create<TableStore>((set) => ({
     set((state) => {
       const next = addOlder(state, lines, done);
       return { chat: next.chat, historyDone: next.historyDone };
+    }),
+  restoreCards: (cards) =>
+    set((state) => {
+      const next = restoreCards(state, cards);
+      return next === state ? state : { cards: next.cards };
     }),
 }));

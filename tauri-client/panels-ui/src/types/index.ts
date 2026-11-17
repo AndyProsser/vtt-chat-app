@@ -250,6 +250,8 @@ export interface LootItem {
   claimedBy: string | null;
   claimedFor: ClaimedFor | null;
   split: LootSplit | null;
+  /** When the DM dropped it (ms); places its chat card when chat is rebuilt from the server. */
+  droppedAt?: number;
 }
 
 export type RsvpStatus = 'yes' | 'late' | 'no';
