@@ -490,6 +490,21 @@ stateDiagram-v2
   note right of Own: confirmed resets on every move
 ```
 
+#### 6. Loot on the recording timeline, for the AI (asked by Andy, 2026-11-17)
+
+While a recording is open, every loot event goes into the recording's timeline (`recording_events`), the way
+typed chat, scene changes and sound cues already do (`capture.ts`): **dropped** (what, how many), **given** by
+the DM to a player, **taken** by a player (for themselves or the party stash), **stored**, **returned**,
+**split** (who got how much) and **removed**. The worker turns them into cues the scribe and the bard can use
+("The DM gave the Black pearl ×3 to Aria Windfoot"; "Bram, Cassiel and Dorn split 240 gp"), so story events
+and the Game Master's summary sheets can say who got what. The DM always keeps the full record of who holds
+what in the inventory window; players' chats may not (part 1's known limit), and Andy accepted that.
+
+- Server and worker only: a migration adds `loot` to the event check, one `onLoot` hook beside `onChat`, and
+  the worker's cue builder learns it. No change between server and app, so it fits a **0.5.x** patch.
+- Open: whether loot cues go to the players' tale as well as the GM summary (the tale's "one tale, not
+  overwhelming" test in Stage 11 may argue for only notable items there).
+
 #### Release fit
 
 Parts 1 to 3 change no wire contract (the server reads chat from a different place; the paged REST call exists; filters and the picker are client-side; letting any player take from the party is a server rule) and can ship in a **0.5.x** patch. Parts 4 and 5 add to the wire (a re-drop event, a confirmed field and its call, a new notification kind), and the Not confirmed filter and the counter need that field, so they are a `shared/` contract change and ride the **0.6.0 / protocol 4** bump Stage 11 already plans. Both apps (desktop and phone web) get the same behaviour. [LOOT.md](docs/architecture/LOOT.md) and [TABLE-FEATURES.md](docs/architecture/TABLE-FEATURES.md) are updated with the build.

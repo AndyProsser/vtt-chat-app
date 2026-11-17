@@ -1,10 +1,11 @@
 import { randomUUID } from 'node:crypto';
+import { readdir } from 'node:fs/promises';
 
 import pg from 'pg';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 
 import type { Campaign, JoinRequest, Membership, SignupRequest } from '../../types/index.js';
-import { migrate } from './migrate.js';
+import { migrate, MIGRATIONS_DIR } from './migrate.js';
 import { createPool } from './postgresStore.js';
 import type { Store } from './store.js';
 import { openTestBackend, TEST_DATABASE_URL } from './testing.js';
@@ -434,41 +435,11 @@ describe.skipIf(TEST_DATABASE_URL === undefined)('migrate', () => {
     await admin.query(`CREATE SCHEMA ${schema}`);
     const pool = createPool(TEST_DATABASE_URL ?? '', { options: `-c search_path=${schema}` });
     try {
-      expect(await migrate(pool)).toEqual([
-        '0001_init.sql',
-        '0002_ai_settings.sql',
-        '0003_records.sql',
-        '0004_recording_events.sql',
-        '0005_records_search.sql',
-        '0006_chat.sql',
-        '0007_handouts.sql',
-        '0008_loot.sql',
-        '0009_soundboard.sql',
-        '0010_schedule.sql',
-        '0011_loot_party.sql',
-        '0012_session_duration.sql',
-        '0013_loot_types.sql',
-        '0014_loot_assigned.sql',
-        '0015_recording_event_detail.sql',
-        '0016_user_avatar.sql',
-        '0017_character_sync.sql',
-        '0018_avatar_files.sql',
-        '0019_handout_files.sql',
-        '0020_recording_chat.sql',
-        '0021_track_purged.sql',
-        '0022_character_sheet.sql',
-        '0023_audio_notice.sql',
-        '0024_link_purpose.sql',
-        '0025_device_requests.sql',
-        '0026_signup_requests.sql',
-        '0027_chat_kind.sql',
-        '0028_join_requests.sql',
-        '0029_chapter_summaries.sql',
-        '0030_audio_purge_on_next_session.sql',
-        '0031_job_locked_by.sql',
-        '0032_recording_cues.sql',
-        '0033_recording_aside.sql',
-      ]);
+      // Every .sql file in migrations/, in order: a file with a bad name (skipped by migrate) fails here.
+      // Read from the folder, so a new migration needs no edit to this test (it went stale at 0033).
+      const files = (await readdir(MIGRATIONS_DIR)).filter((f) => f.endsWith('.sql')).sort();
+      expect(files[0]).toBe('0001_init.sql');
+      expect(await migrate(pool)).toEqual(files);
       expect(await migrate(pool)).toEqual([]);
     } finally {
       await pool.end();
