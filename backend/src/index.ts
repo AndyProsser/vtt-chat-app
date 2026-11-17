@@ -144,6 +144,7 @@ if (isEntryPoint) {
     onTableEvent: (campaignId, type, data, only) =>
       capture?.onTableEvent(campaignId, type, data, only),
     onPublicChat: (campaignId, line) => capture?.onChat(campaignId, line),
+    onLoot: (campaignId, event, item) => capture?.onLoot(campaignId, event, item),
     recordingGraceMs: config.recordingGraceSeconds * 1000,
   });
   hubRef.current = hub;

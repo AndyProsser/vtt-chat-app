@@ -46,7 +46,12 @@ export type RecordingEventName =
   /** The DM took a player aside for a private talk (`detail.phase`: start or end, `detail.player`); the audio is never recorded. */
   | 'aside'
   /** A line typed into the table's public chat (never a whisper): `detail` has senderId, senderName, text. */
-  | 'chat';
+  | 'chat'
+  /**
+   * Loot moved: `detail.action` is dropped, given (`to`), taken or stored (`by`), returned, split (`shares`:
+   * name and amount, `remainder`) or removed, with the item's `name`, `quantity`, `kind`, `itemType`, `rarity`.
+   */
+  | 'loot';
 
 export interface RecordingEvent {
   recordingId: string;

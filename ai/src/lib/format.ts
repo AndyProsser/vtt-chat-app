@@ -14,9 +14,9 @@ export function formatUtterance(utterance: Utterance): string {
   return `[${formatTimestamp(utterance.startMs)}] ${utterance.speaker.name}${how}: ${utterance.text}`;
 }
 
-/** `[H:MM:SS] (cue) text`: the form a cue takes among the transcript lines. */
+/** `[H:MM:SS] (cue) text`, or `(loot)` for loot: the form a cue takes among the transcript lines. */
 export function formatCue(cue: SummaryCue): string {
-  return `[${formatTimestamp(cue.atMs)}] (cue) ${cue.text}`;
+  return `[${formatTimestamp(cue.atMs)}] (${cue.kind === 'loot' ? 'loot' : 'cue'}) ${cue.text}`;
 }
 
 export function formatTranscript(utterances: readonly Utterance[]): string[] {

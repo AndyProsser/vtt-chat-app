@@ -30,6 +30,9 @@ ROADMAP Stage 10 "Loot management and chat history", parts 1 to 3. No wire chang
 - **Not yet seen working:** scrolling up for older chat (the scroll position kept while older lines load),
   the fade-out, and cards coming back after a real server restart. They need the new server and the app
   clicked by hand: check on the test VM with the dev build.
+- **Loot on the recording timeline (dev.2):** `capture.onLoot` → `loot` events (migration 0038, tested on
+  Postgres) → `(loot)` cues; the brief gets the full record, the tale the notable items (unit tests on the cue
+  text, notability and the three prompts). **Not yet run through a real model**: check a recorded session on the VM.
 - **Known limits:** after a restart, a player's chat cannot rebuild the card of an item another player
   now holds; a handout's rebuilt card is placed by when it was made; removed loot is not rebuilt.
 - **Pre-existing, unrelated:** with `TEST_DATABASE_URL` set, `store.contract.test.ts` "migrate applies on

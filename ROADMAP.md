@@ -492,6 +492,8 @@ stateDiagram-v2
 
 #### 6. Loot on the recording timeline, for the AI (asked by Andy, 2026-11-17)
 
+**Built 2026-11-17 for `0.5.3-dev.2`** ([RECORDING-AND-SUMMARIES.md](docs/architecture/RECORDING-AND-SUMMARIES.md#loot-on-the-timeline-built-2026-11-17)). Andy decided: the GM's brief gets every detail, the players' tale only notable items.
+
 While a recording is open, every loot event goes into the recording's timeline (`recording_events`), the way
 typed chat, scene changes and sound cues already do (`capture.ts`): **dropped** (what, how many), **given** by
 the DM to a player, **taken** by a player (for themselves or the party stash), **stored**, **returned**,
@@ -502,8 +504,6 @@ what in the inventory window; players' chats may not (part 1's known limit), and
 
 - Server and worker only: a migration adds `loot` to the event check, one `onLoot` hook beside `onChat`, and
   the worker's cue builder learns it. No change between server and app, so it fits a **0.5.x** patch.
-- Open: whether loot cues go to the players' tale as well as the GM summary (the tale's "one tale, not
-  overwhelming" test in Stage 11 may argue for only notable items there).
 
 #### Release fit
 

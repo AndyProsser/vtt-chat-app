@@ -38,8 +38,10 @@ export interface Utterance {
 /** One non-speech moment on the recording's clock: a cue for the summary, never a fact to build on. */
 export interface SummaryCue {
   atMs: number;
-  kind: 'scene' | 'effect' | 'voice' | 'group' | 'aside';
+  kind: 'scene' | 'effect' | 'voice' | 'group' | 'aside' | 'loot';
   text: string;
+  /** A loot cue worth a line in the players' tale: notable treasure that someone received. */
+  notable?: boolean;
 }
 
 export type SummaryKind = 'session' | 'dm-only' | 'character' | 'chapter';
@@ -58,6 +60,11 @@ export interface SummaryContext {
   cues?: SummaryCue[];
   /** The name the Game Master's lines are shown under, so the model reads them as narration. */
   gameMaster?: string;
+  /**
+   * Loot that moved, from the app's record (never guessed): `all` for the Game Master's brief, `notable` for the
+   * players' tale (decided 2026-11-17). Absent when no loot moved.
+   */
+  loot?: { all: string[]; notable: string[] };
 }
 
 /** Sends a prompt to a language model and returns its text. Local (Ollama) by default. */

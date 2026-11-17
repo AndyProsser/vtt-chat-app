@@ -439,6 +439,82 @@ describe('RecordingCapture', () => {
     expect(typed[0]?.detail).toEqual({ senderId: 'alice', senderName: 'Aria', text: 'during' });
   });
 
+  it('notes loot moving on the table while a recording is open, pauses included, with who got what', async () => {
+    const item = (over: Record<string, unknown> = {}) => ({
+      id: 'i1',
+      campaignId: CAMPAIGN,
+      name: 'Black pearl',
+      description: 'A gem',
+      quantity: 3,
+      kind: 'item' as const,
+      itemType: 'gem',
+      rarity: null,
+      claimedBy: null,
+      claimedFor: null,
+      split: null,
+      ...over,
+    });
+    capture.onLoot(CAMPAIGN, 'dropped', item()); // nothing is recording yet
+    await capture.idle();
+    capture.onRecordingChange(change('STARTED'));
+    await capture.idle();
+    capture.onLoot(CAMPAIGN, 'dropped', item());
+    capture.onLoot(CAMPAIGN, 'claimed', item({ claimedBy: 'alice', claimedFor: 'assigned' }));
+    capture.onLoot(CAMPAIGN, 'claimed', item({ claimedBy: 'bob', claimedFor: 'party' }));
+    capture.onLoot(CAMPAIGN, 'claimed', item({ claimedBy: 'bob', claimedFor: 'self' }));
+    capture.onLoot(CAMPAIGN, 'claimed', item({ claimedBy: null, claimedFor: null }));
+    capture.onRecordingChange(change('PAUSED'));
+    await capture.idle();
+    capture.onLoot(
+      CAMPAIGN,
+      'claimed',
+      item({
+        name: 'gp',
+        kind: 'coin',
+        itemType: 'coin',
+        quantity: 100,
+        claimedBy: 'dm',
+        claimedFor: 'split',
+        split: {
+          shares: [
+            { userId: 'alice', amount: 50 },
+            { userId: 'bob', amount: 50 },
+          ],
+          remainder: 0,
+        },
+      }),
+    );
+    capture.onLoot(CAMPAIGN, 'removed', item());
+    capture.onRecordingChange(change('STOPPED'));
+    await capture.idle();
+    capture.onLoot(CAMPAIGN, 'dropped', item()); // after the stop
+    await capture.idle();
+    const loot = (await records.listRecordingEvents(REC)).filter((e) => e.event === 'loot');
+    expect(loot.map((e) => e.detail?.action)).toEqual([
+      'dropped',
+      'given',
+      'stored',
+      'taken',
+      'returned',
+      'split',
+      'removed',
+    ]);
+    const base = { name: 'Black pearl', quantity: 3, kind: 'item', itemType: 'gem', rarity: null };
+    expect(loot[1]?.detail).toEqual({ action: 'given', ...base, to: 'name-of-alice' });
+    expect(loot[2]?.detail).toEqual({ action: 'stored', ...base, by: 'name-of-bob' });
+    expect(loot[5]?.detail).toMatchObject({
+      action: 'split',
+      name: 'gp',
+      quantity: 100,
+      kind: 'coin',
+      shares: [
+        { name: 'name-of-alice', amount: 50 },
+        { name: 'name-of-bob', amount: 50 },
+      ],
+      remainder: 0,
+    });
+  });
+
   it('never puts an out-of-character line in the timeline, the transcript or search', async () => {
     const line = (text: string, kind?: 'chat' | 'say' | 'do' | 'ooc') => ({
       senderId: 'alice',

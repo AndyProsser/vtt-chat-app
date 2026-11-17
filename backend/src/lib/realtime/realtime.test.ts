@@ -359,6 +359,30 @@ describe('Hub: subscriptions, presence and the snapshot', () => {
     expect(typeof recent[0].at).toBe('number');
   });
 
+  it('tells the recording about every loot change it announces', async () => {
+    const seen: string[] = [];
+    t.hub.close();
+    t.hub = new Hub({
+      store: t.store,
+      accounts: t.accounts,
+      replay: t.replay,
+      onLoot: (campaignId, event, item) => seen.push(`${campaignId}:${event}:${item.name}`),
+    });
+    t.hub.announceLoot('dropped', {
+      id: 'i1',
+      campaignId: t.campaignId,
+      name: 'Black pearl',
+      quantity: 1,
+      claimedBy: null,
+      kind: 'item',
+      itemType: 'gem',
+      rarity: null,
+      claimedFor: null,
+      split: null,
+    });
+    expect(seen).toEqual([`${t.campaignId}:dropped:Black pearl`]);
+  });
+
   it('announces offline only when the last connection closes', async () => {
     const dm = await connect(t, 'd1', 'dm');
     await connect(t, 'p1', 'player');

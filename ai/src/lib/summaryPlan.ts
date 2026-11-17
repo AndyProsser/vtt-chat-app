@@ -7,7 +7,7 @@ import type {
   Utterance,
 } from '../types/index.js';
 import { planChapters } from './chapters.js';
-import { compactCues, eventCues } from './cues.js';
+import { compactCues, eventCues, lootRecord } from './cues.js';
 
 /** One summary a processed recording gets: what it covers, who may read it, and what the model reads. */
 export interface PlannedSummary {
@@ -60,8 +60,11 @@ export function planSummaries(input: PlanInput): PlannedSummary[] {
   };
   // What the table heard and did (scenes, effects, voices, groups) rides along as cues; see cues.ts.
   const cues = eventCues(input.events, input.startedAt);
-  const withCues = (range: SummaryCue[]): SummaryContext =>
-    range.length > 0 ? { ...base, cues: compactCues(range) } : base;
+  const withCues = (range: SummaryCue[]): SummaryContext => {
+    if (range.length === 0) return base;
+    const loot = lootRecord(range);
+    return { ...base, cues: compactCues(range), ...(loot ? { loot } : {}) };
+  };
   const all = withCues(cues);
   const plan: PlannedSummary[] = [
     {

@@ -381,6 +381,72 @@ export class RecordingCapture {
     });
   }
 
+  /**
+   * Loot moving on the table. While a recording is open (capturing or paused, like chat) it goes into the
+   * recording's timeline, so the summaries can say who got what: the Game Master's notes in full, the
+   * players' tale only the notable items (decided 2026-11-17). Always on, like chat: it is the table's record,
+   * not ambience, so `RECORD_CUES` does not gate it. Names only, as the table saw them.
+   */
+  onLoot(
+    campaignId: string,
+    event: 'dropped' | 'claimed' | 'removed',
+    item: {
+      name: string;
+      quantity: number;
+      kind: 'item' | 'coin';
+      itemType: string;
+      rarity: string | null;
+      claimedBy: string | null;
+      claimedFor: 'self' | 'party' | 'split' | 'assigned' | null;
+      split: { shares: { userId: string; amount: number }[]; remainder: number } | null;
+    },
+  ): void {
+    const at = this.now();
+    this.enqueue(campaignId, async () => {
+      const live = this.live.get(campaignId);
+      if (!live) return;
+      const nameOf = (id: string) =>
+        this.deps.speakerName(campaignId, id).then((n) => cleanCueText(n, 60));
+      const base = {
+        name: cleanCueText(item.name, 120),
+        quantity: item.quantity,
+        kind: item.kind,
+        itemType: item.itemType,
+        rarity: item.rarity,
+      };
+      let detail: Record<string, unknown>;
+      if (event === 'removed') detail = { action: 'removed', ...base };
+      else if (item.claimedFor === 'assigned' && item.claimedBy)
+        detail = { action: 'given', ...base, to: await nameOf(item.claimedBy) };
+      else if (event === 'dropped') detail = { action: 'dropped', ...base };
+      else if (item.claimedFor === 'split' && item.split)
+        detail = {
+          action: 'split',
+          ...base,
+          shares: await Promise.all(
+            item.split.shares.map(async (sh) => ({
+              name: await nameOf(sh.userId),
+              amount: sh.amount,
+            })),
+          ),
+          remainder: item.split.remainder,
+        };
+      else if (item.claimedBy === null) detail = { action: 'returned', ...base };
+      else
+        detail = {
+          action: item.claimedFor === 'party' ? 'stored' : 'taken',
+          ...base,
+          by: await nameOf(item.claimedBy),
+        };
+      await this.deps.records.addRecordingEvent({
+        recordingId: live.recordingId,
+        at,
+        event: 'loot',
+        detail,
+      });
+    });
+  }
+
   /** Call when a player has acknowledged the start cue: their track may now be recorded. */
   onAck(campaignId: string): void {
     this.enqueue(campaignId, () => this.reconcile(campaignId));

@@ -123,6 +123,37 @@ anything no one said or typed._ A chapter prompt also names its scene. **Bounded
 one line with a count ("Sound effect: "Drip" (6 times)"), and at most 40 cue lines go into any one summary
 (scenes, group splits and voices are kept ahead of effects, with a "N more minor cues left out" line).
 
+### Loot on the timeline (built 2026-11-17)
+
+Loot is the one cue that is a **fact**, not colour: who got what. While a recording is open (capturing or paused,
+like chat), every loot change is noted as a `loot` event (migration `0038_recording_loot.sql`, `capture.onLoot`,
+fed by the hub's `onLoot`): **dropped**, **given** (by the DM, `to`), **taken** or **stored** in the party stash
+(`by`), **returned**, **split** (`shares`: name and amount) and **removed**, with the item's name, quantity, kind,
+type and rarity. It is **always on** and not gated by `RECORD_CUES`: it is the table's record, like typed chat.
+Names only, cleaned like other cues.
+
+```mermaid
+flowchart LR
+  L[Loot change<br/>REST: drop, give, take, split…] --> H[hub.announceLoot]
+  H -->|onLoot| C[capture.onLoot<br/>recording open?]
+  C --> E[(recording_events: loot)]
+  E --> Q[eventCues: loot cue<br/>+ notable flag]
+  Q --> N["Scribe: (loot) lines, facts to note"]
+  Q --> B[GM brief: the whole record, under Loot]
+  Q --> T[Players' tale: notable items only]
+```
+
+The worker turns each into a `(loot)` line in the transcript ("The Game Master gave Vorpal Sword (legendary) to
+Aria"; "240 gp was split: Aria 120, Bram 120"). The scribe is told they are facts to note. Who reads what
+(decided by Andy, 2026-11-17):
+
+- **The Game Master's brief** gets the **complete** loot record, to list under a "Loot" heading.
+- **The players' tale** (session, chapter, character) gets **only notable** treasure, and is told to leave all other
+  loot out, so the story is not a shopping list. Notable means someone **received** it (given, taken, stored, a
+  split share) **and** it is a magic item (uncommon or rarer), or coin or a valuable worth **100 gp or more** (a
+  gem's or art object's value is read from its name, "Black pearl (500 gp)").
+- Loot cues are never trimmed before other cues when a summary's cue list is cut to 40.
+
 **History:** the transcript endpoint returns `markers` (`[{ atMs, kind: 'scene', text }]`) beside `utterances`,
 and both History views draw a "Scene: <name>" divider among the lines. Effects, voices and groups stay out of the
 transcript (they shape the summary, they are not lines to read).

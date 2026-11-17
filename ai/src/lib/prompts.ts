@@ -26,13 +26,35 @@ const GROUND_RULES = [
 const CUE_RULES =
   'Lines marked "(cue)" are cues noted by the app, not speech: a scene started, a sound effect played, the Game Master changed voice, the table split into groups, the Game Master took a player aside for a private talk (which is not recorded: never guess what was said). Use them only to say where and how things happened (for example, which scene the party was in, or who was in which group). They are not events: do not invent what a sound meant, who made it, or anything that no one said or typed.';
 
+/** The rule for loot lines: unlike other cues they are facts (the app's record of who got what). */
+const LOOT_RULES =
+  'Lines marked "(loot)" are the app\'s record of treasure changing hands: dropped, given, taken, put in the party stash, split, put back or taken away. They are facts: note each one, with who got what, exactly as written.';
+
 /** The rules, plus who the Game Master is when known (their lines are narration, not a character's). */
 function rules(context: SummaryContext): string {
   const gm = context.gameMaster
     ? `\n- "${context.gameMaster}" is the Game Master: their lines describe the world and the non-player characters. Everyone else is a player speaking as their character.`
     : '';
-  const cues = context.cues && context.cues.length > 0 ? `\n- ${CUE_RULES}` : '';
-  return `Rules:\n- ${GROUND_RULES}${gm}${cues}`;
+  const cues = context.cues?.some((c) => c.kind !== 'loot') ? `\n- ${CUE_RULES}` : '';
+  const loot = context.loot ? `\n- ${LOOT_RULES}` : '';
+  return `Rules:\n- ${GROUND_RULES}${gm}${cues}${loot}`;
+}
+
+/** The tale's treasure: only the notable loot (decided 2026-11-17), so the story is not a shopping list. */
+function taleLoot(context: SummaryContext): string {
+  if (!context.loot) return '';
+  const { notable } = context.loot;
+  return notable.length > 0
+    ? `\n- Treasure worth telling, from the app's record: ${notable.join('; ')}. Tell these where they fit, as they happened; leave all other loot out of the tale.`
+    : '\n- Leave all loot out of the tale: none of it this session was worth telling.';
+}
+
+/** The Game Master's full loot record, so the brief can say who has what. */
+function briefLoot(context: SummaryContext): string[] {
+  if (!context.loot) return [];
+  return [
+    `Loot this session, from the app's record (complete and exact; list it under a "Loot" heading, who got what, and leave nothing out):\n- ${context.loot.all.join('\n- ')}`,
+  ];
 }
 
 const campaignOf = (context: SummaryContext): string =>
@@ -162,7 +184,7 @@ export function buildStoryPrompt(
       '- Tell the moments that mattered and the people who made them. Not everyone in the notes belongs in the tale: a character or creature who did little may be left out or pass in a clause. Never list who was present, and never give someone a moment just to include them.',
       '- Nothing happens in the tale that the notes do not say happened. A plan for next time is still only a plan, and a recap is told as a recap. When the notes are short, the tale is a few sentences: never pad, and never mention the notes, the recording or what is missing.',
       '- No headings, no lists, no title.',
-      `- If something was left unresolved, end with one line that starts "Next time:". If nothing was, leave that line out.${gm}`,
+      `- If something was left unresolved, end with one line that starts "Next time:". If nothing was, leave that line out.${gm}${taleLoot(context)}`,
     ].join('\n'),
     "The scribe's notes of what happened, in order:",
     joinNotes(notes),
@@ -187,6 +209,7 @@ export function buildBriefPrompt(notes: readonly string[], context: SummaryConte
       '- Prepare for next session: what the players are most likely to do next, and what the Game Master will need ready for it.',
       'Use only what is in the notes. Leave out a section that has nothing in it, and do not say that it is empty.',
     ].join('\n'),
+    ...briefLoot(context),
     "The scribe's notes of what happened, in order:",
     joinNotes(notes),
     'Brief:',

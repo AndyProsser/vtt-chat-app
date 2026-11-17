@@ -72,6 +72,12 @@ export interface HubOptions {
     data: unknown,
     only?: ReadonlySet<string>,
   ) => void;
+  /** Told about every loot change (drop, claim, removal), for the recording's timeline. */
+  onLoot?: (
+    campaignId: string,
+    event: 'dropped' | 'claimed' | 'removed',
+    item: Parameters<Hub['announceLoot']>[1],
+  ) => void;
   /**
    * How long (ms) a recording tolerates the DM being away before players may step in, and nobody being
    * connected before it stops by itself. Default 30 s (RECORDING_GRACE_SECONDS).
@@ -327,6 +333,7 @@ export class Hub {
       split: { shares: { userId: string; amount: number }[]; remainder: number } | null;
     },
   ): void {
+    this.options.onLoot?.(item.campaignId, event, item);
     this.broadcast(item.campaignId, `loot.${event}`, {
       campaignId: item.campaignId,
       itemId: item.id,
