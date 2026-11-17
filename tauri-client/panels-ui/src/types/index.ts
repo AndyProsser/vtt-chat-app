@@ -146,6 +146,12 @@ export interface TableState {
   partiesSeen: boolean;
   /** No older chat to load: the server ran out, or the panel holds `CHAT_LIMIT` lines. A snapshot resets it. */
   historyDone: boolean;
+  /**
+   * Where the unbroken loaded history starts (ms): the oldest public line of the snapshot, then of each
+   * older page. Older chat is paged from here, not from `chat[0]`, which may be a whisper kept from much
+   * earlier: paging from that would skip every line in between. `null` with no chat.
+   */
+  historyBefore: number | null;
 }
 
 export interface SoundButton {

@@ -2604,3 +2604,9 @@ body,
     visibility: hidden;
   }
 }
+
+/* The chat keeps its own place when older lines load above (useOlderChat); the browser's own scroll
+   anchoring (Chromium, so WebView2 on Windows) would move it a second time. */
+.vtt-chat {
+  overflow-anchor: none;
+}

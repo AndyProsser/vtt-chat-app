@@ -44,7 +44,8 @@ const handoutCard = (h: HandoutRow, after: string | null): TableCard => ({
 /**
  * The loot and handout cards for the chat that is loaded, rebuilt from the server's lists, so they
  * survive a server restart (the live events that made them are gone then). Each sits after the last
- * line at or before its time; anything older than the oldest loaded line waits until that history is
+ * line at or before its time; anything older than `windowStart` (where the unbroken loaded history
+ * starts) waits until that history is
  * scrolled back, unless the history is `complete`. A handout is placed by when it was made (the server
  * keeps no "shown at"); a DM-only handout was never shown, so it has no card.
  */
@@ -52,9 +53,10 @@ export function historyCards(
   loot: LootItem[],
   handouts: HandoutRow[],
   chat: ChatLine[],
+  windowStart: number | null,
   complete: boolean,
 ): TableCard[] {
-  const oldest = chat[0]?.at ?? Number.NEGATIVE_INFINITY;
+  const oldest = windowStart ?? Number.NEGATIVE_INFINITY;
   const inWindow = (at: number) => complete || at >= oldest;
   const anchor = (at: number): string | null => {
     let after: string | null = null;

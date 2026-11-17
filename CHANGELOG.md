@@ -26,6 +26,11 @@ the GitHub release notes and refuses to build a release without one. How to writ
 - **Give is a menu.** The Game Master's Give button opens a list of the players (portrait, character name and player name) instead of unfolding a list in the row; on the phone it is one tap.
 - **Loot cards in chat show their buttons without opening,** left of the arrow; the arrow only shows the description.
 
+### Known limits
+
+- **Update the server before the apps.** This release lets any player take or return a party-stash item. An updated app shows those buttons on every stash item, but a server still on 0.5.2 refuses them (the app says so, and nothing is lost). Older apps keep working with the updated server.
+- After a server restart, a player's chat cannot rebuild the card of an item another player now holds (their loot list no longer has it); the Game Master's can.
+
 - **The update notice is one short line.** It says a new version is available and offers the update; the release notes are behind **More info**, where they used to fill the banner (and showed their formatting marks). The same in Settings → App.
 - **Transcription uses every CPU core, at low priority.** Whisper's server used at most 4 threads, so on a bigger server the other cores sat idle; on an 8-core test VM transcription is now about a quarter faster. Voice and the app keep priority while it runs. Operators: nothing to do; `WHISPER_THREADS` in `.env` sets a lower number.
 

@@ -22,21 +22,21 @@ export function useOlderChat(
 ): OlderChat {
   const done = useTableStore((s) => s.historyDone);
   const firstId = useTableStore((s) => s.chat[0]?.id);
+  const historyBefore = useTableStore((s) => s.historyBefore);
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
   const busy = useRef(false);
   const heightBefore = useRef<number | null>(null);
 
   const load = useCallback(async () => {
-    const { chat, members, historyDone, addOlder } = useTableStore.getState();
-    const oldest = chat[0];
-    if (busy.current || historyDone || !oldest) return;
+    const { chat, members, historyDone, historyBefore, addOlder } = useTableStore.getState();
+    if (busy.current || historyDone || historyBefore === null) return;
     busy.current = true;
     setLoading(true);
     setFailed(false);
     try {
       heightBefore.current = scroller.current?.scrollHeight ?? null;
-      const page = await fetchOlder(oldest.at, chat.length, members);
+      const page = await fetchOlder(historyBefore, chat.length, members);
       addOlder(page.lines, page.done);
     } catch {
       heightBefore.current = null;
@@ -67,7 +67,7 @@ export function useOlderChat(
     );
     observer.observe(target);
     return () => observer.disconnect();
-  }, [sentinel, scroller, done, failed, load, firstId]);
+  }, [sentinel, scroller, done, failed, load, historyBefore]);
 
   return { loading, done, failed, retry: () => void load() };
 }

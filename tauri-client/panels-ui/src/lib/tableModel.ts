@@ -28,6 +28,7 @@ export const emptyTable: TableState = {
   notices: [],
   partiesSeen: false,
   historyDone: false,
+  historyBefore: null,
 };
 
 type Obj = Record<string, unknown>;
@@ -87,7 +88,12 @@ export function lineFromHistory(row: HistoryRow, members: Member[] = []): ChatLi
 
 /** Older lines scrolled back into view; `done` when there is nothing further back to load. */
 export function addOlder(state: TableState, lines: ChatLine[], done: boolean): TableState {
-  return { ...state, chat: mergeChat(state.chat, lines), historyDone: done };
+  const oldest = lines.length ? Math.min(...lines.map((l) => l.at)) : null;
+  const historyBefore =
+    oldest === null
+      ? state.historyBefore
+      : Math.min(oldest, state.historyBefore ?? Number.POSITIVE_INFINITY);
+  return { ...state, chat: mergeChat(state.chat, lines), historyDone: done, historyBefore };
 }
 
 /** Cards rebuilt from the server (`historyCards`): adds the missing ones; a card already here is live, so it stays. */
@@ -164,7 +170,13 @@ export function applyEvent(state: TableState, event: SyncEvent): TableState {
         .filter((l): l is ChatLine => l !== undefined);
       // A snapshot is the whole truth about the table; whispers (not in it) are kept.
       const whispers = state.chat.filter((l) => l.to !== undefined);
-      return { ...state, members, chat: mergeChat(whispers, recent), historyDone: false };
+      return {
+        ...state,
+        members,
+        chat: mergeChat(whispers, recent),
+        historyDone: false,
+        historyBefore: recent.length ? Math.min(...recent.map((l) => l.at)) : null,
+      };
     }
     case 'chat.message':
     case 'chat.whisper': {

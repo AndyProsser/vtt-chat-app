@@ -21,7 +21,7 @@ export function ChatView({ selfId }: { selfId: string | null }) {
   const top = useRef<HTMLDivElement>(null);
   const end = useRef<HTMLDivElement>(null);
   const older = useOlderChat(scroller, top);
-  useRestoredCards();
+  useRestoredCards(scroller);
   // Follow the conversation when something new arrives at the bottom, not when older lines load above.
   const last = entries.at(-1);
   const lastKey = last

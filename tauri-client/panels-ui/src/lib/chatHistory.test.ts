@@ -75,3 +75,39 @@ describe('older chat', () => {
     expect(full.done).toBe(false);
   });
 });
+
+describe('the history cursor', () => {
+  const whisper = (id: string, at: number): ChatLine => ({
+    ...line(id, at),
+    to: { userId: 'dm', name: 'Dee' },
+  });
+  it('starts at the oldest public line of the snapshot, not an older whisper that was kept', () => {
+    const kept = { ...emptyTable, chat: [whisper('w-old', 3)] };
+    const snapshot: SyncEvent = {
+      t: 'snapshot',
+      d: {
+        members: [],
+        recentChat: [
+          { id: 'p1', from: { userId: 'p1', name: 'Pat' }, text: 'a', at: 40 },
+          { id: 'p2', from: { userId: 'p1', name: 'Pat' }, text: 'b', at: 50 },
+        ],
+      },
+    };
+    const state = applyEvent(kept, snapshot);
+    expect(state.chat[0]?.id).toBe('w-old');
+    expect(state.historyBefore).toBe(40);
+  });
+  it('moves back to the oldest line of each older page', () => {
+    const state = addOlder(
+      { ...emptyTable, historyBefore: 40 },
+      [line('x', 20), line('y', 30)],
+      false,
+    );
+    expect(state.historyBefore).toBe(20);
+  });
+  it('is unset with no chat at all', () => {
+    expect(
+      applyEvent(emptyTable, { t: 'snapshot', d: { members: [], recentChat: [] } }).historyBefore,
+    ).toBe(null);
+  });
+});

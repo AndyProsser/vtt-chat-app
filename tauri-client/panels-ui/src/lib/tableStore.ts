@@ -30,6 +30,7 @@ export const useTableStore = create<TableStore>((set) => ({
             notices: next.notices,
             partiesSeen: next.partiesSeen,
             historyDone: next.historyDone,
+            historyBefore: next.historyBefore,
           };
     }),
   hydrate: ({ snapshot, events }) =>
@@ -46,12 +47,13 @@ export const useTableStore = create<TableStore>((set) => ({
         notices: state.notices,
         partiesSeen: state.partiesSeen,
         historyDone: state.historyDone,
+        historyBefore: state.historyBefore,
       };
     }),
   addOlder: (lines, done) =>
     set((state) => {
       const next = addOlder(state, lines, done);
-      return { chat: next.chat, historyDone: next.historyDone };
+      return { chat: next.chat, historyDone: next.historyDone, historyBefore: next.historyBefore };
     }),
   restoreCards: (cards) =>
     set((state) => {

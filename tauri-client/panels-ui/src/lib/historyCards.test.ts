@@ -40,7 +40,7 @@ const chat = [line('a', 10), line('b', 20)];
 
 describe('historyCards', () => {
   it('anchors each card after the last line at or before its time', () => {
-    const cards = historyCards([loot('x', 15), loot('y', 25)], [handout('h', 20)], chat, false);
+    const cards = historyCards([loot('x', 15), loot('y', 25)], [handout('h', 20)], chat, 10, false);
     expect(cards.map((c) => [c.id, c.after])).toEqual([
       ['loot:x', 'a'],
       ['loot:y', 'b'],
@@ -49,8 +49,8 @@ describe('historyCards', () => {
   });
 
   it('leaves out what is older than the loaded chat, unless the history is complete', () => {
-    expect(historyCards([loot('old', 5)], [], chat, false)).toEqual([]);
-    expect(historyCards([loot('old', 5)], [], chat, true)[0]).toMatchObject({
+    expect(historyCards([loot('old', 5)], [], chat, 10, false)).toEqual([]);
+    expect(historyCards([loot('old', 5)], [], chat, 10, true)[0]).toMatchObject({
       id: 'loot:old',
       after: null,
     });
@@ -70,6 +70,7 @@ describe('historyCards', () => {
       ],
       [],
       chat,
+      10,
       false,
     );
     expect(card).toMatchObject({
@@ -83,7 +84,9 @@ describe('historyCards', () => {
   });
 
   it('never makes a card for a DM-only handout', () => {
-    expect(historyCards([], [handout('draft', 15, { visibility: 'dm' })], chat, false)).toEqual([]);
+    expect(historyCards([], [handout('draft', 15, { visibility: 'dm' })], chat, 10, false)).toEqual(
+      [],
+    );
   });
 });
 
