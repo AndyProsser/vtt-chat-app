@@ -7,7 +7,6 @@ import { LootActions } from './LootActions.js';
 import { handoutPicture } from '../lib/handoutPicture.js';
 import { plainPreview } from '../lib/handoutTools.js';
 import { cardLabel } from '../lib/timeline.js';
-import { lootActions } from '../lib/lootActions.js';
 import { isDm } from '../lib/tableModel.js';
 import { handoutViewOpen } from '../lib/tauriBridge.js';
 import type { Member, TableCard } from '../types/index.js';
@@ -96,9 +95,9 @@ function HandoutCard({ card }: { card: TableCard }) {
 }
 
 /**
- * A loot item in chat: one line saying what it is and who has it. Opening it (when there is more to
- * see or do) shows the description and the buttons that fit you: take or store, store or return what you
- * took, and for the DM, give it to a named player.
+ * A loot item in chat: one line saying what it is and who has it, with the buttons that fit you on the
+ * same line (take or store, store or return, take or return from the party stash, and for the DM a Give
+ * menu), left of the arrow. The arrow opens the description, when there is one.
  */
 function LootCard({
   card,
@@ -112,52 +111,61 @@ function LootCard({
   const [open, setOpen] = useState(false);
   const dm = isDm(members, selfId);
   const players = members.filter((m) => m.role === 'player');
-  const actions = lootActions(card, selfId, dm);
-  const expandable = Boolean(card.description) || actions.length > 0;
-  const head = (
+  const expandable = Boolean(card.description);
+  const label = (
     <>
       <ItemIcon
         type={card.itemType ?? (card.coin ? 'coin' : 'other')}
         rarity={card.rarity ?? null}
       />
       <span>{cardLabel(card, members)}</span>
-      {expandable && (
-        <ChevronDown
-          size={14}
-          aria-hidden
-          className={open ? 'vtt-card-chevron vtt-card-chevron-open' : 'vtt-card-chevron'}
-        />
-      )}
     </>
   );
   const taken = Boolean(card.claimedBy);
   return (
     <article className={taken ? 'vtt-card vtt-card-loot vtt-card-taken' : 'vtt-card vtt-card-loot'}>
-      {expandable ? (
-        <button
-          type="button"
-          className="vtt-card-open vtt-card-loot-head"
-          aria-expanded={open}
-          onClick={() => setOpen((o) => !o)}
-        >
-          {head}
-        </button>
-      ) : (
-        <div className="vtt-card-loot-head">{head}</div>
-      )}
-      {open && (
+      <div className="vtt-card-loot-head">
+        {expandable ? (
+          <button
+            type="button"
+            className="vtt-card-open vtt-card-loot-title"
+            aria-expanded={open}
+            onClick={() => setOpen((o) => !o)}
+          >
+            {label}
+          </button>
+        ) : (
+          <div className="vtt-card-loot-title">{label}</div>
+        )}
+        <LootActions
+          item={{
+            id: card.id.replace(/^loot:/, ''),
+            claimedBy: card.claimedBy,
+            claimedFor: card.claimedFor,
+          }}
+          selfId={selfId}
+          dm={dm}
+          players={players}
+        />
+        {expandable && (
+          <button
+            type="button"
+            className="vtt-card-open vtt-card-chevron-button"
+            aria-label={open ? 'Hide the description' : 'Show the description'}
+            aria-expanded={open}
+            onClick={() => setOpen((o) => !o)}
+          >
+            <ChevronDown
+              size={14}
+              aria-hidden
+              className={open ? 'vtt-card-chevron vtt-card-chevron-open' : 'vtt-card-chevron'}
+            />
+          </button>
+        )}
+      </div>
+      {open && card.description && (
         <div className="vtt-card-loot-more">
-          {card.description && <p className="vtt-viewer-caption">{card.description}</p>}
-          <LootActions
-            item={{
-              id: card.id.replace(/^loot:/, ''),
-              claimedBy: card.claimedBy,
-              claimedFor: card.claimedFor,
-            }}
-            selfId={selfId}
-            dm={dm}
-            players={players}
-          />
+          <p className="vtt-viewer-caption">{card.description}</p>
         </div>
       )}
     </article>

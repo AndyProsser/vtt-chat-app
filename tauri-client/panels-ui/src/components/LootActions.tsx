@@ -1,13 +1,13 @@
-import { Hand, Undo2, UserPlus, Users } from 'lucide-react';
+import { Hand, Undo2, Users } from 'lucide-react';
 import { useState } from 'react';
 
 import { ACTION_LABEL, lootActions, type LootAction } from '../lib/lootActions.js';
 import { accountErrorMessage, campaignApi } from '../lib/tauriBridge.js';
 import type { Member } from '../types/index.js';
-import { PlayerList } from './PlayerList.js';
+import { GivePicker } from './GivePicker.js';
 import { ToolButton } from './ToolButton.js';
 
-const ICON = { take: Hand, store: Users, return: Undo2, give: UserPlus } as const;
+const ICON = { take: Hand, store: Users, return: Undo2 } as const;
 const SHORT: Record<LootAction, string> = {
   take: 'Take',
   store: 'Store',
@@ -17,7 +17,8 @@ const SHORT: Record<LootAction, string> = {
 
 /**
  * The buttons that fit one item for one person (see `lootActions`): take or store an item on the table,
- * store or return one you took, and, for the DM, give it to a named player (never to the party). Used by
+ * store or return one you took, take or return a party-stash item, and, for the DM, give it to a named
+ * player from a menu (never to the party). Used by
  * the chat card and by the inventory window, so the two cannot disagree.
  */
 export function LootActions({
@@ -37,7 +38,6 @@ export function LootActions({
   players: Member[];
   onDone?: () => void;
 }) {
-  const [giveOpen, setGiveOpen] = useState(false);
   const [error, setError] = useState<string>();
   const actions = lootActions(item, selfId, dm);
   if (actions.length === 0) return null;
@@ -46,14 +46,12 @@ export function LootActions({
     try {
       setError(undefined);
       await call();
-      setGiveOpen(false);
       onDone?.();
     } catch (e) {
       setError(accountErrorMessage(e));
     }
   }
-  const act = (action: LootAction) => {
-    if (action === 'give') return setGiveOpen((open) => !open);
+  const act = (action: Exclude<LootAction, 'give'>) => {
     const call =
       action === 'take'
         ? () => campaignApi('POST', `loot/${item.id}/claim`, { for: 'self' })
@@ -67,13 +65,24 @@ export function LootActions({
     <div className="vtt-loot-actions">
       <div className="vtt-form-row">
         {actions.map((action) => {
+          if (action === 'give') {
+            return (
+              <GivePicker
+                key={action}
+                label={ACTION_LABEL.give}
+                players={players}
+                onPick={(userId) =>
+                  void run(() => campaignApi('POST', `loot/${item.id}/assign`, { userId }))
+                }
+              />
+            );
+          }
           const Icon = ICON[action];
           return (
             <ToolButton
               key={action}
               label={ACTION_LABEL[action]}
               text={SHORT[action]}
-              pressed={action === 'give' ? giveOpen : undefined}
               onClick={() => act(action)}
             >
               <Icon size={14} />
@@ -81,16 +90,6 @@ export function LootActions({
           );
         })}
       </div>
-      {giveOpen && (
-        <PlayerList
-          mode="pick"
-          label="Give to"
-          players={players}
-          onPick={(userId) =>
-            void run(() => campaignApi('POST', `loot/${item.id}/assign`, { userId }))
-          }
-        />
-      )}
       {error && (
         <div className="vtt-composer-error" role="alert" style={{ position: 'static' }}>
           {error}

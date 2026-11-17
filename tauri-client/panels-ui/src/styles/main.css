@@ -2563,3 +2563,31 @@ body,
   font: inherit;
   cursor: pointer;
 }
+
+/* A loot card's one line: what it is | its buttons | the arrow (ChatCard). */
+.vtt-card-loot-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+}
+.vtt-card-loot-head .vtt-loot-actions {
+  flex: none;
+}
+.vtt-card-chevron-button {
+  flex: none;
+  display: flex;
+  padding: 2px;
+}
+.vtt-card-chevron-button .vtt-card-chevron {
+  margin-left: 0;
+}
+
+/* A row of the Give menu: avatar, character name, player name (GivePicker). */
+.vtt-give-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
