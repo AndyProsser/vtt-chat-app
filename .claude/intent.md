@@ -131,6 +131,12 @@ Update this file as threads open, progress, or close — stale entries here are 
 
 ## Open questions / noticed in passing
 
+- **Storytelling roles, personas and campaign memory (Andy's idea, 2026-11-17; ROADMAP Stage 11).** Pipeline as
+  named roles with personas: Transcribe → Historian (scribe) → Storyteller (bard) → Chronicler (GM notes); the
+  bard's persona is GM-configurable to suit the campaign's tone; a persistent campaign memory lets the bard connect
+  places, NPCs and creatures the party has met before. **Andy has more detail to give: ask him for it before
+  designing anything.** Only captured, not decided.
+
 - **Retire the old hub records?** Memory Hub still holds `vtt-chat-app-architecture-and-decisions`
   and `vtt-chat-app-state-resilience-and-overlay-gotchas`, which describe the old design. Andy
   wants to review before they're dropped. (A `vtt-chat-app-pivot-decisions-2026-11` record has been

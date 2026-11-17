@@ -429,6 +429,35 @@ Each item is independent, off by default, and must never be assumed by applicati
 - OIDC/Authelia SSO — **built, tested against a fake provider only** ([SIGN-IN-OPTIONS.md](docs/architecture/SIGN-IN-OPTIONS.md))
 - Remote AI backends (Whisper/LLM on another machine, e.g. a GPU PC) are a Stage 5 provider-interface concern, not Stage 10
 
+## Stage 11 — Storytelling: Roles, Personas and Campaign Memory (idea, 2026-11-17)
+
+**Status:** ⚪ Not Started. **An idea captured so it is not lost: not designed, not decided.** Andy has more detail to add; ask before designing or building any of it.
+**Depends on:** Stage 5 (the records pipeline); builds on the scribe and bard split of 0.5.2 ([RECORDING-AND-SUMMARIES.md](docs/architecture/RECORDING-AND-SUMMARIES.md))
+
+The pipeline becomes a line of named roles, each with its own job and its own persona, each reading the one before it:
+
+```mermaid
+flowchart LR
+  T[Transcribe] --> H["Historian (the scribe)<br/>what happened, accurately"]
+  H --> S["Storyteller (the bard)<br/>the tale, in the campaign's tone"]
+  H --> C["Chronicler<br/>the Game Master's notes"]
+  M[(Campaign memory)] <--> S
+  M <--> C
+```
+
+- **Historian (today's scribe):** the accurate record of the session. Accuracy lives here, as now.
+- **Storyteller (today's bard):** tells the tale. **Its persona is chosen by the Game Master** to suit the tone of the campaign (today there is one fixed voice: heroic, dryly funny).
+- **Chronicler:** writes the Game Master's notes (today's GM brief is the nearest thing).
+- **Persistent campaign memory:** what the campaign has already met (places, non-player characters, creatures) is kept between sessions, so the Storyteller can notice that the party has been here or met this person before, and refer back to it.
+
+Questions to settle with Andy before any design (none answered yet):
+
+- What a persona is: a preset list, free text from the Game Master, or both; per campaign only, or changeable per session.
+- What campaign memory holds, who can read and correct it (the models will get names wrong), and how it stays small enough for a CPU-only server.
+- Whether memory is written by the Historian, the Chronicler, or a step of its own, and how it treats private audio and whispers (never recorded today; that rule stays).
+- How the Chronicler differs from today's GM brief, and what happens to the brief and the scribe's notes.
+- Cost on the default CPU install: every extra role is more model time per session.
+
 ---
 
 ## Legacy record: the DDB-overlay design
