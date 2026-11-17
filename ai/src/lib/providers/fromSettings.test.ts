@@ -1,6 +1,7 @@
 import { DEFAULT_AI_SETTINGS, setAiSetting, type AiSettings } from '@vtt-chat-app/shared';
 import { describe, expect, it, vi } from 'vitest';
 
+import { BARD_SAMPLING, SCRIBE_SAMPLING } from '../../consts/index.js';
 import { buildJobProviders } from './fromSettings.js';
 
 const localTranscribe =
@@ -49,6 +50,24 @@ describe('buildJobProviders', () => {
     expect((init.headers as Record<string, string>).Authorization).toBe('Bearer sk-llm');
     expect(JSON.parse(init.body as string).model).toBe('llama3.1:8b');
     expect(p.generate.backend()).toBe('primary');
+  });
+
+  it('has the one remote model sample as each role does: the scribe low, the bard freer', async () => {
+    const bodies: { temperature: number }[] = [];
+    const fetchImpl = vi.fn(async (_url: string, init: RequestInit) => {
+      bodies.push(JSON.parse(init.body as string));
+      return json({ choices: [{ message: { content: 'ok' } }] });
+    });
+    const p = buildJobProviders(remote(), {
+      ...base,
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+    });
+    await p.generate.call('notes');
+    await p.story.call('tale');
+    expect(bodies.map((b) => b.temperature)).toEqual([
+      SCRIBE_SAMPLING.temperature,
+      BARD_SAMPLING.temperature,
+    ]);
   });
 
   it('falls back to local when the remote is unreachable and the fallback is on', async () => {

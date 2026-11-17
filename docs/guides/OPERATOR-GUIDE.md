@@ -420,9 +420,11 @@ details. A GPU PC does the same work in minutes with the better models. So:
    `./vtt-admin settings set ai.fallback.enabled false`, so a job waits for the PC instead of trying a local service that is not there.
    Keep the PC on during the hours after a session.
    If you would rather try it locally anyway, `COMPOSE_FILE=compose.yml:compose.compat.yml` in `.env` swaps in a Whisper built without AVX
-   (`vtt-chat-whisper-compat`). It runs, but measured on a 2010 Xeon it took **5.5 times the audio's length** with the `small` model (a
-   four-hour session would take about a day), so it is a last resort, not a plan. Ollama is fine without AVX (it chooses a CPU
-   variant), so a summary model on a slow CPU, or on another machine on your network, works.
+   (`vtt-chat-whisper-compat`). Whisper copes: measured on a 2010 Xeon (8 vCPU), `small.en` takes about **1.3 to 1.7 times
+   the length of each player's speech**, so a session is transcribed overnight. **The summary model does not:** Ollama runs
+   without AVX but very slowly (`qwen3.5:4b` read 3.2 and wrote 1.8 tokens a second on that Xeon, against roughly 50–100 and
+   8–12 on a modern CPU), so one session's summaries would take many hours and a single request can run past the
+   worker's one-hour limit. On a CPU like that, send summaries to a remote LLM (step 2) even if Whisper stays local.
 4. Otherwise keep the local fallback ready on the VM: `small.en` Whisper and `qwen3.5:4b` (the defaults for a CPU-only server).
    If the PC is off, a job waits ten minutes and then runs locally, slower and rougher but never lost.
 

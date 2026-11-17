@@ -237,6 +237,8 @@ describe('createOpenAiGenerate', () => {
       model: 'llama3.2:3b',
       stream: false,
       messages: [{ role: 'user', content: 'the transcript' }],
+      temperature: 0.2,
+      presence_penalty: 0,
     });
   });
 

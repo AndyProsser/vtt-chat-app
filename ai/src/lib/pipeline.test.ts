@@ -4,6 +4,7 @@ import type { TrackTranscript, Utterance } from '../types/index.js';
 import { chunkLines } from './chunk.js';
 import { formatTimestamp, formatUtterance } from './format.js';
 import { mergeTranscripts } from './merge.js';
+import { BARD_SAMPLING } from '../consts/index.js';
 import { createOllamaGenerate } from './ollama.js';
 import {
   buildBriefPrompt,
@@ -373,9 +374,25 @@ describe('createOllamaGenerate', () => {
       prompt: 'prompt',
       stream: false,
       think: false,
-      options: { num_ctx: 8192 },
+      // The scribe's sampling by default, always sent: qwen3.5's own (presence_penalty 1.5) wrecks notes.
+      options: { num_ctx: 8192, temperature: 0.2, presence_penalty: 0 },
     });
     expect(JSON.parse(String(init.body))).not.toHaveProperty('keep_alive');
+  });
+
+  it("samples as it is told (the bard's settings)", async () => {
+    const fetchImpl = vi.fn(
+      async () => new Response(JSON.stringify({ response: 'ok' }), { status: 200 }),
+    ) as unknown as typeof fetch;
+    await createOllamaGenerate({ model: 'm', sampling: BARD_SAMPLING, fetchImpl })('p');
+    const [, init] = (fetchImpl as unknown as ReturnType<typeof vi.fn>).mock.calls[0] as [
+      string,
+      RequestInit,
+    ];
+    expect(JSON.parse(String(init.body)).options).toEqual({
+      temperature: BARD_SAMPLING.temperature,
+      presence_penalty: 0,
+    });
   });
 
   it('asks Ollama to unload the model after keepAlive when one is given', async () => {

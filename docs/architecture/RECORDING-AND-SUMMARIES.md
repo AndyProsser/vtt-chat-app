@@ -489,6 +489,37 @@ So **`qwen3.5:4b` is the CPU default for both roles** (3.3 GB; notes about 100 s
 scene on a 2014 desktop). This replaces granite4.1:3b, which Andy had picked from the single-pass table above before
 the two-pass design existed; flagged to him. The GPU default stays qwen3:8b, untested as scribe and bard.
 
+### Step A: bigger models, and the sampling fix (measured 2026-11-17)
+
+Run on the VM (a 2010 Xeon E5645, 8 vCPU, 24 GB, **no AVX**) and, for the summary models, on a GTX 1080, against a
+written 12-minute session (`infra/records-smoke/fixtures/session-vault.txt`, scored by `session-fixture.ts` against
+26 facts).
+
+**Whisper:** `medium.en` is not worth it on a CPU. Without the fitted window it matched `small.en` (98.6% against
+97.9–98.9% word accuracy) at three times the time; with a fitted window it fell to 72.5%. Whisper's server also used
+only 4 of the 8 cores; it now uses them all at low priority (`small.en` 1.71× → 1.26× the speech).
+
+**The summary model on a CPU without AVX does not work in practice:** `qwen3.5:4b` read 3.2 and wrote 1.8 tokens a
+second on the Xeon (a modern CPU: roughly 50–100 and 8–12), so one 12-minute session's notes ran past the worker's
+one-hour request limit. Such a server sends summaries to a remote LLM (OPERATOR-GUIDE).
+
+**Sampling was the real problem.** The Ollama path sent no temperature, so each model's own defaults applied:
+`qwen3.5` ships temperature 1.0 and **presence_penalty 1.5**, which penalises every word already used. Notes have to
+repeat names and things, so the scribe was pushed to new words until it drifted into run-on invention, covering the
+first third of the session and making up the rest. Facts kept, of 26:
+
+| Scribe sampling             | `qwen3.5:4b`   | `qwen3.5:9b`   |
+| --------------------------- | -------------- | -------------- |
+| Model defaults (as shipped) | 11, 11, 9      | 21, 8          |
+| Temperature 0.2, no penalty | **24, 26, 24** | **26, 26, 26** |
+
+Every request now carries its role's sampling (`SCRIBE_SAMPLING`, `BARD_SAMPLING` in `ai/src/consts`), to Ollama and to
+a remote alike: the scribe at 0.2, the bard at 0.7 (livelier tales, a few more liberties), no presence penalty. With
+it, `qwen3.5:4b` stays the default: half the time of 9b (notes in about a minute on the GTX 1080) and close behind
+on facts. Read by Claude, 4b's slips were who-did-what (a natural 1 noted as a natural 20 once); 9b's were invention
+in the tale (Cassiel's cut hand became "severed") and running over the word cap. Andy's bar (2026-11-17): better than
+the table's memory and fun to read, not perfect; a wrong detail is storytelling, not a failure.
+
 **Still unverified:** real human voices, room noise, echo and crosstalk (TTS flatters accuracy); a real
 4-hour session's map-reduce summaries (the scene fits one model call); the Rust desktop client and phone app as
 the recorded clients (the e2e uses LiveKit's Node SDK); a CPU-only server end to end (CPU numbers are the

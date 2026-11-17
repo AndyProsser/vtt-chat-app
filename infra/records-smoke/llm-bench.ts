@@ -3,7 +3,7 @@
 //
 //   node infra/records-smoke/llm-bench.ts --transcript <transcript-<id>.json> --gm <account id> \
 //        --model granite4.1:3b --model qwen3:8b [--story-model gemma3:4b …] [--ollama http://127.0.0.1:11434]
-//        [--out DIR] [--cpu]
+//        [--out DIR] [--cpu] [--options '{"temperature":0.2}'] [--story-options '{…}']
 //
 // A summary is two passes (ai/src/lib/prompts.ts): a scribe takes notes of the transcript once, then a bard tells
 // each tale from the notes. Without --story-model every --model plays both roles in turn. With it, the FIRST
@@ -43,12 +43,24 @@ const out =
   options('--out')[0] ??
   path.join(path.dirname(transcriptFile), cpu ? 'llm-bench-cpu' : 'llm-bench');
 
-/** With --cpu, asks Ollama to keep every layer off the GPU (what a CPU-only server does). */
-const cpuFetch: typeof fetch = async (input, init) => {
-  const body = JSON.parse(String(init?.body ?? '{}')) as { options?: Record<string, unknown> };
-  body.options = { ...body.options, num_gpu: 0 };
-  return fetch(input, { ...init, body: JSON.stringify(body) });
+/**
+ * `--options '{"temperature":0.2}'`: Ollama options added to every request, to try sampling settings.
+ * `--story-options` overrides them for the bard alone.
+ */
+const extraOptions = JSON.parse(options('--options')[0] ?? '{}') as Record<string, unknown>;
+const storyOptions = {
+  ...extraOptions,
+  ...(JSON.parse(options('--story-options')[0] ?? '{}') as Record<string, unknown>),
 };
+
+/** Adds the options, and with --cpu keeps every layer off the GPU (what a CPU-only server does). */
+const tunedFetch =
+  (added: Record<string, unknown>): typeof fetch =>
+  async (input, init) => {
+    const body = JSON.parse(String(init?.body ?? '{}')) as { options?: Record<string, unknown> };
+    body.options = { ...body.options, ...added, ...(cpu ? { num_gpu: 0 } : {}) };
+    return fetch(input, { ...init, body: JSON.stringify(body) });
+  };
 
 async function vram(): Promise<number> {
   const { stdout } = await run('nvidia-smi', [
@@ -78,13 +90,13 @@ async function main(): Promise<void> {
   const sample = plan.filter((p) => !kinds.has(p.kind) && kinds.add(p.kind));
   await mkdir(out, { recursive: true });
   const results = [];
-  const generator = (model: string) =>
+  const generator = (model: string, added: Record<string, unknown>) =>
     createOllamaGenerate({
       model,
       baseUrl,
       numCtx: 8192,
       keepAlive: '0',
-      ...(cpu ? { fetchImpl: cpuFetch } : {}),
+      fetchImpl: tunedFetch(added),
     });
   const scribeModel = models[0]!;
   const pairs =
@@ -93,8 +105,8 @@ async function main(): Promise<void> {
       : models.map((m) => ({ scribe: m, bard: m }));
   for (const pair of pairs) {
     const name = pair.scribe === pair.bard ? pair.scribe : `${pair.scribe} + ${pair.bard}`;
-    const scribe = generator(pair.scribe);
-    const bard = generator(pair.bard);
+    const scribe = generator(pair.scribe, extraOptions);
+    const bard = generator(pair.bard, storyOptions);
     const base = await vram();
     let peak = base;
     const timer = setInterval(() => void vram().then((v) => (peak = Math.max(peak, v))), 500);

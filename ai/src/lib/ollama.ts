@@ -1,4 +1,4 @@
-import { DEFAULT_OLLAMA_URL } from '../consts/index.js';
+import { DEFAULT_OLLAMA_URL, SCRIBE_SAMPLING, type Sampling } from '../consts/index.js';
 import type { GenerateText } from '../types/index.js';
 import { longFetch } from './longFetch.js';
 
@@ -12,6 +12,8 @@ export interface OllamaOptions {
    * OLLAMA_KEEP_ALIVE. Short keeps an idle server from holding (V)RAM between jobs.
    */
   keepAlive?: string;
+  /** How to sample; default the scribe's (low temperature, no presence penalty). Never the model's own defaults. */
+  sampling?: Sampling;
   /** Injected for tests. */
   fetchImpl?: typeof fetch;
 }
@@ -23,6 +25,7 @@ export interface OllamaOptions {
 export function createOllamaGenerate(options: OllamaOptions): GenerateText {
   const baseUrl = (options.baseUrl ?? DEFAULT_OLLAMA_URL).replace(/\/+$/, '');
   const doFetch = options.fetchImpl ?? longFetch;
+  const sampling = options.sampling ?? SCRIBE_SAMPLING;
 
   return async (prompt) => {
     const response = await doFetch(`${baseUrl}/api/generate`, {
@@ -36,7 +39,11 @@ export function createOllamaGenerate(options: OllamaOptions): GenerateText {
         // nobody reads. Models that cannot think ignore it.
         think: false,
         ...(options.keepAlive !== undefined ? { keep_alive: options.keepAlive } : {}),
-        options: options.numCtx ? { num_ctx: options.numCtx } : undefined,
+        options: {
+          temperature: sampling.temperature,
+          presence_penalty: sampling.presencePenalty,
+          ...(options.numCtx ? { num_ctx: options.numCtx } : {}),
+        },
       }),
     });
     if (!response.ok) {

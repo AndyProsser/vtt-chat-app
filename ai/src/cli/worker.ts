@@ -28,7 +28,12 @@
  *
  *   node ai/dist/cli/worker.js [--once]     --once: drain the queue, then exit
  */
-import { DEFAULT_OLLAMA_URL } from '../consts/index.js';
+import {
+  BARD_SAMPLING,
+  DEFAULT_OLLAMA_URL,
+  SCRIBE_SAMPLING,
+  type Sampling,
+} from '../consts/index.js';
 import { rmdir, unlink } from 'node:fs/promises';
 import { hostname } from 'node:os';
 import path from 'node:path';
@@ -99,11 +104,12 @@ async function main(): Promise<void> {
     new OllamaModelKeeper({ baseUrl: ollamaUrl, model, report, signal: abort.signal, log });
   const modelKeeper = keeperFor(ollamaModel, reportScribe ?? reporter.llm);
   const storyKeeper = twoModels ? keeperFor(storyModel, reportBard ?? reporter.llm) : modelKeeper;
-  const ollamaGenerate = (model: string): GenerateText =>
+  const ollamaGenerate = (model: string, sampling: Sampling): GenerateText =>
     createOllamaGenerate({
       model,
       baseUrl: ollamaUrl,
       numCtx: 8192,
+      sampling,
       ...(process.env.OLLAMA_KEEP_ALIVE ? { keepAlive: process.env.OLLAMA_KEEP_ALIVE } : {}),
     });
   const whisperReady = localUrl
@@ -134,10 +140,9 @@ async function main(): Promise<void> {
               ...(threads ? { threads } : {}),
               language,
             }),
-    localGenerate: holdForModel(ollamaGenerate(ollamaModel), modelKeeper, hold),
-    ...(twoModels
-      ? { localStory: holdForModel(ollamaGenerate(storyModel), storyKeeper, hold) }
-      : {}),
+    // The bard always gets its own generator: the same model may be both, but it samples differently.
+    localGenerate: holdForModel(ollamaGenerate(ollamaModel, SCRIBE_SAMPLING), modelKeeper, hold),
+    localStory: holdForModel(ollamaGenerate(storyModel, BARD_SAMPLING), storyKeeper, hold),
     transcribeAudioFile: (file, transcribeWav) => transcribeTrackFile(file, transcribeWav),
     env: process.env,
     log,

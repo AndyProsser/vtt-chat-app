@@ -1,5 +1,6 @@
 import { validateAiSettings, type AiSettings } from '@vtt-chat-app/shared';
 
+import { BARD_SAMPLING, SCRIBE_SAMPLING, type Sampling } from '../../consts/index.js';
 import type { GenerateText, Segment, TranscribeWav } from '../../types/index.js';
 import { createFailover, type Failover } from './failover.js';
 import { createOpenAiGenerate, createOpenAiTranscribe } from './openaiCompat.js';
@@ -11,7 +12,7 @@ export interface ProviderDeps {
   /** Builds the local transcriber for the operator's configured language. */
   localTranscribe: (language: string) => TranscribeWav;
   localGenerate: GenerateText;
-  /** The local story-teller (the bard), when it is a different model from `localGenerate`; else that one. */
+  /** The local story-teller (the bard): its own model or sampling; without it the scribe's generator tells the tales. */
   localStory?: GenerateText;
   /** Called when a job moves to the local backend because the remote was unreachable. */
   onFallback?: (what: 'transcription' | 'llm', reason: string) => void;
@@ -61,18 +62,19 @@ export function buildJobProviders(settings: AiSettings, deps: ProviderDeps): Job
         )
       : createFailover(localTranscribe, undefined, timing);
 
-  // One remote model plays both roles (a remote is usually a bigger model that does both well). Each role has its
-  // own failover, so each falls back to its own local model.
-  const remote =
+  // One remote model plays both roles (a remote is usually a bigger model that does both well), sampling as each role
+  // does. Each role has its own failover, so each falls back to its own local model.
+  const remoteAs = (sampling: Sampling): GenerateText | undefined =>
     settings.llm.kind === 'remote' && settings.llm.url !== null
       ? createOpenAiGenerate({
           baseUrl: settings.llm.url,
           model: settings.llm.model ?? 'default',
+          sampling,
           ...(deps.env?.LLM_API_KEY ? { apiKey: deps.env.LLM_API_KEY } : {}),
           ...common,
         })
       : undefined;
-  const role = (local: GenerateText): Failover<string, string> =>
+  const role = (local: GenerateText, remote: GenerateText | undefined): Failover<string, string> =>
     remote
       ? createFailover(remote, fallback.enabled ? local : undefined, {
           ...timing,
@@ -82,7 +84,7 @@ export function buildJobProviders(settings: AiSettings, deps: ProviderDeps): Job
 
   return {
     transcribe,
-    generate: role(deps.localGenerate),
-    story: role(deps.localStory ?? deps.localGenerate),
+    generate: role(deps.localGenerate, remoteAs(SCRIBE_SAMPLING)),
+    story: role(deps.localStory ?? deps.localGenerate, remoteAs(BARD_SAMPLING)),
   };
 }

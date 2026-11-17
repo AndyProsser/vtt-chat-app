@@ -12,6 +12,19 @@ export const DEFAULT_COALESCE_GAP_MS = 1_500;
 export const DEFAULT_CHUNK_CHARS = 12_000;
 export const DEFAULT_CHUNK_OVERLAP_LINES = 4;
 
+/**
+ * How each role samples (measured 2026-11-17, RECORDING-AND-SUMMARIES.md "Sampling"). Always sent, never left to the
+ * model: `qwen3.5` ships temperature 1.0 and presence_penalty 1.5, and a presence penalty punishes every word already
+ * used. Notes must repeat names and things, so the scribe drifted into run-on invention and kept 8–21 of 26 facts in a
+ * 12-minute session; with these settings it keeps 24–26. The bard gets a little more freedom for its voice.
+ */
+export interface Sampling {
+  temperature: number;
+  presencePenalty: number;
+}
+export const SCRIBE_SAMPLING: Sampling = { temperature: 0.2, presencePenalty: 0 };
+export const BARD_SAMPLING: Sampling = { temperature: 0.7, presencePenalty: 0 };
+
 /** Map-reduce gives up recursing past this many levels rather than loop on a stubborn model. */
 export const MAX_REDUCE_DEPTH = 4;
 

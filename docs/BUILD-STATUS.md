@@ -68,6 +68,11 @@ Whisper ready`. New volumes came up owned by uid 1000 (media) and 1001 (recordin
   no-AVX image, `small.en` and `qwen3.5:4b` as CPU defaults ([tables](architecture/RECORDING-AND-SUMMARIES.md)). The OpenBLAS image was
   run on the VM's Xeon as a throwaway container (1.68× the audio on a table-like track; the 0.5.1 image and defaults took 19.3×). **Not yet run:** a whole records job on these
   defaults; the published no-AVX image (it builds in CI on the next tag); the scribe and bard on a long transcript (several pieces, notes shortened before the tale), which no test recording is long enough to exercise with a real model.
+- **Step A: models and sampling (2026-11-17).** Measured, then changed: every summary request now carries its role's sampling
+  (scribe temperature 0.2, bard 0.7, no presence penalty); the models' own defaults wrecked long notes (9–11 of 26 facts, now 24–26).
+  `medium.en` and `qwen3.5:9b` stay optional, the defaults stay `small.en` and `qwen3.5:4b`; a CPU without AVX cannot run the
+  summary model in useful time ([Step A](architecture/RECORDING-AND-SUMMARIES.md)). Measured on a GPU and the VM's Ollama
+  directly; **not yet run:** a whole records job with the new sampling, and a real multi-hour session.
 - **Who reads what, and container hardening (2026-11-17).** Players read the tales; the Game Master also gets the scribe's
   notes; the transcript is DM-only at the API and shown by the desktop app only with dev builds on. Containers drop
   capabilities, Whisper/Ollama/cloudflared are pinned, the installer writes HSTS after a real certificate. Unit and route

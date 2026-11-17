@@ -1,7 +1,12 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
-import { DEFAULT_MAX_NO_SPEECH_PROB, DEFAULT_PROVIDER_TIMEOUT_MS } from '../../consts/index.js';
+import {
+  DEFAULT_MAX_NO_SPEECH_PROB,
+  DEFAULT_PROVIDER_TIMEOUT_MS,
+  SCRIBE_SAMPLING,
+  type Sampling,
+} from '../../consts/index.js';
 import type { GenerateText, Segment, TranscribeWav } from '../../types/index.js';
 import { isNonSpeech } from '../whisperJson.js';
 import { isTransientStatus, ProviderUnavailableError } from './errors.js';
@@ -167,7 +172,9 @@ export function createOpenAiTranscribe(options: OpenAiTranscribeOptions): Transc
 }
 
 export interface OpenAiGenerateOptions extends OpenAiCompatOptions {
-  temperature?: number;
+  /** How to sample; default the scribe's (low temperature, no presence penalty). Sent explicitly, so a server's own
+   * defaults for the model (Ollama's Modelfile, say) never apply. */
+  sampling?: Sampling;
 }
 
 /** A {@link GenerateText} backed by any server implementing `POST /v1/chat/completions` (Ollama does). */
@@ -180,7 +187,8 @@ export function createOpenAiGenerate(options: OpenAiGenerateOptions): GenerateTe
         model: options.model,
         messages: [{ role: 'user', content: prompt }],
         stream: false,
-        temperature: options.temperature ?? 0.2,
+        temperature: (options.sampling ?? SCRIBE_SAMPLING).temperature,
+        presence_penalty: (options.sampling ?? SCRIBE_SAMPLING).presencePenalty,
       }),
       'application/json',
     )) as { choices?: { message?: { content?: unknown } }[] };
