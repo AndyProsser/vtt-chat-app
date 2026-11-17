@@ -10,6 +10,10 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ## [Unreleased]
 
+### Changed
+
+- **The update notice is one short line.** It says a new version is available and offers the update; the release notes are behind **More info**, where they used to fill the banner (and showed their formatting marks). The same in Settings → App.
+
 ## [0.5.2] - 2026-11-17
 
 Session summaries become a story, records run much faster on a CPU-only server, the app's own audio engine becomes the default, and the server containers are locked down. A **PATCH** release: no protocol change, so 0.5.x apps and servers work with each other, with one exception: on an updated server a player's app from 0.5.1 or earlier shows an error if they press "Transcript" (the transcript is now for the Game Master only). Operators: update the server; on the default models it then downloads `small.en` (190 MB) and `qwen3.5:4b` (3.3 GB) in the background and needs about 4 GB of memory while it writes summaries. Players: update the app; on Windows, see Known limits.

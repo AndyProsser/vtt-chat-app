@@ -5,12 +5,16 @@ export interface UpdateInfo {
   notes: string | null;
 }
 
-/** One line for the banner: the versions, plus the first line of the release notes if any. */
+/**
+ * One short line for the banner and for Settings: that an update exists, and nothing else. The release
+ * notes are behind "More info" (`UpdateNotes`): a banner that carried their first paragraph took a
+ * third of a small window.
+ */
 export function updateMessage(info: UpdateInfo): string {
-  const base = `Version ${info.version} is ready (you have ${info.current})`;
-  const note = info.notes
-    ?.split('\n')
-    .find((l) => l.trim() !== '')
-    ?.trim();
-  return note ? `${base}: ${note}` : `${base}.`;
+  return `Version ${info.version} is available (you have ${info.current}).`;
+}
+
+/** Whether there are release notes worth a "More info" link. */
+export function hasNotes(info: UpdateInfo): boolean {
+  return (info.notes ?? '').trim() !== '';
 }

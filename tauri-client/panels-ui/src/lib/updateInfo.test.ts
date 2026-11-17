@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { updateMessage, type UpdateInfo } from './updateInfo.js';
+import { hasNotes, updateMessage, type UpdateInfo } from './updateInfo.js';
 
 const info = (over: Partial<UpdateInfo> = {}): UpdateInfo => ({
   version: '0.3.0',
@@ -11,16 +11,19 @@ const info = (over: Partial<UpdateInfo> = {}): UpdateInfo => ({
 
 describe('updateMessage', () => {
   it('names the new and current versions', () => {
-    expect(updateMessage(info())).toBe('Version 0.3.0 is ready (you have 0.2.0).');
+    expect(updateMessage(info())).toBe('Version 0.3.0 is available (you have 0.2.0).');
   });
-  it('adds the first line of the release notes when there are some', () => {
+  it('stays one short line however long the release notes are', () => {
     expect(updateMessage(info({ notes: 'Faster rail.\nMore fixes.' }))).toBe(
-      'Version 0.3.0 is ready (you have 0.2.0): Faster rail.',
+      'Version 0.3.0 is available (you have 0.2.0).',
     );
   });
-  it('ignores blank notes', () => {
-    expect(updateMessage(info({ notes: '   \n' }))).toBe(
-      'Version 0.3.0 is ready (you have 0.2.0).',
-    );
+});
+
+describe('hasNotes', () => {
+  it('is true only when there is something to read', () => {
+    expect(hasNotes(info({ notes: 'Faster rail.' }))).toBe(true);
+    expect(hasNotes(info({ notes: '   \n' }))).toBe(false);
+    expect(hasNotes(info())).toBe(false);
   });
 });

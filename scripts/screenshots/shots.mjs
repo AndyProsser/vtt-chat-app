@@ -2,8 +2,11 @@
 const MAIN = [600, 940];
 
 /** The main window with the session in full swing: someone talking, the earlier whispers and loot in view. */
-async function table(c, { who, scheme, theme, size = MAIN, recording = true, speaking = 'aria' }) {
-  const view = await c.desktop({ who, scheme, theme, size });
+async function table(
+  c,
+  { who, scheme, theme, size = MAIN, recording = true, speaking = 'aria', options },
+) {
+  const view = await c.desktop({ who, scheme, theme, size, options });
   await c.catchUp(view.bridge, who);
   if (recording) {
     await view.bridge.emit('sync:event', {
@@ -127,6 +130,26 @@ export const SHOTS = {
     c.reportStats();
     await c.sleep(1200);
     return c.frameWindow(view.page, { scheme: 'dark' });
+  },
+  'desktop-update': async (c) => {
+    // The notice that a newer app is ready, with its release notes opened from "More info".
+    const update = {
+      version: '0.5.2',
+      current: '0.5.1',
+      notes:
+        'Session summaries become a story, and records run much faster on a CPU-only server. A **PATCH** release: no protocol change.\n\n### Changed\n\n- **Summaries are now a story.** A scribe notes what happened; a bard tells the tale.\n- **The app\u2019s own audio engine is now the default.**\n\n### Fixed\n\n- **Windows: opening a popup no longer freezes the app.**',
+    };
+    const { page } = await table(c, {
+      who: 'aria',
+      scheme: 'dark',
+      recording: false,
+      options: { update },
+    });
+    // The app first looks for an update 15 seconds after its window opens.
+    await page.waitForSelector('.vtt-update', { timeout: 30000 });
+    await page.click('.vtt-update .vtt-more');
+    await c.sleep(600);
+    return c.frameWindow(page, { scheme: 'dark' });
   },
   'desktop-history': async (c) => {
     const { page } = await history(c, {

@@ -11,6 +11,7 @@ import {
   updateDevBuildsSet,
 } from '../../lib/tauriBridge.js';
 import { updateMessage } from '../../lib/updateInfo.js';
+import { UpdateNotes } from '../UpdateNotes.js';
 import { SectionHeading } from './SectionHeading.js';
 import { SettingRow } from './SettingRow.js';
 
@@ -76,7 +77,7 @@ export function AppSection() {
         </SettingRow>
         {update.available && (
           <Text size="2" className="vtt-card-note">
-            {updateMessage(update.available)}
+            {updateMessage(update.available)} <UpdateNotes info={update.available} />
           </Text>
         )}
         {checked && !update.available && !update.error && (

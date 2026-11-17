@@ -451,8 +451,45 @@ flowchart LR
 - **Chronicler:** writes the Game Master's notes (today's GM brief is the nearest thing).
 - **Persistent campaign memory:** what the campaign has already met (places, non-player characters, creatures) is kept between sessions, so the Storyteller can notice that the party has been here or met this person before, and refer back to it.
 
+### Andy's notes (two memos, 2026-11-17)
+
+More detail from Andy's own notes ("VTT Chat Chronicler" and "VTT Chat Transcription Tweaks"). Still ideas, recorded so the design starts from them.
+
+**The roles, and what each hands on**
+
+| Role                               | Job                                                                                                                          | Hands on                                                                                                                                            |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Listener** (Whisper)             | Capture what was said, accurately and neutrally. Never interprets.                                                           | The timed transcript                                                                                                                                |
+| **Scribe, the campaign historian** | Work out what actually happened. "Arguably the most important AI in the chain." Dry and factual: no story, no embellishment. | **Structured facts**: events, decisions, combat outcomes, NPC interactions, new locations, loot, quests, secrets revealed, character development    |
+| **Bard, the storyteller**          | Retell it. Reads the scribe's facts, never the transcript (as today).                                                        | The tale, in a chosen persona                                                                                                                       |
+| **Chronicler**                     | What the Game Master needs to run the next session. A role of its own, not a bard.                                           | NPCs, open plot threads, items obtained, locations discovered, future hooks, **continuity warnings** ("the party promised to return within 7 days") |
+
+**Bard personas** (several may retell the same session): the Tavern Bard (grandiose, makes the heroes legendary), the Dry Historian (accurate, like a record), the Drunken Bard (an unreliable narrator: forgets, jokes, credits the wrong hero), the Sarcastic Bard (dry, pokes fun at the players' decisions), the Bored Court Scribe (understates everything).
+
+**Campaign memory:** one store per campaign of characters, NPCs, locations, factions, quests and magic items. The scribe updates it after every session; the bard is given the relevant parts before it writes, so weeks later it can say "once again the party crossed paths with Lord Ravenshade".
+
+**Better hearing of fantasy words, without fine-tuning Whisper** (CPU-only, low overhead):
+
+- A **glossary per campaign**: characters, NPCs, locations, spells, monsters, deities, homebrew terms, with aliases.
+- **Whisper's starting prompt built from the glossary**: short, relevant, most-used terms first.
+- **Vocabulary learning**: recurring names found in transcripts are offered for the glossary, and added only when a person approves.
+- **Corrections after transcription**: dictionary replacements and fuzzy matching for misheard terms.
+- **`small.en` against `medium.en`** for accuracy and CPU cost on old Xeons.
+
+**Andy's order of work:** (1) better Whisper terminology, (2) a strong scribe extraction step, (3) persistent campaign memory, (4) several bard personas. A larger model comes last: "the architecture will improve the storytelling far more than moving from a 4B model to an 8B or 14B".
+
+**Where this meets what is built** (Claude's reading, 2026-11-17; to check when the work starts):
+
+- Half of the chain exists since 0.5.2: one reading of the transcript by a scribe, tales by a bard from the notes only, a Game Master brief from the same notes. The notes are **plain lines today, not structured facts**.
+- Whisper is given **no vocabulary today**. The server already knows each campaign's character names, player names, scene titles, loot and handout titles, so a first glossary costs nothing to collect. Whether the Whisper server takes a starting prompt per request has to be checked before promising it.
+- The scribe already receives who the Game Master is and the scene cues; the prompts already tell it to keep names as spoken.
+
 Questions to settle with Andy before any design (none answered yet):
 
+- **May a persona change the facts?** Today's rule is that the bard may embellish how a thing happened, never what happened or who did it. The Drunken Bard breaks that on purpose. Is that a persona the Game Master opts into, clearly labelled, with the accurate tale kept beside it?
+- **Structured facts from a 4 GB model:** small models are unreliable at strict formats. Plain headed lists that code then parses, or real JSON with a retry, and what happens to a session when it fails?
+- **Secrets in memory:** the Chronicler's material is for the Game Master, and the bard writes for the players. Memory needs a Game-Master-only side that the bard never reads, or it will leak hidden plot into a tale.
+- **One tale or several:** is a persona a campaign setting (one tale per session), or can players read the same session in several voices (more model time per session on a CPU)?
 - What a persona is: a preset list, free text from the Game Master, or both; per campaign only, or changeable per session.
 - What campaign memory holds, who can read and correct it (the models will get names wrong), and how it stays small enough for a CPU-only server.
 - Whether memory is written by the Historian, the Chronicler, or a step of its own, and how it treats private audio and whispers (never recorded today; that rule stays).

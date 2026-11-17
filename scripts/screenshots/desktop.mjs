@@ -127,7 +127,7 @@ export async function attach(page, { seat, campaignId, feed: seatFeed, table, op
     }),
     mic_level: () => options.micLevel ?? 0.38,
     voice_effect_get: () => options.voice ?? 'normal',
-    update_check: () => null,
+    update_check: () => options.update ?? null,
     update_dev_builds_get: () => options.devBuilds ?? false,
     update_can_install: () => true,
     autostart_enabled: () => true,

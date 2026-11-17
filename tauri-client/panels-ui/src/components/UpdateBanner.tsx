@@ -2,6 +2,7 @@ import { useState } from 'react';
 
 import { useUpdate } from '../hooks/useUpdate.js';
 import { updateMessage } from '../lib/updateInfo.js';
+import { UpdateNotes } from './UpdateNotes.js';
 
 /** A quiet strip when a newer client is available. Nothing installs, or restarts, until it is clicked. */
 export function UpdateBanner() {
@@ -10,7 +11,9 @@ export function UpdateBanner() {
   if (!available || dismissed === available.version) return null;
   return (
     <div className="vtt-update" role="status">
-      <span>{error ?? updateMessage(available)}</span>
+      <span>
+        {error ?? updateMessage(available)} {!error && <UpdateNotes info={available} />}
+      </span>
       <button
         type="button"
         className="vtt-pill"

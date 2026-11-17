@@ -787,6 +787,27 @@ body,
 .vtt-update span {
   flex: 1;
 }
+/* "More info" beside an update notice: reads as a link, opens the release notes. */
+.vtt-more {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.vtt-more:focus-visible {
+  outline: 2px solid var(--vtt-gold);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+.vtt-update-notes {
+  max-height: 55vh;
+  overflow-y: auto;
+  font-size: 13px;
+}
 .vtt-pill-on {
   background: color-mix(in srgb, var(--vtt-gold) 28%, transparent);
   font-weight: 600;
