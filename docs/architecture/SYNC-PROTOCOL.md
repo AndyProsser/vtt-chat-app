@@ -76,7 +76,8 @@ The app gets its session without a sign-in form ([APP-SIGN-IN.md](APP-SIGN-IN.md
 1. Client reconnects and sends `resume { campaignId, lastSeq, epoch }`.
 2. If `epoch` is the stream's current epoch **and** `lastSeq` is still inside the replay buffer → server replays the gap.
 3. Otherwise → server sends a **snapshot** (campaign, roster, recording status, unread
-   notifications) and the client replaces its cache.
+   notifications, the newest 50 public chat lines read from Postgres) and the client replaces its cache.
+   Older chat is paged over REST (`GET …/chat?before=`).
 
 Defaults: buffer the last **500 events or 10 minutes per campaign stream**, whichever is smaller.
 

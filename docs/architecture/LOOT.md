@@ -2,7 +2,8 @@
 
 The party inventory is a **shared pool** (see [TABLE-FEATURES.md](TABLE-FEATURES.md)): the DM drops
 things, players grab them, and each grab records who took it and whether it was for themselves or the
-party. This note covers where items come from.
+party. This note covers where items come from; who sees and moves what (the filters, the party stash, Give)
+is in [TABLE-FEATURES.md](TABLE-FEATURES.md#who-sees-what-and-the-filters-decided-and-built-2026-11-17).
 
 ```mermaid
 flowchart LR

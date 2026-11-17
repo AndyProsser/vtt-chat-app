@@ -432,7 +432,7 @@ Each item is independent, off by default, and must never be assumed by applicati
 
 ### Loot management and chat history (asked by Andy, 2026-11-17)
 
-**Status:** ⚪ Not Started. Andy's requests from real use of the 0.5.2 loot panel and chat; written up, and Andy answered the open questions the same day (listed at the end). It sits here rather than in a new stage, and unlike the rest of Stage 10 it is **not optional**: it fixes and extends Stage 6 table features. Next step: a build plan.
+**Status:** 🟡 Parts 1 to 3 built 2026-11-17 for a 0.5.x dev build ([BUILD-STATUS](docs/BUILD-STATUS.md)); parts 4 and 5 wait for 0.6.0. Andy's requests from real use of the 0.5.2 loot panel and chat; written up, and Andy answered the open questions the same day (listed at the end). It sits here rather than in a new stage, and unlike the rest of Stage 10 it is **not optional**: it fixes and extends Stage 6 table features. Next step: a build plan.
 
 #### 1. Chat survives a server restart, and older chat loads on scroll
 

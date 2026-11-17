@@ -10,7 +10,21 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ## [Unreleased]
 
+### Added
+
+- **Scroll up for older chat.** The desktop chat loads the last 50 messages; scrolling to the top loads the 50 before them, as far back as the server keeps (the phone web app already did this).
+
+### Fixed
+
+- **Chat no longer disappears when the server restarts.** It was always saved, but the desktop app filled its chat from a short-lived buffer instead of the saved history. The loot and handout cards in chat come back too.
+
 ### Changed
+
+- **Loot opens on Available.** The Game Master's filters are Available | Taken | All; a player's are All | Own | Party | Available. Something that was just given, taken or split fades out of the list instead of vanishing.
+- **Players see only what is theirs to see in the loot list:** what is still available, the party stash, and their own items, never another player's. Chat still says who took what.
+- **Any player can take from the party stash,** or put a stash item back on the table (before, only the player who stored it could).
+- **Give is a menu.** The Game Master's Give button opens a list of the players (portrait, character name and player name) instead of unfolding a list in the row; on the phone it is one tap.
+- **Loot cards in chat show their buttons without opening,** left of the arrow; the arrow only shows the description.
 
 - **The update notice is one short line.** It says a new version is available and offers the update; the release notes are behind **More info**, where they used to fill the banner (and showed their formatting marks). The same in Settings → App.
 - **Transcription uses every CPU core, at low priority.** Whisper's server used at most 4 threads, so on a bigger server the other cores sat idle; on an 8-core test VM transcription is now about a quarter faster. Voice and the app keep priority while it runs. Operators: nothing to do; `WHISPER_THREADS` in `.env` sets a lower number.

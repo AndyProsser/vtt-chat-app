@@ -8,7 +8,7 @@ does, the rules that matter for privacy, and what is deliberately not built yet.
 | -------------------------------------------------------------------------------------------- | ------------ |
 | Chat and whispers                                                                            | built, below |
 | Handouts, maps, images, text snippets                                                        | planned      |
-| Loot drops with pickers                                                                      | planned      |
+| Loot drops with pickers                                                                      | built        |
 | DM soundboard (a mini [thaumaturgy.app](https://thaumaturgy.app/) with the DM's own library) | planned      |
 | Party split                                                                                  | built        |
 | Session schedule, RSVP, stored notifications                                                 | planned      |
@@ -31,6 +31,32 @@ does, the rules that matter for privacy, and what is deliberately not built yet.
     recording at the routing layer (RECORDING-AND-SUMMARIES.md).
 - **History** (`GET /api/campaigns/:id/chat?before=&limit=`) returns the newest page the viewer may
   see. The visibility rule is in the store query (`listChat(campaign, viewer)`), not in callers.
+- **Chat survives a server restart (2026-11-17).** A snapshot's `recentChat` is the newest **50** public
+  lines **from Postgres**, not from the replay buffer (which is short-lived, so a restart used to leave the
+  desktop chat empty). Same entry shape as a live `chat.message`, so no wire change.
+- **Older chat on scroll (2026-11-17).** Scrolling to the top of the desktop chat asks for the 50 lines
+  before the oldest one (`before = oldest.at + 1`: the server returns lines strictly before the cursor, so
+  the extra millisecond keeps a line that shares the oldest line's time; the duplicate is dropped by id).
+  Lines sort by time, then id, as the server does. The panel holds up to 1 000 lines, then says so. A
+  reconnect's snapshot replaces the shared chat with the newest 50 again; scroll up to reload older ones.
+  The phone web app already paged the same call.
+
+```mermaid
+sequenceDiagram
+  participant P as Desktop chat
+  participant S as Server
+  participant DB as Postgres
+  P->>S: resume (after a restart: snapshot)
+  S->>DB: listChat(newest 50)
+  S-->>P: snapshot.recentChat
+  P->>S: GET loot, GET handouts
+  S-->>P: lists → cards placed by time
+  Note over P: user scrolls to the top
+  P->>S: GET chat?limit=50&before=oldest+1
+  S->>DB: listChat(before)
+  S-->>P: 50 older lines (+ their cards)
+```
+
 - **Bounded retention:** the newest 5 000 lines per campaign are kept (whispers included); older ones
   are pruned every 50 writes. One constant (`CHAT_RETENTION_MESSAGES`); not yet an operator setting.
 
@@ -106,27 +132,49 @@ own sheets; the app only records who took what.
 - `loot.claimed` carries `kind`, `claimedFor` and `split`, which is what the chat cards and the
   "taken by …" wording are built from.
 
-### Taking, storing and returning (decided and built 2026-11-10)
+### Taking, storing and returning (decided 2026-11-10, reshaped 2026-11-17)
 
-Loot cards in chat open (chevron) to show the description and the buttons that fit the person; the
-inventory window uses the same rules (`lib/lootActions.ts`), so they cannot disagree:
+Loot cards in chat show the buttons that fit the person **on the card's one line**, left of the arrow (the
+arrow only opens the description). The inventory window uses the same rules (`shared` `lootActions`), so
+they cannot disagree:
 
 | Item is                         | Player sees   | DM sees |
 | ------------------------------- | ------------- | ------- |
-| Unclaimed                       | Take, Store   | Give…   |
+| Unclaimed                       | Take, Store   | Give    |
 | Taken by me, or given to me     | Store, Return | nothing |
-| Stored by me (party stash)      | Return        | nothing |
+| In the party stash (anyone's)   | Take, Return  | nothing |
 | Someone else's, or a coin split | nothing       | nothing |
 
 - **Take** claims it for yourself; **Store** moves it into the party stash (from the table it claims it
-  for the party; from yours it changes `claimed_for` to `party`); **Return** puts it back as unclaimed
-  from either state. Whoever took or stored it can return it, nobody else; the DM can still remove an
-  item outright.
-- The DM can only **give to one named player**, never to the party. Players always see unclaimed loot
-  (the inventory window's "Still in the pool").
-- Server: `POST …/loot/:id/store` and `…/return` (one conditional `UPDATE` each, so a race has one
-  winner; both reuse the `loot.claimed` notice, with nobody holding it after a return). The notice now
+  for the party; from yours it changes `claimed_for` to `party`); **Return** puts it back as unclaimed.
+  Your own items: only you can store or return them. **The party stash: any player can take an item for
+  themselves or return it** (decided 2026-11-17: players are in charge of loot). The DM can still remove
+  an item outright.
+- **Give** (the DM's) is a small menu of the players: avatar, character name, and the player's own name
+  beside it. The DM gives only to **one named player**, never to the party stash.
+- Server: `POST …/loot/:id/store` and `…/return`, and `claim {for: 'self'}` on a stash item (one
+  conditional `UPDATE` each — `takeFromParty` / `returnFromParty` for the stash — so a race has one
+  winner; all reuse the `loot.claimed` notice, with nobody holding it after a return). The notice
   carries the start of the description for the chat card.
+
+### Who sees what, and the filters (decided and built 2026-11-17)
+
+- **A player's loot list never holds another player's own items.** `GET …/loot` returns, for a player:
+  unclaimed items, the party stash, what they took or were given, and a coin split they hold a share of
+  (`visibleLoot`). The DM sees everything. Chat cards are a record of the table and still say "taken by
+  Cassiel".
+- Filters (`shared` `lootFiltersFor`), both opening on **Available**:
+
+  | Who    | Filters, in order                | Default   |
+  | ------ | -------------------------------- | --------- |
+  | DM     | Available \| Taken \| All        | Available |
+  | Player | All \| Own \| Party \| Available | Available |
+
+- The list refreshes itself on every `loot.*` notice. An item that leaves the list (given, taken, split)
+  **fades out** over 1.2 s instead of vanishing (none under reduced motion); switching filter does not fade.
+- Planned for 0.6.0 (protocol 4): a per-item "added to my sheet" flag, a **Not confirmed** filter that
+  becomes the players' default, an unconfirmed counter on the loot icon, a notification for a DM give,
+  and re-dropping available loot into chat (ROADMAP Stage 10).
 
 ## DM soundboard (built)
 
@@ -274,8 +322,12 @@ flowchart LR
 
 Loot and handout events become inline **cards** in chat (`loot.dropped/claimed/removed`,
 `handout.shown/removed`), each placed after the chat line it followed; the "taken by" text is the
-grabbed indicator. Cards are live notices (retained in the bounded event tail, lost across a full
-re-snapshot); the Party inventory window is the source of truth.
+grabbed indicator. Live events keep them current. **Since 2026-11-17 they are also rebuilt from the
+server** (`GET loot`, `GET handouts`) whenever the oldest loaded chat line changes (a snapshot, or an older
+page), each placed after the last line at or before its time, so they survive a server restart. Limits:
+a removed item is gone from the list, so its card is not rebuilt; a handout is placed by when it was made
+(there is no "shown at"); and a player's chat cannot rebuild the card of an item another player now holds,
+because their loot list no longer contains it. The Party inventory window is the source of truth.
 
 ## Asking to join a table (built 2026-11-12)
 

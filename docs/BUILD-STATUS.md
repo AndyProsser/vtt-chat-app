@@ -15,6 +15,26 @@ cd tauri-client && cargo fmt --check && cargo clippy --workspace --all-targets -
 
 Last run (2026-11-09, memory stores): backend 406 (+18 skipped without Postgres), panels-ui 213, ddb 9, status 3; Rust: src-tauri 88 (+2 ignored), rust-livekit and rust-sync as before, with the LiveKit live tests passing individually on SDK 0.10.1. `cargo clippy -D warnings` still fails on the old unused `capture_allowed`. Not run: anything in CI (the workflow exists, nothing has run it since the pivot).
 
+## Built 2026-11-17: loot management and chat history, 0.5.x part (branch `loot-chat-history`)
+
+ROADMAP Stage 10 "Loot management and chat history", parts 1 to 3. No wire change (protocol stays). Plan:
+`docs/superpowers/plans/2026-11-17-loot-and-chat-history.md`.
+
+- **Built and tested:** snapshot chat from Postgres (a restart test in `realtime.test.ts`); player loot
+  visibility and party take/return (`lootRoutes.test.ts`, run on memory **and** real Postgres, including a
+  two-player race for one stash item); the new filters and actions (`shared`); desktop scroll-up paging,
+  same-millisecond ordering, and card rebuild (panels-ui unit tests); the web Give list's labels.
+- **Seen in a render** (headless Chromium + the stand-in for Rust, against the smoke stack): the DM's and a
+  player's loot panel opening on Available with the new filters, the Give menu (avatar, character, player),
+  and the chat cards' buttons beside the arrow.
+- **Not yet seen working:** scrolling up for older chat (the scroll position kept while older lines load),
+  the fade-out, and cards coming back after a real server restart. They need the new server and the app
+  clicked by hand: check on the test VM with the dev build.
+- **Known limits:** after a restart, a player's chat cannot rebuild the card of an item another player
+  now holds; a handout's rebuilt card is placed by when it was made; removed loot is not rebuilt.
+- **Pre-existing, unrelated:** with `TEST_DATABASE_URL` set, `store.contract.test.ts` "migrate applies on
+  an empty schema" fails on `main` too (it lists 33 migrations; there are 37).
+
 ## Stage 9, 2026-11-16: idle CPU and the one-shot containers (branch `stage-9-hardening`, 0.5.2)
 
 **Built and checked on the dev PC** (local images, the `vtt-smoke` stack with the GPU override, and a throwaway project with new
