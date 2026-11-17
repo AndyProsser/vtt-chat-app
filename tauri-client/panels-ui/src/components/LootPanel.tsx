@@ -4,7 +4,8 @@ import { useMemo, useState } from 'react';
 import { useAccount } from '../hooks/useAccount.js';
 import { useCampaignQuery } from '../hooks/useCampaignQuery.js';
 import { useTableFeed } from '../hooks/useTableFeed.js';
-import { filterLoot, filtersFor, type LootFilter } from '../lib/lootFilter.js';
+import { useLeaving } from '../hooks/useLeaving.js';
+import { defaultFilter, filterLoot, filtersFor, type LootFilter } from '../lib/lootFilter.js';
 import { isDm } from '../lib/tableModel.js';
 import { useTableStore } from '../lib/tableStore.js';
 import { itemLabel } from '../lib/timeline.js';
@@ -45,7 +46,7 @@ export function LootPanel() {
   const dm = isDm(members, status?.userId ?? null);
   const players = useMemo(() => members.filter((m) => m.role === 'player'), [members]);
   const { data, error, reload } = useCampaignQuery<{ loot: LootItem[] }>('loot', ['loot.']);
-  const [filter, setFilter] = useState<LootFilter>('all');
+  const [filter, setFilter] = useState<LootFilter>(() => defaultFilter(dm));
   const [splitting, setSplitting] = useState<string>();
   const [chosen, setChosen] = useState<string[]>([]);
   const [actionError, setActionError] = useState<string>();
@@ -64,11 +65,14 @@ export function LootPanel() {
     setChosen(players.map((p) => p.userId)); // default: every player, offline included
   };
   const problem = error ?? actionError;
-  const shown = filterLoot(
-    data?.loot ?? [],
-    filtersFor(dm).includes(filter) ? filter : 'all',
-    status?.userId ?? null,
+  const view = filtersFor(dm).includes(filter) ? filter : defaultFilter(dm);
+  const loot = data?.loot;
+  const filtered = useMemo(
+    () => filterLoot(loot ?? [], view, status?.userId ?? null),
+    [loot, view, status?.userId],
   );
+  const order = useMemo(() => (loot ?? []).map((i) => i.id), [loot]);
+  const shown = useLeaving(filtered, order, view);
 
   return (
     <div className="vtt-inventory">
@@ -88,7 +92,7 @@ export function LootPanel() {
             <ToolButton
               key={f}
               label={FILTER_LABEL[f]}
-              pressed={filter === f}
+              pressed={view === f}
               onClick={() => setFilter(f)}
             >
               <Icon size={14} />
@@ -100,13 +104,22 @@ export function LootPanel() {
         shown.length === 0 &&
         (data.loot.length === 0 ? (
           <EmptyState>Nothing in the pool yet.</EmptyState>
+        ) : view === 'available' ? (
+          <p className="vtt-muted">Nothing left to take.</p>
         ) : (
           <p className="vtt-muted">Nothing matches this filter.</p>
         ))}
       {shown.map((item) => {
         const open = !item.claimedBy;
+        const className = [
+          'vtt-loot',
+          open ? '' : 'vtt-loot-taken',
+          item.leaving ? 'vtt-loot-leaving' : '',
+        ]
+          .filter(Boolean)
+          .join(' ');
         return (
-          <div key={item.id} className={open ? 'vtt-loot' : 'vtt-loot vtt-loot-taken'}>
+          <div key={item.id} className={className} aria-hidden={item.leaving}>
             <div className="vtt-loot-row">
               <ItemIcon type={item.itemType} rarity={item.rarity} size={22} />
               <div className="vtt-loot-text" style={{ flex: 1 }}>

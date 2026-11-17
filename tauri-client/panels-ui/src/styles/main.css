@@ -2591,3 +2591,16 @@ body,
   align-items: center;
   gap: 8px;
 }
+
+/* A loot row that was just given, taken or split fades out before it leaves the list (useLeaving). */
+.vtt-loot-leaving {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 1.2s ease-in;
+}
+@media (prefers-reduced-motion: reduce) {
+  .vtt-loot-leaving {
+    transition: none;
+    visibility: hidden;
+  }
+}
