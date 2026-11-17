@@ -52,12 +52,13 @@ releases; the 0.4.5 changelog covers both).
 **Next:**
 
 1. **Bug fixes** as they turn up, in patch releases.
-2. **Stage 9, hardening and production readiness** (below), in progress for **0.5.2** on the `stage-9-hardening` branch
-   (dev builds `v0.5.2-dev.1` to `-dev.4`; the test VM runs `-dev.4`). Built 2026-11-16 and 17: the idle CPU fix, no
+2. **Stage 9, hardening and production readiness** (below), in progress. **0.5.2 was released on 2026-11-17** with the
+   first part of it (the test VM ran `v0.5.2-dev.4` before the release). Built 2026-11-16 and 17: the idle CPU fix, no
    one-shot containers, old images removed on update, CPU transcription 2 to 11 times faster, summaries as a scribe's
-   notes and a bard's tale, who-reads-what for records, and container hardening with pinned images and HSTS. Still to
-   do: a real recorded session through the new pipeline on the VM, Windows and macOS parity, the long soak, packaging
-   and signing.
+   notes and a bard's tale, who-reads-what for records, container hardening with pinned images and HSTS, the app's own audio engine as the
+   default, and the Windows popup freeze fix. Still to do: confirm the popup fix on Windows, a real recorded session
+   through the new pipeline on the VM, measure the audio engine (headsets, latency, CPU), macOS parity, the long soak,
+   packaging and signing.
 3. The open design topics in [.claude/intent.md](.claude/intent.md), as Stage 10 and later.
 
 ### Stock-take, 2026-11-11 (end of day)
@@ -361,7 +362,7 @@ told clearly to update; and a recorded session runs through to its summary.
 
 ## Stage 9 — Cross-Platform Hardening & Production Readiness
 
-**Status:** 🟡 In progress (started 2026-11-16 on the `stage-9-hardening` branch, for 0.5.2; the health-check, transcription and purge fixes went to `main` for 0.5.1): the idle-CPU fix and the removal of
+**Status:** 🟡 In progress (started 2026-11-16 on the `stage-9-hardening` branch; its first part shipped in **0.5.2** on 2026-11-17; the health-check, transcription and purge fixes went to `main` for 0.5.1): the idle-CPU fix and the removal of
 the one-shot containers, the records performance and summary work, and the container hardening are built (see the
 deliverables); the platform checks, the long soak and signing are not started
 **Depends on:** Stage 5 (can overlap Stages 6–8)

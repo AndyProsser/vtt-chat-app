@@ -10,6 +10,10 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ## [Unreleased]
 
+## [0.5.2] - 2026-11-17
+
+Session summaries become a story, records run much faster on a CPU-only server, the app's own audio engine becomes the default, and the server containers are locked down. A **PATCH** release: no protocol change, so 0.5.x apps and servers work with each other, with one exception: on an updated server a player's app from 0.5.1 or earlier shows an error if they press "Transcript" (the transcript is now for the Game Master only). Operators: update the server; on the default models it then downloads `small.en` (190 MB) and `qwen3.5:4b` (3.3 GB) in the background and needs about 4 GB of memory while it writes summaries. Players: update the app; on Windows, see Known limits.
+
 ### Added
 
 - **Model downloads show on the status page and in `vtt-admin status`.** A new `local AI` line says whether the summary model and Whisper are ready, downloading (with a percentage), or why a download failed; the status page shows a "Summary model" row while it downloads, and marks it when a download failed or stalled.
@@ -18,7 +22,7 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 - **The app's own audio engine is now the default** (it was the "New audio engine (experimental)" switch). Everyone gets a volume for each person, a microphone volume with a live level, a microphone that is really released when muted, and echo cancellation that also covers character voices and sounds the app plays. It uses a little more CPU than before and no longer uses your device's own hardware echo filtering. If voice sounds wrong on your computer, turn on **Settings → Audio → Compatibility audio** and join voice again to go back to the old path; the app also falls back by itself for a call when it cannot open your sound card. If you had switched the experimental engine on and off again, you stay on compatibility audio until you turn it off.
 - **Transcription on a CPU is two to three times faster**, and about three times faster again on old CPUs without AVX. With the `base` and `small` Whisper models (the CPU default), Whisper now works only on the part of each clip that holds sound, where it used to process 30 seconds for every line however short, and the Whisper image for CPUs without AVX uses a faster maths library (measured on a 2010 Xeon with a table-like track: from 19 times the audio's length to 1.7).
-- **Summaries are now a story.** A session's summary used to read like minutes. Now a _scribe_ first writes down what happened, big and small (the failed rolls and bad ideas too), and a _bard_ tells it from those notes as a short heroic tale with dry wit: at most 350 words for the session, 200 for each part and for each hero's own tale. The bard may embellish how a thing happened, never what happened or who did it. The tale follows the people who mattered: someone who did little may get a passing mention or none. The Game Master's private summary stays a plain brief (secrets, hooks, promises, what to prepare). Summaries already written are not rewritten; `vtt-admin recording reprocess <id>` writes new ones.
+- **Summaries are now a story.** A session's summary used to read like minutes. Now a _scribe_ first writes down what happened, big and small (the failed rolls and bad ideas too), and a _bard_ tells it from those notes as a short heroic tale with dry wit: at most 350 words for the session, 200 for each part and for each hero's own tale. The bard may embellish how a thing happened, never what happened or who did it. The tale follows the people who mattered: someone who did little may get a passing mention or none. The Game Master's private summary is a short brief of key points to recall the session and prepare the next one: what mattered, where things stand, open threads, promises, and what to have ready. Summaries already written are not rewritten; `vtt-admin recording reprocess <id>` writes new ones.
 - **Players read the tale; the transcript is now for the Game Master.** Players no longer see a session's word-for-word transcript, and their search covers the tales only. The Game Master still reads the tale and the private brief, can also open the **scribe's notes** (the plain list of what happened that the tales were told from, behind a button), and can still read and search the transcript in the desktop app after turning on Settings → App → Include dev builds. The phone app no longer shows a transcript. In a session's history the session's own tale now comes first, then its parts and each hero's tale. Older apps: a player on 0.5.1 or earlier who presses "Transcript" on an updated server sees an error instead.
 - **Summaries of a long session take about a quarter of the model time.** The transcript is read once and every summary is written from the notes, where each summary used to read the whole transcript again.
 - **New CPU defaults: Whisper `small.en` and the summary model `qwen3.5:4b`** (was `small` and `llama3.2:3b`). `small.en` is as fast and at least as accurate for English; `qwen3.5:4b` took the fullest notes and told the best tale of the models tried. Operators: a server on the defaults downloads both on its next update (190 MB and 3.3 GB) and the model needs about 4 GB of memory while it works; the old ones stay on disk until you remove them (`docker compose exec ollama ollama rm llama3.2:3b`). To keep the old ones, set `WHISPER_MODEL_FILE` and `OLLAMA_MODEL` in `.env`. **`small.en` is English only:** for another language set `WHISPER_MODEL_FILE=ggml-small-q5_1.bin`. The GPU defaults are unchanged. A second model can tell the tales (`OLLAMA_STORY_MODEL`); by default one model does both.
@@ -30,11 +34,21 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 - **Windows: opening Handouts, Loot, History or Settings no longer freezes the app.** The window never appeared, and after that the app stopped answering (chat would not send) until it was restarted. Linux and macOS were not affected.
 
+- **Phone app: the handout list shows a note's words**, where it used to show its Markdown marks (`> *…*`).
+
 ### Security
 
 - **Containers run with fewer privileges.** Every server container now drops all Linux capabilities except the few it needs and cannot gain privileges; a bug in one service has less to work with. Nothing to set.
 - **Browsers are told to use HTTPS only** (HSTS, 30 days, this hostname only), once the installer has seen your domain answer with a valid certificate. Not on `localhost` or behind a Cloudflare Tunnel. To turn it off, see the operator guide's security checklist.
 - **Whisper, Ollama and cloudflared run at fixed, tested versions** instead of whatever was newest on the day of an update. Operators: set `WHISPER_IMAGE`, `OLLAMA_VERSION` or `CLOUDFLARED_VERSION` in `.env` to choose your own.
+
+### Known limits
+
+- **The Windows popup fix has not been run on Windows yet.** It is the fix Tauri documents for this freeze and it builds for Windows, but nobody has opened the popups on Windows since. If Handouts, Loot, History or Settings still freeze the app, restart it and tell us.
+- **The new default audio engine has been used by ear on Linux and Windows only.** Bluetooth and USB headsets, latency, CPU use and hour-long sessions are not measured, and the automatic fall-back to compatibility audio has never been triggered for real. If voice sounds wrong, turn on Settings → Audio → Compatibility audio.
+- **The summary models still invent small details**, more so on a very short recording. The scribe's notes are the record; the tale and the brief are written from them.
+- **The CPU defaults have been run on short test recordings only.** A full-length session through `small.en` and `qwen3.5:4b` on a CPU-only server is untested, as is a transcript long enough to be read in several pieces.
+- **A Game Master's search can be crowded by summaries**: when many sessions mention the same words, summary results can push transcript results off the list.
 
 ## [0.5.1] - 2026-11-16
 
