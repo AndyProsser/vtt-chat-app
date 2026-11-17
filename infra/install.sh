@@ -383,7 +383,9 @@ After=network.target
 [Service]
 User=$APP_USER
 Environment=LD_LIBRARY_PATH=/opt/whisper/lib
-ExecStart=/opt/whisper/whisper-server -m $STATE_DIR/models/$WHISPER_MODEL_FILE --host 127.0.0.1 --port 8080 --inference-path /v1/audio/transcriptions -l en
+# Every core, at low CPU priority (whisper-server alone uses at most 4 threads; see compose/whisper-start.sh).
+ExecStart=/opt/whisper/whisper-server -m $STATE_DIR/models/$WHISPER_MODEL_FILE --host 127.0.0.1 --port 8080 --inference-path /v1/audio/transcriptions -l en -t $(nproc)
+Nice=10
 Restart=on-failure
 $hardening
 

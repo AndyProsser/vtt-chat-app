@@ -199,6 +199,8 @@ services:
     environment:
       # A ggml file name from huggingface.co/ggerganov/whisper.cpp.
       WHISPER_MODEL_FILE: ${WHISPER_MODEL_FILE:-ggml-small.en-q5_1.bin}
+      # Threads for transcription; empty is every core (whisper-start.sh). Runs at low CPU priority either way.
+      WHISPER_THREADS: ${WHISPER_THREADS:-}
     volumes:
       - whisper-models:/models
       - ./whisper-start.sh:/whisper-start.sh:ro

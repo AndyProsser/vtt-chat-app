@@ -13,6 +13,7 @@ the GitHub release notes and refuses to build a release without one. How to writ
 ### Changed
 
 - **The update notice is one short line.** It says a new version is available and offers the update; the release notes are behind **More info**, where they used to fill the banner (and showed their formatting marks). The same in Settings → App.
+- **Transcription uses every CPU core, at low priority.** Whisper's server used at most 4 threads, so on a bigger server the other cores sat idle; on an 8-core test VM transcription is now about a quarter faster. Voice and the app keep priority while it runs. Operators: nothing to do; `WHISPER_THREADS` in `.env` sets a lower number.
 
 ## [0.5.2] - 2026-11-17
 

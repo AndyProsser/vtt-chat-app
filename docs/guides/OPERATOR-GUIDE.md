@@ -332,6 +332,8 @@ about 0.25 × the length of each player's speech, and with `qwen3.5:4b` the note
 session with five players is a few hours of work, done after the game; nothing is lost if it takes all night.
 Memory while it runs: Whisper about 0.5 GB, the language model about 3 GB.
 
+**Whisper uses every core**, at low CPU priority, so voice and the app stay responsive while a recording is transcribed (whisper-server on its own uses at most 4). On an 8-vCPU 2010 Xeon VM this took `small.en` from 1.71 to 1.26 × the length of the speech. To leave cores free for something else on the machine, set `WHISPER_THREADS` in `.env` (for example `WHISPER_THREADS=4`).
+
 ### With an NVIDIA GPU (including GTX 10-series)
 
 Add the GPU override. It builds Whisper for your card once (about 30 minutes, a ~6 GB image; upstream's

@@ -430,6 +430,71 @@ Each item is independent, off by default, and must never be assumed by applicati
 - OIDC/Authelia SSO — **built, tested against a fake provider only** ([SIGN-IN-OPTIONS.md](docs/architecture/SIGN-IN-OPTIONS.md))
 - Remote AI backends (Whisper/LLM on another machine, e.g. a GPU PC) are a Stage 5 provider-interface concern, not Stage 10
 
+### Loot management and chat history (asked by Andy, 2026-11-17)
+
+**Status:** ⚪ Not Started. Andy's requests from real use of the 0.5.2 loot panel and chat; written up, not yet designed in detail. It sits here rather than in a new stage, and unlike the rest of Stage 10 it is **not optional**: it fixes and extends Stage 6 table features. The open questions at the end need Andy's answer before the build plan.
+
+#### 1. Chat survives a server restart, and older chat loads on scroll
+
+**What happens now:** after a server restart the desktop chat is empty. **Why (found 2026-11-17):** the server already keeps chat in Postgres (`chat_messages`, trimmed to `CHAT_RETENTION_MESSAGES` = 5000 per campaign) and has a paged `GET /api/campaigns/:id/chat?before=…`, which the phone web app uses. But the desktop fills its chat from the WebSocket snapshot's `recentChat`, which is read from the **replay buffer** (`hub.ts` `snapshot()`, last 50 events), and the replay buffer is short-lived by design. The loot and handout cards in chat come from the same buffer, so they vanish too.
+
+- The snapshot's recent chat comes from **Postgres**, not the replay buffer: the last 20 to 50 messages the viewer may see.
+- Scrolling up asks for older messages a page at a time (the existing `before` cursor), until there are no more.
+- Loot and handout cards are rebuilt from their own tables with the chat they sit in, so a restart keeps them in place.
+- **Done when:** restart the server mid-session; every client shows the same recent chat and cards afterwards, and can scroll back past 24 hours.
+
+#### 2. Give: a simple picker, not an inline list
+
+- **Give** opens a small drop-down menu of the campaign's players: avatar, then character name with the player's name beside it. Picking one gives the item. It does not unfold a list inside the row (today it does, first screenshot).
+- The **same Give control** is on the loot card in chat, and it shows on the **collapsed** card, to the left of the expand arrow (today it shows only when the card is expanded).
+
+#### 3. Filters and what each person sees
+
+| Who    | Filters, in order                | Default   | Sees                                                                        |
+| ------ | -------------------------------- | --------- | --------------------------------------------------------------------------- |
+| DM     | Available \| Taken \| All        | Available | everything                                                                  |
+| Player | All \| Own \| Party \| Available | Available | **only** available, party-stash and their own items; never another player's |
+
+- Give, take, store, split and return update the open list straight away, with no manual refresh. On the DM's Available view an item that was just given or split **fades out** (rather than vanishing at once) so the DM can see it went.
+- **Players can take from the party stash.** Today only the player who stored an item can move it again; any player of the campaign may take a party item for themselves.
+
+#### 4. Re-drop available loot into chat
+
+- The DM can **re-drop** an item that is still **Available**, posting its card into chat again for anyone who missed it. An item that is held (by a player or the party) **cannot** be re-dropped.
+- An item is one thing however many times it is dropped: when it is given, taken or returned, **every** card for it in chat updates.
+
+#### 5. "Added to my sheet": notification and confirmed flag
+
+- A player who is **given** an item (or coin) gets a notification, so they know to add it to their character sheet. It is stored like the other notifications, so a player who was not in the session sees it next time.
+- Each item a player holds has a **confirmed** flag the player ticks once it is on their sheet. Unconfirmed items stand out in their loot panel, for the player who forgot or was away.
+- **The flag resets whenever the item moves:** own → party, party → own, or back to available (returned or dropped).
+
+```mermaid
+stateDiagram-v2
+  [*] --> Available: DM drops
+  Available --> Own: player takes / DM gives (notify)
+  Available --> Party: player stores
+  Party --> Own: any player takes
+  Own --> Party: store
+  Own --> Available: return
+  Party --> Available: return
+  Available --> Available: DM re-drops (cards update)
+  note right of Own: confirmed resets on every move
+```
+
+#### Release fit
+
+Parts 1 to 3 change no wire contract (the server reads chat from a different place; the paged REST call exists; filters and the picker are client-side; letting any player take from the party is a server rule) and can ship in a **0.5.x** patch. Parts 4 and 5 add to the wire (a re-drop event, a confirmed field and its call, a new notification kind), so they are a `shared/` contract change and ride the **0.6.0 / protocol 4** bump Stage 11 already plans. Both apps (desktop and phone web) get the same behaviour. [LOOT.md](docs/architecture/LOOT.md) and [TABLE-FEATURES.md](docs/architecture/TABLE-FEATURES.md) are updated with the build.
+
+#### Open questions for Andy
+
+1. **Who confirms a party-stash item?** Proposed: nobody; confirmed applies to a player's own items only, since the party stash is not on anyone's sheet.
+2. **Split coin:** does each player's share get its own confirmed flag and its own "you were given" notification?
+3. **Can the DM give to the party stash?** Today the DM can only give to a named player.
+4. **Does the DM see the confirmed flags** (e.g. a tick on Taken items) to chase up a player?
+5. **Notify on take as well as give?** A player who takes an item did it themselves; proposed: notify on give only.
+6. **Chat page size:** 50 on load, then 50 per scroll-up? (Andy suggested 20 to 50.)
+
 ## Stage 11 — Storytelling: Roles, Personas and Campaign Memory (idea, 2026-11-17)
 
 **Status:** ⚪ Not Started. **An idea captured so it is not lost: not designed, not decided.** Andy has more detail to add; ask before designing or building any of it.

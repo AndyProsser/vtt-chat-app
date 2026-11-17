@@ -98,4 +98,23 @@ if [ ! -s "$MODEL" ]; then
   trap - TERM INT
 fi
 
+# Threads. whisper-server uses at most 4 unless told, so on a bigger machine the rest of the cores sat idle
+# (measured 2026-11-17 on an 8-vCPU 2010 Xeon VM, small.en: 1.71x the audio's length at the default, 1.26x at 8).
+# Default: every core the container may use. WHISPER_THREADS sets a number; a -t in the command line wins.
+threads=
+case " $* " in
+  *" -t "* | *" --threads "*) ;;
+  *)
+    threads=${WHISPER_THREADS:-}
+    if [ -z "$threads" ] && command -v nproc >/dev/null 2>&1; then threads=$(nproc); fi
+    if [ -n "$threads" ]; then set -- "$@" -t "$threads"; fi
+    ;;
+esac
+
+# Lower CPU priority, so that with every core busy transcribing, voice (LiveKit) and the app still come first: a
+# recording can be transcribed while the table is still talking. Lowering one's own priority needs no privilege.
+if command -v nice >/dev/null 2>&1; then
+  log "starting with ${threads:-the command line's} threads, at low CPU priority"
+  exec nice -n 10 "$@"
+fi
 exec "$@"
