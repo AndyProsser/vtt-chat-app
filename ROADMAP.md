@@ -488,14 +488,42 @@ More detail from Andy's own notes ("VTT Chat Chronicler" and "VTT Chat Transcrip
 
 1. **A persona never changes the facts; it may embellish them.** The Drunken Bard bends this a little further and may make up a few things to make events sound more interesting, but **the essence of the truth is always there**.
 2. **The scribe's output does not have to be strict**, only readable by the next step; the more structured the better. Worth testing with it: Whisper `medium.en` and the summary model `qwen3.5:8b` (the test VM was raised to 8 vCPU and 24 GB of memory for this).
-3. **Game Master secrets are kept from the table.** A persona such as the Drunken Bard may let some bits slip, and the players are left to wonder whether to believe the tale. The Game Master may need an optional **Campaign Notes** page to keep these records.
-4. **One tale per session, one bard.** Most sessions end with the party back at the tavern: "The Bard" is telling the tale of mighty adventures, and the heroes just happen to be sitting at one of the tables.
+3. **Game Master secrets are kept from the table, unless the Game Master picks the Drunken Bard.** With every other persona nothing Game-Master-only reaches a tale. With the drunkard **any secret may slip**: the Game Master chose that persona, so they have decided it is fine. It decides who reads the tales and how closely: what did the drunkard let slip, and what did they make up? "The drunkard is an agent of chaos with an insider's view." The persona picker must say this plainly where it is chosen.
+4. **GM Notes: a plain Markdown notebook for the Game Master** (optional). A background notebook and ideas board: plot hooks, key NPCs and events. **Unstructured by design**, so each Game Master makes it their own, with some **starter headings** to prompt a novice. **Attachments allowed: pictures and PDFs.** It is where the secrets live.
+5. **One tale per session, one bard.** Most sessions end with the party back at the tavern: "The Bard" is telling the tale of mighty adventures, and the heroes just happen to be sitting at one of the tables.
+
+### Build order, split by the wire protocol (planned 2026-11-17)
+
+Andy's rule for sequencing: do everything that needs **no protocol change** in **0.5.x** first, and collect what does into **one** bump to protocol 4, which is **0.6.0** ([VERSIONING-AND-DEPLOYMENT.md](docs/architecture/VERSIONING-AND-DEPLOYMENT.md): a new or changed REST route, WebSocket frame or event, or a changed body, bumps it; server-only and screen-only work does not). `intent.md` already reserves 0.6.0 for the first such change, and the soundboard work was expected to be it, so the two should land together.
+
+The dividing line is simple: **everything the pipeline does by itself on the server is 0.5.x; everything a person sets, reads or corrects from an app needs 0.6.**
+
+| Step | 0.5.x: no protocol change                                                                                                                                                                                            | Why it needs no bump        |
+| ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
+| A    | **Measure `medium.en` and `qwen3.5:8b`** on the VM (8 vCPU, 24 GB) against today's defaults, on a real session. Change the defaults only if they earn it.                                                            | Server settings             |
+| B    | **Automatic glossary into Whisper**: character and player names, scene titles, loot and handout titles the server already holds, as Whisper's starting prompt. First check the Whisper server takes one per request. | Inside the worker           |
+| C    | **Corrections after transcription** from the same glossary (dictionary, then fuzzy matching).                                                                                                                        | Inside the worker           |
+| D    | **Structured scribe output**: headed lists (events, decisions, combat, NPCs, locations, loot, quests, secrets, character moments) that the next steps read. Still shown to the Game Master as the scribe's notes.    | Same summary kind, new text |
+| E    | **Chronicler replaces the GM brief's content** (NPCs, open threads, items, locations, hooks, continuity warnings).                                                                                                   | Same summary kind, new text |
+| F    | **Campaign memory, kept by the server**: the scribe updates it, the bard and the Chronicler read it. Nobody edits it yet.                                                                                            | New tables only             |
+| G    | **Personas, one per server**: an operator setting (`vtt-admin settings`) picks the bard's voice for every campaign. All five personas written and tested here.                                                       | An existing kind of setting |
+
+| Step | 0.6.0: protocol 4, one bump                                                                                                                                     | What changes on the wire |
+| ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
+| H    | **The Game Master picks the persona for their campaign**, in the app, with the drunkard's warning.                                                              | A campaign setting       |
+| I    | **GM Notes page** with starter headings and attachments. Read by the Chronicler; read by the bard only for the drunkard.                                        | New routes               |
+| J    | **Glossary the Game Master can edit**, and **vocabulary learning** with approval.                                                                               | New routes               |
+| K    | **Campaign memory the Game Master can read and correct.**                                                                                                       | New routes               |
+| L    | The **soundboard work** already waiting for this bump, and any tidy-up of the records API (the `notes` kind, the transcript rule) that 0.5.2 added without one. | As designed there        |
+
+Order inside 0.5.x follows Andy's priorities: A, B, C (hearing), then D and E (the scribe and Chronicler), then F (memory), then G (personas). Each step is a patch release that can ship by itself.
+
+**One thing 0.5.x cannot do properly:** the drunkard's leaks need secrets to leak, and before the GM Notes page (step I) the only secrets the server holds are what the Chronicler worked out and the Game Master's private handouts. So in 0.5.x the drunkard can embellish and can slip things from those, and gets its real "insider's view" in 0.6.
 
 Still open (ask Andy before designing):
 
-- **What exactly may slip?** Decision 3 keeps secrets from the table and also lets a persona leak "some bits". Which secrets may a tale hint at: only ones the Game Master marks as fair game, or anything in the Chronicler's material? Until answered, the safe reading is that nothing Game-Master-only reaches a tale unless the Game Master allows it.
-- What the Campaign Notes page holds and who writes it: the Game Master by hand, the Chronicler, or both with the Game Master correcting.
 - What happens to a session when the scribe's output cannot be read by the next step.
+- Whether GM Notes may start in 0.5.x as a view over the Game Master's private handouts (they already hold Markdown, pictures and PDFs, one kind per handout), or waits for the real notebook in 0.6.
 - What a persona is: a preset list, free text from the Game Master, or both; per campaign only, or changeable per session.
 - What campaign memory holds, who can read and correct it (the models will get names wrong), and how it stays small enough for a CPU-only server.
 - Whether memory is written by the Historian, the Chronicler, or a step of its own, and how it treats private audio and whispers (never recorded today; that rule stays).
