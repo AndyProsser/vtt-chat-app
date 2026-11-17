@@ -11,14 +11,15 @@ export type LootAction = 'take' | 'store' | 'return' | 'give';
  * - Anyone's unclaimed item: a player can take it or store it in the party stash; the DM can only give
  *   it to one named player (never to the party).
  * - An item a player took (or was given): they can store it or return it.
- * - An item a player stored: they can return it.
+ * - An item in the party stash: any player can take it for themselves or return it to the table.
  * - Everything else (someone else's, a split pile of coin) offers nothing.
  */
 export function lootActions(item: LootHeld, selfId: string | null, dm: boolean): LootAction[] {
   if (!item.claimedBy) return dm ? ['give'] : ['take', 'store'];
-  if (dm || item.claimedBy !== selfId) return [];
+  if (dm) return [];
+  if (item.claimedFor === 'party') return ['take', 'return']; // any player, not only who stored it
+  if (item.claimedBy !== selfId) return [];
   if (item.claimedFor === 'self' || item.claimedFor === 'assigned') return ['store', 'return'];
-  if (item.claimedFor === 'party') return ['return'];
   return [];
 }
 
@@ -50,18 +51,27 @@ export function lootRequest(
   return { path: action, body: {} };
 }
 
-export type LootFilter = 'all' | 'unassigned' | 'assigned' | 'mine';
+/** The loot list's filters (ROADMAP Stage 10). The DM: Available | Taken | All. Players: All | Own | Party | Available. */
+export type LootFilter = 'available' | 'taken' | 'all' | 'own' | 'party';
 
-/** Which filters make sense: "mine" is for players only (the DM hands loot out, they do not collect it). */
+/** The filters this person gets, in the order they are shown. */
 export function lootFiltersFor(dm: boolean): LootFilter[] {
-  return dm ? ['all', 'unassigned', 'assigned'] : ['all', 'unassigned', 'assigned', 'mine'];
+  return dm ? ['available', 'taken', 'all'] : ['all', 'own', 'party', 'available'];
+}
+
+/** The filter the list opens on. */
+export function defaultLootFilter(_dm: boolean): LootFilter {
+  return 'available';
 }
 
 interface Filterable extends LootHeld {
   split?: { shares: { userId: string }[] } | null;
 }
 
-/** Items of one filter. Mine = taken by me, given to me, or I hold a share of a split. */
+/**
+ * Items of one filter. Own = taken by me or given to me, or a split I hold a share of; Party = the party
+ * stash. All is everything passed in: the server already leaves other players' own items out of a player's list.
+ */
 export function filterLootItems<T extends Filterable>(
   items: readonly T[],
   filter: LootFilter,
@@ -70,16 +80,20 @@ export function filterLootItems<T extends Filterable>(
   switch (filter) {
     case 'all':
       return [...items];
-    case 'unassigned':
+    case 'available':
       return items.filter((i) => !i.claimedBy);
-    case 'assigned':
+    case 'taken':
       return items.filter((i) => !!i.claimedBy);
-    case 'mine':
+    case 'party':
+      return items.filter((i) => i.claimedFor === 'party');
+    case 'own':
       return selfId === null
         ? []
         : items.filter(
             (i) =>
-              i.claimedBy === selfId || (i.split?.shares.some((s) => s.userId === selfId) ?? false),
+              (i.claimedBy === selfId &&
+                (i.claimedFor === 'self' || i.claimedFor === 'assigned')) ||
+              (i.split?.shares.some((s) => s.userId === selfId) ?? false),
           );
   }
 }

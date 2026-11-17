@@ -1,4 +1,4 @@
-import { Backpack, Inbox, List, Split, Trash2, User, UserCheck } from 'lucide-react';
+import { Backpack, Inbox, List, Split, Trash2, User, UserCheck, Users } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 import { useAccount } from '../hooks/useAccount.js';
@@ -17,12 +17,19 @@ import { LootWorkbench } from './LootWorkbench.js';
 import { ToolButton } from './ToolButton.js';
 import { EmptyState } from './EmptyState.js';
 
-const FILTER_ICON = { all: List, unassigned: Inbox, assigned: UserCheck, mine: User } as const;
+const FILTER_ICON = {
+  available: Inbox,
+  taken: UserCheck,
+  all: List,
+  own: User,
+  party: Users,
+} as const;
 const FILTER_LABEL: Record<LootFilter, string> = {
-  all: 'Everything',
-  unassigned: 'Still in the pool',
-  assigned: 'Taken or given out',
-  mine: 'Mine',
+  available: 'Available',
+  taken: 'Taken',
+  all: 'All',
+  own: 'Mine',
+  party: 'Party stash',
 };
 
 /**
@@ -59,7 +66,7 @@ export function LootPanel() {
   const problem = error ?? actionError;
   const shown = filterLoot(
     data?.loot ?? [],
-    dm && filter === 'mine' ? 'all' : filter,
+    filtersFor(dm).includes(filter) ? filter : 'all',
     status?.userId ?? null,
   );
 

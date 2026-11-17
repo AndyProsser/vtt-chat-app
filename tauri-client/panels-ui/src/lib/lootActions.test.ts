@@ -19,8 +19,15 @@ describe('lootActions', () => {
       'return',
     ]);
   });
-  it('lets whoever stored an item put it back, but not store it again', () => {
-    expect(lootActions({ claimedBy: 'p1', claimedFor: 'party' }, 'p1', false)).toEqual(['return']);
+  it('lets any player take a party item or put it back, but not store it again', () => {
+    expect(lootActions({ claimedBy: 'p1', claimedFor: 'party' }, 'p1', false)).toEqual([
+      'take',
+      'return',
+    ]);
+    expect(lootActions({ claimedBy: 'p2', claimedFor: 'party' }, 'p1', false)).toEqual([
+      'take',
+      'return',
+    ]);
   });
   it('offers nothing on someone else’s item, a split pile, or to the DM once it is taken', () => {
     expect(lootActions({ claimedBy: 'p2', claimedFor: 'self' }, 'p1', false)).toEqual([]);

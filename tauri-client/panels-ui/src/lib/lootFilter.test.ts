@@ -45,12 +45,12 @@ const items = [
 const ids = (xs: LootItem[]) => xs.map((i) => i.id);
 
 describe('filterLoot', () => {
-  it('shows everything by default', () => {
+  it('all is everything the server sent', () => {
     expect(ids(filterLoot(items, 'all', 'me'))).toEqual(ids(items));
   });
-  it('unassigned is what is still in the pool; assigned is whatever anyone has taken or been given', () => {
-    expect(ids(filterLoot(items, 'unassigned', 'me'))).toEqual(['open']);
-    expect(ids(filterLoot(items, 'assigned', 'me'))).toEqual([
+  it('available is what is still in the pool; taken is whatever anyone has taken, stored or been given', () => {
+    expect(ids(filterLoot(items, 'available', 'me'))).toEqual(['open']);
+    expect(ids(filterLoot(items, 'taken', 'me'))).toEqual([
       'mine',
       'theirs',
       'given',
@@ -58,15 +58,16 @@ describe('filterLoot', () => {
       'others-gold',
     ]);
   });
-  it('mine is what I took, was given, or got a share of in a split', () => {
-    expect(ids(filterLoot(items, 'mine', 'me'))).toEqual(['mine', 'given', 'gold']);
-    expect(filterLoot(items, 'mine', null)).toEqual([]);
+  it('own is what I took, was given, or got a share of in a split; party is the stash', () => {
+    expect(ids(filterLoot(items, 'own', 'me'))).toEqual(['mine', 'given', 'gold']);
+    expect(filterLoot(items, 'own', null)).toEqual([]);
+    expect(ids(filterLoot(items, 'party', 'me'))).toEqual(['theirs']);
   });
 });
 
 describe('filtersFor', () => {
-  it('offers "mine" to players only: the DM does not collect', () => {
-    expect(filtersFor(false)).toEqual(['all', 'unassigned', 'assigned', 'mine']);
-    expect(filtersFor(true)).toEqual(['all', 'unassigned', 'assigned']);
+  it('offers the DM Available | Taken | All, and players All | Own | Party | Available', () => {
+    expect(filtersFor(false)).toEqual(['all', 'own', 'party', 'available']);
+    expect(filtersFor(true)).toEqual(['available', 'taken', 'all']);
   });
 });

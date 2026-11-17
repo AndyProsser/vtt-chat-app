@@ -27,10 +27,11 @@ import { usePhoneStore } from '../../lib/phone/phoneStore.js';
 import type { LootItem, Member } from '../../types/phone.js';
 
 const FILTER_LABEL: Record<LootFilter, string> = {
+  available: 'Available',
+  taken: 'Taken',
   all: 'All',
-  unassigned: 'Available',
-  assigned: 'Taken',
-  mine: 'Mine',
+  own: 'Mine',
+  party: 'Party',
 };
 const ACTION_SHORT: Record<LootAction, string> = {
   take: 'Take',
