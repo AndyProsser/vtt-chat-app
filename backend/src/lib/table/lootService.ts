@@ -16,6 +16,7 @@ import { rerollDraft, rollHoard, rollIndividual, type Draft } from '../loot/gene
 import type { User } from '../../types/index.js';
 import { DomainError } from '../errors.js';
 import type { Store } from '../store/store.js';
+import { visibleLoot } from './lootVisibility.js';
 import type { ClaimedFor, LootItem, LootKind, TableStore } from './tableStore.js';
 
 /** What the DM sends to drop something. Give an SRD `srdId`, or a `name` for a custom item. */
@@ -59,8 +60,8 @@ export class LootService {
   }
 
   async list(user: User, campaignId: string): Promise<LootItem[]> {
-    await this.role(user, campaignId);
-    return this.deps.table.listLoot(campaignId);
+    const role = await this.role(user, campaignId);
+    return visibleLoot(await this.deps.table.listLoot(campaignId), user.id, role === 'dm');
   }
 
   /** Checks one drop and turns it into an item (not yet stored). */
@@ -199,6 +200,12 @@ export class LootService {
     }
     const existing = await this.deps.table.getLoot(itemId);
     if (!existing || existing.campaignId !== campaignId) throw new DomainError('not_found');
+    if (existing.claimedFor === 'party' && forWhom === 'self') {
+      // Any player may take from the party stash (decided 2026-11-17).
+      const taken = await this.deps.table.takeFromParty(itemId, user.id, this.now());
+      if (!taken) throw new DomainError('conflict', 'someone already took that from the stash');
+      return taken;
+    }
     const claimed = await this.deps.table.claimLoot(itemId, user.id, this.now(), forWhom);
     if (!claimed) throw new DomainError('conflict', 'someone already picked that up');
     return claimed;
@@ -209,8 +216,18 @@ export class LootService {
     return this.change(user, campaignId, itemId, ['self', 'assigned'], 'party');
   }
 
-  /** The player who took, stored, or was given an item puts it back on the table, unclaimed. */
+  /** Puts an item back on the table, unclaimed: the player who took or was given it, or any player for a party-stash item. */
   async giveBack(user: User, campaignId: string, itemId: string): Promise<LootItem> {
+    const existing = await this.deps.table.getLoot(itemId);
+    if (existing?.campaignId === campaignId && existing.claimedFor === 'party') {
+      // Any player (never the DM) may put a party-stash item back on the table.
+      if ((await this.role(user, campaignId)) === 'dm') {
+        throw new DomainError('forbidden', 'the DM hands loot out and cannot move the stash');
+      }
+      const back = await this.deps.table.returnFromParty(itemId);
+      if (!back) throw new DomainError('conflict', 'it is already back on the table');
+      return back;
+    }
     return this.change(user, campaignId, itemId, ['self', 'party', 'assigned'], null);
   }
 

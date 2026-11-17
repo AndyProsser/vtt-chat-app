@@ -117,6 +117,13 @@ export interface TableStore {
     from: ClaimedFor[],
     to: 'party' | null,
   ): Promise<LootItem | undefined>;
+  /**
+   * Any player takes an item out of the party stash for themselves. **Atomic**: only while it is in
+   * the stash, so of two players taking at once exactly one gets it; otherwise `undefined`.
+   */
+  takeFromParty(id: string, userId: string, at: number): Promise<LootItem | undefined>;
+  /** Any player puts a party-stash item back on the table, unclaimed. **Atomic**, as above. */
+  returnFromParty(id: string): Promise<LootItem | undefined>;
   deleteLoot(id: string): Promise<void>;
 }
 

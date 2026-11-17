@@ -122,7 +122,7 @@ describe('dropping and claiming', () => {
     expect(first.body.item.claimedAt).toBeGreaterThan(0);
     const second = await claim(bob.token, id);
     expect(second.status).toBe(409);
-    const list = (await call('GET', `/api/campaigns/${campaign}/loot`, bob.token)).body.loot;
+    const list = (await call('GET', `/api/campaigns/${campaign}/loot`, dm.token)).body.loot; // a player no longer sees another's item
     expect(list[0].claimedBy).toBe(alice.id);
     expect(events.map((e) => e.event)).toEqual(['dropped', 'claimed']);
     expect(events[1]?.claimedBy).toBe(alice.id);
@@ -200,6 +200,94 @@ describe('storing and returning what you took', () => {
     await call('POST', `/api/campaigns/${campaign}/loot/${id}/split`, dm.token, {});
     expect((await act(alice.token, id, 'return')).status).toBe(403);
     expect((await act(alice.token, id, 'store')).status).toBe(403);
+  });
+});
+
+describe('what each person sees, and the party stash', () => {
+  const list = async (token: string) =>
+    ((await call('GET', `/api/campaigns/${campaign}/loot`, token)).body.loot as any[]).map(
+      (i) => i.id,
+    );
+  const act = (token: string, id: string, what: 'store' | 'return') =>
+    call('POST', `/api/campaigns/${campaign}/loot/${id}/${what}`, token, {});
+
+  it("player list hides another player's own items", async () => {
+    const taken = (await drop(dm.token, { name: 'Taken' })).body.item.id;
+    const given = (await drop(dm.token, { name: 'Given' })).body.item.id;
+    await claim(alice.token, taken);
+    await call('POST', `/api/campaigns/${campaign}/loot/${given}/assign`, dm.token, {
+      userId: alice.id,
+    });
+    expect(await list(bob.token)).toEqual([]);
+    expect(await list(alice.token)).toEqual([taken, given]);
+    expect(await list(dm.token)).toEqual([taken, given]);
+  });
+
+  it('party and available items are visible to every player', async () => {
+    const stored = (await drop(dm.token, { name: 'Stored' })).body.item.id;
+    const open = (await drop(dm.token, { name: 'Open' })).body.item.id;
+    await call('POST', `/api/campaigns/${campaign}/loot/${stored}/claim`, alice.token, {
+      for: 'party',
+    });
+    expect(await list(bob.token)).toEqual([stored, open]);
+  });
+
+  it('split pile is visible only to share holders', async () => {
+    const id = (await drop(dm.token, { name: 'gp', kind: 'coin', quantity: 10 })).body.item.id;
+    await call('POST', `/api/campaigns/${campaign}/loot/${id}/split`, bob.token, {
+      userIds: [alice.id],
+    });
+    expect(await list(alice.token)).toEqual([id]);
+    expect(await list(bob.token)).toEqual([]);
+  });
+
+  it('any player can take from the party stash', async () => {
+    const id = (await drop(dm.token)).body.item.id;
+    await call('POST', `/api/campaigns/${campaign}/loot/${id}/claim`, alice.token, {
+      for: 'party',
+    });
+    const took = await call('POST', `/api/campaigns/${campaign}/loot/${id}/claim`, bob.token, {
+      for: 'self',
+    });
+    expect(took.status).toBe(200);
+    expect(took.body.item).toMatchObject({ claimedBy: bob.id, claimedFor: 'self' });
+    expect(events.at(-1)).toMatchObject({ event: 'claimed', claimedBy: bob.id });
+  });
+
+  it('any player can return a party item', async () => {
+    const id = (await drop(dm.token)).body.item.id;
+    await call('POST', `/api/campaigns/${campaign}/loot/${id}/claim`, alice.token, {
+      for: 'party',
+    });
+    const back = await act(bob.token, id, 'return');
+    expect(back.status).toBe(200);
+    expect(back.body.item).toMatchObject({ claimedBy: null, claimedFor: null });
+  });
+
+  it('racing party takes: one wins', async () => {
+    const carol = await person('carol');
+    const { code } = (await call('POST', `/api/campaigns/${campaign}/invites`, dm.token, {})).body;
+    await call('POST', '/api/campaigns/join', carol.token, { code });
+    const id = (await drop(dm.token)).body.item.id;
+    await call('POST', `/api/campaigns/${campaign}/loot/${id}/claim`, alice.token, {
+      for: 'party',
+    });
+    const results = await Promise.all(
+      [bob, carol].map((p) =>
+        call('POST', `/api/campaigns/${campaign}/loot/${id}/claim`, p.token, { for: 'self' }),
+      ),
+    );
+    expect(results.map((r) => r.status).sort()).toEqual([200, 409]);
+  });
+
+  it('the DM still cannot take from the stash, store, or return a party item', async () => {
+    const id = (await drop(dm.token)).body.item.id;
+    await call('POST', `/api/campaigns/${campaign}/loot/${id}/claim`, alice.token, {
+      for: 'party',
+    });
+    expect((await claim(dm.token, id)).status).toBe(403);
+    expect((await act(dm.token, id, 'return')).status).toBe(403);
+    expect((await act(bob.token, id, 'store')).status).toBe(403); // already in the stash, not bob's
   });
 });
 
