@@ -1,14 +1,6 @@
+import { Badge, Button, Callout, Card, Flex, SegmentedControl, Text } from '@radix-ui/themes';
 import {
-  Badge,
-  Button,
-  Callout,
-  Card,
-  Flex,
-  SegmentedControl,
-  Select,
-  Text,
-} from '@radix-ui/themes';
-import {
+  defaultLootFilter,
   filterLootItems,
   LOOT_ACTION_LABEL,
   lootActions,
@@ -18,6 +10,8 @@ import {
   type LootFilter,
 } from '@vtt-chat-app/shared';
 import { useState } from 'react';
+
+import { GiveSelect } from './GiveSelect.js';
 
 import { useIsDm } from '../../hooks/useIsDm.js';
 import { useLoad } from '../../hooks/useLoad.js';
@@ -72,11 +66,11 @@ export function InventoryTab({ campaignId }: { campaignId: string }) {
     () => lootItems(campaignId),
     `${campaignId}:${rev}`,
   );
-  const [filter, setFilter] = useState<LootFilter>('all');
+  const [filter, setFilter] = useState<LootFilter>(() => defaultLootFilter(dm));
   const [problem, setProblem] = useState<string>();
-  const [giving, setGiving] = useState<string>();
   const filters = lootFiltersFor(dm);
-  const shown = filterLootItems(data ?? [], filters.includes(filter) ? filter : 'all', selfId);
+  const view = filters.includes(filter) ? filter : defaultLootFilter(dm);
+  const shown = filterLootItems(data ?? [], view, selfId);
   const players = members.filter((m) => m.role !== 'dm');
 
   async function run(item: LootItem, action: LootAction, userId?: string) {
@@ -85,7 +79,6 @@ export function InventoryTab({ campaignId }: { campaignId: string }) {
       const req =
         action === 'give' ? lootRequest('give', item, userId ?? '') : lootRequest(action, item);
       await lootDo(campaignId, item.id, req);
-      setGiving(undefined);
       reload();
     } catch (e) {
       setProblem(e instanceof ApiError ? e.message : 'That did not work. Try again.');
@@ -96,7 +89,7 @@ export function InventoryTab({ campaignId }: { campaignId: string }) {
     <Flex direction="column" gap="3" className="phone-pad">
       <SegmentedControl.Root
         size="1"
-        value={filters.includes(filter) ? filter : 'all'}
+        value={view}
         onValueChange={(v) => setFilter(v as LootFilter)}
       >
         {filters.map((f) => (
@@ -115,7 +108,9 @@ export function InventoryTab({ campaignId }: { campaignId: string }) {
         <Text color="gray" align="center" mt="6">
           {data.length === 0
             ? 'Nothing here yet. Loot the DM drops shows up here.'
-            : 'Nothing in this list.'}
+            : view === 'available'
+              ? 'Nothing left to take.'
+              : 'Nothing in this list.'}
         </Text>
       )}
       {shown.map((item) => {
@@ -146,34 +141,26 @@ export function InventoryTab({ campaignId }: { campaignId: string }) {
               </Text>
               {actions.length > 0 && (
                 <Flex gap="2" wrap="wrap">
-                  {actions.map((action) => (
-                    <Button
-                      key={action}
-                      size="1"
-                      variant={action === 'take' ? 'solid' : 'soft'}
-                      title={LOOT_ACTION_LABEL[action]}
-                      onClick={() =>
-                        action === 'give'
-                          ? setGiving(giving === item.id ? undefined : item.id)
-                          : void run(item, action)
-                      }
-                    >
-                      {ACTION_SHORT[action]}
-                    </Button>
-                  ))}
+                  {actions.map((action) =>
+                    action === 'give' ? (
+                      <GiveSelect
+                        key={action}
+                        players={players}
+                        onPick={(userId) => void run(item, 'give', userId)}
+                      />
+                    ) : (
+                      <Button
+                        key={action}
+                        size="1"
+                        variant={action === 'take' ? 'solid' : 'soft'}
+                        title={LOOT_ACTION_LABEL[action]}
+                        onClick={() => void run(item, action)}
+                      >
+                        {ACTION_SHORT[action]}
+                      </Button>
+                    ),
+                  )}
                 </Flex>
-              )}
-              {giving === item.id && (
-                <Select.Root size="1" onValueChange={(userId) => void run(item, 'give', userId)}>
-                  <Select.Trigger placeholder="Give to…" />
-                  <Select.Content>
-                    {players.map((m) => (
-                      <Select.Item key={m.userId} value={m.userId}>
-                        {m.character?.name ?? m.displayName}
-                      </Select.Item>
-                    ))}
-                  </Select.Content>
-                </Select.Root>
               )}
             </Flex>
           </Card>

@@ -1,7 +1,15 @@
 import { describe, expect, it } from 'vitest';
 
 import type { Member } from '../../types/phone.js';
-import { memberCard, portraitUrl, presenceLabel, presenceOf, railOrder, initials } from './rail.js';
+import {
+  memberCard,
+  playerLines,
+  portraitUrl,
+  presenceLabel,
+  presenceOf,
+  railOrder,
+  initials,
+} from './rail.js';
 
 const m = (userId: string, over: Partial<Member> = {}): Member => ({
   userId,
@@ -102,5 +110,15 @@ describe('presenceLabel', () => {
     expect(presenceLabel('offline', null)).toBe('Offline (chat only)');
     expect(presenceLabel('online', 'web')).toBe('Online');
     expect(presenceLabel('disconnected', 'web')).toBe('Disconnected (app closed or signed out)');
+  });
+});
+
+describe('playerLines', () => {
+  it('names a player by their character, with their own name beside it', () => {
+    expect(playerLines(m('u', { displayName: 'Andy', character: { name: 'Shadow' } }))).toEqual({
+      primary: 'Shadow',
+      secondary: 'Andy',
+    });
+    expect(playerLines(m('u', { displayName: 'Andy' }))).toEqual({ primary: 'Andy' });
   });
 });

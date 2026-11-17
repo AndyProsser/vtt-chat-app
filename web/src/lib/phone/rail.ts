@@ -90,3 +90,9 @@ export function memberCard(m: Member): MemberCard {
   }
   return { title: c?.name ?? m.displayName, lines, presence: presenceOf(m) };
 }
+
+/** What a player is called in a picker: the character's name, with the person's own name beside it. */
+export function playerLines(m: Member): { primary: string; secondary?: string } {
+  const character = m.character?.name;
+  return character ? { primary: character, secondary: m.displayName } : { primary: m.displayName };
+}
