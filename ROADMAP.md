@@ -484,12 +484,18 @@ More detail from Andy's own notes ("VTT Chat Chronicler" and "VTT Chat Transcrip
 - Whisper is given **no vocabulary today**. The server already knows each campaign's character names, player names, scene titles, loot and handout titles, so a first glossary costs nothing to collect. Whether the Whisper server takes a starting prompt per request has to be checked before promising it.
 - The scribe already receives who the Game Master is and the scene cues; the prompts already tell it to keep names as spoken.
 
-Questions to settle with Andy before any design (none answered yet):
+### Decided by Andy, 2026-11-17
 
-- **May a persona change the facts?** Today's rule is that the bard may embellish how a thing happened, never what happened or who did it. The Drunken Bard breaks that on purpose. Is that a persona the Game Master opts into, clearly labelled, with the accurate tale kept beside it?
-- **Structured facts from a 4 GB model:** small models are unreliable at strict formats. Plain headed lists that code then parses, or real JSON with a retry, and what happens to a session when it fails?
-- **Secrets in memory:** the Chronicler's material is for the Game Master, and the bard writes for the players. Memory needs a Game-Master-only side that the bard never reads, or it will leak hidden plot into a tale.
-- **One tale or several:** is a persona a campaign setting (one tale per session), or can players read the same session in several voices (more model time per session on a CPU)?
+1. **A persona never changes the facts; it may embellish them.** The Drunken Bard bends this a little further and may make up a few things to make events sound more interesting, but **the essence of the truth is always there**.
+2. **The scribe's output does not have to be strict**, only readable by the next step; the more structured the better. Worth testing with it: Whisper `medium.en` and the summary model `qwen3.5:8b` (the test VM was raised to 8 vCPU and 24 GB of memory for this).
+3. **Game Master secrets are kept from the table.** A persona such as the Drunken Bard may let some bits slip, and the players are left to wonder whether to believe the tale. The Game Master may need an optional **Campaign Notes** page to keep these records.
+4. **One tale per session, one bard.** Most sessions end with the party back at the tavern: "The Bard" is telling the tale of mighty adventures, and the heroes just happen to be sitting at one of the tables.
+
+Still open (ask Andy before designing):
+
+- **What exactly may slip?** Decision 3 keeps secrets from the table and also lets a persona leak "some bits". Which secrets may a tale hint at: only ones the Game Master marks as fair game, or anything in the Chronicler's material? Until answered, the safe reading is that nothing Game-Master-only reaches a tale unless the Game Master allows it.
+- What the Campaign Notes page holds and who writes it: the Game Master by hand, the Chronicler, or both with the Game Master correcting.
+- What happens to a session when the scribe's output cannot be read by the next step.
 - What a persona is: a preset list, free text from the Game Master, or both; per campaign only, or changeable per session.
 - What campaign memory holds, who can read and correct it (the models will get names wrong), and how it stays small enough for a CPU-only server.
 - Whether memory is written by the Historian, the Chronicler, or a step of its own, and how it treats private audio and whispers (never recorded today; that rule stays).

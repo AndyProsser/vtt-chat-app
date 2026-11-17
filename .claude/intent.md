@@ -137,7 +137,7 @@ Update this file as threads open, progress, or close — stale entries here are 
 - **Storytelling roles, personas and campaign memory (Andy's idea, 2026-11-17; ROADMAP Stage 11).** Pipeline as
   named roles with personas: Transcribe → Historian (scribe) → Storyteller (bard) → Chronicler (GM notes); the
   bard's persona is GM-configurable to suit the campaign's tone; a persistent campaign memory lets the bard connect
-  places, NPCs and creatures the party has met before. More detail arrived the same day in two of Andy's memos (roles' outputs, five personas, memory shape, a campaign glossary for Whisper, his order of work) and is written into ROADMAP Stage 11 with four questions for him. **Still ask before
+  places, NPCs and creatures the party has met before. More detail arrived the same day in two of Andy's memos (roles' outputs, five personas, memory shape, a campaign glossary for Whisper, his order of work) and is written into ROADMAP Stage 11. Andy answered four questions the same day (personas embellish but keep the essence of the truth; the scribe's format need not be strict; GM secrets stay from the table, with an optional Campaign Notes page; one tale, one bard at the tavern) and wants `medium.en` and `qwen3.5:8b` tested on the VM (now 8 vCPU, 24 GB). Open: which secrets a persona may let slip. **Still ask before
   designing anything.** Only captured, not decided.
 
 - **Retire the old hub records?** Memory Hub still holds `vtt-chat-app-architecture-and-decisions`
