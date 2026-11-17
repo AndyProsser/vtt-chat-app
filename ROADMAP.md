@@ -451,6 +451,14 @@ flowchart LR
 - **Chronicler:** writes the Game Master's notes (today's GM brief is the nearest thing).
 - **Persistent campaign memory:** what the campaign has already met (places, non-player characters, creatures) is kept between sessions, so the Storyteller can notice that the party has been here or met this person before, and refer back to it.
 
+### What this is for (Andy, 2026-11-17): the test every part of it must pass
+
+**Playing the game comes first.** The summaries add flavour, humour and texture; they are not a second job. Three things follow, and any feature here that fails them is cut or hidden:
+
+- **Do not overwhelm the Game Master or the players** with options or with content. Few choices, good defaults, one tale. More output is not better output.
+- **Keep the table connected to the story.** Many tables go weeks between sessions; the tale and the memory are what carry everyone back in.
+- **Give the Game Master superpowers of recall.** The obscure fact, the name and trade of the throwaway NPC: "Gary the Grumpy Gnome", invented on the spot, whom the players go looking for five sessions later. Finding Gary is the measure of the campaign memory.
+
 ### Andy's notes (two memos, 2026-11-17)
 
 More detail from Andy's own notes ("VTT Chat Chronicler" and "VTT Chat Transcription Tweaks"). Still ideas, recorded so the design starts from them.
@@ -492,6 +500,9 @@ More detail from Andy's own notes ("VTT Chat Chronicler" and "VTT Chat Transcrip
 4. **GM Notes: a plain Markdown notebook for the Game Master** (optional). A background notebook and ideas board: plot hooks, key NPCs and events. **Unstructured by design**, so each Game Master makes it their own, with some **starter headings** to prompt a novice. **Attachments allowed: pictures and PDFs.** It is where the secrets live.
 5. **One tale per session, one bard.** Most sessions end with the party back at the tavern: "The Bard" is telling the tale of mighty adventures, and the heroes just happen to be sitting at one of the tables.
 
+6. **GM Notes waits for 0.6.** No stop-gap view over private handouts in 0.5.x.
+7. **When the scribe's output cannot be read by the next step, retry**, up to making the scribe read the transcript again. The scribe's data is what makes the rest of the pipeline rich, so it is worth the model time; a weaker fallback is not.
+
 ### Build order, split by the wire protocol (planned 2026-11-17)
 
 Andy's rule for sequencing: do everything that needs **no protocol change** in **0.5.x** first, and collect what does into **one** bump to protocol 4, which is **0.6.0** ([VERSIONING-AND-DEPLOYMENT.md](docs/architecture/VERSIONING-AND-DEPLOYMENT.md): a new or changed REST route, WebSocket frame or event, or a changed body, bumps it; server-only and screen-only work does not). `intent.md` already reserves 0.6.0 for the first such change, and the soundboard work was expected to be it, so the two should land together.
@@ -522,8 +533,6 @@ Order inside 0.5.x follows Andy's priorities: A, B, C (hearing), then D and E (t
 
 Still open (ask Andy before designing):
 
-- What happens to a session when the scribe's output cannot be read by the next step.
-- Whether GM Notes may start in 0.5.x as a view over the Game Master's private handouts (they already hold Markdown, pictures and PDFs, one kind per handout), or waits for the real notebook in 0.6.
 - What a persona is: a preset list, free text from the Game Master, or both; per campaign only, or changeable per session.
 - What campaign memory holds, who can read and correct it (the models will get names wrong), and how it stays small enough for a CPU-only server.
 - Whether memory is written by the Historian, the Chronicler, or a step of its own, and how it treats private audio and whispers (never recorded today; that rule stays).
