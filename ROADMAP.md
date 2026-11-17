@@ -432,14 +432,14 @@ Each item is independent, off by default, and must never be assumed by applicati
 
 ### Loot management and chat history (asked by Andy, 2026-11-17)
 
-**Status:** ⚪ Not Started. Andy's requests from real use of the 0.5.2 loot panel and chat; written up, not yet designed in detail. It sits here rather than in a new stage, and unlike the rest of Stage 10 it is **not optional**: it fixes and extends Stage 6 table features. The open questions at the end need Andy's answer before the build plan.
+**Status:** ⚪ Not Started. Andy's requests from real use of the 0.5.2 loot panel and chat; written up, and Andy answered the open questions the same day (listed at the end). It sits here rather than in a new stage, and unlike the rest of Stage 10 it is **not optional**: it fixes and extends Stage 6 table features. Next step: a build plan.
 
 #### 1. Chat survives a server restart, and older chat loads on scroll
 
 **What happens now:** after a server restart the desktop chat is empty. **Why (found 2026-11-17):** the server already keeps chat in Postgres (`chat_messages`, trimmed to `CHAT_RETENTION_MESSAGES` = 5000 per campaign) and has a paged `GET /api/campaigns/:id/chat?before=…`, which the phone web app uses. But the desktop fills its chat from the WebSocket snapshot's `recentChat`, which is read from the **replay buffer** (`hub.ts` `snapshot()`, last 50 events), and the replay buffer is short-lived by design. The loot and handout cards in chat come from the same buffer, so they vanish too.
 
-- The snapshot's recent chat comes from **Postgres**, not the replay buffer: the last 20 to 50 messages the viewer may see.
-- Scrolling up asks for older messages a page at a time (the existing `before` cursor), until there are no more.
+- The snapshot's recent chat comes from **Postgres**, not the replay buffer: the last **50** messages the viewer may see.
+- Scrolling up asks for older messages **50 at a time** (the existing `before` cursor), until there are no more.
 - Loot and handout cards are rebuilt from their own tables with the chat they sit in, so a restart keeps them in place.
 - **Done when:** restart the server mid-session; every client shows the same recent chat and cards afterwards, and can scroll back past 24 hours.
 
@@ -450,13 +450,15 @@ Each item is independent, off by default, and must never be assumed by applicati
 
 #### 3. Filters and what each person sees
 
-| Who    | Filters, in order                | Default   | Sees                                                                        |
-| ------ | -------------------------------- | --------- | --------------------------------------------------------------------------- |
-| DM     | Available \| Taken \| All        | Available | everything                                                                  |
-| Player | All \| Own \| Party \| Available | Available | **only** available, party-stash and their own items; never another player's |
+| Who    | Filters, in order                                 | Default       | Sees                                                                        |
+| ------ | ------------------------------------------------- | ------------- | --------------------------------------------------------------------------- |
+| DM     | Available \| Taken \| All                         | Available     | everything, but **not** the confirmed flags (part 5)                        |
+| Player | Not confirmed \| All \| Own \| Party \| Available | Not confirmed | **only** available, party-stash and their own items; never another player's |
 
 - Give, take, store, split and return update the open list straight away, with no manual refresh. On the DM's Available view an item that was just given or split **fades out** (rather than vanishing at once) so the DM can see it went.
 - **Players can take from the party stash.** Today only the player who stored an item can move it again; any player of the campaign may take a party item for themselves.
+- **Players are in charge of loot.** The DM gives only to a **named player**, never to the party stash, and only for the items that must go to one person. The DM can still **remove** unclaimed loot.
+- The player's **Not confirmed** view lists their own and the party's items not yet ticked (part 5). If it is empty the panel says so and points to Available.
 
 #### 4. Re-drop available loot into chat
 
@@ -465,14 +467,20 @@ Each item is independent, off by default, and must never be assumed by applicati
 
 #### 5. "Added to my sheet": notification and confirmed flag
 
-- A player who is **given** an item (or coin) gets a notification, so they know to add it to their character sheet. It is stored like the other notifications, so a player who was not in the session sees it next time.
-- Each item a player holds has a **confirmed** flag the player ticks once it is on their sheet. Unconfirmed items stand out in their loot panel, for the player who forgot or was away.
+The confirmed flag means **"I've added this to the real game sheet"** (e.g. the D&D Beyond character sheet, or the party inventory sheet most tables keep). It is the players' tool, not the DM's: a player who never adds an item cannot use it in the game (an attuned item's bonuses and feats only appear on a DDB sheet once it is added), and that is between them and their sheet. The DM needs to know only that something was claimed.
+
+- **Every held item has a confirmed flag:** a player's own items, **each player's share of split coin**, and **party-stash items** (ticked by any player once it is on the party's shared sheet).
 - **The flag resets whenever the item moves:** own → party, party → own, or back to available (returned or dropped).
+- **The DM never sees the flags.** They add nothing to the DM's load.
+- **An unconfirmed counter** sits on the loot icon, as a small badge, in **both** the desktop app and the phone web app: the number of the player's own and party items not yet confirmed. It is the main reminder, for the player who forgot or was away.
+- **Given by the DM:** a notification ("The DM gave you …, add it to your sheet"), stored like the other notifications so a player who was not in the session sees it next time, **plus** the counter.
+- **Taken, stored or split by a player:** **no notification**; the counter going up is the only sign (the player did it themselves).
 
 ```mermaid
 stateDiagram-v2
   [*] --> Available: DM drops
-  Available --> Own: player takes / DM gives (notify)
+  Available --> Own: player takes (counter) / DM gives (notify + counter)
+  Available --> [*]: DM removes
   Available --> Party: player stores
   Party --> Own: any player takes
   Own --> Party: store
@@ -484,16 +492,16 @@ stateDiagram-v2
 
 #### Release fit
 
-Parts 1 to 3 change no wire contract (the server reads chat from a different place; the paged REST call exists; filters and the picker are client-side; letting any player take from the party is a server rule) and can ship in a **0.5.x** patch. Parts 4 and 5 add to the wire (a re-drop event, a confirmed field and its call, a new notification kind), so they are a `shared/` contract change and ride the **0.6.0 / protocol 4** bump Stage 11 already plans. Both apps (desktop and phone web) get the same behaviour. [LOOT.md](docs/architecture/LOOT.md) and [TABLE-FEATURES.md](docs/architecture/TABLE-FEATURES.md) are updated with the build.
+Parts 1 to 3 change no wire contract (the server reads chat from a different place; the paged REST call exists; filters and the picker are client-side; letting any player take from the party is a server rule) and can ship in a **0.5.x** patch. Parts 4 and 5 add to the wire (a re-drop event, a confirmed field and its call, a new notification kind), and the Not confirmed filter and the counter need that field, so they are a `shared/` contract change and ride the **0.6.0 / protocol 4** bump Stage 11 already plans. Both apps (desktop and phone web) get the same behaviour. [LOOT.md](docs/architecture/LOOT.md) and [TABLE-FEATURES.md](docs/architecture/TABLE-FEATURES.md) are updated with the build.
 
-#### Open questions for Andy
+#### Loot decisions (Andy, 2026-11-17)
 
-1. **Who confirms a party-stash item?** Proposed: nobody; confirmed applies to a player's own items only, since the party stash is not on anyone's sheet.
-2. **Split coin:** does each player's share get its own confirmed flag and its own "you were given" notification?
-3. **Can the DM give to the party stash?** Today the DM can only give to a named player.
-4. **Does the DM see the confirmed flags** (e.g. a tick on Taken items) to chase up a player?
-5. **Notify on take as well as give?** A player who takes an item did it themselves; proposed: notify on give only.
-6. **Chat page size:** 50 on load, then 50 per scroll-up? (Andy suggested 20 to 50.)
+1. **Party-stash items are confirmed too.** Most tables keep a shared party inventory sheet (DDB has one); the flag says it has been copied there.
+2. **Each share of split coin has its own flag**, for the same reason: "I've added this to my sheet".
+3. **The DM gives to named players only**, never to the party stash. Players are in charge of loot most of the time; the DM gives the specific items that must go to one player, and can remove unclaimed loot.
+4. **The DM does not see the flags.** The DM has enough to manage; all they need to know is that something was claimed. Players get a **Not confirmed** filter (their default) and an **unconfirmed counter** on the loot icon in both apps.
+5. **A player who takes an item gets no notification**; the counter is the only sign. A DM give notifies.
+6. **Chat loads 50 messages, then 50 per scroll-up.**
 
 ## Stage 11 — Storytelling: Roles, Personas and Campaign Memory (idea, 2026-11-17)
 
