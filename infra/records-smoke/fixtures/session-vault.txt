@@ -1,0 +1,133 @@
+# A written test session: "The Sunken Temple", the vault below. About 12 minutes of speech (1,800 words), as a transcript.
+# Used to compare summary models and prompts on something longer and messier than the two-minute spoken
+# scene (session-fixture.ts turns it into a transcript and scores the notes against session-vault.facts.json).
+# One line per utterance: "Speaker: words". Morgan is the Game Master. "(typed)" lines were typed in chat.
+# It has what a real table has and a summary must cope with: a throwaway NPC, a promise with a deadline,
+# a secret only the Game Master knows the meaning of, failed rolls, a natural 1, loot, and pizza.
+
+Morgan: Right, are we recording? Good. Welcome back everyone. Last time, Bram took the silver key from the drowned king's statue and a hidden door opened behind the altar.
+Dorn: Before we start, did anyone order the pizza? I am not doing this hungry again.
+Elowen: It is coming at eight. Half pepperoni, half whatever Bram wanted.
+Bram: Mushroom. It is called having taste.
+Morgan: Okay, okay. You are standing in front of the hidden door. Cold air rolls out of it, and stairs go down into the dark. The key in Bram's hand is still warm.
+Aria: I go first, quietly. I want to check the stairs for traps.
+Morgan: Give me an investigation check.
+Aria: That is a seven. Plus two. Nine.
+Morgan: The stairs look fine to you. You take three steps and the fourth one sinks under your boot with a click.
+Aria: Of course it does.
+Morgan: Darts fly out of the wall. Dexterity saving throw.
+Aria: Fifteen.
+Morgan: You twist aside. Most of them miss, one clips your shoulder. Take three piercing damage.
+Dorn: This is why I go first. I am lower to the ground.
+Bram: I cast Light on my shield again and follow her down, shield up.
+Morgan: At the bottom the stairs open into a round chamber, half flooded, ankle deep. In the middle there is a stone table with a brass lantern on it, lit, and beside it a small figure asleep on a stool.
+Cassiel: Asleep? Down here?
+Morgan: A gnome. Grey beard, oilskin coat, a tray of little bottles hanging from his neck. He is snoring.
+Elowen: I clear my throat. Loudly. Musically.
+Morgan: He jerks awake and nearly falls off the stool. He says, what, what, we are closed, come back at high tide.
+Dorn: Who are you supposed to be?
+Morgan: He squints at you. He says, Gary. Gary Brasswick. Purveyor of lamp oil to the discerning dead. And you are standing in my shop.
+Elowen: Gary the gnome. I love him already.
+Morgan: He is not pleased to see you. He is, let us say, a grumpy gnome.
+Aria: Gary, what are you doing in a drowned temple?
+Morgan: He says, selling lamp oil. The king's stewards buy it. Forty years I have had this pitch and nobody has ever come down those stairs with a pulse.
+Cassiel: The king's stewards. Does he mean the eel?
+Morgan: He looks at your bleeding hand, Cassiel, and his face changes. He says, oh. Oh, you paid the toll. You should not have done that, girl.
+Cassiel: Why not? What does it do?
+Morgan: He says, the king keeps what the king was given. That is all I will say for free.
+Dorn: How much for the rest?
+Morgan: He says, ten gold. Or one favour.
+Bram: I am not paying a gnome ten gold for a riddle.
+Elowen: I will try to charm it out of him. Persuasion.
+Morgan: Go on.
+Elowen: Natural one.
+Dorn: Ha!
+Morgan: You start singing him a verse about generosity. Elowen, halfway through you realise you are singing it to the tune of a funeral dirge. Gary stares at you and puts his fingers in his ears.
+Elowen: I maintain it was art.
+Bram: Fine. I pay him the ten gold.
+Morgan: Gary bites one of the coins and nods. He says, blood paid at the door is a debt. Until the key goes back to the king's hand, the one who bled belongs to him. Three nights. On the third night he comes to collect.
+Cassiel: Three nights. Wonderful.
+Aria (typed): so we have until the third night to put the key back
+Morgan: That is what he says.
+Dorn: Or we kill the king.
+Morgan: Gary laughs at that until he coughs. He says, he is already dead, lad. That is rather the problem.
+Bram: Is there a way through to the vault from here?
+Morgan: He points past the table. There is an archway, and beyond it the water gets deeper. He says, the vault is across the cistern. The stewards do not like visitors. Take a lamp. They do not like the light either.
+Aria: Does he sell us lamp oil, then?
+Morgan: Two silver a bottle. He has six bottles.
+Dorn: We take all six. I will carry them.
+Morgan: Twelve silver. Dorn, mark six bottles of lamp oil.
+Cassiel: Gary, the favour you mentioned. What would it have been?
+Morgan: He goes quiet. Then he says, my brother Pim came down here with me. If you find a brass lantern like this one, with a P scratched on the base, bring it back. That is all.
+Elowen: We promise. I promise. We will bring Pim's lantern back.
+Morgan: He does not say thank you. He says, hm. But he gives Elowen a seventh bottle for nothing.
+Dorn: Sorry, the pizza is here. Two minutes.
+Morgan: Go, go. We will pause there.
+Morgan: Everyone back? Okay. You wade through the archway into the cistern. It is a huge square room, the water is chest deep on a human. Dorn, it is over your head.
+Dorn: I climb on Bram.
+Bram: You do not.
+Morgan: There are stone pillars sticking out of the water like stepping stones, about ten feet apart, leading to a bronze door on the far side.
+Aria: I jump across the pillars. Acrobatics?
+Morgan: Athletics, for the distance.
+Aria: Eighteen.
+Morgan: You go across like a cat. You are on the third pillar when something moves under the water. A long shape. Then a second one.
+Cassiel: The eel is back. And it brought a friend.
+Morgan: Roll initiative.
+Bram: Fourteen.
+Dorn: Nineteen. Finally.
+Aria: Eleven.
+Cassiel: Six.
+Elowen: Sixteen.
+Morgan: Dorn, you are up first.
+Dorn: I take a bottle of lamp oil, light it off the lantern, and throw it at the nearest eel.
+Morgan: Oh, I like that. Make an attack roll.
+Dorn: Seventeen to hit.
+Morgan: The bottle bursts on its back and burning oil spreads across the water. The eel thrashes. It takes eight fire damage, and it is clearly afraid of the flame. It backs away from the light.
+Elowen: I inspire Dorn. That was magnificent, small man.
+Morgan: Second eel goes for Aria on her pillar. That is a twenty two to hit.
+Aria: That hits.
+Morgan: It bites and tries to drag you in. Eleven damage, and give me a strength save.
+Aria: Eight.
+Morgan: You go into the water. You are grappled and it is pulling you under.
+Bram: My turn. I wade in and hit it with my mace. Nineteen.
+Morgan: Hits.
+Bram: Nine damage, and I use Channel Divinity. Turn Undead. Are they undead?
+Morgan: They are. The first eel, the burned one, fails its save. It flees, straight down a drain at the bottom of the cistern. The one holding Aria succeeds. It stays.
+Cassiel: Eldritch Blast on the one holding Aria. Twenty one to hit.
+Morgan: Hits.
+Cassiel: Ten force damage. And I say, let go of her, in Infernal.
+Morgan: When your blast lands, the eel lets go of Aria and turns its whole head toward you, Cassiel. It does not attack you. It bows. Then it sinks and does not come up again.
+Cassiel: It bowed to me. I hate that.
+Bram: That is the debt. It knows you belong to the king.
+Aria: I get out of the water, please. I am at nine hit points.
+Bram: I cast Cure Wounds on Aria. Seven back.
+Morgan: Combat is over. The water is still, apart from a slick of burning oil.
+Dorn: I search the bottom where the eel was. Is there anything shiny?
+Morgan: Give me a perception check, you will have to dive.
+Dorn: Twelve.
+Morgan: You come up with a handful of old coins, call it thirty gold, and something heavier. A brass lantern, green with age.
+Elowen: Is there a P on the base?
+Morgan: Dorn, you turn it over. There is a letter scratched on the base. It is a P.
+Elowen: Pim's lantern. We found it.
+Dorn: I am keeping the thirty gold though.
+Morgan: Noted. Thirty gold to the party, Dorn is holding it. And Pim's lantern.
+Aria: Let us get to the door before anything else wakes up.
+Morgan: You reach the bronze door. There is no handle, only a hand-shaped hollow in the middle, about the size of a human hand, and words in old Dwarvish above it.
+Bram: I read Dwarvish. What does it say?
+Morgan: It says, the king receives. Nothing else.
+Bram: I put the silver key in the hollow.
+Morgan: Nothing happens. The key is the wrong shape for it. It is a hollow for a hand.
+Cassiel: It wants my hand. The one I cut.
+Dorn: Do not do it. Every time you bleed on something in here it gets worse.
+Cassiel: We have three nights. I want to see what is in there.
+Elowen: Can I tell if the door is magical? I cast Detect Magic.
+Morgan: It is. Strong necromancy on the door, and Elowen, there is the same necromancy on Cassiel now. Faint, around her left hand, like a thread going down through the floor.
+Elowen: I do not tell her that yet.
+Morgan (typed): Elowen, only you know about the thread for now.
+Aria: I vote we go back up, give Gary his lantern, and ask him what is behind this door before anyone touches it.
+Bram: Agreed. He knows more than he sold us.
+Dorn: Agreed. And I want to buy more oil.
+Cassiel: Fine. But I am coming back to this door.
+Morgan: Then that is where we stop. You are standing at the bronze door of the vault, with Pim's lantern, six bottles of lamp oil less the one Dorn threw, and three nights. Good session. Same time in two weeks?
+Elowen: I can not do the twenty eighth. The week after?
+Morgan: We will sort it in the chat. Stopping the recording now.

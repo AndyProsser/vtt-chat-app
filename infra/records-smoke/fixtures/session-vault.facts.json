@@ -1,0 +1,111 @@
+{
+  "about": "What a faithful record of fixtures/session-vault.txt holds. Each fact is found when every pattern in `all` matches the notes (case-insensitive regular expressions). `mustNot` are things that should not be in the notes at all. Crude on purpose: it counts recall the same way for every model, it does not judge wording.",
+  "facts": [
+    { "id": "trap", "what": "A dart trap on the stairs caught Aria", "all": ["dart"] },
+    { "id": "gary", "what": "They met a gnome called Gary", "all": ["gary"] },
+    { "id": "gary-surname", "what": "His full name is Gary Brasswick", "all": ["brasswick"] },
+    { "id": "gary-trade", "what": "Gary sells lamp oil", "all": ["gary", "lamp[- ]oil|\\boil\\b"] },
+    {
+      "id": "gary-grumpy",
+      "what": "Gary is grumpy or unwelcoming",
+      "all": ["grump|not pleased|unwelcom|irritabl|surly|annoyed"]
+    },
+    { "id": "stewards", "what": "The eels are the king's stewards", "all": ["steward"] },
+    {
+      "id": "nat-one",
+      "what": "Elowen rolled a natural 1 and sang a dirge",
+      "all": ["elowen", "natural (one|1)|nat(ural)? ?1|dirge|funeral"]
+    },
+    {
+      "id": "ten-gold",
+      "what": "Bram paid Gary ten gold",
+      "all": ["bram", "ten gold|10 gold|10 ?gp"]
+    },
+    {
+      "id": "debt",
+      "what": "The blood toll is a debt: the one who bled belongs to the king",
+      "all": ["debt|belongs to"]
+    },
+    {
+      "id": "three-nights",
+      "what": "The king collects on the third night",
+      "all": ["three nights|3 nights|third night"]
+    },
+    {
+      "id": "key-back",
+      "what": "The debt ends when the key is back in the king's hand",
+      "all": ["key", "(goes|put|return|given|placed|brought)\\w* (it )?back|returned|return"]
+    },
+    {
+      "id": "oil-bought",
+      "what": "They bought six bottles of lamp oil",
+      "all": ["six bottles|6 bottles"]
+    },
+    {
+      "id": "light",
+      "what": "The stewards dislike light or fire",
+      "all": ["(do not|don.t|dis)like (the )?light|afraid|fear|hate"]
+    },
+    {
+      "id": "pim",
+      "what": "Gary's brother Pim was lost; his lantern has a P on the base",
+      "all": ["pim"]
+    },
+    {
+      "id": "promise",
+      "what": "Elowen promised to bring Pim's lantern back",
+      "all": ["promis", "lantern"]
+    },
+    {
+      "id": "oil-thrown",
+      "what": "Dorn threw burning lamp oil at an eel",
+      "all": ["dorn", "oil", "threw|throw|hurl|burn|fire|flame"]
+    },
+    {
+      "id": "aria-water",
+      "what": "An eel dragged Aria into the water",
+      "all": ["aria", "grappl|dragg|pull|into the water"]
+    },
+    { "id": "undead", "what": "Bram's Turn Undead worked: the eels are undead", "all": ["undead"] },
+    { "id": "bow", "what": "An eel bowed to Cassiel", "all": ["bow"] },
+    {
+      "id": "thirty-gold",
+      "what": "Dorn found thirty gold",
+      "all": ["thirty gold|30 gold|30 ?gp"]
+    },
+    {
+      "id": "lantern-found",
+      "what": "They found Pim's lantern in the cistern",
+      "all": ["lantern", "found|recover|retriev|came up|surfac|discover"]
+    },
+    { "id": "door", "what": "A bronze door with a hand-shaped hollow", "all": ["bronze", "hand"] },
+    {
+      "id": "inscription",
+      "what": "The door says \"the king receives\"",
+      "all": ["king receives"]
+    },
+    {
+      "id": "necromancy",
+      "what": "Detect Magic found necromancy on the door and on Cassiel",
+      "all": ["necroman"]
+    },
+    {
+      "id": "secret-thread",
+      "what": "A thread of magic runs from Cassiel's hand; only Elowen knows",
+      "all": ["thread"]
+    },
+    {
+      "id": "plan",
+      "what": "The plan: go back to Gary before anyone touches the door",
+      "all": ["(back|return)[^.\\n]{0,80}gary|gary[^.\\n]{0,80}(before|first)"]
+    }
+  ],
+  "mustNot": [
+    { "id": "pizza", "what": "Table chatter about pizza", "any": ["pizza|pepperoni|mushroom"] },
+    {
+      "id": "scheduling",
+      "what": "Scheduling the next session",
+      "any": ["twenty eighth|28th|two weeks"]
+    }
+  ]
+}
