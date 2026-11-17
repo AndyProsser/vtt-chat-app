@@ -26,6 +26,10 @@ the GitHub release notes and refuses to build a release without one. How to writ
 - **The worker starts after the app server** (which prepares the database).
 - **Updates clean up old server images.** `vtt-admin update` (and re-running the installer) now removes VTT Chat images from versions before the previous one, once the new version is up and healthy; a test server had collected 19 GB of them. The version you came from is kept so going back is quick. Only VTT Chat's own images are touched. Pass `--keep-images` to skip it.
 
+### Fixed
+
+- **Windows: opening Handouts, Loot, History or Settings no longer freezes the app.** The window never appeared, and after that the app stopped answering (chat would not send) until it was restarted. Linux and macOS were not affected.
+
 ### Security
 
 - **Containers run with fewer privileges.** Every server container now drops all Linux capabilities except the few it needs and cannot gain privileges; a bug in one service has less to work with. Nothing to set.

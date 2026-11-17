@@ -373,8 +373,9 @@ pub fn open_handout(app: &AppHandle, id: &str) -> Result<(), String> {
     )
 }
 
+/// `async` for the same reason as [`panel_open`].
 #[tauri::command]
-pub fn handout_view_open(app: AppHandle, id: String) -> Result<(), String> {
+pub async fn handout_view_open(app: AppHandle, id: String) -> Result<(), String> {
     open_handout(&app, &id)
 }
 
@@ -441,8 +442,13 @@ fn open_page(
     Ok(())
 }
 
+/// `async` on purpose. A synchronous command runs on the main thread inside WebView2's own message
+/// callback, and creating another webview from there deadlocks on Windows (wry#583; Tauri documents it
+/// on `WebviewWindowBuilder`): the popup never appears and the app stops answering every command, so
+/// chat goes dead too (seen on Windows, 2026-11-17). An async command runs off the main thread, and the
+/// builder hands the creation back to it.
 #[tauri::command]
-pub fn panel_open(app: AppHandle, name: String) -> Result<(), String> {
+pub async fn panel_open(app: AppHandle, name: String) -> Result<(), String> {
     open(&app, &name)
 }
 
