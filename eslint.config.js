@@ -17,6 +17,8 @@ export default tseslint.config(
       '.remember/**',
       // Dev-box browser smoke test (web/e2e/README.md): Node plus code evaluated inside the page, not CI-linted.
       'web/e2e/**',
+      // Documentation screenshots (scripts/screenshots/README.md): the same kind of tooling.
+      'scripts/screenshots/**',
     ],
   },
   js.configs.recommended,

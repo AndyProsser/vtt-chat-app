@@ -460,6 +460,10 @@ Runtime settings (no restart) live in the database: `./vtt-admin settings show`.
 
 ## 8. Day-to-day operation
 
+<img src="../images/screens/operator-console.png" alt="A terminal running vtt-admin status, recording list, jobs list and updates status" width="760">
+
+_The operator's console: real `vtt-admin` output from a test server (listings cut to their last lines)._
+
 **The admin command** (`./vtt-admin` in `infra/compose`; natively `node backend/dist/cli/main.js`):
 
 | Command                                                                          | Use                                                                                                |
@@ -477,6 +481,8 @@ Runtime settings (no restart) live in the database: `./vtt-admin settings show`.
 
 **Logs:** Compose: `docker compose logs -f backend` (also `livekit`, `egress`, `worker`, `caddy`).
 Native: `journalctl -u vtt-backend -f` (also `vtt-livekit`, `vtt-worker`, `caddy`).
+
+<img src="../images/screens/web-status.png" alt="The public status page: everything is running, services, and what is happening right now" width="560">
 
 **Watching it:** `https://your-domain/status` shows backend, database, LiveKit and the records queue,
 the number of connected players and whether a recording is active. It is public and shows nothing private.

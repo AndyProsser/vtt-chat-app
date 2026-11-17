@@ -96,8 +96,10 @@ export function recordsRoutes(deps: RecordsRouteDeps): Router {
     return purged === 0 ? 'kept' : purged === tracks.length ? 'purged' : 'partly';
   };
 
-  // The tales first, the Game Master's working material (brief, scribe's notes) after them.
-  const rank = (s: StoredSummary) => (s.kind === 'notes' ? 2 : s.visibility === 'dm' ? 1 : 0);
+  // The session's tale leads (it is what most people open the history for), then its parts and each hero's
+  // tale; the Game Master's working material (brief, scribe's notes) comes after them.
+  const ORDER: readonly string[] = ['session', 'chapter', 'character', 'dm-only', 'notes'];
+  const rank = (s: StoredSummary) => ORDER.indexOf(s.kind);
   const visible = (summaries: StoredSummary[], isDm: boolean) =>
     summaries
       .filter((s) => s.visibility === 'members' || isDm)

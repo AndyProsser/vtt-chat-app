@@ -4,6 +4,11 @@ For players and Dungeon Masters (DMs) of a table that runs on VTT Chat App. **Dr
 steps have only been tried by the author; where a screen may look different from what is written, trust the
 screen and tell us.
 
+> **About the pictures.** The screenshots in this guide are **simulated**: the real screens, drawn from a test
+> table ("The Sunken Temple", a Game Master and five players) and placed in a plain window or phone outline. Your
+> window's title bar will look like your own computer's. The tales, the DM brief and the scribe's notes shown are
+> real output of the local AI on a short test recording. They are made by [`scripts/screenshots/`](../../scripts/screenshots/README.md).
+
 - [1. Get the app and join a table](#1-get-the-app-and-join-a-table)
 - [2. Your first minutes](#2-your-first-minutes)
 - [3. Status: Online, Away, Offline](#3-status-online-away-offline)
@@ -39,6 +44,10 @@ tray needs an extension (GNOME: "AppIndicator"); without it the app still works,
 applications menu. [Fixing a missing tray icon](INSTALLING-THE-APP.md#linux-i-cannot-see-the-tray-icon).
 
 ## 2. Your first minutes
+
+<img src="../images/screens/desktop-table-player.png" alt="The main window as a player sees it: the people at the table down the left, chat with a whisper and a loot card, the recording timer at the top" width="420">
+
+_A player's window in light mode: Bram is talking (the ring), Dorn is muted, and a recording is running._
 
 The window has, from top to bottom:
 
@@ -80,6 +89,8 @@ item in the tray menu, and **Settings → Profile → Status**.
 
 ## 4. Voice
 
+<img src="../images/screens/desktop-settings-audio.png" alt="Settings, Audio: microphone, speaker, compatibility audio, background noise, automatic volume and microphone volume" width="420">
+
 - **Mute and unmute**: click the microphone button, or press **Ctrl+Shift+M**. While muted, **hold Left
   Ctrl to talk** (push to talk). The tray icon and the button show whether your microphone is live. Muting also lets go of your microphone, so your computer's "microphone in use" light goes out.
 - **Meter**: green is normal talking, amber is loud, red is too loud. It shows what the table hears after
@@ -100,6 +111,10 @@ item in the tray menu, and **Settings → Profile → Status**.
   the next.
 
 ## 5. Chat and whispers
+
+<img src="../images/screens/desktop-table-gm.png" alt="The main window as the DM sees it in dark mode: in-character lines, an action, lines in Infernal and Dwarvish, out-of-character notes, a whisper and its reply, and a loot card" width="420">
+
+_The DM's window: speech in character, an action (`/me`), two languages, out-of-character lines, and a whisper with Cassiel that nobody else sees._
 
 Type in the message box and press **Enter** to send. **Ctrl+Enter** (or Cmd+Enter, or Shift+Enter) starts a new line, so a message can run to several lines. On a phone the on-screen Enter key always makes a new line, and the Send button sends. **Type `/` to see the commands**:
 a list opens above the box. Up and Down move, Tab or Enter completes, Esc closes (or tap a row). A plain line is
@@ -132,6 +147,8 @@ a list opens above the box. Up and Down move, Tab or Enter completes, Esc closes
 
 ## 6. Handouts
 
+<img src="../images/screens/desktop-handouts.png" alt="The Handouts window as the DM sees it: a note shown to the table and a DM-only draft" width="400"> <img src="../images/screens/phone-handouts.png" alt="Handouts on a phone" width="220">
+
 The DM shares **handouts**: a **note** (text), a **set of pictures** (one to twelve, for example a map), or
 a **PDF**. Each can have a short caption.
 
@@ -146,6 +163,8 @@ a **PDF**. Each can have a short caption.
 
 ## 7. Loot and the party inventory
 
+<img src="../images/screens/desktop-loot-player.png" alt="The party inventory as a player sees it: an item to take, items taken for the party and by a player, coin split five ways" width="400"> <img src="../images/screens/phone-loot.png" alt="The Loot tab on a phone" width="220">
+
 The DM drops items and coin into the **party inventory**, and a card appears in the chat.
 
 - **Click the card** to open it: you see the description and what you can do.
@@ -158,6 +177,10 @@ The DM drops items and coin into the **party inventory**, and a card appears in 
 - The inventory is a shared record of who took what. It does not change your character sheet.
 
 ## 8. Recording and summaries
+
+<img src="../images/screens/desktop-history.png" alt="Session history: the tale of the session, then each part" width="380"> <img src="../images/screens/phone-history.png" alt="The History tab on a phone, with the tale of a session" width="220">
+
+_The tale of a session, in the app and on a phone. This one is real output from a two-minute test recording._
 
 When the DM starts a recording, **every app plays a clear "recording" cue** and the **recording timer** shows in the
 bar and on the tray icon. Your voice is only recorded **after your app has played the cue**; if you join late
@@ -175,10 +198,14 @@ you hear it first.
 
 ## 9. Sessions and reminders
 
+<img src="../images/screens/desktop-settings-sessions.png" alt="Settings, Sessions: the next session with its answers" width="400"> <img src="../images/screens/phone-sessions.png" alt="The Sessions tab on a phone with the three answers" width="220">
+
 The DM schedules sessions (date, time, length). You see the next one in **Settings → Sessions**, and you can
 answer **Can make it / Late / Can't**. The server sends reminders 24 hours and 1 hour before. They also show as a desktop notification, even when the app is hidden. Choose what you want to hear about, and set **quiet hours** (no pop-ups, for example overnight), in **Settings → Notifications**.
 
 ### On your phone
+
+<img src="../images/screens/phone-chat.png" alt="The phone web app: the table and its chat" width="240">
 
 Open `https://<your server>/app` in your phone's browser and sign in with your email and password, or with a
 one-time code. You get five tabs: **Chat** (the table's chat and your whispers; you can reply or whisper to one
@@ -225,6 +252,14 @@ builds**; they may be rough. When a new version is available a banner says so; i
 different versions, update the app, or ask your DM to update the server if the app is the newer one.
 
 ## 11. For the DM
+
+<img src="../images/screens/desktop-soundboard.png" alt="The sound drawer: character voices, stingers and scenes" width="380"> <img src="../images/screens/desktop-groups.png" alt="Voice groups: the Main Party and a place to start a new group" width="380">
+
+<img src="../images/screens/desktop-history-gm.png" alt="Session history as the DM sees it: the DM brief and the button for the scribe’s notes" width="300"> <img src="../images/screens/desktop-loot.png" alt="The party inventory as the DM sees it, with the tools to drop items and coin" width="300"> <img src="../images/screens/desktop-quality.png" alt="Settings, Quality: each player’s latency over the last two minutes" width="300">
+
+_Top: the sound drawer (voices, stingers, scenes) and voice groups. Bottom: the DM brief with the scribe's notes folded behind their button, the inventory with the DM's drop tools, and each player's connection quality (Elowen's link is the slow one). The campaign's own settings (invites, handing over the DM role, join requests) are in Settings → Campaign:_
+
+<img src="../images/screens/desktop-settings-campaign.png" alt="Settings, Campaign: the description, invite links, handing over the DM role, and join requests" width="380"> <img src="../images/screens/desktop-history-notes.png" alt="The scribe’s notes, opened" width="380">
 
 **Start and end a session**
 

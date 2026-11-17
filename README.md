@@ -2,7 +2,19 @@
 
 > Self-hosted voice, chat and **session records with AI summaries** for tabletop groups. A tiny tray app for players, a mobile web app, and a server you run yourself — no cloud account required.
 
-**Status:** v0.5.1 released; 0.5.2 in dev builds (hardening and faster, better session records). The player and DM experience is built (voice, chat, handouts, loot, a DM soundboard, recording with AI-written tales of each session, status, noise filtering). The server has been installed with one command on a real Ubuntu VM and used from the Linux desktop app and an iPhone; a recorded session went through the local AI. **It has not yet been installed by anyone but its author**, and voice between two clients over the internet, Windows and Android are still to be proven. **[docs/BUILD-STATUS.md](docs/BUILD-STATUS.md) says exactly what is built, what is verified, and what is next.** Start with the **[operator guide](docs/guides/OPERATOR-GUIDE.md)** (to host) or the **[user guide](docs/guides/USER-GUIDE.md)** (to play). See [CLAUDE.md](.claude/CLAUDE.md) for the spec and [ROADMAP.md](ROADMAP.md) for the plan.
+**Status:** v0.5.1 released; 0.5.2 in dev builds (hardening and faster, better session records). The player and DM experience is built (voice, chat, handouts, loot, a DM soundboard, recording with AI-written tales of each session, status, noise filtering). The server has been installed with one command on a real Ubuntu VM and used from the Linux desktop app and an iPhone; a recorded session went through the local AI. **It has not yet been installed by anyone but its author**, and voice between two clients over the internet and Android are still to be proven. The Windows app has been used by the author and held up as well as the Linux one, apart from a freeze when opening a popup window that is fixed but not yet confirmed on Windows. **[docs/BUILD-STATUS.md](docs/BUILD-STATUS.md) says exactly what is built, what is verified, and what is next.** Start with the **[operator guide](docs/guides/OPERATOR-GUIDE.md)** (to host) or the **[user guide](docs/guides/USER-GUIDE.md)** (to play). See [CLAUDE.md](.claude/CLAUDE.md) for the spec and [ROADMAP.md](ROADMAP.md) for the plan.
+
+<p align="center">
+  <img src="docs/images/screens/desktop-table-gm.png" alt="The desktop app during a session: the table down the left, chat with in-character lines, a whisper and a loot drop, and a recording running" width="310">
+  <img src="docs/images/screens/desktop-history.png" alt="Session history: the tale of the session, written by the local AI" width="250">
+  <img src="docs/images/screens/phone-chat.png" alt="The phone web app showing the same table" width="205">
+</p>
+<p align="center">
+  <img src="docs/images/screens/desktop-soundboard.png" alt="The DM's sound drawer in another theme: character voices, stingers and scenes" width="310">
+  <img src="docs/images/screens/operator-console.png" alt="The operator's console: vtt-admin status and listings" width="470">
+</p>
+
+<sub>Simulated screenshots: the real screens, drawn from a test table and set in a plain frame; the tale is real output of the local AI. More in the <a href="docs/guides/USER-GUIDE.md">user guide</a>; how they are made: <a href="scripts/screenshots/README.md">scripts/screenshots</a>.</sub>
 
 ---
 
