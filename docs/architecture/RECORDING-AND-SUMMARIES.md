@@ -577,9 +577,13 @@ and the brief read only the notes, about 4,000 tokens, roughly eight calls. In a
 Prices as of 2026-11-03 (Anthropic's list, US dollars); thinking tokens are billed as output and are small at low
 effort. Andy's choice (2026-11-17): **Sonnet is the suggested model**, "more than affordable".
 
-**Telling the table.** CLAUDE.md requires that players are told when session content leaves the server. Nothing in
-today's wire protocol can carry that to the apps, so the **status page** (which ships with the server) says it in
-0.5.4, and the in-app notice waits for protocol 4 (0.6.0). Open: Andy to confirm this split.
+**Telling the table (decided by Andy, 2026-11-17).** CLAUDE.md requires that players are told when session content
+leaves the server. Nothing in today's wire protocol can carry that to the apps, so in 0.5.4 the **status page** says
+it, and the app gains the notice with protocol 4 (0.6.0). The notice appears **only when an off-site connector is
+configured**: Claude, or a remote (Whisper or LLM) whose URL is not on the operator's own network. Everything else
+shows as **local only**, including offloading to the operator's own gaming PC. "Own network" is read from the URL's
+host: a private or loopback address (10/8, 172.16/12, 192.168/16, 127/8, IPv6 ULA and link-local), a single-label
+name, or a name ending in `.local`, `.lan`, `.internal` or `.home.arpa`. Anything else counts as off-site.
 
 ### Each stage does less (Andy, 2026-11-17)
 
