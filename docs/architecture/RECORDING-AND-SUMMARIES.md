@@ -524,3 +524,77 @@ the table's memory and fun to read, not perfect; a wrong detail is storytelling,
 4-hour session's map-reduce summaries (the scene fits one model call); the Rust desktop client and phone app as
 the recorded clients (the e2e uses LiveKit's Node SDK); a CPU-only server end to end (CPU numbers are the
 same Whisper/LLM measured standalone).
+
+## Where the summaries run: three levers (planned 2026-11-17, for 0.5.4)
+
+Andy's brief (2026-11-17): Whisper on a CPU is fine (`small.en` is about 98% accurate, and an overnight run is
+acceptable); a summary model on an old CPU is not (hours per session, and 24 to 48 hours "pushes the friendship").
+The budget for a whole session's processing is **8 to 12 hours**. Operators get a choice of quality, speed and cost:
+
+| Where the LLM runs                         | Cost per session         | Speed (5-hour session)                            | Leaves the server                 |
+| ------------------------------------------ | ------------------------ | ------------------------------------------------- | --------------------------------- |
+| **Local** (default, `qwen3.5:4b`)          | none                     | minutes on a GPU or modern CPU; hours without AVX | nothing                           |
+| **Remote you own** (Ollama on a gaming PC) | none                     | about 30 min of notes on a GTX 1080 (estimate)    | text, to your own machine         |
+| **Claude** (new, opt-in)                   | about $0.30 (Sonnet 5.5) | minutes                                           | the transcript text, to Anthropic |
+
+Whisper stays where it is in every row: the audio never goes to Claude (it does not transcribe), so only text
+leaves the server, and private lines and whispers are never in that text to begin with.
+
+### The Claude connector (design)
+
+- **A third LLM kind, not a reuse of the OpenAI-compatible one:** `ai.llm.kind` gains `claude` beside `local` and
+  `remote`, set with `vtt-admin settings set ai.llm.kind claude` and `ai.llm.model` (default `claude-sonnet-5-5`;
+  `claude-haiku-5-5` for the cheapest, `claude-opus-5-5` for the best). It calls the Messages API through the
+  official `@anthropic-ai/sdk`, in `ai/src/lib/providers/claude.ts`, as one more `GenerateText`.
+- **The key comes from the environment** (`ANTHROPIC_API_KEY` in `.env`), never the database, like
+  `LLM_API_KEY` today. A Claude Code subscription does not cover it: the API is billed separately, per token, on
+  an account at console.anthropic.com.
+- **Roles differ by prompt, not by sampling:** Claude's current models refuse `temperature`, so `SCRIBE_SAMPLING`
+  and `BARD_SAMPLING` are not sent. Thinking runs at **low effort** (summaries are not hard reasoning; more effort
+  is more output tokens, which are the expensive ones).
+- **Failure is handled like any remote:** the same failover, so a job waits while Anthropic is unreachable and
+  falls back to the local model after `ai.fallback.after-seconds`. A refusal (`stop_reason: "refusal"`) counts as
+  a failed call and falls back locally; it is logged with its category.
+- **Cost is visible:** the worker records each job's input and output tokens and the model, and
+  `vtt-admin jobs list` shows them with an estimated cost (prices from a table in `ai/src/consts`, dated, so the
+  operator knows when it was right). `vtt-admin status` says which LLM a job used.
+- **Saving more, later and only if it matters:** the Batch API halves the price and suits an overnight job, at the
+  cost of results arriving within hours rather than minutes; prompt caching would save little, because the
+  long input (the transcript) is read only once. Neither is in the first version.
+
+**How the estimate is made** (estimated, not measured; to check against the first real session): a table talks
+about 6,000 to 9,000 words an hour, so 5 hours is roughly 40,000 to 60,000 tokens of transcript. The scribe reads
+it once (plus about 500 tokens of instructions per piece) and writes notes of at most about 3,000 words. Each tale
+and the brief read only the notes, about 4,000 tokens, roughly eight calls. In all: about **110,000 tokens in and
+10,000 out**.
+
+| Model             | Per million tokens (in / out) | One 5-hour session | A year of weekly sessions |
+| ----------------- | ----------------------------- | ------------------ | ------------------------- |
+| Claude Haiku 5.5  | $0.10 / $0.50                 | about $0.02        | about $1                  |
+| Claude Sonnet 5.5 | $2 / $10                      | about $0.30        | about $16                 |
+| Claude Opus 5.5   | $4 / $20                      | about $0.65        | about $34                 |
+
+Prices as of 2026-11-03 (Anthropic's list, US dollars); thinking tokens are billed as output and are small at low
+effort. Andy's choice (2026-11-17): **Sonnet is the suggested model**, "more than affordable".
+
+**Telling the table.** CLAUDE.md requires that players are told when session content leaves the server. Nothing in
+today's wire protocol can carry that to the apps, so the **status page** (which ships with the server) says it in
+0.5.4, and the in-app notice waits for protocol 4 (0.6.0). Open: Andy to confirm this split.
+
+### Each stage does less (Andy, 2026-11-17)
+
+The pipeline's inputs shrink at every step, and each step should be asked for no more than the next one needs:
+
+```mermaid
+flowchart LR
+    A["4–6 h of audio,<br/>chat and cues"] --> W["Whisper<br/>(local)"]
+    W --> T["Transcript<br/>~40–60k tokens"]
+    T --> S["Scribe<br/>key events, quotes"]
+    S --> N["Notes<br/>≤ ~3,000 words"]
+    N --> B["Bard<br/>one tale, 300–500 words"]
+    N --> C["Chronicler<br/>GM brief, 200–300 words,<br/>under headings"]
+```
+
+A session is mostly talk, thinking and waiting for dice, with one or two fights: the scribe's job is to find the
+few things that happened, plus the lines worth quoting. After the notes, the transcript is not read again; it is
+kept (it is small text) so a summary can be re-run and for search. Steps D and E in the ROADMAP build to these sizes.

@@ -273,8 +273,10 @@ Three hardening changes for 0.5.2, each chosen so a deployment that worked befor
 
 Decided 2026-11-07. Whisper and the LLM are provider interfaces, each independently **local**,
 a **remote instance the operator controls** (e.g. Ollama + a Whisper server on a GPU gaming PC), or
-a **cloud adapter**. All remote kinds speak the **OpenAI-compatible API**, so one client covers a
-home GPU box and a cloud provider.
+a **cloud adapter**. Remote kinds speak the **OpenAI-compatible API**, so one client covers a
+home GPU box and most cloud providers. **Claude** (planned for 0.5.4, Andy 2026-11-17) is the one exception: a
+summary-only kind of its own through Anthropic's SDK, opt-in, with its key in `.env` and its cost shown per job
+([RECORDING-AND-SUMMARIES.md](RECORDING-AND-SUMMARIES.md#where-the-summaries-run-three-levers-planned-2026-11-17-for-054)).
 
 - **Local is always configured** and is the fallback. The Compose bundle includes the local
   Whisper/Ollama containers by default (not an opt-in profile). On CPU, Whisper `small`
