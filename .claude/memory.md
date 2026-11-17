@@ -36,6 +36,15 @@ pattern and its reconciliation conventions.
   cloud one an adapter behind an interface. (The first architecture sketch drew Cloudflare boxes
   as if they were core — that framing is wrong now.)
 
+- **Summaries: the bar is "better than the table's memory, and fun", not accuracy.** (Andy,
+  2026-11-17, after Step A model measurements.) A Game Master remembers 3 or 4 details; the AI only
+  has to beat that and tell a story that makes the table laugh (or cry). A wrong detail in a tale
+  is storytelling, not a failure.
+  **How to apply:** measure enough to choose and to catch something broken (a scribe that loses the
+  session, say), then stop. Don't run long scientific comparisons or tune for small fact-score gains.
+  Prefer shrinking each pipeline stage's job (transcript → scribe notes ≤ ~3,000 words → a 300–500
+  word tale and a 200–300 word structured GM brief) over a bigger model.
+
 - **Ask before designing identity, sync, or records details.** (CLAUDE.md §14, restated 2026-11-05
   when the design was left deliberately open.) The open topics are listed in
   [intent.md](intent.md); don't resolve one by writing code.
