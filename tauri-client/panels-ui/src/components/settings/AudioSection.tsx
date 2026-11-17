@@ -32,11 +32,22 @@ import { SettingRow } from './SettingRow.js';
 
 const DEFAULT = '__default__';
 
+/** What the engine switch means right now: `chosen` is for the next call, `active` is this call's. */
+function engineNote(chosen: 'mixer' | 'platform', active: 'mixer' | 'platform' | null): string {
+  if (active !== null && chosen !== active) {
+    return chosen === 'mixer' && active === 'platform'
+      ? 'This call is on compatibility audio. The app\u2019s own audio is used the next time you join voice; if it could not open your sound card, it stays on compatibility audio.'
+      : 'Takes effect the next time you join voice (leave and join again).';
+  }
+  return chosen === 'platform'
+    ? 'On: no volume for each person, no microphone volume or live level, and no echo cancellation for character voices.'
+    : 'Off is best: the app runs its own audio, with a volume for each person, a microphone volume and echo cancellation for everything it plays.';
+}
+
 /**
- * Microphone and speaker, saved and applied at once if you are in voice. The "new audio engine" switch
- * (docs/architecture/AUDIO-MIXER.md) adds a microphone volume with a live level, a volume for each
- * person (on their hover card), and echo cancellation that also covers character voices. It takes
- * effect the next time you join voice.
+ * Microphone and speaker, saved and applied at once if you are in voice. The app's own audio engine
+ * (docs/architecture/AUDIO-MIXER.md) is the default since 0.5.2; "Compatibility audio" switches back to
+ * WebRTC's platform layer, kept as the fallback. The switch takes effect the next time you join voice.
  */
 export function AudioSection() {
   const [list, setList] = useState<AudioDeviceList>();
@@ -110,22 +121,21 @@ export function AudioSection() {
         )}
         {engine && (
           <>
-            <SettingRow label="New audio engine (experimental)">
+            <SettingRow
+              label="Compatibility audio"
+              hint="Only if voice sounds wrong: hands the sound card to the system's own audio layer."
+            >
               <Switch
-                aria-label="Use the new audio engine"
-                checked={(chosen ?? engine.engine) === 'mixer'}
+                aria-label="Use compatibility audio"
+                checked={(chosen ?? engine.engine) === 'platform'}
                 onCheckedChange={(on) => {
-                  const next = on ? 'mixer' : 'platform';
+                  const next = on ? 'platform' : 'mixer';
                   setChosen(next);
                   void audioEngineSet(next).catch((e: unknown) => setError(accountErrorMessage(e)));
                 }}
               />
             </SettingRow>
-            <span className="vtt-muted">
-              {(chosen ?? engine.engine) === (engine.active ?? engine.engine)
-                ? 'Per-person volume, microphone volume, a live level, and echo cancellation for character voices.'
-                : 'Takes effect the next time you join voice (leave and join again).'}
-            </span>
+            <span className="vtt-muted">{engineNote(chosen ?? engine.engine, engine.active)}</span>
             <SettingRow label="Background noise">
               <Select.Root
                 value={filter ?? engine.noiseFilter}

@@ -1,8 +1,8 @@
 # The mixer engine: our own capture and playback
 
-**Status:** built and wired into calls (2026-11-09), **opt-in and never listened to.** Unit-tested without a sound card, and live-tested against a dev LiveKit server (remote voice reaches the playout mixer, the processed microphone reaches another participant, mute and leave work). The platform audio path stays the default until the mixer has been tried on the dev PC.
+**Status:** built and wired into calls (2026-11-09), and **the default since 0.5.2** (decided by Andy, 2026-11-17, after using it on Linux and Windows: "much more control", at the cost of some CPU and of the device's own hardware echo handling). Unit-tested without a sound card, and live-tested against a dev LiveKit server (remote voice reaches the playout mixer, the processed microphone reaches another participant, mute and leave work). The platform audio path is kept as the fallback.
 
-**To try it:** Settings → Audio → "New audio engine (experimental)", then leave and join voice again. Or start the app with `VTT_AUDIO_BACKEND=mixer`. Switch it off the same way if anything sounds wrong.
+**To go back to the platform path:** Settings → Audio → "Compatibility audio", then leave and join voice again. Or start the app with `VTT_AUDIO_BACKEND=platform`, which overrides the setting for that run. If the mixer cannot open the sound card when a call starts, the app joins on the platform path by itself for that call and logs why.
 
 **What you get with it:** a microphone volume with a real level meter (Settings, and the meter in the main window), a volume slider for each person (their hover card), echo cancellation that still works while a character voice is on, and the soundboard monitor and recording cues playing through the same mixer so the canceller knows about them.
 
@@ -51,7 +51,8 @@ flowchart LR
 
 ## Decisions and why
 
-- **Opt-in, platform path stays default.** The mixer replaces the part of the app that most needs ears and hardware. It is switched by `VTT_AUDIO_BACKEND=mixer` until it has been listened to on the dev PC, then the default can flip. If it misbehaves, unset the variable.
+- **Default, with the platform path kept as a fallback (2026-11-17).** The mixer was opt-in until it had been listened to; it has now been used on Linux and Windows and is the default. The platform path stays, behind "Compatibility audio", for two reasons: it is the only way out for a sound card or driver the mixer handles badly (Bluetooth and USB headsets are still unmeasured), and keeping it costs almost nothing, because it is the SDK's own code. It can be removed once a few real sessions have gone by without anyone needing it. What the platform path has that the mixer lacks: the device's or the system's own echo handling, and a little less CPU.
+- **A saved choice wins over the default.** `audio.json` with no `engine` (every install before 0.5.2 that never touched the switch) means the mixer; only an explicit `"platform"` selects the platform path. Someone who tried the experimental engine and switched it off again stays on the platform path until they switch back.
 - **WebRTC's own processing, not a new canceller.** Writing AEC is out of scope for a homelab app; AEC3 is the one browsers use.
 - **Delay is estimated, then trimmed.** The canceller is told the output-plus-input latency; a wrong value slows convergence rather than breaking it. Measured on the dev PC, not guessed.
 - **No hardware AEC.** The platform path can use a device's built-in canceller where one exists. The mixer does not. Cost: a few percent of one core for AEC3.
@@ -124,4 +125,4 @@ bar; the platform engine can only show on/off because the SDK exposes no level.
 
 ## Not verified (needs the dev PC)
 
-Everything past the unit tests: real device behaviour on Windows and Linux (including USB headsets and Bluetooth), measured latency, drift over an hour, CPU, and what it sounds like. `docs/BUILD-STATUS.md` tracks it.
+Used by ear on Linux and Windows (2026-11-17) and judged solid. Still not measured: USB headsets and Bluetooth, latency, drift over an hour, and CPU. `docs/BUILD-STATUS.md` tracks it.

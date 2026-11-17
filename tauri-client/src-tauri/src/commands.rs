@@ -70,12 +70,9 @@ pub async fn connect_voice(app: &AppHandle, url: &str, token: &str) -> Result<()
     let prefs = crate::account::data_dir(app)
         .map(|dir| crate::audio_prefs::AudioPrefs::load(&dir))
         .unwrap_or_default();
-    // The app's own audio engine when chosen in Settings (or by VTT_AUDIO_BACKEND=mixer for testing).
-    let backend = if prefs.uses_mixer() {
-        rust_livekit::AudioBackend::Mixer
-    } else {
-        rust_livekit::AudioBackend::from_env()
-    };
+    // The app's own audio engine unless the player chose the platform layer in Settings (or
+    // VTT_AUDIO_BACKEND=platform says so). Default since 0.5.2: see AUDIO-MIXER.md.
+    let backend = prefs.backend(std::env::var("VTT_AUDIO_BACKEND").ok().as_deref());
     let (url_owned, token_owned) = (url.to_string(), token.to_string());
     let provider: rust_livekit::ConnectInfoProvider = Arc::new(move || {
         let info = rust_livekit::ConnectInfo {
@@ -84,15 +81,27 @@ pub async fn connect_voice(app: &AppHandle, url: &str, token: &str) -> Result<()
         };
         Box::pin(async move { Ok(info) })
     });
-    let client = LiveKitClient::connect_with_backend(
-        provider,
-        callback,
-        speakers_callback,
-        backend,
-        prefs.auto_gain_on(),
-        prefs.noise_filter_level(),
-    )
-    .await
+    let connect = |backend| {
+        LiveKitClient::connect_with_backend(
+            provider.clone(),
+            callback.clone(),
+            speakers_callback.clone(),
+            backend,
+            prefs.auto_gain_on(),
+            prefs.noise_filter_level(),
+        )
+    };
+    let client = match connect(backend).await {
+        // Our engine could not open the sound card: join on the platform layer instead of not at all
+        // (reliable beats perfect). Settings shows which engine the call is really using.
+        Err(rust_livekit::LiveKitError::Audio(message))
+            if backend == rust_livekit::AudioBackend::Mixer =>
+        {
+            eprintln!("[src-tauri] audio engine failed ({message}); using the platform layer");
+            connect(rust_livekit::AudioBackend::Platform).await
+        }
+        other => other,
+    }
     .map_err(|err| err.to_string())?;
 
     // The microphone and speaker the player chose last time (a missing device keeps the default).
@@ -383,7 +392,11 @@ pub fn audio_engine(app: AppHandle, state: State<'_, SharedClient>) -> serde_jso
         }
     });
     serde_json::json!({
-        "engine": if prefs.uses_mixer() { "mixer" } else { "platform" },
+        "engine": if prefs.uses_mixer() {
+            "mixer"
+        } else {
+            "platform"
+        },
         "active": active,
         "micGain": prefs.mic_gain.unwrap_or(1.0),
         "autoGain": prefs.auto_gain_on(),

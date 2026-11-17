@@ -81,17 +81,21 @@ item in the tray menu, and **Settings → Profile → Status**.
 ## 4. Voice
 
 - **Mute and unmute**: click the microphone button, or press **Ctrl+Shift+M**. While muted, **hold Left
-  Ctrl to talk** (push to talk). The tray icon and the button show whether your microphone is live. With the new audio engine (Settings → Audio), muting also lets go of your microphone, so your computer's "microphone in use" light goes out.
+  Ctrl to talk** (push to talk). The tray icon and the button show whether your microphone is live. Muting also lets go of your microphone, so your computer's "microphone in use" light goes out.
 - **Meter**: green is normal talking, amber is loud, red is too loud. It shows what the table hears after
   the app has cleaned your sound, so typing and fans you have filtered out do not show.
 - **Echo and noise**: if people hear an echo of themselves, wear headphones. In **Settings → Audio**
-  you can pick your microphone and speakers, turn on **the new audio engine** (gives you a volume for each
-  person, a microphone volume and echo removal for everything the app plays), and choose a **Background
+  you can pick your microphone and speakers, set your **microphone volume**, and choose a **Background
   noise** level: Off, Light, Standard (removes fans and air conditioning), or Strong (also hides typing and
   mouse clicks between words; adds a very small delay). If your voice gets clipped on Strong, use Standard.
 - **Automatic volume** keeps quiet and loud talkers at a similar level; switch it off to set your volume
   yourself.
-- **Each person's volume**: hover their portrait and use the slider (new audio engine).
+- **Each person's volume**: hover their portrait and use the slider.
+- **Compatibility audio** (Settings → Audio): leave it off. The app runs its own audio, which is what gives you
+  the volumes above and echo removal for everything the app plays. If voice sounds wrong on your computer
+  (crackling, no sound, the wrong device), switch it on and join voice again: the system's own audio layer takes
+  over, without each person's volume, the microphone volume, or echo removal for character voices. If the app
+  cannot open your sound card it uses compatibility audio for that call by itself.
 - **Each campaign is its own voice room.** If you switch campaigns, you leave one room; choose Online to join
   the next.
 
@@ -237,7 +241,7 @@ different versions, update the app, or ask your DM to update the server if the a
 
 - **Character voices**: pick one in the effects drawer (the wave button) or type `/voice giant`. Choices:
   normal, giant, imp, robot, demon, dragon, god, drunk, authoritative. They change only your outgoing voice.
-  Echo cancellation still works with them (new audio engine); headphones are best.
+  Echo cancellation still works with them; headphones are best.
 - **Voice groups**: the groups button splits the table into rooms (a split party). Drag portraits between
   groups, or focus one and press Enter for a menu. You are in every group.
 - **Talk to one player privately**: **double-click** their portrait on the rail (double-click again, or press **End** in the banner, to stop). Only you and that player hear each other; the rest of the table cannot hear either of you, and you cannot hear the table, so there are no distractions. Chat still works. Everyone sees a banner saying what is happening, so nobody wonders why you went quiet. It is **not recorded**, and it ends by itself if either of you disconnects.
@@ -273,7 +277,7 @@ pictures and PDFs is still done in the desktop app.
 | Problem                                    | Try                                                                                                             |
 | ------------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
 | I cannot hear anyone / they cannot hear me | Check your status is **Online** and you are not muted; choose the right devices in Settings → Audio             |
-| There is an echo                           | Wear headphones; turn on the new audio engine                                                                   |
+| There is an echo                           | Wear headphones; check that Settings → Audio → Compatibility audio is off                                       |
 | Typing or fan noise is heard               | Settings → Audio → Background noise (Standard or Strong)                                                        |
 | I cannot connect at all                    | Check the server address; ask your operator whether the server is up (`/status` page)                           |
 | Voice works for others but not me          | Your network may block voice; try another network or a phone hotspot                                            |

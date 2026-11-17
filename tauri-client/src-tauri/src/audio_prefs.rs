@@ -11,7 +11,8 @@ use serde::{Deserialize, Serialize};
 pub struct AudioPrefs {
     pub input: Option<String>,
     pub output: Option<String>,
-    /// `"mixer"` for the app's own audio engine; anything else (or nothing) is the platform layer.
+    /// `"platform"` for WebRTC's platform audio layer (the fallback); anything else (or nothing) is
+    /// the app's own engine, the default since 0.5.2.
     pub engine: Option<String>,
     /// Microphone volume (mixer engine only), 0 to 4; `None` is 1.
     pub mic_gain: Option<f32>,
@@ -55,7 +56,17 @@ impl AudioPrefs {
     }
 
     pub fn uses_mixer(&self) -> bool {
-        self.engine.as_deref() == Some("mixer")
+        self.engine.as_deref() != Some("platform")
+    }
+
+    /// The engine for the next call: the player's choice, which `VTT_AUDIO_BACKEND=platform` (given
+    /// as `env`) overrides for one run of the app.
+    pub fn backend(&self, env: Option<&str>) -> rust_livekit::AudioBackend {
+        if self.uses_mixer() && env != Some("platform") {
+            rust_livekit::AudioBackend::Mixer
+        } else {
+            rust_livekit::AudioBackend::Platform
+        }
     }
 
     /// Sets one side (`input` or `output`); anything else is refused.
@@ -77,12 +88,26 @@ mod tests {
     fn an_old_file_without_the_new_fields_still_loads() {
         let prefs: AudioPrefs = serde_json::from_str(r#"{"input":"mic","output":null}"#).unwrap();
         assert_eq!(prefs.input.as_deref(), Some("mic"));
-        assert!(!prefs.uses_mixer());
+        assert!(prefs.uses_mixer(), "the app's own engine is the default");
         assert!(prefs.volumes.is_empty());
         assert!(
             prefs.auto_gain_on(),
             "automatic volume is on unless switched off"
         );
+    }
+
+    #[test]
+    fn the_platform_layer_is_used_only_when_asked_for() {
+        use rust_livekit::AudioBackend::{Mixer, Platform};
+        let chosen = |engine: &str| AudioPrefs {
+            engine: Some(engine.into()),
+            ..Default::default()
+        };
+        assert_eq!(AudioPrefs::default().backend(None), Mixer);
+        assert_eq!(chosen("mixer").backend(None), Mixer);
+        assert_eq!(chosen("platform").backend(None), Platform);
+        assert_eq!(AudioPrefs::default().backend(Some("platform")), Platform);
+        assert_eq!(AudioPrefs::default().backend(Some("mixer")), Mixer);
     }
 
     #[test]

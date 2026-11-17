@@ -63,7 +63,8 @@ const RESUME_THRESHOLD: Duration = Duration::from_secs(10);
 /// Which audio engine a call uses.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum AudioBackend {
-    /// WebRTC's platform audio layer (the default): closed box, with the device's own echo handling.
+    /// WebRTC's platform audio layer: closed box, with the device's own echo handling. The default of
+    /// this library (tests and examples need no sound card for it); the app defaults to the mixer.
     #[default]
     Platform,
     /// Our own mixer engine (docs/architecture/AUDIO-MIXER.md): per-player volume, microphone gain, a level
