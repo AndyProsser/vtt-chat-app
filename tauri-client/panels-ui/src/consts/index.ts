@@ -1,7 +1,9 @@
 export const SYNC_EVENT = 'sync:event';
 export const ACCOUNT_ERROR_EVENT = 'account:error';
-/** Chat kept in a panel; older lines are history, fetched on demand, not held in memory. */
-export const CHAT_LIMIT = 300;
+/** Chat kept in a panel, scrolled-back history included; past this the panel stops loading older pages. */
+export const CHAT_LIMIT = 1000;
+/** Chat lines asked for per scroll-up (and what the snapshot carries). */
+export const CHAT_PAGE = 50;
 export const PANEL_NAMES = [
   'main',
   'settings',

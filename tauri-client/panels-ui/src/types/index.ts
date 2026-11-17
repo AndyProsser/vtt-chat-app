@@ -144,6 +144,8 @@ export interface TableState {
   notices: TableNotice[];
   /** Whether a `party.state` has been seen yet: the first one after connecting is the starting point, not news. */
   partiesSeen: boolean;
+  /** No older chat to load: the server ran out, or the panel holds `CHAT_LIMIT` lines. A snapshot resets it. */
+  historyDone: boolean;
 }
 
 export interface SoundButton {

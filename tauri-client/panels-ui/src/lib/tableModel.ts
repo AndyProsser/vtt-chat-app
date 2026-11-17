@@ -27,6 +27,7 @@ export const emptyTable: TableState = {
   parties: emptyParties,
   notices: [],
   partiesSeen: false,
+  historyDone: false,
 };
 
 type Obj = Record<string, unknown>;
@@ -50,6 +51,43 @@ function toLine(raw: unknown): ChatLine | undefined {
     kind: kindOf(o.kind),
     ...(typeof o.lang === 'string' && o.lang !== '' ? { lang: o.lang } : {}),
   };
+}
+
+/** A row of `GET /api/campaigns/:id/chat` (older history). */
+export interface HistoryRow {
+  id: string;
+  senderId: string;
+  senderName: string;
+  recipientId: string | null;
+  text: string;
+  at: number;
+  kind?: string | null;
+  lang?: string | null;
+}
+
+/** A history row as a chat line; a whisper's recipient is named from the roster when known. */
+export function lineFromHistory(row: HistoryRow, members: Member[] = []): ChatLine {
+  const to =
+    row.recipientId === null
+      ? undefined
+      : {
+          userId: row.recipientId,
+          name: members.find((m) => m.userId === row.recipientId)?.displayName ?? '',
+        };
+  return {
+    id: row.id,
+    from: { userId: row.senderId, name: row.senderName },
+    ...(to ? { to } : {}),
+    text: row.text,
+    at: row.at,
+    kind: kindOf(row.kind),
+    ...(row.lang ? { lang: row.lang } : {}),
+  };
+}
+
+/** Older lines scrolled back into view; `done` when there is nothing further back to load. */
+export function addOlder(state: TableState, lines: ChatLine[], done: boolean): TableState {
+  return { ...state, chat: mergeChat(state.chat, lines), historyDone: done };
 }
 
 function toMembers(raw: unknown): Member[] {
@@ -85,7 +123,10 @@ export function toStatus(raw: unknown, inVoice: boolean): Member['status'] {
 export function mergeChat(existing: ChatLine[], incoming: ChatLine[]): ChatLine[] {
   const byId = new Map(existing.map((l) => [l.id, l]));
   for (const line of incoming) byId.set(line.id, line);
-  const all = [...byId.values()].sort((a, b) => a.at - b.at);
+  // The server's order: time, then id, so lines sharing a millisecond sort the same everywhere.
+  const all = [...byId.values()].sort(
+    (a, b) => a.at - b.at || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0),
+  );
   return all.length > CHAT_LIMIT ? all.slice(all.length - CHAT_LIMIT) : all;
 }
 
@@ -116,7 +157,7 @@ export function applyEvent(state: TableState, event: SyncEvent): TableState {
         .filter((l): l is ChatLine => l !== undefined);
       // A snapshot is the whole truth about the table; whispers (not in it) are kept.
       const whispers = state.chat.filter((l) => l.to !== undefined);
-      return { ...state, members, chat: mergeChat(whispers, recent) };
+      return { ...state, members, chat: mergeChat(whispers, recent), historyDone: false };
     }
     case 'chat.message':
     case 'chat.whisper': {
