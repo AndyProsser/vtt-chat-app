@@ -2,7 +2,7 @@
 
 > Self-hosted voice, chat and **session records with AI summaries** for tabletop groups. A tiny tray app for players, a mobile web app, and a server you run yourself — no cloud account required.
 
-**Status:** v0.4.x. The player and DM experience is built (voice, chat, handouts, loot, recording with transcripts and AI summaries, status, noise filtering). The server has been installed with one command on a real Ubuntu VM and used from the Linux desktop app and an iPhone; a recorded session went through the local AI. **It has not yet been installed by anyone but its author**, and voice between two clients over the internet, Windows and Android are still to be proven. **[docs/BUILD-STATUS.md](docs/BUILD-STATUS.md) says exactly what is built, what is verified, and what is next.** Start with the **[operator guide](docs/guides/OPERATOR-GUIDE.md)** (to host) or the **[user guide](docs/guides/USER-GUIDE.md)** (to play). See [CLAUDE.md](.claude/CLAUDE.md) for the spec and [ROADMAP.md](ROADMAP.md) for the plan.
+**Status:** v0.5.1 released; 0.5.2 in dev builds (hardening and faster, better session records). The player and DM experience is built (voice, chat, handouts, loot, a DM soundboard, recording with AI-written tales of each session, status, noise filtering). The server has been installed with one command on a real Ubuntu VM and used from the Linux desktop app and an iPhone; a recorded session went through the local AI. **It has not yet been installed by anyone but its author**, and voice between two clients over the internet, Windows and Android are still to be proven. **[docs/BUILD-STATUS.md](docs/BUILD-STATUS.md) says exactly what is built, what is verified, and what is next.** Start with the **[operator guide](docs/guides/OPERATOR-GUIDE.md)** (to host) or the **[user guide](docs/guides/USER-GUIDE.md)** (to play). See [CLAUDE.md](.claude/CLAUDE.md) for the spec and [ROADMAP.md](ROADMAP.md) for the plan.
 
 ---
 
@@ -34,7 +34,9 @@ Afterwards `vtt-admin` works from any directory: `vtt-admin status`, `vtt-admin 
 The usual way a group plays online: everyone joins one Discord channel and leaves their mics open. That works. What it doesn't give you is a record of what happened. VTT Chat App keeps the same open-mic experience and adds that record.
 
 - **Open-mic voice that stays out of the way.** A system-tray app, hidden ~90% of the time, with near-zero idle CPU, auto-rejoin, autostart and a tray icon that always shows whether you're live, muted or being recorded.
-- **Session records are core.** The server records each speaker separately, transcribes with Whisper, and writes AI summaries — session, chapter, per-character and DM-only — with a visible, audible consent cue every time recording starts.
+- **Session records are core.** The server records each speaker separately, transcribes with Whisper, and then two AI roles write it up: a _scribe_ notes what happened, big and small, and a _bard_ retells it as a short heroic tale with dry wit (the fumbles told as proudly as the feats) for the session, each chapter and each hero. Every recording starts with a visible, audible consent cue.
+- **The tale is what the table reads.** Players get the tales. The DM also gets a private brief (key points, open threads, what to prepare next) and can open the scribe's full notes. The word-for-word transcript is a diagnostic view for the DM, not something players see.
+- **Runs on modest hardware.** No GPU needed: on a 2010 Xeon without AVX, transcription takes about 1.7 times the length of the audio, and summaries come from a 4 GB local model. A GPU, yours or one on your LAN, makes it much faster.
 - **Self-host first.** One VM or server, **Docker Compose** (or a native install for advanced users), **no cloud account**. LiveKit, recording, Whisper and an LLM run on your box — or Whisper/the LLM can point at a GPU machine you own. Anyone can deploy their own instance.
 - **Cloud is optional.** Cloudflare (TURN, SFU, Workers AI, Pages) and cloud LLM/transcription are _advanced-user adapters_, off by default and never required.
 - **Minimal table tools.** DM/player whispers, handouts and images, loot drops, a DM soundboard, party splits, and session reminders with RSVP.
@@ -48,8 +50,8 @@ The usual way a group plays online: everyone joins one Discord channel and leave
 - **UI** — React 19 + Radix UI + Zustand + TypeScript; light/dark follows the OS
 - **Backend** — Node.js + Express + TypeScript
 - **Realtime / recording** — LiveKit server + Egress (native binaries)
-- **Records pipeline** — ffmpeg, Whisper.cpp, Ollama (all local by default)
-- **Database / cache** — PostgreSQL, Redis
+- **Records pipeline** — ffmpeg, Whisper.cpp (`small.en` on CPU), Ollama (`qwen3.5:4b` on CPU), all local by default
+- **Database / cache** — PostgreSQL, Valkey (Redis protocol)
 - **Reverse proxy** — Caddy
 - **Deployment** — Docker Compose on a VM/server (primary); native Ubuntu services under systemd for advanced users
 
@@ -97,7 +99,7 @@ You will need a server you control (VM or host) running Ubuntu, a domain name fo
 
 ## Recording & Privacy
 
-Recording is server-side and always announced: every client plays a "recording in progress" cue when it starts, late joiners hear it before their audio is captured, and the tray icon shows a recording state. Whispers and private channels are never recorded. Nothing leaves your server unless you explicitly enable a cloud adapter. Details in [RECORDING-AND-SUMMARIES.md](docs/architecture/RECORDING-AND-SUMMARIES.md).
+Recording is server-side and always announced: every client plays a "recording in progress" cue when it starts, late joiners hear it before their audio is captured, and the tray icon shows a recording state. Whispers and private channels are never recorded. Players read the tales; the DM's brief, the scribe's notes and the transcript stay with the DM. Nothing leaves your server unless you explicitly enable a cloud adapter. The server's containers run with minimal privileges, and a site with a real certificate tells browsers to use HTTPS only. Details in [RECORDING-AND-SUMMARIES.md](docs/architecture/RECORDING-AND-SUMMARIES.md).
 
 ## Prior Art
 

@@ -52,9 +52,12 @@ releases; the 0.4.5 changelog covers both).
 **Next:**
 
 1. **Bug fixes** as they turn up, in patch releases.
-2. **Stage 9, hardening and production readiness** (below), in progress for **0.5.2** on the `stage-9-hardening` branch: the idle
-   CPU fix and the removal of the one-shot containers are built (2026-11-16); Windows and macOS parity, the long soak, packaging
-   and signing are still to do.
+2. **Stage 9, hardening and production readiness** (below), in progress for **0.5.2** on the `stage-9-hardening` branch
+   (dev builds `v0.5.2-dev.1` to `-dev.4`; the test VM runs `-dev.4`). Built 2026-11-16 and 17: the idle CPU fix, no
+   one-shot containers, old images removed on update, CPU transcription 2 to 11 times faster, summaries as a scribe's
+   notes and a bard's tale, who-reads-what for records, and container hardening with pinned images and HSTS. Still to
+   do: a real recorded session through the new pipeline on the VM, Windows and macOS parity, the long soak, packaging
+   and signing.
 3. The open design topics in [.claude/intent.md](.claude/intent.md), as Stage 10 and later.
 
 ### Stock-take, 2026-11-11 (end of day)
@@ -359,7 +362,8 @@ told clearly to update; and a recorded session runs through to its summary.
 ## Stage 9 — Cross-Platform Hardening & Production Readiness
 
 **Status:** 🟡 In progress (started 2026-11-16 on the `stage-9-hardening` branch, for 0.5.2; the health-check, transcription and purge fixes went to `main` for 0.5.1): the idle-CPU fix and the removal of
-the one-shot containers are built; the platform checks, the long soak and signing are not started
+the one-shot containers, the records performance and summary work, and the container hardening are built (see the
+deliverables); the platform checks, the long soak and signing are not started
 **Depends on:** Stage 5 (can overlap Stages 6–8)
 
 **Deliverables:**
@@ -370,6 +374,21 @@ the one-shot containers are built; the platform checks, the long soak and signin
 - A real server-restart-mid-recording drill: recording recovers or fails loudly, never silently — **built and drilled 2026-11-10** (`infra/records-smoke/restart-drill.sh`; recovery stops the leftover egresses and keeps the audio; see [RECORDING-AND-SUMMARIES.md](docs/architecture/RECORDING-AND-SUMMARIES.md)); a `kill -9` of the packaged backend is still to try
 - Security pass: consent-cue bypass attempts, private-audio leakage into records, token/session expiry, ACL checks on every records endpoint — **done 2026-11-10** for the REST surface and live sockets (access matrix; found and fixed a player who left still receiving chat and voice); the Egress capture and whisper paths were already covered by tests
 - Packaging: installers per OS, signed where practical, updater verified
+- **Records that a CPU-only server can keep up with, and that people want to read** — **built 2026-11-16 and 17** for 0.5.2.
+  Whisper works only on the part of each clip that holds sound, and the no-AVX image uses OpenBLAS (a 2010 Xeon: 19.3×
+  the audio's length down to 1.68×). Summaries are two passes, a scribe's notes then a bard's tale, with the notes taken
+  once per stretch of recording (about a quarter of the model time on a long session). New CPU defaults: `small.en` and
+  `qwen3.5:4b`. Players read the tales; the DM also has a key-points brief and the scribe's notes behind a toggle; the
+  transcript is DM-only at the API and shown by the desktop app only with dev builds on. End-to-end test 49/49 on the dev
+  PC (GPU). **Not yet run:** a real session on the VM's CPU defaults, and a transcript long enough to need several
+  pieces of notes. Design: [RECORDING-AND-SUMMARIES.md](docs/architecture/RECORDING-AND-SUMMARIES.md).
+- **Container hardening** — **built 2026-11-17** for 0.5.2, running on the test VM: every Compose service drops all
+  capabilities but the few it needs and cannot gain privileges; Whisper, Ollama and cloudflared are pinned to tested
+  versions; the installer turns on HSTS once it has seen a valid certificate. Left alone on purpose: the `ufw` rule that
+  lets Docker's ranges reach LiveKit's signalling port, and Valkey without a password on loopback
+  ([DEPLOYMENT-AND-TRANSPORT.md](docs/architecture/DEPLOYMENT-AND-TRANSPORT.md)).
+- **Updates clean up after themselves** — **built 2026-11-16**: an update removes VTT Chat images older than the
+  previous version (the test VM had collected 19 GB).
 - **Fewer moving parts at start-up: the one-shot containers are folded into the services that need them** (Andy's idea,
   2026-11-15) — **built 2026-11-16** on the `stage-9-hardening` branch for 0.5.2. `media-init`, `recordings-init`, `models-init` and
   `ollama-pull` are gone: volume ownership comes from the images, the Whisper container fetches its own model
