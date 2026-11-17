@@ -337,6 +337,28 @@ describe('Hub: subscriptions, presence and the snapshot', () => {
     });
   });
 
+  it('snapshot recent chat survives a restart (read from the store, not the replay buffer)', async () => {
+    await connect(t, 'p1', 'player');
+    await t.hub.receive('p1', frame('chat.message', { campaignId: t.campaignId, text: 'one' }));
+    await t.hub.receive(
+      'p1',
+      frame('chat.message', { campaignId: t.campaignId, text: 'two', kind: 'ooc' }),
+    );
+    t.hub.close();
+    // A restart: same database, a fresh (empty) replay buffer.
+    t.hub = new Hub({ store: t.store, accounts: t.accounts, replay: new MemoryReplayBuffer() });
+    const dm = await connect(t, 'd2', 'dm');
+    const recent = dm.last('snapshot')?.d.recentChat;
+    expect(recent.map((l: any) => l.text)).toEqual(['one', 'two']);
+    expect(recent[1]).toMatchObject({
+      campaignId: t.campaignId,
+      from: { userId: t.player.id, name: 'player' },
+      kind: 'ooc',
+    });
+    expect(typeof recent[0].id).toBe('string');
+    expect(typeof recent[0].at).toBe('number');
+  });
+
   it('announces offline only when the last connection closes', async () => {
     const dm = await connect(t, 'd1', 'dm');
     await connect(t, 'p1', 'player');
@@ -650,7 +672,7 @@ describe('Hub: reconnect, replay and snapshot', () => {
     const snapshot = back.last('snapshot')?.d;
     expect(snapshot).toBeDefined();
     expect(snapshot.seq).toBe(5);
-    expect(snapshot.recentChat.map((m: any) => m.text)).toEqual(['m4', 'm5']);
+    expect(snapshot.recentChat.map((m: any) => m.text)).toEqual(['m1', 'm2', 'm3', 'm4', 'm5']);
     hub.close();
   });
 

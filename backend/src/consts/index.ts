@@ -31,6 +31,9 @@ export const MAX_PENDING_SIGNUP_REQUESTS = 200;
 /** Chat history kept per campaign (whispers included); older lines are pruned. Bounded retention. */
 export const CHAT_RETENTION_MESSAGES = 5000;
 
+/** Public chat lines a snapshot carries; older ones are paged in with `GET /chat?before=`. */
+export const SNAPSHOT_CHAT_LINES = 50;
+
 /** One uploaded handout image/PDF. */
 /** A portrait, after the app has shrunk it (a 256-pixel square is a few kilobytes). */
 export const MAX_AVATAR_BYTES = 256 * 1024;

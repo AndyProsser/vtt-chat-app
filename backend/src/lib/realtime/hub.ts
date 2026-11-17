@@ -7,7 +7,7 @@ import {
   type ChatKind,
 } from '@vtt-chat-app/shared';
 
-import { CHAT_RETENTION_MESSAGES } from '../../consts/index.js';
+import { CHAT_RETENTION_MESSAGES, SNAPSHOT_CHAT_LINES } from '../../consts/index.js';
 import type { ChatMessage, Session, User } from '../../types/index.js';
 import type { AccountService } from '../auth/accountService.js';
 import { DomainError } from '../errors.js';
@@ -109,8 +109,6 @@ interface ConnState {
   /** Frames from one connection are handled strictly in order. */
   queue: Promise<void>;
 }
-
-const CHAT_KINDS = new Set(['chat.message']);
 
 /**
  * The realtime core: authenticates sockets, subscribes them to campaigns, tracks presence, relays
@@ -1042,15 +1040,25 @@ export class Hub {
     const { replay } = this.options;
     const members = await this.rosterMembers(campaignId, viewerIsDm);
 
-    const recent = await replay.recent(campaignId, 50);
+    // From the database, not the replay buffer: the buffer is short-lived, so a restart would empty the chat.
+    const recent = (
+      await this.options.store.listChat(campaignId, viewerId, { limit: SNAPSHOT_CHAT_LINES })
+    ).filter((m) => m.recipientId === null);
     return {
       campaignId,
       epoch: await replay.epoch(campaignId),
       seq: await replay.latestSeq(campaignId),
       members,
-      recentChat: recent
-        .filter((event) => CHAT_KINDS.has(event.t))
-        .map((event) => ({ seq: event.seq, ...(event.d as object) })),
+      // The same shape as a live `chat.message` frame's data.
+      recentChat: recent.map((m) => ({
+        id: m.id,
+        campaignId,
+        from: { userId: m.senderId, name: m.senderName },
+        text: m.text,
+        at: m.at,
+        kind: m.kind,
+        ...(m.lang ? { lang: m.lang } : {}),
+      })),
       // Unread notifications, the viewer's own (missed while the app was closed).
       notifications: this.options.schedule
         ? (
