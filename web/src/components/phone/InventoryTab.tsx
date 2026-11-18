@@ -11,14 +11,16 @@ import {
 } from '@vtt-chat-app/shared';
 import { useState } from 'react';
 
+import { holder } from '../../lib/phone/lootCards.js';
 import { GiveSelect } from './GiveSelect.js';
+import { ACTION_SHORT } from './LootButtons.js';
 
 import { useIsDm } from '../../hooks/useIsDm.js';
 import { useLoad } from '../../hooks/useLoad.js';
 import { ApiError } from '../../lib/api.js';
 import { lootDo, lootItems } from '../../lib/phone/phoneApi.js';
 import { usePhoneStore } from '../../lib/phone/phoneStore.js';
-import type { LootItem, Member } from '../../types/phone.js';
+import type { LootItem } from '../../types/phone.js';
 
 const FILTER_LABEL: Record<LootFilter, string> = {
   available: 'Available',
@@ -26,12 +28,6 @@ const FILTER_LABEL: Record<LootFilter, string> = {
   all: 'All',
   own: 'Mine',
   party: 'Party',
-};
-const ACTION_SHORT: Record<LootAction, string> = {
-  take: 'Take',
-  store: 'Store for party',
-  return: 'Put back',
-  give: 'Give to…',
 };
 const RARITY_COLOR: Record<string, 'gray' | 'green' | 'blue' | 'violet' | 'orange' | 'red'> = {
   common: 'gray',
@@ -41,20 +37,6 @@ const RARITY_COLOR: Record<string, 'gray' | 'green' | 'blue' | 'violet' | 'orang
   legendary: 'orange',
   artifact: 'red',
 };
-
-const nameOf = (members: Member[], id: string | null): string => {
-  const m = members.find((x) => x.userId === id);
-  return m?.character?.name ?? m?.displayName ?? 'someone';
-};
-
-/** Who has it, in words: "Available", "Taken by Mira", "In the party stash", "Split among 3". */
-function holder(item: LootItem, members: Member[]): string {
-  if (!item.claimedBy) return 'Available';
-  if (item.claimedFor === 'split' && item.split) return `Split among ${item.split.shares.length}`;
-  if (item.claimedFor === 'party') return 'In the party stash';
-  const who = nameOf(members, item.claimedBy);
-  return item.claimedFor === 'assigned' ? `Given to ${who}` : `Taken by ${who}`;
-}
 
 /** The party's loot: what the DM has dropped and who has it. Players take, stash and return; the DM gives items to a player. */
 export function InventoryTab({ campaignId }: { campaignId: string }) {

@@ -55,6 +55,25 @@ The usual way a group plays online: everyone joins one Discord channel and leave
 - **Campaigns are private.** A designated DM and access control per campaign, plus a General channel.
 - **Not tied to a VTT.** It works alongside whatever you play on — D&D Beyond, Foundry, Roll20, or paper. (Optional D&D Beyond character import is planned for later.)
 
+## How Light Is It?
+
+You leave a voice app running for a four-hour session, next to a game that is probably in a browser tab. So memory and CPU matter, and this app is built to be small: it is a tray app that serves **only its own pages**, never a web browser or remote content, and **Rust owns the audio** (capture, echo cancellation, mixing and playback never touch a web view). A panel's window is **destroyed when you close it**, not hidden, so nothing runs for a closed panel. The result, idle in a session:
+
+| App                                     | Memory                                                                                          | CPU at idle     | Built on                                        |
+| --------------------------------------- | ----------------------------------------------------------------------------------------------- | --------------- | ----------------------------------------------- |
+| **VTT Chat (Windows), in the tray**     | **about 8 MB** (measured)                                                                       | 0%              | Tauri: Rust plus the system's own web view      |
+| **VTT Chat (Linux), a panel open**      | **about 170 MB** (measured, PSS)                                                                | 0 to 0.1%       | Tauri on WebKitGTK                              |
+| Discord                                 | about 400 MB on a good day, over 2 GB on a bad one; about 290 MB for the newer optimised client | low to moderate | Electron (a full Chromium)                      |
+| Other voice apps (TeamSpeak, Mumble, …) | not measured by us                                                                              |                 | native toolkits or Chromium, varying by version |
+
+**How to read this honestly:**
+
+- The Windows figure is the app **sitting in the tray with no panel open**, which is where players leave it about 90% of the time. Opening a panel starts the system's web view (WebView2), which costs more while the panel is open and is given back when you close it. The Linux figure is **with a panel open** (WebKitGTK is heavier than WebView2); we have not yet measured Linux with every panel closed, or macOS, which uses the system's WebKit.
+- Memory is **PSS** on Linux (each process's fair share of shared libraries; plain RSS would double-count and read about 390 MB), and Task Manager's figure on Windows. The Discord numbers are what we see on our own machines and the vendor's own claims for the newer client, not a controlled benchmark. We have not measured TeamSpeak or Mumble, so the table does not give a number for them: measure the apps you use on your own machine, with your own settings.
+- Even with a panel open on Linux, the app is a fraction of an Electron voice app, and at rest on Windows it is a rounding error. The point is not a race: it is that a tray app for a tabletop group should not compete with your game for memory.
+
+Unlike general voice apps, this one is built for tabletop play: a DM-controlled soundboard, party splits with private talk, loot, and a searchable record of every session with AI summaries.
+
 ## Tech Stack
 
 - **Desktop client** — Tauri tray app (Rust + React panels)

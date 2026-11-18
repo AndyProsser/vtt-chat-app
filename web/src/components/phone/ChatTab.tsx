@@ -1,7 +1,10 @@
 import { Button, Flex, Text, VisuallyHidden } from '@radix-ui/themes';
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 
+import { useIsDm } from '../../hooks/useIsDm.js';
+import { useLoad } from '../../hooks/useLoad.js';
 import { whisperPeer } from '../../lib/phone/chat.js';
+import { cardsByLine } from '../../lib/phone/lootCards.js';
 import {
   KIND_CLASS,
   languageCaption,
@@ -11,11 +14,12 @@ import {
 } from '../../lib/phone/lineStyle.js';
 import type { SayOptions } from '../../lib/phone/socket.js';
 import { lineTime } from '../../lib/phone/format.js';
-import { chatHistory } from '../../lib/phone/phoneApi.js';
+import { chatHistory, lootItems } from '../../lib/phone/phoneApi.js';
 import { usePhoneStore } from '../../lib/phone/phoneStore.js';
 import type { ChatLine } from '../../types/phone.js';
 import { Composer } from './Composer.js';
 import { AsideStrip } from './AsideStrip.js';
+import { LootChatCard } from './LootChatCard.js';
 import { MembersRail } from './MembersRail.js';
 
 const PAGE = 50;
@@ -33,12 +37,32 @@ export function ChatTab({
   const userId = usePhoneStore((s) => s.userId) ?? '';
   const live = usePhoneStore((s) => s.live);
   const notices = usePhoneStore((s) => s.notices);
+  const lootRev = usePhoneStore((s) => s.lootRev);
+  const dm = useIsDm(campaignId);
+  const loot = useLoad(() => lootItems(campaignId), `${campaignId}:${lootRev}`);
   const [more, setMore] = useState<'idle' | 'loading' | 'done'>('idle');
   const bottom = useRef<HTMLDivElement>(null);
   const stick = useRef(true);
 
   const names = useMemo(() => new Map(members.map((m) => [m.userId, m.displayName])), [members]);
   const now = Date.now();
+  // Loot cards sit among the lines by drop time; the server's list is the source, so they survive a restart.
+  const cards = useMemo(
+    () => cardsByLine(lines, loot.data ?? [], more === 'done' || lines.length < PAGE),
+    [lines, loot.data, more],
+  );
+  const cardRow = (after: string | null) =>
+    (cards.get(after) ?? []).map((item) => (
+      <LootChatCard
+        key={`loot-${item.id}`}
+        item={item}
+        members={members}
+        selfId={userId || null}
+        dm={dm}
+        campaignId={campaignId}
+        onDone={loot.reload}
+      />
+    ));
 
   useEffect(() => {
     if (stick.current) bottom.current?.scrollIntoView({ block: 'end' });
@@ -98,9 +122,11 @@ export function ChatTab({
                 {n.text}
               </Text>
             ))}
+          {cardRow(null)}
           {lines.map((line) => (
             <Fragment key={line.id}>
               <Line line={line} userId={userId} names={names} now={now} />
+              {cardRow(line.id)}
               {notices
                 .filter((n) => n.after === line.id)
                 .map((n) => (

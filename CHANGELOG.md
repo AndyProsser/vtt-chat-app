@@ -12,6 +12,7 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ### Added
 
+- **Loot cards in the phone web chat.** A loot drop now appears in the web chat among the lines, with who has it and the buttons that fit you (take, store, put back; the Game Master gets a Give list), the same as the desktop app. The cards come from the server's loot list, so they are there after a restart too.
 - **Every shared link gets the dragon card.** Pasting the main page, the download page, sign-in or any other address of your server into social media or a chat app now shows the dragon image with a title and a short description (before, only invite links did). Invite links still show the campaign's name, its Game Master and the start of its description. Needs `PUBLIC_URL`, which the standard install sets from your domain.
 - **Session summaries say who got the loot.** While a session is recorded, every loot drop, gift, grab, party-stash move, coin split and return is noted with who got what. The Game Master's brief lists all of it under Loot; the players' tale mentions only the notable treasure (magic items, and coin or valuables worth 100 gp or more). Operators: nothing to set; the server's database gets a small update on start.
 - **Scroll up for older chat.** The desktop chat loads the last 50 messages; scrolling to the top loads the 50 before them, as far back as the server keeps (the phone web app already did this).

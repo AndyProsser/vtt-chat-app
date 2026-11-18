@@ -938,3 +938,13 @@ button.phone-picture-button {
 .phone-give-secondary {
   color: var(--gray-11);
 }
+
+/* A loot card among the chat lines (LootChatCard): dashed while it is still on the table, solid once taken. */
+.phone-loot-card {
+  margin-block: 4px;
+  border: 1px dashed var(--accent-8);
+}
+.phone-loot-taken {
+  border-style: solid;
+  border-color: var(--gray-6);
+}
