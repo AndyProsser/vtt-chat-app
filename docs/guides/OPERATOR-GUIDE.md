@@ -515,9 +515,7 @@ check. Set `AUDIO_DISK_PURGE=0` in `.env` to switch the disk rule off (the age r
 A fourth rule, **off by default**: `./vtt-admin settings set audio-purge-next-session on`. When a recording
 **starts** in a campaign, the raw audio of that campaign's _earlier_ recordings is purged, but only those that
 are fully processed (transcript and summaries done) and still hold audio. Anything queued, processing or
-failed is left alone, and so is every other campaign. The text stays. It is the "the DM never pressed delete"
-rule: the DM's button is the only confirmation there is, so a recording the DM has not deleted counts as
-unconfirmed. The worker does the deleting and logs each one (`docker compose logs worker`); `recording list`
+failed is left alone, and so is every other campaign. The text stays. With the Game Master no longer able to delete audio (since 0.5.4), this is the simplest "tidy up after the last session" rule: the audio of one session is kept until the next one begins.
 then shows "audio purged". Turn it back off with `... audio-purge-next-session off`.
 
 **Worker restarts:** the worker has a stable name, `WORKER_ID` (the Compose bundle sets `worker-1`; natively it
