@@ -392,7 +392,7 @@ export function createApp({
   }
 
   if (config.webDir) {
-    const notFound = webNotFound(config.webDir);
+    const notFound = webNotFound(config.webDir, config.publicUrl);
     if (notFound) app.use(notFound);
   }
   app.use(errorHandler);

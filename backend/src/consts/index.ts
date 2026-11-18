@@ -58,6 +58,10 @@ export const CAMPAIGN_DESCRIPTION_MAX = 4000;
 /** The link-preview blurb for an invite whose campaign has no description, or whose code is not valid. */
 export const OG_FALLBACK_BLURB = 'Join the table on VTT Chat.';
 
+/** The default link-card description for any page that is not an invite. */
+export const OG_SITE_BLURB =
+  'Voice, chat and session records for tabletop groups. Self-hosted, with a summary of every session.';
+
 export const MAGIC_LINK_TTL_MINUTES = 15;
 /** A reset also needs a new password, and mail can be slow: it gets longer than a sign-in link. */
 export const RESET_LINK_TTL_MINUTES = 60;

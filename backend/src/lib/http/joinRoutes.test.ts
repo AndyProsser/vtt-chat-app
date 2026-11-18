@@ -29,6 +29,7 @@ const config = (dir: string | undefined): any => ({
   recordingsDir: undefined,
   mediaDir: undefined,
   webDir: dir,
+  publicUrl: 'https://vtt.test',
   clientDownloads: { linux: 'https://dl.test/app.AppImage' },
 });
 
@@ -125,6 +126,25 @@ describe('the join page backend', () => {
     const banner = await fetch(`${base}/og-banner.jpg`);
     // No web/public file in this temp web dir, so the route steps aside rather than leaking anything.
     expect([200, 404]).toContain(banner.status);
+  });
+
+  it('gives every other page, and an unknown address, the default dragon card', async () => {
+    for (const [path, status] of [
+      ['/', 200],
+      ['/download', 200],
+      ['/no/such/page', 404],
+    ] as const) {
+      const res = await fetch(`${base}${path}`, { headers: { accept: 'text/html' } });
+      expect(res.status).toBe(status);
+      const html = await res.text();
+      expect(html).toContain('property="og:image" content="https://vtt.test/og-banner.jpg"');
+      expect(html).toContain(`property="og:url" content="https://vtt.test${path}"`);
+      expect(html).toContain('<title>join</title>'); // the page keeps its own title
+    }
+    // The invite page keeps its own, invite-specific card (one title, no default card).
+    const invite = await (await fetch(`${base}/join/nope`)).text();
+    expect(invite).toContain('Join a table on VTT Chat');
+    expect(invite).not.toContain('property="og:title" content="VTT Chat"');
   });
 
   it('gives a bad code, and a crawler over its budget, the generic tags and the same 200', async () => {

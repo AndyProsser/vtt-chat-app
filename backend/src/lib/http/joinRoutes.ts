@@ -4,7 +4,7 @@ import { resolve } from 'node:path';
 import express, { Router, type RequestHandler } from 'express';
 
 import type { CampaignService } from '../campaigns/campaignService.js';
-import { ogMetaTags } from './ogTags.js';
+import { ogMetaTags, siteOgTags } from './ogTags.js';
 import type { RateLimiter } from './rateLimit.js';
 
 export interface JoinRouteDeps {
@@ -46,13 +46,18 @@ const NOT_PAGES = /^\/(api|updates|assets|status|ws)(\/|$)/;
  * 404 status (the page draws "Page not found" inside the usual frame), not Express's bare text. Anything
  * that is not a browser navigation (an API client, an image, a script) keeps the plain 404.
  */
-export function webNotFound(webDir: string): RequestHandler | undefined {
+export function webNotFound(webDir: string, publicUrl?: string): RequestHandler | undefined {
   const index = resolve(webDir, 'index.html');
   if (!existsSync(index)) return undefined;
+  const withDefaultCard = withExtraHead(index);
   return (req, res, next) => {
     if ((req.method !== 'GET' && req.method !== 'HEAD') || NOT_PAGES.test(req.path)) return next();
     if (!req.header('accept')?.includes('text/html')) return next();
-    res.status(404).sendFile(index);
+    if (!publicUrl) return void res.status(404).sendFile(index);
+    res
+      .status(404)
+      .type('html')
+      .send(withDefaultCard(siteOgTags({ publicUrl, path: req.path })));
   };
 }
 
@@ -74,6 +79,18 @@ function withHead(index: string): (tags: string) => string {
     if (!cached || cached.mtime !== mtime) cached = { mtime, html: readFileSync(index, 'utf8') };
     const html = cached.html.replace(/<title>[\s\S]*?<\/title>/i, '');
     return html.includes('</head>') ? html.replace('</head>', `${tags}\n</head>`) : tags + html;
+  };
+}
+
+/** `index.html` with extra tags added to the head, the page's own `<title>` kept (for pages with a default card). */
+function withExtraHead(index: string): (tags: string) => string {
+  let cached: { mtime: number; html: string } | undefined;
+  return (tags) => {
+    const mtime = statSync(index).mtimeMs;
+    if (!cached || cached.mtime !== mtime) cached = { mtime, html: readFileSync(index, 'utf8') };
+    return cached.html.includes('</head>')
+      ? cached.html.replace('</head>', `${tags}\n</head>`)
+      : tags + cached.html;
   };
 }
 
@@ -107,6 +124,7 @@ export function webPages(webDir: string, options?: WebPagesOptions): Router | un
     }),
   );
   const tagged = withHead(index);
+  const withDefaultCard = withExtraHead(index);
   // A pasted invite link unfurls in a chat app: the page's head carries this invite's Open Graph tags. A bad
   // code, or a crawler over its budget, gets the generic tags and the same page (never a 429 or a 404 that
   // would tell a prober which codes exist).
@@ -134,8 +152,12 @@ export function webPages(webDir: string, options?: WebPagesOptions): Router | un
       '/email-signin',
       '/reset-password',
     ],
-    (_req, res) => {
-      res.sendFile(index);
+    (req, res) => {
+      // Every public page carries the default link card, so any shared link unfurls (not the invite: above).
+      if (!options?.publicUrl) return void res.sendFile(index);
+      res
+        .type('html')
+        .send(withDefaultCard(siteOgTags({ publicUrl: options.publicUrl, path: req.path })));
     },
   );
   // The phone app (web/app.html). Hash routes, so this one path is all the server needs to know.

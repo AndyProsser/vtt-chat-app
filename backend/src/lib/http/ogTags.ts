@@ -1,4 +1,4 @@
-import { OG_FALLBACK_BLURB } from '../../consts/index.js';
+import { OG_FALLBACK_BLURB, OG_SITE_BLURB } from '../../consts/index.js';
 import type { InvitePreview } from '../../types/index.js';
 import { escapeHtml } from '../mail/escape.js';
 
@@ -21,6 +21,48 @@ export function plainBlurb(markdown: string, max = 160): string {
   return `${(space > max / 2 ? cut.slice(0, space) : cut).trimEnd()}…`;
 }
 
+/** The card's tags (title, description, large image, address). `og:url` and `og:image` need `publicUrl`. */
+function cardTags(
+  title: string,
+  description: string,
+  publicUrl: string | undefined,
+  path: string,
+): [string, string][] {
+  const tags: [string, string][] = [
+    ['og:type', 'website'],
+    ['og:site_name', 'VTT Chat'],
+    ['og:title', title],
+    ['og:description', description],
+    ['twitter:card', 'summary_large_image'],
+  ];
+  if (publicUrl) {
+    const base = publicUrl.replace(/\/+$/, '');
+    tags.push(
+      ['og:url', `${base}${path}`],
+      ['og:image', `${base}/og-banner.jpg`],
+      ['og:image:width', '1100'],
+      ['og:image:height', '576'],
+      ['og:image:alt', 'A dragon guarding a glowing d20'],
+    );
+  }
+  return tags;
+}
+
+const metaHtml = (tags: [string, string][]): string[] =>
+  tags.map(([k, v]) => `<meta property="${k}" content="${escapeHtml(v)}">`);
+
+/**
+ * The Open Graph tags for every other public page (the main page, download, sign-in, an unknown address…): the
+ * same dragon card with a default title and description, so any link shared to social media or a chat app
+ * unfurls. No `<title>`: the page keeps its own. Nothing here depends on who asks.
+ */
+export function siteOgTags(input: { publicUrl: string | undefined; path: string }): string {
+  return [
+    `<meta name="description" content="${escapeHtml(OG_SITE_BLURB)}">`,
+    ...metaHtml(cardTags('VTT Chat', OG_SITE_BLURB, input.publicUrl, input.path)),
+  ].join('\n');
+}
+
 /**
  * The `<title>` and Open Graph tags for `/join/:code`, so a link pasted into Discord, WhatsApp or Messenger
  * unfurls into a card. With no preview (a bad, expired or rate-limited code) the tags are generic, so a
@@ -39,26 +81,10 @@ export function ogMetaTags(input: {
     preview && preview.dmName
       ? `${preview.dmName} is running ${preview.campaignName}. ${blurb}`
       : blurb;
-  const tags: [string, string][] = [
-    ['og:type', 'website'],
-    ['og:site_name', 'VTT Chat'],
-    ['og:title', title],
-    ['og:description', description],
-    ['twitter:card', 'summary_large_image'],
-  ];
-  if (publicUrl) {
-    const base = publicUrl.replace(/\/+$/, '');
-    tags.push(
-      ['og:url', `${base}${input.path}`],
-      ['og:image', `${base}/og-banner.jpg`],
-      ['og:image:width', '1100'],
-      ['og:image:height', '576'],
-      ['og:image:alt', 'A dragon guarding a glowing d20'],
-    );
-  }
+  const tags = cardTags(title, description, publicUrl, input.path);
   return [
     '<title>Join | VTT Chat</title>',
     `<meta name="description" content="${escapeHtml(description)}">`,
-    ...tags.map(([k, v]) => `<meta property="${k}" content="${escapeHtml(v)}">`),
+    ...metaHtml(tags),
   ].join('\n');
 }

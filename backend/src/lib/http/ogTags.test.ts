@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { InvitePreview } from '../../types/index.js';
-import { ogMetaTags, plainBlurb } from './ogTags.js';
+import { ogMetaTags, plainBlurb, siteOgTags } from './ogTags.js';
 
 const preview: InvitePreview = {
   campaignName: 'Strahd',
@@ -59,5 +59,24 @@ describe('ogMetaTags', () => {
     expect(tags).toContain('Join a table on VTT Chat');
     expect(tags).not.toContain('og:image');
     expect(tags).not.toContain('og:url');
+  });
+});
+
+describe('siteOgTags', () => {
+  it('gives any page the dragon card and a default description, with no title of its own', () => {
+    const html = siteOgTags({ publicUrl: 'https://vtt.example/', path: '/download' });
+    expect(html).toContain('property="og:title" content="VTT Chat"');
+    expect(html).toContain('property="og:description" content="Voice, chat and session records');
+    expect(html).toContain('property="og:image" content="https://vtt.example/og-banner.jpg"');
+    expect(html).toContain('property="og:url" content="https://vtt.example/download"');
+    expect(html).toContain('name="twitter:card"'.replace('name', 'property'));
+    expect(html).not.toContain('<title>');
+  });
+
+  it('leaves out the image and address when no public address is configured', () => {
+    const html = siteOgTags({ publicUrl: undefined, path: '/' });
+    expect(html).not.toContain('og:image"');
+    expect(html).not.toContain('og:url');
+    expect(html).toContain('og:title');
   });
 });
