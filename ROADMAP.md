@@ -506,16 +506,16 @@ Andy, 2026-11-18: the AI workflow is a large change, so close Stages 9 and 10 as
 
 `PROTOCOL_VERSION` goes to 4 (`shared/src/consts/index.ts` and `consts.rs`, guarded by `backend/src/lib/wire/contract.ts`). Client and server must match on MAJOR.MINOR ([VERSIONING-AND-DEPLOYMENT.md](docs/architecture/VERSIONING-AND-DEPLOYMENT.md)), so a 0.5 app cannot join a 0.6 server: the whole stack updates together, as the operator's deliberate step. Dev builds (`0.6.0-dev.N`) ship along the way.
 
-| #   | What                                                                                                                                                                                                                                                                 | What changes on the wire                 |
-| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
-| 1   | **Loot part 4: re-drop** available loot into chat; every card for an item updates ([the spec](#4-re-drop-available-loot-into-chat))                                                                                                                                  | An event and a route                     |
-| 2   | **Loot part 5: "added to my sheet"**: a confirmed flag, the Not confirmed filter, the unconfirmed counter on the loot icon in both apps, and the notification when the DM gives ([the spec](#5-added-to-my-sheet-notification-and-confirmed-flag))                   | A field, a route and a notification kind |
-| 3   | **The soundboard work** that was waiting for this bump (see `.claude/intent.md`)                                                                                                                                                                                     | As designed there                        |
-| 4   | **Persona setting per campaign**: the Game Master picks the bard's voice, with the drunkard's warning where it is chosen. Stored and shown now; Stage 12 makes it do something. Default: the Tavern Bard                                                             | A campaign setting                       |
-| 5   | **GM Notes page**: a plain Markdown notebook with starter headings and picture and PDF attachments; the Game Master's alone                                                                                                                                          | New routes                               |
-| 6   | **Glossary the Game Master can edit** (names, places, spells, aliases), with room for suggested terms waiting for approval, which vocabulary learning fills in Stage 12                                                                                              | New routes                               |
-| 7   | **The off-site notice in the apps**: a field saying whether session content is processed locally (including a gaming PC on the operator's own network) or off-site; shown to everyone, as CLAUDE.md requires. Always "local only" until the Claude connector (0.6.2) | A field on the recording state           |
-| 8   | **Records API tidy-up**: the `notes` kind and the transcript rule that 0.5.2 added without a bump                                                                                                                                                                    | As designed in the records doc           |
+| #   | What                                                                                                                                                                                                                                                                                                     | What changes on the wire                 |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| 1   | **Loot part 4: re-drop** available loot into chat; every card for an item updates ([the spec](#4-re-drop-available-loot-into-chat))                                                                                                                                                                      | An event and a route                     |
+| 2   | **Loot part 5: "added to my sheet"**: a confirmed flag, the Not confirmed filter, the unconfirmed counter on the loot icon in both apps, and the notification when the DM gives ([the spec](#5-added-to-my-sheet-notification-and-confirmed-flag))                                                       | A field, a route and a notification kind |
+| 3   | **The soundboard work** that was waiting for this bump (see `.claude/intent.md`)                                                                                                                                                                                                                         | As designed there                        |
+| 4   | **Bard persona, per campaign**: the Game Master picks one of the five preset bards for the campaign, with the drunkard's warning where it is chosen. The same bard tells every session, as if following the party around. Stored and shown now; Stage 12 makes it do something. Default: the Tavern Bard | A campaign setting                       |
+| 5   | **GM Notes window**: one freeform Markdown page per campaign, the Game Master's alone, with picture and PDF attachments. View and edit modes; see the spec below                                                                                                                                         | New routes                               |
+| 6   | **Glossary the Game Master can edit** (names, places, spells, aliases), with room for suggested terms waiting for approval, which vocabulary learning fills in Stage 12                                                                                                                                  | New routes                               |
+| 7   | **The off-site notice in the apps**: a field saying whether session content is processed locally (including a gaming PC on the operator's own network) or off-site; shown to everyone, as CLAUDE.md requires. Always "local only" until the Claude connector (0.6.2)                                     | A field on the recording state           |
+| 8   | **Records API tidy-up**: the `notes` kind and the transcript rule that 0.5.2 added without a bump                                                                                                                                                                                                        | As designed in the records doc           |
 
 **Done when:** server and both apps speak protocol 4, the contract guard passes, and each item works end to end in the apps it touches. This is a big bump: loot and the soundboard (already designed) go first, the AI preparation after.
 
@@ -538,11 +538,19 @@ What real hardware, a real platform or a second person has not yet shown. Each i
 
 **Done when:** the list above is cleared or accepted, and a full real campaign session runs on the supported platforms without manual intervention.
 
-### Still open before 0.6.0 (ask Andy)
+### Decided by Andy, 2026-11-18
 
-- **The persona setting's shape**: a preset list, free text from the Game Master, or both; per campaign or per session. It is on the wire, so it has to be decided here, not in Stage 12.
-- **Campaign memory the Game Master can read and correct** (the old step K): it needs the memory store, which Stage 12 designs (step F). Either the store's shape is settled early enough for 0.6.0, or this is the one wire change that waits for a later bump. My lean: wait, and do not design a store before it exists.
-- **GM Notes limits**: attachment size and count, and whether the notes are included in a campaign backup.
+1. **The persona is the Bard's, a preset list, per campaign.** One bard per campaign tells each session's tale as if following the intrepid adventurers around (the five presets in Stage 12). No free text, no per-session choice.
+2. **Campaign memory the Game Master can read and correct waits for a later bump.** It is not in 0.6.0; how corrections should work is undecided.
+3. **GM Notes is deliberately basic:** a single freeform Markdown notes area, not a full Game Master's folder. Most Game Masters will ignore it, but it can be a powerful tool.
+
+#### GM Notes: the spec
+
+- **One page per campaign.** Freeform Markdown, starter headings to prompt a novice (the content stays unstructured). **No real limits on content or attachments**; attachments are **PDFs and images only**.
+- **View and edit modes.** In **view** mode a **sidebar on the right** lists every heading in the Markdown, for quick navigation (the lightweight organisation); the **attachments are listed below those links** and open in a **preview window**. **Links in the content open in the system's default browser**, never inside the app.
+- **A top-bar button** opens the window (to be added; Andy: "we may add").
+- Read by the Chronicler, and by the bard only for the drunkard (Stage 12). Visible to the Game Master alone.
+- **Engineering notes (mine, to confirm):** a large file still needs a technical ceiling so one upload cannot fill the server's disk, set generously and in the operator's hands rather than as a product limit; and the notes and their attachments belong in a campaign backup and restore, since they are campaign data.
 
 ---
 
@@ -640,7 +648,7 @@ Andy's rule (2026-11-17) was to do everything with no wire change in 0.5.x first
 
 Still open (ask Andy before designing):
 
-- What a persona is: a preset list, free text from the Game Master, or both; per campaign only, or changeable per session. **Must be settled before 0.6.0**, because the setting is on the wire (Stage 11).
+- ~~What a persona is~~ Decided 2026-11-18: the Bard's persona, a preset list, per campaign, one bard following the party around (Stage 11).
 - What campaign memory holds, who can read and correct it (the models will get names wrong), and how it stays small enough for a CPU-only server.
 - Whether memory is written by the Historian, the Chronicler, or a step of its own, and how it treats private audio and whispers (never recorded today; that rule stays).
 - How the Chronicler differs from today's GM brief, and what happens to the brief and the scribe's notes.
