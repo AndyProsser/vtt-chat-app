@@ -6,13 +6,17 @@ import { soundIcon } from '../../lib/soundIcons.js';
 import type { SoundLevels } from '../../lib/soundLevels.js';
 import { searchSounds, type FlatSound } from '../../lib/stingers.js';
 import { accountErrorMessage, campaignApi } from '../../lib/tauriBridge.js';
-import type { SoundScene } from '../../types/index.js';
+import type { SoundBoard, SoundRecord, SoundScene } from '../../types/index.js';
 import { ToolButton } from '../ToolButton.js';
+import { MySounds } from './MySounds.js';
 import { SceneEditor } from './SceneEditor.js';
 
 interface Props {
   sounds: FlatSound[];
   allSounds: { id: string; name: string }[];
+  /** The whole library, for managing the DM's own sounds. */
+  library: SoundRecord[];
+  boards: SoundBoard[];
   scenes: SoundScene[];
   pins: string[];
   onTogglePin: (soundId: string) => void;
@@ -26,7 +30,7 @@ export function SoundSettings(props: Props) {
   return (
     <Popover.Root>
       <Popover.Trigger>
-        <ToolButton label="Audio mixer: levels, favourites and scenes">
+        <ToolButton label="Audio mixer: levels, favourites, scenes and your own sounds">
           <SlidersHorizontal size={15} />
         </ToolButton>
       </Popover.Trigger>
@@ -41,6 +45,7 @@ export function SoundSettings(props: Props) {
             <Tabs.Trigger value="levels">Levels</Tabs.Trigger>
             <Tabs.Trigger value="stingers">Stingers</Tabs.Trigger>
             <Tabs.Trigger value="scenes">Scenes</Tabs.Trigger>
+            <Tabs.Trigger value="mine">My sounds</Tabs.Trigger>
           </Tabs.List>
           <Tabs.Content value="levels">
             <Levels {...props} />
@@ -50,6 +55,9 @@ export function SoundSettings(props: Props) {
           </Tabs.Content>
           <Tabs.Content value="scenes">
             <Scenes {...props} />
+          </Tabs.Content>
+          <Tabs.Content value="mine">
+            <MySounds sounds={props.library} boards={props.boards} onChanged={props.onChanged} />
           </Tabs.Content>
         </Tabs.Root>
       </Popover.Content>

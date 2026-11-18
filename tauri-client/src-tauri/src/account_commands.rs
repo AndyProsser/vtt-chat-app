@@ -759,6 +759,34 @@ pub async fn ddb_api(
         .await
 }
 
+/// Uploads a sound clip to the DM's own library: a new sound (`sound_id` empty) or one more take of an existing
+/// one. `data` is the file, base64; the server checks it really is audio and how big it may be.
+#[tauri::command]
+pub async fn sound_upload(
+    state: State<'_, AccountState>,
+    sound_id: Option<String>,
+    name: String,
+    category: String,
+    filename: String,
+    data: String,
+) -> Result<Value, AccountError> {
+    use base64::Engine;
+    let (server, token, _campaign) = credentials(&state).await?;
+    let path = crate::account::sound_upload_path(sound_id.as_deref(), &name, &category, &filename)?;
+    let bytes = base64::engine::general_purpose::STANDARD
+        .decode(data.as_bytes())
+        .map_err(|_| error("invalid_input", "that sound could not be read"))?;
+    if bytes.is_empty() || bytes.len() > crate::account::MAX_SOUND_UPLOAD_BYTES {
+        return Err(error(
+            "invalid_input",
+            "the sound is empty or too large (5 MB at most)",
+        ));
+    }
+    AccountClient::new(&server)
+        .upload(&token, &path, bytes)
+        .await
+}
+
 /// Uploads a picture (a pasted screenshot, a map) as a new handout. `data` is the file, base64;
 /// the server checks what it really is and how big it may be.
 #[tauri::command]

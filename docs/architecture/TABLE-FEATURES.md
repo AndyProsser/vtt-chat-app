@@ -230,8 +230,14 @@ crossfades, hotkeys, and a public broadcast link (players hear it in the app).
   the track against a real `livekit-server`, and a listener (`scripts/dev/listen-soundboard.ts`, a mock
   player) received it at the right level for the right length. Whether it _sounds_ right (pitch steadiness
   after Opus and the jitter buffer, latency, the DM's monitor sync) needs ears.
-- **Not built:** the board/scene _editor_ UI (the library is edited through the API for now) and
-  uploading clips from the app.
+- **The editor (built 2026-11-18, no protocol change: every call already existed).** Scenes could already be
+  added, changed and removed from the audio mixer's **Scenes** tab (that line was out of date). The **My sounds** tab
+  adds the rest: upload a clip (a Rust command, `sound_upload`, sends the raw bytes like a handout upload; the app
+  checks the extension and 5 MB first, the server checks the bytes), add a take, rename, delete. A new **effect** is
+  put on the DM's own board "My sounds" (created on first use, 60 buttons at most) so it appears in Stingers; ambience
+  and music are used from scenes. Boards are otherwise not edited by hand: the drawer groups buttons by their mode and
+  board name, so a board editor would add controls without adding anything a DM can do. Not built: per-take levels,
+  tags, and moving a sound between boards.
 
 ## Session schedule, RSVP and notifications (built)
 

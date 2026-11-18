@@ -173,6 +173,8 @@ export interface SoundRecord {
   name: string;
   shared?: boolean;
   category?: string;
+  /** The clips behind the sound (more than one varies it); only the count is used. */
+  takes?: { id: string }[];
 }
 export type SoundScene = import('../lib/sceneDraft.js').SceneRecord;
 export interface SoundLibrary {

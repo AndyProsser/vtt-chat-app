@@ -362,6 +362,51 @@ pub fn handout_upload_path(
     ))
 }
 
+/// The largest sound clip the app will send (the server's own limit, 5 MB, is the real gate).
+pub const MAX_SOUND_UPLOAD_BYTES: usize = 6 * 1024 * 1024;
+
+/// `/api/soundboard/sounds/upload?name=…&category=…&filename=…` for a new sound, or, with `sound_id`,
+/// `/api/soundboard/sounds/<id>/takes?filename=…` for one more take of it. Every value is percent-encoded.
+pub fn sound_upload_path(
+    sound_id: Option<&str>,
+    name: &str,
+    category: &str,
+    filename: &str,
+) -> Result<String, AccountError> {
+    let bad = |m: &str| AccountError::new("invalid_input", m);
+    let filename: String = filename.chars().take(200).collect();
+    let mut url = url::Url::parse("http://x").expect("a constant URL parses");
+    if let Some(id) = sound_id {
+        if id.is_empty()
+            || !id
+                .chars()
+                .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+        {
+            return Err(bad("that request is not allowed"));
+        }
+        url.query_pairs_mut().append_pair("filename", &filename);
+        return Ok(format!(
+            "/api/soundboard/sounds/{id}/takes?{}",
+            url.query().unwrap_or_default()
+        ));
+    }
+    if !["effect", "ambience", "music"].contains(&category) {
+        return Err(bad("a sound is an effect, ambience or music"));
+    }
+    let name = name.trim();
+    if name.is_empty() || name.chars().count() > 120 {
+        return Err(bad("give the sound a name of up to 120 characters"));
+    }
+    url.query_pairs_mut()
+        .append_pair("name", name)
+        .append_pair("category", category)
+        .append_pair("filename", &filename);
+    Ok(format!(
+        "/api/soundboard/sounds/upload?{}",
+        url.query().unwrap_or_default()
+    ))
+}
+
 /// `/api/campaigns/<id>/handouts/<handout>/images?name=…`: one more picture for a picture handout.
 pub fn handout_image_path(
     campaign_id: &str,
@@ -1145,6 +1190,23 @@ mod tests {
         assert!(handout_upload_path("", "x", "image", "n").is_err());
         let long = "t".repeat(201);
         assert!(handout_upload_path("c1", &long, "image", "n").is_err());
+    }
+
+    #[test]
+    fn a_sound_upload_path_encodes_its_values_and_refuses_the_wrong_things() {
+        assert_eq!(
+            sound_upload_path(None, " Door & hinge ", "effect", "door 1.ogg").unwrap(),
+            "/api/soundboard/sounds/upload?name=Door+%26+hinge&category=effect&filename=door+1.ogg"
+        );
+        assert_eq!(
+            sound_upload_path(Some("s-1"), "", "", "take 2.wav").unwrap(),
+            "/api/soundboard/sounds/s-1/takes?filename=take+2.wav"
+        );
+        assert!(sound_upload_path(None, "x", "podcast", "f").is_err());
+        assert!(sound_upload_path(None, "   ", "music", "f").is_err());
+        assert!(sound_upload_path(None, &"n".repeat(121), "music", "f").is_err());
+        assert!(sound_upload_path(Some("../x"), "x", "effect", "f").is_err());
+        assert!(sound_upload_path(Some(""), "x", "effect", "f").is_err());
     }
 
     #[test]

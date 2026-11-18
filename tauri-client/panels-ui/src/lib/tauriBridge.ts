@@ -216,6 +216,25 @@ export const handoutAddImage = (handoutId: string, name: string, data: string) =
 export const handoutUpload = (title: string, kind: 'image' | 'pdf', name: string, data: string) =>
   invoke<{ handout: { id: string } }>('handout_upload', { title, kind, name, data });
 
+/**
+ * Uploads a sound clip (`sound_upload`) to the DM's own library: a new sound, or with `soundId` one more take of an
+ * existing sound. `data` is the file as base64.
+ */
+export const soundUpload = (input: {
+  soundId?: string;
+  name: string;
+  category: 'effect' | 'ambience' | 'music';
+  filename: string;
+  data: string;
+}) =>
+  invoke<{ sound: { id: string; name: string; category: string } }>('sound_upload', {
+    soundId: input.soundId ?? null,
+    name: input.name,
+    category: input.category,
+    filename: input.filename,
+    data: input.data,
+  });
+
 /** Whether the DM also hears effects on their own speakers (`soundboard_monitor_set`). */
 export const soundboardMonitorSet = (on: boolean) => invoke<void>('soundboard_monitor_set', { on });
 

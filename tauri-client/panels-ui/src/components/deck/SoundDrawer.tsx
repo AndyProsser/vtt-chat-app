@@ -110,6 +110,8 @@ export function SoundDrawer() {
         <SoundSettings
           sounds={sounds}
           allSounds={data?.sounds ?? []}
+          library={data?.sounds ?? []}
+          boards={data?.boards ?? []}
           scenes={scenes}
           pins={pins}
           onTogglePin={togglePin}

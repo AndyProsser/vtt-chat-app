@@ -297,8 +297,13 @@ _Top: the sound drawer (voices, stingers, scenes) and voice groups. Bottom: the 
 - **Sounds and boards**: your own library of clips (several takes each), as big buttons: one-shot or looping.
 - **Scenes**: looping beds (rain) plus random drop-ins (drips), started together. **Stingers** are short effects.
   Players hear them through the call. They are **not** recorded; the recording's timeline just notes what played.
-- **Import sounds** with `npm run sounds:import -- --from <folder> --category ambience` (operators and DMs
-  who run the repository); ask your operator.
+- **Your own sounds** (since 0.5.4): the cog in the sound drawer, tab **My sounds**. **Add** a clip (OGG, WAV, MP3 or
+  FLAC, up to 5 MB), name it and say whether it is an effect, ambience or music. An **effect** appears under Stingers by
+  itself (on a board called "My sounds"); ambience and music are chosen when you make a **scene**. Each sound can take
+  **another take** (so a button does not repeat), be **renamed** or **deleted**. The sounds that ship with the server are
+  not listed there: they are not yours to change.
+- **Bulk import** with `npm run sounds:import -- --from <folder> --category ambience` (operators and DMs who run the
+  repository); ask your operator.
 
 **Handouts and loot**
 
