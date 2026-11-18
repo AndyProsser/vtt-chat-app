@@ -10,6 +10,10 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ## [Unreleased]
 
+## [0.5.3] - 2026-11-18
+
+Loot management and chat history, the phone web app's chat gets loot and handout cards, and session summaries say who got the loot. A **PATCH** release: no protocol change, so 0.5.x apps and servers work with each other. **Update the server first** (see Known limits). Operators: the server's database gets a small update on start. Players: update the app.
+
 ### Added
 
 - **Handouts in the phone web chat.** A shared handout appears among the chat lines as a card (title, kind and the start of a note); tapping it opens the whole handout full screen, and Back returns to the chat. The Game Master has Show/Hide, Edit and Delete there as in the Handouts tab; deleting it removes its card from the chat.
@@ -18,13 +22,7 @@ the GitHub release notes and refuses to build a release without one. How to writ
 - **Every shared link gets the dragon card.** Pasting the main page, the download page, sign-in or any other address of your server into social media or a chat app now shows the dragon image with a title and a short description (before, only invite links did). Invite links still show the campaign's name, its Game Master and the start of its description. Needs `PUBLIC_URL`, which the standard install sets from your domain.
 - **Session summaries say who got the loot.** While a session is recorded, every loot drop, gift, grab, party-stash move, coin split and return is noted with who got what. The Game Master's brief lists all of it under Loot; the players' tale mentions only the notable treasure (magic items, and coin or valuables worth 100 gp or more). Operators: nothing to set; the server's database gets a small update on start.
 - **Scroll up for older chat.** The desktop chat loads the last 50 messages; scrolling to the top loads the 50 before them, as far back as the server keeps (the phone web app already did this).
-
-### Fixed
-
-- **Session summaries on a local model keep the whole session.** On a long session the scribe's notes could ramble, lose track after the first part and make up the rest: the local model ran with its own sampling defaults, which push it away from repeating any word, names included. Notes and Game Master briefs are now written at a low temperature and the tales a little freer, with no such penalty, locally and on a remote LLM alike. On a 12-minute test session the default model now keeps 24–26 of 26 key facts (it was 9–11).
-- **Scrolling up in chat no longer says "Couldn't load older messages".** The app refused its own request for older chat; it now asks, and says "Start of the conversation" when there is nothing older (desktop app).
-- **Loot fades out of the list** when it is given, taken or split, instead of vanishing and then closing the gap.
-- **Chat no longer disappears when the server restarts.** It was always saved, but the desktop app filled its chat from a short-lived buffer instead of the saved history. The loot and handout cards in chat come back too.
+- **Footprint scripts for developers.** `scripts/test/` has scripts for Windows, Linux and macOS that measure an app's real memory and CPU (its whole process tree), each with a self-test, and the README now compares VTT Chat with Discord using them.
 
 ### Changed
 
@@ -36,14 +34,21 @@ the GitHub release notes and refuses to build a release without one. How to writ
 - **Any player can take from the party stash,** or put a stash item back on the table (before, only the player who stored it could).
 - **Give is a menu.** The Game Master's Give button opens a list of the players (portrait, character name and player name) instead of unfolding a list in the row; on the phone it is one tap.
 - **Loot cards in chat show their buttons without opening,** left of the arrow; the arrow only shows the description.
+- **The update notice is one short line.** It says a new version is available and offers the update; the release notes are behind **More info**, where they used to fill the banner (and showed their formatting marks). The same in Settings → App.
+- **Transcription uses every CPU core, at low priority.** Whisper's server used at most 4 threads, so on a bigger server the other cores sat idle; on an 8-core test VM transcription is now about a quarter faster. Voice and the app keep priority while it runs. Operators: nothing to do; `WHISPER_THREADS` in `.env` sets a lower number.
+- **The bard explains a bent detail.** When the tale bends a detail, or something in the notes does not add up, the bard now gives it a reason that belongs in a world of magic (a dwarf who should have sunk "bobbed up, buoyed, he insisted, by sheer spite") instead of leaving it unexplained.
+
+### Fixed
+
+- **Session summaries on a local model keep the whole session.** On a long session the scribe's notes could ramble, lose track after the first part and make up the rest: the local model ran with its own sampling defaults, which push it away from repeating any word, names included. Notes and Game Master briefs are now written at a low temperature and the tales a little freer, with no such penalty, locally and on a remote LLM alike. On a 12-minute test session the default model now keeps 24–26 of 26 key facts (it was 9–11).
+- **Scrolling up in chat no longer says "Couldn't load older messages".** The app refused its own request for older chat; it now asks, and says "Start of the conversation" when there is nothing older (desktop app).
+- **Loot fades out of the list** when it is given, taken or split, instead of vanishing and then closing the gap.
+- **Chat no longer disappears when the server restarts.** It was always saved, but the desktop app filled its chat from a short-lived buffer instead of the saved history. The loot and handout cards in chat come back too.
 
 ### Known limits
 
 - **Update the server before the apps.** This release lets any player take or return a party-stash item. An updated app shows those buttons on every stash item, but a server still on 0.5.2 refuses them (the app says so, and nothing is lost). Older apps keep working with the updated server.
 - After a server restart, a player's chat cannot rebuild the card of an item another player now holds (their loot list no longer has it); the Game Master's can.
-
-- **The update notice is one short line.** It says a new version is available and offers the update; the release notes are behind **More info**, where they used to fill the banner (and showed their formatting marks). The same in Settings → App.
-- **Transcription uses every CPU core, at low priority.** Whisper's server used at most 4 threads, so on a bigger server the other cores sat idle; on an 8-core test VM transcription is now about a quarter faster. Voice and the app keep priority while it runs. Operators: nothing to do; `WHISPER_THREADS` in `.env` sets a lower number.
 
 ## [0.5.2] - 2026-11-17
 
