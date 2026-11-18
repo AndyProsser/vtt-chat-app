@@ -38,6 +38,13 @@ with your phone.
 and choose "sign in with a code". Some servers offer "Sign in with" a company or group account; use that
 button if you see it.
 
+> **Good to know: the animated dragon.** On a wide browser window, the server's home page plays a short looping
+> clip behind its headline. It stays a still picture if your window is narrower than about 700 pixels (screen
+> scaling counts), on a phone, in a data-saving mode, or when your computer asks for **reduced motion**. On
+> Windows that last one is the setting **Settings → Accessibility → Visual effects → Animation effects**: with it
+> off, browsers (Edge, Chrome, Firefox) show the still picture. Nothing is wrong; turn the setting on and
+> reload if you would like to see it move.
+
 The app lives in your **system tray** (the little icons by your clock). Click its icon to open the window; the
 icon shows whether you are connected and whether the table is being recorded. On some Linux desktops the
 tray needs an extension (GNOME: "AppIndicator"); without it the app still works, you just open it from your
