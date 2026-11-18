@@ -4,7 +4,9 @@ import type { Job, Recording, RecordingTrack } from '../../types/index.js';
 import { MemoryJobQueue } from '../jobs/queue.js';
 import { MemoryRecordsStore } from './memoryRecordsStore.js';
 import {
+  createDeleteRecordingHandler,
   createPurgeRecordingHandler,
+  DELETE_RECORDING_JOB,
   insideDirectory,
   PURGE_RECORDING_JOB,
   scheduleRetentionPurges,
@@ -97,6 +99,43 @@ describe('purging the raw audio of a recording', () => {
     await handler().run(job('r1'));
     expect(deleted).toEqual(['/out/r1/t1.ogg']);
     expect((await records.listTracks('r1')).every((t) => t.purgedAt === NOW)).toBe(true);
+  });
+});
+
+describe('deleting a whole recording (a short test session)', () => {
+  const remover = (missing = new Set<string>()) =>
+    createDeleteRecordingHandler({
+      records,
+      deleteFile: async (path) => {
+        if (missing.has(path)) return false;
+        deleted.push(path);
+        return true;
+      },
+    });
+  const deleteJob = (recordingId: string): Job => ({
+    ...job(recordingId),
+    kind: DELETE_RECORDING_JOB,
+  });
+
+  it('removes every audio file and then the recording with its transcript', async () => {
+    await remover().run(deleteJob('r1'));
+    expect(deleted.sort()).toEqual(['/out/r1/t1.ogg', '/out/r1/t2.ogg']);
+    expect(await records.getRecording('r1')).toBeUndefined();
+  });
+
+  it('does not mind a file that is already gone or audio that was purged, and does nothing twice', async () => {
+    await records.markTrackPurged('t1', 3);
+    await remover(new Set(['/out/r1/t2.ogg'])).run(deleteJob('r1'));
+    expect(deleted).toEqual([]);
+    expect(await records.getRecording('r1')).toBeUndefined();
+    await remover().run(deleteJob('r1'));
+  });
+
+  it('refuses a recording still being made or processed, and removes nothing', async () => {
+    await records.setRecordingStatus('r1', 'processing');
+    await expect(remover().run(deleteJob('r1'))).rejects.toThrow(/in progress/);
+    expect(deleted).toEqual([]);
+    expect(await records.getRecording('r1')).toBeDefined();
   });
 });
 

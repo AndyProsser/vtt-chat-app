@@ -196,7 +196,8 @@ and the timeline event, and records whether a summary names the scene as a metri
 - **Retention is operator-controlled** via the Admin CLI (raw tracks are the big files; transcripts
   and summaries are small). Backup/restore/delete exist for recordings, transcripts and summaries
   separately ([CLAUDE.md §7](../../.claude/CLAUDE.md)).
-- The DM can delete a campaign's records; the operator can purge by policy.
+- The DM can delete a **short test session** (under 30 minutes, with dev builds on in the app); the **raw audio and
+  every real session are the operator's** (retention, `vtt-admin`). Decided 2026-11-18.
 
 ## Sizing (measured 2026-11-12; details in the next section)
 
@@ -222,8 +223,8 @@ depends on measured CPU headroom.
   is used to attribute "who said what" and to resolve overlap/crosstalk.
 - **No per-speaker opt-out.** Anyone who doesn't want to be recorded leaves the session. The
   consent cue and visible indicator are the whole consent mechanism.
-- **Raw audio is deleted once the summary is processed and the DM confirms it.** Transcripts and
-  summaries are kept. The DM manages this; the operator CLI can still purge.
+- **Raw audio is the operator's to delete** (decided 2026-11-18; before that the DM confirmed it once the summary
+  was processed). Transcripts and summaries are kept. Retention rules and the operator CLI do the purging.
 - **Stale audio is purged by configurable rules** when the DM never confirms: on the next
   session starting, after an age limit, or when free storage drops below a threshold.
 
@@ -307,11 +308,13 @@ what retention removes, and the text is kept for good.
   transcribe); redoing only the **summaries** still works, from the kept transcript.
 - **Who can see it:** `vtt-admin recording list` shows "audio kept / purged" for each recording, and the
   session history shows the DM "audio deleted". Players are not told.
-- **The DM confirms (built 2026-11-10):** on a **processed** recording that still has audio, the DM sees "The
-  summary is good: delete the audio" in the tray's session history, behind a "this cannot be undone" step.
-  `POST /api/campaigns/:id/recordings/:rid/audio/delete` (DM only; 409 if not processed or nothing left) queues
-  the same `purge-recording` job, so the worker does the deleting. It is **not** in the phone app, by decision:
-  a mistap there would delete audio for good.
+- **The DM does not delete audio (changed 2026-11-18).** The 0.5.2 "summary is good: delete the audio" button is gone,
+  and `POST .../recordings/:rid/audio/delete` now answers 403 ("the audio is cleaned up by the server's operator"),
+  so an older app gets a clear message. What the DM can still do is delete a **short test session**:
+  `DELETE .../recordings/:rid` is refused with 409 for a session of 30 minutes or more (`DM_DELETE_MAX_MINUTES`, in
+  `shared`), and otherwise queues a `delete-recording` job (202). The worker, which can see the files, deletes each
+  track's audio and then the recording, whose transcript, summaries and timeline go with it. The desktop app also
+  shows the button only with dev builds on; that is a display choice, the 30 minutes is the access rule.
 - **When the disk runs low (built 2026-11-10, decided with Andy):** below 10% free on the recordings disk the
   worker (hourly) picks the **oldest** processed recordings that still have audio and gives their DM a stored
   notification (`audio.purge`; shown as a pop-up under the "session" notification setting) and a note in the

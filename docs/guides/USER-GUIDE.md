@@ -272,11 +272,11 @@ _Top: the sound drawer (voices, stingers, scenes) and voice groups. Bottom: the 
 
 - **Record**: the record button in the bar starts, pauses, resumes and stops. A recording protects the
   session: you cannot switch campaigns or hand over the role until it stops.
-- **Audio is kept until you say otherwise.** The raw recordings are large. Once a session is written up and you
-  have read the summary, open it in the session history and press the **bin button** at the top right of its card, then **"Delete the audio only"** (each choice says what it removes and asks once more).
-  The transcript and summaries stay; the audio goes and cannot be got back, so it cannot be transcribed again. The other choice, **"Delete the whole session"**, removes the recording, its transcript and its summaries for everyone.
-  If the server's disk runs low you are warned (a notification, and a note on the session) three days before the
-  oldest audio is deleted for you.
+- **Audio is the server operator's to clean up, not yours.** The raw recordings are large, so whoever runs your server
+  decides how long they are kept and clears them by a schedule (and warns you on the session before the disk runs short).
+  The transcript and summaries always stay. The one thing you can delete yourself is a **short test session**: with
+  "Include dev builds" on (Settings → App), a session shorter than **30 minutes** has a bin button on its card that removes
+  it, its audio and its notes for everyone. A real session can only be removed by the operator.
 - The first time, **invite your players**: Settings → Campaign → **Invite someone** makes one link for the whole group. Press **Copy invite message** and paste it into your group chat. If a link leaks, **Reset invite links** stops them all. Write a short description of the campaign first (the pencil next to its name): new players see it on the invite page.
 
 **Voices and groups**

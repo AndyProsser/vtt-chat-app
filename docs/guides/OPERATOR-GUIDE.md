@@ -355,8 +355,8 @@ gets its VRAM back a minute or two after the summaries are written. The worker r
 language model one after the other, never together.
 
 **Disk:** Egress image ~4 GB, Whisper CUDA image ~6 GB (CPU image ~1.7 GB), Ollama image ~8.5 GB, models as
-above, and audio at about 12–30 MB per player-hour (deleted when the DM confirms the summary, or by the
-retention rules in section 8).
+above, and audio at about 12–30 MB per player-hour (deleted by the
+retention rules in section 8, or by you with `vtt-admin recording purge`).
 
 ### Check it works: the end-to-end smoke test
 
@@ -501,11 +501,13 @@ filling disk is noticed before it stops recordings (built 2026-11-10; the figure
 no one has yet watched it cross the threshold on a live server). Do not purge a recording you may want to
 **re-transcribe** with a better model: once the audio is gone only the summaries can be redone.
 
-Two more things delete raw audio. **The DM** can delete a processed session's audio from the session history
-once they have read the summary. And **when the recordings disk falls below 10% free** the worker (checking
+**Audio is yours to manage, not the Game Master's** (since 0.5.4): there is no delete-audio button in the app. A Game
+Master can delete only a **short test session** (under 30 minutes, from the History panel with dev builds on): the
+worker removes its audio files and its notes together. Everything else is the retention rules above and `vtt-admin`.
+One more thing deletes raw audio: **when the recordings disk falls below 10% free** the worker (checking
 hourly) warns the DM of the oldest unconfirmed recordings (a stored notification, and a note in the history),
 then deletes that audio three days later; below 3% free it does not wait. At most two recordings are handled per
-check. Set `AUDIO_DISK_PURGE=0` in `.env` to switch the disk rule off (the age rule and the DM's button stay).
+check. Set `AUDIO_DISK_PURGE=0` in `.env` to switch the disk rule off (the age rule stays).
 (Built 2026-11-10; tested with fakes and a real Postgres, not yet watched on a filling disk.)
 
 A fourth rule, **off by default**: `./vtt-admin settings set audio-purge-next-session on`. When a recording

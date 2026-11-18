@@ -7,7 +7,7 @@ import { useDevBuilds } from '../hooks/useDevBuilds.js';
 import { useCampaignQuery } from '../hooks/useCampaignQuery.js';
 import { useTableFeed } from '../hooks/useTableFeed.js';
 import {
-  audioActions,
+  canDeleteSession,
   audioDeletionNote,
   clock,
   durationLabel,
@@ -66,26 +66,23 @@ export function HistoryPanel() {
     [],
   );
   const [openId, setOpenId] = useState<string>();
-  const [actionError, setActionError] = useState<string>();
-  const recordings = data?.recordings ?? [];
+  const recordings = (data?.recordings ?? []).filter((r) => !gone.has(r.id));
 
-  async function remove(id: string) {
-    try {
-      setActionError(undefined);
-      await campaignApi('DELETE', `recordings/${id}`);
-      setOpenId(undefined);
-      reload();
-    } catch (e) {
-      setActionError(accountErrorMessage(e));
-    }
+  // The server removes a deleted session in the background (its audio first), so hide it here at once.
+  const [gone, setGone] = useState<ReadonlySet<string>>(new Set());
+  const devBuilds = useDevBuilds();
+  function removed(id: string) {
+    setGone((g) => new Set(g).add(id));
+    setOpenId(undefined);
+    reload();
   }
 
   return (
     <div className="vtt-sessions">
       <SearchBox onOpen={setOpenId} transcript={transcript} />
-      {(error ?? actionError) && (
+      {error && (
         <div className="vtt-composer-error" role="alert" style={{ position: 'static' }}>
-          {error ?? actionError}
+          {error}
         </div>
       )}
       {data && recordings.length === 0 && (
@@ -102,8 +99,8 @@ export function HistoryPanel() {
           transcript={transcript}
           open={openId === r.id}
           onToggle={() => setOpenId(openId === r.id ? undefined : r.id)}
-          onRemove={() => remove(r.id)}
-          onAudioDeleted={reload}
+          canDelete={canDeleteSession(r, dm, devBuilds)}
+          onRemoved={() => removed(r.id)}
         />
       ))}
     </div>
@@ -195,18 +192,17 @@ function Recording({
   transcript,
   open,
   onToggle,
-  onRemove,
-  onAudioDeleted,
+  canDelete,
+  onRemoved,
 }: {
   item: RecordingItem;
   dm: boolean;
   transcript: boolean;
   open: boolean;
   onToggle: () => void;
-  onRemove: () => void;
-  onAudioDeleted: () => void;
+  canDelete: boolean;
+  onRemoved: () => void;
 }) {
-  const live = item.status === 'recording' || item.status === 'processing';
   return (
     <section className="vtt-session">
       <div className="vtt-session-top">
@@ -222,14 +218,7 @@ function Recording({
           </span>
           {open ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
         </button>
-        {dm && !live && (
-          <SessionDelete
-            id={item.id}
-            canDeleteAudio={audioActions(item, dm).canDelete}
-            onAudioDeleted={onAudioDeleted}
-            onRemoved={onRemove}
-          />
-        )}
+        {canDelete && <SessionDelete id={item.id} onRemoved={onRemoved} />}
       </div>
       {open && <Detail id={item.id} canReadTranscript={transcript} />}
       {open && audioDeletionNote(item, dm) && (

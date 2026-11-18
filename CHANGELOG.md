@@ -10,6 +10,10 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ## [Unreleased]
 
+### Changed
+
+- **The Game Master can no longer delete a session's audio.** Raw audio is the server operator's to manage (retention settings and `vtt-admin recording purge`). A Game Master can still delete a **short test session** (under 30 minutes) from the History panel, with "Include dev builds" on; it now removes its audio too, and the server refuses anything longer. The "delete the audio only" choice is gone.
+
 ## [0.5.3] - 2026-11-18
 
 Loot management and chat history, the phone web app's chat gets loot and handout cards, and session summaries say who got the loot. A **PATCH** release: no protocol change, so 0.5.x apps and servers work with each other. **Update the server first** (see Known limits). Operators: the server's database gets a small update on start. Players: update the app.

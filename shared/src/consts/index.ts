@@ -23,5 +23,12 @@ export const PROTOCOL_VERSION = 3;
 /** The header the app sends on every request so the server can refuse a client it cannot talk to. */
 export const PROTOCOL_HEADER = 'x-vtt-protocol';
 
+/**
+ * A Game Master may delete a recorded session only when it is shorter than this (a test or a mistake); the server
+ * enforces it, and the desktop app also shows the button only with dev builds on (Andy, 2026-11-18). Everything
+ * else (audio, old sessions) is the operator's: retention settings and `vtt-admin`.
+ */
+export const DM_DELETE_MAX_MINUTES = 30;
+
 /** The longest chat line (public or whisper), in characters. The server enforces it; composers check it first. */
 export const CHAT_TEXT_MAX = 4000;

@@ -56,7 +56,9 @@ import {
   PROCESS_RECORDING_JOB,
 } from '../lib/records/processRecording.js';
 import {
+  createDeleteRecordingHandler,
   createPurgeRecordingHandler,
+  DELETE_RECORDING_JOB,
   insideDirectory,
   PURGE_RECORDING_JOB,
   scheduleRetentionPurges,
@@ -151,29 +153,31 @@ async function main(): Promise<void> {
   const records = new PostgresRecordsStore(pool);
   const queue = new PostgresJobQueue(pool);
   const recordingsDir = process.env.RECORDINGS_DIR;
-  const purge = createPurgeRecordingHandler({
-    records,
-    deleteFile: async (file) => {
-      if (!recordingsDir || !insideDirectory(recordingsDir, file)) {
-        throw new Error(`refusing to delete ${file}: it is not under RECORDINGS_DIR`);
-      }
-      try {
-        await unlink(file);
-      } catch (error) {
-        if ((error as NodeJS.ErrnoException).code === 'ENOENT') return false;
-        throw error;
-      }
-      // The recording's folder, once it is empty.
-      await rmdir(path.dirname(file)).catch(() => undefined);
-      return true;
-    },
-    log,
-  });
+  const deleteFile = async (file: string): Promise<boolean> => {
+    if (!recordingsDir || !insideDirectory(recordingsDir, file)) {
+      throw new Error(`refusing to delete ${file}: it is not under RECORDINGS_DIR`);
+    }
+    try {
+      await unlink(file);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return false;
+      throw error;
+    }
+    // The recording's folder, once it is empty.
+    await rmdir(path.dirname(file)).catch(() => undefined);
+    return true;
+  };
+  const purge = createPurgeRecordingHandler({ records, deleteFile, log });
+  const removeRecording = createDeleteRecordingHandler({ records, deleteFile, log });
   const workerId = resolveWorkerId(process.env, hostname());
   const options = {
     queue,
     workerId,
-    handlers: { [PROCESS_RECORDING_JOB]: handler, [PURGE_RECORDING_JOB]: purge },
+    handlers: {
+      [PROCESS_RECORDING_JOB]: handler,
+      [PURGE_RECORDING_JOB]: purge,
+      [DELETE_RECORDING_JOB]: removeRecording,
+    },
     log,
   };
   const retentionDays = Number(process.env.RECORDING_RETENTION_DAYS ?? 0);

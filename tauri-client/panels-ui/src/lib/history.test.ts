@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  audioActions,
   audioDeletionNote,
+  canDeleteSession,
   clock,
   durationLabel,
   shownHits,
@@ -55,24 +55,26 @@ describe('speakerName', () => {
   });
 });
 
-describe('audioActions', () => {
-  const rec = (status: string, audio?: 'kept' | 'purged' | 'partly' | 'none') => ({
-    id: 'r',
+describe('canDeleteSession', () => {
+  const MIN = 60_000;
+  const rec = (minutes: number | null, status = 'processed') => ({
     startedAt: 0,
-    stoppedAt: 1,
+    stoppedAt: minutes === null ? null : minutes * MIN,
     status,
-    summaries: [],
-    ...(audio ? { audio } : {}),
   });
-  it('offers the DM to delete the audio of a processed recording that still has some', () => {
-    expect(audioActions(rec('processed', 'kept'), true).canDelete).toBe(true);
-    expect(audioActions(rec('processed', 'partly'), true).canDelete).toBe(true);
+  it('offers the DM a short finished session, with dev builds on', () => {
+    expect(canDeleteSession(rec(5), true, true)).toBe(true);
+    expect(canDeleteSession(rec(29), true, true)).toBe(true);
   });
-  it('does not, for a player, a recording still being processed, or audio that is gone', () => {
-    expect(audioActions(rec('processed', 'kept'), false).canDelete).toBe(false);
-    expect(audioActions(rec('processing', 'kept'), true).canDelete).toBe(false);
-    expect(audioActions(rec('processed', 'purged'), true).canDelete).toBe(false);
-    expect(audioActions(rec('processed', 'none'), true).canDelete).toBe(false);
+  it('does not at 30 minutes or more: the operator removes those', () => {
+    expect(canDeleteSession(rec(30), true, true)).toBe(false);
+    expect(canDeleteSession(rec(240), true, true)).toBe(false);
+  });
+  it('does not without dev builds, for a player, or while it is running or being processed', () => {
+    expect(canDeleteSession(rec(5), true, false)).toBe(false);
+    expect(canDeleteSession(rec(5), false, true)).toBe(false);
+    expect(canDeleteSession(rec(null, 'recording'), true, true)).toBe(false);
+    expect(canDeleteSession(rec(5, 'processing'), true, true)).toBe(false);
   });
 });
 

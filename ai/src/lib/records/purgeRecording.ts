@@ -6,6 +6,8 @@ import type { JobHandler } from '../jobs/worker.js';
 import type { RecordsStore } from './recordsStore.js';
 
 export const PURGE_RECORDING_JOB = 'purge-recording';
+/** Removes a whole recording: its audio files first, then the rows (the text, tracks and summaries go with them). */
+export const DELETE_RECORDING_JOB = 'delete-recording';
 
 const DAY_MS = 86_400_000;
 
@@ -48,6 +50,32 @@ export function createPurgeRecordingHandler(deps: PurgeDeps): JobHandler {
         await deps.records.markTrackPurged(track.id, now());
       }
       log(`${recording.id}: purged the raw audio (${removed} file(s))`);
+    },
+  };
+}
+
+/**
+ * Deletes a recording completely: each track's audio file (one already gone is fine), then the recording, which
+ * takes its transcript, summaries and timeline with it. The Game Master asks for this only for a short test
+ * session (the route checks); the worker does it because only the worker can see the audio.
+ */
+export function createDeleteRecordingHandler(deps: PurgeDeps): JobHandler {
+  const log = deps.log ?? (() => undefined);
+  return {
+    run: async (job: Job) => {
+      if (!job.recordingId) throw new Error('delete-recording job has no recording');
+      const recording = await deps.records.getRecording(job.recordingId);
+      if (!recording) return; // already gone
+      if (recording.status === 'recording' || recording.status === 'processing') {
+        throw new Error(`recording ${recording.id} is still in progress or being processed`);
+      }
+      let removed = 0;
+      for (const track of await deps.records.listTracks(recording.id)) {
+        if ((track.purgedAt ?? null) !== null) continue;
+        if (await deps.deleteFile(track.filePath)) removed += 1;
+      }
+      await deps.records.deleteRecording(recording.id);
+      log(`${recording.id}: deleted the recording and its audio (${removed} file(s))`);
     },
   };
 }

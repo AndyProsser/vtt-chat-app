@@ -1,3 +1,5 @@
+import { DM_DELETE_MAX_MINUTES } from '@vtt-chat-app/shared';
+
 /** Wire shapes of the records API (`/api/campaigns/:id/recordings`). */
 export interface RecordingItem {
   id: string;
@@ -130,10 +132,19 @@ export const shownHits = (hits: readonly SearchHit[], transcript: boolean): Sear
 export const speakerName = (speaker: Utterance['speaker']): string =>
   typeof speaker === 'string' ? speaker : speaker.name;
 
-/** What the DM may do about a recording's raw audio. Only a processed one: until then it is the input. */
-export function audioActions(item: RecordingItem, dm: boolean): { canDelete: boolean } {
-  const has = item.audio === 'kept' || item.audio === 'partly';
-  return { canDelete: dm && item.status === 'processed' && has };
+/**
+ * Whether the DM is offered "Delete this session": only with dev builds on (the app's own rule), only for a
+ * session that is over and shorter than `DM_DELETE_MAX_MINUTES` (the server's rule). The raw audio is never the
+ * DM's to delete: the operator's retention settings and `vtt-admin` do that (Andy, 2026-11-18).
+ */
+export function canDeleteSession(
+  item: Pick<RecordingItem, 'status' | 'startedAt' | 'stoppedAt'>,
+  dm: boolean,
+  devBuilds: boolean,
+): boolean {
+  if (!dm || !devBuilds || item.stoppedAt === null) return false;
+  if (item.status === 'recording' || item.status === 'processing') return false;
+  return item.stoppedAt - item.startedAt < DM_DELETE_MAX_MINUTES * 60_000;
 }
 
 /** "The audio will be deleted on Fri 13 Nov to free disk space", for the DM; null when not due. */
@@ -148,5 +159,5 @@ export function audioDeletionNote(
     day: 'numeric',
     month: 'short',
   });
-  return `The audio will be deleted on ${day} to free disk space. Delete it now, or leave it.`;
+  return `The server will delete this session's audio on ${day} to free disk space. The transcript and summaries stay.`;
 }

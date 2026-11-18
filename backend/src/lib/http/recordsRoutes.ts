@@ -1,14 +1,15 @@
 import {
   AUDIO_NOTICE_DAYS,
   chatUtterances,
+  DELETE_RECORDING_JOB,
   mergeTimeline,
   mergeTranscripts,
   planChapters,
-  PURGE_RECORDING_JOB,
   type JobQueue,
   type RecordsStore,
   type StoredSummary,
 } from '@vtt-chat-app/ai';
+import { DM_DELETE_MAX_MINUTES } from '@vtt-chat-app/shared';
 import { Router } from 'express';
 import { z } from 'zod';
 
@@ -21,7 +22,7 @@ export interface RecordsRouteDeps {
   accounts: AccountService;
   store: Store;
   records: RecordsStore;
-  /** Where the worker's jobs are queued. Without it, deleting audio from the app is unavailable. */
+  /** Where the worker's jobs are queued (deleting a short session removes its audio files, which only the worker can see). */
   jobs?: JobQueue;
   /** Told when the DM's app reports a character voice, for the recording's timeline. */
   onVoiceEffect?: (campaignId: string, accountId: string, voice: string) => void;
@@ -238,36 +239,40 @@ export function recordsRoutes(deps: RecordsRouteDeps): Router {
     });
   });
 
-  // The DM says the summary is good and the raw audio can go. The worker, which can see the files, does the
-  // deleting; the transcript and the summaries stay. Only a processed recording: until then its audio is the
-  // input to the transcript.
+  // The raw audio is the operator's to remove (retention settings, `vtt-admin recording purge`), never the Game
+  // Master's (Andy, 2026-11-18). Older apps still show the button; they get a clear answer, not a missing route.
   router.post('/:recordingId/audio/delete', async (req, res) => {
-    const { campaignId, isDm } = await membership(req, authOf(res).user.id);
-    if (!isDm) throw new DomainError('forbidden', 'only the DM can delete a recording’s audio');
-    const recording = await ownRecording(campaignId, param(req.params.recordingId));
-    if (recording.status !== 'processed') {
-      throw new DomainError(
-        'conflict',
-        'the recording is not processed yet, so its audio is still needed',
-      );
-    }
-    const state = await audioState(recording.id);
-    if (state === 'purged' || state === 'none') {
-      throw new DomainError('conflict', 'there is no audio left to delete');
-    }
-    if (!deps.jobs)
-      throw new DomainError('conflict', 'deleting audio is not available on this server');
-    await deps.jobs.enqueue({ kind: PURGE_RECORDING_JOB, recordingId: recording.id }, Date.now());
-    res.status(202).json({ audio: 'deleting' });
+    await membership(req, authOf(res).user.id);
+    throw new DomainError(
+      'forbidden',
+      'the audio is cleaned up by the server’s operator, not from the app',
+    );
   });
 
-  // The DM can delete a campaign's records (RECORDING-AND-SUMMARIES.md, Access & retention).
+  // The DM can delete a short test session and everything under it, audio included. Longer sessions are the
+  // operator's to remove. (The desktop app also offers this only with dev builds on; that is a display choice.)
   router.delete('/:recordingId', async (req, res) => {
     const { campaignId, isDm } = await membership(req, authOf(res).user.id);
     if (!isDm) throw new DomainError('forbidden', 'only the DM can delete recordings');
     const recording = await ownRecording(campaignId, param(req.params.recordingId));
     if (recording.status === 'recording' || recording.status === 'processing') {
       throw new DomainError('conflict', 'that recording is still in progress or being processed');
+    }
+    const minutes = ((recording.stoppedAt ?? recording.startedAt) - recording.startedAt) / 60_000;
+    if (minutes >= DM_DELETE_MAX_MINUTES) {
+      throw new DomainError(
+        'conflict',
+        `only a session shorter than ${DM_DELETE_MAX_MINUTES} minutes can be deleted from the app; ask the server’s operator to remove this one`,
+      );
+    }
+    // The worker deletes the audio files, then the recording; with no queue (tests) there are no files to find.
+    if (deps.jobs) {
+      await deps.jobs.enqueue(
+        { kind: DELETE_RECORDING_JOB, recordingId: recording.id },
+        Date.now(),
+      );
+      res.status(202).json({ deleting: true });
+      return;
     }
     await records.deleteRecording(recording.id);
     res.status(204).end();
