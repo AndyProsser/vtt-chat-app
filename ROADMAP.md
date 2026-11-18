@@ -49,47 +49,22 @@ restore, and a 90-minute soak; a graceful server shutdown; `.rpm` for real relea
 **Releases:** 0.4.1 to 0.4.5 shipped from what the real VM and real use found (0.4.0 and 0.4.4 were tagged but never published as
 releases; the 0.4.5 changelog covers both).
 
-**Next:**
+**Next** (re-planned 2026-11-18, after 0.5.3):
 
-1. **Bug fixes** as they turn up, in patch releases.
-2. **Stage 9, hardening and production readiness** (below), in progress. **0.5.2 was released on 2026-11-17** with the
-   first part of it (the test VM ran `v0.5.2-dev.4` before the release). Built 2026-11-16 and 17: the idle CPU fix, no
-   one-shot containers, old images removed on update, CPU transcription 2 to 11 times faster, summaries as a scribe's
-   notes and a bard's tale, who-reads-what for records, container hardening with pinned images and HSTS, the app's own audio engine as the
-   default, and the Windows popup freeze fix. Still to do: confirm the popup fix on Windows, a real recorded session
-   through the new pipeline on the VM, measure the audio engine (headsets, latency, CPU), macOS parity, the long soak,
-   packaging and signing.
-3. The open design topics in [.claude/intent.md](.claude/intent.md), as Stage 10 and later.
+1. **Bug fixes** as they turn up, in 0.5.x patch releases.
+2. **Stages 9 and 10 are closed for building.** Their unfinished parts (what needs Windows, a real recorded session on the VM, soak, signing, the release pipeline, a second person's install) are checks, and move to Stage 11.
+3. **[Stage 11](#stage-11--protocol-4-and-verification-060-and-061):** **0.6.0** is the one bump to protocol 4 (loot re-drop and the confirmed flag, the soundboard, and the wire for the AI work: persona setting, GM Notes, glossary, off-site notice); **0.6.1** is verification and the end-to-end test.
+4. **[Stage 12](#stage-12--storytelling-roles-personas-and-campaign-memory-idea-2026-11-17-scheduled-2026-11-18):** the AI workflow (the Claude connector, a glossary for Whisper, a scribe that picks out what happened, the Chronicler, campaign memory, personas), **0.6.2 onwards**.
+5. The open design topics in [.claude/intent.md](.claude/intent.md).
 
-### Stock-take, 2026-11-11 (end of day)
-
-A long day: 83 commits, four dev builds (`v0.4.0-dev.1` to `-dev.4`), and the first real run of the deployment
-buildout. In short: **the system now deploys from published images, signs people in through the web, and the web app and
-the desktop app are two faces of one product.** Nothing below has been through a second person yet.
-
-**Completed from this roadmap (Stage 3b, the deployment buildout):**
-
-- Server **images on GHCR**, built by tag (`images.yml`), pulled by the Compose bundle by release line. Ran for four tags; the
-  Compose bundle was brought up locally from the published images ("first local deploy"), which found and fixed
-  four real bugs (`UPDATES_INCLUDE_DEV`, the macOS updater archive name, `TRUST_PROXY` under Compose, a missing
-  protocol check on the old sign-in calls).
-- **Version handshake** (REST) with `PROTOCOL_VERSION` 2, plus the desktop app now **warns when it and the server differ in
-  MAJOR.MINOR**. **Server-chosen client builds** and the **update feed sync** run against live GitHub, and the sync now also waits
-  until all three installers are uploaded before offering a release (found when it offered half a release).
-- **Web onboarding and app sign-in** (item 7): browser-only sign-in. Andy confirmed locally that the app connects through the
-  browser and the `vtt-chat://` link signs it in with no prompt.
-
-**Added since the roadmap was written (not on it):**
-
-| Area                        | What now exists                                                                                                                                                                                                           |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **One web app**             | A landing page at `/`, `/download` (per-OS steps, sign-in required), `/full-app`, and the chat web app at `/app` as the same product on phones and desktops; one 640px column, the Default look, light/dark               |
-| **Sessions in the browser** | A secure, long-lived cookie (HttpOnly, SameSite, `__Host-`) that slides with the operator's offline limit; Origin checks on cookie writes and the WebSocket; OIDC fits later without rework                               |
-| **Getting an account**      | Visitor sign-up requests (off by default, approved in `vtt-admin signup`), short typeable `ABCD-EFGH` codes, a starter campaign for the first Admin                                                                       |
-| **Chat commands**           | `/say`, `/say-<language>`, `/do`, `/ooc`, `/tell`, `/w`, `/dm`, `/late`, `/cant`, `/work`, `/brb`, `/afk`, `/back` with autocomplete in **both** apps; OOC never recorded; one shared parser                              |
-| **Web chat**                | Members rail with status and hover/tap details, burger menu and "Get the app" promo, icon tabs matching the desktop                                                                                                       |
-| **Desktop app**             | New Default theme (violet, ember, teal) matched in the web; connect screen in the web look; system certificate store trusted; Settings reorganised (Profile with theme, photo, version and updates; Audio; Notifications) |
-| **Design and tooling**      | Artwork banners and a faint chat watermark; `npm run app`; `trust-local-ca.sh`; a headless-browser layout check; a palette drift test between web and desktop                                                             |
+--------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **One web app** | A landing page at `/`, `/download` (per-OS steps, sign-in required), `/full-app`, and the chat web app at `/app` as the same product on phones and desktops; one 640px column, the Default look, light/dark |
+| **Sessions in the browser** | A secure, long-lived cookie (HttpOnly, SameSite, `__Host-`) that slides with the operator's offline limit; Origin checks on cookie writes and the WebSocket; OIDC fits later without rework |
+| **Getting an account** | Visitor sign-up requests (off by default, approved in `vtt-admin signup`), short typeable `ABCD-EFGH` codes, a starter campaign for the first Admin |
+| **Chat commands** | `/say`, `/say-<language>`, `/do`, `/ooc`, `/tell`, `/w`, `/dm`, `/late`, `/cant`, `/work`, `/brb`, `/afk`, `/back` with autocomplete in **both** apps; OOC never recorded; one shared parser |
+| **Web chat** | Members rail with status and hover/tap details, burger menu and "Get the app" promo, icon tabs matching the desktop |
+| **Desktop app** | New Default theme (violet, ember, teal) matched in the web; connect screen in the web look; system certificate store trusted; Settings reorganised (Profile with theme, photo, version and updates; Audio; Notifications) |
+| **Design and tooling** | Artwork banners and a faint chat watermark; `npm run app`; `trust-local-ca.sh`; a headless-browser layout check; a palette drift test between web and desktop |
 
 **Still to do, in the order I would take it:**
 
@@ -362,9 +337,7 @@ told clearly to update; and a recorded session runs through to its summary.
 
 ## Stage 9 — Cross-Platform Hardening & Production Readiness
 
-**Status:** 🟡 In progress (started 2026-11-16 on the `stage-9-hardening` branch; its first part shipped in **0.5.2** on 2026-11-17; the health-check, transcription and purge fixes went to `main` for 0.5.1): the idle-CPU fix and the removal of
-the one-shot containers, the records performance and summary work, and the container hardening are built (see the
-deliverables); the platform checks, the long soak and signing are not started
+**Status:** 🟢 **Closed for building, 2026-11-18** (Andy). Started 2026-11-16 on the `stage-9-hardening` branch; its first part shipped in **0.5.2** and the rest in **0.5.3**. What is built is listed below. **What still needs real hardware or real people moved to [Stage 11](#stage-11--protocol-4-and-verification-060-and-061)**, so a bug found there is a bug, not an open stage.
 **Depends on:** Stage 5 (can overlap Stages 6–8)
 
 **Deliverables:**
@@ -410,14 +383,18 @@ deliverables); the platform checks, the long soak and signing are not started
   2026-11-16** (Andy: yes, automatically): an update removes VTT Chat's own images older than the version it replaced, once
   the new one is healthy; `--keep-images` skips it.
 
-**Done when:** a full real campaign session runs on all supported platforms without manual intervention.
+**Moved to Stage 11 (0.6.1), not done:** the Windows popup-fix check, a real recorded session through the new records pipeline on the VM, the audio engine measured (headsets, latency, CPU), macOS and Linux-desktop parity, the 8+ hour soak, packaging and signing, the compatibility Whisper image on the real VM.
+
+**Done when:** a full real campaign session runs on all supported platforms without manual intervention. (Checked in Stage 11.)
 
 ---
 
 ## Stage 10 — Optional Integrations (Advanced Users)
 
-**Status:** ⚪ Not Started
+**Status:** 🟢 **Closed for building, 2026-11-18** (Andy). What was built is marked below; the unverified parts move to [Stage 11](#stage-11--protocol-4-and-verification-060-and-061). The rest is a **list of ideas, not scheduled**.
 **Depends on:** Stage 5; none of it is on the critical path
+
+**Moved to Stage 11 (0.6.1) for testing:** the release pipeline (never run), D&D Beyond sync against live pages, OIDC against a real provider.
 
 Each item is independent, off by default, and must never be assumed by application code:
 
@@ -432,7 +409,7 @@ Each item is independent, off by default, and must never be assumed by applicati
 
 ### Loot management and chat history (asked by Andy, 2026-11-17)
 
-**Status:** 🟡 Parts 1 to 3 built 2026-11-17 for a 0.5.x dev build ([BUILD-STATUS](docs/BUILD-STATUS.md)); parts 4 and 5 wait for 0.6.0. Andy's requests from real use of the 0.5.2 loot panel and chat; written up, and Andy answered the open questions the same day (listed at the end). It sits here rather than in a new stage, and unlike the rest of Stage 10 it is **not optional**: it fixes and extends Stage 6 table features. Next step: a build plan.
+**Status:** 🟢 Parts 1 to 3 and 6 **released in 0.5.3** (2026-11-18). **Parts 4 and 5 move to [Stage 11](#stage-11--protocol-4-and-verification-060-and-061), built as 0.6.0** (they change the wire). Andy's requests from real use of the 0.5.2 loot panel and chat; written up, and Andy answered the open questions the same day (listed at the end). It sits here rather than in a new stage, and unlike the rest of Stage 10 it is **not optional**: it fixes and extends Stage 6 table features. Next step: a build plan.
 
 #### 1. Chat survives a server restart, and older chat loads on scroll
 
@@ -518,10 +495,61 @@ Parts 1 to 3 change no wire contract (the server reads chat from a different pla
 5. **A player who takes an item gets no notification**; the counter is the only sign. A DM give notifies.
 6. **Chat loads 50 messages, then 50 per scroll-up.**
 
-## Stage 11 — Storytelling: Roles, Personas and Campaign Memory (idea, 2026-11-17)
+## Stage 11 — Protocol 4 and Verification (0.6.0 and 0.6.1; planned 2026-11-18)
 
-**Status:** ⚪ Not Started. **An idea captured so it is not lost: not designed, not decided.** Andy has more detail to add; ask before designing or building any of it.
-**Depends on:** Stage 5 (the records pipeline); builds on the scribe and bard split of 0.5.2 ([RECORDING-AND-SUMMARIES.md](docs/architecture/RECORDING-AND-SUMMARIES.md))
+**Status:** ⚪ Not Started
+**Depends on:** Stages 9 and 10 (closed for building), release 0.5.3
+
+Andy, 2026-11-18: the AI workflow is a large change, so close Stages 9 and 10 as far as building goes, move what needs real testing here, and **put every wire change into one bump first**, so the AI work (Stage 12, 0.6.2 onwards) is built on a settled protocol. Two releases:
+
+### 0.6.0: protocol 4, one bump
+
+`PROTOCOL_VERSION` goes to 4 (`shared/src/consts/index.ts` and `consts.rs`, guarded by `backend/src/lib/wire/contract.ts`). Client and server must match on MAJOR.MINOR ([VERSIONING-AND-DEPLOYMENT.md](docs/architecture/VERSIONING-AND-DEPLOYMENT.md)), so a 0.5 app cannot join a 0.6 server: the whole stack updates together, as the operator's deliberate step. Dev builds (`0.6.0-dev.N`) ship along the way.
+
+| #   | What                                                                                                                                                                                                                                                                 | What changes on the wire                 |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| 1   | **Loot part 4: re-drop** available loot into chat; every card for an item updates ([the spec](#4-re-drop-available-loot-into-chat))                                                                                                                                  | An event and a route                     |
+| 2   | **Loot part 5: "added to my sheet"**: a confirmed flag, the Not confirmed filter, the unconfirmed counter on the loot icon in both apps, and the notification when the DM gives ([the spec](#5-added-to-my-sheet-notification-and-confirmed-flag))                   | A field, a route and a notification kind |
+| 3   | **The soundboard work** that was waiting for this bump (see `.claude/intent.md`)                                                                                                                                                                                     | As designed there                        |
+| 4   | **Persona setting per campaign**: the Game Master picks the bard's voice, with the drunkard's warning where it is chosen. Stored and shown now; Stage 12 makes it do something. Default: the Tavern Bard                                                             | A campaign setting                       |
+| 5   | **GM Notes page**: a plain Markdown notebook with starter headings and picture and PDF attachments; the Game Master's alone                                                                                                                                          | New routes                               |
+| 6   | **Glossary the Game Master can edit** (names, places, spells, aliases), with room for suggested terms waiting for approval, which vocabulary learning fills in Stage 12                                                                                              | New routes                               |
+| 7   | **The off-site notice in the apps**: a field saying whether session content is processed locally (including a gaming PC on the operator's own network) or off-site; shown to everyone, as CLAUDE.md requires. Always "local only" until the Claude connector (0.6.2) | A field on the recording state           |
+| 8   | **Records API tidy-up**: the `notes` kind and the transcript rule that 0.5.2 added without a bump                                                                                                                                                                    | As designed in the records doc           |
+
+**Done when:** server and both apps speak protocol 4, the contract guard passes, and each item works end to end in the apps it touches. This is a big bump: loot and the soundboard (already designed) go first, the AI preparation after.
+
+### 0.6.1: verification, and the end-to-end test
+
+What real hardware, a real platform or a second person has not yet shown. Each item is checked or consciously dropped, the result goes in [BUILD-STATUS.md](docs/BUILD-STATUS.md), and a failure becomes a bug.
+
+| From           | To check                                                                                                                                                           |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Stage 9        | The Windows Handouts, Loot and History popup fix (built, never confirmed on Windows)                                                                               |
+| Stage 9        | A **real recorded session through the new records pipeline** on the VM's CPU defaults, including a transcript long enough to need several pieces of notes          |
+| Stage 9        | The **compatibility Whisper image** (OpenBLAS) published and run on the real VM; the Compose end-to-end records test on it                                         |
+| Stage 9        | **The audio engine measured**: headsets, latency, CPU; audio parity on Windows, Linux (GNOME and KDE) and macOS if a player appears                                |
+| Stage 9        | The **8+ hour soak** with churn, memory against the Stage 0.5 rules                                                                                                |
+| Stage 9        | **Packaging and signing**: installers per OS, the updater verified on each                                                                                         |
+| Stage 10       | The **release pipeline's first real run** (`release.yml`; never run) and `vtt-admin updates publish` from its output                                               |
+| Stage 10       | **D&D Beyond sync** against live pages; **OIDC** against a real provider                                                                                           |
+| Stages 3b to 8 | A **second person's install** on a blank Ubuntu Server (the one check never run on hardware that is not Andy's)                                                    |
+| 0.6.0          | The **end-to-end test extended for protocol 4**: re-drop, the confirmed flag and counter, GM Notes, the glossary, the persona setting and the notice, on both apps |
+
+**Done when:** the list above is cleared or accepted, and a full real campaign session runs on the supported platforms without manual intervention.
+
+### Still open before 0.6.0 (ask Andy)
+
+- **The persona setting's shape**: a preset list, free text from the Game Master, or both; per campaign or per session. It is on the wire, so it has to be decided here, not in Stage 12.
+- **Campaign memory the Game Master can read and correct** (the old step K): it needs the memory store, which Stage 12 designs (step F). Either the store's shape is settled early enough for 0.6.0, or this is the one wire change that waits for a later bump. My lean: wait, and do not design a store before it exists.
+- **GM Notes limits**: attachment size and count, and whether the notes are included in a campaign backup.
+
+---
+
+## Stage 12 — Storytelling: Roles, Personas and Campaign Memory (idea, 2026-11-17; scheduled 2026-11-18)
+
+**Status:** ⚪ Not Started. **Scheduled for 0.6.2 onwards** (Andy, 2026-11-18): the AI workflow changes are large, so they come after the protocol bump and the verification pass. The design is still Andy's to finish: ask before designing or building any of it.
+**Depends on:** Stage 11 (0.6.0 carries every wire change this stage needs); Stage 5 (the records pipeline); builds on the scribe and bard split of 0.5.2 ([RECORDING-AND-SUMMARIES.md](docs/architecture/RECORDING-AND-SUMMARIES.md))
 
 The pipeline becomes a line of named roles, each with its own job and its own persona, each reading the one before it:
 
@@ -591,47 +619,28 @@ More detail from Andy's own notes ("VTT Chat Chronicler" and "VTT Chat Transcrip
 6. **GM Notes waits for 0.6.** No stop-gap view over private handouts in 0.5.x.
 7. **When the scribe's output cannot be read by the next step, retry**, up to making the scribe read the transcript again. The scribe's data is what makes the rest of the pipeline rich, so it is worth the model time; a weaker fallback is not.
 
-### Build order, split by the wire protocol (planned 2026-11-17)
+### Build order (re-planned 2026-11-18)
 
-Andy's rule for sequencing: do everything that needs **no protocol change** in **0.5.x** first, and collect what does into **one** bump to protocol 4, which is **0.6.0** ([VERSIONING-AND-DEPLOYMENT.md](docs/architecture/VERSIONING-AND-DEPLOYMENT.md): a new or changed REST route, WebSocket frame or event, or a changed body, bumps it; server-only and screen-only work does not). `intent.md` already reserves 0.6.0 for the first such change, and the soundboard work was expected to be it, so the two should land together.
+Andy's rule (2026-11-17) was to do everything with no wire change in 0.5.x first. On 2026-11-18 he moved the whole AI workflow after the protocol bump: **every wire change this stage needs is built first, as 0.6.0 in [Stage 11](#stage-11--protocol-4-and-verification-060-and-061)** (the persona setting, GM Notes, the glossary, the off-site notice), so the work below is **server and worker only**, ships in patches from **0.6.2**, and builds on a settled protocol. The 0.5.x line carries bug fixes only.
 
-The dividing line is simple: **everything the pipeline does by itself on the server is 0.5.x; everything a person sets, reads or corrects from an app needs 0.6.**
+| Release | Step | What                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | Done when                                                                                                                                                      |
+| ------- | ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| (0.5.3) | A    | ✅ **Measured `medium.en` and `qwen3.5:9b`** (2026-11-17): neither earns the default. Found and fixed instead: the summary model ran on its own sampling defaults, which wrecked long notes; Whisper used only 4 cores. A CPU without AVX needs a remote LLM. Released in 0.5.3.                                                                                                                                                                                       | Done                                                                                                                                                           |
+| 0.6.2   | CL   | **Claude connector** (Andy, 2026-11-17): `ai.llm.kind claude`, Sonnet 5.5 suggested, key in `.env`, failover to local as for any remote. Each job's tokens and estimated cost in `vtt-admin jobs list`. The off-site notice (built in 0.6.0) switches on when Claude or a public-host remote is configured; a gaming PC on the LAN stays "local only". Design: [RECORDING-AND-SUMMARIES.md](docs/architecture/RECORDING-AND-SUMMARIES.md#the-claude-connector-design). | A real recording summarised by Sonnet on the VM; the cost in `jobs list` matches the Anthropic console; with no key or no network, the job falls back to local |
+| 0.6.2   | B    | **Glossary into Whisper**: the names the server already holds (characters, players, scene titles, loot and handout titles) plus the Game Master's own glossary from 0.6.0, as Whisper's starting prompt. First check the Whisper server takes one per request. **Kept only if it helps:** an earlier name prompt made accuracy worse (93% against 98%).                                                                                                                | Measured on the spoken test scene: names right more often, accuracy not lower                                                                                  |
+| 0.6.2   | C    | **Corrections after transcription** from the same glossary (dictionary, then fuzzy matching). Likely the bigger win of the two.                                                                                                                                                                                                                                                                                                                                        | Misheard names in the test transcript corrected, nothing else changed                                                                                          |
+| 0.6.3   | D    | **A scribe that picks out what happened**: notes under headings (events, decisions, combat, NPCs, locations, loot, quests, secrets, character moments) plus **memorable quotes**, at most about 3,000 words for a whole session. Unreadable output is retried, up to re-reading the transcript (decision 7).                                                                                                                                                           | The vault session and a long one: notes under the headings, within the size, the key facts kept                                                                |
+| 0.6.3   | E    | **Chronicler replaces the GM brief's content**: 200 to 300 words under headings (NPCs, open threads, items, locations, hooks, continuity warnings), reading the GM Notes. The tale stays one, 300 to 500 words.                                                                                                                                                                                                                                                        | Gary, the three nights and Pim's lantern are in the brief                                                                                                      |
+| 0.6.4   | F    | **Campaign memory, kept by the server**: the scribe updates it, the bard and the Chronicler read it.                                                                                                                                                                                                                                                                                                                                                                   | Two sessions in a row: the second tale knows the party has met Gary before                                                                                     |
+| 0.6.4   | G    | **Personas**: the five voices written and tested, used through the per-campaign setting from 0.6.0 (an operator default for campaigns that have not chosen).                                                                                                                                                                                                                                                                                                           | Each persona tells the vault session in its own voice, facts intact (the drunkard: the essence intact, and it may slip what is in the GM Notes)                |
 
-#### The 0.5.x releases (planned 2026-11-17)
+**Why this order:** hearing first (B, C), then the scribe that everything else reads (D, E), then memory, then voices, as Andy ordered. The Claude connector leads 0.6.2 because it is the lever a CPU-only server needs today. Steps can move between patches; each ships by itself. A correction screen for campaign memory is not here: see Stage 11's open point.
 
-Andy's loot work goes first, as **0.5.3**. The AI work follows in **0.5.4 and 0.5.5**, and memory and personas after
-that. Every step below is server-only: no protocol change, so each can ship in a patch.
-
-| Release | Step   | What                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | Done when                                                                                                                                                      |
-| ------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0.5.3   | (loot) | Andy's loot and chat-history work ([above](#loot-management-and-chat-history-asked-by-andy-2026-11-17)). Also carries what step A already put on `main`: each role's sampling, Whisper on every core, the bard's in-world reasons.                                                                                                                                                                                                                                                                       | Andy's call                                                                                                                                                    |
-| —       | A      | ✅ **Measured `medium.en` and `qwen3.5:9b`** (2026-11-17): neither earns the default. Found and fixed instead: the summary model ran on its own sampling defaults, which wrecked long notes; Whisper used only 4 cores. A CPU without AVX needs a remote LLM.                                                                                                                                                                                                                                            | Done                                                                                                                                                           |
-| 0.5.4   | CL     | **Claude connector** (Andy, 2026-11-17): `ai.llm.kind claude`, Sonnet 5.5 suggested, key in `.env`, failover to local as for any remote. Each job's tokens and estimated cost in `vtt-admin jobs list`. The status page says when session content goes off-site (Claude, or a remote on a public host), and "local only" otherwise, including a gaming PC on the LAN (Andy, 2026-11-17). Design: [RECORDING-AND-SUMMARIES.md](docs/architecture/RECORDING-AND-SUMMARIES.md#the-claude-connector-design). | A real recording summarised by Sonnet on the VM; the cost in `jobs list` matches the Anthropic console; with no key or no network, the job falls back to local |
-| 0.5.4   | B      | **Automatic glossary into Whisper**: character and player names, scene titles, loot and handout titles the server already holds, as Whisper's starting prompt. First check the Whisper server takes one per request. **Kept only if it helps:** an earlier name prompt made accuracy worse (93% against 98%).                                                                                                                                                                                            | Measured on the spoken test scene: names right more often, accuracy not lower                                                                                  |
-| 0.5.4   | C      | **Corrections after transcription** from the same glossary (dictionary, then fuzzy matching). Likely the bigger win of the two.                                                                                                                                                                                                                                                                                                                                                                          | Misheard names in the test transcript corrected, nothing else changed                                                                                          |
-| 0.5.5   | D      | **A scribe that picks out what happened**: notes under headings (events, decisions, combat, NPCs, locations, loot, quests, secrets, character moments) plus **memorable quotes**, at most about 3,000 words for a whole session. Unreadable output is retried, up to re-reading the transcript (decision 7).                                                                                                                                                                                             | The vault session and a long one: notes under the headings, within the size, the key facts kept                                                                |
-| 0.5.5   | E      | **Chronicler replaces the GM brief's content**: 200 to 300 words under headings (NPCs, open threads, items, locations, hooks, continuity warnings). The tale stays one, 300 to 500 words.                                                                                                                                                                                                                                                                                                                | Gary, the three nights and Pim's lantern are in the brief                                                                                                      |
-| 0.5.6   | F      | **Campaign memory, kept by the server**: the scribe updates it, the bard and the Chronicler read it. Nobody edits it yet.                                                                                                                                                                                                                                                                                                                                                                                | Two sessions in a row: the second tale knows the party has met Gary before                                                                                     |
-| 0.5.7   | G      | **Personas, one per server**: an operator setting (`vtt-admin settings`) picks the bard's voice for every campaign. All five personas written and tested here.                                                                                                                                                                                                                                                                                                                                           | Each persona tells the vault session in its own voice, facts intact (the drunkard: the essence intact)                                                         |
-
-**Why this order:** hearing first (B, C), then the scribe that everything else reads (D, E), then memory, then
-voices, as Andy ordered. The Claude connector leads 0.5.4 because it is the lever a CPU-only server needs today. F
-and G may fold into 0.5.5 or move later; each step can ship by itself.
-
-| Step | 0.6.0: protocol 4, one bump                                                                                                                                                                              | What changes on the wire       |
-| ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
-| H    | **The Game Master picks the persona for their campaign**, in the app, with the drunkard's warning.                                                                                                       | A campaign setting             |
-| I    | **GM Notes page** with starter headings and attachments. Read by the Chronicler; read by the bard only for the drunkard.                                                                                 | New routes                     |
-| J    | **Glossary the Game Master can edit**, and **vocabulary learning** with approval.                                                                                                                        | New routes                     |
-| K    | **Campaign memory the Game Master can read and correct.**                                                                                                                                                | New routes                     |
-| L    | The **soundboard work** already waiting for this bump, and any tidy-up of the records API (the `notes` kind, the transcript rule) that 0.5.2 added without one.                                          | As designed there              |
-| M    | **The app says when session content goes off-site** (Claude, or a remote on a public host; never for the operator's own PC): the notice CLAUDE.md requires, which 0.5.4 can only put on the status page. | A field on the recording state |
-
-**One thing 0.5.x cannot do properly:** the drunkard's leaks need secrets to leak, and before the GM Notes page (step I) the only secrets the server holds are what the Chronicler worked out and the Game Master's private handouts. So in 0.5.x the drunkard can embellish and can slip things from those, and gets its real "insider's view" in 0.6.
+**The drunkard has secrets to leak from the start:** GM Notes exists from 0.6.0, so when the persona work arrives (G) the drunkard's "insider's view" is real, not limited to the Chronicler's guesses and private handouts.
 
 Still open (ask Andy before designing):
 
-- What a persona is: a preset list, free text from the Game Master, or both; per campaign only, or changeable per session.
+- What a persona is: a preset list, free text from the Game Master, or both; per campaign only, or changeable per session. **Must be settled before 0.6.0**, because the setting is on the wire (Stage 11).
 - What campaign memory holds, who can read and correct it (the models will get names wrong), and how it stays small enough for a CPU-only server.
 - Whether memory is written by the Historian, the Chronicler, or a step of its own, and how it treats private audio and whispers (never recorded today; that rule stays).
 - How the Chronicler differs from today's GM brief, and what happens to the brief and the scribe's notes.

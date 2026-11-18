@@ -174,7 +174,7 @@ they cannot disagree:
   **fades out** over 1.2 s instead of vanishing (none under reduced motion); switching filter does not fade.
 - Planned for 0.6.0 (protocol 4): a per-item "added to my sheet" flag, a **Not confirmed** filter that
   becomes the players' default, an unconfirmed counter on the loot icon, a notification for a DM give,
-  and re-dropping available loot into chat (ROADMAP Stage 10).
+  and re-dropping available loot into chat (ROADMAP Stage 11).
 
 ## DM soundboard (built)
 

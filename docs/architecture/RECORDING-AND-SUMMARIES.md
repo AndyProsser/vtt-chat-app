@@ -556,7 +556,7 @@ the table's memory and fun to read, not perfect; a wrong detail is storytelling,
 the recorded clients (the e2e uses LiveKit's Node SDK); a CPU-only server end to end (CPU numbers are the
 same Whisper/LLM measured standalone).
 
-## Where the summaries run: three levers (planned 2026-11-17, for 0.5.4)
+## Where the summaries run: three levers (planned 2026-11-17, for 0.6.2)
 
 Andy's brief (2026-11-17): Whisper on a CPU is fine (`small.en` is about 98% accurate, and an overnight run is
 acceptable); a summary model on an old CPU is not (hours per session, and 24 to 48 hours "pushes the friendship").
@@ -609,8 +609,8 @@ Prices as of 2026-11-03 (Anthropic's list, US dollars); thinking tokens are bill
 effort. Andy's choice (2026-11-17): **Sonnet is the suggested model**, "more than affordable".
 
 **Telling the table (decided by Andy, 2026-11-17).** CLAUDE.md requires that players are told when session content
-leaves the server. Nothing in today's wire protocol can carry that to the apps, so in 0.5.4 the **status page** says
-it, and the app gains the notice with protocol 4 (0.6.0). The notice appears **only when an off-site connector is
+leaves the server. The apps get a field for it in protocol 4 (0.6.0, ROADMAP Stage 11), which arrives before the
+connector (0.6.2), and the **status page** says it too. The notice appears **only when an off-site connector is
 configured**: Claude, or a remote (Whisper or LLM) whose URL is not on the operator's own network. Everything else
 shows as **local only**, including offloading to the operator's own gaming PC. "Own network" is read from the URL's
 host: a private or loopback address (10/8, 172.16/12, 192.168/16, 127/8, IPv6 ULA and link-local), a single-label

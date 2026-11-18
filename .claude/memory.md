@@ -58,7 +58,7 @@ pattern and its reconciliation conventions.
   `docs/archive/ddb-legacy/`). The code teardown (ROADMAP Stage 1) is done: `overlay-ui` became
   `panels-ui`, and the allowlist/cobalt/overlay-injection code and `POST /api/session` are gone.
   **Why:** the group's real behaviour is one Discord channel with open mics; the missing value is
-  *records and AI summaries*, and the embedded browser carried large platform risk (the
+  _records and AI summaries_, and the embedded browser carried large platform risk (the
   WebKitGTK/NVIDIA crash and blank-render investigation) for little benefit.
   **How to apply:** if code you find references the overlay, the allowlist, `usePageMode`, the
   cobalt cookie or DDB identity, it's a leftover to remove — not a pattern to copy or extend.
