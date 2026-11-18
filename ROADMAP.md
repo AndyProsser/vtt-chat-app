@@ -51,6 +51,7 @@ releases; the 0.4.5 changelog covers both).
 
 **Next** (re-planned 2026-11-18, after 0.5.3):
 
+0. **0.5.4 (built, to test and release):** no wire change. The DM can no longer delete audio and may delete only a short (under 30 minute) test session, with dev builds on; operators get `vtt-admin campaign delete` and `recording delete`, and handout files are swept; a character linked to D&D Beyond keeps what the sheet says; the desktop shows the D&D Beyond box when sync is off; the phone web app has **My characters**; the audio mixer has **My sounds** (upload, takes, rename, delete); the web login form offers single sign-on when the server has it. See [BUILD-STATUS](docs/BUILD-STATUS.md#built-2026-11-18-for-054-clean-up-rules-characters-your-own-sounds-on-main).
 1. **Bug fixes** as they turn up, in 0.5.x patch releases.
 2. **Stages 9 and 10 are closed for building.** Their unfinished parts (what needs Windows, a real recorded session on the VM, soak, signing, the release pipeline, a second person's install) are checks, and move to Stage 11.
 3. **[Stage 11](#stage-11--protocol-4-and-verification-060-and-061):** **0.6.0** is the one bump to protocol 4 (loot re-drop and the confirmed flag, the soundboard, and the wire for the AI work: persona setting, GM Notes, glossary, off-site notice); **0.6.1** is verification and the end-to-end test.
@@ -396,6 +397,8 @@ told clearly to update; and a recorded session runs through to its summary.
 
 **Moved to Stage 11 (0.6.1) for testing:** the release pipeline (never run), D&D Beyond sync against live pages, OIDC against a real provider.
 
+**Reachability audit, 2026-11-18 (Andy: "many items not built or deployed in Stage 10 that we have missed").** Two of the built items could not be reached by a player: **D&D Beyond** was hidden in the desktop unless the operator had set `DDB_SYNC=1` (off by default) and there was no screen at all in the phone web app; **single sign-on** had no button on the browser login. Both are fixed for 0.5.4 (the box now says it is off; a character screen and an SSO button on the web). Still not reachable or not run: DDB's worked-out numbers cannot be corrected by the player (needs the protocol, Stage 11 item 9); the DDB sync and OIDC have never met a real service; SSO ends in a code to paste rather than a direct sign-in. The other items on this list are ideas, not built, so there is nothing to reach; the release pipeline is built and never run. **This audit looked at DDB and OIDC only**: the rest of Stage 10 and the earlier stages were not re-checked for the same fault (built, but no way in), which is worth a pass in 0.6.1.
+
 Each item is independent, off by default, and must never be assumed by application code:
 
 - **Release pipeline** (`.github/workflows/release.yml`, [RELEASING.md](docs/guides/RELEASING.md)): a `v*` tag builds signed installers for Linux, Windows and macOS (Apple silicon) into a draft release; `infra/fetch-release.sh` hands them to `vtt-admin updates publish`. **Never run;** no OS code signing yet.
@@ -516,6 +519,7 @@ Andy, 2026-11-18: the AI workflow is a large change, so close Stages 9 and 10 as
 | 6   | **Glossary the Game Master can edit** (names, places, spells, aliases), with room for suggested terms waiting for approval, which vocabulary learning fills in Stage 12                                                                                                                                  | New routes                               |
 | 7   | **The off-site notice in the apps**: a field saying whether session content is processed locally (including a gaming PC on the operator's own network) or off-site; shown to everyone, as CLAUDE.md requires. Always "local only" until the Claude connector (0.6.2)                                     | A field on the recording state           |
 | 8   | **Records API tidy-up**: the `notes` kind and the transcript rule that 0.5.2 added without a bump                                                                                                                                                                                                        | As designed in the records doc           |
+| 9   | **Override the worked-out D&D Beyond numbers** (HP, AC, passive perception, ability scores) for a linked character: the update body gains a field. Which numbers, and whether a sync keeps the override, is for Andy                                                                                     | A field on the character update          |
 
 **Done when:** server and both apps speak protocol 4, the contract guard passes, and each item works end to end in the apps it touches. This is a big bump: loot and the soundboard (already designed) go first, the AI preparation after.
 

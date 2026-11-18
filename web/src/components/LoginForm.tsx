@@ -5,7 +5,7 @@ import {
   ApiError,
   emailResetLink,
   emailSignInLink,
-  mailAvailable,
+  signInOptions,
   redeemEmailCode,
   signInPlain,
 } from '../lib/api.js';
@@ -27,6 +27,7 @@ export function LoginForm({ onSignedIn }: { onSignedIn: () => void }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [mail, setMail] = useState(false);
+  const [oidc, setOidc] = useState(false);
   const [notice, setNotice] = useState<string>();
   const [haveCode, setHaveCode] = useState(false);
   const [code, setCode] = useState('');
@@ -35,7 +36,10 @@ export function LoginForm({ onSignedIn }: { onSignedIn: () => void }) {
   const [error, setError] = useState<string>();
 
   useEffect(() => {
-    void mailAvailable().then(setMail);
+    void signInOptions().then((o) => {
+      setMail(o.mail);
+      setOidc(o.oidc);
+    });
   }, []);
 
   async function run(action: () => Promise<void>) {
@@ -149,6 +153,19 @@ export function LoginForm({ onSignedIn }: { onSignedIn: () => void }) {
                 Forgot password?
               </Button>
             </Flex>
+          </Flex>
+        )}
+        {oidc && (
+          <Flex direction="column" gap="1" align="center">
+            <Button asChild variant="soft" size="3">
+              <a href="/api/auth/oidc/" target="_blank" rel="noopener">
+                Sign in with single sign-on
+              </a>
+            </Button>
+            <Text size="1" color="gray" align="center">
+              Opens your organisation&apos;s sign-in. It ends with a code: come back here, press
+              &ldquo;I have a sign-in code&rdquo; and type it.
+            </Text>
           </Flex>
         )}
         <Button

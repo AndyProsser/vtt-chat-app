@@ -131,12 +131,15 @@ export async function acceptCurrentConsent(): Promise<void> {
   await request('POST', '/api/auth/consent', { body: { version: consentVersion } });
 }
 
-/** Whether this server can email codes (SMTP configured). */
-export const mailAvailable = () =>
-  request<{ mail?: boolean }>('GET', '/api/auth/providers').then(
-    (p) => p.mail === true,
-    () => false,
+/** Which optional sign-in methods this server offers: emailed links (SMTP) and single sign-on (OIDC). */
+export const signInOptions = () =>
+  request<{ mail?: boolean; oidc?: boolean }>('GET', '/api/auth/providers').then(
+    (p) => ({ mail: p.mail === true, oidc: p.oidc === true }),
+    () => ({ mail: false, oidc: false }),
   );
+
+/** Whether this server can email codes (SMTP configured). */
+export const mailAvailable = () => signInOptions().then((o) => o.mail);
 
 /** Asks for a sign-in link by email. The answer is the same whether or not the address has an account. */
 export const emailSignInLink = (email: string) =>

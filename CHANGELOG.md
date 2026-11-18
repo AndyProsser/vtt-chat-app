@@ -12,6 +12,7 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ### Added
 
+- **Single sign-on on the web login.** When your server is set up for it (`OIDC_ISSUER` and friends), the browser sign-in now shows **Sign in with single sign-on**. It ends with a one-time code to type under "I have a sign-in code". (The button was missing; the server side already worked.)
 - **Your own sounds, from the app.** In the sound drawer's cog, the new **My sounds** tab adds a clip from your computer (OGG, WAV, MP3 or FLAC, up to 5 MB), another take of a sound, a new name, or deletes it. An effect appears under Stingers by itself; ambience and music go into scenes. (Scenes could already be edited there.)
 - **Characters on the phone web app.** The menu has **My characters**: add a character, edit one, choose who you play, add a picture, and link a D&D Beyond sheet or sync it, all on the existing routes.
 - **Operators can delete a campaign, or a single session, for good.** `vtt-admin campaign list` and `campaign delete <id> --yes` remove a campaign with its sessions and audio (the worker deletes the files and the command waits for it), chat, handouts, loot and schedule; without `--yes` it only shows what would go. `vtt-admin recording delete <id>` removes one session the same way. A new daily sweeper also removes handout pictures and PDFs that no handout uses any more (what a deleted campaign leaves behind).

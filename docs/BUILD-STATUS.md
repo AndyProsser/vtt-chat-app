@@ -15,6 +15,29 @@ cd tauri-client && cargo fmt --check && cargo clippy --workspace --all-targets -
 
 Last run (2026-11-09, memory stores): backend 406 (+18 skipped without Postgres), panels-ui 213, ddb 9, status 3; Rust: src-tauri 88 (+2 ignored), rust-livekit and rust-sync as before, with the LiveKit live tests passing individually on SDK 0.10.1. `cargo clippy -D warnings` still fails on the old unused `capture_allowed`. Not run: anything in CI (the workflow exists, nothing has run it since the pivot).
 
+## Built 2026-11-18 for 0.5.4: clean-up rules, characters, your own sounds (on `main`)
+
+Andy's request after 0.5.3. **No wire change** (protocol stays 3): every route already existed, or the change is a
+refusal or a worker job behind an existing one.
+
+- **Deletion rules.** The DM can no longer delete audio (`POST …/audio/delete` answers 403). Deleting a session is for a
+  short test session only (under 30 minutes, `DM_DELETE_MAX_MINUTES`), shown only with dev builds on, and now queues a
+  `delete-recording` worker job that removes the audio files and then the recording. _Tested:_ handler (fakes),
+  routes (memory and Postgres), the desktop rule. _Not yet run:_ the job on a real worker with real audio files.
+- **Operator clean-up.** `vtt-admin campaign list|delete`, `recording delete`; a `HandoutMediaSweeper` removes handout
+  pictures and PDFs no handout uses (a deleted campaign leaves them). There was **no campaign deletion at all before**.
+  _Tested:_ store contract on memory and Postgres, CLI with a simulated worker, the sweeper, and a Postgres test that a
+  campaign's cascade leaves files for the sweeper. _Not yet run:_ `campaign delete` against the real VM.
+- **Characters.** A linked D&D Beyond character's name, race, class and level are read-only (server 409 and both apps);
+  the desktop shows the D&D Beyond box when the sync is off; the phone web app has **My characters**. _Tested:_ the
+  server rule; the shared helpers moved to `shared` with their tests. _Built and type-checked, **not seen in a browser**:_ the
+  web screens. **Not run against a real sheet: the D&D Beyond sync has never been** (waiting on a public share link from Andy
+  and the operator turning `DDB_SYNC=1` on for the VM).
+- **Your own sounds.** New Rust command `sound_upload`, a pure helper with tests, and the **My sounds** tab. _Tested:_
+  the path builder (Rust), the helper. _Not yet seen working:_ an actual upload and playback from the app.
+- **Single sign-on button** on the web login form when the server has OIDC (it was reachable nowhere a player looks).
+  _Tested:_ type-check only; OIDC itself has only been tried against a fake provider.
+
 ## Built 2026-11-17: loot management and chat history, 0.5.x part (branch `loot-chat-history`)
 
 ROADMAP Stage 10 "Loot management and chat history", parts 1 to 3. No wire change (protocol stays). Plan:
