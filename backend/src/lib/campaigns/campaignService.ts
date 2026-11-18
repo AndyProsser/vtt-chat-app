@@ -234,6 +234,20 @@ export class CampaignService {
     if (!existing || existing.userId !== user.id || existing.campaignId !== campaignId) {
       throw new DomainError('not_found');
     }
+    // While a character is linked to a D&D Beyond sheet the sheet owns these four fields: the next sync would put
+    // them back, so an edit would silently vanish. Change the sheet and sync (decided 2026-11-18). The portrait
+    // stays the player's own.
+    if (existing.sourceUrl) {
+      const owned = (['name', 'race', 'className', 'level'] as const).filter(
+        (key) => patch[key] !== undefined && patch[key] !== existing[key],
+      );
+      if (owned.length > 0) {
+        throw new DomainError(
+          'conflict',
+          'this character is linked to D&D Beyond, which owns its name, race, class and level: change them on the sheet and sync, or unlink it first',
+        );
+      }
+    }
     const next: Character = { ...existing };
     if (patch.name !== undefined) {
       const name = patch.name.trim();

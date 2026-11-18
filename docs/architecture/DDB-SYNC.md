@@ -31,6 +31,20 @@ sequenceDiagram
 - **Honest request identity.** The server identifies itself as this app; it does not imitate a browser.
 - **Unofficial endpoint.** D&D Beyond has no public API. The character service the sheet itself uses can change shape; the parser reads only the few fields above and treats anything unexpected as "unreadable" rather than failing. **This has not been run against the live service** (no network check was possible from the build box): the first real link is the test, and `ddb/src/lib/parseCharacter.ts` is the one place to adjust.
 
+## Editing a linked character (decided 2026-11-18, Andy: option A)
+
+While a character is linked, **the sheet owns its name, race, class and level**: the server refuses a change to any of
+them (`409`), and both apps show the fields read-only with a note ("change them on the sheet, then Sync; the picture
+stays yours"). Before this, an edit was accepted and silently put back by the next sync (every `DDB_SYNC_HOURS`).
+Unlink to take the character back. The portrait is always the player's.
+
+**Where to link:** the desktop app's Settings → Character (expand a character) and the phone web app's menu → **My
+characters**. Both say so when the operator has not enabled the sync (`DDB_SYNC=1`), instead of hiding the box.
+
+Not built, and needs a protocol bump (the character update body would change): **overriding the worked-out numbers**
+(HP, AC, passive perception, ability scores), which can be wrong for unusual builds. It is planned for 0.6.0
+(ROADMAP Stage 11).
+
 ## At-a-glance numbers (built 2026-11-10, unverified against a real sheet)
 
 A sync also stores ability scores, max hit points, armor class and passive perception (`characters.sheet`, shown under the character's name in Settings). **D&D Beyond does not send these finished, so `ddb/src/lib/parseSheet.ts` works them out**, and the app says so in a tooltip:

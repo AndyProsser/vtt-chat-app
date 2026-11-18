@@ -181,6 +181,18 @@ redeemed once and now sets the cookie. If the session ends the app returns to si
 - **Copy buttons** (`Command`) are icon-only, stretched to the height of the code box, with a tooltip ("Copy", then
   "Copied") and a tick for two seconds after copying.
 
+## My characters (built 2026-11-18)
+
+The menu's **My characters** opens a screen for the open table's characters, on the routes the desktop app already uses
+(no protocol change): a card for each (portrait or initials, race, class and level, and the numbers worked out from a
+linked sheet), **Play this character** (not for the DM, whose characters are kept for a swap back), **Edit** (name,
+level, race, class, and a picture: shrunk to 256 pixels in the browser like the account portrait), **New character**, and
+the **D&D Beyond** box: paste a public sheet link, **Sync now**, **Unlink**; with the operator's sync off the box says
+so and who to ask. While linked, the sheet owns name, level, race and class, so they are shown but not editable (the
+server refuses the edit too). Built-in emblems are a desktop-only choice; the web draws pictures and initials. The
+shared helpers (`CharacterRecord`, the draft and patch, the link check) live in `shared/src/lib/characters.ts` and
+`ddbSync.ts`. Built and type-checked 2026-11-18; **not yet seen in a browser** (see BUILD-STATUS).
+
 ## Asking to join a table
 
 A signed-in person with no campaign sees, under the invite hint, the tables that take join requests (name, DM, player

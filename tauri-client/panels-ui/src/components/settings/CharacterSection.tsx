@@ -13,7 +13,7 @@ import {
   vitalsLine,
   type CharacterDraft,
   type CharacterRecord,
-} from '../../lib/characters.js';
+} from '@vtt-chat-app/shared';
 import { isDm } from '../../lib/tableModel.js';
 import { useTableStore } from '../../lib/tableStore.js';
 import { accountErrorMessage, campaignApi } from '../../lib/tauriBridge.js';
@@ -110,9 +110,12 @@ export function CharacterSection() {
 function Fields({
   draft,
   onChange,
+  fromSheet = false,
 }: {
   draft: CharacterDraft;
   onChange: (d: CharacterDraft) => void;
+  /** Linked to D&D Beyond: the sheet owns the name, level, race and class, so they are shown but not editable. */
+  fromSheet?: boolean;
 }) {
   const set = (patch: Partial<CharacterDraft>) => onChange({ ...draft, ...patch });
   const picked = emblemOf(draft.avatarUrl);
@@ -123,6 +126,7 @@ function Fields({
           size="1"
           style={{ flex: 1, minWidth: 120 }}
           aria-label="Name"
+          disabled={fromSheet}
           placeholder="Name"
           value={draft.name}
           onChange={(e) => set({ name: e.target.value })}
@@ -131,6 +135,7 @@ function Fields({
           size="1"
           style={{ width: 60 }}
           aria-label="Level"
+          disabled={fromSheet}
           placeholder="Lvl"
           inputMode="numeric"
           value={draft.level}
@@ -142,6 +147,7 @@ function Fields({
           size="1"
           style={{ flex: 1, minWidth: 90 }}
           aria-label="Race"
+          disabled={fromSheet}
           placeholder="Race"
           value={draft.race}
           onChange={(e) => set({ race: e.target.value })}
@@ -150,11 +156,18 @@ function Fields({
           size="1"
           style={{ flex: 1, minWidth: 90 }}
           aria-label="Class"
+          disabled={fromSheet}
           placeholder="Class"
           value={draft.className}
           onChange={(e) => set({ className: e.target.value })}
         />
       </div>
+      {fromSheet && (
+        <span className="vtt-muted">
+          Name, level, race and class come from your D&amp;D Beyond sheet. Change them there, then
+          press Sync; the picture stays yours.
+        </span>
+      )}
       <div className="vtt-form-row">
         <PictureButton onPicked={(id) => set({ avatarUrl: avatarValue(id) })} />
         <span className="vtt-muted">or choose an emblem:</span>
@@ -233,7 +246,7 @@ function CharacterCard({
           {abilityLine(record.sheet)}
         </span>
       )}
-      {open && <Fields draft={draft} onChange={setDraft} />}
+      {open && <Fields draft={draft} onChange={setDraft} fromSheet={Boolean(record.sourceUrl)} />}
       {open && (
         <DdbLink
           characterId={record.id}

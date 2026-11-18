@@ -1,19 +1,19 @@
+import { looksLikeSheetLink, syncedLabel } from '@vtt-chat-app/shared';
 import { TextField } from '@radix-ui/themes';
 import { Link2, RefreshCw, Unlink } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
-import { looksLikeSheetLink, syncedLabel } from '../../lib/ddbSync.js';
 import { accountErrorMessage, ddbAction, ddbStatus } from '../../lib/tauriBridge.js';
 import { ToolButton } from '../ToolButton.js';
 
-/** Whether this server has D&D Beyond sync on, asked once per window. */
-function useDdbEnabled(): boolean {
-  const [enabled, setEnabled] = useState(false);
+/** Whether this server has D&D Beyond sync on, asked once per window (undefined until it answers). */
+function useDdbEnabled(): boolean | undefined {
+  const [enabled, setEnabled] = useState<boolean>();
   useEffect(() => {
     let cancelled = false;
     ddbStatus()
       .then((s) => !cancelled && setEnabled(s.enabled))
-      .catch(() => undefined);
+      .catch(() => !cancelled && setEnabled(false));
     return () => {
       cancelled = true;
     };
@@ -23,8 +23,8 @@ function useDdbEnabled(): boolean {
 
 /**
  * Links a character to its public D&D Beyond sheet so name, race, class, level and portrait follow it.
- * The server refreshes linked characters on a timer; "Sync now" does it immediately. Hidden when the
- * server operator has not enabled the sync.
+ * The server refreshes linked characters on a timer; "Sync now" does it immediately. When the
+ * server operator has not enabled the sync it says so, and who to ask, instead of hiding.
  */
 export function DdbLink({
   characterId,
@@ -41,7 +41,20 @@ export function DdbLink({
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
-  if (!enabled) return null;
+  if (enabled === undefined) return null;
+  if (!enabled) {
+    return (
+      <div className="vtt-sessions">
+        <b>
+          <Link2 size={14} style={{ verticalAlign: '-2px' }} /> D&amp;D Beyond
+        </b>
+        <span className="vtt-muted">
+          Linking a D&amp;D Beyond sheet is switched off on this server. Ask whoever runs it to turn
+          it on (<code>DDB_SYNC=1</code>).
+        </span>
+      </div>
+    );
+  }
 
   async function run(action: 'link' | 'sync' | 'unlink', url?: string) {
     setBusy(true);

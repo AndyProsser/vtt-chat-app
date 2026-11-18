@@ -506,6 +506,37 @@ describe('campaigns', () => {
       );
     });
 
+    it('leaves a linked character’s name, race, class and level to D&D Beyond, but not its portrait', async () => {
+      const { campaignId } = await table();
+      const mine = await w.campaigns.addCharacter(alice, campaignId, sheet);
+      await w.store.putCharacter({
+        ...mine,
+        sourceUrl: 'https://www.dndbeyond.com/characters/123',
+      });
+      await rejects(
+        w.campaigns.updateCharacter(alice, campaignId, mine.id, { level: 9 }),
+        'conflict',
+      );
+      await rejects(
+        w.campaigns.updateCharacter(alice, campaignId, mine.id, {
+          name: 'Renamed',
+          className: 'Monk',
+        }),
+        'conflict',
+      );
+      // The same value is not an edit, and the portrait is the player's own.
+      const kept = await w.campaigns.updateCharacter(alice, campaignId, mine.id, {
+        level: mine.level,
+        avatarUrl: 'emblem:sword',
+      });
+      expect(kept).toMatchObject({ level: 3, avatarUrl: 'emblem:sword' });
+      // Unlinked, it is the player's again.
+      await w.store.putCharacter({ ...kept, sourceUrl: null });
+      expect(
+        (await w.campaigns.updateCharacter(alice, campaignId, mine.id, { level: 9 })).level,
+      ).toBe(9);
+    });
+
     it('refuses a blank name, a silly level, or an avatar that is not a web address', async () => {
       const { campaignId } = await table();
       const mine = await w.campaigns.addCharacter(alice, campaignId, sheet);

@@ -16,6 +16,7 @@ import { SiteHeader } from '../SiteHeader.js';
 import { pendingIds } from '../../lib/phone/joinRequests.js';
 import { CampaignPicker } from './CampaignPicker.js';
 import { DecisionBanner } from './DecisionBanner.js';
+import { CharactersScreen } from './CharactersScreen.js';
 import { ChatTab } from './ChatTab.js';
 import { InstallHint } from './InstallHint.js';
 import { HandoutsTab } from './HandoutsTab.js';
@@ -191,7 +192,7 @@ function Shell({
   const say = useLiveChat(campaignId, onSessionEnded);
   const isDm = campaign?.role === 'dm';
   const pending = usePhoneStore((s) => s.joinPending.length);
-  const [screen, setScreen] = useState<'tables' | 'requests'>();
+  const [screen, setScreen] = useState<'tables' | 'requests' | 'characters'>();
 
   // A DM's pending count: loaded once here, then kept by live `join.request` frames.
   useEffect(() => {
@@ -275,6 +276,9 @@ function Shell({
                       Switch table
                     </DropdownMenu.Item>
                   )}
+                  <DropdownMenu.Item onSelect={() => setScreen('characters')}>
+                    My characters
+                  </DropdownMenu.Item>
                   <DropdownMenu.Item onSelect={() => setScreen('tables')}>
                     Find another table
                   </DropdownMenu.Item>
@@ -325,6 +329,11 @@ function Shell({
           {screen === 'tables' && (
             <SubScreen title="Find another table" onBack={() => setScreen(undefined)}>
               <OpenTables />
+            </SubScreen>
+          )}
+          {screen === 'characters' && (
+            <SubScreen title="My characters" onBack={() => setScreen(undefined)}>
+              <CharactersScreen campaignId={campaignId} />
             </SubScreen>
           )}
           {screen === 'requests' && isDm && (

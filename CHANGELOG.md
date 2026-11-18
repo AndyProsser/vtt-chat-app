@@ -12,10 +12,13 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ### Added
 
+- **Characters on the phone web app.** The menu has **My characters**: add a character, edit one, choose who you play, add a picture, and link a D&D Beyond sheet or sync it, all on the existing routes.
 - **Operators can delete a campaign, or a single session, for good.** `vtt-admin campaign list` and `campaign delete <id> --yes` remove a campaign with its sessions and audio (the worker deletes the files and the command waits for it), chat, handouts, loot and schedule; without `--yes` it only shows what would go. `vtt-admin recording delete <id>` removes one session the same way. A new daily sweeper also removes handout pictures and PDFs that no handout uses any more (what a deleted campaign leaves behind).
 
 ### Changed
 
+- **A character linked to D&D Beyond keeps what the sheet says.** Name, race, class and level come from the sheet and are read-only in both apps (the server refuses an edit too), instead of being silently put back by the next sync. Your picture stays yours; unlink to edit them yourself.
+- **The D&D Beyond box is always there** in the desktop app's character settings. When the server's operator has not turned the sync on it now says so and who to ask, instead of hiding.
 - **The Game Master can no longer delete a session's audio.** Raw audio is the server operator's to manage (retention settings and `vtt-admin recording purge`). A Game Master can still delete a **short test session** (under 30 minutes) from the History panel, with "Include dev builds" on; it now removes its audio too, and the server refuses anything longer. The "delete the audio only" choice is gone.
 
 ## [0.5.3] - 2026-11-18

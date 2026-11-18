@@ -1,3 +1,5 @@
+import type { CharacterRecord } from '@vtt-chat-app/shared';
+
 import { request } from '../api.js';
 import type {
   CampaignItem,
@@ -209,3 +211,41 @@ export async function searchHistory(campaignId: string, q: string): Promise<Sear
   );
   return res.hits.filter((h) => h.source === 'summary');
 }
+
+// ---- Characters and the D&D Beyond link (existing routes; the desktop app uses the same ones) ----
+
+export const myCharacters = (campaignId: string) =>
+  request<{ characters: CharacterRecord[] }>('GET', `/api/campaigns/${campaignId}/characters`);
+
+export const saveCharacter = (
+  campaignId: string,
+  characterId: string,
+  patch: Record<string, unknown>,
+) =>
+  request<{ character: CharacterRecord }>(
+    'PATCH',
+    `/api/campaigns/${campaignId}/characters/${characterId}`,
+    { body: patch },
+  );
+
+export const addCharacter = (campaignId: string, body: Record<string, unknown>) =>
+  request<{ character: CharacterRecord }>('POST', `/api/campaigns/${campaignId}/characters`, {
+    body,
+  });
+
+/** Makes this the character the table sees you playing. */
+export const playCharacter = (campaignId: string, characterId: string) =>
+  request('PUT', `/api/campaigns/${campaignId}/active-character`, { body: { characterId } });
+
+/** Whether the operator switched D&D Beyond sync on. */
+export const ddbEnabled = () => request<{ enabled: boolean }>('GET', '/api/ddb/status');
+
+export const ddbCall = (
+  action: 'link' | 'sync' | 'unlink',
+  campaignId: string,
+  characterId: string,
+  url?: string,
+) =>
+  request<{ character: CharacterRecord }>('POST', `/api/ddb/${action}`, {
+    body: { campaignId, characterId, ...(url ? { url } : {}) },
+  });
