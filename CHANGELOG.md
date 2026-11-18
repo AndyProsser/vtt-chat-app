@@ -18,6 +18,8 @@ the GitHub release notes and refuses to build a release without one. How to writ
 ### Fixed
 
 - **Session summaries on a local model keep the whole session.** On a long session the scribe's notes could ramble, lose track after the first part and make up the rest: the local model ran with its own sampling defaults, which push it away from repeating any word, names included. Notes and Game Master briefs are now written at a low temperature and the tales a little freer, with no such penalty, locally and on a remote LLM alike. On a 12-minute test session the default model now keeps 24–26 of 26 key facts (it was 9–11).
+- **Scrolling up in chat no longer says "Couldn't load older messages".** The app refused its own request for older chat; it now asks, and says "Start of the conversation" when there is nothing older (desktop app).
+- **Loot fades out of the list** when it is given, taken or split, instead of vanishing and then closing the gap.
 - **Chat no longer disappears when the server restarts.** It was always saved, but the desktop app filled its chat from a short-lived buffer instead of the saved history. The loot and handout cards in chat come back too.
 
 ### Changed
