@@ -57,20 +57,26 @@ The usual way a group plays online: everyone joins one Discord channel and leave
 
 ## How Light Is It?
 
-You leave a voice app running for a four-hour session, next to a game that is probably in a browser tab. So memory and CPU matter, and this app is built to be small: it is a tray app that serves **only its own pages**, never a web browser or remote content, and **Rust owns the audio** (capture, echo cancellation, mixing and playback never touch a web view). A panel's window is **destroyed when you close it**, not hidden, so nothing runs for a closed panel. The result, idle in a session:
+You leave a voice app running for a four-hour session, next to a game that is probably in a browser tab. So memory and CPU matter, and this app is built to be small: it is a tray app that serves **only its own pages**, never a web browser or remote content, and **Rust owns the audio** (capture, echo cancellation, mixing and playback never touch a web view). A panel's window is **destroyed when you close it**, not hidden, so nothing runs for a closed panel.
 
-| App                                     | Memory                                                                                          | CPU at idle     | Built on                                        |
-| --------------------------------------- | ----------------------------------------------------------------------------------------------- | --------------- | ----------------------------------------------- |
-| **VTT Chat (Windows), in the tray**     | **about 8 MB** (measured)                                                                       | 0%              | Tauri: Rust plus the system's own web view      |
-| **VTT Chat (Linux), a panel open**      | **about 170 MB** (measured, PSS)                                                                | 0 to 0.1%       | Tauri on WebKitGTK                              |
-| Discord                                 | about 400 MB on a good day, over 2 GB on a bad one; about 290 MB for the newer optimised client | low to moderate | Electron (a full Chromium)                      |
-| Other voice apps (TeamSpeak, Mumble, …) | not measured by us                                                                              |                 | native toolkits or Chromium, varying by version |
+Measured with the scripts in [`scripts/test/`](scripts/test/README.md) (same method on every OS; run them yourself):
 
-**How to read this honestly:**
+| App and state                                         | Processes | Memory                                                                                          | CPU at idle |
+| ----------------------------------------------------- | --------: | ----------------------------------------------------------------------------------------------- | ----------- |
+| **VTT Chat, Windows, in the tray, panels closed**     |         2 | **about 8 MB** (Task Manager)                                                                   | 0%          |
+| **VTT Chat, Windows, window open, no interaction**    |        10 | **189 MB** avg (private working set)                                                            | 0.00%       |
+| **VTT Chat, Windows, opening and closing everything** |         8 | **212 MB** avg, 316 MB peak                                                                     | 0.21%       |
+| **VTT Chat, Linux, a panel open**                     |         4 | **174 MB** (PSS)                                                                                | 0.01%       |
+| Discord, Linux (Flatpak), window open, settled 90 s   |         8 | **780 MB** (PSS)                                                                                | 1.57%       |
+| Discord, Windows, as we see it                        |         — | about 400 MB on a good day, over 2 GB on a bad one; about 290 MB for the newer optimised client | —           |
+| TeamSpeak, Mumble and other voice apps                |         — | not measured by us                                                                              | —           |
 
-- The Windows figure is the app **sitting in the tray with no panel open**, which is where players leave it about 90% of the time. Opening a panel starts the system's web view (WebView2), which costs more while the panel is open and is given back when you close it. The Linux figure is **with a panel open** (WebKitGTK is heavier than WebView2); we have not yet measured Linux with every panel closed, or macOS, which uses the system's WebKit.
-- Memory is **PSS** on Linux (each process's fair share of shared libraries; plain RSS would double-count and read about 390 MB), and Task Manager's figure on Windows. The Discord numbers are what we see on our own machines and the vendor's own claims for the newer client, not a controlled benchmark. We have not measured TeamSpeak or Mumble, so the table does not give a number for them: measure the apps you use on your own machine, with your own settings.
-- Even with a panel open on Linux, the app is a fraction of an Electron voice app, and at rest on Windows it is a rounding error. The point is not a race: it is that a tray app for a tabletop group should not compete with your game for memory.
+**What this says, and what it does not:**
+
+- **In the tray, where players leave it about 90% of the time, it is a rounding error: single-digit megabytes.** Opening a window starts the system's web view (WebView2 on Windows, WebKitGTK on Linux), and that is where the memory goes: **roughly 190 to 210 MB on Windows and 175 MB on Linux** while a window is open, given back when you close it.
+- That is **well under Discord on the same machine (about a fifth of its Linux footprint) and about half of what Discord's newer client is reported to use on Windows**, with next to no idle CPU. We would not call it "tiny" with a window open: it is a web view, and a web view costs that much.
+- The Discord figures marked "as we see it" are the maintainer's own observations and the vendor's claims for the newer client, **not** measured with these scripts; the Linux Discord row is measured with them. Do not read the Linux and Windows rows against each other: different systems and web views. The honest comparison is the same script, same state, on your machine.
+- We have not measured **macOS**, and have not measured TeamSpeak or Mumble, so the table gives no number for them. Measure the apps you use: it takes a minute per state.
 
 Unlike general voice apps, this one is built for tabletop play: a DM-controlled soundboard, party splits with private talk, loot, and a searchable record of every session with AI summaries.
 
