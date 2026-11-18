@@ -1,0 +1,30 @@
+name: Feature request
+description: Suggest an idea for VTT Chat App
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This project stays deliberately small: voice, minimal chat and table content, and session records. Please read the [non-goals](https://github.com/AndyProsser/vtt-chat-app/blob/main/.claude/CLAUDE.md) (section 13) first: VTT features such as maps, tokens and dice are out of scope.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve, and for whom?
+      description: "A game table's real situation helps most: 'our DM has to ... every session'."
+    validations: { required: true }
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like to happen?
+    validations: { required: true }
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What have you tried or considered instead?
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Fit
+      options:
+        - label: It works without any cloud service (self-host first).
+        - label: I would be happy to help build or test it.

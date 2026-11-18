@@ -1,0 +1,42 @@
+name: Bug report
+description: Something does not work the way it should
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping. Please do not include passwords, session tokens or invite codes. For a security problem, see SECURITY.md instead.
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where did it happen?
+      options: [Desktop app, Phone web app, Server or install, Records and summaries, Not sure]
+    validations: { required: true }
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: The app (Settings → App) and the server (`vtt-admin status`) should match on MAJOR.MINOR.
+      placeholder: 'App 0.5.3, server 0.5.3'
+    validations: { required: true }
+  - type: input
+    id: system
+    attributes:
+      label: Operating system and browser
+      placeholder: 'Windows 11, or Ubuntu 26.04 with GNOME on Wayland, or iPhone iOS 18 Safari'
+    validations: { required: true }
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+    validations: { required: true }
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: "1. ...\n2. ..."
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshots
+      description: 'Server: `cd /opt/vtt-chat && docker compose logs backend`. Remove anything private first.'

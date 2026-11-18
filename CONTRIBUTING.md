@@ -1,6 +1,6 @@
 # Contributing to VTT Chat App
 
-Thanks for wanting to help. This project is a lightweight, **self-hosted** voice + chat + session-records system for tabletop groups — see [CLAUDE.md](.claude/CLAUDE.md) for the full spec and [README.md](README.md) for an overview. Read [DEVELOPING.md](DEVELOPING.md) first to get a local environment running.
+Thanks for wanting to help. This project is a lightweight, **self-hosted** voice + chat + session-records system for tabletop groups — see [CLAUDE.md](.claude/CLAUDE.md) for the full spec and [README.md](README.md) for an overview. Read [DEVELOPING.md](DEVELOPING.md) first to get a local environment running. Everyone taking part is expected to follow the [Code of Conduct](CODE_OF_CONDUCT.md); for a security problem, use [SECURITY.md](SECURITY.md), not a public issue.
 
 > The project is mid-pivot (see [ROADMAP.md](ROADMAP.md)). Code from the previous design (a DDB-embedding overlay) still exists until Stage 1 removes it — please don't extend it, and don't treat it as a pattern.
 
@@ -47,7 +47,7 @@ This is a manual checklist, not an automated lint rule yet — reviewers apply i
 
 ## Pull Requests
 
-- Give the PR a clear title and a short description of *why*, not just *what*.
+- Give the PR a clear title and a short description of _why_, not just _what_.
 - Run `npm test` for any change touching a workspace with a `test` script (currently `panels-ui/`) and note any manual testing you did beyond that — most modules still don't have automated coverage, so call out what you verified by hand.
 - Link the issue it addresses, if any.
 
