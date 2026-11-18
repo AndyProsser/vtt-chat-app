@@ -100,18 +100,43 @@ export function InventoryTab({ campaignId }: { campaignId: string }) {
         return (
           <Card key={item.id} size="2">
             <Flex direction="column" gap="2">
-              <Flex gap="2" align="center" wrap="wrap">
-                <Text weight="medium">
-                  {item.kind === 'coin'
-                    ? `${item.quantity} ${item.name}`
-                    : `${item.name}${item.quantity > 1 ? ` ×${item.quantity}` : ''}`}
-                </Text>
-                {item.rarity && (
-                  <Badge color={RARITY_COLOR[item.rarity] ?? 'gray'}>{item.rarity}</Badge>
+              <Flex gap="2" align="start" justify="between">
+                <Flex gap="2" align="center" wrap="wrap" style={{ minWidth: 0 }}>
+                  <Text weight="medium">
+                    {item.kind === 'coin'
+                      ? `${item.quantity} ${item.name}`
+                      : `${item.name}${item.quantity > 1 ? ` ×${item.quantity}` : ''}`}
+                  </Text>
+                  {item.rarity && (
+                    <Badge color={RARITY_COLOR[item.rarity] ?? 'gray'}>{item.rarity}</Badge>
+                  )}
+                  <Badge variant="soft" color="gray">
+                    {item.itemType}
+                  </Badge>
+                </Flex>
+                {actions.length > 0 && (
+                  <Flex gap="2" justify="end" style={{ flex: 'none' }}>
+                    {actions.map((action) =>
+                      action === 'give' ? (
+                        <GiveSelect
+                          key={action}
+                          players={players}
+                          onPick={(userId) => void run(item, 'give', userId)}
+                        />
+                      ) : (
+                        <Button
+                          key={action}
+                          size="1"
+                          variant={action === 'take' ? 'solid' : 'soft'}
+                          title={LOOT_ACTION_LABEL[action]}
+                          onClick={() => void run(item, action)}
+                        >
+                          {ACTION_SHORT[action]}
+                        </Button>
+                      ),
+                    )}
+                  </Flex>
                 )}
-                <Badge variant="soft" color="gray">
-                  {item.itemType}
-                </Badge>
               </Flex>
               {item.description && (
                 <Text size="2" color="gray">
@@ -121,29 +146,6 @@ export function InventoryTab({ campaignId }: { campaignId: string }) {
               <Text size="1" color={item.claimedBy ? 'violet' : 'green'}>
                 {holder(item, members)}
               </Text>
-              {actions.length > 0 && (
-                <Flex gap="2" wrap="wrap">
-                  {actions.map((action) =>
-                    action === 'give' ? (
-                      <GiveSelect
-                        key={action}
-                        players={players}
-                        onPick={(userId) => void run(item, 'give', userId)}
-                      />
-                    ) : (
-                      <Button
-                        key={action}
-                        size="1"
-                        variant={action === 'take' ? 'solid' : 'soft'}
-                        title={LOOT_ACTION_LABEL[action]}
-                        onClick={() => void run(item, action)}
-                      >
-                        {ACTION_SHORT[action]}
-                      </Button>
-                    ),
-                  )}
-                </Flex>
-              )}
             </Flex>
           </Card>
         );

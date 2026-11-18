@@ -941,7 +941,9 @@ button.phone-picture-button {
 
 /* A loot card among the chat lines (LootChatCard): dashed while it is still on the table, solid once taken. */
 .phone-loot-card {
+  flex: none; /* the chat column is a flex box: without this a Radix card is squashed and clips its text */
   margin-block: 4px;
+  padding: 8px 12px;
   border: 1px dashed var(--accent-8);
 }
 .phone-loot-taken {
