@@ -1,25 +1,33 @@
 import {
-  abilityLine,
+  characterDetails,
   characterPatch,
   draftOf,
-  vitalsLine,
+  syncedLabel,
   type CharacterRecord,
 } from '@vtt-chat-app/shared';
-import { Avatar, Badge, Button, Card, Flex, Text, TextField } from '@radix-ui/themes';
+import { Avatar, Badge, Card, Flex, Text, TextField } from '@radix-ui/themes';
 import { useEffect, useRef, useState } from 'react';
 
 import { avatarSrc, shrinkAvatar, uploadAvatar } from '../../lib/account.js';
 import { ApiError } from '../../lib/api.js';
-import { playCharacter, saveCharacter } from '../../lib/phone/phoneApi.js';
+import { ddbCall, playCharacter, saveCharacter } from '../../lib/phone/phoneApi.js';
 import { initials } from '../../lib/phone/rail.js';
-import { DdbBox } from './DdbBox.js';
+import { Icon } from '../icons/index.js';
+import { CharacterStats } from './CharacterStats.js';
+import { DdbLinkField } from './DdbLinkField.js';
+import { IconTool } from './IconTool.js';
 
-/** One of your characters in this table: what it is, a way to change it, play it, and link its D&D Beyond sheet. */
+/**
+ * One of your characters: the portrait and what it is, then (for a linked D&D Beyond character) its numbers as
+ * tiles. A linked character has no text boxes, because the sheet owns its details and its picture; a hand-made one
+ * has the form behind the pencil, a picture you choose, and a way to link a sheet.
+ */
 export function CharacterCard({
   campaignId,
   record,
   playing,
   canPlay,
+  ddbOn,
   onChanged,
 }: {
   campaignId: string;
@@ -27,21 +35,21 @@ export function CharacterCard({
   playing: boolean;
   /** The DM does not play a character here; theirs are kept for if they swap back. */
   canPlay: boolean;
+  /** The server has the D&D Beyond sync switched on (undefined until it has answered). */
+  ddbOn: boolean | undefined;
   onChanged: () => void;
 }) {
-  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [linking, setLinking] = useState(false);
   const [draft, setDraft] = useState(draftOf(record));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
   const file = useRef<HTMLInputElement>(null);
   useEffect(() => setDraft(draftOf(record)), [record]);
-  const fromSheet = Boolean(record.sourceUrl);
+  const linked = Boolean(record.sourceUrl);
   const patch = characterPatch(record, draft);
   const dirty = Object.keys(patch).length > 0;
   const src = avatarSrc(record.avatarUrl);
-  const details = [record.race, record.className, record.level ? `level ${record.level}` : null]
-    .filter(Boolean)
-    .join(' · ');
 
   const run = async (work: () => Promise<unknown>) => {
     setBusy(true);
@@ -50,7 +58,7 @@ export function CharacterCard({
       await work();
       onChanged();
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : 'Could not save that. Try again.');
+      setError(e instanceof ApiError ? e.message : 'Could not do that. Try again.');
     } finally {
       setBusy(false);
     }
@@ -69,22 +77,49 @@ export function CharacterCard({
     if (file.current) file.current.value = '';
   };
 
+  const portrait = (
+    <Avatar
+      size="6"
+      radius="full"
+      {...(src ? { src } : {})}
+      fallback={initials(record.name)}
+      alt=""
+    />
+  );
+
   return (
-    <Card size="2">
+    <Card size="2" className="phone-char">
       <Flex direction="column" gap="3">
         <Flex align="center" gap="3">
-          <Avatar
-            size="4"
-            radius="full"
-            {...(src ? { src } : {})}
-            fallback={initials(record.name)}
-            alt=""
-          />
-          <Flex direction="column" style={{ minWidth: 0, flex: 1 }}>
-            <Text weight="medium">{record.name}</Text>
-            <Text size="2" color="gray">
-              {details || 'No details yet'}
+          {linked ? (
+            <span className="phone-char-portrait">{portrait}</span>
+          ) : (
+            <button
+              type="button"
+              className="phone-char-portrait phone-char-portrait-edit"
+              aria-label={src ? 'Change picture' : 'Add a picture'}
+              disabled={busy}
+              onClick={() => file.current?.click()}
+            >
+              {portrait}
+              <span className="phone-char-camera" aria-hidden>
+                <Icon name="imagePlus" size={14} />
+              </span>
+            </button>
+          )}
+          <Flex direction="column" gap="1" style={{ minWidth: 0, flex: 1 }}>
+            <Text size="5" weight="medium" className="phone-char-name">
+              {record.name}
             </Text>
+            <Text size="2" color="gray">
+              {characterDetails(record) || 'No details yet'}
+            </Text>
+            {linked && (
+              <Text size="1" color="gray" className="phone-char-synced">
+                <Icon name="link" size={12} /> D&amp;D Beyond ·{' '}
+                {syncedLabel(record.syncedAt ?? null, Date.now())}
+              </Text>
+            )}
           </Flex>
           {playing && (
             <Badge color="violet" variant="soft">
@@ -92,39 +127,97 @@ export function CharacterCard({
             </Badge>
           )}
         </Flex>
-        {vitalsLine(record.sheet) && (
-          <Text size="1" color="gray">
-            {vitalsLine(record.sheet)}
-            <br />
-            {abilityLine(record.sheet)}
-          </Text>
-        )}
-        <Flex gap="2" wrap="wrap">
+
+        {record.sheet && <CharacterStats sheet={record.sheet} />}
+
+        <Flex gap="2" wrap="wrap" className="phone-actions">
           {canPlay && !playing && (
-            <Button
+            <IconTool
+              label="Play this character"
+              text="Play"
+              icon="play"
               disabled={busy}
               onClick={() => void run(() => playCharacter(campaignId, record.id))}
-            >
-              Play this character
-            </Button>
+            />
           )}
-          <Button
-            variant="soft"
-            color="gray"
-            onClick={() => setOpen((v) => !v)}
-            aria-expanded={open}
-          >
-            {open ? 'Close' : 'Edit'}
-          </Button>
+          {linked ? (
+            <>
+              <IconTool
+                label="Sync now from D&D Beyond"
+                text="Sync"
+                icon="refresh"
+                disabled={busy}
+                onClick={() => void run(() => ddbCall('sync', campaignId, record.id))}
+              />
+              <IconTool
+                label="Unlink from D&D Beyond (keeps the character as it is)"
+                icon="unlink"
+                disabled={busy}
+                onClick={() => void run(() => ddbCall('unlink', campaignId, record.id))}
+              />
+            </>
+          ) : (
+            <>
+              <IconTool
+                label={editing ? 'Close the editor' : 'Edit this character'}
+                icon={editing ? 'x' : 'pencil'}
+                onClick={() => setEditing((v) => !v)}
+              />
+              {src && (
+                <IconTool
+                  label="Remove the picture"
+                  icon="trash"
+                  danger
+                  disabled={busy}
+                  onClick={() =>
+                    void run(() => saveCharacter(campaignId, record.id, { avatarUrl: null }))
+                  }
+                />
+              )}
+              {ddbOn && (
+                <IconTool
+                  label="Link a D&D Beyond sheet"
+                  icon="link"
+                  onClick={() => setLinking((v) => !v)}
+                />
+              )}
+            </>
+          )}
         </Flex>
-        {open && (
-          <Flex direction="column" gap="3">
+        <input
+          ref={file}
+          type="file"
+          accept="image/png,image/jpeg,image/gif,image/webp"
+          hidden
+          aria-label="Choose a picture"
+          onChange={(e) => pickPicture(e.target.files?.[0])}
+        />
+
+        {!linked && ddbOn === false && editing && (
+          <Text size="1" color="gray">
+            Linking a D&amp;D Beyond sheet is switched off on this server (<code>DDB_SYNC=1</code>{' '}
+            turns it on).
+          </Text>
+        )}
+        {!linked && linking && (
+          <DdbLinkField
+            busy={busy}
+            onLink={(url) =>
+              run(async () => {
+                await ddbCall('link', campaignId, record.id, url);
+                setLinking(false);
+                setEditing(false);
+              })
+            }
+          />
+        )}
+        {!linked && editing && (
+          <Flex direction="column" gap="2">
             <Flex gap="2" wrap="wrap">
               <TextField.Root
                 style={{ flex: 2, minWidth: 160 }}
                 aria-label="Name"
                 placeholder="Name"
-                disabled={fromSheet}
                 value={draft.name}
                 onChange={(e) => setDraft({ ...draft, name: e.target.value })}
               />
@@ -133,7 +226,6 @@ export function CharacterCard({
                 aria-label="Level"
                 placeholder="Level"
                 inputMode="numeric"
-                disabled={fromSheet}
                 value={draft.level}
                 onChange={(e) => setDraft({ ...draft, level: e.target.value })}
               />
@@ -143,7 +235,6 @@ export function CharacterCard({
                 style={{ flex: 1, minWidth: 120 }}
                 aria-label="Race"
                 placeholder="Race"
-                disabled={fromSheet}
                 value={draft.race}
                 onChange={(e) => setDraft({ ...draft, race: e.target.value })}
               />
@@ -151,43 +242,25 @@ export function CharacterCard({
                 style={{ flex: 1, minWidth: 120 }}
                 aria-label="Class"
                 placeholder="Class"
-                disabled={fromSheet}
                 value={draft.className}
                 onChange={(e) => setDraft({ ...draft, className: e.target.value })}
               />
             </Flex>
-            {fromSheet && (
-              <Text size="2" color="gray">
-                Name, level, race and class come from your D&amp;D Beyond sheet. Change them there,
-                then press Sync; the picture stays yours.
-              </Text>
-            )}
-            <Flex gap="2" wrap="wrap">
-              <Button variant="soft" disabled={busy} onClick={() => file.current?.click()}>
-                {src ? 'Change picture' : 'Add a picture'}
-              </Button>
-              <input
-                ref={file}
-                type="file"
-                accept="image/png,image/jpeg,image/gif,image/webp"
-                hidden
-                aria-label="Choose a picture"
-                onChange={(e) => pickPicture(e.target.files?.[0])}
-              />
-              <Button
+            <div>
+              <IconTool
+                label="Save changes"
+                text="Save"
+                icon="check"
                 disabled={busy || !dirty || draft.name.trim() === ''}
                 onClick={() => void run(() => saveCharacter(campaignId, record.id, patch))}
-              >
-                Save changes
-              </Button>
-            </Flex>
-            <DdbBox campaignId={campaignId} character={record} onChanged={onChanged} />
-            {error && (
-              <Text size="2" color="red" role="alert">
-                {error}
-              </Text>
-            )}
+              />
+            </div>
           </Flex>
+        )}
+        {error && (
+          <Text size="2" color="red" role="alert">
+            {error}
+          </Text>
         )}
       </Flex>
     </Card>

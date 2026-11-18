@@ -15,6 +15,21 @@ cd tauri-client && cargo fmt --check && cargo clippy --workspace --all-targets -
 
 Last run (2026-11-09, memory stores): backend 406 (+18 skipped without Postgres), panels-ui 213, ddb 9, status 3; Rust: src-tauri 88 (+2 ignored), rust-livekit and rust-sync as before, with the LiveKit live tests passing individually on SDK 0.10.1. `cargo clippy -D warnings` still fails on the old unused `capture_allowed`. Not run: anything in CI (the workflow exists, nothing has run it since the pivot).
 
+## Built 2026-11-18 for 0.5.5: the character screens, and the D&D Beyond portrait (on `main`)
+
+Andy's feedback from the first real D&D Beyond link on the VM (the sync works; the screen was too busy and the portrait
+never imported). **No wire change** (protocol stays 3); the changes that need one are Stage 11 items 10 to 12.
+
+- **Portrait import fixed.** Found by fetching the test sheet's portrait: D&D Beyond ignores `?width=` and serves a 1.9 MB
+  PNG, over the 256 KB limit, so every import was silently skipped. The server now downloads up to 8 MB and shrinks it to a
+  256-pixel WebP with `sharp`; a failed import retries on the next sync; the sheet's portrait always wins while linked and
+  the server refuses to change it (409). _Tested:_ a noisy 900 px image shrinks to 256 px under the limit; the retry; the 409. _Not yet run:_ on the VM's real sheet (it needs the new server image).
+- **Both apps' character screens redone** (switcher row, tiles, icon buttons, D&D Beyond first when the sync is on).
+  _Tested:_ the shared helpers and the add-a-character steps (create then link, the retry reusing the placeholder, by-hand
+  fill-in), type-check and lint. _Seen:_ the phone web components rendered in headless Chromium in the light theme only.
+  _Not seen:_ the dark theme, the desktop panels (they only run inside Tauri), a real phone, or any of it against the live
+  server.
+
 ## Built 2026-11-18 for 0.5.4: clean-up rules, characters, your own sounds (on `main`)
 
 Andy's request after 0.5.3. **No wire change** (protocol stays 3): every route already existed, or the change is a

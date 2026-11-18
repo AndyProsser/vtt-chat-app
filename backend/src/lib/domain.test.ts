@@ -506,7 +506,7 @@ describe('campaigns', () => {
       );
     });
 
-    it('leaves a linked character’s name, race, class and level to D&D Beyond, but not its portrait', async () => {
+    it('leaves a linked character’s name, race, class and level to D&D Beyond, and its portrait', async () => {
       const { campaignId } = await table();
       const mine = await w.campaigns.addCharacter(alice, campaignId, sheet);
       await w.store.putCharacter({
@@ -524,12 +524,16 @@ describe('campaigns', () => {
         }),
         'conflict',
       );
-      // The same value is not an edit, and the portrait is the player's own.
+      // The sheet's portrait wins too (2026-11-18); sending the value it already has is not an edit.
+      await rejects(
+        w.campaigns.updateCharacter(alice, campaignId, mine.id, { avatarUrl: 'emblem:sword' }),
+        'conflict',
+      );
       const kept = await w.campaigns.updateCharacter(alice, campaignId, mine.id, {
         level: mine.level,
-        avatarUrl: 'emblem:sword',
+        avatarUrl: mine.avatarUrl,
       });
-      expect(kept).toMatchObject({ level: 3, avatarUrl: 'emblem:sword' });
+      expect(kept).toMatchObject({ level: 3, avatarUrl: mine.avatarUrl });
       // Unlinked, it is the player's again.
       await w.store.putCharacter({ ...kept, sourceUrl: null });
       expect(

@@ -950,3 +950,156 @@ button.phone-picture-button {
   border-style: solid;
   border-color: var(--gray-6);
 }
+
+/* Characters: the switcher, the portrait header, and the tiles for a linked sheet's numbers */
+.phone-switcher {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 4px 2px 8px;
+  scrollbar-width: thin;
+}
+.phone-switch {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 72px;
+  padding: 6px 4px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-4);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.phone-switch span:last-child {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.phone-switch[aria-selected='true'] {
+  border-color: var(--vtt-gold);
+  background: color-mix(in srgb, var(--vtt-gold) 12%, transparent);
+}
+.phone-switch[data-playing] .rt-AvatarRoot {
+  outline: 2px solid var(--vtt-glow);
+  outline-offset: 2px;
+}
+.phone-switch:focus-visible {
+  outline: 2px solid var(--focus-8);
+  outline-offset: 2px;
+}
+.phone-switch-plus {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border: 1px dashed var(--vtt-gold);
+  border-radius: 50%;
+  color: var(--vtt-gold);
+}
+.phone-char-name {
+  overflow-wrap: anywhere;
+}
+.phone-char-portrait {
+  position: relative;
+  flex: none;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  border-radius: 50%;
+  line-height: 0;
+}
+.phone-char-portrait-edit {
+  cursor: pointer;
+}
+.phone-char-camera {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--vtt-gold);
+  color: var(--vtt-bubble);
+}
+.phone-char-synced {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.phone-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.phone-vitals {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.phone-vital {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 4px;
+  border: 1px solid var(--vtt-edge);
+  border-radius: var(--radius-3);
+  background: var(--vtt-bubble);
+  color: var(--vtt-gold);
+}
+.phone-vital b {
+  font-size: 22px;
+  line-height: 1.1;
+  color: var(--vtt-ink);
+}
+.phone-vital span {
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--gray-11);
+  text-align: center;
+}
+.phone-abilities {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 6px;
+}
+.phone-ability {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 6px 0 8px;
+  border: 1px solid var(--vtt-edge);
+  border-radius: var(--radius-3);
+  background: var(--vtt-bubble);
+}
+.phone-ability span {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--gray-11);
+}
+.phone-ability b {
+  font-size: 18px;
+  line-height: 1.15;
+  color: var(--vtt-ink);
+}
+.phone-ability i {
+  min-width: 26px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--vtt-edge) 30%, transparent);
+  font-size: 11px;
+  font-style: normal;
+  text-align: center;
+  color: var(--gray-11);
+}

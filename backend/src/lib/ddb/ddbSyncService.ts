@@ -1,5 +1,7 @@
 import { randomUUID } from 'node:crypto';
 
+import sharp from 'sharp';
+
 import {
   characterIdFromUrl,
   characterSheetUrl,
@@ -11,7 +13,11 @@ import {
   type FetchOutcome,
 } from '@vtt-chat-app/ddb';
 
-import { MAX_AVATAR_BYTES } from '../../consts/index.js';
+import {
+  AVATAR_PIXELS,
+  MAX_AVATAR_BYTES,
+  MAX_PORTRAIT_DOWNLOAD_BYTES,
+} from '../../consts/index.js';
 import type { CampaignService } from '../campaigns/campaignService.js';
 import { DomainError } from '../errors.js';
 import { detectMedia, type MediaStorage } from '../media/mediaStorage.js';
@@ -133,11 +139,14 @@ export class DdbSyncService {
 
   private async apply(character: Character, sheet: DdbCharacter): Promise<Character> {
     let { avatarUrl, sourceAvatar } = character;
-    if (sheet.portraitUrl && sheet.portraitUrl !== sourceAvatar) {
+    // The sheet's portrait always wins while linked (decided 2026-11-18). It is imported when it changed, and again
+    // when we have no picture for the character (an earlier import failed), so a failure retries on the next sync.
+    if (sheet.portraitUrl && (sheet.portraitUrl !== sourceAvatar || !avatarUrl)) {
       const stored = await this.importPortrait(sheet.portraitUrl);
-      // Only mark it imported when it was stored, so a too-large picture is retried only if it changes.
-      sourceAvatar = sheet.portraitUrl;
-      if (stored) avatarUrl = stored;
+      if (stored) {
+        avatarUrl = stored;
+        sourceAvatar = sheet.portraitUrl;
+      }
     }
     const next: Character = {
       ...character,
@@ -158,15 +167,26 @@ export class DdbSyncService {
     return next;
   }
 
-  /** Fetches the portrait into our own storage (the app never loads from the open web). */
+  /**
+   * Fetches the portrait into our own storage (the app never loads from the open web), shrunk to the same
+   * 256-pixel square the apps make for a picture the player picks. D&D Beyond serves the original upload (often a
+   * megabyte or more) whatever size the address asks for, so it must be shrunk here.
+   */
   private async importPortrait(url: string): Promise<string | undefined> {
     const { media } = this.deps;
     if (!media || !portraitAllowed(url, PORTRAIT_HOSTS)) return undefined;
     const bytes = await this.fetchImage(url).catch(() => undefined);
-    if (!bytes || bytes.length === 0 || bytes.length > MAX_AVATAR_BYTES) return undefined;
+    if (!bytes || bytes.length === 0 || bytes.length > MAX_PORTRAIT_DOWNLOAD_BYTES) return undefined;
     if (detectMedia(bytes)?.kind !== 'image') return undefined;
+    const small = await sharp(bytes, { limitInputPixels: 64_000_000 })
+      .rotate()
+      .resize(AVATAR_PIXELS, AVATAR_PIXELS, { fit: 'cover', position: 'attention' })
+      .webp({ quality: 85 })
+      .toBuffer()
+      .catch(() => undefined);
+    if (!small || small.length > MAX_AVATAR_BYTES) return undefined;
     const id = randomUUID();
-    await media.put(id, bytes);
+    await media.put(id, small);
     return `avatar:${id}`;
   }
 
@@ -196,7 +216,7 @@ async function defaultFetchImage(url: string): Promise<Buffer | undefined> {
   });
   if (!response.ok) return undefined;
   const length = Number(response.headers.get('content-length') ?? 0);
-  if (length > MAX_AVATAR_BYTES) return undefined;
+  if (length > MAX_PORTRAIT_DOWNLOAD_BYTES) return undefined;
   const bytes = Buffer.from(await response.arrayBuffer());
-  return bytes.length <= MAX_AVATAR_BYTES ? bytes : undefined;
+  return bytes.length <= MAX_PORTRAIT_DOWNLOAD_BYTES ? bytes : undefined;
 }

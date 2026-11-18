@@ -19,11 +19,21 @@ the GitHub release notes and refuses to build a release without one. How to writ
 - **Characters on the phone web app.** The menu has **My characters**: add a character, edit one, choose who you play, add a picture, and link a D&D Beyond sheet or sync it, all on the existing routes.
 - **Operators can delete a campaign, or a single session, for good.** `vtt-admin campaign list` and `campaign delete <id> --yes` remove a campaign with its sessions and audio (the worker deletes the files and the command waits for it), chat, handouts, loot and schedule; without `--yes` it only shows what would go. `vtt-admin recording delete <id>` removes one session the same way. A new daily sweeper also removes handout pictures and PDFs that no handout uses any more (what a deleted campaign leaves behind).
 
+- **Switch character in one tap.** Both apps show your characters as a row of portraits at the top of the character screen; tap one to play it, or the plus to add another. Characters still belong to one campaign: to use the same sheet in two campaigns, add it in each.
+- **Character numbers as tiles.** A linked character shows armour class, hit points and passive perception, then all six abilities on a single row (modifier large, score small), instead of two lines of text.
+
 ### Changed
 
+- **A character screen with fewer words and more icons**, on the phone web app and the desktop app. A linked character has no text boxes at all, only the portrait, the tiles and icon buttons (play, sync, unlink). A hand-made one keeps its form behind the pencil.
+- **Adding a character starts from D&D Beyond when the server has the sync on**: paste the sheet's link and the name, race, class, level and picture come from it. A button switches to filling it in by hand, which is the form you get when the sync is off. (A link that fails leaves a plain character called "New character" to fill in; a proper one-step add is planned for 0.6.0.)
+- **A linked character's picture comes from D&D Beyond** and follows the sheet; the picture buttons are hidden while it is linked (the server refuses a change too). Unlink to choose your own. A hand-made character picks its picture the way your profile does: click the portrait.
 - **A character linked to D&D Beyond keeps what the sheet says.** Name, race, class and level come from the sheet and are read-only in both apps (the server refuses an edit too), instead of being silently put back by the next sync. Your picture stays yours; unlink to edit them yourself.
 - **The D&D Beyond box is always there** in the desktop app's character settings. When the server's operator has not turned the sync on it now says so and who to ask, instead of hiding.
 - **The Game Master can no longer delete a session's audio.** Raw audio is the server operator's to manage (retention settings and `vtt-admin recording purge`). Any Game Master can still delete a **short test session** (under 30 minutes) from the History panel; it now removes its audio too. A longer session can be deleted only when the app has "Include dev builds" on **and** the operator has set `DEV_MODE=1` on the server; the server refuses otherwise. The "delete the audio only" choice is gone.
+
+### Fixed
+
+- **A linked character's D&D Beyond portrait now imports.** D&D Beyond serves the original upload (often a megabyte or more) whatever size the address asks for, and our 256 KB limit skipped it silently, leaving the letter placeholder. The server now shrinks it to a 256-pixel square (new dependency `sharp`, prebuilt, no extra service) and tries again on the next sync if an import fails.
 
 ## [0.5.3] - 2026-11-18
 

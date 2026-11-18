@@ -234,9 +234,12 @@ Open **Settings** (the cog). It has five tabs:
   places in one step); your **character**: name, picture, and an optional **D&D Beyond link**. Paste your
   public character's link and the app keeps your name, race, class, level and the numbers under your name up to
   date (only if the server's operator turned this on; if not, the box says so). **Sync now** forces a refresh.
-  **While a character is linked, those four fields come from D&D Beyond and cannot be edited here**: change them
-  on the sheet and Sync, or Unlink to edit them yourself. Your picture stays yours. The same is on the phone web app:
-  menu, **My characters**.
+  **While a character is linked, its name, race, class, level and picture come from D&D Beyond and cannot be edited here**: change them
+  on the sheet and Sync, or Unlink to edit them yourself. A linked character shows its armour class, hit points,
+  passive perception and six abilities as tiles. A row of portraits at the top switches character (click one to play it)
+  and the plus adds another; with the sync on, adding starts from a pasted sheet link, and a button fills it in by hand.
+  Characters belong to one campaign, so to use the same sheet in two campaigns add it in each. The same is on the phone
+  web app: menu, **My characters**.
 - **Sessions**: upcoming sessions and your answer. The DM schedules a session with the calendar-plus icon at the
   top right.
 - **Audio**: microphone, speakers, engine, noise filter, volume, and, for the DM, **hear sound effects myself**.

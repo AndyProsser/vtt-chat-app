@@ -1,13 +1,19 @@
-import { blankDraft, type CharacterRecord } from '@vtt-chat-app/shared';
-import { Button, Card, Flex, Spinner, Text, TextField } from '@radix-ui/themes';
+import { type CharacterRecord } from '@vtt-chat-app/shared';
+import { Flex, Spinner, Text } from '@radix-ui/themes';
 import { useCallback, useEffect, useState } from 'react';
 
 import { ApiError } from '../../lib/api.js';
-import { addCharacter, myCharacters } from '../../lib/phone/phoneApi.js';
+import { ddbEnabled, myCharacters, playCharacter } from '../../lib/phone/phoneApi.js';
 import { usePhoneStore } from '../../lib/phone/phoneStore.js';
 import { CharacterCard } from './CharacterCard.js';
+import { CharacterSwitcher } from './CharacterSwitcher.js';
+import { NewCharacter } from './NewCharacter.js';
 
-/** Your characters in this table: add one, change one, choose who you play, link a D&D Beyond sheet. */
+/**
+ * Your characters in this table: a row of portraits to switch between them (tap one to play it), the selected
+ * character's card, and a way to add another. Characters belong to one table; to use the same sheet in two tables,
+ * add it in each.
+ */
 export function CharactersScreen({ campaignId }: { campaignId: string }) {
   const userId = usePhoneStore((s) => s.userId);
   const isDm = usePhoneStore((s) => s.campaigns.find((c) => c.id === campaignId)?.role === 'dm');
@@ -17,6 +23,8 @@ export function CharactersScreen({ campaignId }: { campaignId: string }) {
   const [list, setList] = useState<CharacterRecord[]>();
   const [error, setError] = useState<string>();
   const [adding, setAdding] = useState(false);
+  const [picked, setPicked] = useState<string>();
+  const [ddbOn, setDdbOn] = useState<boolean>();
 
   const load = useCallback(async () => {
     try {
@@ -27,6 +35,15 @@ export function CharactersScreen({ campaignId }: { campaignId: string }) {
     }
   }, [campaignId]);
   useEffect(() => void load(), [load]);
+  useEffect(() => {
+    let current = true;
+    ddbEnabled()
+      .then((r) => current && setDdbOn(r.enabled))
+      .catch(() => current && setDdbOn(false));
+    return () => {
+      current = false;
+    };
+  }, []);
 
   if (!list && !error) {
     return (
@@ -35,6 +52,22 @@ export function CharactersScreen({ campaignId }: { campaignId: string }) {
       </Flex>
     );
   }
+  const playingId = isDm ? undefined : list?.find((c) => c.name === activeName)?.id;
+  const shown = list?.find((c) => c.id === (picked ?? playingId)) ?? list?.[0];
+
+  // One tap switches who you play (the DM has no character to play, so a tap only shows it).
+  const choose = (c: CharacterRecord) => {
+    setPicked(c.id);
+    setAdding(false);
+    if (!isDm && c.id !== playingId) {
+      void playCharacter(campaignId, c.id)
+        .then(load)
+        .catch((e) =>
+          setError(e instanceof ApiError ? e.message : 'Could not switch character. Try again.'),
+        );
+    }
+  };
+
   return (
     <Flex direction="column" gap="3">
       <Text size="2" color="gray">
@@ -46,120 +79,38 @@ export function CharactersScreen({ campaignId }: { campaignId: string }) {
           {error}
         </Text>
       )}
-      {list?.length === 0 && !adding && <Text color="gray">No character yet.</Text>}
-      {list?.map((c) => (
-        <CharacterCard
-          key={c.id}
-          campaignId={campaignId}
-          record={c}
-          playing={!isDm && c.name === activeName}
-          canPlay={!isDm}
-          onChanged={() => void load()}
-        />
-      ))}
-      {adding ? (
+      <CharacterSwitcher
+        characters={list ?? []}
+        shownId={adding ? undefined : shown?.id}
+        playingId={playingId}
+        adding={adding}
+        onChoose={choose}
+        onAdd={() => setAdding(true)}
+      />
+      {adding || list?.length === 0 ? (
         <NewCharacter
           campaignId={campaignId}
-          onDone={() => {
+          ddbOn={ddbOn}
+          onDone={(id) => {
             setAdding(false);
+            if (id) setPicked(id);
             void load();
           }}
-          onCancel={() => setAdding(false)}
+          onCancel={list?.length ? () => setAdding(false) : undefined}
         />
       ) : (
-        <div>
-          <Button variant="soft" onClick={() => setAdding(true)}>
-            New character
-          </Button>
-        </div>
+        shown && (
+          <CharacterCard
+            key={shown.id}
+            campaignId={campaignId}
+            record={shown}
+            playing={!isDm && shown.id === playingId}
+            canPlay={!isDm}
+            ddbOn={ddbOn}
+            onChanged={() => void load()}
+          />
+        )
       )}
     </Flex>
-  );
-}
-
-function NewCharacter({
-  campaignId,
-  onDone,
-  onCancel,
-}: {
-  campaignId: string;
-  onDone: () => void;
-  onCancel: () => void;
-}) {
-  const [draft, setDraft] = useState(blankDraft());
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string>();
-  const save = async () => {
-    setBusy(true);
-    setError(undefined);
-    try {
-      await addCharacter(campaignId, {
-        name: draft.name.trim(),
-        className: draft.className.trim() || null,
-        race: draft.race.trim() || null,
-        level: /^\d+$/.test(draft.level) ? Number(draft.level) : null,
-      });
-      onDone();
-    } catch (e) {
-      setError(e instanceof ApiError ? e.message : 'Could not add that. Try again.');
-    } finally {
-      setBusy(false);
-    }
-  };
-  return (
-    <Card size="2">
-      <Flex direction="column" gap="3">
-        <Text weight="medium">New character</Text>
-        <Flex gap="2" wrap="wrap">
-          <TextField.Root
-            style={{ flex: 2, minWidth: 160 }}
-            aria-label="Name"
-            placeholder="Name"
-            value={draft.name}
-            onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-          />
-          <TextField.Root
-            style={{ width: 80 }}
-            aria-label="Level"
-            placeholder="Level"
-            inputMode="numeric"
-            value={draft.level}
-            onChange={(e) => setDraft({ ...draft, level: e.target.value })}
-          />
-        </Flex>
-        <Flex gap="2" wrap="wrap">
-          <TextField.Root
-            style={{ flex: 1, minWidth: 120 }}
-            aria-label="Race"
-            placeholder="Race"
-            value={draft.race}
-            onChange={(e) => setDraft({ ...draft, race: e.target.value })}
-          />
-          <TextField.Root
-            style={{ flex: 1, minWidth: 120 }}
-            aria-label="Class"
-            placeholder="Class"
-            value={draft.className}
-            onChange={(e) => setDraft({ ...draft, className: e.target.value })}
-          />
-        </Flex>
-        <Text size="2" color="gray">
-          You can link a D&amp;D Beyond sheet and add a picture once it is saved.
-        </Text>
-        <Flex gap="2">
-          <Button disabled={busy || draft.name.trim() === ''} onClick={() => void save()}>
-            Add
-          </Button>
-          <Button variant="soft" color="gray" onClick={onCancel}>
-            Cancel
-          </Button>
-        </Flex>
-        {error && (
-          <Text size="2" color="red" role="alert">
-            {error}
-          </Text>
-        )}
-      </Flex>
-    </Card>
   );
 }

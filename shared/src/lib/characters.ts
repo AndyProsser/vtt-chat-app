@@ -38,6 +38,51 @@ export function abilityLine(sheet: CharacterSheet | null | undefined): string | 
     .join(' · ');
 }
 
+export const ABILITY_KEYS = ['str', 'dex', 'con', 'int', 'wis', 'cha'] as const;
+
+/** "+3", "+0", "-1": an ability score's modifier as the sheet writes it. */
+export function modifier(score: number): string {
+  const m = Math.floor((score - 10) / 2);
+  return `${m >= 0 ? '+' : '-'}${Math.abs(m)}`;
+}
+
+/** One number on a character screen: a small label, the figure, and optionally a smaller figure under it. */
+export interface StatTile {
+  key: string;
+  label: string;
+  value: string;
+  sub?: string;
+}
+
+/** The six abilities in the sheet's own order (the database does not keep key order), modifier large, score small. */
+export function abilityTiles(sheet: CharacterSheet | null | undefined): StatTile[] {
+  if (!sheet) return [];
+  return ABILITY_KEYS.map((key) => ({
+    key,
+    label: key.toUpperCase(),
+    value: modifier(sheet.abilities[key]),
+    sub: String(sheet.abilities[key]),
+  }));
+}
+
+/** Armour class, hit points and passive perception, for the row of tiles above the abilities. */
+export function vitalTiles(sheet: CharacterSheet | null | undefined): StatTile[] {
+  if (!sheet) return [];
+  return [
+    { key: 'ac', label: 'AC', value: String(sheet.armorClass) },
+    { key: 'hp', label: 'HP', value: String(sheet.maxHp) },
+    { key: 'pp', label: 'Passive Perception', value: String(sheet.passivePerception) },
+  ];
+}
+
+/** "Aasimar · Sorcerer · level 5": only the parts that exist. */
+export function characterDetails(c: Pick<CharacterRecord, 'race' | 'className' | 'level'>): string {
+  return [c.race, c.className, c.level ? `level ${c.level}` : null].filter(Boolean).join(' · ');
+}
+
+/** The name a character gets while its D&D Beyond link is being read (the sheet then replaces it). */
+export const NEW_CHARACTER_NAME = 'New character';
+
 /** What the form holds while editing: text fields, so a half-typed level is still just text. */
 export interface CharacterDraft {
   name: string;
@@ -83,4 +128,55 @@ export function characterPatch(
   }
   if (draft.avatarUrl !== original.avatarUrl) patch.avatarUrl = draft.avatarUrl;
   return patch;
+}
+
+/** The few calls adding a character needs, so the two apps (and the tests) can share the steps. */
+export interface NewCharacterApi {
+  create(fields: Record<string, unknown>): Promise<string>;
+  update(id: string, fields: Record<string, unknown>): Promise<unknown>;
+  link(id: string, url: string): Promise<unknown>;
+}
+
+/** The create/update body for a hand-filled draft: blanks as null, a level that is not a number as null. */
+export function newCharacterFields(draft: CharacterDraft): Record<string, unknown> {
+  return {
+    name: draft.name.trim(),
+    className: draft.className.trim() || null,
+    race: draft.race.trim() || null,
+    level: /^\d+$/.test(draft.level) ? Number(draft.level) : null,
+  };
+}
+
+/**
+ * Adds a character from a D&D Beyond sheet link. The server links an existing character (a one-step route is a
+ * 0.6.0 item), so this makes a placeholder first and links it. `madeId` is the placeholder from an earlier failed
+ * try, reused so trying again does not make a second one; `onMade` reports the id as soon as it exists.
+ */
+export async function createFromSheet(
+  api: NewCharacterApi,
+  url: string,
+  madeId?: string,
+  onMade?: (id: string) => void,
+): Promise<string> {
+  let id = madeId;
+  if (!id) {
+    id = await api.create({ name: NEW_CHARACTER_NAME });
+    onMade?.(id);
+  }
+  await api.link(id, url);
+  return id;
+}
+
+/** Adds a hand-filled character, or fills in the placeholder a failed link left behind. */
+export async function createByHand(
+  api: NewCharacterApi,
+  draft: CharacterDraft,
+  madeId?: string,
+): Promise<string> {
+  const fields = newCharacterFields(draft);
+  if (madeId) {
+    await api.update(madeId, fields);
+    return madeId;
+  }
+  return api.create(fields);
 }

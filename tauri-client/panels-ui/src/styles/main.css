@@ -2610,3 +2610,144 @@ body,
 .vtt-chat {
   overflow-anchor: none;
 }
+
+/* Characters: the portrait header, the switcher, and the tiles for a linked sheet's numbers */
+.vtt-char-hero {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.vtt-char-title {
+  font-family: var(--vtt-font-head);
+  font-size: 16px;
+  overflow-wrap: anywhere;
+}
+.vtt-char-synced {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.vtt-char-playing {
+  flex: none;
+  padding: 1px 8px;
+  border: 1px solid var(--vtt-glow);
+  border-radius: 999px;
+  color: var(--vtt-glow);
+  font-size: 11px;
+}
+.vtt-switcher {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 2px 0 6px;
+}
+.vtt-switch {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  width: 64px;
+  padding: 5px 3px;
+  border: 1px solid transparent;
+  border-radius: var(--vtt-radius-control);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+.vtt-switch[aria-selected='true'] {
+  border-color: var(--vtt-gold);
+  background: color-mix(in srgb, var(--vtt-gold) 12%, transparent);
+}
+.vtt-switch[data-playing] .vtt-switch-av {
+  border-color: var(--vtt-glow);
+  box-shadow: 0 0 8px 1px var(--vtt-glow);
+}
+.vtt-switch-av {
+  --vtt-rail-av: 40px;
+}
+.vtt-switch-name {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.vtt-switch-plus {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px dashed var(--vtt-gold);
+  border-radius: 50%;
+  color: var(--vtt-gold);
+}
+.vtt-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.vtt-vitals {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+.vtt-vital {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 6px 2px;
+  border: 1px solid var(--vtt-edge);
+  border-radius: var(--vtt-radius-control);
+  background: color-mix(in srgb, var(--vtt-bar) 60%, transparent);
+}
+.vtt-vital svg {
+  color: var(--vtt-gold);
+}
+.vtt-vital b {
+  font-size: 18px;
+  line-height: 1.1;
+}
+.vtt-vital span {
+  font-size: 9px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  opacity: 0.75;
+  text-align: center;
+}
+.vtt-abilities {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 4px;
+}
+.vtt-ability {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 5px 0 6px;
+  border: 1px solid var(--vtt-edge);
+  border-radius: var(--vtt-radius-control);
+  background: color-mix(in srgb, var(--vtt-bar) 60%, transparent);
+}
+.vtt-ability span {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  opacity: 0.75;
+}
+.vtt-ability b {
+  font-size: 15px;
+  line-height: 1.15;
+}
+.vtt-ability i {
+  min-width: 22px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--vtt-edge) 30%, transparent);
+  font-size: 10px;
+  font-style: normal;
+  text-align: center;
+}

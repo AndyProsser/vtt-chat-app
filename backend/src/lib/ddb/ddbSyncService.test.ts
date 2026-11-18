@@ -1,4 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { randomBytes } from 'node:crypto';
+
+import sharp from 'sharp';
+import { beforeAll, describe, expect, it } from 'vitest';
 import type { FetchOutcome } from '@vtt-chat-app/ddb';
 
 import { CampaignService } from '../campaigns/campaignService.js';
@@ -7,9 +10,24 @@ import { AccountService } from '../auth/accountService.js';
 import { DdbSyncService } from './ddbSyncService.js';
 import type { MediaStorage } from '../media/mediaStorage.js';
 
-const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3]);
+let PNG: Buffer;
+/** What D&D Beyond really serves: the original upload, here a noisy picture well over the avatar size limit. */
+let BIG_PNG: Buffer;
+beforeAll(async () => {
+  PNG = await sharp({
+    create: { width: 600, height: 400, channels: 3, background: '#a33' },
+  })
+    .png()
+    .toBuffer();
+  const noise = randomBytes(900 * 900 * 3);
+  BIG_PNG = await sharp(noise, { raw: { width: 900, height: 900, channels: 3 } })
+    .png()
+    .toBuffer();
+});
 
-async function setup(opts: { enabled?: boolean } = {}) {
+async function setup(
+  opts: { enabled?: boolean; image?: () => Promise<Buffer | undefined> } = {},
+) {
   const store = new MemoryStore();
   const accounts = new AccountService({ store });
   const campaigns = new CampaignService({ store });
@@ -55,7 +73,7 @@ async function setup(opts: { enabled?: boolean } = {}) {
     now: () => clock,
     onChanged: (id) => changed.push(id),
     fetchSheet: async () => sheet,
-    fetchImage: async () => PNG,
+    fetchImage: opts.image ?? (async () => PNG),
   });
   return {
     store,
@@ -155,7 +173,7 @@ describe('DdbSyncService', () => {
     await expect(t.service.link(other, t.campaign.id, t.character.id, URL1)).rejects.toThrow();
   });
 
-  it('syncs progress, but keeps a portrait the player chose until the DDB one changes', async () => {
+  it('syncs progress, and re-imports the portrait only when the sheet\'s own changes', async () => {
     const t = await setup();
     await t.service.link(t.user, t.campaign.id, t.character.id, URL1);
     const mine = await t.store.getCharacter(t.character.id);
@@ -188,6 +206,28 @@ describe('DdbSyncService', () => {
     const next = await t.service.syncNow(t.user, t.campaign.id, t.character.id);
     expect(next.avatarUrl).toMatch(/^avatar:/);
     expect(next.race).toBe('Half-Elf'); // missing in the reply: keep what we had
+  });
+
+  it('shrinks a portrait that is far over the size limit to a small square', async () => {
+    const t = await setup({ image: async () => BIG_PNG });
+    expect(BIG_PNG.length).toBeGreaterThan(256 * 1024);
+    const c = await t.service.link(t.user, t.campaign.id, t.character.id, URL1);
+    expect(c.avatarUrl).toMatch(/^avatar:/);
+    const [bytes] = [...t.stored.values()];
+    const meta = await sharp(bytes).metadata();
+    expect([meta.width, meta.height]).toEqual([256, 256]);
+    expect(bytes!.length).toBeLessThanOrEqual(256 * 1024);
+  });
+
+  it('tries the portrait again on the next sync when the first import failed', async () => {
+    let fail = true;
+    const t = await setup({ image: async () => (fail ? undefined : PNG) });
+    const c = await t.service.link(t.user, t.campaign.id, t.character.id, URL1);
+    expect(c.avatarUrl).toBeNull();
+    expect(c.sourceAvatar).toBeNull();
+    fail = false;
+    const next = await t.service.syncNow(t.user, t.campaign.id, t.character.id);
+    expect(next.avatarUrl).toMatch(/^avatar:/);
   });
 
   it('keeps the last good data and syncedAt when D&D Beyond fails', async () => {
