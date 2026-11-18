@@ -12,7 +12,7 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ### Added
 
-- **Handouts in the phone web chat.** A shared handout appears among the chat lines as a card (title, kind and the start of a note); tapping it opens the Handouts tab.
+- **Handouts in the phone web chat.** A shared handout appears among the chat lines as a card (title, kind and the start of a note); tapping it opens the whole handout full screen, and Back returns to the chat. The Game Master has Show/Hide, Edit and Delete there as in the Handouts tab; deleting it removes its card from the chat.
 - **Edit a handout note in the desktop app.** The Game Master can now change a note's title and text from the Handouts panel (before, only the web app could).
 - **Loot cards in the phone web chat.** A loot drop now appears in the web chat among the lines, with who has it and the buttons that fit you (take, store, put back; the Game Master gets a Give list), the same as the desktop app. The cards come from the server's loot list, so they are there after a restart too.
 - **Every shared link gets the dragon card.** Pasting the main page, the download page, sign-in or any other address of your server into social media or a chat app now shows the dragon image with a title and a short description (before, only invite links did). Invite links still show the campaign's name, its Game Master and the start of its description. Needs `PUBLIC_URL`, which the standard install sets from your domain.

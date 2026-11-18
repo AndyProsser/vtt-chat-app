@@ -23,6 +23,8 @@ interface PhoneState {
   campaigns: CampaignItem[];
   campaignId: string | undefined;
   tab: Tab;
+  /** A handout to open straight away when the Handouts tab shows (set by tapping its card in the chat). */
+  handoutFocus: string | undefined;
   members: Member[];
   lines: ChatLine[];
   /** The voice groups and any private talk, as the server last said (the web shows them; it has no voice of its own). */
@@ -49,6 +51,9 @@ interface PhoneState {
   setCampaigns(campaigns: CampaignItem[]): void;
   pickCampaign(id: string | undefined): void;
   setTab(tab: Tab): void;
+  /** Open this handout in the Handouts tab; Back there returns to the chat. */
+  openHandout(id: string): void;
+  clearHandoutFocus(): void;
   setLive(live: LiveState): void;
   setJoinPending(ids: readonly string[]): void;
   dismissDecision(): void;
@@ -76,6 +81,7 @@ export const usePhoneStore = create<PhoneState>((set, get) => ({
   campaigns: [],
   campaignId: undefined,
   tab: 'chat',
+  handoutFocus: undefined,
   decision: undefined,
   handoutsRev: 0,
   sessionsRev: 0,
@@ -90,11 +96,14 @@ export const usePhoneStore = create<PhoneState>((set, get) => ({
       userId: undefined,
       campaigns: [],
       campaignId: undefined,
+      handoutFocus: undefined,
       ...FRESH,
     }),
   setCampaigns: (campaigns) => set({ campaigns }),
-  pickCampaign: (campaignId) => set({ campaignId, tab: 'chat', ...FRESH }),
+  pickCampaign: (campaignId) => set({ campaignId, tab: 'chat', handoutFocus: undefined, ...FRESH }),
   setTab: (tab) => set({ tab, ...(tab === 'chat' ? { unread: 0 } : {}) }),
+  openHandout: (id) => set({ tab: 'handouts', handoutFocus: id }),
+  clearHandoutFocus: () => set({ handoutFocus: undefined }),
   setLive: (live) => set({ live }),
   setJoinPending: (joinPending) => set({ joinPending }),
   dismissDecision: () => set({ decision: undefined }),

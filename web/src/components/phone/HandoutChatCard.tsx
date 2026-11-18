@@ -9,13 +9,13 @@ const KIND_LABEL = { text: 'Note', image: 'Pictures', map: 'Map', pdf: 'PDF' } a
 
 /**
  * A shared handout in the chat: its title, what kind it is, and the start of a note. Tapping it opens the
- * Handouts tab, where it can be read in full.
+ * whole handout (the same screen as in the Handouts tab); Back returns here.
  */
 export function HandoutChatCard({ item }: { item: HandoutItem }) {
-  const setTab = usePhoneStore((s) => s.setTab);
+  const openHandout = usePhoneStore((s) => s.openHandout);
   return (
     <Card asChild size="1" className="phone-loot-card phone-handout-card">
-      <button type="button" className="phone-card-button" onClick={() => setTab('handouts')}>
+      <button type="button" className="phone-card-button" onClick={() => openHandout(item.id)}>
         <Flex direction="column" gap="1">
           <Flex gap="2" align="center" justify="between">
             <Flex gap="2" align="center" style={{ minWidth: 0 }}>

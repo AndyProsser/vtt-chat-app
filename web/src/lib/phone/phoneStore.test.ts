@@ -132,3 +132,22 @@ describe('loot frames', () => {
     expect(usePhoneStore.getState().lootRev).toBe(before + 3);
   });
 });
+
+describe('opening a handout from the chat', () => {
+  it('switches to the Handouts tab with that handout in focus, and clears the focus on request', () => {
+    usePhoneStore.getState().setTab('chat');
+    usePhoneStore.getState().openHandout('h1');
+    expect(usePhoneStore.getState()).toMatchObject({ tab: 'handouts', handoutFocus: 'h1' });
+    usePhoneStore.getState().clearHandoutFocus();
+    expect(usePhoneStore.getState().handoutFocus).toBeUndefined();
+  });
+
+  it('forgets the focus when the campaign changes or the user signs out', () => {
+    usePhoneStore.getState().openHandout('h1');
+    usePhoneStore.getState().pickCampaign('c2');
+    expect(usePhoneStore.getState().handoutFocus).toBeUndefined();
+    usePhoneStore.getState().openHandout('h2');
+    usePhoneStore.getState().signedOut();
+    expect(usePhoneStore.getState().handoutFocus).toBeUndefined();
+  });
+});

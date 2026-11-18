@@ -1,6 +1,6 @@
 import { Badge, Button, Callout, Card, Flex, Heading, Text } from '@radix-ui/themes';
 import { plainPreview } from '@vtt-chat-app/shared';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { useConfirmClick } from '../../hooks/useConfirmClick.js';
 import { useIsDm } from '../../hooks/useIsDm.js';
@@ -35,18 +35,37 @@ export function HandoutsTab({ campaignId }: { campaignId: string }) {
     () => handouts(campaignId),
     `${campaignId}:${rev}`,
   );
-  const [view, setView] = useState<View>({ page: 'list' });
+  // Opened from a chat card: that handout shows at once, and leaving it goes back to the chat, not the list.
+  const focus = useRef(usePhoneStore.getState().handoutFocus);
+  const setTab = usePhoneStore((s) => s.setTab);
+  const [view, setView] = useState<View>(() =>
+    focus.current ? { page: 'open', id: focus.current } : { page: 'list' },
+  );
   const [notice, setNotice] = useState<string>();
   const open = view.page !== 'list' && view.id ? data?.find((h) => h.id === view.id) : undefined;
   useReturnFocus(view.page === 'list', 'new-note');
+  /** Leave a handout: back to the chat when it was opened from there, else to the list. */
+  const leave = () => {
+    if (focus.current) {
+      focus.current = undefined;
+      setTab('chat');
+    } else setView({ page: 'list' });
+  };
+  // The focus is for one visit: forget it when this tab goes away (or the chat takes over).
+  useEffect(() => () => usePhoneStore.getState().clearHandoutFocus(), []);
 
   // Someone took the handout back (or deleted it) while it was open.
   useEffect(() => {
     if (view.page !== 'list' && view.id && data && !open) {
+      if (focus.current) {
+        focus.current = undefined;
+        setTab('chat');
+        return;
+      }
       setView({ page: 'list' });
       setNotice('That handout was taken back or removed.');
     }
-  }, [view, data, open]);
+  }, [view, data, open, setTab]);
 
   if (view.page === 'write' && isDm) {
     return (
@@ -67,13 +86,13 @@ export function HandoutsTab({ campaignId }: { campaignId: string }) {
         item={open}
         campaignId={campaignId}
         isDm={isDm}
-        onBack={() => setView({ page: 'list' })}
+        onBack={leave}
         onEdit={() => setView({ page: 'write', id: open.id })}
         onChanged={reload}
         onDeleted={() => {
           setNotice(undefined);
-          setView({ page: 'list' });
           reload();
+          leave();
         }}
       />
     );
