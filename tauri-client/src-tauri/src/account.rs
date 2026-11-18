@@ -135,7 +135,7 @@ fn write_private(path: &Path, saved: &Saved) -> std::io::Result<()> {
 /// The parts of the REST API a panel may reach, all under the signed-in campaign (or the DM's own
 /// sound library). The server still checks who is allowed to do what; this only stops a panel — which
 /// loads nothing but our own pages — from being turned into a general-purpose HTTP client.
-const RELAY_CAMPAIGN_AREAS: [&str; 11] = [
+const RELAY_CAMPAIGN_AREAS: [&str; 12] = [
     "handouts",
     "recordings",
     "loot",
@@ -147,6 +147,7 @@ const RELAY_CAMPAIGN_AREAS: [&str; 11] = [
     "leave",
     "characters",
     "active-character",
+    "chat",
 ];
 
 /// `handouts/abc/show` → `/api/campaigns/<id>/handouts/abc/show`; `soundboard/library` →
@@ -271,8 +272,30 @@ pub fn records_search_path(campaign_id: &str, query: &str) -> Result<String, Acc
     ))
 }
 
+/// The one query string the relay allows: older chat, `chat?limit=50&before=1700000000000` (digits only).
+fn is_chat_history(relative: &str) -> bool {
+    let Some(rest) = relative.strip_prefix("chat?limit=") else {
+        return false;
+    };
+    let Some((limit, before)) = rest.split_once("&before=") else {
+        return false;
+    };
+    let digits = |s: &str| !s.is_empty() && s.len() <= 16 && s.chars().all(|c| c.is_ascii_digit());
+    digits(limit) && digits(before)
+}
+
 pub fn relay_path(campaign_id: &str, relative: &str) -> Result<String, AccountError> {
     let bad = || AccountError::new("bad_path", "that request is not allowed");
+    if is_chat_history(relative) {
+        if !campaign_id
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+            || campaign_id.is_empty()
+        {
+            return Err(bad());
+        }
+        return Ok(format!("/api/campaigns/{campaign_id}/{relative}"));
+    }
     let segments: Vec<&str> = relative.split('/').collect();
     let plain = |s: &str| {
         !s.is_empty()
@@ -1153,6 +1176,20 @@ mod tests {
             );
         }
         // The campaign itself, for the DM's rename, description and Public/Private.
+        assert_eq!(
+            relay_path("c1", "chat?limit=50&before=1700000000001").unwrap(),
+            "/api/campaigns/c1/chat?limit=50&before=1700000000001"
+        );
+        for bad in [
+            "chat?limit=50",
+            "chat?limit=50&before=1;x",
+            "chat?limit=50&before=1&x=2",
+            "chat?limit=a&before=1",
+            "handouts?limit=50&before=1",
+            "chat/../x?limit=1&before=1",
+        ] {
+            assert!(relay_path("c1", bad).is_err(), "{bad}");
+        }
         assert_eq!(relay_path("c1", "").unwrap(), "/api/campaigns/c1");
         assert!(relay_path("c1/../x", "").is_err());
         for bad in [
