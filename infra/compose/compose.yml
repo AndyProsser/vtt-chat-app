@@ -99,7 +99,7 @@ services:
       UPDATES_SOURCE: ${UPDATES_SOURCE:-github}
       UPDATES_GITHUB_REPO: ${UPDATES_GITHUB_REPO:-}
       UPDATES_INCLUDE_DEV: ${UPDATES_INCLUDE_DEV:-}
-      # `1`: a DM may delete a session of any length from the app (their app needs dev builds on too).
+      # `1`: a DM may delete a session of any length from the app (their app needs dev builds on too), and dev builds are offered.
       DEV_MODE: ${DEV_MODE:-}
       # Where the join page tells players to download the app (all optional; set in .env).
       CLIENT_URL_WINDOWS: ${CLIENT_URL_WINDOWS:-}

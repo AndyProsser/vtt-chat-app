@@ -712,6 +712,85 @@ describe('campaigns', () => {
   });
 });
 
+describe('campaign export and import', () => {
+  const dir = () => mkdtempSync(path.join(tmpdir(), 'vtt-export-'));
+  const archiveOps = (unfinished: { id: string; startedAt: number; status: string }[]) => {
+    const calls: string[] = [];
+    return {
+      calls,
+      ops: {
+        unprocessed: async () => unfinished,
+        export: async (id: string) => {
+          calls.push(`export ${id}`);
+          return { bytes: Buffer.from('packed'), missingMedia: [] as string[] };
+        },
+        unpack: () => ({ campaign: { id: 'camp-1', name: 'Sunken Temple' } }) as never,
+        import: async (_a: unknown, o: { asNew: boolean }) => {
+          calls.push(`import asNew=${o.asNew}`);
+          return {
+            campaignId: 'camp-1',
+            name: 'Sunken Temple',
+            matched: 1,
+            created: [{ id: 'u', email: 'new@example.com', displayName: 'New' }],
+            recordings: 2,
+            files: 3,
+          };
+        },
+      },
+    };
+  };
+  const seedCampaign = async () => {
+    await store.putCampaign({
+      id: 'camp-1',
+      name: 'Sunken Temple',
+      description: '',
+      createdAt: 1,
+      allowJoin: true,
+    });
+  };
+
+  it('writes the file', async () => {
+    await seedCampaign();
+    const file = path.join(dir(), 'c.vtt');
+    const { ops, calls } = archiveOps([]);
+    expect(await run(`campaign export camp-1 ${file}`, [], { archive: ops })).toBe(0);
+    expect(readFileSync(file, 'utf8')).toBe('packed');
+    expect(calls).toEqual(['export camp-1']);
+  });
+
+  it('warns about a session with no transcript yet, and exports nothing unless told to accept the loss', async () => {
+    await seedCampaign();
+    const file = path.join(dir(), 'c.vtt');
+    const { ops, calls } = archiveOps([{ id: 'r9', startedAt: 5, status: 'processing' }]);
+    expect(await run(`campaign export camp-1 ${file}`, [], { archive: ops })).toBe(2);
+    expect(out.join('\n')).toMatch(/no transcript or summary yet[\s\S]*r9[\s\S]*--accept-loss/);
+    expect(calls).toEqual([]);
+    out.length = 0;
+    expect(await run(`campaign export camp-1 ${file} --accept-loss`, [], { archive: ops })).toBe(0);
+    expect(calls).toEqual(['export camp-1']);
+    expect(readFileSync(file, 'utf8')).toBe('packed');
+  });
+
+  it('refuses an unknown campaign', async () => {
+    const { ops } = archiveOps([]);
+    expect(
+      await run(`campaign export nope ${path.join(dir(), 'c.vtt')}`, [], { archive: ops }),
+    ).toBe(1);
+  });
+
+  it('imports, and says who got a placeholder account', async () => {
+    const file = path.join(dir(), 'c.vtt');
+    writeFileSync(file, 'packed');
+    const { ops, calls } = archiveOps([]);
+    expect(await run(`campaign import ${file} --as-new`, [], { archive: ops })).toBe(0);
+    expect(calls).toEqual(['import asNew=true']);
+    expect(out.join('\n')).toMatch(/2 recording\(s\), 3 handout file\(s\)[\s\S]*new@example.com/);
+    expect(await run(`campaign import ${path.join(dir(), 'missing')}`, [], { archive: ops })).toBe(
+      1,
+    );
+  });
+});
+
 describe('recording delete', () => {
   it('queues the worker to remove a whole session, and refuses one in progress', async () => {
     await records.putRecording({

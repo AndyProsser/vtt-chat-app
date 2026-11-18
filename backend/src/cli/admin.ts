@@ -14,11 +14,16 @@ import {
   type RecordsStore,
 } from '@vtt-chat-app/ai';
 
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import { formatBytes, freePercent, isLow, measureDisk } from '../lib/status/storage.js';
 import { MAGIC_LINK_TTL_MINUTES, RESET_LINK_TTL_MINUTES } from '../consts/index.js';
+import type {
+  CampaignArchive,
+  ImportResult,
+  UnprocessedRecording,
+} from '../lib/campaigns/campaignArchive.js';
 import type { AccountService } from '../lib/auth/accountService.js';
 import type { SignupService } from '../lib/auth/signupService.js';
 import type { Store } from '../lib/store/store.js';
@@ -54,6 +59,13 @@ export interface AdminDeps {
   probes?: Probe[];
   /** Removes pictures and PDFs no handout uses (after a campaign is deleted); returns how many. Needs MEDIA_DIR. */
   sweepMedia?: () => Promise<number>;
+  /** One campaign's export and import (`campaign export` / `import`). Needs Postgres; absent in memory tests. */
+  archive?: {
+    unprocessed: (campaignId: string) => Promise<UnprocessedRecording[]>;
+    export: (campaignId: string) => Promise<{ bytes: Buffer; missingMedia: string[] }>;
+    unpack: (bytes: Buffer) => CampaignArchive;
+    import: (archive: CampaignArchive, options: { asNew: boolean }) => Promise<ImportResult>;
+  };
   /** Waits between checks while the worker removes a campaign's recordings. Injected so tests need not wait. */
   sleep?: (ms: number) => Promise<void>;
   /** How long `campaign delete` waits for the worker (seconds). */
@@ -95,6 +107,12 @@ const USAGE = `vtt-admin — system operations for this instance (gameplay is ma
   campaign list                          every campaign: id, name, DM, players, recordings
   campaign delete <id> [--yes]           remove a campaign for good: its sessions and audio (via the worker), chat, handouts and
                                          their files. Without --yes it only shows what would go
+  campaign export <id> <file> [--accept-loss]
+                                         write one campaign to a file: text, handout files, transcripts and summaries, not the
+                                         audio (the server backup has that). Refuses while a session has no transcript yet,
+                                         unless --accept-loss says to go ahead without it
+  campaign import <file> [--as-new]      restore a campaign from such a file. --as-new makes a copy with fresh ids when the
+                                         campaign is still here
   storage                                disk use: recordings, free space, database size
   jobs list [queued|running|done|failed] records-pipeline jobs, newest last
   jobs retry <job-id>                    put a failed job back in the queue
@@ -824,8 +842,82 @@ async function campaigns(
       );
       return 0;
     }
+    case 'export': {
+      const [id, file, ...flags] = rest;
+      if (!id || !file) {
+        deps.err('usage: campaign export <campaign-id> <file> [--accept-loss]');
+        return 2;
+      }
+      const unknown = flags.filter((f) => f !== '--accept-loss');
+      if (unknown.length > 0) throw new SettingError(`unknown option ${unknown[0]}`);
+      if (!deps.archive)
+        throw new SettingError('export needs the database; run it through vtt-admin');
+      const found = (await deps.store.listCampaignSummaries()).find((c) => c.campaign.id === id);
+      if (!found) throw new SettingError('no campaign with that id (see: campaign list)');
+      const unfinished = await deps.archive.unprocessed(id);
+      if (unfinished.length > 0) {
+        deps.out(
+          `${unfinished.length} session(s) of "${found.campaign.name}" have no transcript or summary yet, so the file would hold nothing of them (the audio is not exported):`,
+        );
+        for (const r of unfinished) {
+          deps.out(`  ${r.id}  ${new Date(r.startedAt).toISOString()}  ${r.status}`);
+        }
+        if (!flags.includes('--accept-loss')) {
+          deps.out(
+            'Wait for them to finish (see: jobs list), or run it again with --accept-loss to export without them.',
+          );
+          return 2;
+        }
+        deps.out('going ahead without them (--accept-loss).');
+      }
+      const { bytes, missingMedia } = await deps.archive.export(id);
+      await writeFile(file, bytes, { mode: 0o600 });
+      deps.out(`wrote "${found.campaign.name}" to ${file} (${formatBytes(bytes.length)}).`);
+      if (missingMedia.length > 0) {
+        deps.err(`${missingMedia.length} handout file(s) were missing on disk and are not in it.`);
+      }
+      deps.out(
+        'It holds the whole campaign, whispers included: keep it as private as the database.',
+      );
+      return 0;
+    }
+    case 'import': {
+      const [file, ...flags] = rest;
+      if (!file) {
+        deps.err('usage: campaign import <file> [--as-new]');
+        return 2;
+      }
+      const unknown = flags.filter((f) => f !== '--as-new');
+      if (unknown.length > 0) throw new SettingError(`unknown option ${unknown[0]}`);
+      if (!deps.archive)
+        throw new SettingError('import needs the database; run it through vtt-admin');
+      let bytes: Buffer;
+      try {
+        bytes = await readFile(file);
+      } catch {
+        throw new SettingError(`cannot read ${file}`);
+      }
+      const archive = deps.archive.unpack(bytes);
+      const result = await deps.archive.import(archive, { asNew: flags.includes('--as-new') });
+      deps.out(
+        `imported "${result.name}" (${result.campaignId}): ${result.recordings} recording(s), ${result.files} handout file(s).`,
+      );
+      deps.out(`${result.matched} member(s) matched an account here by email.`);
+      if (result.created.length > 0) {
+        deps.out(
+          `${result.created.length} had no account here, so one was made with no password (they sign in by emailed link or single sign-on, or you can give them a code: user ...):`,
+        );
+        for (const p of result.created) deps.out(`  ${p.email}  ${p.displayName}`);
+      }
+      deps.out(
+        'The audio of its sessions is not in the file: restore it from the server backup if you need it.',
+      );
+      return 0;
+    }
     default:
-      deps.err('usage: campaign list | delete <campaign-id> [--yes]');
+      deps.err(
+        'usage: campaign list | export <id> <file> | import <file> | delete <campaign-id> [--yes]',
+      );
       return 2;
   }
 }

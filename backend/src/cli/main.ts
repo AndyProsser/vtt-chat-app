@@ -13,6 +13,13 @@ import {
 import { AccountService } from '../lib/auth/accountService.js';
 import { SignupService } from '../lib/auth/signupService.js';
 import { loadConfig } from '../lib/config.js';
+import {
+  exportCampaign,
+  importCampaign,
+  packArchive,
+  unpackArchive,
+  unprocessedRecordings,
+} from '../lib/campaigns/campaignArchive.js';
 import { HandoutMediaSweeper } from '../lib/media/handoutMediaSweeper.js';
 import { DiskMediaStorage } from '../lib/media/mediaStorage.js';
 import { PostgresTableStore } from '../lib/table/postgresTableStore.js';
@@ -121,6 +128,21 @@ async function main(): Promise<number> {
               ).sweep(0),
           }
         : {}),
+      archive: {
+        unprocessed: (id) => unprocessedRecordings(pool, id),
+        export: async (id) => {
+          const { archive, missingMedia } = await exportCampaign(pool, id, {
+            ...(config.mediaDir ? { media: new DiskMediaStorage(config.mediaDir) } : {}),
+          });
+          return { bytes: packArchive(archive), missingMedia };
+        },
+        unpack: unpackArchive,
+        import: (archive, options) =>
+          importCampaign(pool, archive, {
+            asNew: options.asNew,
+            ...(config.mediaDir ? { media: new DiskMediaStorage(config.mediaDir) } : {}),
+          }),
+      },
       databaseBytes: async () => {
         const { rows } = await pool.query<{ size: string }>(
           'SELECT pg_database_size(current_database()) AS size',

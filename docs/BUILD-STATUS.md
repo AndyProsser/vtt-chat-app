@@ -20,6 +20,7 @@ Last run (2026-11-09, memory stores): backend 406 (+18 skipped without Postgres)
 Andy's request after 0.5.3. **No wire change** (protocol stays 3): every route already existed, or the change is a
 refusal or a worker job behind an existing one.
 
+- **Campaign export/import** ([CAMPAIGN-EXPORT](architecture/CAMPAIGN-EXPORT.md)). Tested on Postgres: a round trip after a delete (same ids, files, members), `--as-new` copy, placeholder accounts, rollback on a bad file, and a test that fails when a new table hangs off a campaign without being listed. _Not yet run:_ on the real VM, with a real campaign's handout files.
 - **Deletion rules.** The DM can no longer delete audio (`POST …/audio/delete` answers 403). Deleting a session is for a
   short test session only (under 30 minutes, `DM_DELETE_MAX_MINUTES`), shown only with dev builds on, and now queues a
   `delete-recording` worker job that removes the audio files and then the recording. _Tested:_ handler (fakes),

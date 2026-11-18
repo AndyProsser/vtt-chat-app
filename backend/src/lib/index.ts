@@ -1,6 +1,7 @@
 export * from './app.js';
 export * from './auth/accountService.js';
 export * from './auth/crypto.js';
+export * from './campaigns/campaignArchive.js';
 export * from './campaigns/campaignService.js';
 export * from './config.js';
 export * from './errors.js';
