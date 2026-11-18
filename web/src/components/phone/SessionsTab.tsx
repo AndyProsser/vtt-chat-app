@@ -133,11 +133,34 @@ function SessionCard({
           <Text size="4" weight="medium">
             {session.title}
           </Text>
-          <Badge color="gray">{sessionDistance(session.startsAt, Date.now())}</Badge>
+          {isDm && (
+            <Flex gap="2" className="phone-actions" style={{ flex: 'none' }}>
+              <IconTool
+                label="Edit this session"
+                icon="pencil"
+                data-focus={`edit-${session.id}`}
+                onClick={onEdit}
+              />
+              {canCancel(session.startsAt, Date.now()) && (
+                <IconTool
+                  label={cancel.armed ? 'Press again to cancel the session' : 'Cancel this session'}
+                  icon="trash"
+                  {...(cancel.armed ? { text: 'Press again' } : {})}
+                  danger
+                  onClick={cancel.press}
+                />
+              )}
+            </Flex>
+          )}
         </Flex>
-        <Text size="2" color="gray">
-          {sessionWhen(session.startsAt, session.durationMinutes)}
-        </Text>
+        <Flex justify="between" align="center" gap="2">
+          <Text size="2" color="gray">
+            {sessionWhen(session.startsAt, session.durationMinutes)}
+          </Text>
+          <Badge color="gray" style={{ flex: 'none' }}>
+            {sessionDistance(session.startsAt, Date.now())}
+          </Badge>
+        </Flex>
         {session.notes && <LazyMarkdown text={session.notes} />}
         <Flex gap="2" wrap="wrap" mt="1" role="group" aria-label="Your answer">
           {ANSWERS.map((a) => (
@@ -148,6 +171,10 @@ function SessionCard({
               color={a === 'no' ? 'red' : a === 'late' ? 'amber' : 'green'}
               aria-pressed={item.mine === a}
               loading={busy === a}
+              disabled={isDm && a === 'no'}
+              title={
+                isDm && a === 'no' ? 'To call it off, cancel or reschedule the session' : undefined
+              }
               onClick={() => void answer(a)}
             >
               {RSVP_LABEL[a]}
@@ -157,26 +184,6 @@ function SessionCard({
         <Text size="1" color="gray">
           {item.counts.yes} in · {item.counts.late} late · {item.counts.no} out
         </Text>
-        {isDm && (
-          <Flex gap="2" wrap="wrap" className="phone-actions">
-            <IconTool
-              label="Edit this session"
-              icon="pencil"
-              text="Edit"
-              data-focus={`edit-${session.id}`}
-              onClick={onEdit}
-            />
-            {canCancel(session.startsAt, Date.now()) && (
-              <IconTool
-                label={cancel.armed ? 'Press again to cancel the session' : 'Cancel this session'}
-                icon="trash"
-                text={cancel.armed ? 'Press again to cancel' : 'Cancel session'}
-                danger
-                onClick={cancel.press}
-              />
-            )}
-          </Flex>
-        )}
         {error && (
           <Text size="1" color="red" role="alert">
             {error}

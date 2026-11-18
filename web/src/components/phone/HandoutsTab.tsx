@@ -187,40 +187,41 @@ function HandoutView({
         <Button variant="soft" onClick={onBack}>
           Back
         </Button>
-        <Heading size="5" as="h2">
+        <Heading size="5" as="h2" style={{ flex: 1, minWidth: 0 }}>
           {item.title}
         </Heading>
+        {isDm && (
+          <Flex gap="2" align="center" className="phone-actions" style={{ flex: 'none' }}>
+            <IconTool
+              label={shared ? 'Hide it from the players' : 'Show it to all players'}
+              icon={shared ? 'eyeOff' : 'eye'}
+              disabled={busy}
+              onClick={() =>
+                void run(
+                  () =>
+                    shared ? hideHandout(campaignId, item.id) : showHandout(campaignId, item.id),
+                  onChanged,
+                )
+              }
+            />
+            {item.kind === 'text' && (
+              <IconTool label="Edit this note" icon="pencil" onClick={onEdit} />
+            )}
+            <IconTool
+              label={remove.armed ? 'Press again to delete it for good' : 'Delete this handout'}
+              icon="trash"
+              {...(remove.armed ? { text: 'Press again' } : {})}
+              danger
+              disabled={busy}
+              onClick={remove.press}
+            />
+          </Flex>
+        )}
       </Flex>
       {isDm && (
-        <Flex gap="2" wrap="wrap" align="center" className="phone-actions">
-          <Badge color={shared ? 'green' : 'amber'}>
-            {shared ? 'Shown to players' : 'Draft: only you see it'}
-          </Badge>
-          {item.kind === 'text' && (
-            <IconTool label="Edit this note" icon="pencil" text="Edit" onClick={onEdit} />
-          )}
-          <IconTool
-            label={shared ? 'Hide it from the players' : 'Show it to all players'}
-            icon={shared ? 'eyeOff' : 'eye'}
-            text={shared ? 'Hide' : 'Show'}
-            disabled={busy}
-            onClick={() =>
-              void run(
-                () =>
-                  shared ? hideHandout(campaignId, item.id) : showHandout(campaignId, item.id),
-                onChanged,
-              )
-            }
-          />
-          <IconTool
-            label={remove.armed ? 'Press again to delete it for good' : 'Delete this handout'}
-            icon="trash"
-            text={remove.armed ? 'Press again to delete' : 'Delete'}
-            danger
-            disabled={busy}
-            onClick={remove.press}
-          />
-        </Flex>
+        <Badge color={shared ? 'green' : 'amber'} style={{ alignSelf: 'flex-start' }}>
+          {shared ? 'Shown to players' : 'Draft: only you see it'}
+        </Badge>
       )}
       {error && (
         <Text size="2" color="red" role="alert">

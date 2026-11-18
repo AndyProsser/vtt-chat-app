@@ -1,12 +1,14 @@
 import { TextField } from '@radix-ui/themes';
 import {
   ClipboardPaste,
+  Check,
   Eye,
   EyeOff,
   FileText,
   ImagePlus,
   Maximize2,
   Paperclip,
+  Pencil,
   Plus,
   Search,
   Trash2,
@@ -75,14 +77,53 @@ function Item({
   dm,
   act,
   remove,
+  save,
 }: {
   h: Handout;
   dm: boolean;
   act: (path: string) => void;
   remove: (h: Handout) => void;
+  /** Saves an edited note; resolves when done (the panel reports a failure itself). */
+  save: (h: Handout, edit: { title: string; text: string }) => Promise<boolean>;
 }) {
   const [confirming, setConfirming] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [title, setTitle] = useState(h.title);
+  const [text, setText] = useState(h.body ?? '');
+  const [saving, setSaving] = useState(false);
   const warning = removalWarning(h);
+  if (editing) {
+    return (
+      <article className="vtt-session">
+        <TextField.Root
+          size="1"
+          aria-label="Title"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+        />
+        <MarkdownEditor value={text} onChange={setText} />
+        <span className="vtt-form-row">
+          <ToolButton
+            label="Save the changes"
+            text="Save"
+            disabled={saving || title.trim() === ''}
+            onClick={() => {
+              setSaving(true);
+              void save(h, { title: title.trim(), text }).then((ok) => {
+                setSaving(false);
+                if (ok) setEditing(false);
+              });
+            }}
+          >
+            <Check size={14} />
+          </ToolButton>
+          <ToolButton label="Discard the changes" onClick={() => setEditing(false)}>
+            <X size={14} />
+          </ToolButton>
+        </span>
+      </article>
+    );
+  }
   return (
     <article className="vtt-session">
       <div className="vtt-session-head">
@@ -92,15 +133,9 @@ function Item({
           {h.title}
           {h.fileCount > 1 ? ` (${h.fileCount} pictures)` : ''}
         </b>
-        <ToolButton
-          label="Open it large, in its own window"
-          onClick={() => void handoutViewOpen(h.id)}
-        >
-          <Maximize2 size={14} />
-        </ToolButton>
-        {dm && (
-          <span className="vtt-form-row">
-            {isShared(h) ? (
+        <span className="vtt-form-row">
+          {dm &&
+            (isShared(h) ? (
               <ToolButton
                 label="Hide it from the players"
                 onClick={() => act(`handouts/${h.id}/hide`)}
@@ -114,12 +149,31 @@ function Item({
               >
                 <Eye size={14} />
               </ToolButton>
-            )}
+            ))}
+          <ToolButton
+            label="Open it large, in its own window"
+            onClick={() => void handoutViewOpen(h.id)}
+          >
+            <Maximize2 size={14} />
+          </ToolButton>
+          {dm && h.kind === 'text' && (
+            <ToolButton
+              label="Edit this note"
+              onClick={() => {
+                setTitle(h.title);
+                setText(h.body ?? '');
+                setEditing(true);
+              }}
+            >
+              <Pencil size={14} />
+            </ToolButton>
+          )}
+          {dm && (
             <ToolButton label="Remove this handout…" danger onClick={() => setConfirming(true)}>
               <Trash2 size={14} />
             </ToolButton>
-          </span>
-        )}
+          )}
+        </span>
       </div>
       {confirming && (
         <div className="vtt-warning" role="alert">
@@ -441,6 +495,18 @@ export function HandoutsPanel() {
     }
   }
 
+  async function save(h: Handout, edit: { title: string; text: string }): Promise<boolean> {
+    try {
+      setActionError(undefined);
+      await campaignApi('PATCH', `handouts/${h.id}`, edit);
+      reload();
+      return true;
+    } catch (e) {
+      setActionError(accountErrorMessage(e));
+      return false;
+    }
+  }
+
   const problem = error ?? actionError;
   return (
     <div className="vtt-sessions">
@@ -472,7 +538,14 @@ export function HandoutsPanel() {
           <span className="vtt-muted">No handout matches.</span>
         ))}
       {shown.map((h) => (
-        <Item key={h.id} h={h} dm={dm} act={(p) => void act(p)} remove={(x) => void remove(x)} />
+        <Item
+          key={h.id}
+          h={h}
+          dm={dm}
+          act={(p) => void act(p)}
+          remove={(x) => void remove(x)}
+          save={save}
+        />
       ))}
     </div>
   );

@@ -14,11 +14,12 @@ import {
 } from '../../lib/phone/lineStyle.js';
 import type { SayOptions } from '../../lib/phone/socket.js';
 import { lineTime } from '../../lib/phone/format.js';
-import { chatHistory, lootItems } from '../../lib/phone/phoneApi.js';
+import { chatHistory, handouts, lootItems } from '../../lib/phone/phoneApi.js';
 import { usePhoneStore } from '../../lib/phone/phoneStore.js';
 import type { ChatLine } from '../../types/phone.js';
 import { Composer } from './Composer.js';
 import { AsideStrip } from './AsideStrip.js';
+import { HandoutChatCard } from './HandoutChatCard.js';
 import { LootChatCard } from './LootChatCard.js';
 import { MembersRail } from './MembersRail.js';
 
@@ -38,7 +39,9 @@ export function ChatTab({
   const live = usePhoneStore((s) => s.live);
   const notices = usePhoneStore((s) => s.notices);
   const lootRev = usePhoneStore((s) => s.lootRev);
+  const handoutsRev = usePhoneStore((s) => s.handoutsRev);
   const dm = useIsDm(campaignId);
+  const shared = useLoad(() => handouts(campaignId), `${campaignId}:${handoutsRev}`);
   const loot = useLoad(() => lootItems(campaignId), `${campaignId}:${lootRev}`);
   const [more, setMore] = useState<'idle' | 'loading' | 'done'>('idle');
   const bottom = useRef<HTMLDivElement>(null);
@@ -48,21 +51,31 @@ export function ChatTab({
   const now = Date.now();
   // Loot cards sit among the lines by drop time; the server's list is the source, so they survive a restart.
   const cards = useMemo(
-    () => cardsByLine(lines, loot.data ?? [], more === 'done' || lines.length < PAGE),
-    [lines, loot.data, more],
+    () =>
+      cardsByLine(
+        lines,
+        loot.data ?? [],
+        shared.data ?? [],
+        more === 'done' || lines.length < PAGE,
+      ),
+    [lines, loot.data, shared.data, more],
   );
   const cardRow = (after: string | null) =>
-    (cards.get(after) ?? []).map((item) => (
-      <LootChatCard
-        key={`loot-${item.id}`}
-        item={item}
-        members={members}
-        selfId={userId || null}
-        dm={dm}
-        campaignId={campaignId}
-        onDone={loot.reload}
-      />
-    ));
+    (cards.get(after) ?? []).map((card) =>
+      card.kind === 'loot' ? (
+        <LootChatCard
+          key={`loot-${card.item.id}`}
+          item={card.item}
+          members={members}
+          selfId={userId || null}
+          dm={dm}
+          campaignId={campaignId}
+          onDone={loot.reload}
+        />
+      ) : (
+        <HandoutChatCard key={`handout-${card.item.id}`} item={card.item} />
+      ),
+    );
 
   useEffect(() => {
     if (stick.current) bottom.current?.scrollIntoView({ block: 'end' });

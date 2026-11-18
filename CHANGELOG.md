@@ -12,6 +12,8 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ### Added
 
+- **Handouts in the phone web chat.** A shared handout appears among the chat lines as a card (title, kind and the start of a note); tapping it opens the Handouts tab.
+- **Edit a handout note in the desktop app.** The Game Master can now change a note's title and text from the Handouts panel (before, only the web app could).
 - **Loot cards in the phone web chat.** A loot drop now appears in the web chat among the lines, with who has it and the buttons that fit you (take, store, put back; the Game Master gets a Give list), the same as the desktop app. The cards come from the server's loot list, so they are there after a restart too.
 - **Every shared link gets the dragon card.** Pasting the main page, the download page, sign-in or any other address of your server into social media or a chat app now shows the dragon image with a title and a short description (before, only invite links did). Invite links still show the campaign's name, its Game Master and the start of its description. Needs `PUBLIC_URL`, which the standard install sets from your domain.
 - **Session summaries say who got the loot.** While a session is recorded, every loot drop, gift, grab, party-stash move, coin split and return is noted with who got what. The Game Master's brief lists all of it under Loot; the players' tale mentions only the notable treasure (magic items, and coin or valuables worth 100 gp or more). Operators: nothing to set; the server's database gets a small update on start.
@@ -26,6 +28,9 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ### Changed
 
+- **Cleaner buttons on the phone web app.** On a handout, a session and a loot card, the buttons are now icons at the top right of the card (handouts: Show or Hide, Edit, Delete), and "in 11 days" sits on the date line.
+- **The Game Master is counted in to a session they schedule** ("Can make it" is already chosen), and "Can't make it" is greyed out for the Game Master in both apps: to call a session off, cancel or reschedule it.
+- **Desktop handouts:** the "open large" button sits beside Show/Hide.
 - **Loot opens on Available.** The Game Master's filters are Available | Taken | All; a player's are All | Own | Party | Available. Something that was just given, taken or split fades out of the list instead of vanishing.
 - **Players see only what is theirs to see in the loot list:** what is still available, the party stash, and their own items, never another player's. Chat still says who took what.
 - **Any player can take from the party stash,** or put a stash item back on the table (before, only the player who stored it could).

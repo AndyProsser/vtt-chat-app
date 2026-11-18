@@ -50,37 +50,43 @@ export function LootChatCard({
       className={item.claimedBy ? 'phone-loot-card phone-loot-taken' : 'phone-loot-card'}
     >
       <Flex direction="column" gap="1">
-        <Flex gap="2" align="center" wrap="wrap">
-          <Text weight="medium" size="2">
-            {item.kind === 'coin'
-              ? `${item.quantity} ${item.name}`
-              : `${item.name}${item.quantity > 1 ? ` ×${item.quantity}` : ''}`}
-          </Text>
-          {item.rarity && <Badge size="1">{item.rarity}</Badge>}
-          <Text size="1" color={item.claimedBy ? 'violet' : 'green'}>
-            {holder(item, members)}
-          </Text>
+        <Flex gap="2" align="start" justify="between">
+          <Flex gap="2" align="center" wrap="wrap" style={{ minWidth: 0 }}>
+            <Text weight="medium" size="2">
+              {item.kind === 'coin'
+                ? `${item.quantity} ${item.name}`
+                : `${item.name}${item.quantity > 1 ? ` ×${item.quantity}` : ''}`}
+            </Text>
+            {item.rarity && <Badge size="1">{item.rarity}</Badge>}
+            <Text size="1" color={item.claimedBy ? 'violet' : 'green'}>
+              {holder(item, members)}
+            </Text>
+          </Flex>
+          {actions.length > 0 && (
+            <Flex gap="2" justify="end" style={{ flex: 'none' }}>
+              {actions.map((action) =>
+                action === 'give' ? (
+                  <GiveSelect
+                    key={action}
+                    players={players}
+                    onPick={(id) => void run('give', id)}
+                  />
+                ) : (
+                  <LootButtons
+                    key={action}
+                    action={action}
+                    title={LOOT_ACTION_LABEL[action]}
+                    onClick={() => void run(action)}
+                  />
+                ),
+              )}
+            </Flex>
+          )}
         </Flex>
         {item.description && (
           <Text size="1" color="gray">
             {item.description}
           </Text>
-        )}
-        {actions.length > 0 && (
-          <Flex gap="2" wrap="wrap">
-            {actions.map((action) =>
-              action === 'give' ? (
-                <GiveSelect key={action} players={players} onPick={(id) => void run('give', id)} />
-              ) : (
-                <LootButtons
-                  key={action}
-                  action={action}
-                  title={LOOT_ACTION_LABEL[action]}
-                  onClick={() => void run(action)}
-                />
-              ),
-            )}
-          </Flex>
         )}
         {problem && (
           <Callout.Root color="red" size="1">

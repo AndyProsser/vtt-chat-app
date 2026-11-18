@@ -144,6 +144,13 @@ export class ScheduleService {
       cancelledAt: null,
     };
     await this.deps.schedule.putSession(session);
+    // Whoever schedules a session is coming to it: the DM starts as "can make it" (they can change it).
+    await this.deps.schedule.putRsvp({
+      sessionId: session.id,
+      userId: user.id,
+      status: 'yes',
+      updatedAt: this.now(),
+    });
     await this.notify(await this.memberIds(campaignId, user.id), {
       campaignId,
       kind: 'session.scheduled',

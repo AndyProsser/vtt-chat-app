@@ -139,8 +139,14 @@ export function SessionCard({
           {RSVP.map(({ status: s, label, icon: Icon }) => (
             <ToolButton
               key={s}
-              label={open ? label : `${label} (attendance is closed: it started over 4 hours ago)`}
-              disabled={!open}
+              label={
+                !open
+                  ? `${label} (attendance is closed: it started over 4 hours ago)`
+                  : dm && s === 'no'
+                    ? "The DM can't decline: cancel or reschedule the session instead"
+                    : label
+              }
+              disabled={!open || (dm && s === 'no')}
               pressed={view.mine === s}
               text={String(view.counts[s])}
               onClick={() => onRsvp(s)}

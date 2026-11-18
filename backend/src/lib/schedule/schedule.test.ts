@@ -107,7 +107,7 @@ describe('scheduling', () => {
       expect(list).toHaveLength(1);
       expect(list[0]).toMatchObject({
         session: { title: 'Session 12' },
-        counts: { yes: 0, late: 0, no: 0 },
+        counts: { yes: 1, late: 0, no: 0 }, // the DM who scheduled it is coming
         mine: null,
       });
       expect((await inbox(p)).map((n) => n.kind)).toEqual(['session.scheduled']);
@@ -194,6 +194,15 @@ describe('scheduling', () => {
 });
 
 describe('RSVP', () => {
+  it('the DM who schedules a session is counted in, and can still change that', async () => {
+    const created = await schedule_(dm.token, { startsAt: soon(), title: 'x' });
+    const id = created.body.session.id;
+    const mine = async () => (await sessions(dm.token)).body.sessions[0].mine;
+    expect(await mine()).toBe('yes');
+    await call('PUT', `/api/campaigns/${campaign}/sessions/${id}/rsvp`, dm.token, { status: 'late' });
+    expect(await mine()).toBe('late');
+  });
+
   it('members answer yes / late / no, can change their mind, and everyone sees the tally', async () => {
     const id = (await schedule_(dm.token, { startsAt: soon(), title: 'x' })).body.session.id;
     const rsvp = (p: { token: string }, status: string) =>
@@ -201,11 +210,11 @@ describe('RSVP', () => {
     expect((await rsvp(alice, 'yes')).status).toBe(200);
     expect((await rsvp(bob, 'no')).status).toBe(200);
     expect((await rsvp(bob, 'late')).body).toMatchObject({
-      counts: { yes: 1, late: 1, no: 0 },
+      counts: { yes: 2, late: 1, no: 0 }, // alice, and the DM who scheduled it
       mine: 'late',
     });
     const seen = (await sessions(alice.token)).body.sessions[0];
-    expect(seen.counts).toEqual({ yes: 1, late: 1, no: 0 });
+    expect(seen.counts).toEqual({ yes: 2, late: 1, no: 0 });
     expect(seen.mine).toBe('yes');
     expect((await rsvp(alice, 'maybe')).status).toBe(400);
     expect((await rsvp(outsider, 'yes')).status).toBe(403);
