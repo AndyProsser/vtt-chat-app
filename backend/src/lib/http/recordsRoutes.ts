@@ -26,6 +26,8 @@ export interface RecordsRouteDeps {
   jobs?: JobQueue;
   /** Told when the DM's app reports a character voice, for the recording's timeline. */
   onVoiceEffect?: (campaignId: string, accountId: string, voice: string) => void;
+  /** Server dev mode (`DEV_MODE=1`): a DM may delete a session of any length. Off: only short test sessions. */
+  devMode?: boolean;
 }
 
 const voiceBody = z.object({
@@ -249,8 +251,9 @@ export function recordsRoutes(deps: RecordsRouteDeps): Router {
     );
   });
 
-  // The DM can delete a short test session and everything under it, audio included. Longer sessions are the
-  // operator's to remove. (The desktop app also offers this only with dev builds on; that is a display choice.)
+  // Any DM can delete a short test session and everything under it, audio included. A longer one needs the server
+  // in dev mode (`DEV_MODE=1`) AND the DM's app with dev builds on (the app only shows the button then): the
+  // operator has the final say, so a server not in dev mode refuses however the app is set (Andy, 2026-11-18).
   router.delete('/:recordingId', async (req, res) => {
     const { campaignId, isDm } = await membership(req, authOf(res).user.id);
     if (!isDm) throw new DomainError('forbidden', 'only the DM can delete recordings');
@@ -259,10 +262,10 @@ export function recordsRoutes(deps: RecordsRouteDeps): Router {
       throw new DomainError('conflict', 'that recording is still in progress or being processed');
     }
     const minutes = ((recording.stoppedAt ?? recording.startedAt) - recording.startedAt) / 60_000;
-    if (minutes >= DM_DELETE_MAX_MINUTES) {
+    if (minutes >= DM_DELETE_MAX_MINUTES && !deps.devMode) {
       throw new DomainError(
         'conflict',
-        `only a session shorter than ${DM_DELETE_MAX_MINUTES} minutes can be deleted from the app; ask the server’s operator to remove this one`,
+        `only a session shorter than ${DM_DELETE_MAX_MINUTES} minutes can be deleted from the app unless the server is in dev mode; ask the server’s operator`,
       );
     }
     // The worker deletes the audio files, then the recording; with no queue (tests) there are no files to find.

@@ -196,8 +196,10 @@ and the timeline event, and records whether a summary names the scene as a metri
 - **Retention is operator-controlled** via the Admin CLI (raw tracks are the big files; transcripts
   and summaries are small). Backup/restore/delete exist for recordings, transcripts and summaries
   separately ([CLAUDE.md §7](../../.claude/CLAUDE.md)).
-- The DM can delete a **short test session** (under 30 minutes, with dev builds on in the app); the **raw audio and
-  every real session are the operator's** (retention, `vtt-admin`). Decided 2026-11-18.
+- Any DM can delete a **short test session** (under 30 minutes). A **longer** one can be deleted from the app only when
+  **both** agree: the DM's app has "Include dev builds" on (it shows the button) **and** the server is in dev mode
+  (`DEV_MODE=1`). A server not in dev mode refuses regardless of the app: the operator has the final say. The **raw
+  audio** is never the DM's to delete (retention, `vtt-admin`). Decided 2026-11-18.
 
 ## Sizing (measured 2026-11-12; details in the next section)
 
@@ -312,9 +314,9 @@ what retention removes, and the text is kept for good.
   and `POST .../recordings/:rid/audio/delete` now answers 403 ("the audio is cleaned up by the server's operator"),
   so an older app gets a clear message. What the DM can still do is delete a **short test session**:
   `DELETE .../recordings/:rid` is refused with 409 for a session of 30 minutes or more (`DM_DELETE_MAX_MINUTES`, in
-  `shared`), and otherwise queues a `delete-recording` job (202). The worker, which can see the files, deletes each
-  track's audio and then the recording, whose transcript, summaries and timeline go with it. The desktop app also
-  shows the button only with dev builds on; that is a display choice, the 30 minutes is the access rule.
+  `shared`) unless the server runs with `DEV_MODE=1`, and otherwise queues a `delete-recording` job (202). The worker, which can see the files, deletes each
+  track's audio and then the recording, whose transcript, summaries and timeline go with it. For a long session the
+  desktop app shows the button only with dev builds on; that is a display choice, the server's `DEV_MODE` is the access rule.
 - **When the disk runs low (built 2026-11-10, decided with Andy):** below 10% free on the recordings disk the
   worker (hourly) picks the **oldest** processed recordings that still have audio and gives their DM a stored
   notification (`audio.purge`; shown as a pop-up under the "session" notification setting) and a note in the

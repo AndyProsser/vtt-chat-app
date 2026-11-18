@@ -100,6 +100,11 @@ export interface BackendConfig {
   oidc: OidcConfig | undefined;
   smtp: { url: string; from: string; publicUrl: string } | undefined;
   ddbSync: { enabled: boolean; intervalHours: number };
+  /**
+   * Server dev mode (`DEV_MODE=1`). Today it lets a DM delete a session of any length; the desktop app must also
+   * have "Include dev builds" on to show the button. Off by default: the operator has the final say.
+   */
+  devMode: boolean;
 }
 
 /**
@@ -154,6 +159,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): BackendConfig 
           publicUrl: env.PUBLIC_URL ?? '',
         }
       : undefined,
+    devMode: env.DEV_MODE === '1' || env.DEV_MODE === 'true',
     ddbSync: {
       enabled: env.DDB_SYNC === '1' || env.DDB_SYNC === 'true',
       intervalHours: env.DDB_SYNC_HOURS ? Math.max(1, Number(env.DDB_SYNC_HOURS) || 12) : 12,

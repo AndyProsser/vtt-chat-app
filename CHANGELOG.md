@@ -21,7 +21,7 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 - **A character linked to D&D Beyond keeps what the sheet says.** Name, race, class and level come from the sheet and are read-only in both apps (the server refuses an edit too), instead of being silently put back by the next sync. Your picture stays yours; unlink to edit them yourself.
 - **The D&D Beyond box is always there** in the desktop app's character settings. When the server's operator has not turned the sync on it now says so and who to ask, instead of hiding.
-- **The Game Master can no longer delete a session's audio.** Raw audio is the server operator's to manage (retention settings and `vtt-admin recording purge`). A Game Master can still delete a **short test session** (under 30 minutes) from the History panel, with "Include dev builds" on; it now removes its audio too, and the server refuses anything longer. The "delete the audio only" choice is gone.
+- **The Game Master can no longer delete a session's audio.** Raw audio is the server operator's to manage (retention settings and `vtt-admin recording purge`). Any Game Master can still delete a **short test session** (under 30 minutes) from the History panel; it now removes its audio too. A longer session can be deleted only when the app has "Include dev builds" on **and** the operator has set `DEV_MODE=1` on the server; the server refuses otherwise. The "delete the audio only" choice is gone.
 
 ## [0.5.3] - 2026-11-18
 

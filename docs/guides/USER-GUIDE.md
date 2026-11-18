@@ -277,9 +277,9 @@ _Top: the sound drawer (voices, stingers, scenes) and voice groups. Bottom: the 
   session: you cannot switch campaigns or hand over the role until it stops.
 - **Audio is the server operator's to clean up, not yours.** The raw recordings are large, so whoever runs your server
   decides how long they are kept and clears them by a schedule (and warns you on the session before the disk runs short).
-  The transcript and summaries always stay. The one thing you can delete yourself is a **short test session**: with
-  "Include dev builds" on (Settings → App), a session shorter than **30 minutes** has a bin button on its card that removes
-  it, its audio and its notes for everyone. A real session can only be removed by the operator.
+  The transcript and summaries always stay. The one thing you can delete yourself is a **short test session**: a session shorter than **30 minutes** has a bin button on its card that removes
+  it, its audio and its notes for everyone. A longer session shows the button only with "Include dev builds" on (Settings → App), and
+  then only works if your server's operator has put the server in dev mode; otherwise the server refuses and the operator removes it.
 - The first time, **invite your players**: Settings → Campaign → **Invite someone** makes one link for the whole group. Press **Copy invite message** and paste it into your group chat. If a link leaks, **Reset invite links** stops them all. Write a short description of the campaign first (the pencil next to its name): new players see it on the invite page.
 
 **Voices and groups**

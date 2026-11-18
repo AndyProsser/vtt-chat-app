@@ -303,6 +303,7 @@ if (isEntryPoint) {
     realtime: hub,
     recording: hub.recording,
     records,
+    devMode: config.devMode,
     onVoiceEffect: (campaignId, accountId, voice) =>
       capture?.onVoiceEffect(campaignId, accountId, voice),
     ...(pool ? { jobs: new PostgresJobQueue(pool) } : {}),

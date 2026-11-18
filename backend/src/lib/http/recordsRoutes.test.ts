@@ -70,6 +70,7 @@ let player: Person;
 let outsider: Person;
 let campaign: string;
 let otherCampaign: string;
+let devMode = false;
 
 beforeEach(async () => {
   const store = await backend.reset();
@@ -84,6 +85,7 @@ beforeEach(async () => {
     store,
     records,
     jobs,
+    devMode,
     onVoiceEffect: (c, a, v) => reported.push([c, a, v]),
   });
   await new Promise<void>((resolve) => {
@@ -511,12 +513,39 @@ describe('deleting', () => {
     expect(queued[0]).toMatchObject({ kind: DELETE_RECORDING_JOB, recordingId: id });
   });
 
-  it('refuses a session of 30 minutes or more: the operator removes those', async () => {
+  it('refuses a session of 30 minutes or more while the server is not in dev mode: the operator has the final say', async () => {
     const id = await seed(campaign, 1_000, DM_DELETE_MAX_MINUTES * 60_000);
     const res = await remove(id, dm.token);
     expect(res.status).toBe(409);
     expect(res.body.message).toMatch(/operator/);
     expect(await jobs.list()).toHaveLength(0);
+  });
+
+  it('lets the DM delete a long session when the server is in dev mode', async () => {
+    devMode = true;
+    try {
+      // the app is built per test, so rebuild with the flag on
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+      const store = await backend.reset();
+      records =
+        backend.kind === 'postgres' && backend.pool
+          ? new PostgresRecordsStore(backend.pool)
+          : new MemoryRecordsStore();
+      jobs = new MemoryJobQueue();
+      const app = createApp({ config: CONFIG, store, records, jobs, devMode });
+      await new Promise<void>((resolve) => {
+        server = app.listen(0, '127.0.0.1', resolve);
+      });
+      base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+      dm = await person('dm');
+      campaign = (await call('POST', '/api/campaigns', dm.token, { name: 'Long' })).body.campaign
+        .id;
+      const id = await seed(campaign, 1_000, 4 * 60 * 60_000);
+      expect((await remove(id, dm.token)).status).toBe(202);
+      expect(await jobs.list()).toHaveLength(1);
+    } finally {
+      devMode = false;
+    }
   });
 
   it('is the DM’s alone', async () => {

@@ -45,6 +45,8 @@ export interface AppDeps {
   config: BackendConfig;
   /** The DM's app reports a character-voice change; audio capture notes it in the recording's timeline. */
   onVoiceEffect?: (campaignId: string, accountId: string, voice: string) => void;
+  /** Server dev mode: a DM may delete a session of any length (with the app's dev builds on too). */
+  devMode?: boolean;
   store: Store;
   /** D&D Beyond character sync (link, sync now, unlink). Routes answer 'disabled' without it. */
   ddb?: DdbSyncService;
@@ -139,6 +141,7 @@ export function createApp({
   schedule,
   onNotified,
   onVoiceEffect,
+  devMode,
 }: AppDeps): Express {
   const accounts = new AccountService({ store });
   const devices = new DeviceFlow({ store, accounts });
@@ -315,6 +318,7 @@ export function createApp({
         records,
         ...(jobs ? { jobs } : {}),
         ...(onVoiceEffect ? { onVoiceEffect } : {}),
+        ...(devMode ? { devMode } : {}),
       }),
     );
   }

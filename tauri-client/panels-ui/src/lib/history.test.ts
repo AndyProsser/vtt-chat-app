@@ -62,16 +62,17 @@ describe('canDeleteSession', () => {
     stoppedAt: minutes === null ? null : minutes * MIN,
     status,
   });
-  it('offers the DM a short finished session, with dev builds on', () => {
-    expect(canDeleteSession(rec(5), true, true)).toBe(true);
+  it('offers any DM a short finished session, with or without dev builds', () => {
+    expect(canDeleteSession(rec(5), true, false)).toBe(true);
     expect(canDeleteSession(rec(29), true, true)).toBe(true);
   });
-  it('does not at 30 minutes or more: the operator removes those', () => {
-    expect(canDeleteSession(rec(30), true, true)).toBe(false);
-    expect(canDeleteSession(rec(240), true, true)).toBe(false);
+  it('offers a long session only with dev builds on (the server must be in dev mode too)', () => {
+    expect(canDeleteSession(rec(30), true, true)).toBe(true);
+    expect(canDeleteSession(rec(240), true, true)).toBe(true);
+    expect(canDeleteSession(rec(30), true, false)).toBe(false);
+    expect(canDeleteSession(rec(240), true, false)).toBe(false);
   });
-  it('does not without dev builds, for a player, or while it is running or being processed', () => {
-    expect(canDeleteSession(rec(5), true, false)).toBe(false);
+  it('never for a player, or while it is running or being processed', () => {
     expect(canDeleteSession(rec(5), false, true)).toBe(false);
     expect(canDeleteSession(rec(null, 'recording'), true, true)).toBe(false);
     expect(canDeleteSession(rec(5, 'processing'), true, true)).toBe(false);

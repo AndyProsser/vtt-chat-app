@@ -142,9 +142,11 @@ export function canDeleteSession(
   dm: boolean,
   devBuilds: boolean,
 ): boolean {
-  if (!dm || !devBuilds || item.stoppedAt === null) return false;
+  if (!dm || item.stoppedAt === null) return false;
   if (item.status === 'recording' || item.status === 'processing') return false;
-  return item.stoppedAt - item.startedAt < DM_DELETE_MAX_MINUTES * 60_000;
+  if (item.stoppedAt - item.startedAt < DM_DELETE_MAX_MINUTES * 60_000) return true;
+  // A longer session: the button shows only with dev builds on, and the server must be in dev mode too, or it refuses.
+  return devBuilds;
 }
 
 /** "The audio will be deleted on Fri 13 Nov to free disk space", for the DM; null when not due. */
