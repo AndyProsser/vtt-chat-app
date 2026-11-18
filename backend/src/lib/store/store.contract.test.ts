@@ -57,6 +57,32 @@ const joinRequest = (campaignId: string, userId: string, at = 1): JoinRequest =>
 });
 
 describe(`Store contract (${backend.kind})`, () => {
+  it('lists campaigns for the operator, and deletes one with everything that belongs to it', async () => {
+    const [dm, p1] = [backend.newId(), backend.newId()];
+    await store.putUser(person(dm, 'Dana'));
+    await store.putUser(person(p1, 'Pat'));
+    const keep = { ...campaign(), name: 'Keep me', createdAt: 5 };
+    const doomed = { ...campaign(), name: 'Doomed', createdAt: 1 };
+    for (const c of [keep, doomed]) {
+      await store.putCampaign(c);
+      await store.putMembership(membership(c, dm, 'dm'));
+    }
+    await store.putMembership(membership(doomed, p1, 'player'));
+
+    const listed = await store.listCampaignSummaries();
+    expect(listed.map((x) => [x.campaign.name, x.members, x.dmName])).toEqual([
+      ['Doomed', 2, 'Dana'],
+      ['Keep me', 1, 'Dana'],
+    ]);
+
+    expect(await store.deleteCampaign(doomed.id)).toBe(true);
+    expect(await store.getCampaign(doomed.id)).toBeUndefined();
+    expect(await store.listMemberships(doomed.id)).toEqual([]);
+    expect(await store.getCampaign(keep.id)).toBeDefined();
+    expect(await store.listMemberships(keep.id)).toHaveLength(1);
+    expect(await store.deleteCampaign(doomed.id)).toBe(false);
+  });
+
   it('lists open campaigns with the DM name and player count, never member names', async () => {
     const [dm, p1, p2] = [backend.newId(), backend.newId(), backend.newId()];
     for (const [id, name] of [

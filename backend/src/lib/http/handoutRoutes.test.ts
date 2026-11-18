@@ -9,6 +9,7 @@ import { createApp } from '../app.js';
 import type { BackendConfig } from '../config.js';
 import { DiskMediaStorage, MemoryMediaStorage, detectMedia } from '../media/mediaStorage.js';
 import { openTestBackend } from '../store/testing.js';
+import { HandoutMediaSweeper } from '../media/handoutMediaSweeper.js';
 import { MemoryTableStore } from '../table/memoryTableStore.js';
 import { PostgresTableStore } from '../table/postgresTableStore.js';
 import type { TableStore } from '../table/tableStore.js';
@@ -507,4 +508,23 @@ describe('media helpers', () => {
       await expect(disk.get(id)).rejects.toThrow(/invalid media id/);
     }
   });
+});
+
+describe('when a whole campaign is deleted', () => {
+  // Rows go by the database's cascade; the in-memory stores are separate maps with no such link.
+  it.runIf(backend.kind === 'postgres')(
+    'leaves its handout files behind until the sweeper removes them, and keeps files still in use',
+    async () => {
+      expect((await upload(dm.token)).status).toBe(201);
+      expect((await upload(dm.token, campaign, 'title=Two&kind=map&name=n.png')).status).toBe(201);
+      expect(media.files.size).toBe(2);
+      // Nothing is orphaned while the handouts exist.
+      expect(await new HandoutMediaSweeper(table, media).sweep(0)).toBe(0);
+
+      expect(await backend.store.deleteCampaign(campaign)).toBe(true);
+      expect(media.files.size).toBe(2); // the rows went with the campaign; the bytes did not
+      expect(await new HandoutMediaSweeper(table, media).sweep(0)).toBe(2);
+      expect(media.files.size).toBe(0);
+    },
+  );
 });

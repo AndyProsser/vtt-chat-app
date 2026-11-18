@@ -39,6 +39,7 @@ import {
   StatusService,
   measureDisk,
   AvatarSweeper,
+  HandoutMediaSweeper,
   createSmtpMailTransport,
   type StatusProbe,
   CampaignService,
@@ -217,6 +218,15 @@ if (isEntryPoint) {
         .catch(() => undefined);
     setTimeout(sweep, 60_000).unref();
     setInterval(sweep, 24 * 3_600_000).unref();
+    // Likewise the pictures and PDFs of handouts that are gone (a deleted campaign leaves its files behind).
+    const handoutSweeper = new HandoutMediaSweeper(table, media);
+    const sweepHandouts = () =>
+      void handoutSweeper
+        .sweep()
+        .then((n) => n > 0 && console.log(`[backend] removed ${n} unused handout file(s)`))
+        .catch(() => undefined);
+    setTimeout(sweepHandouts, 90_000).unref();
+    setInterval(sweepHandouts, 24 * 3_600_000).unref();
   }
   // Keep the client update feed in step with GitHub releases (UPDATES_SOURCE): once shortly after start, then every
   // 6 hours. A failure (GitHub unreachable, a file that does not verify) is logged and the current feed keeps serving.

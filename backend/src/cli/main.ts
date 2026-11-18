@@ -13,6 +13,9 @@ import {
 import { AccountService } from '../lib/auth/accountService.js';
 import { SignupService } from '../lib/auth/signupService.js';
 import { loadConfig } from '../lib/config.js';
+import { HandoutMediaSweeper } from '../lib/media/handoutMediaSweeper.js';
+import { DiskMediaStorage } from '../lib/media/mediaStorage.js';
+import { PostgresTableStore } from '../lib/table/postgresTableStore.js';
 import { migrate } from '../lib/store/migrate.js';
 import { createPool, PostgresStore } from '../lib/store/postgresStore.js';
 import { runAdmin, type Probe } from './admin.js';
@@ -109,6 +112,15 @@ async function main(): Promise<number> {
           }
         : {}),
       ...(config.recordingsDir ? { recordingsDir: config.recordingsDir } : {}),
+      ...(config.mediaDir
+        ? {
+            sweepMedia: () =>
+              new HandoutMediaSweeper(
+                new PostgresTableStore(pool),
+                new DiskMediaStorage(config.mediaDir!),
+              ).sweep(0),
+          }
+        : {}),
       databaseBytes: async () => {
         const { rows } = await pool.query<{ size: string }>(
           'SELECT pg_database_size(current_database()) AS size',

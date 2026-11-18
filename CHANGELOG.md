@@ -10,6 +10,10 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ## [Unreleased]
 
+### Added
+
+- **Operators can delete a campaign, or a single session, for good.** `vtt-admin campaign list` and `campaign delete <id> --yes` remove a campaign with its sessions and audio (the worker deletes the files and the command waits for it), chat, handouts, loot and schedule; without `--yes` it only shows what would go. `vtt-admin recording delete <id>` removes one session the same way. A new daily sweeper also removes handout pictures and PDFs that no handout uses any more (what a deleted campaign leaves behind).
+
 ### Changed
 
 - **The Game Master can no longer delete a session's audio.** Raw audio is the server operator's to manage (retention settings and `vtt-admin recording purge`). A Game Master can still delete a **short test session** (under 30 minutes) from the History panel, with "Include dev builds" on; it now removes its audio too, and the server refuses anything longer. The "delete the audio only" choice is gone.

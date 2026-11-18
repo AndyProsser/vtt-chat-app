@@ -1,5 +1,6 @@
 import type {
   Campaign,
+  CampaignSummary,
   ChatMessage,
   Character,
   Invite,
@@ -57,6 +58,13 @@ export interface Store {
   putCampaign(campaign: Campaign): Promise<void>;
   /** How many campaigns the instance has, of any kind. */
   countCampaigns(): Promise<number>;
+  /** Every campaign, oldest first, with its player count and DM's name, for the operator (`vtt-admin campaign list`). */
+  listCampaignSummaries(): Promise<CampaignSummary[]>;
+  /**
+   * Removes a campaign and the rows that belong to it (members, characters, chat, handouts, loot, sessions,
+   * recordings and their transcripts). False when it does not exist. Files are not touched here.
+   */
+  deleteCampaign(campaignId: string): Promise<boolean>;
 
   /** The DM's Allow-join switch. False when the campaign does not exist. */
   setCampaignAllowJoin(campaignId: string, allowJoin: boolean): Promise<boolean>;

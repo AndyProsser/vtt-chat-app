@@ -21,7 +21,11 @@ let err: string[];
 let updatesDir: string | undefined;
 let recordingsDir: string | undefined;
 
-async function run(args: string, probes: Probe[] = []): Promise<number> {
+async function run(
+  args: string,
+  probes: Probe[] = [],
+  extra: Partial<Parameters<typeof runAdmin>[1]> = {},
+): Promise<number> {
   return runAdmin(args.split(' ').filter(Boolean), {
     store,
     accounts,
@@ -35,6 +39,7 @@ async function run(args: string, probes: Probe[] = []): Promise<number> {
     probes,
     out: (l) => out.push(l),
     err: (l) => err.push(l),
+    ...extra,
   });
 }
 
@@ -601,5 +606,131 @@ describe('signup requests', () => {
       'b@example.com',
     ]);
     expect(await store.getUserByEmail('b@example.com')).toBeUndefined();
+  });
+});
+
+describe('campaigns', () => {
+  const setup = async () => {
+    const dm = await register('dana');
+    const player = await register('pip');
+    const c = {
+      id: 'camp-1',
+      name: 'Sunken Temple',
+      description: '',
+      createdAt: 1,
+      allowJoin: true,
+    };
+    await store.putCampaign(c);
+    await store.putMembership({
+      campaignId: c.id,
+      userId: dm.id,
+      role: 'dm',
+      activeCharacterId: null,
+      suspendedCharacterId: null,
+      joinedAt: 1,
+    });
+    await store.putMembership({
+      campaignId: c.id,
+      userId: player.id,
+      role: 'player',
+      activeCharacterId: null,
+      suspendedCharacterId: null,
+      joinedAt: 1,
+    });
+    return c;
+  };
+  const rec = (id: string, status: 'processed' | 'recording' = 'processed') =>
+    records.putRecording({ id, campaignId: 'camp-1', startedAt: 1, stoppedAt: 2, status });
+
+  it('lists campaigns with their DM, players and recordings', async () => {
+    await setup();
+    await rec('r1');
+    expect(await run('campaign list')).toBe(0);
+    expect(out.join('\n')).toMatch(
+      /camp-1 {2}Sunken Temple {2}\(DM dana, 2 member\(s\), 1 recording\(s\)\)/,
+    );
+  });
+
+  it('shows what would go and deletes nothing without --yes', async () => {
+    await setup();
+    await rec('r1');
+    expect(await run('campaign delete camp-1')).toBe(2);
+    expect(out.join('\n')).toMatch(/Sunken Temple.*2 member\(s\), 1 recording\(s\)/);
+    expect(await store.getCampaign('camp-1')).toBeDefined();
+    expect(await jobs.list()).toHaveLength(0);
+  });
+
+  it('queues the worker to remove every recording, waits, then deletes the campaign and sweeps its files', async () => {
+    await setup();
+    await rec('r1');
+    await rec('r2');
+    let swept = 0;
+    const code = await run('campaign delete camp-1 --yes', [], {
+      // The worker, simulated: it removes a recording each time the command waits.
+      sleep: async () => {
+        const queued = await jobs.list(['queued']);
+        const next = queued[0];
+        if (next?.recordingId) {
+          await records.deleteRecording(next.recordingId);
+          await jobs.complete(next.id, 5);
+        }
+      },
+      sweepMedia: async () => ++swept + 2,
+    });
+    expect(code).toBe(0);
+    expect(await store.getCampaign('camp-1')).toBeUndefined();
+    expect(await store.listMemberships('camp-1')).toEqual([]);
+    expect(await records.listRecordingsForCampaign('camp-1')).toEqual([]);
+    expect(out.join('\n')).toMatch(/removed 3 handout file\(s\)/);
+  });
+
+  it('keeps the campaign and says so when the worker has not removed the recordings in time', async () => {
+    await setup();
+    await rec('r1');
+    const code = await run('campaign delete camp-1 --yes', [], {
+      sleep: async () => undefined,
+      campaignDeleteWaitSeconds: 4,
+    });
+    expect(code).toBe(1);
+    expect(err.join('\n')).toMatch(/worker has not removed/);
+    expect(await store.getCampaign('camp-1')).toBeDefined();
+  });
+
+  it('refuses a campaign that is recording, and an unknown one', async () => {
+    await setup();
+    await rec('r1', 'recording');
+    expect(await run('campaign delete camp-1 --yes')).toBe(1);
+    expect(err.join('\n')).toMatch(/in progress/);
+    expect(await run('campaign delete nope --yes')).toBe(1);
+    expect(await store.getCampaign('camp-1')).toBeDefined();
+  });
+
+  it('deletes a campaign with no recordings at once', async () => {
+    await setup();
+    expect(await run('campaign delete camp-1 --yes')).toBe(0);
+    expect(await store.getCampaign('camp-1')).toBeUndefined();
+  });
+});
+
+describe('recording delete', () => {
+  it('queues the worker to remove a whole session, and refuses one in progress', async () => {
+    await records.putRecording({
+      id: 'r1',
+      campaignId: 'c',
+      startedAt: 1,
+      stoppedAt: 2,
+      status: 'processed',
+    });
+    await records.putRecording({
+      id: 'r2',
+      campaignId: 'c',
+      startedAt: 1,
+      stoppedAt: null,
+      status: 'recording',
+    });
+    expect(await run('recording delete r1')).toBe(0);
+    expect((await jobs.list())[0]).toMatchObject({ kind: 'delete-recording', recordingId: 'r1' });
+    expect(await run('recording delete r2')).toBe(1);
+    expect(await run('recording delete nope')).toBe(1);
   });
 });

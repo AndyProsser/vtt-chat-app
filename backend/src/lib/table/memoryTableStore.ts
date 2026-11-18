@@ -23,6 +23,16 @@ export class MemoryTableStore implements TableStore {
   };
   deleteMedia = async (id: string) => void this.media.delete(id);
 
+  listUnusedHandoutMedia = async (olderThan: number) => {
+    const used = new Set([...this.handouts.values()].flatMap((h) => h.mediaIds));
+    return [...this.media.values()]
+      .filter(
+        (m) =>
+          (m.kind === 'image' || m.kind === 'pdf') && m.createdAt < olderThan && !used.has(m.id),
+      )
+      .map((m) => m.id);
+  };
+
   ownerAudioBytes = async (ownerId: string) =>
     [...this.media.values()]
       .filter((m) => m.ownerId === ownerId && m.kind === 'audio')

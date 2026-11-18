@@ -4,6 +4,7 @@ import pg from 'pg';
 import { DEFAULT_INSTANCE_SETTINGS } from '../../consts/index.js';
 import type {
   Campaign,
+  CampaignSummary,
   ChatMessage,
   Character,
   InstanceSettings,
@@ -468,6 +469,27 @@ export class PostgresStore implements Store {
   async countCampaigns(): Promise<number> {
     const { rows } = await this.db.query<{ n: string }>('SELECT count(*) AS n FROM campaigns');
     return Number(rows[0]?.n ?? 0);
+  }
+
+  async listCampaignSummaries(): Promise<CampaignSummary[]> {
+    const { rows } = await this.db.query(
+      `SELECT c.*,
+         (SELECT count(*) FROM memberships m WHERE m.campaign_id = c.id) AS members,
+         (SELECT u.display_name FROM memberships m JOIN users u ON u.id = m.user_id
+           WHERE m.campaign_id = c.id AND m.role = 'dm' LIMIT 1) AS dm_name
+       FROM campaigns c ORDER BY c.created_at, c.id`,
+    );
+    return rows.map((r) => ({
+      campaign: toCampaign(r),
+      members: Number(r.members),
+      dmName: (r.dm_name as string | null) ?? null,
+    }));
+  }
+
+  async deleteCampaign(campaignId: string): Promise<boolean> {
+    // Everything that belongs to it goes by ON DELETE CASCADE.
+    const result = await this.db.query('DELETE FROM campaigns WHERE id = $1', [campaignId]);
+    return (result.rowCount ?? 0) > 0;
   }
 
   getMembership = (campaignId: string, userId: string): Promise<Membership | undefined> =>

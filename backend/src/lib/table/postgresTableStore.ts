@@ -95,6 +95,16 @@ export class PostgresTableStore implements TableStore {
     await this.pool.query('DELETE FROM media_files WHERE id = $1', [id]);
   }
 
+  async listUnusedHandoutMedia(olderThan: number): Promise<string[]> {
+    const { rows } = await this.pool.query<{ id: string }>(
+      `SELECT m.id FROM media_files m
+        WHERE m.kind IN ('image', 'pdf') AND m.created_at < $1
+          AND NOT EXISTS (SELECT 1 FROM handout_files f WHERE f.media_id = m.id)`,
+      [olderThan],
+    );
+    return rows.map((r) => r.id);
+  }
+
   async ownerAudioBytes(ownerId: string): Promise<number> {
     const { rows } = await this.pool.query<{ n: string | null }>(
       "SELECT COALESCE(SUM(bytes), 0)::bigint AS n FROM media_files WHERE owner_id = $1 AND kind = 'audio'",

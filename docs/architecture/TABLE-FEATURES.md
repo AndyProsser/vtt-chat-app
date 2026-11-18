@@ -82,7 +82,12 @@ nosniff` and `Content-Security-Policy: default-src 'none'; sandbox`.
 handoutId}`, a fact only) goes to the same audience as `handout.shown` when a shown handout is edited,
   so clients read the list again (a DM-only draft edit sends nothing). A reconnecting client re-reads
   `GET /api/campaigns/:id/handouts`.
-- **Not built:** sweeping media files when a whole campaign is deleted; thumbnails; image dimension limits.
+- **Deleting a campaign** is the operator's (`vtt-admin campaign delete`, built 2026-11-18). The database removes its rows; the
+  files are removed afterwards: recordings' audio by the worker (`delete-recording` jobs, which the command waits for), handout
+  pictures and PDFs by the **handout media sweeper** (pictures and PDFs no handout uses, swept daily with a day's grace for
+  uploads in flight, and straight away by the command). Portraits have their own sweeper. Sound clips belong to the DM's
+  account, not the campaign, so they stay.
+- **Not built:** thumbnails; image dimension limits.
 
 ## Handout kinds (reshaped 2026-11-10)
 

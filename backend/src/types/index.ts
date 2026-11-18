@@ -36,6 +36,14 @@ export interface Campaign {
   allowJoin: boolean;
 }
 
+/** A campaign as the operator sees it in `vtt-admin campaign list`. */
+export interface CampaignSummary {
+  campaign: Campaign;
+  /** Everyone with a seat, the DM included. */
+  members: number;
+  dmName: string | null;
+}
+
 /** Roles are per campaign: one account can be DM in one campaign and a player in another. */
 /** What the public invite page may show about a campaign (`GET /api/invites/:code`). */
 export interface InvitePreview {

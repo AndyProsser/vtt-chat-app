@@ -124,7 +124,6 @@ const dmRoutes = (c: string): Route[] => [
   ['POST', `/api/campaigns/${c}/recording`, { action: 'start' }],
   ['GET', `/api/campaigns/${c}/recordings/${ID}/transcript`],
   ['DELETE', `/api/campaigns/${c}/recordings/${ID}`],
-  ['POST', `/api/campaigns/${c}/recordings/${ID}/audio/delete`],
   ['POST', `/api/campaigns/${c}/handouts`, { title: 'Map', text: 'x' }],
   ['DELETE', `/api/campaigns/${c}/handouts/${ID}`],
   ['POST', `/api/campaigns/${c}/handouts/${ID}/show`, { to: 'all' }],

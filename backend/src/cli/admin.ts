@@ -7,6 +7,7 @@ import {
 } from '@vtt-chat-app/shared';
 
 import {
+  DELETE_RECORDING_JOB,
   PROCESS_RECORDING_JOB,
   PURGE_RECORDING_JOB,
   type JobQueue,
@@ -51,6 +52,12 @@ export interface AdminDeps {
   updatesSource?: string;
   /** Health checks for `status`. Injected so tests need no live services. */
   probes?: Probe[];
+  /** Removes pictures and PDFs no handout uses (after a campaign is deleted); returns how many. Needs MEDIA_DIR. */
+  sweepMedia?: () => Promise<number>;
+  /** Waits between checks while the worker removes a campaign's recordings. Injected so tests need not wait. */
+  sleep?: (ms: number) => Promise<void>;
+  /** How long `campaign delete` waits for the worker (seconds). */
+  campaignDeleteWaitSeconds?: number;
   out: (line: string) => void;
   err: (line: string) => void;
 }
@@ -85,10 +92,14 @@ const USAGE = `vtt-admin — system operations for this instance (gameplay is ma
                                          sign-up requests from visitors (default: pending)
   signup approve <id|email>              make the account and print a one-time code to hand over on a side channel
   signup reject <id|email>               turn a request down (nothing is sent)
+  campaign list                          every campaign: id, name, DM, players, recordings
+  campaign delete <id> [--yes]           remove a campaign for good: its sessions and audio (via the worker), chat, handouts and
+                                         their files. Without --yes it only shows what would go
   storage                                disk use: recordings, free space, database size
   jobs list [queued|running|done|failed] records-pipeline jobs, newest last
   jobs retry <job-id>                    put a failed job back in the queue
   recording list                         recent recordings and their status
+  recording delete <id>                  remove a whole session: its audio, transcript and summaries (the worker does it)
   recording purge <id> | --older-than <days>
                                          delete the raw audio of processed recordings (the text stays)
   recording reprocess <id> [--retranscribe]
@@ -214,6 +225,8 @@ export async function runAdmin(argv: string[], deps: AdminDeps): Promise<number>
         return await jobs(deps, command, rest);
       case 'recording':
         return await recordings(deps, command, rest);
+      case 'campaign':
+        return await campaigns(deps, command, rest);
       case 'updates':
         return await updates(deps, command, rest);
       case undefined:
@@ -674,6 +687,26 @@ async function recordings(
       );
       return 0;
     }
+    case 'delete': {
+      const [id] = rest;
+      if (!id) {
+        deps.err('usage: recording delete <recording-id>');
+        return 2;
+      }
+      const recording = await deps.records.getRecording(id);
+      if (!recording) throw new SettingError('no recording with that id');
+      if (recording.status === 'recording' || recording.status === 'processing') {
+        throw new SettingError('that recording is still in progress or being processed');
+      }
+      const job = await deps.jobs.enqueue(
+        { kind: DELETE_RECORDING_JOB, recordingId: id },
+        (deps.now ?? Date.now)(),
+      );
+      deps.out(
+        `queued ${job.id}: the worker will delete the audio files, then the recording, its transcript and summaries`,
+      );
+      return 0;
+    }
     case 'purge': {
       const now = (deps.now ?? Date.now)();
       if (rest[0] === '--older-than') {
@@ -706,7 +739,93 @@ async function recordings(
       return 0;
     }
     default:
-      deps.err('usage: recording list | reprocess <recording-id> [--retranscribe] | purge <id>');
+      deps.err(
+        'usage: recording list | reprocess <recording-id> [--retranscribe] | purge <id> | delete <id>',
+      );
+      return 2;
+  }
+}
+
+async function campaigns(
+  deps: AdminDeps,
+  command: string | undefined,
+  rest: string[],
+): Promise<number> {
+  switch (command) {
+    case 'list': {
+      const all = await deps.store.listCampaignSummaries();
+      for (const { campaign, members, dmName } of all) {
+        const sessions = (await deps.records.listRecordingsForCampaign(campaign.id)).length;
+        deps.out(
+          `${campaign.id}  ${campaign.name}  (DM ${dmName ?? 'none'}, ${members} member(s), ${sessions} recording(s))`,
+        );
+      }
+      if (all.length === 0) deps.out('no campaigns');
+      return 0;
+    }
+    case 'delete': {
+      const [id, ...flags] = rest;
+      if (!id) {
+        deps.err('usage: campaign delete <campaign-id> [--yes]');
+        return 2;
+      }
+      const unknown = flags.filter((f) => f !== '--yes');
+      if (unknown.length > 0) throw new SettingError(`unknown option ${unknown[0]}`);
+      const found = (await deps.store.listCampaignSummaries()).find((c) => c.campaign.id === id);
+      if (!found) throw new SettingError('no campaign with that id (see: campaign list)');
+      const recordings = await deps.records.listRecordingsForCampaign(id);
+      const live = recordings.filter((r) => r.status === 'recording' || r.status === 'processing');
+      if (live.length > 0) {
+        throw new SettingError(
+          `${live.length} recording(s) of that campaign are still in progress or being processed; wait for them (see: jobs list)`,
+        );
+      }
+      deps.out(
+        `"${found.campaign.name}": ${found.members} member(s), ${recordings.length} recording(s) with their audio, transcripts and summaries, plus its chat, handouts, loot and schedule.`,
+      );
+      if (!flags.includes('--yes')) {
+        deps.out('This cannot be undone. Run it again with --yes to delete it.');
+        return 2;
+      }
+      const now = (deps.now ?? Date.now)();
+      for (const r of recordings) {
+        await deps.jobs.enqueue({ kind: DELETE_RECORDING_JOB, recordingId: r.id }, now);
+      }
+      if (recordings.length > 0) {
+        deps.out(
+          `queued ${recordings.length} recording(s) for the worker, waiting for it to remove them...`,
+        );
+        const sleep = deps.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
+        const limit = (deps.campaignDeleteWaitSeconds ?? 600) * 1000;
+        let waited = 0;
+        while ((await deps.records.listRecordingsForCampaign(id)).length > 0) {
+          if (waited >= limit) {
+            deps.err(
+              'the worker has not removed every recording yet (is it running? see: jobs list). Nothing else was deleted; run the same command again to carry on.',
+            );
+            return 1;
+          }
+          await sleep(2000);
+          waited += 2000;
+        }
+      }
+      await deps.store.deleteCampaign(id);
+      deps.out(`deleted the campaign "${found.campaign.name}".`);
+      if (deps.sweepMedia) {
+        const files = await deps.sweepMedia();
+        deps.out(`removed ${files} handout file(s) no longer used by anything.`);
+      } else {
+        deps.out(
+          'MEDIA_DIR is not set here, so its handout files were left; the backend removes unused ones daily.',
+        );
+      }
+      deps.out(
+        'People connected to it keep their seat until their app reconnects; restart the backend to drop them now.',
+      );
+      return 0;
+    }
+    default:
+      deps.err('usage: campaign list | delete <campaign-id> [--yes]');
       return 2;
   }
 }

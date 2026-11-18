@@ -1,6 +1,7 @@
 import { DEFAULT_INSTANCE_SETTINGS } from '../../consts/index.js';
 import type {
   Campaign,
+  CampaignSummary,
   ChatMessage,
   Character,
   Invite,
@@ -202,6 +203,39 @@ export class MemoryStore implements Store {
     ).length;
 
   countCampaigns = async (): Promise<number> => this.data.campaigns.size;
+
+  listCampaignSummaries = async (): Promise<CampaignSummary[]> =>
+    [...this.data.campaigns.values()]
+      .sort((a, b) => a.createdAt - b.createdAt)
+      .map((campaign) => {
+        const seats = [...this.data.memberships.values()].filter(
+          (m) => m.campaignId === campaign.id,
+        );
+        const dm = seats.find((m) => m.role === 'dm');
+        return {
+          campaign: copy(campaign),
+          members: seats.length,
+          dmName: (dm && this.data.users.get(dm.userId)?.displayName) ?? null,
+        };
+      });
+
+  deleteCampaign = async (campaignId: string): Promise<boolean> => {
+    if (!this.data.campaigns.delete(campaignId)) return false;
+    for (const [key, m] of this.data.memberships) {
+      if (m.campaignId === campaignId) this.data.memberships.delete(key);
+    }
+    for (const [id, c] of this.data.characters) {
+      if (c.campaignId === campaignId) this.data.characters.delete(id);
+    }
+    for (const [id, r] of this.data.joinRequests) {
+      if (r.campaignId === campaignId) this.data.joinRequests.delete(id);
+    }
+    for (const [code, i] of this.data.invites) {
+      if (i.campaignId === campaignId) this.data.invites.delete(code);
+    }
+    this.data.chat = this.data.chat.filter((m) => m.campaignId !== campaignId);
+    return true;
+  };
 
   getMembership = async (campaignId: string, userId: string): Promise<Membership | undefined> =>
     copyOrUndefined(this.data.memberships.get(membershipKey(campaignId, userId)));

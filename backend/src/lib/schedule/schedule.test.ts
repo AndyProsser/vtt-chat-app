@@ -199,7 +199,9 @@ describe('RSVP', () => {
     const id = created.body.session.id;
     const mine = async () => (await sessions(dm.token)).body.sessions[0].mine;
     expect(await mine()).toBe('yes');
-    await call('PUT', `/api/campaigns/${campaign}/sessions/${id}/rsvp`, dm.token, { status: 'late' });
+    await call('PUT', `/api/campaigns/${campaign}/sessions/${id}/rsvp`, dm.token, {
+      status: 'late',
+    });
     expect(await mine()).toBe('late');
   });
 

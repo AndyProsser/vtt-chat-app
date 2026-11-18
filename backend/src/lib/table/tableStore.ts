@@ -80,6 +80,11 @@ export interface TableStore {
   putMedia(file: MediaFile): Promise<void>;
   getMedia(id: string): Promise<MediaFile | undefined>;
   deleteMedia(id: string): Promise<void>;
+  /**
+   * Pictures and PDFs uploaded before `olderThan` that no handout uses: what is left when a whole campaign is
+   * deleted (its handouts go, their files do not), and uploads that were never turned into a handout.
+   */
+  listUnusedHandoutMedia(olderThan: number): Promise<string[]>;
   /** Bytes of audio an account has uploaded to its sound library, for its quota. */
   ownerAudioBytes(ownerId: string): Promise<number>;
   /** Bytes of files attached to a campaign's handouts, for its storage quota. */
