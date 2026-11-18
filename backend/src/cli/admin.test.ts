@@ -5,6 +5,7 @@ import path from 'node:path';
 
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import { ArchiveError } from '../lib/campaigns/campaignArchive.js';
 import { AccountService } from '../lib/auth/accountService.js';
 import { hashSecret, normaliseShortCode } from '../lib/auth/crypto.js';
 import { SignupService } from '../lib/auth/signupService.js';
@@ -720,12 +721,12 @@ describe('campaign export and import', () => {
       calls,
       ops: {
         unprocessed: async () => unfinished,
-        export: async (id: string) => {
+        export: async (id: string, file: string) => {
           calls.push(`export ${id}`);
-          return { bytes: Buffer.from('packed'), missingMedia: [] as string[] };
+          writeFileSync(file, 'packed');
+          return { bytes: 6, missingMedia: [] as string[] };
         },
-        unpack: () => ({ campaign: { id: 'camp-1', name: 'Sunken Temple' } }) as never,
-        import: async (_a: unknown, o: { asNew: boolean }) => {
+        import: async (_file: string, o: { asNew: boolean }) => {
           calls.push(`import asNew=${o.asNew}`);
           return {
             campaignId: 'camp-1',
@@ -751,10 +752,11 @@ describe('campaign export and import', () => {
 
   it('writes the file', async () => {
     await seedCampaign();
-    const file = path.join(dir(), 'c.vtt');
+    const file = path.join(dir(), 'c');
     const { ops, calls } = archiveOps([]);
     expect(await run(`campaign export camp-1 ${file}`, [], { archive: ops })).toBe(0);
-    expect(readFileSync(file, 'utf8')).toBe('packed');
+    // the one extension is added
+    expect(readFileSync(`${file}.vttcampaign`, 'utf8')).toBe('packed');
     expect(calls).toEqual(['export camp-1']);
   });
 
@@ -768,7 +770,7 @@ describe('campaign export and import', () => {
     out.length = 0;
     expect(await run(`campaign export camp-1 ${file} --accept-loss`, [], { archive: ops })).toBe(0);
     expect(calls).toEqual(['export camp-1']);
-    expect(readFileSync(file, 'utf8')).toBe('packed');
+    expect(readFileSync(`${file}.vttcampaign`, 'utf8')).toBe('packed');
   });
 
   it('refuses an unknown campaign', async () => {
@@ -785,9 +787,15 @@ describe('campaign export and import', () => {
     expect(await run(`campaign import ${file} --as-new`, [], { archive: ops })).toBe(0);
     expect(calls).toEqual(['import asNew=true']);
     expect(out.join('\n')).toMatch(/2 recording\(s\), 3 handout file\(s\)[\s\S]*new@example.com/);
-    expect(await run(`campaign import ${path.join(dir(), 'missing')}`, [], { archive: ops })).toBe(
-      1,
-    );
+    // a file that is not an export is a message and exit 1, not a stack trace
+    const bad = {
+      ...ops,
+      import: async () => {
+        throw new ArchiveError('that is not a campaign export file');
+      },
+    };
+    expect(await run(`campaign import ${file}`, [], { archive: bad })).toBe(1);
+    expect(err.join('\n')).toMatch(/not a campaign export file/);
   });
 });
 

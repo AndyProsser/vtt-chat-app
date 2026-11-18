@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+import { createWriteStream } from 'node:fs';
+import { readFile, rename, rm, stat } from 'node:fs/promises';
 import { Valkey } from 'iovalkey';
 
 import {
@@ -14,11 +16,12 @@ import { AccountService } from '../lib/auth/accountService.js';
 import { SignupService } from '../lib/auth/signupService.js';
 import { loadConfig } from '../lib/config.js';
 import {
+  ArchiveError,
   exportCampaign,
   importCampaign,
-  packArchive,
-  unpackArchive,
+  readArchive,
   unprocessedRecordings,
+  writeArchive,
 } from '../lib/campaigns/campaignArchive.js';
 import { HandoutMediaSweeper } from '../lib/media/handoutMediaSweeper.js';
 import { DiskMediaStorage } from '../lib/media/mediaStorage.js';
@@ -130,18 +133,35 @@ async function main(): Promise<number> {
         : {}),
       archive: {
         unprocessed: (id) => unprocessedRecordings(pool, id),
-        export: async (id) => {
-          const { archive, missingMedia } = await exportCampaign(pool, id, {
-            ...(config.mediaDir ? { media: new DiskMediaStorage(config.mediaDir) } : {}),
-          });
-          return { bytes: packArchive(archive), missingMedia };
+        export: async (id, file) => {
+          const exported = await exportCampaign(pool, id);
+          // Written beside the target and renamed, so a failure never leaves a half file under the real name.
+          const partial = `${file}.partial`;
+          try {
+            const { missingMedia } = await writeArchive(
+              exported,
+              createWriteStream(partial, { mode: 0o600 }),
+              config.mediaDir ? new DiskMediaStorage(config.mediaDir) : undefined,
+            );
+            await rename(partial, file);
+            return { bytes: (await stat(file)).size, missingMedia };
+          } catch (error) {
+            await rm(partial, { force: true });
+            throw error;
+          }
         },
-        unpack: unpackArchive,
-        import: (archive, options) =>
-          importCampaign(pool, archive, {
+        import: async (file, options) => {
+          let bytes: Buffer;
+          try {
+            bytes = await readFile(file);
+          } catch {
+            throw new ArchiveError(`cannot read ${file}`);
+          }
+          return importCampaign(pool, readArchive(bytes), {
             asNew: options.asNew,
             ...(config.mediaDir ? { media: new DiskMediaStorage(config.mediaDir) } : {}),
-          }),
+          });
+        },
       },
       databaseBytes: async () => {
         const { rows } = await pool.query<{ size: string }>(

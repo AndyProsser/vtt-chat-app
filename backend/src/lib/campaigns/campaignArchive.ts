@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
-import { gunzipSync, gzipSync } from 'node:zlib';
+import type { Writable } from 'node:stream';
 
+import { strFromU8, strToU8, unzipSync, Zip, ZipDeflate, ZipPassThrough } from 'fflate';
 import type pg from 'pg';
 
 import type { MediaStorage } from '../media/mediaStorage.js';
@@ -142,7 +143,8 @@ export interface ArchiveUser {
   displayName: string;
 }
 
-export interface CampaignArchive {
+/** `manifest.json`: read first, so an import can check the file before it reads anything else. */
+export interface Manifest {
   format: typeof ARCHIVE_FORMAT;
   version: number;
   exportedAt: number;
@@ -150,9 +152,23 @@ export interface CampaignArchive {
   schema: string;
   campaign: { id: string; name: string };
   users: ArchiveUser[];
+  /** Rows per table (`data/<table>.ndjson`). */
+  counts: Record<string, number>;
+  /** Handout pictures and PDFs (`files/<id>`). */
+  files: string[];
+}
+
+/** One consistent read of a campaign's rows; the files are added when it is written. */
+export interface CampaignExport {
+  manifest: Manifest;
   tables: Record<string, Row[]>;
-  /** Handout pictures and PDFs, by media id. */
-  media: { id: string; data: string }[];
+}
+
+/** What an import reads from: a file on disk in practice, anything in a test. */
+export interface ArchiveSource {
+  manifest: Manifest;
+  rows(table: string): Row[];
+  file(id: string): Uint8Array | undefined;
 }
 
 /** A recording with nothing to export yet: its text does not exist, so exporting now would lose it. */
@@ -177,8 +193,6 @@ export async function unprocessedRecordings(
 }
 
 export interface ExportOptions {
-  /** Where handout files are read from; without it a campaign with handout files cannot be exported. */
-  media?: MediaStorage;
   now?: () => number;
 }
 
@@ -186,7 +200,7 @@ export async function exportCampaign(
   pool: pg.Pool,
   campaignId: string,
   options: ExportOptions = {},
-): Promise<{ archive: CampaignArchive; missingMedia: string[] }> {
+): Promise<CampaignExport> {
   const client = await pool.connect();
   try {
     // One snapshot, so the tables agree with each other while people are playing.
@@ -230,33 +244,18 @@ export async function exportCampaign(
     ]);
     await client.query('COMMIT');
 
-    const media: CampaignArchive['media'] = [];
-    const missingMedia: string[] = [];
-    const files = tables.media_files ?? [];
-    if (files.length > 0 && !options.media) {
-      throw new ArchiveError(
-        'this campaign has handout files and MEDIA_DIR is not set here, so they cannot be read',
-      );
-    }
-    for (const file of files) {
-      const id = String(file.id);
-      const bytes = await options.media?.get(id);
-      if (bytes) media.push({ id, data: bytes.toString('base64') });
-      else missingMedia.push(id);
-    }
-
     return {
-      archive: {
+      manifest: {
         format: ARCHIVE_FORMAT,
         version: ARCHIVE_VERSION,
         exportedAt: (options.now ?? Date.now)(),
         schema: last[0]?.name ?? '',
         campaign,
         users: people.map((p) => ({ id: p.id, email: p.email, displayName: p.display_name })),
-        tables,
-        media,
+        counts: Object.fromEntries(Object.entries(tables).map(([k, v]) => [k, v.length])),
+        files: (tables.media_files ?? []).map((f) => String(f.id)),
       },
-      missingMedia,
+      tables,
     };
   } catch (error) {
     await client.query('ROLLBACK').catch(() => undefined);
@@ -266,26 +265,96 @@ export async function exportCampaign(
   }
 }
 
-export const packArchive = (archive: CampaignArchive): Buffer =>
-  gzipSync(Buffer.from(JSON.stringify(archive)));
-
-export function unpackArchive(bytes: Buffer): CampaignArchive {
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(gunzipSync(bytes).toString('utf8'));
-  } catch {
-    throw new ArchiveError('that is not a campaign export file (could not read it)');
+/**
+ * Writes the zip: `manifest.json` first, then `data/<table>.ndjson` (one row a line, compressed), then each handout
+ * file under `files/` as it is (pictures and PDFs are compressed already, so they are stored, and read one at a
+ * time, never all in memory). Resolves when the destination has taken every byte; returns the files it could not read.
+ */
+export async function writeArchive(
+  exported: CampaignExport,
+  dest: Writable,
+  media?: MediaStorage,
+): Promise<{ missingMedia: string[] }> {
+  if (exported.manifest.files.length > 0 && !media) {
+    throw new ArchiveError(
+      'this campaign has handout files and MEDIA_DIR is not set here, so they cannot be read',
+    );
   }
-  const a = parsed as Partial<CampaignArchive> | null;
-  if (!a || a.format !== ARCHIVE_FORMAT || !a.tables || !a.campaign || !Array.isArray(a.users)) {
+  const finished = new Promise<void>((resolve, reject) => {
+    dest.once('error', reject);
+    dest.once('finish', resolve);
+  });
+  const zip = new Zip((error, chunk, final) => {
+    if (error) dest.destroy(error);
+    else {
+      dest.write(chunk);
+      if (final) dest.end();
+    }
+  });
+  const add = (name: string, data: Uint8Array, store: boolean) => {
+    const entry = store ? new ZipPassThrough(name) : new ZipDeflate(name, { level: 6 });
+    zip.add(entry);
+    entry.push(data, true);
+  };
+  const missingMedia: string[] = [];
+  try {
+    add('manifest.json', strToU8(JSON.stringify(exported.manifest, null, 2)), false);
+    for (const spec of TABLES) {
+      const rows = exported.tables[spec.name] ?? [];
+      add(
+        `data/${spec.name}.ndjson`,
+        strToU8(rows.map((r) => JSON.stringify(r)).join('\n')),
+        false,
+      );
+    }
+    for (const id of exported.manifest.files) {
+      const bytes = await media!.get(id);
+      if (bytes) add(`files/${id}`, bytes, true);
+      else missingMedia.push(id);
+    }
+    zip.end();
+  } catch (error) {
+    dest.destroy(error as Error);
+    throw error;
+  }
+  await finished;
+  return { missingMedia };
+}
+
+/** Opens a `.vttcampaign` file: checks the manifest, and reads each table and file only when asked for. */
+export function readArchive(bytes: Uint8Array): ArchiveSource {
+  const entry = (name: string): Uint8Array | undefined => {
+    try {
+      return unzipSync(bytes, { filter: (f) => f.name === name })[name];
+    } catch {
+      throw new ArchiveError('that is not a campaign export file (could not read it)');
+    }
+  };
+  const manifestBytes = entry('manifest.json');
+  if (!manifestBytes) throw new ArchiveError('that is not a campaign export file');
+  let manifest: Manifest;
+  try {
+    manifest = JSON.parse(strFromU8(manifestBytes)) as Manifest;
+  } catch {
+    throw new ArchiveError('that is not a campaign export file (the manifest is unreadable)');
+  }
+  if (manifest.format !== ARCHIVE_FORMAT || !manifest.campaign || !Array.isArray(manifest.users)) {
     throw new ArchiveError('that is not a campaign export file');
   }
-  if (typeof a.version !== 'number' || a.version > ARCHIVE_VERSION) {
+  if (typeof manifest.version !== 'number' || manifest.version > ARCHIVE_VERSION) {
     throw new ArchiveError(
       'that file was made by a newer version of the server; upgrade this server first',
     );
   }
-  return a as CampaignArchive;
+  return {
+    manifest,
+    rows: (table) => {
+      const data = entry(`data/${table}.ndjson`);
+      const text = data ? strFromU8(data).trim() : '';
+      return text ? text.split('\n').map((line) => JSON.parse(line) as Row) : [];
+    },
+    file: (id) => entry(`files/${id}`),
+  };
 }
 
 export interface ImportOptions {
@@ -323,7 +392,7 @@ function remapJson(value: unknown, map: Map<string, string>): unknown {
 
 export async function importCampaign(
   pool: pg.Pool,
-  archive: CampaignArchive,
+  source: ArchiveSource,
   options: ImportOptions = {},
 ): Promise<ImportResult> {
   const now = (options.now ?? Date.now)();
@@ -333,21 +402,24 @@ export async function importCampaign(
     const { rows: last } = await client.query<{ name: string }>(
       'SELECT name FROM schema_migrations ORDER BY name DESC LIMIT 1',
     );
-    if (archive.schema > (last[0]?.name ?? '')) {
+    const manifest = source.manifest;
+    if (manifest.schema > (last[0]?.name ?? '')) {
       throw new ArchiveError(
-        `that file comes from a newer server (schema ${archive.schema}); upgrade this server first`,
+        `that file comes from a newer server (schema ${manifest.schema}); upgrade this server first`,
       );
     }
-    const files = archive.media ?? [];
+    const files = manifest.files;
     if (files.length > 0 && !options.media) {
       throw new ArchiveError(
         'the export holds handout files and MEDIA_DIR is not set here, so they cannot be stored',
       );
     }
 
+    // Read once, in table order, before the transaction opens.
+    const tables = new Map(TABLES.map((spec) => [spec.name, source.rows(spec.name)]));
     await client.query('BEGIN');
     const { rows: taken } = await client.query('SELECT 1 FROM campaigns WHERE id = $1', [
-      archive.campaign.id,
+      manifest.campaign.id,
     ]);
     if (taken.length > 0 && !options.asNew) {
       throw new ArchiveError(
@@ -360,7 +432,7 @@ export async function importCampaign(
     const ids = new Map<string, string>();
     if (options.asNew) {
       for (const spec of TABLES) {
-        for (const row of archive.tables[spec.name] ?? []) {
+        for (const row of tables.get(spec.name) ?? []) {
           for (const col of spec.ids ?? []) {
             const old = row[col];
             if (typeof old === 'string' && !ids.has(old)) ids.set(old, randomUUID());
@@ -373,7 +445,7 @@ export async function importCampaign(
     if (!options.asNew) {
       const { rows } = await client.query<{ id: string }>(
         'SELECT id FROM media_files WHERE id = ANY($1::uuid[])',
-        [(archive.tables.media_files ?? []).map((r) => r.id)],
+        [(tables.get('media_files') ?? []).map((r) => r.id)],
       );
       for (const r of rows) existingMedia.add(r.id);
     }
@@ -382,7 +454,7 @@ export async function importCampaign(
     const users = new Map<string, string>();
     const created: ArchiveUser[] = [];
     let matched = 0;
-    for (const person of archive.users) {
+    for (const person of manifest.users) {
       const email = person.email.toLowerCase();
       const { rows } = await client.query<{ id: string }>('SELECT id FROM users WHERE email = $1', [
         email,
@@ -407,7 +479,7 @@ export async function importCampaign(
 
     const everything = new Map<string, string>([...ids, ...users]);
     for (const spec of TABLES) {
-      const rows = archive.tables[spec.name] ?? [];
+      const rows = tables.get(spec.name) ?? [];
       for (const raw of rows) {
         if (spec.name === 'media_files' && existingMedia.has(String(raw.id))) continue;
         const row: Row = { ...raw };
@@ -449,21 +521,23 @@ export async function importCampaign(
 
     // Files last, so a failure above leaves nothing on disk; a failure here rolls the database back and the
     // files already written are removed (anything missed is swept as unused).
-    for (const file of files) {
-      const id = ids.get(file.id) ?? file.id;
+    for (const fileId of files) {
+      const id = ids.get(fileId) ?? fileId;
       // A row already here (shared with another campaign, or left behind) keeps its file if the file is there.
       if (existingMedia.has(id) && (await options.media!.get(id))) continue;
-      await options.media!.put(id, Buffer.from(file.data, 'base64'));
+      const bytes = source.file(fileId);
+      if (!bytes) continue; // it was missing on the exporting server too
+      await options.media!.put(id, Buffer.from(bytes));
       written.push(id);
     }
     await client.query('COMMIT');
 
     return {
-      campaignId: ids.get(archive.campaign.id) ?? archive.campaign.id,
-      name: archive.campaign.name,
+      campaignId: ids.get(manifest.campaign.id) ?? manifest.campaign.id,
+      name: manifest.campaign.name,
       matched,
       created,
-      recordings: (archive.tables.recordings ?? []).length,
+      recordings: (tables.get('recordings') ?? []).length,
       files: written.length,
     };
   } catch (error) {

@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { Writable } from 'node:stream';
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -9,10 +10,11 @@ import {
   exportCampaign,
   importCampaign,
   NOT_EXPORTED,
-  packArchive,
+  readArchive,
   TABLES,
-  unpackArchive,
   unprocessedRecordings,
+  writeArchive,
+  type CampaignExport,
 } from './campaignArchive.js';
 
 // Needs Postgres (TEST_DATABASE_URL): the archive reads and writes rows with to_jsonb / jsonb_populate_record.
@@ -27,6 +29,19 @@ afterAll(async () => {
 const run = backend_kind();
 function backend_kind(): boolean {
   return Boolean(process.env.TEST_DATABASE_URL);
+}
+
+/** The file as bytes, written the way the CLI writes it. */
+async function pack(exported: CampaignExport, media?: MediaStorage) {
+  const chunks: Buffer[] = [];
+  const sink = new Writable({
+    write(chunk: Buffer, _enc, done) {
+      chunks.push(chunk);
+      done();
+    },
+  });
+  const { missingMedia } = await writeArchive(exported, sink, media);
+  return { bytes: Buffer.concat(chunks), missingMedia };
 }
 
 function memoryMedia(): MediaStorage & { files: Map<string, Buffer> } {
@@ -175,15 +190,17 @@ describe.runIf(run)('campaign export and import', () => {
     const s = await seed();
     const media = memoryMedia();
     media.files.set(s.media, Buffer.from('PNG!'));
-    const { archive, missingMedia } = await exportCampaign(backend.pool!, s.campaign, { media });
+    const { bytes, missingMedia } = await pack(
+      await exportCampaign(backend.pool!, s.campaign),
+      media,
+    );
     expect(missingMedia).toEqual([]);
-    const bytes = packArchive(archive);
 
     await backend.store.deleteCampaign(s.campaign);
     media.files.clear();
     expect(await count('recordings')).toBe(0);
 
-    const result = await importCampaign(backend.pool!, unpackArchive(bytes), { media });
+    const result = await importCampaign(backend.pool!, readArchive(bytes), { media });
     expect(result).toMatchObject({ campaignId: s.campaign, matched: 2, created: [], files: 1 });
     expect(await count('campaigns', 'id = $1', [s.campaign])).toBe(1);
     expect(await count('memberships')).toBe(2);
@@ -204,10 +221,12 @@ describe.runIf(run)('campaign export and import', () => {
     const s = await seed();
     const media = memoryMedia();
     media.files.set(s.media, Buffer.from('PNG!'));
-    const { archive } = await exportCampaign(backend.pool!, s.campaign, { media });
-    await expect(importCampaign(backend.pool!, archive, { media })).rejects.toThrow(ArchiveError);
+    const { bytes } = await pack(await exportCampaign(backend.pool!, s.campaign), media);
+    await expect(importCampaign(backend.pool!, readArchive(bytes), { media })).rejects.toThrow(
+      ArchiveError,
+    );
 
-    const copy = await importCampaign(backend.pool!, archive, { media, asNew: true });
+    const copy = await importCampaign(backend.pool!, readArchive(bytes), { media, asNew: true });
     expect(copy.campaignId).not.toBe(s.campaign);
     expect(await count('campaigns')).toBe(2);
     expect(await count('recordings')).toBe(4);
@@ -235,10 +254,10 @@ describe.runIf(run)('campaign export and import', () => {
     const s = await seed();
     const media = memoryMedia();
     media.files.set(s.media, Buffer.from('PNG!'));
-    const { archive } = await exportCampaign(backend.pool!, s.campaign, { media });
+    const { bytes } = await pack(await exportCampaign(backend.pool!, s.campaign), media);
     await backend.store.deleteCampaign(s.campaign);
     await backend.pool!.query('DELETE FROM users WHERE id = $1', [s.player]);
-    const result = await importCampaign(backend.pool!, archive, { media });
+    const result = await importCampaign(backend.pool!, readArchive(bytes), { media });
     expect(result.matched).toBe(1);
     expect(result.created.map((u) => u.email)).toEqual(['pc@example.com']);
     const { rows } = await backend.pool!.query(
@@ -248,14 +267,44 @@ describe.runIf(run)('campaign export and import', () => {
   });
 
   it('rejects a file that is not an export, and rolls back on a failure', async () => {
-    expect(() => unpackArchive(Buffer.from('nope'))).toThrow(ArchiveError);
+    expect(() => readArchive(Buffer.from('nope'))).toThrow(ArchiveError);
     const s = await seed();
-    const { archive } = await exportCampaign(backend.pool!, s.campaign, { media: memoryMedia() });
+    const media = memoryMedia();
+    media.files.set(s.media, Buffer.from('PNG!'));
+    const exported = await exportCampaign(backend.pool!, s.campaign);
+    exported.tables.summaries![0]!.kind = 'not-a-kind';
+    const { bytes } = await pack(exported, media);
     await backend.store.deleteCampaign(s.campaign);
-    const broken = structuredClone(archive);
-    broken.tables.summaries![0]!.kind = 'not-a-kind';
-    await expect(importCampaign(backend.pool!, broken, { media: memoryMedia() })).rejects.toThrow();
+    const target = memoryMedia();
+    await expect(
+      importCampaign(backend.pool!, readArchive(bytes), { media: target }),
+    ).rejects.toThrow();
     expect(await count('campaigns')).toBe(0);
     expect(await count('users')).toBe(2);
+    expect(target.files.size).toBe(0);
+  });
+
+  it('is a zip: a manifest first, one data file per table, and the handout file as it is', async () => {
+    const s = await seed();
+    const media = memoryMedia();
+    media.files.set(s.media, Buffer.from('PNG!'));
+    const { bytes } = await pack(await exportCampaign(backend.pool!, s.campaign), media);
+    expect(bytes.subarray(0, 2).toString()).toBe('PK');
+    const source = readArchive(bytes);
+    expect(source.manifest).toMatchObject({
+      format: 'vtt-campaign',
+      campaign: { id: s.campaign, name: 'Strahd' },
+      files: [s.media],
+    });
+    expect(source.manifest.counts.recordings).toBe(2);
+    expect(source.rows('chat_messages')).toHaveLength(1);
+    expect(Buffer.from(source.file(s.media)!).toString()).toBe('PNG!');
+  });
+
+  it('will not export a campaign with handout files when there is nowhere to read them from', async () => {
+    const s = await seed();
+    await expect(pack(await exportCampaign(backend.pool!, s.campaign))).rejects.toThrow(
+      /MEDIA_DIR/,
+    );
   });
 });

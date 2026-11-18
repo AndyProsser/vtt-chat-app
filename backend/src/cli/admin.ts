@@ -14,15 +14,15 @@ import {
   type RecordsStore,
 } from '@vtt-chat-app/ai';
 
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import { formatBytes, freePercent, isLow, measureDisk } from '../lib/status/storage.js';
 import { MAGIC_LINK_TTL_MINUTES, RESET_LINK_TTL_MINUTES } from '../consts/index.js';
-import type {
-  CampaignArchive,
-  ImportResult,
-  UnprocessedRecording,
+import {
+  ArchiveError,
+  type ImportResult,
+  type UnprocessedRecording,
 } from '../lib/campaigns/campaignArchive.js';
 import type { AccountService } from '../lib/auth/accountService.js';
 import type { SignupService } from '../lib/auth/signupService.js';
@@ -62,9 +62,12 @@ export interface AdminDeps {
   /** One campaign's export and import (`campaign export` / `import`). Needs Postgres; absent in memory tests. */
   archive?: {
     unprocessed: (campaignId: string) => Promise<UnprocessedRecording[]>;
-    export: (campaignId: string) => Promise<{ bytes: Buffer; missingMedia: string[] }>;
-    unpack: (bytes: Buffer) => CampaignArchive;
-    import: (archive: CampaignArchive, options: { asNew: boolean }) => Promise<ImportResult>;
+    /** Writes the `.vttcampaign` file; resolves with its size and any handout files it could not read. */
+    export: (
+      campaignId: string,
+      file: string,
+    ) => Promise<{ bytes: number; missingMedia: string[] }>;
+    import: (file: string, options: { asNew: boolean }) => Promise<ImportResult>;
   };
   /** Waits between checks while the worker removes a campaign's recordings. Injected so tests need not wait. */
   sleep?: (ms: number) => Promise<void>;
@@ -108,7 +111,7 @@ const USAGE = `vtt-admin — system operations for this instance (gameplay is ma
   campaign delete <id> [--yes]           remove a campaign for good: its sessions and audio (via the worker), chat, handouts and
                                          their files. Without --yes it only shows what would go
   campaign export <id> <file> [--accept-loss]
-                                         write one campaign to a file: text, handout files, transcripts and summaries, not the
+                                         write one campaign to a .vttcampaign file (a zip): text, handout files, transcripts and summaries, not the
                                          audio (the server backup has that). Refuses while a session has no transcript yet,
                                          unless --accept-loss says to go ahead without it
   campaign import <file> [--as-new]      restore a campaign from such a file. --as-new makes a copy with fresh ids when the
@@ -257,7 +260,7 @@ export async function runAdmin(argv: string[], deps: AdminDeps): Promise<number>
         return 2;
     }
   } catch (error) {
-    if (error instanceof SettingError) {
+    if (error instanceof SettingError || error instanceof ArchiveError) {
       deps.err(`error: ${error.message}`);
       return 1;
     }
@@ -870,9 +873,10 @@ async function campaigns(
         }
         deps.out('going ahead without them (--accept-loss).');
       }
-      const { bytes, missingMedia } = await deps.archive.export(id);
-      await writeFile(file, bytes, { mode: 0o600 });
-      deps.out(`wrote "${found.campaign.name}" to ${file} (${formatBytes(bytes.length)}).`);
+      // One extension, so the files are recognisable: `.vttcampaign` is added when it is missing.
+      const target = file.endsWith('.vttcampaign') ? file : `${file}.vttcampaign`;
+      const { bytes, missingMedia } = await deps.archive.export(id, target);
+      deps.out(`wrote "${found.campaign.name}" to ${target} (${formatBytes(bytes)}).`);
       if (missingMedia.length > 0) {
         deps.err(`${missingMedia.length} handout file(s) were missing on disk and are not in it.`);
       }
@@ -891,14 +895,7 @@ async function campaigns(
       if (unknown.length > 0) throw new SettingError(`unknown option ${unknown[0]}`);
       if (!deps.archive)
         throw new SettingError('import needs the database; run it through vtt-admin');
-      let bytes: Buffer;
-      try {
-        bytes = await readFile(file);
-      } catch {
-        throw new SettingError(`cannot read ${file}`);
-      }
-      const archive = deps.archive.unpack(bytes);
-      const result = await deps.archive.import(archive, { asNew: flags.includes('--as-new') });
+      const result = await deps.archive.import(file, { asNew: flags.includes('--as-new') });
       deps.out(
         `imported "${result.name}" (${result.campaignId}): ${result.recordings} recording(s), ${result.files} handout file(s).`,
       );

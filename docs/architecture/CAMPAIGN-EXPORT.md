@@ -17,17 +17,28 @@ see [BUILD-STATUS](../BUILD-STATUS.md) for what has been run for real.
 | loot, scheduled sessions with RSVPs and reminders                             | the raw audio                                                                              |
 | every recording's tracks, timeline, transcript, notes and summaries           |                                                                                            |
 
-The file is a gzipped JSON document (`format: vtt-campaign`, `version: 1`) with the newest migration the exporting server
-had, so a server that is **older** than the file refuses it. It contains whispers and transcripts: keep it as private as the
-database (it is written mode `0600`).
+## The file: `.vttcampaign`, a zip
+
+```text
+Strahd.vttcampaign
+├── manifest.json            format, version, the newest migration the exporting server had, campaign name and id,
+│                            the members (email, display name), row counts per table, the list of handout files
+├── data/<table>.ndjson      one row per line, compressed (chat, transcript segments and the rest)
+└── files/<media-id>         each handout picture or PDF exactly as it is, stored, not recompressed
+```
+
+Any zip tool opens it (rename to `.zip` if the tool insists), so an operator can read the manifest or take a handout out
+without the server. `export` adds the `.vttcampaign` extension if the name lacks it. A server **older** than the file
+refuses it. The file contains whispers and transcripts: keep it as private as the database (it is written mode `0600`,
+to a `.partial` file that is renamed when complete, so a failed export never leaves a half file under the real name).
 
 ```mermaid
 flowchart LR
   A[campaign export] --> B{any session<br/>not processed?}
   B -- yes --> C[list them and stop]
   C -- "--accept-loss" --> D
-  B -- no --> D[one read-only snapshot<br/>rows as JSON + handout files]
-  D --> E[(file.gz)]
+  B -- no --> D[one read-only snapshot<br/>rows as ndjson + handout files, zipped]
+  D --> E[(.vttcampaign)]
   E --> F[campaign import]
   F --> G[one transaction:<br/>people, rows, then files]
 ```
@@ -57,5 +68,9 @@ So the command lists those sessions and stops. The operator either **waits** (`j
   existing table is carried with no change. A **new table** is not, so a test walks the schema's foreign keys and fails until
   the table is listed or named in `NOT_EXPORTED` with a reason.
 - **CLI only, no route**, in line with CLAUDE.md §7 (system operations are the CLI's): no wire change, no protocol bump.
-- **A single gzipped file** (no tar dependency) holds the handout files as base64. Fine at homelab scale: a campaign's
-  handouts are a few pictures and PDFs, and the file is read into memory whole.
+- **A zip, with [fflate](https://github.com/101arrowz/fflate)** (pure JavaScript, no dependencies, about 30 KB). Chosen over
+  a gzipped JSON blob by Andy on 2026-11-18 for portability and for a very long-running campaign, which grows: handout files
+  are written as real files with no base64 (a third larger before compression, and gzip only gets part of it back), the
+  export writes the zip as a stream and reads one handout file at a time, and the import decompresses one table or file
+  at a time instead of one whole string. What is still in memory at once: the campaign's rows on export (a transcript is
+  text, megabytes even for a long campaign) and the compressed file on import.
