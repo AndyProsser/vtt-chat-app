@@ -57,7 +57,8 @@ releases; the 0.4.5 changelog covers both).
 3. **[Stage 11](#stage-11--protocol-4-and-verification-060-and-061):** **0.6.0** is the one bump to protocol 4 (loot re-drop and the confirmed flag, the soundboard, and the wire for the AI work: persona setting, GM Notes, glossary, off-site notice); **0.6.1** is verification and the end-to-end test.
 4. **[Stage 12](#stage-12--storytelling-roles-personas-and-campaign-memory-idea-2026-11-17-scheduled-2026-11-18):** the AI workflow (the Claude connector, a glossary for Whisper, a scribe that picks out what happened, the Chronicler, campaign memory, personas), **0.6.2 onwards**.
 5. **[Stage 13](#stage-13--linux-package-repositories-served-by-the-server-idea-2026-11-19-not-scheduled):** `.deb` and `.rpm` repositories served by the server, behind an operator switch (an idea, not scheduled; the manual install works).
-6. The open design topics in [.claude/intent.md](.claude/intent.md).
+6. **[Stage 14](#stage-14--a-self-signed-certificate-the-app-can-pin-idea-2026-11-19-not-scheduled):** a self-signed HTTPS mode the desktop app can pin (an idea, not scheduled; `--http` covers trusted networks today).
+7. The open design topics in [.claude/intent.md](.claude/intent.md).
 
 --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **One web app** | A landing page at `/`, `/download` (per-OS steps, sign-in required), `/full-app`, and the chat web app at `/app` as the same product on phones and desktops; one 640px column, the Default look, light/dark |
@@ -725,3 +726,23 @@ Per [CLAUDE.md §13](.claude/CLAUDE.md) — not planned at any stage: an embedde
 - [docs/architecture/DEPLOYMENT-AND-TRANSPORT.md](docs/architecture/DEPLOYMENT-AND-TRANSPORT.md)
 - [docs/architecture/STATE-AND-RESILIENCE.md](docs/architecture/STATE-AND-RESILIENCE.md)
 - [docs/architecture/PACKAGE-DISTRIBUTION.md](docs/architecture/PACKAGE-DISTRIBUTION.md) — package-manager distribution (future idea)
+
+---
+
+## Stage 14 — A self-signed certificate the app can pin (idea, 2026-11-19; not scheduled)
+
+**Status:** ⚪ Not Started, **not scheduled**. Andy, 2026-11-19: operators with no domain, or a non-standard port, can use plain HTTP (`get.sh --http`, built in 0.6.0) on a network they trust. This is the encrypted alternative for the same operators, which needs real work in the apps.
+
+**The problem.** Caddy can make its own certificate (`tls internal`), but nothing trusts it by default: browsers show a warning each person must click through (hard on some phones), and the desktop app, which trusts the system's certificate store, refuses it.
+
+**The idea: pin it, never switch checking off.** The installer prints the server's certificate **fingerprint**; the desktop app, on first connect to a server it cannot verify, shows that fingerprint and asks the player to confirm it once (or the invite link carries it, so a player who trusts the link needs no step). The app then accepts only that exact certificate for that server, and refuses with a clear message if it ever changes.
+
+| #   | Item                                                                                                                                                                    |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | **`get.sh --self-signed`**: Caddy's internal CA for the site, the fingerprint printed and shown by `vtt-admin`, kept across renewals                                    |
+| 2   | **Pinning in the desktop app**: a custom certificate check for the HTTP client and the WebSocket (`rustls`), a trust prompt, and the pin stored with the server address |
+| 3   | **Invite links carry the fingerprint** so joining is one step                                                                                                           |
+| 4   | **The voice library**: check whether it takes a custom trust setting; if it does not, voice over a pinned server needs its own answer                                   |
+| 5   | **The web app**: the browser warning cannot be removed by us; the guide says what to expect, and that an operator who wants no warnings needs a real domain             |
+
+**Open questions (Andy's to decide):** whether the voice library can pin; whether browsers on phones are worth supporting in this mode at all.
