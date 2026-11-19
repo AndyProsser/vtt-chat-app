@@ -41,6 +41,7 @@ export function CharacterCard({
 }) {
   const [editing, setEditing] = useState(false);
   const [linking, setLinking] = useState(false);
+  const [confirming, setConfirming] = useState(false);
   const [draft, setDraft] = useState(draftOf(record));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
@@ -126,20 +127,39 @@ export function CharacterCard({
               Playing
             </Badge>
           )}
+          {canPlay && !playing && !confirming && (
+            <IconTool
+              label="Play this character at the table"
+              text="Activate"
+              icon="play"
+              disabled={busy}
+              onClick={() => setConfirming(true)}
+            />
+          )}
         </Flex>
+
+        {confirming && (
+          <Flex align="center" gap="2" wrap="wrap" role="alertdialog" aria-label="Switch character">
+            <Text size="2" color="gray" style={{ flex: 1, minWidth: '12rem' }}>
+              Are you sure? This will change your name and avatar for everyone at the table.
+            </Text>
+            <IconTool
+              label="Yes, switch character"
+              text="Switch"
+              icon="play"
+              disabled={busy}
+              onClick={() => {
+                setConfirming(false);
+                void run(() => playCharacter(campaignId, record.id));
+              }}
+            />
+            <IconTool label="Cancel" text="Cancel" icon="x" onClick={() => setConfirming(false)} />
+          </Flex>
+        )}
 
         {record.sheet && <CharacterStats sheet={record.sheet} />}
 
         <Flex gap="2" wrap="wrap" className="phone-actions">
-          {canPlay && !playing && (
-            <IconTool
-              label="Play this character"
-              text="Play"
-              icon="play"
-              disabled={busy}
-              onClick={() => void run(() => playCharacter(campaignId, record.id))}
-            />
-          )}
           {linked ? (
             <>
               <IconTool

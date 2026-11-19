@@ -1,5 +1,5 @@
 import { TextField } from '@radix-ui/themes';
-import { Camera, Link2, Pencil, Play, RefreshCw, Save, Unlink, X } from 'lucide-react';
+import { Camera, Check, Link2, Pencil, Play, RefreshCw, Save, Unlink, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { useAccount } from '../../hooks/useAccount.js';
@@ -28,7 +28,7 @@ import { NewCharacter } from './NewCharacter.js';
 /**
  * Your characters in THIS campaign. Every campaign keeps its own profile, so being Aria in one table and Corwin in
  * another is just two profiles (and the same D&D Beyond sheet can be added in each). A row of portraits switches
- * between them (click one to play it); the table sees the one marked as playing.
+ * between them (click one to look at it); Activate, after a confirmation, makes it the one the table sees. The table sees the one marked as playing.
  */
 export function CharacterSection() {
   const { status } = useAccount();
@@ -60,12 +60,10 @@ export function CharacterSection() {
   const playingId = dm ? undefined : characters.find((c) => c.name === me?.character?.name)?.id;
   const shown = characters.find((c) => c.id === (picked ?? playingId)) ?? characters[0];
 
-  // One click switches who you play (the DM has no character to play, so a click only shows it).
+  // A click only shows a character; switching who you play is the card's own Activate button, after a confirmation.
   const choose = (c: CharacterRecord) => {
     setPicked(c.id);
     setAdding(false);
-    if (!dm && c.id !== playingId)
-      void run(() => campaignApi('PUT', 'active-character', { characterId: c.id }));
   };
 
   return (
@@ -210,6 +208,7 @@ function CharacterCard({
   const [draft, setDraft] = useState(draftOf(record));
   const [editing, setEditing] = useState(false);
   const [linking, setLinking] = useState(false);
+  const [confirming, setConfirming] = useState(false);
   useEffect(() => setDraft(draftOf(record)), [record]);
   const linked = Boolean(record.sourceUrl);
   const patch = characterPatch(record, draft);
@@ -260,20 +259,40 @@ function CharacterCard({
           )}
         </div>
         {playing && <span className="vtt-char-playing">Playing</span>}
-      </div>
-
-      {record.sheet && <CharacterStats sheet={record.sheet} />}
-
-      <div className="vtt-form-row">
-        {canPlay && !playing && (
+        {canPlay && !playing && !confirming && (
           <ToolButton
             label="Play this character at the table"
-            text="Play"
-            onClick={() => void onPlay()}
+            text="Activate"
+            onClick={() => setConfirming(true)}
           >
             <Play size={14} />
           </ToolButton>
         )}
+      </div>
+      {confirming && (
+        <div className="vtt-form-row" role="alertdialog" aria-label="Switch character">
+          <span className="vtt-muted" style={{ flex: 1 }}>
+            Are you sure? This will change your name and avatar for everyone at the table.
+          </span>
+          <ToolButton
+            label="Yes, switch character"
+            text="Switch"
+            onClick={() => {
+              setConfirming(false);
+              void onPlay();
+            }}
+          >
+            <Check size={14} />
+          </ToolButton>
+          <ToolButton label="Cancel" text="Cancel" onClick={() => setConfirming(false)}>
+            <X size={14} />
+          </ToolButton>
+        </div>
+      )}
+
+      {record.sheet && <CharacterStats sheet={record.sheet} />}
+
+      <div className="vtt-form-row">
         {linked ? (
           <>
             <ToolButton

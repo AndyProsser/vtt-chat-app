@@ -19,7 +19,7 @@ the GitHub release notes and refuses to build a release without one. How to writ
 - **Characters on the phone web app.** The menu has **My characters**: add a character, edit one, choose who you play, add a picture, and link a D&D Beyond sheet or sync it, all on the existing routes.
 - **Operators can delete a campaign, or a single session, for good.** `vtt-admin campaign list` and `campaign delete <id> --yes` remove a campaign with its sessions and audio (the worker deletes the files and the command waits for it), chat, handouts, loot and schedule; without `--yes` it only shows what would go. `vtt-admin recording delete <id>` removes one session the same way. A new daily sweeper also removes handout pictures and PDFs that no handout uses any more (what a deleted campaign leaves behind).
 
-- **Switch character in one tap.** Both apps show your characters as a row of portraits at the top of the character screen; tap one to play it, or the plus to add another. Characters still belong to one campaign: to use the same sheet in two campaigns, add it in each.
+- **Switch character in one tap.** Both apps show your characters as a row of portraits at the top of the character screen; tap one to look at it, press **Activate** (after a confirmation that it changes your name and picture for everyone) to play it, or the plus to add another. Characters still belong to one campaign: to use the same sheet in two campaigns, add it in each.
 - **Character numbers as tiles.** A linked character shows armour class, hit points and passive perception, then all six abilities on a single row (modifier large, score small), instead of two lines of text.
 
 ### Changed

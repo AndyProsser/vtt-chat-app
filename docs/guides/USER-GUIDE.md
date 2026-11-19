@@ -236,9 +236,9 @@ Open **Settings** (the cog). It has five tabs:
   date (only if the server's operator turned this on; if not, the box says so). **Sync now** forces a refresh.
   **While a character is linked, its name, race, class, level and picture come from D&D Beyond and cannot be edited here**: change them
   on the sheet and Sync, or Unlink to edit them yourself. A linked character shows its armour class, hit points,
-  passive perception and six abilities as tiles. A row of portraits at the top switches character (click one to play it)
+  passive perception and six abilities as tiles. A row of portraits at the top lets you look at each character (click one); **Activate** on the card, after a confirmation, makes it the one the table sees
   and the plus adds another; with the sync on, adding starts from a pasted sheet link, and a button fills it in by hand.
-  Pressing **Play** on a character switches who the table sees you playing, on every screen at once. Characters belong to one campaign, so to use the same sheet in two campaigns add it in each. The same is on the phone
+  Activating a character switches who the table sees you playing, on every screen at once. Characters belong to one campaign, so to use the same sheet in two campaigns add it in each. The same is on the phone
   web app: menu, **My characters**.
 - **Sessions**: upcoming sessions and your answer. The DM schedules a session with the calendar-plus icon at the
   top right.

@@ -2,15 +2,14 @@ import { type CharacterRecord } from '@vtt-chat-app/shared';
 import { Flex, Spinner, Text } from '@radix-ui/themes';
 import { useCallback, useEffect, useState } from 'react';
 
-import { ApiError } from '../../lib/api.js';
-import { ddbEnabled, myCharacters, playCharacter } from '../../lib/phone/phoneApi.js';
+import { ddbEnabled, myCharacters } from '../../lib/phone/phoneApi.js';
 import { usePhoneStore } from '../../lib/phone/phoneStore.js';
 import { CharacterCard } from './CharacterCard.js';
 import { CharacterSwitcher } from './CharacterSwitcher.js';
 import { NewCharacter } from './NewCharacter.js';
 
 /**
- * Your characters in this table: a row of portraits to switch between them (tap one to play it), the selected
+ * Your characters in this table: a row of portraits to look at each one (Activate on the card makes it the one you play), the selected
  * character's card, and a way to add another. Characters belong to one table; to use the same sheet in two tables,
  * add it in each.
  */
@@ -55,17 +54,10 @@ export function CharactersScreen({ campaignId }: { campaignId: string }) {
   const playingId = isDm ? undefined : list?.find((c) => c.name === activeName)?.id;
   const shown = list?.find((c) => c.id === (picked ?? playingId)) ?? list?.[0];
 
-  // One tap switches who you play (the DM has no character to play, so a tap only shows it).
+  // A tap only shows a character; switching who you play is the card's Activate button, after a confirmation.
   const choose = (c: CharacterRecord) => {
     setPicked(c.id);
     setAdding(false);
-    if (!isDm && c.id !== playingId) {
-      void playCharacter(campaignId, c.id)
-        .then(load)
-        .catch((e) =>
-          setError(e instanceof ApiError ? e.message : 'Could not switch character. Try again.'),
-        );
-    }
   };
 
   return (
