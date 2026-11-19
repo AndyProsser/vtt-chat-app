@@ -11,8 +11,11 @@ const PREROLL: usize = BLOCK * 2;
 /// The most a stream may hold (200 ms). Beyond it the oldest audio is dropped, so a stalled output
 /// device can never make memory or delay grow without bound.
 const MAX_BUFFERED: usize = BLOCK * 20;
-/// The loudest a single stream may be turned up (the DM may boost one player).
+/// The loudest everything together may be turned up.
 pub const MAX_GAIN: f32 = 2.0;
+/// The loudest one person may be turned up (4x, +12 dB): a very quiet microphone needs it. The soft limiter on
+/// the sum keeps a boosted voice from clipping.
+pub const MAX_PLAYER_GAIN: f32 = 4.0;
 
 struct Stream {
     buffered: VecDeque<f32>,
@@ -61,10 +64,10 @@ impl Playout {
         }
     }
 
-    /// One stream's volume: 0 silent, 1 as received, up to [`MAX_GAIN`]. Remembered even before the
+    /// One stream's volume: 0 silent, 1 as received, up to [`MAX_PLAYER_GAIN`]. Remembered even before the
     /// stream has any audio, so a saved volume applies the moment that person starts talking.
     pub fn set_gain(&mut self, stream: &str, gain: f32) {
-        let gain = gain.clamp(0.0, MAX_GAIN);
+        let gain = gain.clamp(0.0, MAX_PLAYER_GAIN);
         self.streams
             .entry(stream.to_string())
             .or_insert(Stream {
@@ -174,7 +177,7 @@ mod tests {
     fn gain_is_clamped_to_the_range() {
         let mut p = Playout::new();
         p.set_gain("amy", 9.0);
-        assert_eq!(p.gain("amy"), MAX_GAIN);
+        assert_eq!(p.gain("amy"), MAX_PLAYER_GAIN);
         p.set_gain("amy", -1.0);
         assert_eq!(p.gain("amy"), 0.0);
     }

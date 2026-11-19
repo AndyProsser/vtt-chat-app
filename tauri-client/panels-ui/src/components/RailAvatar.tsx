@@ -2,6 +2,7 @@ import { Flex, HoverCard, Slider, Text } from '@radix-ui/themes';
 import { Lock, MicOff } from 'lucide-react';
 import { memo, useState } from 'react';
 
+import { PLAYER_VOLUME_MAX } from '../consts/volume.js';
 import { useAudioEngine } from '../hooks/useAudioEngine.js';
 import { playerVolumeSet } from '../lib/tauriBridge.js';
 import { useIsSpeaking } from '../hooks/useIsSpeaking.js';
@@ -141,7 +142,7 @@ function PlayerVolume({ userId, selfId }: { userId: string; selfId: string | nul
         aria-label="This person's volume"
         size="1"
         min={0}
-        max={2}
+        max={PLAYER_VOLUME_MAX}
         step={0.05}
         value={[shown]}
         onValueChange={([v]) => setValue(v ?? 1)}

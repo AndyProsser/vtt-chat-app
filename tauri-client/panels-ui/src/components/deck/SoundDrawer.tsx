@@ -16,7 +16,6 @@ import type { SoundLibrary } from '../../types/index.js';
 import { ToolButton } from '../ToolButton.js';
 import { VoiceStrip } from '../VoiceStrip.js';
 import { MixSlider } from './MixSlider.js';
-import { PlayerMix } from './PlayerMix.js';
 import { ScenePanel } from './ScenePanel.js';
 import { SoundSettings } from './SoundSettings.js';
 import { StingerPanel } from './StingerPanel.js';
@@ -109,7 +108,6 @@ export function SoundDrawer() {
         >
           <RotateCcw size={15} />
         </ToolButton>
-        <PlayerMix />
         <SoundSettings
           sounds={sounds}
           allSounds={data?.sounds ?? []}

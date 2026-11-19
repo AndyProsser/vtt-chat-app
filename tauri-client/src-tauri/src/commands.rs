@@ -476,7 +476,7 @@ pub fn mic_level(state: State<'_, SharedClient>) -> Option<f32> {
         .map(|m| m.level().get())
 }
 
-/// One person's volume, 0 to 2 (mixer engine). Saved by account id, and applied now if running.
+/// One person's volume, 0 to 4 (mixer engine). Saved by account id, and applied now if running.
 #[tauri::command]
 pub fn player_volume_set(
     app: AppHandle,
@@ -487,7 +487,7 @@ pub fn player_volume_set(
     if user_id.is_empty() || user_id.len() > 64 {
         return Err("unknown person".into());
     }
-    let gain = gain.clamp(0.0, 2.0);
+    let gain = gain.clamp(0.0, rust_livekit::engine::playout::MAX_PLAYER_GAIN);
     let dir = crate::account::data_dir(&app).ok_or("no place to save the choice")?;
     let mut prefs = crate::audio_prefs::AudioPrefs::load(&dir);
     if (gain - 1.0).abs() < 0.01 {

@@ -2773,3 +2773,19 @@ body,
   color: var(--vtt-muted);
   cursor: pointer;
 }
+
+/* Settings → Players: a name (and, for the DM, the link) over the volume slider. */
+.vtt-player-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.vtt-player-vol {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.vtt-player-vol > span[role='slider'],
+.vtt-player-vol > :first-child {
+  flex: 1;
+}

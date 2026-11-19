@@ -11,7 +11,7 @@ import { isDm } from '../lib/tableModel.js';
 import { useTableStore } from '../lib/tableStore.js';
 import { useAccount } from '../hooks/useAccount.js';
 
-import { ConnectionPanel } from './ConnectionPanel.js';
+import { PlayersPanel } from './PlayersPanel.js';
 import { AccountSection } from './settings/AccountSection.js';
 import { AppearanceSection } from './settings/AppearanceSection.js';
 import { AppSection } from './settings/AppSection.js';
@@ -97,13 +97,11 @@ export function SettingsContent({ initialTab }: { initialTab?: string }) {
             <NotificationsSection />
           </div>
         </Tabs.Content>
-        {dm && (
-          <Tabs.Content value="quality">
-            <div className="vtt-settings-page">
-              <ConnectionPanel />
-            </div>
-          </Tabs.Content>
-        )}
+        <Tabs.Content value="players">
+          <div className="vtt-settings-page">
+            <PlayersPanel dm={dm} />
+          </div>
+        </Tabs.Content>
       </Tabs.Root>
     </div>
   );
