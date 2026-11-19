@@ -25,9 +25,7 @@ beforeAll(async () => {
     .toBuffer();
 });
 
-async function setup(
-  opts: { enabled?: boolean; image?: () => Promise<Buffer | undefined> } = {},
-) {
+async function setup(opts: { enabled?: boolean; image?: () => Promise<Buffer | undefined> } = {}) {
   const store = new MemoryStore();
   const accounts = new AccountService({ store });
   const campaigns = new CampaignService({ store });
@@ -173,7 +171,7 @@ describe('DdbSyncService', () => {
     await expect(t.service.link(other, t.campaign.id, t.character.id, URL1)).rejects.toThrow();
   });
 
-  it('syncs progress, and re-imports the portrait only when the sheet\'s own changes', async () => {
+  it("syncs progress, and re-imports the portrait only when the sheet's own changes", async () => {
     const t = await setup();
     await t.service.link(t.user, t.campaign.id, t.character.id, URL1);
     const mine = await t.store.getCharacter(t.character.id);

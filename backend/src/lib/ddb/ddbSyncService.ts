@@ -176,7 +176,8 @@ export class DdbSyncService {
     const { media } = this.deps;
     if (!media || !portraitAllowed(url, PORTRAIT_HOSTS)) return undefined;
     const bytes = await this.fetchImage(url).catch(() => undefined);
-    if (!bytes || bytes.length === 0 || bytes.length > MAX_PORTRAIT_DOWNLOAD_BYTES) return undefined;
+    if (!bytes || bytes.length === 0 || bytes.length > MAX_PORTRAIT_DOWNLOAD_BYTES)
+      return undefined;
     if (detectMedia(bytes)?.kind !== 'image') return undefined;
     const small = await sharp(bytes, { limitInputPixels: 64_000_000 })
       .rotate()
