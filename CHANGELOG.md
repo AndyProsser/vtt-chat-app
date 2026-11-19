@@ -10,6 +10,10 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ## [Unreleased]
 
+## [0.5.4] - 2026-11-19
+
+Cleaner character screens with D&D Beyond sync that now brings the portrait, your own sounds in the mixer, rules for who may delete a session, and new operator commands: delete a campaign, export and import one. A **PATCH** release: no protocol change, so 0.5.x apps and servers work together.
+
 ### Added
 
 - **Export and import one campaign.** `vtt-admin campaign export <id> <file>` saves a campaign to a `.vttcampaign` file (a zip with a manifest; handout files are stored as they are) (members, characters, chat, handouts and their files, loot, schedule, and every session's transcript, notes and summaries) and `campaign import <file>` restores it, on the same server after a delete or on another. Text only: the audio stays with the server backup. An export stops and lists any session that has no transcript yet; `--accept-loss` carries on without them. `--as-new` imports a copy. Members are matched by email; anyone without an account here gets a passwordless one.
@@ -18,7 +22,6 @@ the GitHub release notes and refuses to build a release without one. How to writ
 - **Your own sounds, from the app.** In the sound drawer's cog, the new **My sounds** tab adds a clip from your computer (OGG, WAV, MP3 or FLAC, up to 5 MB), another take of a sound, a new name, or deletes it. An effect appears under Stingers by itself; ambience and music go into scenes. (Scenes could already be edited there.)
 - **Characters on the phone web app.** The menu has **My characters**: add a character, edit one, choose who you play, add a picture, and link a D&D Beyond sheet or sync it, all on the existing routes.
 - **Operators can delete a campaign, or a single session, for good.** `vtt-admin campaign list` and `campaign delete <id> --yes` remove a campaign with its sessions and audio (the worker deletes the files and the command waits for it), chat, handouts, loot and schedule; without `--yes` it only shows what would go. `vtt-admin recording delete <id>` removes one session the same way. A new daily sweeper also removes handout pictures and PDFs that no handout uses any more (what a deleted campaign leaves behind).
-
 - **Switch character in one tap.** Both apps show your characters as a row of portraits at the top of the character screen; tap one to look at it, press **Activate** (after a confirmation that it changes your name and picture for everyone) to play it, or the plus to add another. Characters still belong to one campaign: to use the same sheet in two campaigns, add it in each.
 - **Character numbers as tiles.** A linked character shows armour class, hit points and passive perception, then all six abilities on a single row (modifier large, score small), instead of two lines of text.
 
@@ -34,12 +37,16 @@ the GitHub release notes and refuses to build a release without one. How to writ
 ### Fixed
 
 - **Loot rows fade out again when your system has animations turned off.** With "reduce motion" on (Windows: Show animations off), a given or taken item vanished at once and the gap closed a second later. The row now still dims out over about half a second; nothing moves.
-
 - **One Back button everywhere in the web app.** Handouts and history already had the quiet filled button; the full-screen pages, My characters, Find another table, Join requests, the sign-in form and the download page had three other looks. They share one now.
 
-- **Pressing Play on a character updated nothing on screen** until you refreshed: the server saved the switch but never told connected apps. It now announces it, so the phone, the desktop app and the rest of the table follow at once.
-
 - **A linked character's D&D Beyond portrait now imports.** D&D Beyond serves the original upload (often a megabyte or more) whatever size the address asks for, and our 256 KB limit skipped it silently, leaving the letter placeholder. The server now shrinks it to a 256-pixel square (new dependency `sharp`, prebuilt, no extra service) and tries again on the next sync if an import fails.
+
+### Known limits
+
+- A character linked to D&D Beyond shows armour class, hit points, passive perception and the six abilities. Classes with their subclasses, special senses (Darkvision and the like) and a larger detail popup come in 0.6.0, because they change what the server and app say to each other.
+- A character's D&D Beyond link is added in a second step: if the link fails, you are left with a plain, editable "New character".
+- Single sign-on ends in a code you type under "I have a sign-in code", and has not yet been tried against a real identity provider.
+- A character cannot be deleted yet (0.6.0).
 
 ## [0.5.3] - 2026-11-18
 
