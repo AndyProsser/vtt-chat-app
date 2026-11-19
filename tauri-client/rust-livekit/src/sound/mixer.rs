@@ -11,12 +11,17 @@ struct Voice {
     position: usize,
     looping: bool,
     gain: f32,
+    /// Started by a scene layer rather than a stinger button, so the scene level applies to it.
+    scene: bool,
 }
 
 #[derive(Default)]
 pub struct Mixer {
     voices: Vec<Voice>,
     master: f32,
+    /// The DM's live level for stingers and for scenes, 0 to 1 each; applied to every voice of that kind as it
+    /// plays, so moving a slider changes what is already sounding.
+    levels: (f32, f32),
 }
 
 impl Mixer {
@@ -24,12 +29,25 @@ impl Mixer {
         Self {
             voices: Vec::new(),
             master: 1.0,
+            levels: (1.0, 1.0),
         }
     }
 
     /// Starts a voice. A second `play` with the same id replaces the first (the server never reuses
     /// an id for a different sound, so this is only a replayed event).
     pub fn play(&mut self, id: &str, clip: Arc<Vec<f32>>, looping: bool, gain: f32) {
+        self.play_in(id, clip, looping, gain, false);
+    }
+
+    /// As [`Mixer::play`], saying whether a scene layer started it (so the scene level, not the stinger level, applies).
+    pub fn play_in(
+        &mut self,
+        id: &str,
+        clip: Arc<Vec<f32>>,
+        looping: bool,
+        gain: f32,
+        scene: bool,
+    ) {
         self.voices.retain(|v| v.id != id);
         if clip.is_empty() {
             return;
@@ -40,6 +58,7 @@ impl Mixer {
             position: 0,
             looping,
             gain: gain.max(0.0),
+            scene,
         });
     }
 
@@ -56,6 +75,11 @@ impl Mixer {
         self.master = master.clamp(0.0, 2.0);
     }
 
+    /// The DM's level for stingers and for scenes (0 to 1 each), applied to sounds already playing too.
+    pub fn set_levels(&mut self, stingers: f32, scenes: f32) {
+        self.levels = (stingers.clamp(0.0, 1.0), scenes.clamp(0.0, 1.0));
+    }
+
     pub fn is_idle(&self) -> bool {
         self.voices.is_empty()
     }
@@ -67,7 +91,9 @@ impl Mixer {
     /// Adds the next `out.len()` samples of every voice into `out` (which is overwritten).
     pub fn fill(&mut self, out: &mut [f32]) {
         out.fill(0.0);
+        let levels = self.levels;
         for voice in &mut self.voices {
+            let level = if voice.scene { levels.1 } else { levels.0 };
             for slot in out.iter_mut() {
                 if voice.position >= voice.clip.len() {
                     if voice.looping {
@@ -76,7 +102,7 @@ impl Mixer {
                         break;
                     }
                 }
-                *slot += voice.clip[voice.position] * voice.gain;
+                *slot += voice.clip[voice.position] * voice.gain * level;
                 voice.position += 1;
             }
         }
@@ -95,6 +121,20 @@ mod tests {
 
     fn clip(values: &[f32]) -> Arc<Vec<f32>> {
         Arc::new(values.to_vec())
+    }
+
+    #[test]
+    fn the_stinger_and_scene_levels_apply_live_to_what_is_already_playing() {
+        let mut mixer = Mixer::new();
+        mixer.play_in("rain", clip(&[0.4]), true, 1.0, true);
+        mixer.play_in("door", clip(&[0.4]), true, 1.0, false);
+        let mut out = [0.0; 1];
+        mixer.set_levels(1.0, 0.0); // the scene is turned right down while it plays
+        mixer.fill(&mut out);
+        assert_eq!(out, [0.4]);
+        mixer.set_levels(0.5, 1.0);
+        mixer.fill(&mut out);
+        assert!((out[0] - 0.6).abs() < 1e-6);
     }
 
     #[test]

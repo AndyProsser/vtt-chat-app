@@ -92,7 +92,9 @@ enum Command {
         clip: Arc<Vec<f32>>,
         looping: bool,
         gain: f32,
+        scene: bool,
     },
+    Levels(f32, f32),
     Stop(String),
     StopAll,
     Master(f32),
@@ -117,13 +119,19 @@ impl SoundEngine {
     }
 
     /// `clip` must be mono at [`SAMPLE_RATE`].
-    pub fn play(&self, id: &str, clip: Arc<Vec<f32>>, looping: bool, gain: f32) {
+    pub fn play(&self, id: &str, clip: Arc<Vec<f32>>, looping: bool, gain: f32, scene: bool) {
         let _ = self.tx.send(Command::Play {
             id: id.to_string(),
             clip,
             looping,
             gain,
+            scene,
         });
+    }
+
+    /// The DM's levels for stingers and for scenes (0 to 1 each), live: sounds already playing follow them.
+    pub fn set_levels(&self, stingers: f32, scenes: f32) {
+        let _ = self.tx.send(Command::Levels(stingers, scenes));
     }
 
     pub fn stop(&self, id: &str) {
@@ -191,7 +199,9 @@ fn run(rx: mpsc::Receiver<Command>) {
                 clip,
                 looping,
                 gain,
-            }) => mixer.play(&id, clip, looping, gain),
+                scene,
+            }) => mixer.play_in(&id, clip, looping, gain, scene),
+            Some(Command::Levels(s, sc)) => mixer.set_levels(s, sc),
             Some(Command::Stop(id)) => mixer.stop(&id),
             Some(Command::StopAll) => mixer.stop_all(),
             Some(Command::Master(v)) => mixer.set_master(v),
@@ -382,7 +392,7 @@ mod tests {
         let tone: Vec<f32> = (0..SAMPLE_RATE / 2)
             .map(|i| (i as f32 * 440.0 * std::f32::consts::TAU / SAMPLE_RATE as f32).sin() * 0.2)
             .collect();
-        engine.play("tone", Arc::new(tone), false, 1.0);
+        engine.play("tone", Arc::new(tone), false, 1.0, false);
         std::thread::sleep(Duration::from_millis(900));
         let n = *blocks.lock().unwrap();
         assert!(
@@ -418,7 +428,7 @@ mod tests {
             .collect();
         // Give the listener time to subscribe, then play.
         tokio::time::sleep(Duration::from_secs(4)).await;
-        engine.play("tone", Arc::new(tone), false, 1.0);
+        engine.play("tone", Arc::new(tone), false, 1.0, false);
         tokio::time::sleep(Duration::from_secs(8)).await;
         engine.stop_all();
         client.disconnect().await.ok();

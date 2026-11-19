@@ -328,14 +328,20 @@ mod tests {
         for game in [true, false] {
             assert_eq!(
                 classify(&gift, &away(game)).notify,
-                Some(("The DM gave you Wand".into(), "Add it to your sheet.".into()))
+                Some((
+                    "The DM gave you Wand".into(),
+                    "Add it to your sheet.".into()
+                ))
             );
         }
         static NO_TABLE: NotifyPrefs = NotifyPrefs {
             table: false,
             ..DEFAULTS
         };
-        assert_eq!(classify(&gift, &with_prefs(true, &NO_TABLE)), Attention::default());
+        assert_eq!(
+            classify(&gift, &with_prefs(true, &NO_TABLE)),
+            Attention::default()
+        );
     }
 
     #[test]

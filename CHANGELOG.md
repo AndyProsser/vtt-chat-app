@@ -16,6 +16,7 @@ Work towards **0.6.0** (protocol 4, on the `stage-11-protocol-4` branch). A 0.5 
 
 - **Re-drop loot.** The DM can post an item that is still on the table into the chat again; the card **moves** to the bottom (there is never a second card for one item). Only unclaimed loot can be re-dropped.
 - **"Added to my sheet".** A player ticks each item they hold, the party stash and their share of split coin once it is on their real game sheet. The tick resets whenever the item moves, and the DM never sees it. Players get a **To confirm** filter (their default), and a count on the Loot icon in the desktop app and the Loot tab of the phone web app.
+- **Quick mix on the sound panel.** The Stingers and Scenes rows each get a volume slider at the right, so a DM can keep the quiet scene and the louder stingers apart while running the board; moving one changes what is already playing (it used to apply to the next sound only). A new players button at the top right sets how loud you hear each player (the same per-person volume as on the rail; needs the app's own audio engine). No change between app and server.
 - **A notice when the DM gives you something**, stored so a player who was away finds it next time.
 
 ## [0.5.4] - 2026-11-19

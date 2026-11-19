@@ -1512,9 +1512,20 @@ body,
   margin-top: 7px;
   color: var(--vtt-gold);
 }
-.vtt-deck-panel > :last-child {
+.vtt-deck-panel > :nth-child(2) {
   flex: 1;
   min-width: 0;
+}
+/* The level slider at the right end of a deck row (Stingers, Scenes). */
+.vtt-deck-mix {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: 110px;
+  margin-top: 7px;
+  margin-left: auto;
+  color: var(--vtt-muted);
 }
 .vtt-scene-scroll {
   display: flex;
