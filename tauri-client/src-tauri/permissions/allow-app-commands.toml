@@ -26,6 +26,7 @@ commands.allow = [
   "account_connect_with_code",
   "dev_signin_enabled",
   "update_check",
+  "sound_upload",
   "server_version_check",
   "update_install",
   "update_dev_builds_get",
