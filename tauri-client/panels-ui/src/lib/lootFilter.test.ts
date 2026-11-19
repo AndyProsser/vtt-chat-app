@@ -66,8 +66,8 @@ describe('filterLoot', () => {
 });
 
 describe('filtersFor', () => {
-  it('offers the DM Available | Taken | All, and players All | Own | Party | Available', () => {
-    expect(filtersFor(false)).toEqual(['all', 'own', 'party', 'available']);
+  it('offers the DM Available | Taken | All, and players Not confirmed | All | Own | Party | Available', () => {
+    expect(filtersFor(false)).toEqual(['unconfirmed', 'all', 'own', 'party', 'available']);
     expect(filtersFor(true)).toEqual(['available', 'taken', 'all']);
   });
 });

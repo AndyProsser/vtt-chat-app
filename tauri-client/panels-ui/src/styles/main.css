@@ -2752,3 +2752,13 @@ body,
   font-style: normal;
   text-align: center;
 }
+
+/* "Added to my sheet": the player's own tick on a loot row. */
+.vtt-confirm {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--vtt-muted);
+  cursor: pointer;
+}

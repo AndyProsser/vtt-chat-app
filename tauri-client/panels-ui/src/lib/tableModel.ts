@@ -190,6 +190,7 @@ export function applyEvent(state: TableState, event: SyncEvent): TableState {
       return lines.length ? { ...state, chat: mergeChat(state.chat, lines) } : state;
     }
     case 'loot.dropped':
+    case 'loot.redropped':
     case 'loot.claimed':
     case 'loot.removed':
     case 'handout.shown':
@@ -331,6 +332,11 @@ function applyCard(state: TableState, type: string, d: Obj): TableState {
     }
     // The drop was before this window's tail began: show the claim anyway.
     return { ...state, cards: [...state.cards, { ...newCard(state, id, kind, d), ...claim }] };
+  }
+  if (type === 'loot.redropped') {
+    // The card moves: the old one goes and a fresh one sits at the bottom of the chat, never two of the same item.
+    const rest = state.cards.filter((c) => c.id !== id);
+    return { ...state, cards: [...rest, newCard(state, id, kind, d)] };
   }
   if (existing) return state;
   return { ...state, cards: [...state.cards, newCard(state, id, kind, d)] };

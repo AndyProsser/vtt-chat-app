@@ -242,7 +242,7 @@ export interface SrdItem {
 
 export type ClaimedFor = 'self' | 'party' | 'split' | 'assigned';
 export interface LootSplit {
-  shares: { userId: string; amount: number }[];
+  shares: { userId: string; amount: number; confirmed?: boolean }[];
   remainder: number;
 }
 
@@ -258,6 +258,8 @@ export interface LootItem {
   claimedBy: string | null;
   claimedFor: ClaimedFor | null;
   split: LootSplit | null;
+  /** "Added to my sheet": yours, or the party stash's. The server leaves it out for the DM. */
+  confirmed?: boolean;
   /** When the DM dropped it (ms); places its chat card when chat is rebuilt from the server. */
   droppedAt?: number;
 }

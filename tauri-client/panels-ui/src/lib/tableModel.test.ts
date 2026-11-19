@@ -295,6 +295,20 @@ describe('loot and handout cards', () => {
     expect(state.cards[0]?.claimedBy).toBe('u1');
   });
 
+  it('moves the card to the bottom of the chat when the DM re-drops the item', () => {
+    let state = applyEvent(emptyTable, chatLine);
+    state = applyEvent(state, dropped);
+    state = applyEvent(state, {
+      t: 'chat.message',
+      d: { id: 'm2', text: 'later', from: { userId: 'u', name: 'U' }, at: 9 },
+    });
+    state = applyEvent(state, {
+      t: 'loot.redropped',
+      d: { itemId: 'i1', name: 'Potion', quantity: 2 },
+    });
+    expect(state.cards.map((c) => [c.id, c.after])).toEqual([['loot:i1', 'm2']]);
+  });
+
   it('does not duplicate or un-claim when the same events are replayed', () => {
     let state = emptyTable;
     for (const e of [dropped, claimed, dropped, claimed]) state = applyEvent(state, e);

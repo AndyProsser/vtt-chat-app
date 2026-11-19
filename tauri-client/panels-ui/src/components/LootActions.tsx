@@ -1,4 +1,4 @@
-import { Hand, Undo2, Users } from 'lucide-react';
+import { Hand, Megaphone, Undo2, Users } from 'lucide-react';
 import { useState } from 'react';
 
 import { ACTION_LABEL, lootActions, type LootAction } from '../lib/lootActions.js';
@@ -7,12 +7,13 @@ import type { Member } from '../types/index.js';
 import { GivePicker } from './GivePicker.js';
 import { ToolButton } from './ToolButton.js';
 
-const ICON = { take: Hand, store: Users, return: Undo2 } as const;
+const ICON = { take: Hand, store: Users, return: Undo2, redrop: Megaphone } as const;
 const SHORT: Record<LootAction, string> = {
   take: 'Take',
   store: 'Store',
   return: 'Return',
   give: 'Give',
+  redrop: 'Post again',
 };
 
 /**

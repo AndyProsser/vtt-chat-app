@@ -1,4 +1,16 @@
-import { Backpack, Inbox, List, Split, Trash2, User, UserCheck, Users } from 'lucide-react';
+import {
+  Backpack,
+  Inbox,
+  List,
+  ListTodo,
+  Split,
+  Trash2,
+  User,
+  UserCheck,
+  Users,
+} from 'lucide-react';
+import { Checkbox } from '@radix-ui/themes';
+import { canConfirm, isConfirmed } from '@vtt-chat-app/shared';
 import { useMemo, useState } from 'react';
 
 import { useAccount } from '../hooks/useAccount.js';
@@ -24,6 +36,7 @@ const FILTER_ICON = {
   all: List,
   own: User,
   party: Users,
+  unconfirmed: ListTodo,
 } as const;
 const FILTER_LABEL: Record<LootFilter, string> = {
   available: 'Available',
@@ -31,6 +44,7 @@ const FILTER_LABEL: Record<LootFilter, string> = {
   all: 'All',
   own: 'Mine',
   party: 'Party stash',
+  unconfirmed: 'Not added to my sheet yet',
 };
 
 /**
@@ -106,6 +120,10 @@ export function LootPanel() {
           <EmptyState>Nothing in the pool yet.</EmptyState>
         ) : view === 'available' ? (
           <p className="vtt-muted">Nothing left to take.</p>
+        ) : view === 'unconfirmed' ? (
+          <p className="vtt-muted">
+            Everything you hold is on your sheet. Look under Available for what is left to take.
+          </p>
         ) : (
           <p className="vtt-muted">Nothing matches this filter.</p>
         ))}
@@ -134,6 +152,20 @@ export function LootPanel() {
                   players={players}
                   onDone={reload}
                 />
+                {canConfirm(item, status?.userId ?? null, dm) && (
+                  <label className="vtt-confirm">
+                    <Checkbox
+                      size="1"
+                      checked={isConfirmed(item, status?.userId ?? null)}
+                      onCheckedChange={(c) =>
+                        void run(() =>
+                          campaignApi('POST', `loot/${item.id}/confirm`, { confirmed: c === true }),
+                        )
+                      }
+                    />
+                    Added to my sheet
+                  </label>
+                )}
                 {open && item.kind === 'coin' && (
                   <ToolButton label="Split the coin equally…" onClick={() => startSplit(item.id)}>
                     <Split size={14} />

@@ -1,5 +1,6 @@
 import { AudioLines, Backpack, FileText, ScrollText } from 'lucide-react';
 
+import { useUnconfirmed } from '../hooks/useUnconfirmed.js';
 import { panelOpen } from '../lib/tauriBridge.js';
 import { CampaignSwitcher } from './CampaignSwitcher.js';
 import { GroupsMenu } from './GroupsMenu.js';
@@ -16,6 +17,7 @@ interface Props {
 
 /** Record state and timer on the left; on the right, the table tools as icon buttons and a burger menu for the rest. */
 export function TopBar({ dm, effectsOpen, onToggleEffects }: Props) {
+  const toConfirm = useUnconfirmed(dm);
   return (
     <header className="vtt-top">
       <CampaignSwitcher />
@@ -34,7 +36,15 @@ export function TopBar({ dm, effectsOpen, onToggleEffects }: Props) {
       <ToolButton label="Handouts" onClick={() => void panelOpen('handouts')}>
         <FileText size={15} />
       </ToolButton>
-      <ToolButton label="Party inventory" onClick={() => void panelOpen('inventory')}>
+      <ToolButton
+        label={
+          toConfirm > 0
+            ? `Party inventory: ${toConfirm} not added to your sheet yet`
+            : 'Party inventory'
+        }
+        {...(toConfirm > 0 ? { text: String(toConfirm) } : {})}
+        onClick={() => void panelOpen('inventory')}
+      >
         <Backpack size={15} />
       </ToolButton>
       <ToolButton label="Session history" onClick={() => void panelOpen('history')}>
