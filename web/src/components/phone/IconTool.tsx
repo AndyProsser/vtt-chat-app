@@ -12,11 +12,13 @@ interface Props extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'children'
   text?: string;
   danger?: boolean;
   submit?: boolean;
+  /** A toggle: shown filled while on. */
+  pressed?: boolean;
 }
 
 /** An icon button with a tip: the same gold-outline control the desktop app uses (its ToolButton). */
 export const IconTool = forwardRef<HTMLButtonElement, Props>(function IconTool(
-  { label, icon, text, danger, submit, className, ...rest },
+  { label, icon, text, danger, submit, pressed, className, ...rest },
   ref,
 ) {
   return (
@@ -26,7 +28,13 @@ export const IconTool = forwardRef<HTMLButtonElement, Props>(function IconTool(
         ref={ref}
         type={submit ? 'submit' : 'button'}
         aria-label={label}
-        className={['phone-tool', danger ? 'phone-tool-danger' : '', className ?? '']
+        aria-pressed={pressed}
+        className={[
+          'phone-tool',
+          danger ? 'phone-tool-danger' : '',
+          pressed ? 'phone-tool-on' : '',
+          className ?? '',
+        ]
           .filter(Boolean)
           .join(' ')}
       >

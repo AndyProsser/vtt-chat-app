@@ -1,7 +1,9 @@
 import {
   Backpack,
+  ClipboardCheck,
   Inbox,
   List,
+  ListChecks,
   ListTodo,
   Split,
   Trash2,
@@ -9,8 +11,7 @@ import {
   UserCheck,
   Users,
 } from 'lucide-react';
-import { Checkbox } from '@radix-ui/themes';
-import { canConfirm, isConfirmed } from '@vtt-chat-app/shared';
+import { canConfirm, isConfirmed, needsConfirming } from '@vtt-chat-app/shared';
 import { useMemo, useState } from 'react';
 
 import { useAccount } from '../hooks/useAccount.js';
@@ -87,6 +88,8 @@ export function LootPanel() {
   );
   const order = useMemo(() => (loot ?? []).map((i) => i.id), [loot]);
   const shown = useLeaving(filtered, order, view);
+  // What the "Add all" button would tick: this player's own items in the list that are not on their sheet yet.
+  const pending = shown.filter((i) => !i.leaving && needsConfirming(i, status?.userId ?? null));
 
   return (
     <div className="vtt-inventory">
@@ -113,6 +116,23 @@ export function LootPanel() {
             </ToolButton>
           );
         })}
+        {pending.length > 0 && (
+          <>
+            <span className="vtt-spacer" />
+            <ToolButton
+              label={`Mark all ${pending.length} as added to my character sheet`}
+              text={`Add all ${pending.length}`}
+              onClick={() =>
+                void run(async () => {
+                  for (const item of pending)
+                    await campaignApi('POST', `loot/${item.id}/confirm`, { confirmed: true });
+                })
+              }
+            >
+              <ListChecks size={14} />
+            </ToolButton>
+          </>
+        )}
       </div>
       {data &&
         shown.length === 0 &&
@@ -153,18 +173,23 @@ export function LootPanel() {
                   onDone={reload}
                 />
                 {canConfirm(item, status?.userId ?? null, dm) && (
-                  <label className="vtt-confirm">
-                    <Checkbox
-                      size="1"
-                      checked={isConfirmed(item, status?.userId ?? null)}
-                      onCheckedChange={(c) =>
-                        void run(() =>
-                          campaignApi('POST', `loot/${item.id}/confirm`, { confirmed: c === true }),
-                        )
-                      }
-                    />
-                    Added to my sheet
-                  </label>
+                  <ToolButton
+                    label={
+                      isConfirmed(item, status?.userId ?? null)
+                        ? 'On my character sheet (click to undo)'
+                        : 'Mark as added to my character sheet'
+                    }
+                    pressed={isConfirmed(item, status?.userId ?? null)}
+                    onClick={() =>
+                      void run(() =>
+                        campaignApi('POST', `loot/${item.id}/confirm`, {
+                          confirmed: !isConfirmed(item, status?.userId ?? null),
+                        }),
+                      )
+                    }
+                  >
+                    <ClipboardCheck size={14} />
+                  </ToolButton>
                 )}
                 {open && item.kind === 'coin' && (
                   <ToolButton label="Split the coin equally…" onClick={() => startSplit(item.id)}>

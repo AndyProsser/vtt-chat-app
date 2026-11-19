@@ -8,6 +8,7 @@ import {
   lootActions,
   lootFiltersFor,
   lootRequest,
+  needsConfirming,
   type LootAction,
   type LootFilter,
 } from '@vtt-chat-app/shared';
@@ -22,6 +23,7 @@ import { useLoad } from '../../hooks/useLoad.js';
 import { ApiError } from '../../lib/api.js';
 import { lootConfirm, lootDo, lootItems } from '../../lib/phone/phoneApi.js';
 import { ConfirmBox } from './ConfirmBox.js';
+import { IconTool } from './IconTool.js';
 import { usePhoneStore } from '../../lib/phone/phoneStore.js';
 import type { LootItem } from '../../types/phone.js';
 
@@ -57,6 +59,8 @@ export function InventoryTab({ campaignId }: { campaignId: string }) {
   const filters = lootFiltersFor(dm);
   const view = filters.includes(filter) ? filter : defaultLootFilter(dm);
   const shown = filterLootItems(data ?? [], view, selfId);
+  // What "Add all" would tick: this player's own items in the list that are not on their sheet yet.
+  const pending = shown.filter((i) => needsConfirming(i, selfId));
   const players = members.filter((m) => m.role !== 'dm');
 
   async function run(item: LootItem, action: LootAction, userId?: string) {
@@ -71,6 +75,17 @@ export function InventoryTab({ campaignId }: { campaignId: string }) {
     }
   }
 
+  /** Ticks every item in this list that is not on the player's sheet yet, one after another. */
+  async function confirmAll() {
+    setProblem(undefined);
+    try {
+      for (const item of pending) await lootConfirm(campaignId, item.id, true);
+    } catch (e) {
+      setProblem(e instanceof ApiError ? e.message : 'That did not work. Try again.');
+    }
+    reload();
+  }
+
   async function confirm(item: LootItem, value: boolean) {
     setProblem(undefined);
     try {
@@ -83,17 +98,27 @@ export function InventoryTab({ campaignId }: { campaignId: string }) {
 
   return (
     <Flex direction="column" gap="3" className="phone-pad">
-      <SegmentedControl.Root
-        size="1"
-        value={view}
-        onValueChange={(v) => setFilter(v as LootFilter)}
-      >
-        {filters.map((f) => (
-          <SegmentedControl.Item key={f} value={f}>
-            {FILTER_LABEL[f]}
-          </SegmentedControl.Item>
-        ))}
-      </SegmentedControl.Root>
+      <Flex align="center" justify="between" gap="2" wrap="wrap">
+        <SegmentedControl.Root
+          size="1"
+          value={view}
+          onValueChange={(v) => setFilter(v as LootFilter)}
+        >
+          {filters.map((f) => (
+            <SegmentedControl.Item key={f} value={f}>
+              {FILTER_LABEL[f]}
+            </SegmentedControl.Item>
+          ))}
+        </SegmentedControl.Root>
+        {pending.length > 0 && (
+          <IconTool
+            label={`Mark all ${pending.length} as added to my character sheet`}
+            text={`Add all ${pending.length}`}
+            icon="listChecks"
+            onClick={() => void confirmAll()}
+          />
+        )}
+      </Flex>
       {(error || problem) && (
         <Callout.Root color="red">
           <Callout.Text>{error ?? problem}</Callout.Text>

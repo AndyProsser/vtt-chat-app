@@ -1147,3 +1147,6 @@ button.phone-picture-button {
   align-items: center;
   gap: 4px;
 }
+.phone-tool-on {
+  background: color-mix(in srgb, var(--vtt-gold) 22%, transparent);
+}
