@@ -2957,17 +2957,17 @@ body,
 .vtt-chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: 4px 12px;
   margin-top: 6px;
 }
 .vtt-chip {
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  padding: 1px 6px;
-  font-size: 11px;
-  background: var(--gray-a3);
-  border-radius: 999px;
+  font-size: 12px;
+}
+.vtt-hover-card-click {
+  cursor: pointer;
 }
 .vtt-visually-hidden {
   position: absolute;
@@ -2995,4 +2995,70 @@ body,
   display: inline-flex;
   align-items: center;
   gap: 4px;
+}
+
+/* The character detail popup: room between the heading, the tiles and the senses. */
+.vtt-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px;
+}
+.vtt-detail .vtt-vitals,
+.vtt-detail .vtt-abilities,
+.vtt-detail .vtt-senses {
+  margin: 0;
+}
+
+/* The glossary's sections: a heading over its rows, with room between. */
+.vtt-glossary section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* The GM notes window fills its window: the editor takes all the room that is left. */
+.vtt-notes-window {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.vtt-notes-window > [role='tabpanel']:not([hidden]) {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.vtt-notes-page {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.vtt-notes-page > .vtt-notes {
+  flex: 1;
+  min-height: 0;
+  align-items: stretch;
+}
+.vtt-notes-page .vtt-notes-main > form,
+.vtt-notes-page .vtt-notes-main > form > .vtt-editor {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.vtt-notes-page .vtt-editor-area {
+  flex: 1;
+  min-height: 200px;
+  display: flex;
+  resize: none;
+}
+.vtt-notes-page .vtt-editor-area textarea {
+  flex: 1;
+  height: 100%;
+  resize: none;
+}
+.vtt-notes-page .vtt-editor-preview {
+  flex: 1;
+  overflow-y: auto;
 }

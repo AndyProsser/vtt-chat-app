@@ -16,7 +16,7 @@ const VITAL_ICON: Record<string, IconName> = { ac: 'shield', hp: 'heart', pp: 'e
 
 /**
  * The larger popup behind a rail card: the full picture of a character that has a linked sheet (classes with their
- * subclasses, vitals, the six abilities, special senses). Worked out from the D&D Beyond sheet by this app, and says so.
+ * subclasses, vitals, the six abilities, special senses). Worked out from the D&D Beyond sheet by this app.
  */
 export function CharacterDetail({
   member,
@@ -33,7 +33,7 @@ export function CharacterDetail({
   const classes = classesLine(sheet) ?? [c?.className, c?.level].filter(Boolean).join(' ');
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
-      <Dialog.Content maxWidth="420px">
+      <Dialog.Content maxWidth="420px" className="phone-detail">
         <Dialog.Title size="3">{c?.name ?? member.displayName}</Dialog.Title>
         <Dialog.Description size="1" color="gray">
           {[c?.race, classes].filter(Boolean).join(' · ')}
@@ -66,9 +66,6 @@ export function CharacterDetail({
             ))}
           </ul>
         )}
-        <p className="phone-muted">
-          Worked out from the D&amp;D Beyond sheet by this app; check the sheet for unusual builds.
-        </p>
       </Dialog.Content>
     </Dialog.Root>
   );

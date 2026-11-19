@@ -1,4 +1,4 @@
-import { Button, Flex, HoverCard, Slider, Text } from '@radix-ui/themes';
+import { Flex, HoverCard, Slider, Text } from '@radix-ui/themes';
 import { Lock, MicOff } from 'lucide-react';
 import { memo, useState } from 'react';
 
@@ -91,7 +91,15 @@ export const RailAvatar = memo(function RailAvatar({
             )}
           </span>
         </HoverCard.Trigger>
-        <HoverCard.Content size="1" side="right" maxWidth="220px" className="vtt-hover-card">
+        <HoverCard.Content
+          size="1"
+          side="right"
+          maxWidth="220px"
+          className={sheet ? 'vtt-hover-card vtt-hover-card-click' : 'vtt-hover-card'}
+          {...(sheet
+            ? { onClick: () => setDetail(true), title: 'Click for the full character details' }
+            : {})}
+        >
           <Text as="div" weight="bold" size="2" className="vtt-head">
             {card.title}
           </Text>
@@ -101,11 +109,6 @@ export const RailAvatar = memo(function RailAvatar({
             </Text>
           ))}
           <SheetChips sheet={sheet} />
-          {sheet && (
-            <Button size="1" variant="ghost" mt="1" onClick={() => setDetail(true)}>
-              Details
-            </Button>
-          )}
           {groupName && (
             <>
               <hr className="vtt-card-sep" />
@@ -155,7 +158,7 @@ function PlayerVolume({ userId, selfId }: { userId: string; selfId: string | nul
   if (engine?.active !== 'mixer' || userId === selfId) return null;
   const shown = value ?? engine.volumes[userId] ?? 1;
   return (
-    <Flex direction="column" gap="1" mt="2">
+    <Flex direction="column" gap="1" mt="2" onClick={(e) => e.stopPropagation()}>
       <Text size="1">Volume {Math.round(shown * 100)}%</Text>
       <Slider
         aria-label="This person's volume"

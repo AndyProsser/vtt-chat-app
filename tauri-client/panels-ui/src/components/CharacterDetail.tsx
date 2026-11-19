@@ -81,9 +81,6 @@ export function CharacterDetail({
             })}
           </ul>
         )}
-        <span className="vtt-muted">
-          Worked out from the D&amp;D Beyond sheet by this app; check the sheet for unusual builds.
-        </span>
       </Dialog.Content>
     </Dialog.Root>
   );

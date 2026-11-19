@@ -23,13 +23,13 @@ export function GmNotesPanel() {
   if (members.length > 0 && !dm)
     return <span className="vtt-muted">The notes are the Game Master&apos;s alone.</span>;
   return (
-    <Tabs.Root defaultValue="notes">
+    <Tabs.Root defaultValue="notes" className="vtt-notes-window">
       <Tabs.List size="1">
         <Tabs.Trigger value="notes">Notes</Tabs.Trigger>
         <Tabs.Trigger value="glossary">Glossary</Tabs.Trigger>
       </Tabs.List>
       <Tabs.Content value="notes">
-        <div className="vtt-settings-page">
+        <div className="vtt-settings-page vtt-notes-page">
           {notes.error && <span className="vtt-composer-error">{notes.error}</span>}
           {!notes.data && !notes.error && <span className="vtt-muted">Loading…</span>}
           {notes.data && <NotesPage data={notes.data} reload={notes.reload} />}

@@ -28,6 +28,11 @@ export function SheetChips({ sheet }: { sheet: CharacterSheet | null | undefined
         <b>{sheet.maxHp}</b>
         <span className="phone-sr">Hit points</span>
       </span>
+      <span className="phone-chip" title={`Passive Perception ${sheet.passivePerception}`}>
+        <Icon name="eye" size={12} />
+        <b>{sheet.passivePerception}</b>
+        <span className="phone-sr">Passive Perception</span>
+      </span>
       {(sheet.senses ?? []).map((s) => (
         <span key={s.kind} className="phone-chip" title={senseLabel(s)}>
           <Icon name={SENSE_ICON[s.kind]} size={12} />

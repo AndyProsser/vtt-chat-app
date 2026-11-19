@@ -66,10 +66,10 @@ export function HistoryPanel() {
     [],
   );
   const [openId, setOpenId] = useState<string>();
-  const recordings = (data?.recordings ?? []).filter((r) => !gone.has(r.id));
-
   // The server removes a deleted session in the background (its audio first), so hide it here at once.
+  // (Declared before it is read: reading a `const` earlier throws, which blanked this whole panel in 0.5.3 to 0.5.4.)
   const [gone, setGone] = useState<ReadonlySet<string>>(new Set());
+  const recordings = (data?.recordings ?? []).filter((r) => !gone.has(r.id));
   const devBuilds = useDevBuilds();
   function removed(id: string) {
     setGone((g) => new Set(g).add(id));

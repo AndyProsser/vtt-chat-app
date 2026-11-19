@@ -1,4 +1,4 @@
-import { Button, Popover, Text } from '@radix-ui/themes';
+import { Popover, Text } from '@radix-ui/themes';
 import { useId, useMemo, useRef, useState } from 'react';
 
 import { usePopout } from '../../hooks/usePopout.js';
@@ -124,7 +124,10 @@ function RailMember({
           aria-label={card.title}
           size="1"
           maxWidth="240px"
-          className="phone-rail-card"
+          className={sheet ? 'phone-rail-card phone-rail-card-click' : 'phone-rail-card'}
+          {...(sheet
+            ? { onClick: () => setDetail(true), title: 'Tap for the full character details' }
+            : {})}
           side="bottom"
           onOpenAutoFocus={(e) => e.preventDefault()}
           onCloseAutoFocus={(e) => {
@@ -145,11 +148,6 @@ function RailMember({
             </Text>
           ))}
           <SheetChips sheet={sheet} />
-          {sheet && (
-            <Button size="1" variant="ghost" mt="1" onClick={() => setDetail(true)}>
-              Details
-            </Button>
-          )}
           <Text as="div" size="1" color="gray" className="phone-rail-status">
             <span
               className={`phone-av-dot phone-av-dot-${card.presence} phone-av-dot-inline`}
