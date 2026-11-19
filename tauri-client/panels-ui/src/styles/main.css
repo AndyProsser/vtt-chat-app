@@ -2836,3 +2836,129 @@ body,
   align-items: center;
   color: var(--amber-11);
 }
+
+/* The GM notes window: the page on the left; headings and attachments in a sidebar on the right. */
+.vtt-notes {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+.vtt-notes-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.vtt-notes-side {
+  flex: none;
+  width: 190px;
+  position: sticky;
+  top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-height: calc(100vh - 80px);
+  overflow-y: auto;
+}
+@media (max-width: 560px) {
+  .vtt-notes {
+    flex-direction: column;
+  }
+  .vtt-notes-side {
+    width: 100%;
+    position: static;
+  }
+}
+.vtt-notes-side-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+.vtt-notes-heading {
+  display: block;
+  width: 100%;
+  padding: 3px 4px;
+  text-align: left;
+  font-size: 12px;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.vtt-notes-heading:hover {
+  background: var(--gray-a3);
+}
+.vtt-notes-files {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.vtt-notes-file {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.vtt-notes-file-open {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 4px;
+  text-align: left;
+  font-size: 12px;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.vtt-notes-file-open:hover {
+  background: var(--gray-a3);
+}
+.vtt-notes-file-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.vtt-notes-sure {
+  font-size: 11px;
+  color: var(--red-11);
+  background: transparent;
+  border: 1px solid var(--red-a7);
+  border-radius: 4px;
+  cursor: pointer;
+}
+.vtt-md-anchor {
+  color: var(--accent-11);
+  text-decoration: underline;
+  cursor: pointer;
+}
+.vtt-glossary {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.vtt-glossary-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.vtt-glossary-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 0;
+}
+.vtt-glossary-term {
+  flex: 1;
+  min-width: 0;
+}

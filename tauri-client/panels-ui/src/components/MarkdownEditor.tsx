@@ -19,9 +19,21 @@ const TOOLS: { kind: FormatKind; label: string; icon: typeof Bold }[] = [
 export function MarkdownEditor({
   value,
   onChange,
+  maxLength = 20000,
+  label = 'Handout text',
+  placeholder = 'Write the handout in Markdown…',
+  previewLabel = 'Preview what players will read',
+  renderPreview = (text) => <MarkdownView text={text} />,
 }: {
   value: string;
   onChange: (text: string) => void;
+  maxLength?: number;
+  /** The text box's accessible name. */
+  label?: string;
+  placeholder?: string;
+  previewLabel?: string;
+  /** How the preview draws the text (the GM notes draw links and headings their own way). */
+  renderPreview?: (text: string) => React.ReactNode;
 }) {
   const area = useRef<HTMLTextAreaElement>(null);
   const [preview, setPreview] = useState(false);
@@ -49,7 +61,7 @@ export function MarkdownEditor({
         ))}
         <span className="vtt-spacer" />
         <ToolButton
-          label={preview ? 'Back to editing' : 'Preview what players will read'}
+          label={preview ? 'Back to editing' : previewLabel}
           pressed={preview}
           onClick={() => setPreview((p) => !p)}
         >
@@ -59,7 +71,7 @@ export function MarkdownEditor({
       {preview ? (
         <div className="vtt-editor-preview">
           {value.trim() ? (
-            <MarkdownView text={value} />
+            renderPreview(value)
           ) : (
             <span className="vtt-muted">Nothing to preview yet.</span>
           )}
@@ -69,10 +81,10 @@ export function MarkdownEditor({
           size="1"
           ref={area}
           className="vtt-editor-area"
-          aria-label="Handout text"
-          placeholder="Write the handout in Markdown…"
+          aria-label={label}
+          placeholder={placeholder}
           value={value}
-          maxLength={20000}
+          maxLength={maxLength}
           onChange={(e) => onChange(e.target.value)}
         />
       )}

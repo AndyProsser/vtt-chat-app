@@ -11,6 +11,7 @@ export const PANEL_NAMES = [
   'history',
   'inventory',
   'handout',
+  'notes',
 ] as const;
 export type PanelName = (typeof PANEL_NAMES)[number];
 /** How often a waiting device sign-in asks the server whether the browser approved it. */

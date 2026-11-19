@@ -135,7 +135,7 @@ fn write_private(path: &Path, saved: &Saved) -> std::io::Result<()> {
 /// The parts of the REST API a panel may reach, all under the signed-in campaign (or the DM's own
 /// sound library). The server still checks who is allowed to do what; this only stops a panel — which
 /// loads nothing but our own pages — from being turned into a general-purpose HTTP client.
-const RELAY_CAMPAIGN_AREAS: [&str; 12] = [
+const RELAY_CAMPAIGN_AREAS: [&str; 13] = [
     "handouts",
     "recordings",
     "loot",
@@ -148,6 +148,7 @@ const RELAY_CAMPAIGN_AREAS: [&str; 12] = [
     "characters",
     "active-character",
     "chat",
+    "gm",
 ];
 
 /// `handouts/abc/show` → `/api/campaigns/<id>/handouts/abc/show`; `soundboard/library` →
@@ -358,6 +359,31 @@ pub fn handout_upload_path(
         .append_pair("name", &name.chars().take(200).collect::<String>());
     Ok(format!(
         "/api/campaigns/{campaign_id}/handouts/upload?{}",
+        url.query().unwrap_or_default()
+    ))
+}
+
+/// The largest GM-notes attachment the app will read into memory to send (the operator's own ceiling, default
+/// 100 MB, is the real gate); only a sanity bound against a runaway file.
+pub const MAX_GM_UPLOAD_BYTES: usize = 512 * 1024 * 1024;
+
+/// `/api/campaigns/<id>/gm/notes/files?name=…`: an attachment to the Game Master's notes, the name percent-encoded.
+pub fn gm_note_upload_path(campaign_id: &str, name: &str) -> Result<String, AccountError> {
+    if campaign_id.is_empty()
+        || !campaign_id
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+    {
+        return Err(AccountError::new(
+            "invalid_input",
+            "that request is not allowed",
+        ));
+    }
+    let mut url = url::Url::parse("http://x").expect("a constant URL parses");
+    url.query_pairs_mut()
+        .append_pair("name", &name.chars().take(200).collect::<String>());
+    Ok(format!(
+        "/api/campaigns/{campaign_id}/gm/notes/files?{}",
         url.query().unwrap_or_default()
     ))
 }
@@ -1203,6 +1229,24 @@ mod tests {
         assert!(handout_upload_path("", "x", "image", "n").is_err());
         let long = "t".repeat(201);
         assert!(handout_upload_path("c1", &long, "image", "n").is_err());
+    }
+
+    #[test]
+    fn a_gm_note_upload_path_encodes_the_name_and_refuses_a_bad_campaign() {
+        assert_eq!(
+            gm_note_upload_path("c1", "Map of the keep & more.png").unwrap(),
+            "/api/campaigns/c1/gm/notes/files?name=Map+of+the+keep+%26+more.png"
+        );
+        assert!(gm_note_upload_path("c1/../x", "n").is_err());
+        assert!(gm_note_upload_path("", "n").is_err());
+        assert_eq!(
+            relay_path("c1", "gm/notes").unwrap(),
+            "/api/campaigns/c1/gm/notes"
+        );
+        assert_eq!(
+            relay_path("c1", "gm/notes/files/f-1").unwrap(),
+            "/api/campaigns/c1/gm/notes/files/f-1"
+        );
     }
 
     #[test]

@@ -119,11 +119,7 @@ export class CampaignService {
     campaignId: string,
     patch: { name?: string; description?: string; bard?: BardId },
   ): Promise<Campaign> {
-    if (
-      patch.name === undefined &&
-      patch.description === undefined &&
-      patch.bard === undefined
-    ) {
+    if (patch.name === undefined && patch.description === undefined && patch.bard === undefined) {
       throw new DomainError('invalid_input', 'nothing to change');
     }
     await this.requireDm(actor.id, campaignId);

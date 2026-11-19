@@ -119,6 +119,9 @@ services:
       # Testing only: 1 also saves the DM's sound effects as a private, untranscribed file.
       RECORD_SOUNDBOARD: ${RECORD_SOUNDBOARD:-}
       STARTER_SOUNDS: ${STARTER_SOUNDS:-}
+      # The largest single attachment to the Game Master's notes, in megabytes (default 100). A ceiling so one upload
+      # cannot fill the disk; the product itself puts no limit on notes.
+      GM_NOTES_MAX_MB: ${GM_NOTES_MAX_MB:-}
       RECORD_CUES: ${RECORD_CUES:-}
     extra_hosts: ['host.docker.internal:host-gateway']
     ports: ['127.0.0.1:${BACKEND_PORT:-3000}:3000'] # loopback only: health checks and local probes

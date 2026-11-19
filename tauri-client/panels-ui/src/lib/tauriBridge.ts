@@ -16,6 +16,7 @@ import type {
   AccountStatus,
   ConnectLink,
   DeviceStart,
+  GmNoteFile,
   Hydration,
   JoinRequestRow,
   OpenCampaignCard,
@@ -207,6 +208,13 @@ export const joinDecide = (campaignId: string, requestId: string, approve: boole
   });
 export const joinAllow = (campaignId: string, allow: boolean) =>
   invoke<unknown>('join_api', { action: 'allow', campaignId, flag: allow });
+
+/** Attaches a picture or PDF to the Game Master's notes (`gm_note_upload`); `data` is the file as base64. */
+export const gmNoteUpload = (name: string, data: string) =>
+  invoke<{ file: GmNoteFile }>('gm_note_upload', { name, data });
+
+/** Opens a web link in the system's default browser (`open_external_link`); anything but http(s) is refused. */
+export const openExternalLink = (url: string) => invoke<void>('open_external_link', { url });
 
 /** Adds a picture to a picture handout (`handout_add_image`); `data` is the file as base64. */
 export const handoutAddImage = (handoutId: string, name: string, data: string) =>

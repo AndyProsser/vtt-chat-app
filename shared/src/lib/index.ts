@@ -8,5 +8,4 @@ export * from './lootView.js';
 export * from './characters.js';
 export * from './ddbSync.js';
 export * from './plainPreview.js';
-export * from './markdownHeadings.js';
 export * from './processingNotice.js';

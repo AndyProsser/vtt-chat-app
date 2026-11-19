@@ -281,6 +281,17 @@ _Top: the sound drawer (voices, stingers, scenes) and voice groups. Bottom: the 
 
 <img src="../images/screens/desktop-settings-campaign.png" alt="Settings, Campaign: the description, invite links, handing over the DM role, and join requests" width="380"> <img src="../images/screens/desktop-history-notes.png" alt="The scribe’s notes, opened" width="380">
 
+**GM notes and the glossary**
+
+- The notes button in the top bar (a notebook and pen; yours only) opens a window with two tabs. **Notes** is one page of
+  Markdown for the whole campaign: secrets, non-player characters, places, whatever you need. A new page starts with a few
+  headings to prompt you; delete any you do not want. **Reading** shows the page with a list of its headings on the right
+  (click to jump) and the attachments under it (click one to preview a picture or PDF). **Editing** (the pencil) is the
+  Markdown editor, where you can also attach pictures and PDFs. Links open in your normal browser, never inside the app.
+- **Glossary** is your campaign's words: names, places, items, spells, with the other ways each is said. Players never see
+  either tab, and the server refuses them if they ask.
+- The notes and attachments are part of a campaign's export. The server's operator sets how large one attachment may be.
+
 **Start and end a session**
 
 - **Record**: the record button in the bar starts, pauses, resumes and stops. A recording protects the

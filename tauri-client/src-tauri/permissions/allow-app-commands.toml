@@ -27,6 +27,8 @@ commands.allow = [
   "dev_signin_enabled",
   "update_check",
   "sound_upload",
+  "gm_note_upload",
+  "open_external_link",
   "server_version_check",
   "update_install",
   "update_dev_builds_get",

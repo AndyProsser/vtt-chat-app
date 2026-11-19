@@ -1,4 +1,4 @@
-import { AudioLines, Backpack, FileText, ScrollText } from 'lucide-react';
+import { AudioLines, Backpack, FileText, NotebookPen, ScrollText } from 'lucide-react';
 
 import { useUnconfirmed } from '../hooks/useUnconfirmed.js';
 import { panelOpen } from '../lib/tauriBridge.js';
@@ -47,6 +47,11 @@ export function TopBar({ dm, effectsOpen, onToggleEffects }: Props) {
       >
         <Backpack size={15} />
       </ToolButton>
+      {dm && (
+        <ToolButton label="GM notes and glossary" onClick={() => void panelOpen('notes')}>
+          <NotebookPen size={15} />
+        </ToolButton>
+      )}
       <ToolButton label="Session history" onClick={() => void panelOpen('history')}>
         <ScrollText size={15} />
       </ToolButton>

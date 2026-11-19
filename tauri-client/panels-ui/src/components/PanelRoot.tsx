@@ -4,6 +4,7 @@ import { HandoutViewer } from './HandoutViewer.js';
 import { HistoryPanel } from './HistoryPanel.js';
 import { LootPanel } from './LootPanel.js';
 import { MainWindow } from './MainWindow.js';
+import { GmNotesPanel } from './notes/GmNotesPanel.js';
 import { SettingsWindow } from './SettingsWindow.js';
 
 export function PanelRoot() {
@@ -28,6 +29,12 @@ export function PanelRoot() {
       return (
         <div className="vtt-settings vtt-panel-pad">
           <LootPanel />
+        </div>
+      );
+    case 'notes':
+      return (
+        <div className="vtt-settings vtt-panel-pad">
+          <GmNotesPanel />
         </div>
       );
     default:

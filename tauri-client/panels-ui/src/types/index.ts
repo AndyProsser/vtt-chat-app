@@ -339,3 +339,29 @@ export interface JoinInbox {
   allowJoin: boolean;
   requests: JoinRequestRow[];
 }
+
+/** An attachment to the Game Master's notes (a picture or a PDF). */
+export interface GmNoteFile {
+  id: string;
+  name: string;
+  kind: 'image' | 'pdf';
+  mime: string;
+  bytes: number;
+  createdAt: number;
+}
+
+/** `GET gm/notes`: the Game Master's notes page, its attachments and the largest attachment this server takes. */
+export interface GmNotesData {
+  body: string;
+  updatedAt: number | null;
+  files: GmNoteFile[];
+  maxFileBytes: number;
+}
+
+export interface GlossaryTerm {
+  id: string;
+  term: string;
+  kind: 'person' | 'place' | 'item' | 'spell' | 'other';
+  aliases: string[];
+  status: 'approved' | 'suggested';
+}
