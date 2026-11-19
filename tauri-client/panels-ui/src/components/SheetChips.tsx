@@ -16,18 +16,18 @@ export const SENSE_ICON: Record<SenseKind, LucideIcon> = {
 export function SheetChips({ sheet }: { sheet: CharacterSheet | null | undefined }) {
   if (!sheet) return null;
   return (
-    <div className="vtt-chips">
-      <span className="vtt-chip" title={`Armour class ${sheet.armorClass}`}>
+    <div className="vtt-sheet-stats">
+      <span className="vtt-sheet-stat" title={`Armour class ${sheet.armorClass}`}>
         <Shield size={12} aria-hidden />
         <b>{sheet.armorClass}</b>
         <span className="vtt-visually-hidden">Armour class</span>
       </span>
-      <span className="vtt-chip" title={`Hit points ${sheet.maxHp}`}>
+      <span className="vtt-sheet-stat" title={`Hit points ${sheet.maxHp}`}>
         <Heart size={12} aria-hidden />
         <b>{sheet.maxHp}</b>
         <span className="vtt-visually-hidden">Hit points</span>
       </span>
-      <span className="vtt-chip" title={`Passive Perception ${sheet.passivePerception}`}>
+      <span className="vtt-sheet-stat" title={`Passive Perception ${sheet.passivePerception}`}>
         <Eye size={12} aria-hidden />
         <b>{sheet.passivePerception}</b>
         <span className="vtt-visually-hidden">Passive Perception</span>
@@ -35,7 +35,7 @@ export function SheetChips({ sheet }: { sheet: CharacterSheet | null | undefined
       {(sheet.senses ?? []).map((s) => {
         const Icon = SENSE_ICON[s.kind];
         return (
-          <span key={s.kind} className="vtt-chip" title={senseLabel(s)}>
+          <span key={s.kind} className="vtt-sheet-stat" title={senseLabel(s)}>
             <Icon size={12} aria-hidden />
             <b>{s.range}</b>
             <span className="vtt-visually-hidden">{senseLabel(s)}</span>

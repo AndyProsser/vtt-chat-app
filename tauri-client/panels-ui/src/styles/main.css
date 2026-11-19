@@ -2954,13 +2954,13 @@ body,
 }
 
 /* Quick numbers as icon chips (hover card), the classes line and the senses list (character screen and detail popup). */
-.vtt-chips {
+.vtt-sheet-stats {
   display: flex;
   flex-wrap: wrap;
   gap: 4px 12px;
   margin-top: 6px;
 }
-.vtt-chip {
+.vtt-sheet-stat {
   display: inline-flex;
   align-items: center;
   gap: 3px;
