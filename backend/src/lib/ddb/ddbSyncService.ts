@@ -87,6 +87,34 @@ export class DdbSyncService {
     return this.apply(linked, outcome.character);
   }
 
+  /**
+   * Adds a character from a D&D Beyond link in one step (0.6.0): the sheet is read **first**, so a private sheet, a
+   * wrong link or an outage leaves nothing behind, then the character is made already filled in and linked.
+   */
+  async createLinked(user: User, campaignId: string, url: string): Promise<Character> {
+    this.requireEnabled();
+    const id = characterIdFromUrl(url);
+    if (!id) throw new DomainError('invalid_input', 'that is not a D&D Beyond character link');
+    const outcome = await this.fetchSheet(id);
+    if (!outcome.ok) throw new DomainError('invalid_input', REASON_TEXT[outcome.reason]!);
+    const made = await this.deps.campaigns.addCharacter(user, campaignId, {
+      name: outcome.character.name,
+      className: null,
+      race: null,
+      level: null,
+      avatarUrl: null,
+    });
+    try {
+      return await this.apply(
+        { ...made, sourceUrl: characterSheetUrl(id), sourceAvatar: null, sheet: null },
+        outcome.character,
+      );
+    } catch (error) {
+      await this.deps.campaigns.deleteCharacter(user, campaignId, made.id).catch(() => undefined);
+      throw error;
+    }
+  }
+
   async unlink(user: User, campaignId: string, characterId: string): Promise<Character> {
     this.requireEnabled();
     const mine = await this.ownCharacter(user, campaignId, characterId);

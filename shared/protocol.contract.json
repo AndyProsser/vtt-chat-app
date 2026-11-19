@@ -1,6 +1,6 @@
 {
   "protocolVersion": 4,
-  "hash": "14860e93b3c0e84c0dee4e906517ff3724a5bff8f759adadf0370ec37abe575f",
+  "hash": "1b564410ec5eb929ac904af516ac2b579efb0404387785c921152844ed02ca71",
   "summary": {
     "clientFrames": [
       "audio.state",
@@ -97,6 +97,7 @@
       "http/authRoutes.ts POST /sessions/revoke-others",
       "http/avatarRoutes.ts GET /:id",
       "http/avatarRoutes.ts POST /upload",
+      "http/campaignRoutes.ts DELETE /:id/characters/:characterId",
       "http/campaignRoutes.ts DELETE /:id/invites",
       "http/campaignRoutes.ts DELETE /:id/invites/:code",
       "http/campaignRoutes.ts GET /",

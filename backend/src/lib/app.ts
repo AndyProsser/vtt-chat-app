@@ -10,6 +10,7 @@ import { joinRequestRoutes } from './http/joinRequestRoutes.js';
 import { DEFAULT_TRUST_PROXY, type BackendConfig } from './config.js';
 import { signupRoutes } from './http/signupRoutes.js';
 import { inviteRoutes, webNotFound, webPages } from './http/joinRoutes.js';
+import type { User } from '../types/index.js';
 import type { DdbSyncService } from './ddb/ddbSyncService.js';
 import { avatarRoutes } from './http/avatarRoutes.js';
 import { OidcClient } from './auth/oidc.js';
@@ -300,6 +301,12 @@ export function createApp({
       accounts,
       campaigns,
       store,
+      ...(ddb?.enabled
+        ? {
+            createLinkedCharacter: (user: User, campaignId: string, url: string) =>
+              ddb.createLinked(user, campaignId, url),
+          }
+        : {}),
       liveKit: {
         url: config.liveKitUrl,
         apiKey: config.liveKitApiKey,

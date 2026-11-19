@@ -4,6 +4,24 @@ export interface DdbSheet {
   maxHp: number;
   armorClass: number;
   passivePerception: number;
+  /** Special senses with their range in feet (Darkvision 60); empty when the character has none. */
+  senses: DdbSense[];
+  /** Each class with its level and, once D&D Beyond has chosen one (level 3 for most), its subclass. */
+  classes: DdbClass[];
+}
+
+export type DdbSenseKind = 'darkvision' | 'blindsight' | 'tremorsense' | 'truesight';
+
+export interface DdbSense {
+  kind: DdbSenseKind;
+  /** Feet. */
+  range: number;
+}
+
+export interface DdbClass {
+  name: string;
+  level: number;
+  subclass: string | null;
 }
 
 /** What a sync brings back. */

@@ -593,6 +593,10 @@ export class PostgresStore implements Store {
     );
   }
 
+  async deleteCharacter(id: string): Promise<void> {
+    await this.db.query('DELETE FROM characters WHERE id = $1', [id]);
+  }
+
   getInviteByHash = (codeHash: string): Promise<Invite | undefined> =>
     this.one(toInvite, 'SELECT * FROM invites WHERE code_hash = $1', [codeHash]);
 

@@ -1086,6 +1086,8 @@ export class Hub {
               className: character.className,
               race: character.race,
               level: character.level,
+              // The linked sheet's numbers, for the hover card: everyone at the table sees them (Andy, 2026-11-18).
+              sheet: character.sheet,
             }
           : null,
         online: presence?.online ?? false,

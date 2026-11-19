@@ -428,6 +428,47 @@ describe('accounts over HTTP', () => {
 });
 
 describe('campaigns over HTTP', () => {
+  it('deletes my own character over HTTP, and refuses a link when the D&D Beyond sync is off (protocol 4)', async () => {
+    const dm = await signUp('dm');
+    const player = await signUp('player');
+    const campaignId = (
+      await api.call('POST', '/api/campaigns', { token: dm.token, body: { name: 'Lost Mine' } })
+    ).body.campaign.id as string;
+    const code = (
+      await api.call('POST', `/api/campaigns/${campaignId}/invites`, { token: dm.token, body: {} })
+    ).body.code;
+    await api.call('POST', '/api/campaigns/join', { token: player.token, body: { code } });
+    const made = await api.call('POST', `/api/campaigns/${campaignId}/characters`, {
+      token: player.token,
+      body: { name: 'Aria' },
+    });
+    const id = made.body.character.id as string;
+
+    const linked = await api.call('POST', `/api/campaigns/${campaignId}/characters`, {
+      token: player.token,
+      body: { sourceUrl: 'https://www.dndbeyond.com/characters/1' },
+    });
+    expect(linked.status).toBe(404); // the operator has not switched the sync on
+    expect(
+      (
+        await api.call('DELETE', `/api/campaigns/${campaignId}/characters/${id}`, {
+          token: dm.token,
+        })
+      ).status,
+    ).toBe(404); // the DM cannot delete a player's character
+    expect(
+      (
+        await api.call('DELETE', `/api/campaigns/${campaignId}/characters/${id}`, {
+          token: player.token,
+        })
+      ).status,
+    ).toBe(204);
+    const left = await api.call('GET', `/api/campaigns/${campaignId}/characters`, {
+      token: player.token,
+    });
+    expect(left.body.characters).toEqual([]);
+  });
+
   it('runs the whole flow: create, invite, join, character, swap, voice token', async () => {
     const dm = await signUp('dm'); // first account = Admin, may create campaigns while closed
     const player = await signUp('player');

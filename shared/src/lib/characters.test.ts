@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import {
   abilityLine,
+  classesLine,
+  senseLabel,
   createByHand,
   createFromSheet,
   NEW_CHARACTER_NAME,
@@ -160,5 +162,28 @@ describe('adding a character', () => {
     const { api, calls } = fake();
     await createByHand(api, { ...blankDraft(), name: 'Bo', level: '4', race: 'Elf' });
     expect(calls).toEqual(['create {"name":"Bo","className":null,"race":"Elf","level":4}']);
+  });
+});
+
+describe('senses and classes', () => {
+  const sheet = {
+    abilities: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 },
+    maxHp: 10,
+    armorClass: 10,
+    passivePerception: 10,
+    senses: [{ kind: 'darkvision' as const, range: 60 }],
+    classes: [
+      { name: 'Monk', level: 5, subclass: 'Way of the Open Hand' },
+      { name: 'Wizard', level: 1, subclass: null },
+    ],
+  };
+  it('writes classes with their subclasses, and a sense with its range', () => {
+    expect(classesLine(sheet)).toBe('Monk 5 (Way of the Open Hand) / Wizard 1');
+    expect(senseLabel(sheet.senses[0]!)).toBe('Darkvision 60 ft');
+  });
+  it('has nothing to say for a sheet that predates class detail', () => {
+    expect(classesLine(null)).toBeNull();
+    expect(classesLine({ ...sheet, classes: undefined })).toBeNull();
+    expect(classesLine({ ...sheet, classes: [] })).toBeNull();
   });
 });

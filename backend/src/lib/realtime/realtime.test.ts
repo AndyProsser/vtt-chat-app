@@ -423,6 +423,32 @@ describe('Hub: subscriptions, presence and the snapshot', () => {
       level: 5,
     });
   });
+
+  it('sends the linked sheet to everyone at the table, and null when there is none', async () => {
+    const sheet = {
+      abilities: { str: 16, dex: 14, con: 14, int: 10, wis: 12, cha: 8 },
+      maxHp: 50,
+      armorClass: 16,
+      passivePerception: 11,
+      senses: [{ kind: 'darkvision', range: 60 }],
+      classes: [{ name: 'Monk', level: 5, subclass: 'Way of the Open Hand' }],
+    };
+    const made = await t.campaigns.addCharacter(t.player, t.campaignId, {
+      name: 'Aria',
+      className: 'Monk',
+      race: 'Elf',
+      level: 5,
+      avatarUrl: null,
+    });
+    await t.store.putCharacter({ ...made, sheet: sheet as never });
+    // another player: they see the sheet too, not the DM alone
+    const other = await connect(t, 'p1', 'player');
+    const seen = other.last('snapshot')?.d.members.find((m: any) => m.userId === t.player.id);
+    expect(seen.character.sheet).toEqual(sheet);
+    const dm = await connect(t, 'd1', 'dm');
+    const dmSees = dm.last('snapshot')?.d.members.find((m: any) => m.userId === t.player.id);
+    expect(dmSees.character.sheet).toEqual(sheet);
+  });
 });
 
 describe('Hub: live events', () => {

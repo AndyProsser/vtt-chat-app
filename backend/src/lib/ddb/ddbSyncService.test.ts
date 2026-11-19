@@ -93,6 +93,8 @@ const SHEET = {
   maxHp: 50,
   armorClass: 16,
   passivePerception: 11,
+  senses: [{ kind: 'darkvision' as const, range: 60 }],
+  classes: [{ name: 'Fighter', level: 5, subclass: 'Champion' }],
 };
 
 describe('DdbSyncService', () => {
@@ -282,5 +284,38 @@ describe('DdbSyncService', () => {
     await t.service.link(t.user, t.campaign.id, t.character.id, URL1);
     const c = await t.service.unlink(t.user, t.campaign.id, t.character.id);
     expect(c).toMatchObject({ sourceUrl: null, syncedAt: null, name: 'Thessaly' });
+  });
+
+  it('makes a linked character in one step, and leaves nothing behind when the sheet cannot be read (protocol 4)', async () => {
+    const t = await setup();
+    t.setSheet({ ok: false, reason: 'private' });
+    await expect(t.service.createLinked(t.user, t.campaign.id, URL1)).rejects.toThrow(/private/);
+    expect(await t.store.listCharacters(t.user.id, t.campaign.id)).toHaveLength(1); // only the one setup made
+
+    t.setSheet({
+      ok: true,
+      character: {
+        name: 'Thessaly',
+        race: 'Half-Elf',
+        className: 'Fighter',
+        level: 5,
+        portraitUrl: null,
+        sheet: SHEET,
+      },
+    });
+    const made = await t.service.createLinked(t.user, t.campaign.id, URL1);
+    expect(made).toMatchObject({
+      name: 'Thessaly',
+      race: 'Half-Elf',
+      className: 'Fighter',
+      level: 5,
+      sourceUrl: URL1,
+      syncedAt: 1_000,
+      sheet: SHEET,
+    });
+    expect(await t.store.listCharacters(t.user.id, t.campaign.id)).toHaveLength(2);
+    await expect(
+      t.service.createLinked(t.user, t.campaign.id, 'https://example.com/x'),
+    ).rejects.toThrow(/not a D&D Beyond/);
   });
 });

@@ -18,6 +18,46 @@ export interface CharacterSheet {
   maxHp: number;
   armorClass: number;
   passivePerception: number;
+  /** Special senses with their range in feet; absent on a sheet last read before 0.6. */
+  senses?: CharacterSense[];
+  /** Each class with its level and subclass; absent on a sheet last read before 0.6. */
+  classes?: CharacterClass[];
+}
+
+export type SenseKind = 'darkvision' | 'blindsight' | 'tremorsense' | 'truesight';
+
+export interface CharacterSense {
+  kind: SenseKind;
+  /** Feet. */
+  range: number;
+}
+
+export interface CharacterClass {
+  name: string;
+  level: number;
+  subclass: string | null;
+}
+
+export const SENSE_LABELS: Record<SenseKind, string> = {
+  darkvision: 'Darkvision',
+  blindsight: 'Blindsight',
+  tremorsense: 'Tremorsense',
+  truesight: 'Truesight',
+};
+
+/** "Darkvision 60 ft", for a tooltip or a list. */
+export const senseLabel = (s: CharacterSense): string => `${SENSE_LABELS[s.kind]} ${s.range} ft`;
+
+/**
+ * "Monk 5 (Way of the Open Hand) / Cleric 4 (Life Domain)": the classes as the character screens and the detail popup
+ * write them. A class with no subclass yet is just "Wizard 1". Null when the sheet predates class detail.
+ */
+export function classesLine(sheet: CharacterSheet | null | undefined): string | null {
+  const classes = sheet?.classes;
+  if (!classes || classes.length === 0) return null;
+  return classes
+    .map((c) => `${c.name} ${c.level}${c.subclass ? ` (${c.subclass})` : ''}`)
+    .join(' / ');
 }
 
 /** "AC 16 · HP 50 · Passive Perception 11", or null with no sheet. */

@@ -298,6 +298,31 @@ export class CampaignService {
     return next;
   }
 
+  /**
+   * Deletes one of the caller's own characters (a mistake, or one that is finished with). If it was the one being
+   * played, the next of the caller's characters in this campaign (by name) takes over, or none, in which case the
+   * roster shows the account's own name. A DM's parked character is simply forgotten. The D&D Beyond sheet is
+   * untouched: only our copy goes.
+   */
+  async deleteCharacter(user: User, campaignId: string, characterId: string): Promise<void> {
+    await this.requireMember(user.id, campaignId);
+    const character = await this.store.getCharacter(characterId);
+    if (!character || character.userId !== user.id || character.campaignId !== campaignId) {
+      throw new DomainError('not_found');
+    }
+    await this.store.transaction(async (tx) => {
+      await tx.deleteCharacter(characterId);
+      const membership = await tx.getMembership(campaignId, user.id);
+      if (membership?.role === 'player' && membership.activeCharacterId === null) {
+        const others = (await tx.listCharacters(user.id, campaignId)).filter(
+          (c) => c.id !== characterId,
+        );
+        const next = others[0];
+        if (next) await tx.putMembership({ ...membership, activeCharacterId: next.id });
+      }
+    });
+  }
+
   /** Switches the active character (a character died or left; a new one joins). Players only. */
   async setActiveCharacter(
     user: User,

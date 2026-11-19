@@ -4,6 +4,7 @@ import { z } from 'zod';
 import type { AccountService } from '../auth/accountService.js';
 import type { CampaignService } from '../campaigns/campaignService.js';
 import { DomainError } from '../errors.js';
+import type { Character, User } from '../../types/index.js';
 import type { RecordingChange, RecordingState } from '../recording/recordingState.js';
 import { mintLiveKitToken } from '../session/liveKitToken.js';
 import type { Store } from '../store/store.js';
@@ -20,6 +21,8 @@ const characterBody = z.object({
   level: z.number().int().min(1).max(30).nullable().default(null),
   avatarUrl: z.string().url().max(2048).nullable().default(null),
 });
+/** Create from a D&D Beyond link in one step: nothing else is needed, the sheet fills the rest in. */
+const characterFromLinkBody = z.object({ sourceUrl: z.string().max(2048) });
 const characterPatch = z.object({
   name: z.string().max(200).optional(),
   className: z.string().max(80).nullable().optional(),
@@ -50,6 +53,8 @@ export interface CampaignRouteDeps {
   onRecordingChanged?: (change: RecordingChange) => void;
   /** Awaited just before a recording change is made, so what the apps are told about where it is processed is current. */
   beforeRecordingChange?: () => Promise<void>;
+  /** Makes a character from a D&D Beyond link in one step (the sync, when the operator has it on). */
+  createLinkedCharacter?: (user: User, campaignId: string, url: string) => Promise<Character>;
   /** How long the campaign's DM has had no connection (0 while connected). */
   dmAwayMs?: (campaignId: string) => Promise<number>;
   /** How long the DM may be away before players may pause, resume or stop a recording. */
@@ -159,11 +164,27 @@ export function campaignRoutes(deps: CampaignRouteDeps): Router {
   });
 
   router.post('/:id/characters', async (req, res) => {
-    const body = characterBody.parse(req.body);
     const campaignId = param(req.params.id);
+    if (req.body && typeof req.body === 'object' && 'sourceUrl' in req.body) {
+      const { sourceUrl } = characterFromLinkBody.parse(req.body);
+      if (!deps.createLinkedCharacter)
+        throw new DomainError('not_found', 'D&D Beyond sync is not enabled on this server');
+      const linked = await deps.createLinkedCharacter(authOf(res).user, campaignId, sourceUrl);
+      onRosterChanged?.(campaignId);
+      res.status(201).json({ character: linked });
+      return;
+    }
+    const body = characterBody.parse(req.body);
     const character = await campaigns.addCharacter(authOf(res).user, campaignId, body);
     onRosterChanged?.(campaignId);
     res.status(201).json({ character });
+  });
+
+  router.delete('/:id/characters/:characterId', async (req, res) => {
+    const campaignId = param(req.params.id);
+    await campaigns.deleteCharacter(authOf(res).user, campaignId, param(req.params.characterId));
+    onRosterChanged?.(campaignId);
+    res.status(204).end();
   });
 
   router.put('/:id/active-character', async (req, res) => {
