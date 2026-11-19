@@ -33,6 +33,8 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ### Fixed
 
+- **One Back button everywhere in the web app.** Handouts and history already had the quiet filled button; the full-screen pages, My characters, Find another table, Join requests, the sign-in form and the download page had three other looks. They share one now.
+
 - **Pressing Play on a character updated nothing on screen** until you refreshed: the server saved the switch but never told connected apps. It now announces it, so the phone, the desktop app and the rest of the table follow at once.
 
 - **A linked character's D&D Beyond portrait now imports.** D&D Beyond serves the original upload (often a megabyte or more) whatever size the address asks for, and our 256 KB limit skipped it silently, leaving the letter placeholder. The server now shrinks it to a 256-pixel square (new dependency `sharp`, prebuilt, no extra service) and tries again on the next sync if an import fails.

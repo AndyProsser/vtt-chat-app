@@ -26,6 +26,7 @@ import { JoinRequestsScreen } from './JoinRequestsScreen.js';
 import { OpenTables } from './OpenTables.js';
 import { SessionsTab } from './SessionsTab.js';
 import { SignIn } from './SignIn.js';
+import { BackButton } from '../BackButton.js';
 
 type Boot = 'checking' | 'ready';
 
@@ -389,9 +390,7 @@ function SubScreen({
   return (
     <section className="phone-pad phone-subscreen" aria-label={title}>
       <Flex align="center" gap="2" mb="3">
-        <Button variant="ghost" color="gray" onClick={onBack} aria-label="Back">
-          ‹ Back
-        </Button>
+        <BackButton onClick={onBack} />
         <Heading size="5" as="h2">
           {title}
         </Heading>

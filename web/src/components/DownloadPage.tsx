@@ -18,6 +18,7 @@ import { ConnectApp } from './ConnectApp.js';
 import { InstallSteps } from './InstallSteps.js';
 import { LoginForm } from './LoginForm.js';
 import { SignOutButton } from './SignOutButton.js';
+import { BackButton } from './BackButton.js';
 
 type Tab = 'windows' | 'macos' | 'linux';
 const LINUX_URL: Record<string, keyof Downloads> = {
@@ -104,11 +105,7 @@ function DownloadContent({ onBack }: { onBack?: () => void }) {
       <Flex justify="between" align="center" gap="3">
         <Heading size="6">Get VTT Chat</Heading>
         <Flex gap="3" align="center">
-          {onBack && (
-            <Button variant="ghost" onClick={onBack}>
-              Back
-            </Button>
-          )}
+          {onBack && <BackButton onClick={onBack} />}
           <SignOutButton />
         </Flex>
       </Flex>

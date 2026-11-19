@@ -7,6 +7,7 @@ import { recordingTitle, summaryTitle } from '../../lib/phone/format.js';
 import { recording, recordings, searchHistory } from '../../lib/phone/phoneApi.js';
 import { hitLabel, snippetParts } from '../../lib/phone/search.js';
 import type { RecordingItem } from '../../types/phone.js';
+import { BackButton } from '../BackButton.js';
 
 const STATUS_NOTE: Record<string, string> = {
   recording: 'Recording now',
@@ -82,9 +83,7 @@ function RecordingView({
   return (
     <Flex direction="column" gap="3" className="phone-pad">
       <Flex align="center" gap="3">
-        <Button variant="soft" onClick={onBack}>
-          Back
-        </Button>
+        <BackButton onClick={onBack} />
         <Heading size="4" as="h2">
           {recordingTitle(item.startedAt, item.stoppedAt)}
         </Heading>

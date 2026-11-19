@@ -1,7 +1,7 @@
 import { Button, Flex, Heading, Text } from '@radix-ui/themes';
 import { type ReactNode, useCallback, useEffect, useId, useRef, useState } from 'react';
 
-import { Icon } from '../icons/index.js';
+import { BackButton } from '../BackButton.js';
 
 /**
  * A full-screen page over the tab it was opened from: Back, a title, the actions, the form. Escape and Back
@@ -54,10 +54,7 @@ export function Sheet({
   return (
     <section ref={root} className="phone-sheet" aria-labelledby={heading}>
       <header className="phone-sheet-head">
-        <Button variant="ghost" color="gray" size="3" onClick={leave} aria-label="Back">
-          <Icon name="arrowLeft" size={18} />
-          Back
-        </Button>
+        <BackButton onClick={leave} />
         <Heading size="4" as="h2" id={heading} tabIndex={-1} className="phone-sheet-title">
           {title}
         </Heading>

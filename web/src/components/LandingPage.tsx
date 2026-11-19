@@ -12,6 +12,7 @@ import { CodeEntry } from './CodeEntry.js';
 import { GetTheApp } from './GetTheApp.js';
 import { LoginForm } from './LoginForm.js';
 import { RequestAccount } from './RequestAccount.js';
+import { BackButton } from './BackButton.js';
 
 type View = 'home' | 'signin';
 
@@ -50,9 +51,7 @@ export function LandingPage() {
                 Sign in
               </Heading>
               <LoginForm onSignedIn={onSignedIn} />
-              <Button variant="ghost" onClick={() => setView('home')}>
-                Back
-              </Button>
+              <BackButton onClick={() => setView('home')} />
             </Flex>
           ) : (
             <>

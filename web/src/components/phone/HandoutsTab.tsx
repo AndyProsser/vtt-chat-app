@@ -22,6 +22,7 @@ import { IconTool } from './IconTool.js';
 import { LazyMarkdown } from './LazyMarkdown.js';
 import { NoteEditor } from './NoteEditor.js';
 import { PictureViewer } from './PictureViewer.js';
+import { BackButton } from '../BackButton.js';
 
 const KIND_LABEL = { text: 'Note', image: 'Pictures', map: 'Map', pdf: 'PDF' } as const;
 
@@ -203,9 +204,7 @@ function HandoutView({
   return (
     <Flex direction="column" gap="3" className="phone-pad">
       <Flex align="center" gap="3">
-        <Button variant="soft" onClick={onBack}>
-          Back
-        </Button>
+        <BackButton onClick={onBack} />
         <Heading size="5" as="h2" style={{ flex: 1, minWidth: 0 }}>
           {item.title}
         </Heading>
