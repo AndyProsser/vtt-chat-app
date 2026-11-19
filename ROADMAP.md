@@ -59,7 +59,8 @@ releases; the 0.4.5 changelog covers both).
 5. **[Stage 13](#stage-13--linux-package-repositories-served-by-the-server-idea-2026-11-19-not-scheduled):** `.deb` and `.rpm` repositories served by the server, behind an operator switch (an idea, not scheduled; the manual install works).
 6. The open design topics in [.claude/intent.md](.claude/intent.md).
 
---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Area | What shipped |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **One web app** | A landing page at `/`, `/download` (per-OS steps, sign-in required), `/full-app`, and the chat web app at `/app` as the same product on phones and desktops; one 640px column, the Default look, light/dark |
 | **Sessions in the browser** | A secure, long-lived cookie (HttpOnly, SameSite, `__Host-`) that slides with the operator's offline limit; Origin checks on cookie writes and the WebSocket; OIDC fits later without rework |
 | **Getting an account** | Visitor sign-up requests (off by default, approved in `vtt-admin signup`), short typeable `ABCD-EFGH` codes, a starter campaign for the first Admin |
