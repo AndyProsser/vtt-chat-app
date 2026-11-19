@@ -7,6 +7,7 @@ export const ACTION_SHORT: Record<LootAction, string> = {
   store: 'Store for party',
   return: 'Put back',
   give: 'Give to…',
+  redrop: 'Post again',
 };
 
 /** One loot action button. `take` is the solid one. */

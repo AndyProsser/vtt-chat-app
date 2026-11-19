@@ -119,5 +119,10 @@ export interface LootItem {
   droppedAt: number;
   claimedBy: string | null;
   claimedFor: LootClaimedFor | null;
-  split: { shares: { userId: string; amount: number }[]; remainder: number } | null;
+  split: {
+    shares: { userId: string; amount: number; confirmed?: boolean }[];
+    remainder: number;
+  } | null;
+  /** "Added to my sheet": yours, or the party stash's. The server leaves it out for the DM. */
+  confirmed?: boolean;
 }

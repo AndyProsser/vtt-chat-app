@@ -22,6 +22,7 @@ import { InstallHint } from './InstallHint.js';
 import { HandoutsTab } from './HandoutsTab.js';
 import { HistoryTab } from './HistoryTab.js';
 import { InventoryTab } from './InventoryTab.js';
+import { useUnconfirmed } from '../../hooks/useUnconfirmed.js';
 import { JoinRequestsScreen } from './JoinRequestsScreen.js';
 import { OpenTables } from './OpenTables.js';
 import { SessionsTab } from './SessionsTab.js';
@@ -187,6 +188,7 @@ function Shell({
 }) {
   const tab = usePhoneStore((s) => s.tab);
   const unread = usePhoneStore((s) => s.unread);
+  const toConfirm = useUnconfirmed(campaignId);
   const live = usePhoneStore((s) => s.live);
   const campaign = usePhoneStore((s) => s.campaigns.find((c) => c.id === campaignId));
   const many = usePhoneStore((s) => s.campaigns.length > 1);
@@ -362,6 +364,11 @@ function Shell({
             >
               <span className="phone-tab-icon">
                 <Icon name={t.icon} size={20} />
+                {t.id === 'inventory' && toConfirm > 0 && (
+                  <Badge color="orange" variant="solid" radius="full" className="phone-tab-badge">
+                    {toConfirm}
+                  </Badge>
+                )}
                 {t.id === 'chat' && unread > 0 && (
                   <Badge color="violet" variant="solid" radius="full" className="phone-tab-badge">
                     {unread}

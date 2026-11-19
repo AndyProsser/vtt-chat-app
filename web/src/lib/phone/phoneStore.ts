@@ -194,6 +194,8 @@ export const usePhoneStore = create<PhoneState>((set, get) => ({
       case 'loot.dropped':
       case 'loot.claimed':
       case 'loot.removed':
+      case 'loot.redropped': // the card moves: both apps draw cards by drop time, so a re-read puts it right
+      case 'loot.confirmed':
         set({ lootRev: s.lootRev + 1 });
         return;
       case 'notification': {

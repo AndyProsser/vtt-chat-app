@@ -1,6 +1,8 @@
 import { Badge, Button, Callout, Card, Flex, SegmentedControl, Text } from '@radix-ui/themes';
 import {
+  canConfirm,
   defaultLootFilter,
+  isConfirmed,
   filterLootItems,
   LOOT_ACTION_LABEL,
   lootActions,
@@ -18,7 +20,8 @@ import { ACTION_SHORT } from './LootButtons.js';
 import { useIsDm } from '../../hooks/useIsDm.js';
 import { useLoad } from '../../hooks/useLoad.js';
 import { ApiError } from '../../lib/api.js';
-import { lootDo, lootItems } from '../../lib/phone/phoneApi.js';
+import { lootConfirm, lootDo, lootItems } from '../../lib/phone/phoneApi.js';
+import { ConfirmBox } from './ConfirmBox.js';
 import { usePhoneStore } from '../../lib/phone/phoneStore.js';
 import type { LootItem } from '../../types/phone.js';
 
@@ -28,6 +31,7 @@ const FILTER_LABEL: Record<LootFilter, string> = {
   all: 'All',
   own: 'Mine',
   party: 'Party',
+  unconfirmed: 'To confirm',
 };
 const RARITY_COLOR: Record<string, 'gray' | 'green' | 'blue' | 'violet' | 'orange' | 'red'> = {
   common: 'gray',
@@ -67,6 +71,16 @@ export function InventoryTab({ campaignId }: { campaignId: string }) {
     }
   }
 
+  async function confirm(item: LootItem, value: boolean) {
+    setProblem(undefined);
+    try {
+      await lootConfirm(campaignId, item.id, value);
+      reload();
+    } catch (e) {
+      setProblem(e instanceof ApiError ? e.message : 'That did not work. Try again.');
+    }
+  }
+
   return (
     <Flex direction="column" gap="3" className="phone-pad">
       <SegmentedControl.Root
@@ -92,7 +106,9 @@ export function InventoryTab({ campaignId }: { campaignId: string }) {
             ? 'Nothing here yet. Loot the DM drops shows up here.'
             : view === 'available'
               ? 'Nothing left to take.'
-              : 'Nothing in this list.'}
+              : view === 'unconfirmed'
+                ? 'Everything you hold is on your sheet. Look under Available for what is left to take.'
+                : 'Nothing in this list.'}
         </Text>
       )}
       {shown.map((item) => {
@@ -146,6 +162,12 @@ export function InventoryTab({ campaignId }: { campaignId: string }) {
               <Text size="1" color={item.claimedBy ? 'violet' : 'green'}>
                 {holder(item, members)}
               </Text>
+              {canConfirm(item, selfId, dm) && (
+                <ConfirmBox
+                  checked={isConfirmed(item, selfId)}
+                  onChange={(v) => void confirm(item, v)}
+                />
+              )}
             </Flex>
           </Card>
         );

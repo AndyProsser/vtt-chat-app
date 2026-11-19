@@ -131,6 +131,10 @@ export const lootDo = (
   req: { path: string; body: Record<string, unknown> },
 ) => request('POST', `/api/campaigns/${campaignId}/loot/${itemId}/${req.path}`, { body: req.body });
 
+/** Ticks (or un-ticks) "I have added this to my game sheet" for an item you hold, the party stash or your share. */
+export const lootConfirm = (campaignId: string, itemId: string, confirmed: boolean) =>
+  request('POST', `/api/campaigns/${campaignId}/loot/${itemId}/confirm`, { body: { confirmed } });
+
 // ---- the DM's tools (the server refuses anyone else with 403) ----
 
 /** A new note: a DM-only draft until it is shown. */
