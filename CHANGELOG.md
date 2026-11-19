@@ -10,6 +10,14 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ## [Unreleased]
 
+Work towards **0.6.0** (protocol 4, on the `stage-11-protocol-4` branch). A 0.5 app cannot join a 0.6 server.
+
+### Added
+
+- **Re-drop loot.** The DM can post an item that is still on the table into the chat again; the card **moves** to the bottom (there is never a second card for one item). Only unclaimed loot can be re-dropped.
+- **"Added to my sheet".** A player ticks each item they hold, the party stash and their share of split coin once it is on their real game sheet. The tick resets whenever the item moves, and the DM never sees it. Players get a **To confirm** filter (their default), and a count on the Loot icon in the desktop app and the Loot tab of the phone web app.
+- **A notice when the DM gives you something**, stored so a player who was away finds it next time.
+
 ## [0.5.4] - 2026-11-19
 
 Cleaner character screens with D&D Beyond sync that now brings the portrait, your own sounds in the mixer, rules for who may delete a session, and new operator commands: delete a campaign, export and import one. A **PATCH** release: no protocol change, so 0.5.x apps and servers work together.

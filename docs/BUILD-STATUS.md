@@ -15,6 +15,17 @@ cd tauri-client && cargo fmt --check && cargo clippy --workspace --all-targets -
 
 Last run (2026-11-09, memory stores): backend 406 (+18 skipped without Postgres), panels-ui 213, ddb 9, status 3; Rust: src-tauri 88 (+2 ignored), rust-livekit and rust-sync as before, with the LiveKit live tests passing individually on SDK 0.10.1. `cargo clippy -D warnings` still fails on the old unused `capture_allowed`. Not run: anything in CI (the workflow exists, nothing has run it since the pivot).
 
+## Built 2026-11-19 for 0.6.0: protocol 4, loot re-drop and "added to my sheet" (branch `stage-11-protocol-4`)
+
+Stage 11 items 1 and 2. `PROTOCOL_VERSION` is now **4** (`shared`, `consts.rs`, `protocol.contract.json`), so a 0.5 app and a 0.6 server do not match.
+
+| What                                                                                                                                                              | State                                                                                                                                      |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| Re-drop: `POST /loot/:id/redrop`, DM only, unclaimed only; the card moves (drop time = now); `loot.redropped`                                                     | Built; route tests on memory and real Postgres; desktop card model tested                                                                  |
+| Confirmed flag: `POST /loot/:id/confirm`, per item, per split share, resets on every move, hidden from the DM; `loot.confirmed` to the people who may see it      | Built; route tests on both stores; shared rules (`needsConfirming`, `canConfirm`) tested                                                   |
+| `loot_given` notification when the DM gives an item (stored, pop-up in the desktop app under the table setting)                                                   | Built; the Rust classifier is tested, the server side is wired but has **no route test** (the loot tests run without the schedule service) |
+| Both apps: To confirm filter (players' default), the tick on loot rows, the count on the inventory icon (desktop) and Loot tab (phone web), Post again for the DM | Built and type-checked. **Not run in a real window or on a phone**; the desktop chat card has no tick (only the inventory window does)     |
+
 ## Built 2026-11-18 for 0.5.5: the character screens, and the D&D Beyond portrait (on `main`)
 
 Andy's feedback from the first real D&D Beyond link on the VM (the sync works; the screen was too busy and the portrait

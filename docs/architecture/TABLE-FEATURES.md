@@ -112,7 +112,7 @@ the others the body is the caption, up to 300 characters in the form). Maps are 
 Defaults taken (not asked): an item is claimed **whole** by one player (a stack has a quantity but is not
 split); the DM cannot claim; the DM can remove an item at any time, claimed or not.
 
-- The DM **drops** an item (name, description, quantity); every member sees it at once (`loot.dropped`).
+- The DM **drops** an item (name, description, quantity); every member sees it at once (`loot.dropped`). From protocol 4 it can be **re-dropped** (`loot.redropped`, the card moves) and players tick **added to my sheet** (`loot.confirmed`): see [LOOT.md](LOOT.md).
 - A player **claims** it. The claim is one conditional `UPDATE ... WHERE claimed_by IS NULL`, so of any
   number of simultaneous claims exactly one wins and the rest get `409`; who and when are kept
   (`loot.claimed` names the winner). Verified with concurrent requests against real Postgres.
