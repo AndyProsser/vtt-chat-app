@@ -75,3 +75,33 @@ system and **has not been tried**; check the current rules when picking one up.
 
 Nothing in this document is a commitment. Update it, or move it into the roadmap as a stage, when a decision is
 made.
+
+## Server-hosted Linux repositories (designed 2026-11-19)
+
+Roadmap: [Stage 13](../../ROADMAP.md). Andy asked whether the server could host the APT repository so the app stays
+in step with the server, and what happens when the server is offline. This is the answer; **nothing is built**.
+
+```mermaid
+flowchart LR
+  T["git tag vX.Y.Z"] --> CI["release.yml: build, then sign the apt + rpm repos<br/>(GPG key = repository secret)"]
+  CI --> GH["GitHub release: repo tree per MAJOR.MINOR line"]
+  GH -->|"mirror sync (LINUX_REPOS=on)"| S["Server: /apt/ and /rpm/<br/>its own line only, static files"]
+  S -->|"apt update / dnf upgrade"| P["Linux player"]
+```
+
+- **Why the server serves it:** it already decides which client line players use (rule 1 of
+  [VERSIONING-AND-DEPLOYMENT.md](VERSIONING-AND-DEPLOYMENT.md)). Serving only its own MAJOR.MINOR directory makes the
+  package source follow the server, and Caddy or the backend can serve it as plain static files.
+- **Why the server must not sign it:** apt and dnf install as root and have no equivalent of the app's own
+  signature check. A server that held the repository key could push code that runs as root on every Linux player's
+  machine, which today it cannot (the Tauri updater checks our minisign signature). So CI signs at release time and
+  the server only mirrors. Worst case it withholds updates.
+- **Operator switch:** `LINUX_REPOS` is `off` by default (nothing mirrored, nothing served) or `on`. Many operators
+  have no Linux players. It needs `UPDATES_SOURCE=mirror`.
+- **Setup:** a server-specific one-liner on the download page adds the source and the repository key, once.
+- **Server offline:** `apt update` warns about that one source; other sources and the installed app are unaffected.
+  The app could not reach the table anyway. Updates resume when the server returns.
+- **A server upgrade to a new line:** the source starts offering the new line, so the next `apt upgrade` moves the
+  player over; until then the app is older than the server, so it should say "run `sudo apt upgrade`".
+- **Limits:** one apt source means one server per machine; about 20 MB per version, newest two patches kept; a
+  self-built release needs its own signing key.
