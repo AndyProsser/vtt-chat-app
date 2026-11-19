@@ -1,3 +1,5 @@
+import type { CharacterSheet } from '@vtt-chat-app/shared';
+
 /** `account_status` — never carries the session token. */
 export interface AccountStatus {
   signedIn: boolean;
@@ -38,6 +40,8 @@ export interface Member {
     race?: string | null;
     className?: string | null;
     level?: number | null;
+    /** The linked D&D Beyond sheet's numbers, for the hover card (everyone at the table sees them). */
+    sheet?: CharacterSheet | null;
   } | null;
   online: boolean;
   /** What they are connected with: the desktop app or the web app. Absent from an older server. */

@@ -10,7 +10,12 @@ import { useEffect, useRef, useState } from 'react';
 
 import { avatarSrc, shrinkAvatar, uploadAvatar } from '../../lib/account.js';
 import { ApiError } from '../../lib/api.js';
-import { ddbCall, playCharacter, saveCharacter } from '../../lib/phone/phoneApi.js';
+import {
+  ddbCall,
+  deleteCharacter,
+  playCharacter,
+  saveCharacter,
+} from '../../lib/phone/phoneApi.js';
 import { initials } from '../../lib/phone/rail.js';
 import { Icon } from '../icons/index.js';
 import { CharacterStats } from './CharacterStats.js';
@@ -42,6 +47,7 @@ export function CharacterCard({
   const [editing, setEditing] = useState(false);
   const [linking, setLinking] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [draft, setDraft] = useState(draftOf(record));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
@@ -203,7 +209,34 @@ export function CharacterCard({
               )}
             </>
           )}
+          <IconTool
+            label="Delete this character"
+            icon="trash"
+            danger
+            disabled={busy}
+            onClick={() => setDeleting(true)}
+          />
         </Flex>
+        {deleting && (
+          <Flex align="center" gap="2" wrap="wrap" role="alertdialog" aria-label="Delete character">
+            <Text size="2" color="gray" style={{ flex: 1, minWidth: '12rem' }}>
+              Delete {record.name}? It is removed from this campaign only
+              {linked ? '; your D&D Beyond sheet is not touched' : ''}.
+            </Text>
+            <IconTool
+              label="Yes, delete this character"
+              text="Delete"
+              icon="trash"
+              danger
+              disabled={busy}
+              onClick={() => {
+                setDeleting(false);
+                void run(() => deleteCharacter(campaignId, record.id));
+              }}
+            />
+            <IconTool label="Keep it" text="Keep" icon="x" onClick={() => setDeleting(false)} />
+          </Flex>
+        )}
         <input
           ref={file}
           type="file"

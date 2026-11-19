@@ -237,6 +237,10 @@ export const addCharacter = (campaignId: string, body: Record<string, unknown>) 
     body,
   });
 
+/** Deletes one of your own characters (the server hands the part to your next one if it was the one played). */
+export const deleteCharacter = (campaignId: string, characterId: string) =>
+  request('DELETE', `/api/campaigns/${campaignId}/characters/${characterId}`);
+
 /** Makes this the character the table sees you playing. */
 export const playCharacter = (campaignId: string, characterId: string) =>
   request('PUT', `/api/campaigns/${campaignId}/active-character`, { body: { characterId } });

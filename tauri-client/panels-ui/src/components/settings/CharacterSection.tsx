@@ -1,5 +1,16 @@
 import { TextField } from '@radix-ui/themes';
-import { Camera, Check, Link2, Pencil, Play, RefreshCw, Save, Unlink, X } from 'lucide-react';
+import {
+  Camera,
+  Check,
+  Link2,
+  Pencil,
+  Play,
+  RefreshCw,
+  Save,
+  Trash2,
+  Unlink,
+  X,
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { useAccount } from '../../hooks/useAccount.js';
@@ -209,6 +220,7 @@ function CharacterCard({
   const [editing, setEditing] = useState(false);
   const [linking, setLinking] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   useEffect(() => setDraft(draftOf(record)), [record]);
   const linked = Boolean(record.sourceUrl);
   const patch = characterPatch(record, draft);
@@ -329,7 +341,33 @@ function CharacterCard({
             )}
           </>
         )}
+        <ToolButton label="Delete this character" danger onClick={() => setDeleting(true)}>
+          <Trash2 size={14} />
+        </ToolButton>
       </div>
+
+      {deleting ? (
+        <div className="vtt-form-row" role="alertdialog" aria-label="Delete character">
+          <span className="vtt-muted" style={{ flex: 1 }}>
+            Delete {record.name}? It is removed from this campaign only
+            {linked ? '; your D&D Beyond sheet is not touched' : ''}.
+          </span>
+          <ToolButton
+            label="Yes, delete this character"
+            text="Delete"
+            danger
+            onClick={() => {
+              setDeleting(false);
+              void run(() => campaignApi('DELETE', `characters/${record.id}`));
+            }}
+          >
+            <Check size={14} />
+          </ToolButton>
+          <ToolButton label="Keep it" text="Keep" onClick={() => setDeleting(false)}>
+            <X size={14} />
+          </ToolButton>
+        </div>
+      ) : null}
 
       {!linked && ddbOn === false && editing && (
         <span className="vtt-muted">

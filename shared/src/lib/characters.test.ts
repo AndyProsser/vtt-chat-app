@@ -6,7 +6,6 @@ import {
   senseLabel,
   createByHand,
   createFromSheet,
-  NEW_CHARACTER_NAME,
   type NewCharacterApi,
   abilityTiles,
   characterDetails,
@@ -125,43 +124,26 @@ describe('sheet tiles', () => {
 });
 
 describe('adding a character', () => {
-  const fake = (failLink = false) => {
+  const fake = () => {
     const calls: string[] = [];
     const api: NewCharacterApi = {
       create: async (f) => (calls.push(`create ${JSON.stringify(f)}`), 'id1'),
-      update: async (id, f) => void calls.push(`update ${id} ${JSON.stringify(f)}`),
-      link: async (id, url) => {
-        calls.push(`link ${id} ${url}`);
-        if (failLink) throw new Error('private');
-      },
     };
     return { api, calls };
   };
-  it('makes a placeholder and links it', async () => {
+  it('creates from a sheet link in one call', async () => {
     const { api, calls } = fake();
     expect(await createFromSheet(api, 'U')).toBe('id1');
-    expect(calls).toEqual([`create {"name":"${NEW_CHARACTER_NAME}"}`, 'link id1 U']);
+    expect(calls).toEqual(['create {"sourceUrl":"U"}']);
   });
-  it('reuses the placeholder after a failed link, then fills it in by hand', async () => {
-    const failing = fake(true);
-    let made: string | undefined;
-    await expect(
-      createFromSheet(failing.api, 'U', undefined, (id) => (made = id)),
-    ).rejects.toThrow();
-    expect(made).toBe('id1');
-    const retry = fake();
-    await createFromSheet(retry.api, 'U', made);
-    expect(retry.calls).toEqual(['link id1 U']); // no second character
-    const hand = fake();
-    await createByHand(hand.api, { ...blankDraft(), name: ' Bo ', level: 'x' }, made);
-    expect(hand.calls).toEqual([
-      'update id1 {"name":"Bo","className":null,"race":null,"level":null}',
-    ]);
-  });
-  it('creates a hand-made character when there is no placeholder', async () => {
+  it('creates a hand-made character, blanks as null and a level that is not a number as null', async () => {
     const { api, calls } = fake();
+    await createByHand(api, { ...blankDraft(), name: ' Bo ', level: 'x' });
     await createByHand(api, { ...blankDraft(), name: 'Bo', level: '4', race: 'Elf' });
-    expect(calls).toEqual(['create {"name":"Bo","className":null,"race":"Elf","level":4}']);
+    expect(calls).toEqual([
+      'create {"name":"Bo","className":null,"race":null,"level":null}',
+      'create {"name":"Bo","className":null,"race":"Elf","level":4}',
+    ]);
   });
 });
 

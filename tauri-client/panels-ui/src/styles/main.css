@@ -2962,3 +2962,47 @@ body,
   flex: 1;
   min-width: 0;
 }
+
+/* Quick numbers as icon chips (hover card), the classes line and the senses list (character screen and detail popup). */
+.vtt-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+.vtt-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 6px;
+  font-size: 11px;
+  background: var(--gray-a3);
+  border-radius: 999px;
+}
+.vtt-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.vtt-classes {
+  font-size: 12px;
+  opacity: 0.85;
+  margin-bottom: 4px;
+}
+.vtt-senses {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+}
+.vtt-senses li {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}

@@ -1103,3 +1103,47 @@ button.phone-picture-button {
   text-align: center;
   color: var(--gray-11);
 }
+
+/* Quick numbers as icon chips (rail card), the classes line and the senses list (character screen and detail popup). */
+.phone-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+.phone-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 6px;
+  font-size: 11px;
+  background: var(--gray-a3);
+  border-radius: 999px;
+}
+.phone-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.phone-classes {
+  font-size: 13px;
+  opacity: 0.85;
+  margin-bottom: 4px;
+}
+.phone-senses {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+}
+.phone-senses li {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}

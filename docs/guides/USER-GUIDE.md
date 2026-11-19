@@ -68,7 +68,7 @@ The window has, from top to bottom:
 - **The bar**: the campaign (click to switch), a red **recording timer** (a dot and the time) when a session is being recorded, then
   small buttons for handouts and the party inventory (and, for the DM, groups and sound effects) and **session history**, then a **Settings** cog (a dot shows when join requests are waiting). It drops the Settings panel down; it includes a **Players** tab (each person's volume; the DM also sees each player's connection). There is no Quit button in the window: the app is meant to keep running, so quit from the **tray icon**. Your **status** is the coloured pill above the microphone button (ONLINE green, AWAY amber, OFFLINE grey): click it to change it.
 - **The rail** (the round portraits on the left): everyone at the table. Their portrait glows while they
-  speak. Hover over one for a card with their character and, for the DM, how good their connection is.
+  speak. Hover over one for a card with their character, small icon chips for armour class, hit points and special senses (when their character is linked to D&D Beyond), and a **Details** button for the full breakdown; for the DM it also shows how good their connection is. On the phone web app, tap a portrait.
 - **The chat** (middle): messages, whispers, and cards for handouts and loot.
 - **The bottom bar**: your **microphone button**, a **level meter**, and the message box.
 
@@ -243,8 +243,8 @@ Open **Settings** (the cog). It has five tabs:
   date (only if the server's operator turned this on; if not, the box says so). **Sync now** forces a refresh.
   **While a character is linked, its name, race, class, level and picture come from D&D Beyond and cannot be edited here**: change them
   on the sheet and Sync, or Unlink to edit them yourself. A linked character shows its armour class, hit points,
-  passive perception and six abilities as tiles. A row of portraits at the top lets you look at each character (click one); **Activate** on the card, after a confirmation, makes it the one the table sees
-  and the plus adds another; with the sync on, adding starts from a pasted sheet link, and a button fills it in by hand.
+  passive perception and six abilities as tiles, its classes with their subclasses ("Monk 5 (Way of the Open Hand) / Cleric 4 (Life Domain)") and any special senses (Darkvision, Tremorsense and so on, with their range). The bin button deletes a character (only from this campaign; your D&D Beyond sheet is not touched). A row of portraits at the top lets you look at each character (click one); **Activate** on the card, after a confirmation, makes it the one the table sees
+  and the plus adds another; with the sync on, adding starts from a pasted sheet link (read first, so a private or wrong link leaves nothing behind), and a button fills it in by hand.
   Activating a character switches who the table sees you playing, on every screen at once. Characters belong to one campaign, so to use the same sheet in two campaigns add it in each. The same is on the phone
   web app: menu, **My characters**.
 - **Sessions**: upcoming sessions and your answer. The DM schedules a session with the calendar-plus icon at the

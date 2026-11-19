@@ -8,22 +8,20 @@ import { TextField } from '@radix-ui/themes';
 import { Check, Link2, Pencil, X } from 'lucide-react';
 import { useState } from 'react';
 
-import { accountErrorMessage, campaignApi, ddbAction } from '../../lib/tauriBridge.js';
+import { accountErrorMessage, campaignApi } from '../../lib/tauriBridge.js';
 import { ToolButton } from '../ToolButton.js';
 import { DdbLinkField } from './DdbLinkField.js';
 
 const api: NewCharacterApi = {
   create: async (fields) =>
     (await campaignApi<{ character: { id: string } }>('POST', 'characters', fields)).character.id,
-  update: (id, fields) => campaignApi('PATCH', `characters/${id}`, fields),
-  link: (id, url) => ddbAction('link', id, url),
 };
 
 /**
  * Adding a character. With the D&D Beyond sync on, it starts from a pasted sheet link (name, race, class, level and
  * picture all come from the sheet) and a button switches to filling it in by hand; with the sync off, or when
- * D&D Beyond could not be read, the form is the way. The link is made after the character exists (the server has no
- * one-step route yet), so a link that fails leaves a plain character to fill in, never a half-made one.
+ * D&D Beyond could not be read, the form is the way. The server reads the sheet before it makes anything, so a link
+ * that fails leaves nothing behind.
  */
 export function NewCharacter({
   ddbOn,
@@ -38,8 +36,6 @@ export function NewCharacter({
   const [draft, setDraft] = useState(blankDraft());
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
-  // Set once the character has been made, so trying again does not make a second one.
-  const [madeId, setMadeId] = useState<string>();
   const fromSheet = ddbOn === true && !byHand;
 
   const attempt = async (work: () => Promise<string>) => {
@@ -54,9 +50,9 @@ export function NewCharacter({
     }
   };
 
-  const importSheet = (url: string) => attempt(() => createFromSheet(api, url, madeId, setMadeId));
+  const importSheet = (url: string) => attempt(() => createFromSheet(api, url));
 
-  const addByHand = () => attempt(() => createByHand(api, draft, madeId));
+  const addByHand = () => attempt(() => createByHand(api, draft));
 
   return (
     <section className="vtt-session">
