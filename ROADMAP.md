@@ -502,6 +502,8 @@ Parts 1 to 3 change no wire contract (the server reads chat from a different pla
 ## Stage 11 — Protocol 4 and Verification (0.6.0 and 0.6.1; planned 2026-11-18)
 
 **Status:** 🟡 In Progress (branch `stage-11-protocol-4`, protocol version bumped to 4; items 1 and 2 built)
+
+**Screenshots to redo when this stage is complete (Andy, 2026-11-19):** the user guide's pictures predate the 0.6 changes (Settings → Players replaces the Quality tab, `desktop-quality.png`; the loot panel's To confirm filter and Post again; the sound panel's mix sliders; the character screens and detail popup). Retake them all once the stage is finished, not piecemeal.
 **Depends on:** Stages 9 and 10 (closed for building), release 0.5.3
 
 Andy, 2026-11-18: the AI workflow is a large change, so close Stages 9 and 10 as far as building goes, move what needs real testing here, and **put every wire change into one bump first**, so the AI work (Stage 12, 0.6.2 onwards) is built on a settled protocol. Two releases:
