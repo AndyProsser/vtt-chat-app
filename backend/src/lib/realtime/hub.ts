@@ -350,6 +350,43 @@ export class Hub {
     });
   }
 
+  /**
+   * The DM posted an item that is still on the table into chat again. Same card as a drop, so every client shows
+   * it as a new line, and removes the card it had (the card moves; one item is never shown twice). It does not go to
+   * the recording's timeline (nothing happened to the item).
+   */
+  announceLootRedropped(item: Parameters<Hub['announceLoot']>[1]): void {
+    this.broadcast(item.campaignId, 'loot.redropped', {
+      campaignId: item.campaignId,
+      itemId: item.id,
+      name: item.name,
+      ...(item.description ? { description: item.description.slice(0, 500) } : {}),
+      quantity: item.quantity,
+      kind: item.kind,
+      itemType: item.itemType,
+      rarity: item.rarity,
+    });
+  }
+
+  /**
+   * A player's "added to my sheet" flag changed. Told only to the people who may see it (the player, or every
+   * player for the party stash), never to the DM, so the flags stay the players' own.
+   */
+  announceLootConfirmed(
+    campaignId: string,
+    itemId: string,
+    confirmed: boolean,
+    userIds: readonly string[],
+  ): void {
+    const allowed = new Set(userIds);
+    this.broadcast(
+      campaignId,
+      'loot.confirmed',
+      { campaignId, itemId, confirmed },
+      { only: (s) => s.auth !== null && allowed.has(s.auth.user.id) },
+    );
+  }
+
   /** A handout was hidden or deleted: every client drops it (an unknown id is ignored). */
   announceHandoutRemoved(campaignId: string, handoutId: string): void {
     this.broadcast(campaignId, 'handout.removed', { campaignId, handoutId });

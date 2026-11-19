@@ -60,6 +60,7 @@ const toLoot = (r: Row): LootItem => ({
   claimedAt: (r.claimed_at as number | null) ?? null,
   claimedFor: (r.claimed_for as ClaimedFor | null) ?? null,
   split: (r.split as LootSplit | null) ?? null,
+  confirmed: (r.confirmed as boolean | undefined) ?? false,
 });
 
 const HANDOUT_SELECT = `
@@ -238,7 +239,7 @@ export class PostgresTableStore implements TableStore {
     // One conditional UPDATE: of any number of simultaneous claims, the database lets exactly one match.
     try {
       const { rows } = await this.pool.query<Row>(
-        `UPDATE loot_items SET claimed_by = $2, claimed_at = $3, claimed_for = $4, split = $5
+        `UPDATE loot_items SET claimed_by = $2, claimed_at = $3, claimed_for = $4, split = $5, confirmed = FALSE
           WHERE id = $1 AND claimed_by IS NULL RETURNING *`,
         [id, userId, at, claimedFor, split ? JSON.stringify(split) : null],
       );
@@ -258,9 +259,9 @@ export class PostgresTableStore implements TableStore {
     try {
       const { rows } = await this.pool.query<Row>(
         to === null
-          ? `UPDATE loot_items SET claimed_by = NULL, claimed_at = NULL, claimed_for = NULL, split = NULL
+          ? `UPDATE loot_items SET claimed_by = NULL, claimed_at = NULL, claimed_for = NULL, split = NULL, confirmed = FALSE
               WHERE id = $1 AND claimed_by = $2 AND claimed_for = ANY($3) RETURNING *`
-          : `UPDATE loot_items SET claimed_for = 'party'
+          : `UPDATE loot_items SET claimed_for = 'party', confirmed = FALSE
               WHERE id = $1 AND claimed_by = $2 AND claimed_for = ANY($3) RETURNING *`,
         [id, userId, from],
       );
@@ -273,7 +274,7 @@ export class PostgresTableStore implements TableStore {
 
   async takeFromParty(id: string, userId: string, at: number): Promise<LootItem | undefined> {
     return this.updateOne(
-      `UPDATE loot_items SET claimed_by = $2, claimed_at = $3, claimed_for = 'self'
+      `UPDATE loot_items SET claimed_by = $2, claimed_at = $3, claimed_for = 'self', confirmed = FALSE
         WHERE id = $1 AND claimed_for = 'party' RETURNING *`,
       [id, userId, at],
     );
@@ -281,7 +282,7 @@ export class PostgresTableStore implements TableStore {
 
   async returnFromParty(id: string): Promise<LootItem | undefined> {
     return this.updateOne(
-      `UPDATE loot_items SET claimed_by = NULL, claimed_at = NULL, claimed_for = NULL, split = NULL
+      `UPDATE loot_items SET claimed_by = NULL, claimed_at = NULL, claimed_for = NULL, split = NULL, confirmed = FALSE
         WHERE id = $1 AND claimed_for = 'party' RETURNING *`,
       [id],
     );
@@ -296,6 +297,32 @@ export class PostgresTableStore implements TableStore {
       if ((error as { code?: string }).code === BAD_UUID) return undefined;
       throw error;
     }
+  }
+
+  async confirmLoot(id: string, userId: string, confirmed: boolean): Promise<LootItem | undefined> {
+    // One conditional UPDATE: the flag lives on the item (own or party) or on the caller's own share of a split.
+    return this.updateOne(
+      `UPDATE loot_items SET
+         confirmed = CASE WHEN claimed_for = 'split' THEN confirmed ELSE $3::boolean END,
+         split = CASE WHEN claimed_for = 'split'
+           THEN jsonb_set(split, '{shares}', (
+                  SELECT jsonb_agg(CASE WHEN s->>'userId' = $2::text THEN s || jsonb_build_object('confirmed', $3::boolean) ELSE s END)
+                    FROM jsonb_array_elements(split->'shares') s))
+           ELSE split END
+        WHERE id = $1 AND claimed_by IS NOT NULL AND (
+              (claimed_for IN ('self', 'assigned') AND claimed_by::text = $2::text)
+           OR claimed_for = 'party'
+           OR (claimed_for = 'split' AND split->'shares' @> jsonb_build_array(jsonb_build_object('userId', $2::text))))
+        RETURNING *`,
+      [id, userId, confirmed],
+    );
+  }
+
+  async redropLoot(id: string, at: number): Promise<LootItem | undefined> {
+    return this.updateOne(
+      'UPDATE loot_items SET dropped_at = $2 WHERE id = $1 AND claimed_by IS NULL RETURNING *',
+      [id, at],
+    );
   }
 
   async deleteLoot(id: string): Promise<void> {

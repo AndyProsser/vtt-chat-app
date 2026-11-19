@@ -83,6 +83,7 @@ export class MemoryTableStore implements TableStore {
     item.claimedAt = at;
     item.claimedFor = claimedFor;
     item.split = split ? copy(split) : null;
+    item.confirmed = false;
     return copy(item);
   };
   takeFromParty = async (id: string, userId: string, at: number) => {
@@ -91,6 +92,7 @@ export class MemoryTableStore implements TableStore {
     item.claimedBy = userId;
     item.claimedAt = at;
     item.claimedFor = 'self';
+    item.confirmed = false;
     return copy(item);
   };
   returnFromParty = async (id: string) => {
@@ -100,6 +102,7 @@ export class MemoryTableStore implements TableStore {
     item.claimedAt = null;
     item.claimedFor = null;
     item.split = null;
+    item.confirmed = false;
     return copy(item);
   };
   changeClaim = async (id: string, userId: string, from: ClaimedFor[], to: 'party' | null) => {
@@ -114,6 +117,25 @@ export class MemoryTableStore implements TableStore {
     } else {
       item.claimedFor = to;
     }
+    item.confirmed = false;
+    return copy(item);
+  };
+  confirmLoot = async (id: string, userId: string, confirmed: boolean) => {
+    const item = this.loot.get(id);
+    if (!item || item.claimedBy === null) return undefined;
+    if (item.claimedFor === 'split') {
+      const share = item.split?.shares.find((s) => s.userId === userId);
+      if (!share) return undefined;
+      share.confirmed = confirmed;
+    } else if (item.claimedFor === 'party' || item.claimedBy === userId) {
+      item.confirmed = confirmed;
+    } else return undefined;
+    return copy(item);
+  };
+  redropLoot = async (id: string, at: number) => {
+    const item = this.loot.get(id);
+    if (!item || item.claimedBy !== null) return undefined;
+    item.droppedAt = at;
     return copy(item);
   };
   deleteLoot = async (id: string) => void this.loot.delete(id);

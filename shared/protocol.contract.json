@@ -1,6 +1,6 @@
 {
-  "protocolVersion": 3,
-  "hash": "dbe57e7c5869929bc0bb9b25a739ba0bed241641201b5cf3f2f7eb1f752ae705",
+  "protocolVersion": 4,
+  "hash": "e1da291e0371ba8b50608fe2877f709570d8b663a1958038691181a4bc436b10",
   "summary": {
     "clientFrames": [
       "audio.state",
@@ -35,6 +35,8 @@
       "handout.removed",
       "handout.shown",
       "loot.${event}",
+      "loot.confirmed",
+      "loot.redropped",
       "party.state",
       "presence.update",
       "recording.ack.update",
@@ -141,6 +143,8 @@
       "http/lootRoutes.ts POST /",
       "http/lootRoutes.ts POST /:itemId/assign",
       "http/lootRoutes.ts POST /:itemId/claim",
+      "http/lootRoutes.ts POST /:itemId/confirm",
+      "http/lootRoutes.ts POST /:itemId/redrop",
       "http/lootRoutes.ts POST /:itemId/return",
       "http/lootRoutes.ts POST /:itemId/split",
       "http/lootRoutes.ts POST /:itemId/store",

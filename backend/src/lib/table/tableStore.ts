@@ -44,7 +44,11 @@ export type LootKind = 'item' | 'coin';
 /** Where a grabbed item went: the player's own, the party's shared pool, or a split of coin. */
 export type ClaimedFor = 'self' | 'party' | 'split' | 'assigned';
 export interface LootSplit {
-  shares: { userId: string; amount: number }[];
+  shares: {
+    userId: string;
+    amount: number;
+    /** The player has put their share on their game sheet. */ confirmed?: boolean;
+  }[];
   /** Coin that did not divide evenly; it stays in the pool. */
   remainder: number;
 }
@@ -70,6 +74,8 @@ export interface LootItem {
   claimedFor: ClaimedFor | null;
   /** Set only when a coin pile was split. */
   split: LootSplit | null;
+  /** The holder (or, for the party stash, any player) has added it to the real game sheet. Reset on every move. */
+  confirmed: boolean;
 }
 
 /**
@@ -129,6 +135,16 @@ export interface TableStore {
   takeFromParty(id: string, userId: string, at: number): Promise<LootItem | undefined>;
   /** Any player puts a party-stash item back on the table, unclaimed. **Atomic**, as above. */
   returnFromParty(id: string): Promise<LootItem | undefined>;
+  /**
+   * Sets the "added to my sheet" flag as `userId` sees it: on an item they hold, on the party stash (any player),
+   * or on their own share of a split pile. `undefined` when the item is not one of those for them.
+   */
+  confirmLoot(id: string, userId: string, confirmed: boolean): Promise<LootItem | undefined>;
+  /**
+   * Moves an item still on the table to `at` in the chat: its card is drawn where it was dropped, so a re-drop is a
+   * new drop time. **Atomic**, and only while nobody holds it; otherwise `undefined`.
+   */
+  redropLoot(id: string, at: number): Promise<LootItem | undefined>;
   deleteLoot(id: string): Promise<void>;
 }
 

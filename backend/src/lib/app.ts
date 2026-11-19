@@ -41,6 +41,21 @@ import type { Store } from './store/store.js';
 import { protocolGate, serverVersion, versionRoutes } from './version.js';
 import { resolveDownloads } from './updates/downloads.js';
 
+/** What the realtime layer is told about a loot item. */
+export type LootAnnouncement = {
+  id: string;
+  campaignId: string;
+  name: string;
+  description?: string;
+  quantity: number;
+  claimedBy: string | null;
+  kind: 'item' | 'coin';
+  itemType: string;
+  rarity: string | null;
+  claimedFor: 'self' | 'party' | 'split' | 'assigned' | null;
+  split: { shares: { userId: string; amount: number }[]; remainder: number } | null;
+};
+
 export interface AppDeps {
   config: BackendConfig;
   /** The DM's app reports a character-voice change; audio capture notes it in the recording's timeline. */
@@ -83,22 +98,14 @@ export interface AppDeps {
       handout: { id: string; visibility: string; recipients: string[] },
       dmIds: string[],
     ): void;
-    announceLoot?(
-      event: 'dropped' | 'claimed' | 'removed',
-      item: {
-        id: string;
-        campaignId: string;
-        name: string;
-        description?: string;
-        quantity: number;
-        claimedBy: string | null;
-        kind: 'item' | 'coin';
-        itemType: string;
-        rarity: string | null;
-        claimedFor: 'self' | 'party' | 'split' | 'assigned' | null;
-        split: { shares: { userId: string; amount: number }[]; remainder: number } | null;
-      },
+    announceLootRedropped?(item: LootAnnouncement): void;
+    announceLootConfirmed?(
+      campaignId: string,
+      itemId: string,
+      confirmed: boolean,
+      userIds: readonly string[],
     ): void;
+    announceLoot?(event: 'dropped' | 'claimed' | 'removed', item: LootAnnouncement): void;
   };
   /** Shared with the realtime hub so REST changes and snapshots agree. Defaults to a fresh one. */
   recording?: RecordingState;
@@ -375,9 +382,22 @@ export function createApp({
       '/api/campaigns/:campaignId/loot',
       lootRoutes({
         accounts,
-        loot: new LootService({ store, table }),
+        loot: new LootService({
+          store,
+          table,
+          ...(scheduleService ? { notify: (ids, n) => scheduleService.notify(ids, n) } : {}),
+        }),
         ...(realtime?.announceLoot
           ? { onChange: (event, item) => realtime.announceLoot?.(event, item) }
+          : {}),
+        ...(realtime?.announceLootRedropped
+          ? { onRedrop: (item) => realtime.announceLootRedropped?.(item) }
+          : {}),
+        ...(realtime?.announceLootConfirmed
+          ? {
+              onConfirmed: (campaignId, itemId, confirmed, userIds) =>
+                realtime.announceLootConfirmed?.(campaignId, itemId, confirmed, userIds),
+            }
           : {}),
       }),
     );
