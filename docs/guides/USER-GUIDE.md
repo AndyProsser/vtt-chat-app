@@ -238,7 +238,7 @@ Open **Settings** (the cog). It has five tabs:
   on the sheet and Sync, or Unlink to edit them yourself. A linked character shows its armour class, hit points,
   passive perception and six abilities as tiles. A row of portraits at the top switches character (click one to play it)
   and the plus adds another; with the sync on, adding starts from a pasted sheet link, and a button fills it in by hand.
-  Characters belong to one campaign, so to use the same sheet in two campaigns add it in each. The same is on the phone
+  Pressing **Play** on a character switches who the table sees you playing, on every screen at once. Characters belong to one campaign, so to use the same sheet in two campaigns add it in each. The same is on the phone
   web app: menu, **My characters**.
 - **Sessions**: upcoming sessions and your answer. The DM schedules a session with the calendar-plus icon at the
   top right.

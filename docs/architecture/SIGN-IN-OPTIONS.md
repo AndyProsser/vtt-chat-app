@@ -9,7 +9,7 @@ Three ways in, all ending in the same long-lived, revocable session ([CLAUDE.md 
 | Password       | nothing                                                                            | email + password (browser; in the app only with `VTT_DEV_SIGNIN`)                                                                                                                                   |
 | Emailed link   | `SMTP_URL` and `PUBLIC_URL`                                                        | **Email me a sign-in link**, press the button in the email                                                                                                                                          |
 | Code           | nothing (`vtt-admin user code <email>`): a person reads it out, the other types it | "I have a sign-in code", type it                                                                                                                                                                    |
-| Single sign-on | `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, `PUBLIC_URL`                | **Sign in with single sign-on** on the web login form (shown only when the server has OIDC; built 2026-11-18, it was missing) → the identity provider → the code it shows → "I have a sign-in code" |
+| Single sign-on | `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, `PUBLIC_URL`                | **Sign in with single sign-on** on the web login form (shown only when the server has OIDC, as a quiet link under "I have a sign-in code"; built 2026-11-18, it was missing; Andy has it switched off on his own server for now) → the identity provider → the code it shows → "I have a sign-in code" |
 
 ## Why SSO ends in a code
 
