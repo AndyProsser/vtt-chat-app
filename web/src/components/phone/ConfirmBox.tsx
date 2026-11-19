@@ -1,4 +1,3 @@
-import { Icon } from '../icons/index.js';
 import { IconTool } from './IconTool.js';
 
 /**
