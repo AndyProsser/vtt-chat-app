@@ -9,7 +9,7 @@ import {
   type RecordsStore,
   type StoredSummary,
 } from '@vtt-chat-app/ai';
-import { DM_DELETE_MAX_MINUTES } from '@vtt-chat-app/shared';
+import { canReadSummary, DM_DELETE_MAX_MINUTES, summaryRank } from '@vtt-chat-app/shared';
 import { Router } from 'express';
 import { z } from 'zod';
 
@@ -101,13 +101,12 @@ export function recordsRoutes(deps: RecordsRouteDeps): Router {
 
   // The session's tale leads (it is what most people open the history for), then its parts and each hero's
   // tale; the Game Master's working material (brief, scribe's notes) comes after them.
-  const ORDER: readonly string[] = ['session', 'chapter', 'character', 'dm-only', 'notes'];
-  const rank = (s: StoredSummary) => ORDER.indexOf(s.kind);
+  // The order and the visibility rule are the shared records vocabulary (shared/src/types/records.ts).
   const visible = (summaries: StoredSummary[], isDm: boolean) =>
     summaries
-      .filter((s) => s.visibility === 'members' || isDm)
+      .filter((s) => canReadSummary(s.visibility, isDm))
       .map((s, i) => ({ s, i }))
-      .sort((a, b) => rank(a.s) - rank(b.s) || a.i - b.i)
+      .sort((a, b) => summaryRank(a.s.kind) - summaryRank(b.s.kind) || a.i - b.i)
       .map(({ s }) => s);
 
   router.get('/', async (req, res) => {

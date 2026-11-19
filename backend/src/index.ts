@@ -2,6 +2,7 @@ export * from './types/index.js';
 export * from './consts/index.js';
 export * from './lib/index.js';
 
+import { processingLocation } from '@vtt-chat-app/shared';
 import { createServer } from 'node:http';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -285,6 +286,7 @@ if (isEntryPoint) {
     probes: statusProbes,
     onlinePlayers: () => hub.presence.onlineUsers(),
     activeRecordings: () => hub.recording.activeCount(),
+    processing: async () => processingLocation((await store.getSettings()).ai),
     ...(pool ? { jobs: new PostgresJobQueue(pool), localAi: () => readLocalAiStatus(pool) } : {}),
     ...(config.recordingsDir !== undefined
       ? { storage: () => measureDisk(config.recordingsDir as string) }

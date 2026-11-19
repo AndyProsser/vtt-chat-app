@@ -46,6 +46,8 @@ pub struct RecordingInfo {
     pub started_at: Option<u64>,
     /// How long the DM may be away before any player can pause, resume or stop it (operator setting).
     pub grace_seconds: Option<u64>,
+    /// Where the session's content is processed, as the server says: `local` or `offsite` (protocol 4).
+    pub processing: Option<String>,
 }
 
 /// A decoded server → client frame. Campaign data the UI renders as-is (`Snapshot`, stats) stays
@@ -111,6 +113,8 @@ pub enum ServerEvent {
         recording_id: String,
         status: RecordingChange,
         started_at: Option<u64>,
+        /// `local` or `offsite`: where this session's content is processed (protocol 4); `None` from an older server.
+        processing: Option<String>,
     },
     /// The *current* recording state, sent after every snapshot or replay (so a client that joined
     /// or rejoined mid-recording learns it). `None` means not recording.
@@ -152,6 +156,10 @@ fn recording_status(d: &Value, status: RecordingChange) -> ServerEvent {
         recording_id: text(d, "recordingId"),
         status,
         started_at: d.get("startedAt").and_then(Value::as_u64),
+        processing: d
+            .get("processing")
+            .and_then(Value::as_str)
+            .map(str::to_string),
     }
 }
 
@@ -305,6 +313,10 @@ pub fn parse_server_frame(raw: &str) -> Result<(ServerEvent, Option<u64>), Parse
                         .unwrap_or(false),
                     started_at: r.get("startedAt").and_then(Value::as_u64),
                     grace_seconds: r.get("graceSeconds").and_then(Value::as_u64),
+                    processing: r
+                        .get("processing")
+                        .and_then(Value::as_str)
+                        .map(str::to_string),
                 }),
         },
         "roster.changed" => ServerEvent::RosterChanged {
@@ -627,6 +639,7 @@ mod tests {
                     recording_id: "r1".into(),
                     status: expected,
                     started_at: None,
+                    processing: None,
                 }
             );
         }
@@ -648,6 +661,7 @@ mod tests {
                     acknowledged: true,
                     started_at: None,
                     grace_seconds: None,
+                    processing: None,
                 })
             }
         );
@@ -713,6 +727,7 @@ mod tests {
             status,
             ServerEvent::RecordingStatus {
                 started_at: Some(1000),
+                processing: None,
                 ..
             }
         ));

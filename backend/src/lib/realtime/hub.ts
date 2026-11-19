@@ -4,7 +4,9 @@ import {
   isChatKind,
   isChatLanguageKey,
   PROTOCOL_VERSION as APP_PROTOCOL,
+  processingLocation,
   type ChatKind,
+  type ProcessingLocation,
 } from '@vtt-chat-app/shared';
 
 import { CHAT_RETENTION_MESSAGES, SNAPSHOT_CHAT_LINES } from '../../consts/index.js';
@@ -127,6 +129,8 @@ interface ConnState {
 export class Hub {
   readonly presence: PresenceTracker;
   readonly recording: RecordingState;
+  /** See `refreshProcessing`. */
+  private processing: ProcessingLocation = 'local';
   private readonly acks: AckStore;
   private readonly soundboard: SoundboardRuntime | undefined;
   private readonly soundLimiter = new RateLimiter(30, 10_000);
@@ -264,7 +268,23 @@ export class Hub {
       recordingId: change.recordingId,
       status: change.event,
       startedAt: change.startedAt,
+      processing: this.processing,
     });
+  }
+
+  /**
+   * Where a recording's content is processed (`local` or `offsite`), read from the operator's AI settings. Sent with
+   * every recording change and state so each app can say it plainly (CLAUDE.md §8.4). Cached, because
+   * `announceRecording` is synchronous; refreshed on every join and before every recording change.
+   */
+  async refreshProcessing(): Promise<void> {
+    try {
+      this.processing = processingLocation((await this.options.store.getSettings()).ai);
+    } catch (error) {
+      // Cannot read the setting: say "offsite", never claim a privacy we cannot vouch for.
+      console.error('[backend] could not read the AI settings for the recording notice', error);
+      this.processing = 'offsite';
+    }
   }
 
   /** A handout was just shown: tell exactly the people who may now see it (the DM's own sockets included). */
@@ -1122,7 +1142,9 @@ export class Hub {
   private async recordingSnapshot(campaignId: string, viewerId: string) {
     const current = this.recording.current(campaignId);
     if (!current) return null;
+    await this.refreshProcessing();
     return {
+      processing: this.processing,
       recordingId: current.recordingId,
       status: current.status,
       startedAt: current.startedAt,

@@ -2829,3 +2829,10 @@ body,
   opacity: 0.7;
   font-size: 11px;
 }
+
+/* The off-site notice beside the REC pill: only shown when session content leaves the operator's network. */
+.vtt-rec-offsite {
+  display: inline-flex;
+  align-items: center;
+  color: var(--amber-11);
+}

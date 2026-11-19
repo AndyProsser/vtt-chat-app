@@ -81,6 +81,8 @@ export interface RecordingView {
   startedAt: number | null;
   /** The operator's grace period in seconds (how long the DM may be away), when the server said. */
   graceSeconds?: number;
+  /** Where the session's content is processed, as the server says (protocol 4): this machine's own network, or off-site. */
+  processing?: 'local' | 'offsite';
 }
 
 export type RecordingAction = 'start' | 'pause' | 'resume' | 'stop';

@@ -48,6 +48,8 @@ export interface CampaignRouteDeps {
   recording: RecordingState;
   /** Called after a recording change, so every client can play its local cue. */
   onRecordingChanged?: (change: RecordingChange) => void;
+  /** Awaited just before a recording change is made, so what the apps are told about where it is processed is current. */
+  beforeRecordingChange?: () => Promise<void>;
   /** How long the campaign's DM has had no connection (0 while connected). */
   dmAwayMs?: (campaignId: string) => Promise<number>;
   /** How long the DM may be away before players may pause, resume or stop a recording. */
@@ -231,6 +233,7 @@ export function campaignRoutes(deps: CampaignRouteDeps): Router {
         );
     }
 
+    await deps.beforeRecordingChange?.();
     const change = recording[body.action](campaignId);
     onRecordingChanged?.(change);
     res.json({ recordingId: change.recordingId, event: change.event });

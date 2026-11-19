@@ -1,3 +1,5 @@
+import { summaryLabel } from '@vtt-chat-app/shared';
+
 import type { RsvpStatus } from '../../types/phone.js';
 
 export const RSVP_LABEL: Record<RsvpStatus, string> = {
@@ -71,13 +73,5 @@ export function clock(ms: number): string {
   return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${sec}` : `${m}:${sec}`;
 }
 
-const SUMMARY_TITLES: Record<string, string> = {
-  session: 'The tale',
-  chapter: 'Chapter',
-  character: 'Hero',
-  'dm-only': 'DM brief',
-  notes: 'Scribe’s notes',
-};
-
-/** The heading for a summary of this kind; an unknown kind is shown as it is. */
-export const summaryTitle = (kind: string): string => SUMMARY_TITLES[kind] ?? kind;
+/** The heading for a summary of this kind; an unknown kind is shown as it is (the shared records vocabulary). */
+export const summaryTitle = summaryLabel;

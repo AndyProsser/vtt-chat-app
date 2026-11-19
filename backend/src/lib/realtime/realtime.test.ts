@@ -902,8 +902,24 @@ describe('Hub: recording consent flow', () => {
         acknowledged: false,
         startedAt: expect.any(Number),
         graceSeconds: 30,
+        processing: 'local',
       },
     });
+  });
+
+  it('says where the session is processed: local by default, offsite when a remote is not on the own network (protocol 4)', async () => {
+    start();
+    expect(dm.last('recording.status')?.d.processing).toBe('local');
+    const settings = await t.store.getSettings();
+    await t.store.putSettings({
+      ...settings,
+      ai: { ...settings.ai, llm: { kind: 'remote', url: 'https://api.example.com', model: null } },
+    });
+    const late = await connect(t, 'p2', 'player');
+    expect(late.last('recording.state')?.d.recording).toMatchObject({ processing: 'offsite' });
+    await t.hub.refreshProcessing();
+    t.hub.announceRecording(t.hub.recording.pause(t.campaignId));
+    expect(dm.last('recording.status')?.d.processing).toBe('offsite');
   });
 
   it('remembers an ack, so a quick reconnect is told not to replay the cue', async () => {

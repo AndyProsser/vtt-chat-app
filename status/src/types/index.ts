@@ -16,7 +16,7 @@ export interface StatusSnapshot {
   ok: boolean;
   services: ServiceStatus[];
   players: { online: number };
-  recording: { active: number };
+  recording: { active: number; processing?: 'local' | 'offsite' };
   pipeline: Pipeline | null;
   storage: { freePercent: number; low: boolean } | null;
   /** The local AI's models (downloaded in the background on a first start); null when nothing is reported. */

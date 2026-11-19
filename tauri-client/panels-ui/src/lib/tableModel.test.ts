@@ -109,6 +109,29 @@ describe('tableModel', () => {
   });
 });
 
+describe('where a recording is processed (protocol 4)', () => {
+  const ev = (t: string, d: unknown): SyncEvent => ({ t, d });
+  it('keeps what the server says across state and status, and ignores anything odd', () => {
+    let s = applyEvent(
+      emptyTable,
+      ev('recording.state', { recording: { recordingId: 'r1', processing: 'offsite' } }),
+    );
+    expect(s.recording?.processing).toBe('offsite');
+    s = applyEvent(s, ev('recording.status', { recordingId: 'r1', status: 'PAUSED' }));
+    expect(s.recording?.processing).toBe('offsite');
+    s = applyEvent(
+      s,
+      ev('recording.status', { recordingId: 'r2', status: 'STARTED', processing: 'local' }),
+    );
+    expect(s.recording?.processing).toBe('local');
+    s = applyEvent(
+      s,
+      ev('recording.status', { recordingId: 'r3', status: 'STARTED', processing: 'mars' }),
+    );
+    expect(s.recording?.processing).toBeUndefined();
+  });
+});
+
 describe('recording state', () => {
   const ev = (t: string, d: unknown): SyncEvent => ({ t, d });
 

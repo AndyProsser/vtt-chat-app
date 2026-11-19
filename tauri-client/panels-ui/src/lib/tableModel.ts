@@ -246,6 +246,7 @@ export function applyEvent(state: TableState, event: SyncEvent): TableState {
               capturing: r.capturing !== false,
               startedAt: asStart(r.startedAt),
               ...(typeof r.graceSeconds === 'number' ? { graceSeconds: r.graceSeconds } : {}),
+              ...processingOf(r.processing),
             }
           : null;
       return sameRecording(state.recording, next) ? state : { ...state, recording: next };
@@ -263,6 +264,9 @@ export function applyEvent(state: TableState, event: SyncEvent): TableState {
               ...(sameRun && state.recording?.graceSeconds !== undefined
                 ? { graceSeconds: state.recording.graceSeconds }
                 : {}),
+              ...(processingOf(d.processing).processing === undefined && sameRun
+                ? processingOf(state.recording?.processing)
+                : processingOf(d.processing)),
             };
       return sameRecording(state.recording, next) ? state : { ...state, recording: next };
     }
@@ -270,6 +274,10 @@ export function applyEvent(state: TableState, event: SyncEvent): TableState {
       return state;
   }
 }
+
+/** `{processing}` for a value the server sent (`local` or `offsite`); nothing for an older server or anything else. */
+const processingOf = (v: unknown): Pick<RecordingView, 'processing'> =>
+  v === 'local' || v === 'offsite' ? { processing: v } : {};
 
 const asStart = (v: unknown): number | null => (typeof v === 'number' && v > 0 ? v : null);
 
@@ -281,7 +289,8 @@ function sameRecording(a: RecordingView | null, b: RecordingView | null): boolea
       a.recordingId === b.recordingId &&
       a.capturing === b.capturing &&
       a.startedAt === b.startedAt &&
-      a.graceSeconds === b.graceSeconds)
+      a.graceSeconds === b.graceSeconds &&
+      a.processing === b.processing)
   );
 }
 

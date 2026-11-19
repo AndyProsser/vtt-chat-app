@@ -92,6 +92,14 @@ function Body({ snapshot, stale = false }: { snapshot: StatusSnapshot; stale?: b
                 : 'Not recording'
             }
           />
+          <Row
+            label="Session content is processed"
+            value={
+              snapshot.recording.processing === 'offsite'
+                ? 'Off-site (an outside service)'
+                : 'On this server’s own network'
+            }
+          />
           {snapshot.storage && (
             <Row
               label="Recording storage"

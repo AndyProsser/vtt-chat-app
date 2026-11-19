@@ -26,6 +26,18 @@ Stage 11 items 1 and 2. `PROTOCOL_VERSION` is now **4** (`shared`, `consts.rs`, 
 | `loot_given` notification when the DM gives an item (stored, pop-up in the desktop app under the table setting)                                                   | Built; the Rust classifier is tested, the server side is wired but has **no route test** (the loot tests run without the schedule service) |
 | Both apps: To confirm filter (players' default), the tick on loot rows, the count on the inventory icon (desktop) and Loot tab (phone web), Post again for the DM | Built and type-checked. **Not run in a real window or on a phone**; the desktop chat card has no tick (only the inventory window does)     |
 
+## Built 2026-11-19 for 0.6.0: soundboard, volume, bard, off-site notice, records vocabulary
+
+| What                                                                                                                                            | State                                                                                                                                      |
+| ----------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| Soundboard (item 3): live stinger and scene level sliders on the deck rows; no wire change                                                      | Built; mixer and engine unit tests. **Never heard with real audio**                                                                        |
+| Settings → Players (everyone): per-person volume up to 400 %, saved by account on that machine; the DM keeps the link graphs                    | Built; panel tests, Rust mixer clamp test. **Not run in a real window; 400 % never heard** (a soft limiter keeps the sum below full scale) |
+| Bard persona per campaign (item 4): `campaigns.bard` (migration 0040), `PATCH /api/campaigns/:id {bard}`, picker in the desktop Campaign tab    | Built; route test on memory and Postgres. **Desktop only: the phone app has no setting yet.** Does nothing to the tale until Stage 12      |
+| Off-site notice (item 7): `processing` on `recording.status`, `recording.state` and `/api/status`, from the AI settings by the own-network rule | Built; rule and hub tests; the desktop shows tooltip and an amber cloud icon when off-site; status page row. **Not seen in a real window** |
+| Records vocabulary (item 8): `shared/src/types/records.ts` (summary kinds, order, labels, who reads each) used by server, desktop and phone     | Built; existing access tests pass unchanged                                                                                                |
+
+**Found while doing this:** the `sound_upload` command was missing from the app's allow-list, so **My sounds uploads were refused in 0.5.4**; a Rust test (`every_registered_command_is_allowed_to_the_panels`) already failed on `main` and nobody ran it. Fixed on this branch (f78e3f2); needs a 0.5.5.
+
 ## Built 2026-11-18 for 0.5.5: the character screens, and the D&D Beyond portrait (on `main`)
 
 Andy's feedback from the first real D&D Beyond link on the VM (the sync works; the screen was too busy and the portrait

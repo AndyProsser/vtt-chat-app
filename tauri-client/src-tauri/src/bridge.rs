@@ -66,6 +66,7 @@ pub fn panel_event(server_event: &ServerEvent) -> Option<(Value, bool)> {
             recording_id,
             status,
             started_at,
+            processing,
             ..
         } => (
             event(
@@ -73,6 +74,7 @@ pub fn panel_event(server_event: &ServerEvent) -> Option<(Value, bool)> {
                 json!({
                     "recordingId": recording_id,
                     "startedAt": started_at,
+                    "processing": processing,
                     "status": match status {
                         RecordingChange::Started => "STARTED",
                         RecordingChange::Paused => "PAUSED",
@@ -92,6 +94,7 @@ pub fn panel_event(server_event: &ServerEvent) -> Option<(Value, bool)> {
                         "capturing": r.capturing,
                         "startedAt": r.started_at,
                         "graceSeconds": r.grace_seconds,
+                        "processing": r.processing,
                     })),
                 }),
             ),
@@ -169,6 +172,7 @@ mod tests {
             recording_id: "r1".into(),
             status: RecordingChange::Paused,
             started_at: Some(1000),
+            processing: None,
         };
         let (value, retain) = panel_event(&status).unwrap();
         assert_eq!(value["t"], "recording.status");
@@ -190,6 +194,7 @@ mod tests {
                 acknowledged: false,
                 started_at: Some(2000),
                 grace_seconds: None,
+                processing: None,
             }),
         };
         assert_eq!(

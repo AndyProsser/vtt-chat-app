@@ -1,3 +1,4 @@
+import type { ProcessingLocation } from '@vtt-chat-app/shared';
 import {
   needsAttention,
   shownState,
@@ -26,7 +27,8 @@ export interface StatusSnapshot {
   ok: boolean;
   services: ServiceStatus[];
   players: { online: number };
-  recording: { active: number };
+  /** `processing` says where session content is processed (shown on the status page too, CLAUDE.md §8.4). */
+  recording: { active: number; processing: ProcessingLocation };
   /** The records pipeline: how much is waiting, and how the last job ended. */
   pipeline: {
     queued: number;
@@ -53,6 +55,8 @@ export interface StatusDeps {
   probes: StatusProbe[];
   onlinePlayers: () => number;
   activeRecordings: () => number;
+  /** Where recorded sessions are processed: `local` (default) or `offsite`. */
+  processing?: () => Promise<ProcessingLocation>;
   jobs?: JobQueue;
   /** Measures the disk that holds recordings; null when there is none to measure. */
   storage?: () => Promise<DiskUse | null>;
@@ -131,7 +135,12 @@ export class StatusService {
       ok: services.every((s) => s.ok),
       services,
       players: { online: this.deps.onlinePlayers() },
-      recording: { active: this.deps.activeRecordings() },
+      recording: {
+        active: this.deps.activeRecordings(),
+        processing: await (
+          this.deps.processing?.() ?? Promise.resolve<ProcessingLocation>('local')
+        ).catch((): ProcessingLocation => 'offsite'),
+      },
       pipeline,
       storage,
       localAi,

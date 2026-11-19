@@ -361,6 +361,7 @@ describe('recording consent over the wire', () => {
       acknowledged: false,
       startedAt: expect.any(Number),
       graceSeconds: 30,
+      processing: 'local',
     });
 
     // Their client plays the cue, then acknowledges.

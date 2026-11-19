@@ -78,6 +78,8 @@ export interface AppDeps {
     /** Sends a frame to every live socket of a person. */
     sendToUser?(userId: string, type: string, data: unknown): void;
     announceRecording(change: RecordingChange): void;
+    /** Re-reads where processing happens, so the notice sent with the next recording change is current. */
+    refreshProcessing?(): Promise<void>;
     /** How long the campaign's DM has had no connection (0 while connected). */
     dmAwayMs?(campaignId: string): Promise<number>;
     announceHandoutShown?(
@@ -312,6 +314,9 @@ export function createApp({
         : {}),
       ...(realtime
         ? { onRecordingChanged: (change: RecordingChange) => realtime.announceRecording(change) }
+        : {}),
+      ...(realtime?.refreshProcessing
+        ? { beforeRecordingChange: () => realtime.refreshProcessing!() }
         : {}),
     }),
   );
