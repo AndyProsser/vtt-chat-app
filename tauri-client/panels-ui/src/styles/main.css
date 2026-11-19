@@ -3062,3 +3062,26 @@ body,
   flex: 1;
   overflow-y: auto;
 }
+
+/* "On my sheet": a small round check box at the right of an inventory item. */
+.vtt-round-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 2px solid var(--vtt-gold);
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.vtt-round-check:hover {
+  background: color-mix(in srgb, var(--vtt-gold) 18%, transparent);
+}
+.vtt-round-check-on {
+  background: var(--vtt-gold);
+  color: var(--vtt-bg);
+}

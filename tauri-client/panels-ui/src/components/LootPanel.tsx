@@ -1,6 +1,5 @@
 import {
   Backpack,
-  ClipboardCheck,
   Inbox,
   List,
   ListChecks,
@@ -28,6 +27,7 @@ import { ItemIcon } from './ItemIcon.js';
 import { LootActions } from './LootActions.js';
 import { PlayerList } from './PlayerList.js';
 import { LootWorkbench } from './LootWorkbench.js';
+import { RoundCheck } from './RoundCheck.js';
 import { ToolButton } from './ToolButton.js';
 import { EmptyState } from './EmptyState.js';
 
@@ -171,26 +171,8 @@ export function LootPanel() {
                   dm={dm}
                   players={players}
                   onDone={reload}
+                  disabled={isConfirmed(item, status?.userId ?? null)}
                 />
-                {canConfirm(item, status?.userId ?? null, dm) && (
-                  <ToolButton
-                    label={
-                      isConfirmed(item, status?.userId ?? null)
-                        ? 'On my character sheet (click to undo)'
-                        : 'Mark as added to my character sheet'
-                    }
-                    pressed={isConfirmed(item, status?.userId ?? null)}
-                    onClick={() =>
-                      void run(() =>
-                        campaignApi('POST', `loot/${item.id}/confirm`, {
-                          confirmed: !isConfirmed(item, status?.userId ?? null),
-                        }),
-                      )
-                    }
-                  >
-                    <ClipboardCheck size={14} />
-                  </ToolButton>
-                )}
                 {open && item.kind === 'coin' && (
                   <ToolButton label="Split the coin equally…" onClick={() => startSplit(item.id)}>
                     <Split size={14} />
@@ -204,6 +186,16 @@ export function LootPanel() {
                   >
                     <Trash2 size={14} />
                   </ToolButton>
+                )}
+                {canConfirm(item, status?.userId ?? null, dm) && (
+                  <RoundCheck
+                    checked={isConfirmed(item, status?.userId ?? null)}
+                    onChange={(v) =>
+                      void run(() =>
+                        campaignApi('POST', `loot/${item.id}/confirm`, { confirmed: v }),
+                      )
+                    }
+                  />
                 )}
               </div>
             </div>

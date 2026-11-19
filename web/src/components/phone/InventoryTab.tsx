@@ -1,10 +1,9 @@
-import { Badge, Button, Callout, Card, Flex, SegmentedControl, Text } from '@radix-ui/themes';
+import { Badge, Callout, Card, Flex, SegmentedControl, Text } from '@radix-ui/themes';
 import {
   canConfirm,
   defaultLootFilter,
   isConfirmed,
   filterLootItems,
-  LOOT_ACTION_LABEL,
   lootActions,
   lootFiltersFor,
   lootRequest,
@@ -16,7 +15,7 @@ import { useState } from 'react';
 
 import { holder } from '../../lib/phone/lootCards.js';
 import { GiveSelect } from './GiveSelect.js';
-import { ACTION_SHORT } from './LootButtons.js';
+import { LootButtons } from './LootButtons.js';
 
 import { useIsDm } from '../../hooks/useIsDm.js';
 import { useLoad } from '../../hooks/useLoad.js';
@@ -138,6 +137,7 @@ export function InventoryTab({ campaignId }: { campaignId: string }) {
       )}
       {shown.map((item) => {
         const actions = lootActions(item, selfId, dm);
+        const onSheet = isConfirmed(item, selfId);
         return (
           <Card key={item.id} size="2">
             <Flex direction="column" gap="2">
@@ -155,29 +155,28 @@ export function InventoryTab({ campaignId }: { campaignId: string }) {
                     {item.itemType}
                   </Badge>
                 </Flex>
-                {actions.length > 0 && (
-                  <Flex gap="2" justify="end" style={{ flex: 'none' }}>
-                    {actions.map((action) =>
-                      action === 'give' ? (
-                        <GiveSelect
-                          key={action}
-                          players={players}
-                          onPick={(userId) => void run(item, 'give', userId)}
-                        />
-                      ) : (
-                        <Button
-                          key={action}
-                          size="1"
-                          variant={action === 'take' ? 'solid' : 'soft'}
-                          title={LOOT_ACTION_LABEL[action]}
-                          onClick={() => void run(item, action)}
-                        >
-                          {ACTION_SHORT[action]}
-                        </Button>
-                      ),
-                    )}
-                  </Flex>
-                )}
+                <Flex gap="2" align="center" justify="end" style={{ flex: 'none' }}>
+                  {actions.map((action) =>
+                    action === 'give' ? (
+                      <GiveSelect
+                        key={action}
+                        players={players}
+                        onPick={(userId) => void run(item, 'give', userId)}
+                      />
+                    ) : (
+                      <LootButtons
+                        key={action}
+                        action={action}
+                        // On the player's sheet it stays put: untick it first to move it.
+                        disabled={onSheet}
+                        onClick={() => void run(item, action)}
+                      />
+                    ),
+                  )}
+                  {canConfirm(item, selfId, dm) && (
+                    <ConfirmBox checked={onSheet} onChange={(v) => void confirm(item, v)} />
+                  )}
+                </Flex>
               </Flex>
               {item.description && (
                 <Text size="2" color="gray">
@@ -187,12 +186,6 @@ export function InventoryTab({ campaignId }: { campaignId: string }) {
               <Text size="1" color={item.claimedBy ? 'violet' : 'green'}>
                 {holder(item, members)}
               </Text>
-              {canConfirm(item, selfId, dm) && (
-                <ConfirmBox
-                  checked={isConfirmed(item, selfId)}
-                  onChange={(v) => void confirm(item, v)}
-                />
-              )}
             </Flex>
           </Card>
         );

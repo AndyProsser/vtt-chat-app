@@ -1,11 +1,12 @@
-import { Select } from '@radix-ui/themes';
+import { DropdownMenu } from '@radix-ui/themes';
 
 import { initials, playerLines, portraitUrl } from '../../lib/phone/rail.js';
 import type { Member } from '../../types/phone.js';
+import { IconTool } from './IconTool.js';
 
 /**
- * The DM's Give control: one tap opens the list of players (portrait, character name, the player's own
- * name beside it); picking one gives the item. It always reads "Give to…", so it is ready for the next item.
+ * The DM's Give control: a gift icon that opens the list of players (portrait, character name, the player's own
+ * name beside it); picking one gives the item.
  */
 export function GiveSelect({
   players,
@@ -15,14 +16,16 @@ export function GiveSelect({
   onPick: (userId: string) => void;
 }) {
   return (
-    <Select.Root size="1" value="" onValueChange={onPick} disabled={players.length === 0}>
-      <Select.Trigger placeholder="Give to…" />
-      <Select.Content position="popper">
+    <DropdownMenu.Root>
+      <DropdownMenu.Trigger disabled={players.length === 0}>
+        <IconTool label="Give it to a player…" icon="gift" disabled={players.length === 0} />
+      </DropdownMenu.Trigger>
+      <DropdownMenu.Content size="1" align="end">
         {players.map((m) => {
           const { primary, secondary } = playerLines(m);
           const pic = portraitUrl(m);
           return (
-            <Select.Item key={m.userId} value={m.userId}>
+            <DropdownMenu.Item key={m.userId} onSelect={() => onPick(m.userId)}>
               <span className="phone-give-row">
                 <span className="phone-give-avatar" aria-hidden="true">
                   {pic ? <img src={pic} alt="" /> : initials(primary)}
@@ -30,10 +33,10 @@ export function GiveSelect({
                 <span>{primary}</span>
                 {secondary && <span className="phone-give-secondary">{secondary}</span>}
               </span>
-            </Select.Item>
+            </DropdownMenu.Item>
           );
         })}
-      </Select.Content>
-    </Select.Root>
+      </DropdownMenu.Content>
+    </DropdownMenu.Root>
   );
 }
