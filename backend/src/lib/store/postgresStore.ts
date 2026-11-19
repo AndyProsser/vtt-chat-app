@@ -1,4 +1,4 @@
-import { normaliseAiSettings } from '@vtt-chat-app/shared';
+import { normaliseAiSettings, type BardId } from '@vtt-chat-app/shared';
 import pg from 'pg';
 
 import { DEFAULT_INSTANCE_SETTINGS } from '../../consts/index.js';
@@ -108,6 +108,7 @@ const toCampaign = (r: Row): Campaign => ({
   description: r.description as string,
   createdAt: r.created_at as number,
   allowJoin: r.allow_join as boolean,
+  bard: r.bard as BardId,
 });
 
 const toJoinRequest = (r: Row): JoinRequest => ({
@@ -384,9 +385,9 @@ export class PostgresStore implements Store {
 
   async putCampaign(c: Campaign): Promise<void> {
     await this.db.query(
-      `INSERT INTO campaigns (id, name, description, created_at, allow_join) VALUES ($1, $2, $3, $4, $5)
-       ON CONFLICT (id) DO UPDATE SET name = $2, description = $3, created_at = $4, allow_join = $5`,
-      [c.id, c.name, c.description, c.createdAt, c.allowJoin],
+      `INSERT INTO campaigns (id, name, description, created_at, allow_join, bard) VALUES ($1, $2, $3, $4, $5, $6)
+       ON CONFLICT (id) DO UPDATE SET name = $2, description = $3, created_at = $4, allow_join = $5, bard = $6`,
+      [c.id, c.name, c.description, c.createdAt, c.allowJoin, c.bard],
     );
   }
 

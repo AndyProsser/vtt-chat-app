@@ -620,6 +620,7 @@ describe('campaigns', () => {
       description: '',
       createdAt: 1,
       allowJoin: true,
+      bard: 'tavern',
     };
     await store.putCampaign(c);
     await store.putMembership({
@@ -747,6 +748,7 @@ describe('campaign export and import', () => {
       description: '',
       createdAt: 1,
       allowJoin: true,
+      bard: 'tavern',
     });
   };
 

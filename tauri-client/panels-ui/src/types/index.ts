@@ -17,6 +17,8 @@ export interface CampaignSummary {
   description: string;
   /** Public (true) or Private. Invite links work either way. */
   allowJoin: boolean;
+  /** The preset bard that tells this campaign's sessions (an id from BARD_PERSONAS); the Tavern Bard by default. */
+  bard: string;
 }
 
 export interface AccountError {

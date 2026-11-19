@@ -1,4 +1,4 @@
-import type { AiSettings, ChatKind } from '@vtt-chat-app/shared';
+import type { AiSettings, BardId, ChatKind } from '@vtt-chat-app/shared';
 
 /**
  * Domain types for accounts, campaigns and sessions. The shapes match
@@ -34,6 +34,8 @@ export interface Campaign {
   /** The DM's Public/Private switch: while true (Public) the campaign is listed in the directory and takes join
    * requests. Invite links work either way. */
   allowJoin: boolean;
+  /** The preset bard that tells this campaign's sessions (BARD_PERSONAS in shared/); the Tavern Bard until chosen. */
+  bard: BardId;
 }
 
 /** A campaign as the operator sees it in `vtt-admin campaign list`. */

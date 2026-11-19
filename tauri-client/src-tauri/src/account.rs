@@ -496,6 +496,14 @@ pub struct CampaignItem {
     /// Public (listed to other players, takes join requests) or Private. Invite links work either way.
     #[serde(default = "public_by_default")]
     pub allow_join: bool,
+    /// The preset bard that tells this campaign's sessions (an id from the shared list); the Tavern Bard for a server
+    /// that predates the setting.
+    #[serde(default = "default_bard")]
+    pub bard: String,
+}
+
+fn default_bard() -> String {
+    "tavern".into()
 }
 
 fn public_by_default() -> bool {
@@ -810,6 +818,11 @@ impl AccountClient {
                                 .pointer("/campaign/allowJoin")
                                 .and_then(Value::as_bool)
                                 .unwrap_or(true),
+                            bard: item
+                                .pointer("/campaign/bard")
+                                .and_then(Value::as_str)
+                                .unwrap_or("tavern")
+                                .to_string(),
                         })
                     })
                     .collect()

@@ -654,6 +654,7 @@ describe('MemoryStore transactions', () => {
           description: '',
           createdAt: 1,
           allowJoin: true,
+          bard: 'tavern',
         });
         throw new Error('boom');
       }),

@@ -1,5 +1,7 @@
 import { randomUUID } from 'node:crypto';
 
+import { DEFAULT_BARD, type BardId } from '@vtt-chat-app/shared';
+
 import { DAY_MS } from '../../consts/index.js';
 import type {
   Campaign,
@@ -58,6 +60,7 @@ export class CampaignService {
       description: '',
       createdAt: now,
       allowJoin: true,
+      bard: DEFAULT_BARD,
     };
     await this.store.transaction(async (tx) => {
       await tx.putCampaign(campaign);
@@ -114,9 +117,13 @@ export class CampaignService {
   async updateCampaign(
     actor: User,
     campaignId: string,
-    patch: { name?: string; description?: string },
+    patch: { name?: string; description?: string; bard?: BardId },
   ): Promise<Campaign> {
-    if (patch.name === undefined && patch.description === undefined) {
+    if (
+      patch.name === undefined &&
+      patch.description === undefined &&
+      patch.bard === undefined
+    ) {
       throw new DomainError('invalid_input', 'nothing to change');
     }
     await this.requireDm(actor.id, campaignId);
@@ -129,6 +136,7 @@ export class CampaignService {
         ...(patch.description === undefined
           ? {}
           : { description: cleanCampaignDescription(patch.description) }),
+        ...(patch.bard === undefined ? {} : { bard: patch.bard }),
       };
       await tx.putCampaign(next);
       return next;
