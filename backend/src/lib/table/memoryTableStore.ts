@@ -2,6 +2,9 @@ import {
   canSeeHandout,
   type Handout,
   type ClaimedFor,
+  type GlossaryTerm,
+  type GmNoteFile,
+  type GmNotes,
   type LootItem,
   type LootSplit,
   type MediaFile,
@@ -15,6 +18,9 @@ export class MemoryTableStore implements TableStore {
   readonly media = new Map<string, MediaFile>();
   readonly handouts = new Map<string, Handout>();
   readonly loot = new Map<string, LootItem>();
+  readonly gmNotes = new Map<string, GmNotes>();
+  readonly gmNoteFiles = new Map<string, GmNoteFile>();
+  readonly glossary = new Map<string, GlossaryTerm>();
 
   putMedia = async (f: MediaFile) => void this.media.set(f.id, copy(f));
   getMedia = async (id: string) => {
@@ -24,7 +30,10 @@ export class MemoryTableStore implements TableStore {
   deleteMedia = async (id: string) => void this.media.delete(id);
 
   listUnusedHandoutMedia = async (olderThan: number) => {
-    const used = new Set([...this.handouts.values()].flatMap((h) => h.mediaIds));
+    const used = new Set([
+      ...[...this.handouts.values()].flatMap((h) => h.mediaIds),
+      ...[...this.gmNoteFiles.values()].map((f) => f.mediaId),
+    ]);
     return [...this.media.values()]
       .filter(
         (m) =>
@@ -44,8 +53,53 @@ export class MemoryTableStore implements TableStore {
       if (h.campaignId !== campaignId) continue;
       for (const id of h.mediaIds) total += this.media.get(id)?.bytes ?? 0;
     }
+    for (const f of this.gmNoteFiles.values()) {
+      if (f.campaignId === campaignId) total += this.media.get(f.mediaId)?.bytes ?? 0;
+    }
     return total;
   };
+
+  getGmNotes = async (campaignId: string) => {
+    const n = this.gmNotes.get(campaignId);
+    return n ? copy(n) : undefined;
+  };
+  putGmNotes = async (n: GmNotes) => void this.gmNotes.set(n.campaignId, copy(n));
+  listGmNoteFiles = async (campaignId: string) =>
+    [...this.gmNoteFiles.values()]
+      .filter((f) => f.campaignId === campaignId)
+      .sort((a, b) => a.createdAt - b.createdAt || a.id.localeCompare(b.id))
+      .map(copy);
+  getGmNoteFile = async (id: string) => {
+    const f = this.gmNoteFiles.get(id);
+    return f ? copy(f) : undefined;
+  };
+  putGmNoteFile = async (f: GmNoteFile) => void this.gmNoteFiles.set(f.id, copy(f));
+  deleteGmNoteFile = async (id: string) => void this.gmNoteFiles.delete(id);
+
+  listGlossary = async (campaignId: string) =>
+    [...this.glossary.values()]
+      .filter((t) => t.campaignId === campaignId)
+      .sort(
+        (a, b) =>
+          a.term.toLowerCase().localeCompare(b.term.toLowerCase()) || a.id.localeCompare(b.id),
+      )
+      .map(copy);
+  getGlossaryTerm = async (id: string) => {
+    const t = this.glossary.get(id);
+    return t ? copy(t) : undefined;
+  };
+  putGlossaryTerm = async (t: GlossaryTerm) => {
+    const clash = [...this.glossary.values()].some(
+      (o) =>
+        o.id !== t.id &&
+        o.campaignId === t.campaignId &&
+        o.term.toLowerCase() === t.term.toLowerCase(),
+    );
+    if (clash) return false;
+    this.glossary.set(t.id, copy(t));
+    return true;
+  };
+  deleteGlossaryTerm = async (id: string) => void this.glossary.delete(id);
 
   putHandout = async (h: Handout) => void this.handouts.set(h.id, copy(h));
   getHandout = async (id: string) => {

@@ -1,4 +1,4 @@
-import type { ItemType, Rarity } from '@vtt-chat-app/shared';
+import type { GlossaryKind, GlossaryStatus, ItemType, Rarity } from '@vtt-chat-app/shared';
 
 import type { MediaKind } from '../media/mediaStorage.js';
 
@@ -78,6 +78,34 @@ export interface LootItem {
   confirmed: boolean;
 }
 
+/** The Game Master's notes for one campaign (Stage 11 item 5): Markdown, the Game Master's alone. */
+export interface GmNotes {
+  campaignId: string;
+  body: string;
+  updatedAt: number;
+  updatedBy: string | null;
+}
+
+/** A picture or PDF attached to the notes; the bytes are an ordinary media file. */
+export interface GmNoteFile {
+  id: string;
+  campaignId: string;
+  mediaId: string;
+  name: string;
+  createdAt: number;
+}
+
+/** One term of a campaign's glossary (Stage 11 item 6). `suggested` terms wait for the Game Master's approval. */
+export interface GlossaryTerm {
+  id: string;
+  campaignId: string;
+  term: string;
+  kind: GlossaryKind;
+  aliases: string[];
+  status: GlossaryStatus;
+  createdAt: number;
+}
+
 /**
  * Storage for the table features (Stage 6): uploaded files' metadata, handouts, and — as they are
  * built — loot and the soundboard. Postgres is the real one; the in-memory one backs tests.
@@ -95,6 +123,21 @@ export interface TableStore {
   ownerAudioBytes(ownerId: string): Promise<number>;
   /** Bytes of files attached to a campaign's handouts, for its storage quota. */
   campaignHandoutBytes(campaignId: string): Promise<number>;
+
+  /** The notes page; `undefined` until the Game Master has saved one. */
+  getGmNotes(campaignId: string): Promise<GmNotes | undefined>;
+  putGmNotes(notes: GmNotes): Promise<void>;
+  listGmNoteFiles(campaignId: string): Promise<GmNoteFile[]>;
+  getGmNoteFile(id: string): Promise<GmNoteFile | undefined>;
+  putGmNoteFile(file: GmNoteFile): Promise<void>;
+  deleteGmNoteFile(id: string): Promise<void>;
+
+  /** Every term of a campaign, approved and suggested, by term. */
+  listGlossary(campaignId: string): Promise<GlossaryTerm[]>;
+  getGlossaryTerm(id: string): Promise<GlossaryTerm | undefined>;
+  /** Adds or replaces a term. Refuses (`false`) when another term of the campaign already has that spelling (any case). */
+  putGlossaryTerm(term: GlossaryTerm): Promise<boolean>;
+  deleteGlossaryTerm(id: string): Promise<void>;
 
   putHandout(handout: Handout): Promise<void>;
   getHandout(id: string): Promise<Handout | undefined>;

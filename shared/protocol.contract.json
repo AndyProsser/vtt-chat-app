@@ -1,6 +1,6 @@
 {
   "protocolVersion": 4,
-  "hash": "e1da291e0371ba8b50608fe2877f709570d8b663a1958038691181a4bc436b10",
+  "hash": "14860e93b3c0e84c0dee4e906517ff3724a5bff8f759adadf0370ec37abe575f",
   "summary": {
     "clientFrames": [
       "audio.state",
@@ -64,6 +64,7 @@
       "app.ts USE /api/auth/oidc",
       "app.ts USE /api/avatars",
       "app.ts USE /api/campaigns",
+      "app.ts USE /api/campaigns/:campaignId/gm",
       "app.ts USE /api/campaigns/:campaignId/handouts",
       "app.ts USE /api/campaigns/:campaignId/loot",
       "app.ts USE /api/campaigns/:campaignId/recordings",
@@ -116,6 +117,16 @@
       "http/ddbRoutes.ts POST /link",
       "http/ddbRoutes.ts POST /sync",
       "http/ddbRoutes.ts POST /unlink",
+      "http/gmNotesRoutes.ts DELETE /glossary/:termId",
+      "http/gmNotesRoutes.ts DELETE /notes/files/:fileId",
+      "http/gmNotesRoutes.ts GET /glossary",
+      "http/gmNotesRoutes.ts GET /notes",
+      "http/gmNotesRoutes.ts GET /notes/files/:fileId",
+      "http/gmNotesRoutes.ts PATCH /glossary/:termId",
+      "http/gmNotesRoutes.ts POST /glossary",
+      "http/gmNotesRoutes.ts POST /glossary/:termId/approve",
+      "http/gmNotesRoutes.ts POST /notes/files",
+      "http/gmNotesRoutes.ts PUT /notes",
       "http/handoutRoutes.ts DELETE /:handoutId",
       "http/handoutRoutes.ts DELETE /:handoutId/files/:index",
       "http/handoutRoutes.ts GET /",

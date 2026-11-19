@@ -1,5 +1,6 @@
 export * from './chat.js';
 export * from './bards.js';
+export * from './gm.js';
 
 /**
  * Tauri event names emitted by `src-tauri` and listened for in `panels-ui`.

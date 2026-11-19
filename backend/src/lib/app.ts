@@ -22,6 +22,7 @@ import { campaignRoutes } from './http/campaignRoutes.js';
 import { NoMailTransport, type MagicLinkSender } from './http/delivery.js';
 import { errorHandler, requireAuth } from './http/middleware.js';
 import { RateLimiter } from './http/rateLimit.js';
+import { gmNotesRoutes } from './http/gmNotesRoutes.js';
 import { handoutRoutes } from './http/handoutRoutes.js';
 import { lootRoutes } from './http/lootRoutes.js';
 import { notificationRoutes, sessionRoutes } from './http/scheduleRoutes.js';
@@ -32,6 +33,7 @@ import { ScheduleService } from './schedule/scheduleService.js';
 import type { ScheduleStore } from './schedule/scheduleStore.js';
 import { SoundLibraryService } from './soundboard/soundLibraryService.js';
 import type { SoundStore } from './soundboard/soundStore.js';
+import { GmNotesService } from './table/gmNotesService.js';
 import { HandoutService } from './table/handoutService.js';
 import { LootService } from './table/lootService.js';
 import type { TableStore } from './table/tableStore.js';
@@ -180,7 +182,11 @@ export function createApp({
     res.setHeader('Cache-Control', 'no-store');
     next();
   });
-  app.use(express.json({ limit: '100kb' }));
+  // The Game Master's notes page reads its own, larger JSON body (gmNotesRoutes.ts); everything else stays small.
+  const smallJson = express.json({ limit: '100kb' });
+  app.use((req, res, next) =>
+    /^\/api\/campaigns\/[^/]+\/gm\/notes$/.test(req.path) ? next() : smallJson(req, res, next),
+  );
 
   app.get('/api/health', (_req, res) => {
     res.status(200).json({ status: 'ok' });
@@ -340,6 +346,14 @@ export function createApp({
 
   if (table) {
     const handouts = new HandoutService({ store, table, media });
+    const maxFileBytes = config.gmNotesMaxBytes ?? 100 * 1024 * 1024;
+    const gm = new GmNotesService({
+      store,
+      table,
+      media,
+      maxFileBytes,
+    });
+    app.use('/api/campaigns/:campaignId/gm', gmNotesRoutes({ accounts, gm, maxFileBytes }));
     app.use(
       '/api/campaigns/:campaignId/handouts',
       handoutRoutes({
