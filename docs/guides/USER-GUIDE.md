@@ -45,6 +45,13 @@ button if you see it.
 > off, browsers (Edge, Chrome, Firefox) show the still picture. Nothing is wrong; turn the setting on and
 > reload if you would like to see it move.
 
+> **Good to know: Windows with animations off.** Some Windows machines have **Animation effects** switched off
+> by policy (a school or work computer, for example) and you cannot change it. The app respects that setting: the
+> home page stays a still picture, and anything that would slide or move is skipped. Things that fade still fade
+> (a loot item you or someone else takes dims out of the list over about half a second instead of sliding away),
+> so nothing is lost, it just looks plainer. Before 0.5.4 a loot item could vanish at once with its gap closing a
+> second later on such a machine; that was a bug and is fixed.
+
 The app lives in your **system tray** (the little icons by your clock). Click its icon to open the window; the
 icon shows whether you are connected and whether the table is being recorded. On some Linux desktops the
 tray needs an extension (GNOME: "AppIndicator"); without it the app still works, you just open it from your
