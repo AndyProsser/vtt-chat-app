@@ -2598,10 +2598,11 @@ body,
   pointer-events: none;
   transition: opacity 1.2s ease-in;
 }
+/* Reduced motion removes movement, not a fade: the row still dims out (opacity only) so the eye can see it go.
+   Hiding it at once here made the item vanish with the gap closing a second later (seen 2026-11-19). */
 @media (prefers-reduced-motion: reduce) {
   .vtt-loot-leaving {
-    transition: none;
-    visibility: hidden;
+    transition: opacity 0.6s linear;
   }
 }
 

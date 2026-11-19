@@ -33,6 +33,8 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ### Fixed
 
+- **Loot rows fade out again when your system has animations turned off.** With "reduce motion" on (Windows: Show animations off), a given or taken item vanished at once and the gap closed a second later. The row now still dims out over about half a second; nothing moves.
+
 - **One Back button everywhere in the web app.** Handouts and history already had the quiet filled button; the full-screen pages, My characters, Find another table, Join requests, the sign-in form and the download page had three other looks. They share one now.
 
 - **Pressing Play on a character updated nothing on screen** until you refreshed: the server saved the switch but never told connected apps. It now announces it, so the phone, the desktop app and the rest of the table follow at once.
