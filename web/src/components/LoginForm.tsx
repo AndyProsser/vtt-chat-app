@@ -155,19 +155,6 @@ export function LoginForm({ onSignedIn }: { onSignedIn: () => void }) {
             </Flex>
           </Flex>
         )}
-        {oidc && (
-          <Flex direction="column" gap="1" align="center">
-            <Button asChild variant="soft" size="3">
-              <a href="/api/auth/oidc/" target="_blank" rel="noopener">
-                Sign in with single sign-on
-              </a>
-            </Button>
-            <Text size="1" color="gray" align="center">
-              Opens your organisation&apos;s sign-in. It ends with a code: come back here, press
-              &ldquo;I have a sign-in code&rdquo; and type it.
-            </Text>
-          </Flex>
-        )}
         <Button
           type="button"
           variant="ghost"
@@ -180,6 +167,14 @@ export function LoginForm({ onSignedIn }: { onSignedIn: () => void }) {
         >
           {haveCode ? 'Use email and password instead' : 'I have a sign-in code'}
         </Button>
+        {oidc && !haveCode && (
+          // Opens the identity provider; it ends with a one-time code, typed under "I have a sign-in code".
+          <Button asChild variant="ghost">
+            <a href="/api/auth/oidc/" target="_blank" rel="noopener">
+              Sign in with single sign-on
+            </a>
+          </Button>
+        )}
       </Flex>
     </form>
   );

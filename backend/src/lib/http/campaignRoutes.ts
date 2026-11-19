@@ -166,11 +166,14 @@ export function campaignRoutes(deps: CampaignRouteDeps): Router {
 
   router.put('/:id/active-character', async (req, res) => {
     const body = activeBody.parse(req.body);
+    const campaignId = param(req.params.id);
     const membership = await campaigns.setActiveCharacter(
       authOf(res).user,
-      param(req.params.id),
+      campaignId,
       body.characterId,
     );
+    // The table sees who you play, so everyone's roster (and your own other screens) must follow.
+    onRosterChanged?.(campaignId);
     res.json({ membership });
   });
 
