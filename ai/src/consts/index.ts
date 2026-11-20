@@ -28,6 +28,9 @@ export const BARD_SAMPLING: Sampling = { temperature: 0.7, presencePenalty: 0 };
 /** Map-reduce gives up recursing past this many levels rather than loop on a stubborn model. */
 export const MAX_REDUCE_DEPTH = 4;
 
+/** How many times the scribe may read one piece of transcript before the job gives up (Stage 12 D, decision 7). */
+export const NOTES_READ_ATTEMPTS = 3;
+
 // --- Speech-window segmentation (lib/speechWindows.ts) -----------------------------------------
 // Chosen from the 2026-11-07 spike (AUDIO-SPIKE-RESULTS.md, Finding 4); accuracy over speed.
 

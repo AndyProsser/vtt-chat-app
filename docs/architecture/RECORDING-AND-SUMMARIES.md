@@ -461,6 +461,16 @@ What it showed, and what changed:
   lost accuracy. Both run per job; a remote Whisper receives the prompt (names only, never audio that was not already going
   there), the corrections always run on the server. Test: `ai/src/lib/vocabulary.test.ts`, and the handler test in
   `processRecording.test.ts`.
+- **Structured scribe notes (Stage 12 D, built 2026-11-20, not yet read on a real session).** The scribe writes Markdown bullets
+  under fixed `##` headings (`ai/src/lib/notes.ts`: Events, Decisions, Combat, Non-player characters, Locations, Loot, Quests,
+  Secrets and reveals, Character moments, Memorable quotes). `parseNotes` is forgiving (bold or plain headings, aliases like
+  "NPCs", numbered bullets, a preamble, "None") and says "unreadable" only when there is no heading or nothing under one.
+  **Retry ladder (decision 7):** unreadable → the scribe is asked to lay its own notes out again (cheap) → still unreadable →
+  it reads that piece of transcript again → after `NOTES_READ_ATTEMPTS` (3) readings the job **fails and is retried by the
+  queue**; there is no weaker fallback. The pieces of a long transcript are merged section by section (an overlap's repeat kept
+  once) into one set of notes, and a set over `NOTES_MAX_WORDS` (3,000) is shortened by the scribe, up to four rounds, stopping when
+  a round does not make it shorter. Secrets here are what came out **during play**; Game Master-only material never reaches the
+  scribe. Cost: a model that obeys the layout costs nothing extra; one that does not costs up to two more calls a reading.
 - 280 words of clean TTS: a difference of one point is three words. Compare rows, do not predict a real table.
 
 | Summary model on CPU (2014 desktop, one summary of the scene) | Time      | Judged                                                             |

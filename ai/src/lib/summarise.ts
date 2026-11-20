@@ -2,14 +2,18 @@ import {
   DEFAULT_CHUNK_CHARS,
   DEFAULT_CHUNK_OVERLAP_LINES,
   MAX_REDUCE_DEPTH,
+  NOTES_READ_ATTEMPTS,
 } from '../consts/index.js';
 import type { GenerateText, SummaryContext, SummaryKind, Utterance } from '../types/index.js';
 import { chunkLines } from './chunk.js';
+import type { StructuredNotes } from './notes.js';
 import { formatTimeline } from './format.js';
+import { mergeNotes, NOTES_MAX_WORDS, notesWords, parseNotes, renderNotes } from './notes.js';
 import {
   buildBriefPrompt,
   buildCondensePrompt,
   buildNotesPrompt,
+  buildNotesRepairPrompt,
   buildStoryPrompt,
 } from './prompts.js';
 
@@ -109,11 +113,47 @@ export async function takeNotes(
     options.chunkChars ?? DEFAULT_CHUNK_CHARS,
     options.overlapLines ?? DEFAULT_CHUNK_OVERLAP_LINES,
   );
-  const notes: string[] = [];
+  let modelCalls = 0;
+  const ask = async (prompt: string): Promise<string> => {
+    modelCalls += 1;
+    return stripThinking(await scribe(prompt));
+  };
+  const read = async (prompt: string): Promise<StructuredNotes | undefined> => {
+    const answer = await ask(prompt);
+    const parsed = parseNotes(answer);
+    if (parsed) return parsed;
+    // Not readable: first ask for the same notes laid out properly, which is cheap.
+    return parseNotes(await ask(buildNotesRepairPrompt(answer)));
+  };
+
+  const pieces: StructuredNotes[] = [];
   for (const [index, chunk] of chunks.entries()) {
-    notes.push(stripThinking(await scribe(buildNotesPrompt(chunk, index, chunks.length, context))));
+    const prompt = buildNotesPrompt(chunk, index, chunks.length, context);
+    let parsed: StructuredNotes | undefined;
+    // Still not readable: read the transcript again. Never a weaker fallback (decision 7): the job fails and retries.
+    for (let attempt = 0; attempt < NOTES_READ_ATTEMPTS && !parsed; attempt += 1) {
+      parsed = await read(prompt);
+    }
+    if (!parsed) {
+      throw new Error(
+        `the scribe's notes for part ${index + 1} of ${chunks.length} were unreadable after ${NOTES_READ_ATTEMPTS} readings`,
+      );
+    }
+    pieces.push(parsed);
   }
-  return { notes, modelCalls: notes.length };
+
+  // One set of notes for the stretch (a repeat from the overlap once), kept to about NOTES_MAX_WORDS.
+  let merged = mergeNotes(pieces);
+  for (
+    let round = 0;
+    round < MAX_REDUCE_DEPTH && notesWords(merged) > NOTES_MAX_WORDS;
+    round += 1
+  ) {
+    const shorter = await read(buildCondensePrompt([renderNotes(merged)], context));
+    if (!shorter || notesWords(shorter) >= notesWords(merged)) break;
+    merged = shorter;
+  }
+  return { notes: [renderNotes(merged)], modelCalls };
 }
 
 /**

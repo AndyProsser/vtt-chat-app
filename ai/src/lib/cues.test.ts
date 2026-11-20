@@ -206,7 +206,7 @@ describe('prompts with cues', () => {
     await summarise(
       async (p) => {
         seen.push(p);
-        return 'ok';
+        return p.startsWith('You are the scribe') ? '## Events\n- ok' : 'ok';
       },
       [talk(1000, 2)],
       {

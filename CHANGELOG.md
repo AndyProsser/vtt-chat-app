@@ -10,6 +10,10 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ## [Unreleased]
 
+### Changed
+
+- **The scribe's notes are laid out under headings, and checked.** Events, Decisions, Combat, Non-player characters, Locations, Loot, Quests, Secrets and reveals, Character moments, and Memorable quotes (word for word, with who said them). The Game Master reads them under those headings in the session notes, and the tale and the Game Master's brief are written from them. A whole session's notes are kept to about 3,000 words. If a model's notes cannot be read (no headings, or nothing under them), the scribe is first asked to lay them out again, then to read that part of the transcript again, and after three readings the job fails and is retried later, rather than carry on with weaker notes. Sessions processed before this keep their old notes until reprocessed (`vtt-admin recording reprocess <id>`).
+
 ### Added
 
 - **Misheard names are corrected in transcripts.** After Whisper has written a line, the campaign's own names put it right: the Game Master's approved glossary (with its aliases), characters, players, the Game Master's scene names, and handout and loot titles. A known wrong spelling (an alias) is replaced exactly; a capitalised near-miss of a long name ("Ravenshaid" for "Ravenshade", "Blackstone Kepe") is replaced too. Short names, lower-case words and ordinary words are left alone. It runs on the server's CPU for a few milliseconds a line, and it is on by default. It reaches transcripts of recordings processed after the update; `vtt-admin recording reprocess <id> --retranscribe` redoes an older one.

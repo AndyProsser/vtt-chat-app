@@ -26,6 +26,12 @@ import { isNonSpeech, parseWhisperJson } from './whisperJson.js';
 const alice = { id: 'alice', name: 'Aria (Alice)' };
 const bob = { id: 'bob', name: 'Bruno (Bob)' };
 
+/** A scribe's answer laid out as the notes prompt asks; every other role answers `other`. */
+const notesOr =
+  (other: string, noted = 'noted') =>
+  async (prompt: string): Promise<string> =>
+    prompt.startsWith('You are the scribe') ? `## Events\n- ${noted}` : other;
+
 describe('stripThinking', () => {
   it('keeps only the answer of a reasoning model that thought aloud', () => {
     expect(stripThinking('<think>\nthe user wants…\n</think>\n\n## Summary\nThey won.')).toBe(
@@ -37,7 +43,10 @@ describe('stripThinking', () => {
   });
 
   it('is applied to every model call a summary makes', async () => {
-    const generate = async () => '<think>secret reasoning</think>The party won.';
+    const generate = async (p: string) =>
+      p.startsWith('You are the scribe')
+        ? '<think>secret reasoning</think>## Events\n- They fought.'
+        : '<think>secret reasoning</think>The party won.';
     const result = await summarise(
       generate,
       [{ speaker: alice, startMs: 0, endMs: 1, text: 'hi' }],
@@ -190,7 +199,8 @@ describe('prompts', () => {
 
   it('asks the scribe for the record and the bard for the tale', () => {
     const scribe = buildNotesPrompt('[0:01] Aria: I open the door', 0, 1, { gameMaster: 'Morgan' });
-    expect(scribe).toMatch(/one event per line/);
+    expect(scribe).toMatch(/one bullet per thing/);
+    expect(scribe).toContain('## Memorable quotes');
     expect(scribe).toMatch(/fumbles/);
     expect(scribe).toContain('"Morgan" is the Game Master');
     expect(scribe).toContain('[0:01] Aria: I open the door');
@@ -240,6 +250,12 @@ describe('prompts', () => {
     ).toBe('### Part 1: Crypt\n\n- A.\n\n### Part 2\n\n- B.');
   });
 
+  it('keeps the scribe’s headings, one level below a part', () => {
+    expect(
+      formatNotes([{ title: 'Part 1', notes: ['## Events\n- A.\n## Memorable quotes\n- "B."'] }]),
+    ).toBe('### Part 1\n\n#### Events\n- A.\n#### Memorable quotes\n- "B."');
+  });
+
   it('keeps the Game Master brief plain', () => {
     const brief = buildBriefPrompt(['Aria opened the door.'], {});
     expect(brief).toMatch(/for the Game Master only/);
@@ -262,7 +278,7 @@ function manyLines(count: number): Utterance[] {
 
 describe('summarise', () => {
   it('takes notes, then tells the tale from them: two calls when the transcript fits', async () => {
-    const generate = vi.fn(async () => '  The party went to the cellar.  ');
+    const generate = vi.fn(notesOr('  The party went to the cellar.  '));
     const result = await summarise(generate, manyLines(3), { kind: 'session' });
     expect(generate).toHaveBeenCalledTimes(2);
     expect(result.text).toBe('The party went to the cellar.');
@@ -271,7 +287,7 @@ describe('summarise', () => {
   });
 
   it('gives the transcript to the scribe and only the notes to the bard', async () => {
-    const scribe = vi.fn(async (_prompt: string) => 'Alice found a key.');
+    const scribe = vi.fn(async (_prompt: string) => '## Events\n- Alice found a key.');
     const bard = vi.fn(async (_prompt: string) => 'A key! Glory.');
     const result = await summarise({ scribe, bard }, manyLines(3), { kind: 'session' });
     expect(result.text).toBe('A key! Glory.');
@@ -287,7 +303,7 @@ describe('summarise', () => {
   });
 
   it('has the scribe, not the bard, write the Game Master brief', async () => {
-    const scribe = vi.fn(async () => 'plain');
+    const scribe = vi.fn(notesOr('plain'));
     const bard = vi.fn(async () => 'ornate');
     const result = await summarise({ scribe, bard }, manyLines(3), { kind: 'dm-only' });
     expect(result.text).toBe('plain');
@@ -295,11 +311,11 @@ describe('summarise', () => {
   });
 
   it('writes any number of summaries from notes taken once', async () => {
-    const scribe = vi.fn(async () => 'notes');
+    const scribe = vi.fn(notesOr('notes'));
     const bard = vi.fn(async () => 'tale');
     const taken = await takeNotes(scribe, manyLines(40), { chunkChars: 600, overlapLines: 1 });
-    expect(taken.notes.length).toBeGreaterThan(1);
-    expect(taken.modelCalls).toBe(taken.notes.length);
+    expect(taken.notes).toHaveLength(1); // the pieces are one set of notes
+    expect(taken.modelCalls).toBeGreaterThan(1); // read piece by piece
     const readings = scribe.mock.calls.length;
     await writeFromNotes({ scribe, bard }, taken.notes, { kind: 'session' });
     await writeFromNotes({ scribe, bard }, taken.notes, {
@@ -314,7 +330,7 @@ describe('summarise', () => {
     const prompts: string[] = [];
     const generate = async (prompt: string): Promise<string> => {
       prompts.push(prompt);
-      return 'short note';
+      return notesOr('short note', 'short note')(prompt);
     };
     const result = await summarise(generate, manyLines(40), {
       kind: 'session',
@@ -328,9 +344,11 @@ describe('summarise', () => {
 
   it('keeps combining when the notes themselves are too long, then stops', async () => {
     let calls = 0;
-    const generate = async (): Promise<string> => {
+    const generate = async (p: string): Promise<string> => {
       calls += 1;
-      return 'n'.repeat(400);
+      return p.startsWith('You are the scribe')
+        ? `## Events\n- ${'n'.repeat(400)}`
+        : 'n'.repeat(400);
     };
     const result = await summarise(generate, manyLines(60), {
       kind: 'session',
@@ -342,7 +360,7 @@ describe('summarise', () => {
   });
 
   it('flags DM-only summaries so the API can restrict them', async () => {
-    const result = await summarise(async () => 'secrets', manyLines(2), { kind: 'dm-only' });
+    const result = await summarise(notesOr('secrets'), manyLines(2), { kind: 'dm-only' });
     expect(result.dmOnly).toBe(true);
   });
 

@@ -1,4 +1,5 @@
 import type { SummaryContext, SummaryKind } from '../types/index.js';
+import { NOTE_HEADINGS_FOR_PROMPT } from './notes.js';
 
 // A recording is summarised in two passes, by two roles (decided 2026-11-16, RECORDING-AND-SUMMARIES.md):
 //
@@ -60,6 +61,12 @@ function briefLoot(context: SummaryContext): string[] {
 const campaignOf = (context: SummaryContext): string =>
   context.campaignName ? ` of the campaign "${context.campaignName}"` : '';
 
+/** The layout the scribe writes in (Stage 12 D): fixed headings, so the next steps can each take the part they need. */
+const LAYOUT_RULES = `Write the notes under these headings, in this order, each as a Markdown "##" heading line, and leave out a heading that has nothing under it:
+${NOTE_HEADINGS_FOR_PROMPT}
+Events: what happened, in order, including the small things. Decisions: what the party chose or planned, and who argued for what. Combat: each fight, who took part, the rolls that mattered and how it ended. Non-player characters: who was met or named, what they said, wanted or promised. Locations: where the party went or heard of. Loot: items found, given, taken or lost (the app's loot lines, exactly). Quests: tasks taken up, finished, abandoned or left open. Secrets and reveals: what was learned that was hidden, and who learned it. Character moments: a character's growth, a fumble, a boast, a choice that shows who they are. Memorable quotes: the lines worth keeping, word for word, saying who said each (at most ten).
+Every bullet is a whole sentence. A line may appear under one heading only.`;
+
 /** The scribe's prompt for one piece of the transcript (the whole of it, when it fits). */
 export function buildNotesPrompt(
   chunk: string,
@@ -74,7 +81,8 @@ export function buildNotesPrompt(
   return [
     `You are the scribe of a tabletop role-playing group. Write down what happened in this session${campaignOf(context)}, as accurately and as fully as you can.${part}`,
     [
-      'Write plain notes, one event per line, in the order things happened. For each: who did what, to whom or what, and how it turned out.',
+      LAYOUT_RULES,
+      'Under each heading write one bullet per thing, in the order things happened. For each: who did what, to whom or what, and how it turned out.',
       'Be thorough: almost every exchange in the transcript should leave a line in the notes.',
       'Never go beyond the transcript. The notes have about as many lines as the transcript has exchanges, never more: four lines of transcript make about four lines of notes. Do not continue the story, and do not describe anything that no line of the transcript says.',
       'Write whole sentences, not shorthand: no arrows, no abbreviations, no "X: roll, result" fragments. Say what a success or a failure looked like as the Game Master described it.',
@@ -82,12 +90,26 @@ export function buildNotesPrompt(
       'Note dice results when they are mentioned, above all critical hits, natural ones and other fumbles, and what they led to.',
       'Keep names of characters, places, creatures and items as the speakers said them, and quote the memorable lines word for word, saying who said them.',
       'Note what was found, taken, lost, promised or left unanswered.',
-      'No story-telling, no opinions, no headings: the notes are the record that a story will be written from.',
+      "No story-telling and no opinions: the notes are the record that a story, and the Game Master's brief, will be written from.",
     ].join('\n'),
     rules(context),
     'Transcript (each line is "[time] speaker: words"):',
     chunk,
     'Notes:',
+  ].join('\n\n');
+}
+
+/**
+ * When the scribe's notes cannot be read (no headings, or nothing under them), it is asked to lay its own notes out
+ * again, changing nothing else. Cheaper than reading the transcript again, which is the step after this one.
+ */
+export function buildNotesRepairPrompt(badNotes: string): string {
+  return [
+    'These are notes of a tabletop role-playing session, but they are not laid out as required. Rewrite them, changing only the layout: keep every fact, name and quote exactly as written, add nothing, and take nothing out.',
+    LAYOUT_RULES,
+    'Notes to lay out:',
+    badNotes.trim(),
+    'The notes, laid out:',
   ].join('\n\n');
 }
 
@@ -104,15 +126,20 @@ const joinNotes = (notes: readonly string[]): string =>
 export function formatNotes(
   parts: readonly { title?: string; notes: readonly string[] }[],
 ): string {
-  const bullets = (notes: readonly string[]): string =>
+  // Headed notes (Stage 12 D) keep their headings one level below the part's; plain lines become bullets.
+  const bullets = (notes: readonly string[], deeper: boolean): string =>
     notes
       .flatMap((block) => block.split('\n'))
-      .map((line) => line.trim().replace(/^(?:[-*•]|\d+[.)])\s+/, ''))
+      .map((line) => line.trim())
       .filter((line) => line !== '')
-      .map((line) => `- ${line}`)
+      .map((line) => {
+        const heading = /^##\s+(.+)$/.exec(line);
+        if (heading) return `${deeper ? '####' : '###'} ${heading[1]}`;
+        return `- ${line.replace(/^(?:[-*•]|\d+[.)])\s+/, '')}`;
+      })
       .join('\n');
   return parts
-    .map((p) => (p.title ? `### ${p.title}\n\n${bullets(p.notes)}` : bullets(p.notes)))
+    .map((p) => (p.title ? `### ${p.title}\n\n${bullets(p.notes, true)}` : bullets(p.notes, false)))
     .join('\n\n');
 }
 
@@ -120,7 +147,7 @@ export function formatNotes(
 export function buildCondensePrompt(notes: readonly string[], context: SummaryContext): string {
   return [
     `These are a scribe's notes of a tabletop role-playing session${campaignOf(context)}, in order. Rewrite them as shorter notes, one event per line, in the same order.`,
-    'Keep every event that matters to the story: the victories, the failures and fumbles, the discoveries, the promises, the memorable lines, and every name. Drop repetition and routine detail. Add nothing.',
+    'Keep the headings, in the same order, and the bullets under them. Keep every event that matters to the story: the victories, the failures and fumbles, the discoveries, the promises, the memorable lines, and every name. Drop repetition and routine detail. Add nothing.',
     'Notes, in order:',
     joinNotes(notes),
     'Shorter notes:',

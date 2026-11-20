@@ -43,7 +43,10 @@ function handler(overrides: Partial<Parameters<typeof createProcessRecordingHand
     localTranscribe: () => async () => [],
     localGenerate: async (prompt) => {
       prompts.push(prompt);
-      return `summary #${prompts.length}`;
+      // The scribe lays its notes out under headings (Stage 12 D); the other roles answer in plain text.
+      return prompt.startsWith('You are the scribe')
+        ? `## Events\n- summary #${prompts.length}`
+        : `summary #${prompts.length}`;
     },
     transcribeAudioFile: async (file) => {
       transcribed.push(file);
@@ -110,9 +113,9 @@ describe('process-recording handler', () => {
         'session::members',
       ].sort(),
     );
-    // The Game Master's copy of the notes: a heading per part, a bullet per event.
+    // The Game Master's copy of the notes: a heading per part, the scribe's headings under it, a bullet per event.
     expect((await records.getSummary(REC, 'notes', ''))?.text).toBe(
-      '### Part 1\n\n- summary #1\n\n### Part 2\n\n- summary #2',
+      '### Part 1\n\n#### Events\n- summary #1\n\n### Part 2\n\n#### Events\n- summary #2',
     );
     // The scribe reads each part once (two readings for five summaries); everything else is written from its notes.
     const readings = prompts.filter((p) => p.startsWith('You are the scribe'));
