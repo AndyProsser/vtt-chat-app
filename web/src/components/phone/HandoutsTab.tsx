@@ -370,7 +370,7 @@ function PdfLink({ item, campaignId }: { item: HandoutItem; campaignId: string }
           />
         </button>
       </div>
-      <Button size="3" loading={busy} onClick={() => void open()}>
+      <Button size="3" loading={busy} style={{ width: '100%' }} onClick={() => void open()}>
         Open the PDF
       </Button>
       {error && (
