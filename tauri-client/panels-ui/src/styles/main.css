@@ -2793,6 +2793,10 @@ body,
 /* Settings → Campaign → Storyteller: a dropdown of the five preset bards; each item carries its one-line blurb. */
 .vtt-bard-trigger {
   width: 100%;
+  /* Taller than the standard control: the badge and the name sit side by side in it. */
+  height: auto;
+  min-height: 44px;
+  padding-block: 4px;
 }
 /* The closed dropdown shows the name only; the blurb is under it and in the open list. */
 .vtt-bard-trigger small {
@@ -2804,11 +2808,19 @@ body,
   padding: 10px 14px 10px 12px;
   line-height: 1.35;
 }
-.vtt-bard-item > span:not(.vtt-bard-avatar),
-.vtt-bard-trigger > span {
+.vtt-bard-row {
   display: flex;
   align-items: center;
   gap: 12px;
+}
+/* In the closed box the badge is a little smaller. */
+.vtt-bard-trigger .vtt-bard-avatar {
+  width: 30px !important;
+  height: 30px !important;
+}
+.vtt-bard-trigger .vtt-bard-avatar svg {
+  width: 16px;
+  height: 16px;
 }
 .vtt-bard-avatar {
   display: inline-flex;

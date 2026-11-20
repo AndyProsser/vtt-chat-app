@@ -101,13 +101,15 @@ export function BardPicker({
         <Select.Content position="popper">
           {available.map((b) => (
             <Select.Item key={b.id} value={b.id} className="vtt-bard-item">
-              <BardAvatar id={b.id} />
-              <span className="vtt-bard-text">
-                <b>{b.name}</b>
-                <small>
-                  {b.blurb}
-                  {b.id === DEFAULT_BARD ? ' (the default)' : ''}
-                </small>
+              <span className="vtt-bard-row">
+                <BardAvatar id={b.id} />
+                <span className="vtt-bard-text">
+                  <b>{b.name}</b>
+                  <small>
+                    {b.blurb}
+                    {b.id === DEFAULT_BARD ? ' (the default)' : ''}
+                  </small>
+                </span>
               </span>
             </Select.Item>
           ))}
