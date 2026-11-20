@@ -17,7 +17,7 @@ Last run (2026-11-09, memory stores): backend 406 (+18 skipped without Postgres)
 
 ## Verified 2026-11-20 on 0.6.0, and built for 0.6.1-dev.1
 
-**Verified by Andy on the real VM and apps:** protocol 4 works with nothing broken; the phone web app works; scenes work; the history screen works. Echo cancellation and noise filtering work very well on Windows with a microphone beside the speakers. A 42-second Windows recording went through the whole records pipeline: the transcript was word-for-word right and the tale, DM brief and scribe notes were produced. **Found:** that recording clips (peaks at full scale in 21 of 38 seconds, speech near -15 dBFS RMS), most likely automatic gain stacking on a hot microphone level (not yet confirmed), and the bard invented a closing line nobody said.
+**Verified by Andy on the real VM and apps:** protocol 4 works with nothing broken; the phone web app works; scenes work; the history screen works. Echo cancellation and noise filtering work very well on Windows with a microphone beside the speakers. A 42-second Windows recording went through the whole records pipeline: the transcript was word-for-word right and the tale, DM brief and scribe notes were produced. **Found:** that recording clips (peaks at full scale in 21 of 38 seconds, speech near -15 dBFS RMS), most likely automatic gain stacking on a hot microphone level (not yet confirmed). The bard added a closing line nobody said; Andy says that is fine, since in a tale creativity beats accuracy.
 
 **Built, not yet heard:** the sound deck changes, the Unease board, the new dungeon sounds and random layers, the storyteller dropdown, smaller loot buttons. All covered by tests; none run in a real window yet.
 
