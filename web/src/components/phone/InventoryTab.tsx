@@ -63,8 +63,6 @@ export function InventoryTab({ campaignId }: { campaignId: string }) {
   // To confirm is grouped: what is mine first, then the party stash, which makes copying to a sheet easier.
   const groups = view === 'unconfirmed' ? groupForConfirming(filtered) : undefined;
   const shown = groups ? [...groups.mine, ...groups.party] : filtered;
-  // What "Add all" would tick: this player's own items in the list that are not on their sheet yet.
-  const pending = shown.filter((i) => needsConfirming(i, selfId));
   const players = members.filter((m) => m.role !== 'dm');
 
   async function run(item: LootItem, action: LootAction, userId?: string) {
@@ -79,11 +77,12 @@ export function InventoryTab({ campaignId }: { campaignId: string }) {
     }
   }
 
-  /** Ticks every item in this list that is not on the player's sheet yet, one after another. */
-  async function confirmAll() {
+  /** Ticks every item of a group that is not on the player's sheet yet, one after another. */
+  async function confirmAll(group: LootItem[]) {
     setProblem(undefined);
     try {
-      for (const item of pending) await lootConfirm(campaignId, item.id, true);
+      for (const item of group.filter((i) => needsConfirming(i, selfId)))
+        await lootConfirm(campaignId, item.id, true);
     } catch (e) {
       setProblem(e instanceof ApiError ? e.message : 'That did not work. Try again.');
     }
@@ -114,14 +113,6 @@ export function InventoryTab({ campaignId }: { campaignId: string }) {
             </SegmentedControl.Item>
           ))}
         </SegmentedControl.Root>
-        {pending.length > 0 && (
-          <IconTool
-            small
-            label={`Mark all ${pending.length} as added to my character sheet`}
-            icon="listChecks"
-            onClick={() => void confirmAll()}
-          />
-        )}
       </Flex>
       {(error || problem) && (
         <Callout.Root color="red">
@@ -143,17 +134,25 @@ export function InventoryTab({ campaignId }: { campaignId: string }) {
       {shown.map((item, index) => {
         const actions = lootActions(item, selfId, dm);
         const onSheet = isConfirmed(item, selfId);
-        const heading = groups
+        const head = groups
           ? confirmGroup(item) === 'mine'
-            ? index === 0 && `Mine (${groups.mine.length})`
-            : index === groups.mine.length && `Party stash (${groups.party.length})`
+            ? index === 0 && { label: 'Mine', items: groups.mine }
+            : index === groups.mine.length && { label: 'Party stash', items: groups.party }
           : false;
         return (
           <Fragment key={item.id}>
-            {heading && (
-              <Text as="div" size="2" weight="bold" color="gray" className="phone-group-head">
-                {heading}
-              </Text>
+            {head && (
+              <Flex align="center" justify="between" className="phone-group-head">
+                <Text size="2" weight="bold" color="gray">
+                  {head.label} ({head.items.length})
+                </Text>
+                <IconTool
+                  small
+                  label={`Mark all ${head.items.length} in ${head.label} as added to my character sheet`}
+                  icon="listChecks"
+                  onClick={() => void confirmAll(head.items)}
+                />
+              </Flex>
             )}
             <Card size="2">
               <Flex direction="column" gap="2">

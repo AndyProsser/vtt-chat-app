@@ -97,8 +97,6 @@ export function LootPanel() {
   // To confirm is grouped: what is mine first, then the party stash, which makes copying to a sheet easier.
   const groups = view === 'unconfirmed' ? groupForConfirming(leaving) : undefined;
   const shown = groups ? [...groups.mine, ...groups.party] : leaving;
-  // What the "Add all" button would tick: this player's own items in the list that are not on their sheet yet.
-  const pending = shown.filter((i) => !i.leaving && needsConfirming(i, status?.userId ?? null));
 
   return (
     <div className="vtt-inventory">
@@ -125,23 +123,6 @@ export function LootPanel() {
             </ToolButton>
           );
         })}
-        {pending.length > 0 && (
-          <>
-            <span className="vtt-spacer" />
-            <ToolButton
-              className="vtt-tool-wide"
-              label={`Mark all ${pending.length} as added to my character sheet`}
-              onClick={() =>
-                void run(async () => {
-                  for (const item of pending)
-                    await campaignApi('POST', `loot/${item.id}/confirm`, { confirmed: true });
-                })
-              }
-            >
-              <ListChecks size={14} />
-            </ToolButton>
-          </>
-        )}
       </div>
       {data &&
         shown.length === 0 &&
@@ -158,10 +139,10 @@ export function LootPanel() {
         ))}
       {shown.map((item, index) => {
         const open = !item.claimedBy;
-        const heading = groups
+        const head = groups
           ? confirmGroup(item) === 'mine'
-            ? index === 0 && `Mine (${groups.mine.length})`
-            : index === groups.mine.length && `Party stash (${groups.party.length})`
+            ? index === 0 && { label: 'Mine', items: groups.mine }
+            : index === groups.mine.length && { label: 'Party stash', items: groups.party }
           : false;
         const className = [
           'vtt-loot',
@@ -172,7 +153,26 @@ export function LootPanel() {
           .join(' ');
         return (
           <Fragment key={item.id}>
-            {heading && <h3 className="vtt-loot-group">{heading}</h3>}
+            {head && (
+              <div className="vtt-loot-group">
+                <h3>
+                  {head.label} ({head.items.length})
+                </h3>
+                <ToolButton
+                  className="vtt-tool-wide"
+                  label={`Mark all ${head.items.length} in ${head.label} as added to my character sheet`}
+                  onClick={() =>
+                    void run(async () => {
+                      for (const it of head.items)
+                        if (!it.leaving && needsConfirming(it, status?.userId ?? null))
+                          await campaignApi('POST', `loot/${it.id}/confirm`, { confirmed: true });
+                    })
+                  }
+                >
+                  <ListChecks size={14} />
+                </ToolButton>
+              </div>
+            )}
             <div className={className} aria-hidden={item.leaving}>
               <div className="vtt-loot-row">
                 <ItemIcon type={item.itemType} rarity={item.rarity} size={22} />

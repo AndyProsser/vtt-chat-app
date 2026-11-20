@@ -706,9 +706,6 @@ button.phone-picture-button {
 .phone-group-head {
   margin-top: 4px;
   padding-inline: 2px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  font-size: 12px;
 }
 .phone-tool-sm {
   min-width: 32px;
