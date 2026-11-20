@@ -69,11 +69,11 @@ export function JoinRequestsSection({ campaignId }: { campaignId: string }) {
       )}
       <div className="vtt-set-card">
         <SettingRow
-          label="Public table"
-          hint="Public: other players can find this table and ask to join. Private: hidden. Invite links work either way."
+          label="Allow join"
+          hint="Lets people on this server ask to join this table. You still approve each one. Invite links work either way."
         >
           <Switch
-            aria-label="Public table"
+            aria-label="Allow join"
             checked={inbox.allowJoin}
             disabled={busy}
             onCheckedChange={(on) =>

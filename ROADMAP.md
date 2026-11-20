@@ -554,6 +554,15 @@ What real hardware, a real platform or a second person has not yet shown. Each i
 | 0.6.0          | The **end-to-end test extended for protocol 4**, on both apps                                                                                                                                                                                                                                                                                                                              | ⏳ Open                                                                                                                                                                                                                                                                                                     |
 | 0.5.5          | The **My sounds upload** refusal in 0.5.4 (`sound_upload` was not on the app's allow-list)                                                                                                                                                                                                                                                                                                 | ✅ **Fixed on the 0.6.0 branch** (f78e3f2); **ships with 0.6.x, no 0.5.5** (Andy, 2026-11-19). 0.5.4 users keep the broken upload until they move to 0.6                                                                                                                                                    |
 
+**Added 2026-11-20 (Andy): the campaign on the phone web app (no wire change; the routes exist).**
+
+| Item | What |
+| ---- | ---- |
+| Campaign info screen | Tapping the campaign name in the header opens it (with a small chevron). Everyone reads the name, the description and the current bard with its blurb. The DM gets an edit pencil for name and description (the desktop limits and Markdown). Players get **Leave campaign** (with a confirmation); the DM does not, as on the desktop. First check the web app's campaign data already carries `description` and `bard`; if not, add them to the existing response (a patch, not a protocol bump). |
+| Invite (DM, burger menu) | An **Invite** entry beside Join requests: makes the link (the server's default expiry, as on the desktop), shows it with **Copy link** and **Copy invite message**, a **QR code** to scan from another phone, and the "stop all invite links" reset. The QR is drawn in the page (the `qrcode` package is already in the repo's lockfile; check it adds little to the web bundle). |
+| Stays desktop-only | Changing the bard, handing over the DM role, and everything else on the desktop Campaign tab. |
+| One wording | The join switch reads **Allow join**, "Lets people on this server ask to join this table. You still approve each one." in both apps (the desktop said "Public table"). Done 2026-11-20. |
+
 **Done when:** every open row above is cleared or accepted, and a full real campaign session runs on the supported platforms without manual intervention.
 
 ### Decided by Andy, 2026-11-18

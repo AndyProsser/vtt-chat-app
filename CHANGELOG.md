@@ -10,6 +10,10 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ## [Unreleased]
 
+### Changed
+
+- **The desktop join switch says "Allow join"**, with the phone web app's wording.
+
 ## [0.6.0] - 2026-11-20
 
 The **protocol 4** release: loot re-drop and "added to my sheet", a better soundboard mix and per-person volume, GM notes and a glossary, richer character sheets on the rail, a storyteller for each campaign, and installing a server without a domain. A **MINOR** release with a wire change: **a 0.5 app cannot join a 0.6 server and the other way round**, so update the whole stack together. **Operators:** update the server first (`get.sh` or your usual update; the database gets two small migrations on start), then `vtt-admin updates sync` so players are offered 0.6. **Players:** update the app.

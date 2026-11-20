@@ -260,7 +260,7 @@ says no, the card reads **Not this time** and shows the date you can ask again, 
 the DM answers, and if you are already in another campaign a strip appears with a **Switch** button. An invite link
 still works as before.
 
-**Letting people ask (DM).** In Settings, then Campaign, the **Join requests** section has a **Public table** switch.
+**Letting people ask (DM).** In Settings, then Campaign, the **Join requests** section has an **Allow join** switch.
 Public means other players can find your table and ask to join; Private hides it. Invite links work either way. Waiting requests show the person's name, their
 note and how long ago they asked; **Approve** adds them as a player and **Decline** sends a no. A number on the Campaign
 tab and a dot on the Settings cog show that someone is waiting. Turn the pop-ups on or off in Settings, then
