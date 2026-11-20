@@ -2,7 +2,21 @@
 
 > Self-hosted voice, chat and **session records with AI summaries** for tabletop groups. A tiny tray app for players, a mobile web app, and a server you run yourself — no cloud account required.
 
-**Status:** **0.5.4 is released (2026-11-19)**: a redesigned character screen with D&D Beyond sync, My sounds, operator campaign delete and export/import, and a safer delete rule for recordings. 0.5.3 brought session summaries told as tales, records that a CPU-only server keeps up with, the app's own audio engine by default, and hardened server containers. The player and DM experience is built (voice, chat, handouts, loot, a DM soundboard, recording with AI-written tales of each session, status, noise filtering). The server has been installed with one command on a real Ubuntu VM and used from the Linux desktop app and an iPhone; a recorded session went through the local AI. **It has not yet been installed by anyone but its author**, and voice between two clients over the internet and Android are still to be proven. The Windows app has been used by the author and held up as well as the Linux one, apart from a freeze when opening a popup window that is fixed but not yet confirmed on Windows. **[docs/BUILD-STATUS.md](docs/BUILD-STATUS.md) says exactly what is built, what is verified, and what is next.** Start with the **[operator guide](docs/guides/OPERATOR-GUIDE.md)** (to host) or the **[user guide](docs/guides/USER-GUIDE.md)** (to play). See [CLAUDE.md](.claude/CLAUDE.md) for the spec and [ROADMAP.md](ROADMAP.md) for the plan.
+## Why this exists
+
+A tabletop story is told once, out loud, and then it is gone. Online groups have it worse: the game is on one screen, the dice and sheets on others, and everyone talks over an open Discord channel that forgets the evening the moment it ends. Whoever kept notes (usually the DM, after a long night of running the game) is the only memory the campaign has.
+
+VTT Chat App is the missing piece that sits **beside** whatever virtual tabletop you already use (D&D Beyond Maps, Foundry, Roll20, even paper) and pulls the table together: open-mic voice that stays out of the way, a little chat, handouts and loot, a DM soundboard, and your characters' sheets a glance away. It runs on a server **you** own, so your group's voices and stories stay yours.
+
+### And then the Bard tells the tale
+
+The part nothing else gives a table: **it remembers the session for you.** The server records each speaker on their own track, turns the talk into text on your own hardware, and then two AI storytellers go to work. A **scribe** keeps the facts: what happened, who did what, what was left hanging. A **bard** retells the evening as a short tale of the party's adventure, the fumbles told as proudly as the feats, so that on the morning after, everyone gets to read how legendary (or ridiculous) they were.
+
+- **Players read the tale.** The DM also gets a private brief: the open threads and what to prepare next.
+- **Pick your storyteller.** Each campaign chooses its bard: the grandiose Tavern Bard, the exact Dry Historian, the unreliable Drunken Bard, the Sarcastic Bard or the Bored Court Scribe. Choosing one is built; teaching each its own voice is the work in progress.
+- **Recording is never a secret.** Every recording starts with a visible and audible cue, and private talk is never recorded.
+
+Where the project stands is in the [roadmap](ROADMAP.md), the [changelog](CHANGELOG.md) and [what is built and verified](docs/BUILD-STATUS.md). The rest of this page is how to run it.
 
 <p align="center">
   <img src="docs/images/screens/desktop-table-gm.png" alt="The desktop app during a session: the table down the left, chat with in-character lines, a whisper and a loot drop, and a recording running" width="310">
