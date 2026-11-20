@@ -10,7 +10,9 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ## [Unreleased]
 
-Work towards **0.6.0** (protocol 4, on the `stage-11-protocol-4` branch). A 0.5 app cannot join a 0.6 server.
+## [0.6.0] - 2026-11-20
+
+The **protocol 4** release: loot re-drop and "added to my sheet", a better soundboard mix and per-person volume, GM notes and a glossary, richer character sheets on the rail, a storyteller for each campaign, and installing a server without a domain. A **MINOR** release with a wire change: **a 0.5 app cannot join a 0.6 server and the other way round**, so update the whole stack together. **Operators:** update the server first (`get.sh` or your usual update; the database gets two small migrations on start), then `vtt-admin updates sync` so players are offered 0.6. **Players:** update the app.
 
 ### Added
 
@@ -24,6 +26,23 @@ Work towards **0.6.0** (protocol 4, on the `stage-11-protocol-4` branch). A 0.5 
 - **The character sheet on the rail, more of it, and deleting.** Everyone at the table now sees a linked character's armour class, hit points and special senses (Darkvision, Blindsight, Tremorsense, Truesight, with their range) as small icon chips on the rail's hover card, with a **Details** button for a larger popup (classes with subclasses such as "Monk 5 (Way of the Open Hand) / Cleric 4 (Life Domain)", the six abilities, vitals, senses), in both apps. The character screens show the same. A character can now be **deleted** (from this campaign only; the next one takes over if it was the one being played), and adding one from a D&D Beyond link is **one step**: the sheet is read first, so a private or wrong link leaves nothing behind. Characters already linked pick up senses and subclasses at their next sync.
 - **Install without a domain, or on another port.** `get.sh --http` serves plain HTTP (for a LAN or VPN, with an IP address or any name as the address; passwords are not encrypted, so only on a network you trust) and `--port 8443` serves on another port (a valid certificate there needs `--cloudflare-dns`). The server's own links and its voice address follow the scheme and port, an update keeps them, and the firewall and the port check use the chosen ports. A free DDNS name already worked as a domain.
 - **A notice when the DM gives you something**, stored so a player who was away finds it next time.
+
+### Changed
+
+- **The Storyteller choice is a dropdown** in Settings → Campaign; each bard keeps its one-line description in the open list.
+- **Loot buttons are icons with tooltips** in both apps, and loot chat cards no longer carry the "added to my sheet" tick.
+
+### Fixed
+
+- **My sounds upload works again in the desktop app.** The 0.5.4 app refused the upload because the command was missing from its allow-list. (0.5.4 apps keep the fault until they move to 0.6; there is no 0.5.5.)
+
+### Known limits
+
+- **The storyteller is stored and shown, not yet used:** the AI work that changes how a tale is told comes in 0.6.x patches.
+- **GM notes and the bard picker are in the desktop app only**; the phone web app does not have them yet.
+- **Senses and subclasses** read from D&D Beyond have been tried against recorded sheets only; a character picks them up at the next sync.
+- **Plain HTTP installs (`--http`)** send passwords unencrypted: only for a network you trust. A valid certificate on another port needs `--cloudflare-dns`.
+- **The macOS app is for Apple silicon only** (no Intel build).
 
 ## [0.5.4] - 2026-11-19
 
