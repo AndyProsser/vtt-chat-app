@@ -1,4 +1,10 @@
-import { DEFAULT_AI_SETTINGS, type AiSettings } from '@vtt-chat-app/shared';
+import {
+  DEFAULT_AI_SETTINGS,
+  DEFAULT_BARD,
+  isBardId,
+  type AiSettings,
+  type BardId,
+} from '@vtt-chat-app/shared';
 
 import type { VocabularyTerm } from '../vocabulary.js';
 
@@ -194,6 +200,11 @@ export class MemoryRecordsStore implements RecordsStore {
   putSummary = async (s: StoredSummary) =>
     void this.summaries.set(this.key(s.recordingId, s.kind, s.subject), { ...s });
 
+  bards = new Map<string, BardId>();
+  notesOf = new Map<string, string>();
+  campaignBard = async (campaignId: string): Promise<BardId> =>
+    this.bards.get(campaignId) ?? DEFAULT_BARD;
+  gmNotes = async (campaignId: string) => this.notesOf.get(campaignId) ?? '';
   vocabulary = new Map<string, VocabularyTerm[]>();
   campaignVocabulary = async (campaignId: string) => this.vocabulary.get(campaignId) ?? [];
   campaignName = async (campaignId: string) => this.campaigns.get(campaignId);

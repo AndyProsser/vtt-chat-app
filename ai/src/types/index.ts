@@ -1,3 +1,5 @@
+import type { BardId, TaleContent, TaleLength } from '@vtt-chat-app/shared';
+
 /** One recognised phrase from Whisper, in milliseconds from the start of its own audio track. */
 export interface Segment {
   startMs: number;
@@ -65,6 +67,17 @@ export interface SummaryContext {
    * players' tale (decided 2026-11-17). Absent when no loot moved.
    */
   loot?: { all: string[]; notable: string[] };
+  /** Who tells the tale (the campaign's choice, after the operator's switches); the Tavern Bard when absent. */
+  storyteller?: BardId;
+  /** The operator's ceiling on a tale's length, and how strong its language and violence may be (`ai.tale.*`). */
+  taleLength?: TaleLength;
+  taleContent?: TaleContent;
+  /**
+   * The Game Master's own notes, the start of them. Given only to the Chronicler and to the Tipsy Minstrel (who
+   * may let a secret slip, which the Game Master chose by picking that storyteller); every other role is never
+   * given them, and the prompt builders ignore this field for them as a second guard.
+   */
+  gmNotes?: string;
 }
 
 /** Sends a prompt to a language model and returns its text. Local (Ollama) by default. */

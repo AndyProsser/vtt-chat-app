@@ -10,7 +10,7 @@ import type { StructuredNotes } from './notes.js';
 import { formatTimeline } from './format.js';
 import { mergeNotes, NOTES_MAX_WORDS, notesWords, parseNotes, renderNotes } from './notes.js';
 import {
-  buildBriefPrompt,
+  buildChroniclerPrompt,
   buildCondensePrompt,
   buildNotesPrompt,
   buildNotesRepairPrompt,
@@ -187,7 +187,7 @@ export async function writeFromNotes(
 
   const text =
     options.kind === 'dm-only'
-      ? await call(scribe, buildBriefPrompt(notes, context))
+      ? await call(scribe, buildChroniclerPrompt(notes, context))
       : tidyTale(await call(bard, buildStoryPrompt(options.kind, notes, context)));
   return { kind: options.kind, text, dmOnly: options.kind === 'dm-only', modelCalls };
 }

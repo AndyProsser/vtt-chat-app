@@ -1,4 +1,10 @@
-import { normaliseAiSettings, type AiSettings } from '@vtt-chat-app/shared';
+import {
+  DEFAULT_BARD,
+  isBardId,
+  normaliseAiSettings,
+  type AiSettings,
+  type BardId,
+} from '@vtt-chat-app/shared';
 import pg from 'pg';
 
 import type {
@@ -434,6 +440,22 @@ export class PostgresRecordsStore implements RecordsStore {
         rank: Number(r.rank),
       }))
       .filter((t) => t.term !== '' && t.term.split(/\s+/).length <= 5);
+  }
+
+  async campaignBard(campaignId: string): Promise<BardId> {
+    const { rows } = await this.pool.query<Row>('SELECT bard FROM campaigns WHERE id = $1', [
+      campaignId,
+    ]);
+    const bard = rows[0]?.bard;
+    return isBardId(bard) ? bard : DEFAULT_BARD;
+  }
+
+  async gmNotes(campaignId: string): Promise<string> {
+    const { rows } = await this.pool.query<Row>(
+      'SELECT body FROM gm_notes WHERE campaign_id = $1',
+      [campaignId],
+    );
+    return typeof rows[0]?.body === 'string' ? rows[0].body : '';
   }
 
   async playerIds(campaignId: string): Promise<string[]> {

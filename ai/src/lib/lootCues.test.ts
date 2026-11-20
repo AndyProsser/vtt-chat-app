@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { RecordingEvent } from '../types/index.js';
 import { compactCues, eventCues } from './cues.js';
 import { formatCue } from './format.js';
-import { buildBriefPrompt, buildNotesPrompt, buildStoryPrompt } from './prompts.js';
+import { buildChroniclerPrompt, buildNotesPrompt, buildStoryPrompt } from './prompts.js';
 import { planSummaries } from './summaryPlan.js';
 
 const loot = (at: number, detail: Record<string, unknown>): RecordingEvent => ({
@@ -114,7 +114,7 @@ describe('loot in the summaries', () => {
   });
 
   it("gives the Game Master's brief the whole record", () => {
-    const prompt = buildBriefPrompt(['notes'], brief.context);
+    const prompt = buildChroniclerPrompt(['notes'], brief.context);
     expect(prompt).toContain('Bram took Rope');
     expect(prompt).toContain('Dorn took 30 sp');
   });

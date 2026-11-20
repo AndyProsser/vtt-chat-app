@@ -369,3 +369,56 @@ describe('the campaign vocabulary (Stage 12 B and C)', () => {
     expect(await run('off')).toEqual({ prompt: undefined, text: 'We met raven shade at dawn.' });
   });
 });
+
+describe('the storyteller and the Game Master’s notes (Stage 12 E and G)', () => {
+  const secret = 'The cult serves Vecna.';
+  async function run(bard: 'tavern' | 'drunken' | 'sarcastic', off: string[] = []) {
+    records.bards.set('camp-1', bard);
+    records.notesOf.set('camp-1', secret);
+    let settings = DEFAULT_AI_SETTINGS;
+    for (const id of off) settings = setAiSetting(settings, `ai.storyteller.${id}` as never, 'off');
+    records.aiSettings = settings;
+    await handler().run(job());
+    const by = (needle: string) => prompts.filter((p) => p.includes(needle));
+    return {
+      scribe: by('You are the scribe').join('\n'),
+      tale: by('You are the bard').join('\n'),
+      brief: by('You are the Chronicler').join('\n'),
+    };
+  }
+
+  it('tells the tale in the campaign’s voice', async () => {
+    const out = await run('sarcastic');
+    expect(out.tale).toContain('the Wry Jester');
+    expect(out.tale).not.toContain('the Tavern Bard');
+  });
+
+  it('falls back to the Tavern Bard when the operator has turned the storyteller off', async () => {
+    const out = await run('sarcastic', ['sarcastic']);
+    expect(out.tale).toContain('the Tavern Bard');
+    expect(out.tale).not.toContain('the Wry Jester');
+  });
+
+  it('gives the Game Master’s notes to the Chronicler only, for every storyteller but the drunkard', async () => {
+    const out = await run('tavern');
+    expect(out.brief).toContain('Vecna');
+    expect(out.tale).not.toContain('Vecna');
+    expect(out.scribe).not.toContain('Vecna');
+  });
+
+  it('lets the Tipsy Minstrel read them, and still never the scribe', async () => {
+    const out = await run('drunken');
+    expect(out.tale).toContain('the Tipsy Minstrel');
+    expect(out.tale).toContain('Vecna');
+    expect(out.brief).toContain('Vecna');
+    expect(out.scribe).not.toContain('Vecna');
+  });
+
+  it('passes the operator’s limits to the tale', async () => {
+    records.aiSettings = setAiSetting(DEFAULT_AI_SETTINGS, 'ai.tale.content', 'clean');
+    await handler().run(job());
+    expect(prompts.filter((p) => p.includes('You are the bard')).join('\n')).toMatch(
+      /language clean/,
+    );
+  });
+});

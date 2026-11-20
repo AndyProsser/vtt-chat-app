@@ -1,3 +1,5 @@
+import { DEFAULT_BARD, type BardId, type TaleContent, type TaleLength } from '@vtt-chat-app/shared';
+
 import type { SummaryContext, SummaryKind } from '../types/index.js';
 import { NOTE_HEADINGS_FOR_PROMPT } from './notes.js';
 
@@ -167,76 +169,186 @@ export function taleWords(cap: number, notes: readonly string[]): number {
   return Math.min(cap, Math.max(30, Math.round((words * 0.8) / 10) * 10));
 }
 
-/** What the bard is telling, and how long it may run. Short on purpose: key moments, not minutes. */
+/** The most a session's tale may run, by the operator's `ai.tale.length` (decided 2026-11-20: 300 to 800 words is usual). */
+export const TALE_CAP_WORDS: Record<TaleLength, number> = { short: 400, default: 800, long: 1200 };
+
+/** A chapter's or a character's tale runs to half a session's. */
+const capFor = (kind: Exclude<SummaryKind, 'dm-only'>, context: SummaryContext): number => {
+  const session = TALE_CAP_WORDS[context.taleLength ?? 'default'];
+  return kind === 'session' ? session : Math.round(session / 2);
+};
+
+/** What the operator's content setting asks of the telling (`ai.tale.content`). */
+const CONTENT_RULES: Record<TaleContent, string | undefined> = {
+  clean:
+    '- Keep the language clean and the violence off the page: a foe falls, with no more of how than that.',
+  default: undefined,
+  graphic:
+    '- Violence and strong language may be told plainly, as the table played it, where the notes have them.',
+};
+
+/** What the bard is telling, and how long it may run. Key moments, not minutes. */
 function tale(
   kind: Exclude<SummaryKind, 'dm-only'>,
   context: SummaryContext,
   notes: readonly string[],
 ): string {
+  const words = taleWords(capFor(kind, context), notes);
   switch (kind) {
     case 'session':
-      return `Tell the tale of this session${campaignOf(context)} to the players who lived it. Key moments only: at most ${taleWords(350, notes)} words.`;
+      return `Tell the tale of this session${campaignOf(context)} to the players who lived it. At most ${words} words, and shorter when little happened: a night of talk with little action gets a short tale.`;
     case 'chapter': {
       if (!context.chapter) throw new Error('a chapter summary needs context.chapter');
       const { number, of, title } = context.chapter;
       const scene = title ? `, which began in the scene "${title}"` : '';
-      return `Tell the tale of part ${number} of ${of} of this session${campaignOf(context)}${scene} (the table paused or the scene changed between parts; tell this part only). Key moments only: at most ${taleWords(200, notes)} words.`;
+      return `Tell the tale of part ${number} of ${of} of this session${campaignOf(context)}${scene} (the table paused or the scene changed between parts; tell this part only). At most ${words} words.`;
     }
     case 'character': {
       if (!context.characterName) {
         throw new Error('a character summary needs context.characterName');
       }
-      return `Tell the tale of this session${campaignOf(context)} as the story of "${context.characterName}": what they dared, what they achieved, what went wrong for them, and what they are left wanting. The others appear only where they cross this hero's path. At most ${taleWords(200, notes)} words, in the third person.`;
+      return `Tell the tale of this session${campaignOf(context)} as the story of "${context.characterName}": what they dared, what they achieved, what went wrong for them, and what they are left wanting. The others appear only where they cross this hero's path. At most ${words} words, in the third person.`;
     }
   }
 }
 
-/** The bard's prompt: a short heroic retelling written from the scribe's notes, never from the transcript. */
+/**
+ * The storytellers (Stage 12 G; Andy's memos, 2026-11-17, and the decisions of 2026-11-17 and 2026-11-20). Each is a
+ * voice: what it is like to hear, never different facts. `secrets` is true only for the Tipsy Minstrel, whom the
+ * Game Master chose knowing it may let a Game Master secret slip.
+ */
+const STYLES: Record<BardId, { title: string; how: string[]; secrets?: true }> = {
+  tavern: {
+    title: 'the Tavern Bard',
+    how: [
+      "- Glorious prose, past tense: the heroes' great feats told as legend, and their humiliating fumbles told just as proudly. A plan that failed, a roll that betrayed them, a dumb idea that somehow worked: these are the best parts.",
+      '- Dry wit and gallows humour. Understate the disasters. Never explain a joke, never address the audience, never praise the story.',
+      '- You may embellish HOW a thing happened (the look of it, the sound of it, a wry aside).',
+      '- If your telling bends a detail, or something in the notes does not quite add up, never leave it unexplained: give it a reason that belongs in a world of magic, and a funny one if you can (a dwarf who should have sunk "bobbed up, buoyed, he insisted, by sheer spite").',
+    ],
+  },
+  dry: {
+    title: 'the Dry Historian',
+    how: [
+      '- Write like a historical record: even, measured, past tense, in whole formal sentences ("On the third day within the keep, the party met and bested a beholder"). No exclamation marks, no jokes, no flourishes.',
+      '- Embellish almost nothing. Where the notes give a roll, a quote or a number, the record may keep it.',
+      '- A fumble is recorded as exactly what it was, without comment.',
+    ],
+  },
+  drunken: {
+    title: 'the Tipsy Minstrel',
+    secrets: true,
+    how: [
+      '- You are an unreliable narrator, some six ales into the night. You tell it warmly, loudly and with jokes, and you are pure chaos with nods to the truth: stay close to what happened, but you forget details, mix up names, credit the wrong hero, stretch a victory, and add a fact now and then because it is more fun.',
+      '- Wander off for a clause and come back. Admit you may have the order wrong, once, and never explain a joke.',
+      '- Let the essence of the truth survive: the party, the place and how it ended are recognisable, whatever else you bend.',
+    ],
+  },
+  sarcastic: {
+    title: 'the Wry Jester',
+    how: [
+      '- Dry humour, slightly cynical, and the party is the target: poke fun at their decisions and plans ("the party once again showed their signature tactical brilliance by attempting diplomacy after setting fire to the building"). Affectionate, never cruel.',
+      '- The jokes are about what the notes say happened. Never explain a joke, and never address the audience.',
+      '- A real triumph may be admitted, grudgingly.',
+    ],
+  },
+  bored: {
+    title: 'the Bored Court Scribe',
+    how: [
+      '- Disinterested and understated: short flat sentences, everything the same size ("Another dragon appeared. It was slain. Everyone seemed pleased."). The more extraordinary the event, the less the scribe cares.',
+      '- No flourishes and no enthusiasm. The deadpan is the joke: never explain it.',
+    ],
+  },
+};
+
+/** The start of the Game Master's notes a prompt may carry, so one page of planning cannot swamp a small model. */
+export const GM_NOTES_PROMPT_CHARS = 6000;
+
+const gmNotesBlock = (text: string | undefined): string | undefined =>
+  text && text.trim() !== '' ? text.trim().slice(0, GM_NOTES_PROMPT_CHARS) : undefined;
+
+/** The bard's prompt: a retelling in the campaign's storyteller's voice, written from the scribe's notes, never from the transcript. */
 export function buildStoryPrompt(
   kind: Exclude<SummaryKind, 'dm-only'>,
   notes: readonly string[],
   context: SummaryContext,
 ): string {
+  const style = STYLES[context.storyteller ?? DEFAULT_BARD];
+  const chaos = style.secrets === true;
   const gm = context.gameMaster
     ? `\n- "${context.gameMaster}" is the Game Master, the voice of the world and its creatures: never a character in the tale, and never named in it.`
     : '';
+  // Only the Tipsy Minstrel ever sees the Game Master's notes; any other storyteller is given none, whatever the context holds.
+  const secrets = chaos ? gmNotesBlock(context.gmNotes) : undefined;
+  const closeness = chaos
+    ? '- Names of the heroes and the places stay as the notes have them, so the table knows whose tale it is.'
+    : '- Keep close to the facts: who did it, what came of it, who won, what was found, and every name stay as the notes have them. A little invention in how it is told is fine, but no new events, characters, treasure or speeches that change what happened.';
+  const quotes =
+    "- The notes keep memorable quotes. Use one or two where they fit, in the speaker's own words.";
+  const content = CONTENT_RULES[context.taleContent ?? 'default'];
   return [
-    `You are the bard of a tabletop role-playing group. ${tale(kind, context, notes)}`,
+    `You are the bard of a tabletop role-playing group, ${style.title}. ${tale(kind, context, notes)}`,
     [
       'How to tell it:',
-      "- Glorious prose, past tense: the heroes' great feats told as legend, and their humiliating fumbles told just as proudly. A plan that failed, a roll that betrayed them, a dumb idea that somehow worked: these are the best parts.",
-      '- Dry wit and gallows humour. Understate the disasters. Never explain a joke, never address the audience, never praise the story.',
-      '- You may embellish HOW a thing happened (the look of it, the sound of it, a wry aside). You may not change WHAT happened: who did it, what came of it, who won, what was found, and every name stay exactly as the notes have them. No new events, characters, treasure or speeches.',
-      '- If your telling bends a detail, or something in the notes does not quite add up, never leave it unexplained: give it a reason that belongs in a world of magic, and a funny one if you can (a dwarf who should have sunk "bobbed up, buoyed, he insisted, by sheer spite").',
+      ...style.how,
+      closeness,
+      quotes,
       '- Tell the moments that mattered and the people who made them. Not everyone in the notes belongs in the tale: a character or creature who did little may be left out or pass in a clause. Never list who was present, and never give someone a moment just to include them.',
-      '- Nothing happens in the tale that the notes do not say happened. A plan for next time is still only a plan, and a recap is told as a recap. When the notes are short, the tale is a few sentences: never pad, and never mention the notes, the recording or what is missing.',
+      ...(chaos
+        ? [
+            "- You may let a secret from the Game Master's own notes (below) slip, as a drunk does: a throwaway line, half-understood, never explained. Anything you let slip is told as gossip, not fact.",
+          ]
+        : [
+            '- Nothing happens in the tale that the notes do not say happened. A plan for next time is still only a plan, and a recap is told as a recap.',
+          ]),
+      '- When the notes are short, the tale is a few sentences: never pad, and never mention the notes, the recording or what is missing.',
       '- No headings, no lists, no title.',
+      ...(content ? [content] : []),
       `- If something was left unresolved, end with one line that starts "Next time:". If nothing was, leave that line out.${gm}${taleLoot(context)}`,
     ].join('\n'),
+    ...(secrets
+      ? [
+          `The Game Master's own notes, the start of them (what they know and have planned; you have read them over their shoulder):\n${secrets}`,
+        ]
+      : []),
     "The scribe's notes of what happened, in order:",
     joinNotes(notes),
     'The tale:',
   ].join('\n\n');
 }
 
+/** What the Chronicler writes under, in order (Stage 12 E); the prompt and the tests share it. */
+export const CHRONICLER_HEADINGS = [
+  'Non-player characters',
+  'Open threads',
+  'Items',
+  'Locations',
+  'Hooks',
+  'Continuity warnings',
+] as const;
+
 /**
- * The Game Master's brief: a summary of the key points, to recall the last session and prepare the next one
- * (Andy, 2026-11-17). Not a story, and not the scribe's notes again: those are kept in full beside it.
+ * The Chronicler's brief (Stage 12 E; it replaces the Game Master brief's content): what the Game Master needs to run the
+ * next session, 200 to 300 words under fixed headings, from the scribe's notes and the Game Master's own notes. A role of
+ * its own, not a bard: plain and useful, no story.
  */
-export function buildBriefPrompt(notes: readonly string[], context: SummaryContext): string {
+export function buildChroniclerPrompt(notes: readonly string[], context: SummaryContext): string {
+  const planned = gmNotesBlock(context.gmNotes);
   return [
-    `You are helping a Game Master prepare. From the scribe's notes below, write a private brief of this tabletop role-playing session${campaignOf(context)}, for the Game Master only: what to remember from this session and what to have ready for the next.`,
+    `You are the Chronicler of a tabletop role-playing group. From the scribe's notes below, write a private brief of this session${campaignOf(context)}, for the Game Master only: what they need to run the next session.`,
     [
-      `A summary of the key points, not a retelling: at most ${taleWords(250, notes)} words in all. The Game Master has the full notes; leave out routine detail, and anything that changes nothing for next time.`,
-      'Short headed sections of a few brief bullet points each, plainly, with no story-telling:',
-      '- Last session: the few things that happened that matter from here on, in order.',
-      '- Where things stand: where the party is, what they have gained or lost, who is hurt, angry or in debt.',
-      '- Open threads: secrets still hidden, questions the players asked that have no answer yet, hooks they took up and hooks they passed by.',
-      '- Promises: what was promised to or by non-player characters.',
-      '- Prepare for next session: what the players are most likely to do next, and what the Game Master will need ready for it.',
-      'Use only what is in the notes. Leave out a section that has nothing in it, and do not say that it is empty.',
-    ].join('\n'),
+      `Plain and short: 200 to 300 words in all (at most ${taleWords(300, notes)}), as brief bullet points under these headings, in this order, each as a Markdown "##" heading line. Leave out a heading that has nothing under it, and never say that one is empty.`,
+      ...CHRONICLER_HEADINGS.map((h) => `## ${h}`),
+      "Non-player characters: who the party met or heard of, and what each wants, promised or was promised. Open threads: questions with no answer yet, secrets still hidden, tasks taken up and not finished. Items: what was obtained, lost or promised (the app's loot record is exact). Locations: where the party went, and where they said they would go. Hooks: what the players are likely to do next, and what the Game Master will need ready for it. Continuity warnings: promises with a deadline, a debt, a wounded or angry non-player character, and anything this session said that contradicts what the Game Master planned or wrote.",
+      planned
+        ? "The Game Master's own notes (below) are what they know and planned. Use them to link open threads to their plans, and to flag a continuity warning where the session went against them. Do not copy them out."
+        : '',
+      'Use only what is in the notes. No story-telling, no embellishment, no opinions.',
+    ]
+      .filter((line) => line !== '')
+      .join('\n'),
     ...briefLoot(context),
+    ...(planned ? [`The Game Master's own notes, the start of them:\n${planned}`] : []),
     "The scribe's notes of what happened, in order:",
     joinNotes(notes),
     'Brief:',

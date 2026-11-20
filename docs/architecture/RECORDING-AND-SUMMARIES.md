@@ -471,6 +471,17 @@ What it showed, and what changed:
   once) into one set of notes, and a set over `NOTES_MAX_WORDS` (3,000) is shortened by the scribe, up to four rounds, stopping when
   a round does not make it shorter. Secrets here are what came out **during play**; Game Master-only material never reaches the
   scribe. Cost: a model that obeys the layout costs nothing extra; one that does not costs up to two more calls a reading.
+- **The Chronicler and the storytellers (Stage 12 E and G, built 2026-11-20, not yet read on a real session).** The `dm-only`
+  summary (labelled "DM brief" in the apps, unchanged on the wire) is now the **Chronicler's**: 200 to 300 words under
+  Non-player characters, Open threads, Items, Locations, Hooks and Continuity warnings, from the scribe's notes and the start of
+  the Game Master's own notes (`GM_NOTES_PROMPT_CHARS`, 6,000), with the exact loot record kept. The tales are told by the campaign's
+  storyteller, `effectiveBard(campaign.bard, ai.tale.storytellersOff)`, read once per job; a voice is a `STYLES` entry in
+  `ai/src/lib/prompts.ts`, never different facts. **Who may read the Game Master's notes:** the Chronicler and the Tipsy
+  Minstrel only. The job fetches them only for those two, and the prompt builder ignores `gmNotes` for every other
+  storyteller and for the scribe, so a mistake in one place does not leak (tests in `pipeline.test.ts` and
+  `processRecording.test.ts`). `ai.tale.length` sets the ceiling (400, 800, 1,200 words; a chapter or a character gets half), the
+  notes' own length still pulls it down, and `ai.tale.content` adds a clean or graphic rule. Not done: the Chronicler and the bards
+  read the notes as plain text (not section by section), and campaign memory (F) is not used yet.
 - 280 words of clean TTS: a difference of one point is three words. Compare rows, do not predict a real table.
 
 | Summary model on CPU (2014 desktop, one summary of the scene) | Time      | Judged                                                             |

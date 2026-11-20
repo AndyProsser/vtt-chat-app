@@ -1,10 +1,11 @@
-import type { AiSettings } from '@vtt-chat-app/shared';
+import { effectiveBard, type AiSettings } from '@vtt-chat-app/shared';
 
 import type {
   GenerateText,
   Job,
   Segment,
   SummaryContext,
+  SummaryKind,
   TranscribeWav,
   Utterance,
 } from '../../types/index.js';
@@ -107,6 +108,26 @@ export function createProcessRecordingHandler(deps: ProcessRecordingDeps): JobHa
         ...(campaignName ? { campaignName } : {}),
       });
 
+      // Who tells the tale and under what limits (Stage 12 G), and what the Game Master's own notes may reach: the
+      // Chronicler (the Game Master's brief) and the Tipsy Minstrel only. The scribe and every other storyteller never
+      // get them. The campaign's storyteller is read once, here, with the operator's switches applied.
+      const storyteller = effectiveBard(
+        await deps.records.campaignBard(recording.campaignId),
+        settings.tale.storytellersOff,
+      );
+      let gmNotes: Promise<string> | undefined;
+      const telling = async (kind: SummaryKind): Promise<Partial<SummaryContext>> => {
+        const wantsNotes = kind === 'dm-only' || storyteller === 'drunken';
+        gmNotes ??= wantsNotes ? deps.records.gmNotes(recording.campaignId) : undefined;
+        const notes = wantsNotes ? await gmNotes : undefined;
+        return {
+          storyteller,
+          taleLength: settings.tale.length,
+          taleContent: settings.tale.content,
+          ...(notes ? { gmNotes: notes } : {}),
+        };
+      };
+
       // The scribe's notes are taken once per stretch of recording and shared by every summary of it. With
       // chapters, each chapter is one stretch and the whole session is their notes in order; without, the
       // session is one stretch. Taken only when a summary still needs them, so a finished job re-run costs nothing.
@@ -191,7 +212,10 @@ export function createProcessRecordingHandler(deps: ProcessRecordingDeps): JobHa
           kind === 'chapter'
             ? await notesOf(byChapter ? subject : `chapter ${subject}`, covered, context)
             : await sessionNotes(context);
-        const result = await writeFromNotes(models, notes, { kind, context });
+        const result = await writeFromNotes(models, notes, {
+          kind,
+          context: { ...context, ...(await telling(kind)) },
+        });
         const modelCalls = result.modelCalls + uncounted;
         uncounted = 0;
         await deps.records.putSummary({

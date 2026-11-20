@@ -1,4 +1,4 @@
-import type { AiSettings } from '@vtt-chat-app/shared';
+import type { AiSettings, BardId } from '@vtt-chat-app/shared';
 
 import type {
   Recording,
@@ -95,6 +95,10 @@ export interface RecordsStore {
    * glossary (with aliases) first, then characters, players, the Game Master's scene names, handout and loot titles.
    */
   campaignVocabulary(campaignId: string): Promise<VocabularyTerm[]>;
+  /** The campaign's chosen storyteller (`campaigns.bard`); the Tavern Bard when the campaign is gone. */
+  campaignBard(campaignId: string): Promise<BardId>;
+  /** The Game Master's notes page, as written (empty when there is none). Only the Chronicler and the Tipsy Minstrel may read it. */
+  gmNotes(campaignId: string): Promise<string>;
   campaignName(campaignId: string): Promise<string | undefined>;
   /** Account ids of the campaign's players (every member but the DM): who gets a character summary. */
   playerIds(campaignId: string): Promise<string[]>;

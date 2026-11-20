@@ -7,7 +7,9 @@ import { mergeTranscripts } from './merge.js';
 import { BARD_SAMPLING } from '../consts/index.js';
 import { createOllamaGenerate } from './ollama.js';
 import {
-  buildBriefPrompt,
+  buildChroniclerPrompt,
+  GM_NOTES_PROMPT_CHARS,
+  CHRONICLER_HEADINGS,
   buildNotesPrompt,
   buildStoryPrompt,
   formatNotes,
@@ -212,8 +214,8 @@ describe('prompts', () => {
     });
     expect(bard).toMatch(/humiliating fumbles/);
     expect(bard).toMatch(/Dry wit and gallows humour/);
-    expect(bard).toMatch(/may not change WHAT happened/);
-    expect(bard).toMatch(/at most 30 words/); // four words of notes: the limit follows the notes, not the cap
+    expect(bard).toMatch(/Keep close to the facts/);
+    expect(bard).toMatch(/at most 30 words/i); // four words of notes: the limit follows the notes, not the cap
     expect(bard).toContain('campaign "The Sunken Temple"');
     expect(bard).toContain('Aria opened the door.');
     expect(bard).not.toContain('--- part'); // one block of notes is shown as it is
@@ -229,7 +231,7 @@ describe('prompts', () => {
     expect(taleWords(350, notes(2000))).toBe(350);
     expect(taleWords(200, notes(2000))).toBe(200);
     expect(taleWords(350, notes(3))).toBe(30);
-    expect(buildStoryPrompt('session', notes(2000), {})).toMatch(/at most 350 words/);
+    expect(buildStoryPrompt('session', notes(2000), {})).toMatch(/at most 800 words/i); // the default ceiling
   });
 
   it('tells the bard that not everyone belongs in the tale', () => {
@@ -256,14 +258,15 @@ describe('prompts', () => {
     ).toBe('### Part 1\n\n#### Events\n- A.\n#### Memorable quotes\n- "B."');
   });
 
-  it('keeps the Game Master brief plain', () => {
-    const brief = buildBriefPrompt(['Aria opened the door.'], {});
+  it('has the Chronicler write the Game Master a short brief under fixed headings', () => {
+    const brief = buildChroniclerPrompt(['Aria opened the door.'], {});
+    expect(brief).toMatch(/You are the Chronicler/);
     expect(brief).toMatch(/for the Game Master only/);
-    expect(brief).toMatch(/no story-telling/);
+    expect(brief).toMatch(/200 to 300 words/);
+    expect(brief).toMatch(/No story-telling/);
     expect(brief).not.toMatch(/bard/);
-    // A summary of key points for recall and preparation, never the notes again.
-    expect(brief).toMatch(/key points, not a retelling: at most 30 words/);
-    expect(brief).toMatch(/Prepare for next session/);
+    for (const heading of CHRONICLER_HEADINGS) expect(brief).toContain(`## ${heading}`);
+    expect(brief).not.toMatch(/own notes/); // none given, none mentioned
   });
 });
 
@@ -433,5 +436,73 @@ describe('createOllamaGenerate', () => {
     await expect(createOllamaGenerate({ model: 'm', fetchImpl: empty })('p')).rejects.toThrow(
       /response/,
     );
+  });
+});
+
+describe('the storytellers (Stage 12 G)', () => {
+  const notes = ['Aria opened the door.'];
+  const secret = 'The cult serves Vecna: Pim is a spy.';
+
+  it('has a voice for each of the five', () => {
+    const voices = (['tavern', 'dry', 'drunken', 'sarcastic', 'bored'] as const).map(
+      (storyteller) => buildStoryPrompt('session', notes, { storyteller }),
+    );
+    expect(voices[0]).toContain('the Tavern Bard');
+    expect(voices[1]).toContain('the Dry Historian');
+    expect(voices[2]).toContain('the Tipsy Minstrel');
+    expect(voices[3]).toContain('the Wry Jester');
+    expect(voices[4]).toContain('the Bored Court Scribe');
+    expect(new Set(voices).size).toBe(5);
+    expect(buildStoryPrompt('session', notes, {})).toContain('the Tavern Bard'); // the default
+  });
+
+  it('keeps the facts, with a little invention allowed, for all but the Tipsy Minstrel', () => {
+    for (const storyteller of ['tavern', 'dry', 'sarcastic', 'bored'] as const) {
+      const prompt = buildStoryPrompt('session', notes, { storyteller });
+      expect(prompt).toMatch(/Keep close to the facts/);
+      expect(prompt).toMatch(/Nothing happens in the tale that the notes do not say/);
+    }
+    const drunk = buildStoryPrompt('session', notes, { storyteller: 'drunken' });
+    expect(drunk).toMatch(/pure chaos with nods to the truth/);
+    expect(drunk).not.toMatch(/Nothing happens in the tale that the notes do not say/);
+  });
+
+  it('gives the Game Master’s own notes to the Tipsy Minstrel and to no other storyteller', () => {
+    for (const storyteller of ['tavern', 'dry', 'sarcastic', 'bored'] as const) {
+      expect(buildStoryPrompt('session', notes, { storyteller, gmNotes: secret })).not.toContain(
+        'Vecna',
+      );
+    }
+    const drunk = buildStoryPrompt('session', notes, { storyteller: 'drunken', gmNotes: secret });
+    expect(drunk).toContain('Vecna');
+    expect(drunk).toMatch(/let a secret .* slip/);
+    // And the scribe never sees them, whatever the context holds.
+    expect(buildNotesPrompt('[0:01] Aria: hi', 0, 1, { gmNotes: secret } as never)).not.toContain(
+      'Vecna',
+    );
+  });
+
+  it('lets the operator set the ceiling on length and how graphic the telling is', () => {
+    const words = Array.from({ length: 4000 }, () => 'word').join(' ');
+    expect(buildStoryPrompt('session', [words], { taleLength: 'short' })).toMatch(
+      /at most 400 words/i,
+    );
+    expect(buildStoryPrompt('session', [words], { taleLength: 'long' })).toMatch(
+      /at most 1200 words/i,
+    );
+    expect(buildStoryPrompt('character', [words], { characterName: 'Aria' })).toMatch(
+      /at most 400 words/i,
+    );
+    expect(buildStoryPrompt('session', notes, { taleContent: 'clean' })).toMatch(/language clean/);
+    expect(buildStoryPrompt('session', notes, { taleContent: 'graphic' })).toMatch(/told plainly/);
+    expect(buildStoryPrompt('session', notes, {})).not.toMatch(/language clean|told plainly/);
+  });
+
+  it('gives the Chronicler the start of the Game Master’s notes, and only the start', () => {
+    const long = `${secret} ${'x'.repeat(GM_NOTES_PROMPT_CHARS)}END`;
+    const brief = buildChroniclerPrompt(notes, { gmNotes: long });
+    expect(brief).toContain('Vecna');
+    expect(brief).toMatch(/continuity warning where the session went against them/);
+    expect(brief).not.toContain('END');
   });
 });

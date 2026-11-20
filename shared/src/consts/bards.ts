@@ -1,7 +1,7 @@
 /**
  * The bard presets a Game Master picks from, per campaign (Stage 11 item 4; decided by Andy 2026-11-18: a preset
- * list, no free text, one bard per campaign, not per session). Stored and shown from 0.6.0; Stage 12 makes it
- * change how the tale is told. The ids are also the database's CHECK list (migration 0040): change both.
+ * list, no free text, one bard per campaign, not per session). Stored and shown from 0.6.0; Stage 12 G makes it
+ * change how the tale is told (`STYLES` in ai/src/lib/prompts.ts). The ids are also the database's CHECK list (migration 0040): change both.
  */
 export const BARD_IDS = ['tavern', 'dry', 'drunken', 'sarcastic', 'bored'] as const;
 export type BardId = (typeof BARD_IDS)[number];
