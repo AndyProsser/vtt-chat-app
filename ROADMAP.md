@@ -623,7 +623,7 @@ More detail from Andy's own notes ("VTT Chat Chronicler" and "VTT Chat Transcrip
 | **Bard, the storyteller**          | Retell it. Reads the scribe's facts, never the transcript (as today).                                                        | The tale, in a chosen persona                                                                                                                       |
 | **Chronicler**                     | What the Game Master needs to run the next session. A role of its own, not a bard.                                           | NPCs, open plot threads, items obtained, locations discovered, future hooks, **continuity warnings** ("the party promised to return within 7 days") |
 
-**Bard personas** (several may retell the same session): the Tavern Bard (grandiose, makes the heroes legendary), the Dry Historian (accurate, like a record), the Drunken Bard (an unreliable narrator: forgets, jokes, credits the wrong hero), the Sarcastic Bard (dry, pokes fun at the players' decisions), the Bored Court Scribe (understates everything).
+**Bard personas** (several may retell the same session): the Tavern Bard (grandiose, makes the heroes legendary), the Dry Historian (accurate, like a record), the Tipsy Minstrel (an unreliable narrator: forgets, jokes, credits the wrong hero), the Wry Jester (dry, pokes fun at the players' decisions), the Bored Court Scribe (understates everything).
 
 **Campaign memory:** one store per campaign of characters, NPCs, locations, factions, quests and magic items. The scribe updates it after every session; the bard is given the relevant parts before it writes, so weeks later it can say "once again the party crossed paths with Lord Ravenshade".
 
@@ -645,9 +645,9 @@ More detail from Andy's own notes ("VTT Chat Chronicler" and "VTT Chat Transcrip
 
 ### Decided by Andy, 2026-11-17
 
-1. **A persona never changes the facts; it may embellish them.** The Drunken Bard bends this a little further and may make up a few things to make events sound more interesting, but **the essence of the truth is always there**.
+1. **A persona never changes the facts; it may embellish them.** The Tipsy Minstrel bends this a little further and may make up a few things to make events sound more interesting, but **the essence of the truth is always there**.
 2. **The scribe's output does not have to be strict**, only readable by the next step; the more structured the better. Worth testing with it: Whisper `medium.en` and the summary model `qwen3.5:8b` (the test VM was raised to 8 vCPU and 24 GB of memory for this).
-3. **Game Master secrets are kept from the table, unless the Game Master picks the Drunken Bard.** With every other persona nothing Game-Master-only reaches a tale. With the drunkard **any secret may slip**: the Game Master chose that persona, so they have decided it is fine. It decides who reads the tales and how closely: what did the drunkard let slip, and what did they make up? "The drunkard is an agent of chaos with an insider's view." The persona picker must say this plainly where it is chosen.
+3. **Game Master secrets are kept from the table, unless the Game Master picks the Tipsy Minstrel.** With every other persona nothing Game-Master-only reaches a tale. With the drunkard **any secret may slip**: the Game Master chose that persona, so they have decided it is fine. It decides who reads the tales and how closely: what did the drunkard let slip, and what did they make up? "The drunkard is an agent of chaos with an insider's view." The persona picker must say this plainly where it is chosen.
 4. **GM Notes: a plain Markdown notebook for the Game Master** (optional). A background notebook and ideas board: plot hooks, key NPCs and events. **Unstructured by design**, so each Game Master makes it their own, with some **starter headings** to prompt a novice. **Attachments allowed: pictures and PDFs.** It is where the secrets live.
 5. **One tale per session, one bard.** Most sessions end with the party back at the tavern: "The Bard" is telling the tale of mighty adventures, and the heroes just happen to be sitting at one of the tables.
 

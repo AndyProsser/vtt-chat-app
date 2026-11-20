@@ -12,6 +12,7 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ### Changed
 
+- **The storytellers have new names and a badge each.** The Drunken Bard is **The Tipsy Minstrel** and the Sarcastic Bard is **The Wry Jester** ("bard" belongs to the Tavern Bard), and the picker has more room, with a round emblem beside each (stand-ins until there is portrait art). Your campaign's choice is kept.
 - **Smaller loot buttons on the phone web app**, sized to sit beside the item's heading, and the **Add all** button is an icon with a tooltip in both apps.
 - **The desktop join switch says "Allow join"**, with the phone web app's wording.
 

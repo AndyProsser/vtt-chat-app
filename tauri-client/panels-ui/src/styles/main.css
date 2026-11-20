@@ -2788,9 +2788,37 @@ body,
 .vtt-bard-trigger small {
   display: none;
 }
+.vtt-bard-item {
+  height: auto;
+  min-height: 0;
+  padding: 10px 14px 10px 12px;
+  line-height: 1.35;
+}
+.vtt-bard-item > span:not(.vtt-bard-avatar),
+.vtt-bard-trigger > span {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.vtt-bard-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  border-radius: 50%;
+  color: var(--vtt-gold);
+  background: color-mix(in srgb, var(--vtt-gold) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--vtt-gold) 45%, transparent);
+}
 .vtt-bard-text {
   display: flex;
   flex-direction: column;
+  gap: 2px;
+}
+.vtt-bard-readonly {
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
 }
 .vtt-bard-text small {
   opacity: 0.7;

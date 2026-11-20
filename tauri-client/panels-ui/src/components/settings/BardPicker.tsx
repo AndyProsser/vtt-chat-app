@@ -1,6 +1,8 @@
 import { BARD_PERSONAS, DEFAULT_BARD, type BardId } from '@vtt-chat-app/shared';
 import { Button, Callout, Select } from '@radix-ui/themes';
 import { TriangleAlert } from 'lucide-react';
+
+import { BardAvatar } from './BardAvatar.js';
 import { useState } from 'react';
 
 import { accountErrorMessage, campaignApi } from '../../lib/tauriBridge.js';
@@ -8,7 +10,7 @@ import type { CampaignSummary } from '../../types/index.js';
 
 /**
  * Who tells this campaign's tales: one of five preset bards, the same for every session. The Game Master chooses;
- * everyone else reads the choice. Stored and shown from 0.6.0 (the AI work makes it do something). The drunkard
+ * everyone else reads the choice. Stored and shown from 0.6.0 (the AI work makes it do something). The tipsy minstrel
  * says what it means right where it is chosen, and needs a second click: that persona may let Game Master secrets
  * slip into the tale on purpose.
  */
@@ -51,8 +53,12 @@ export function BardPicker({
     return (
       <section className="vtt-session">
         <b>Storyteller</b>
-        <span className="vtt-muted">
-          {current.name}: {current.blurb}
+        <span className="vtt-bard-text vtt-bard-readonly">
+          <BardAvatar id={current.id} />
+          <span className="vtt-bard-text">
+            <b>{current.name}</b>
+            <small>{current.blurb}</small>
+          </span>
         </span>
       </section>
     );
@@ -74,6 +80,7 @@ export function BardPicker({
         <Select.Content position="popper">
           {BARD_PERSONAS.map((b) => (
             <Select.Item key={b.id} value={b.id} className="vtt-bard-item">
+              <BardAvatar id={b.id} />
               <span className="vtt-bard-text">
                 <b>{b.name}</b>
                 <small>
@@ -95,7 +102,7 @@ export function BardPicker({
             {BARD_PERSONAS.find((b) => b.id === asking)?.warning}
             <span className="vtt-form-row" style={{ marginTop: 6 }}>
               <Button size="1" loading={busy} onClick={() => void choose(asking)}>
-                Choose the Drunken Bard
+                Choose {BARD_PERSONAS.find((b) => b.id === asking)?.name}
               </Button>
               <Button size="1" variant="soft" color="gray" onClick={() => setAsking(undefined)}>
                 Cancel

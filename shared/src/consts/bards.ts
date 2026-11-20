@@ -14,7 +14,7 @@ export interface BardPersona {
   name: string;
   /** One line on how this bard tells it. */
   blurb: string;
-  /** Said plainly where the bard is chosen; only the drunkard has one. */
+  /** Said plainly where the bard is chosen; only the tipsy minstrel has one. */
   warning?: string;
 }
 
@@ -31,14 +31,14 @@ export const BARD_PERSONAS: readonly BardPersona[] = [
   },
   {
     id: 'drunken',
-    name: 'The Drunken Bard',
+    name: 'The Tipsy Minstrel',
     blurb: 'An unreliable narrator: forgets, jokes, credits the wrong hero.',
     warning:
       'An agent of chaos with an insider’s view: any Game Master secret may slip into the tale, and some of it will be made up. You are choosing that.',
   },
   {
     id: 'sarcastic',
-    name: 'The Sarcastic Bard',
+    name: 'The Wry Jester',
     blurb: 'Dry; pokes fun at the party’s decisions.',
   },
   {
