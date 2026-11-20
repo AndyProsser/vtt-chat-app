@@ -283,6 +283,13 @@ export function onVoiceEffect(handler: (name: string) => void): Promise<Unlisten
   return listen<string>('voice:effect', (event) => handler(event.payload));
 }
 
+/** How many stingers are sounding now (a one-shot until its clip ends, a loop until it is stopped). DM app only. */
+export function onSoundboardActive(handler: (stingers: number) => void): Promise<UnlistenFn> {
+  return listen<{ stingers?: number }>('soundboard:active', (event) =>
+    handler(Number(event.payload?.stingers ?? 0)),
+  );
+}
+
 export const autostartEnabled = () => invoke<boolean>('autostart_enabled');
 export const autostartSet = (enabled: boolean) => invoke<void>('autostart_set', { enabled });
 

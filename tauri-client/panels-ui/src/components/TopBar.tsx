@@ -1,5 +1,6 @@
 import { AudioLines, Backpack, FileText, NotebookPen, ScrollText } from 'lucide-react';
 
+import { useSoundActivity } from '../hooks/useSoundActivity.js';
 import { useUnconfirmed } from '../hooks/useUnconfirmed.js';
 import { panelOpen } from '../lib/tauriBridge.js';
 import { CampaignSwitcher } from './CampaignSwitcher.js';
@@ -18,6 +19,8 @@ interface Props {
 /** Record state and timer on the left; on the right, the table tools as icon buttons and a burger menu for the rest. */
 export function TopBar({ dm, effectsOpen, onToggleEffects }: Props) {
   const toConfirm = useUnconfirmed(dm);
+  // What is sounding on the deck, shown while the drawer is closed (open, each type's own button says so).
+  const playing = useSoundActivity().total;
   return (
     <header className="vtt-top">
       <CampaignSwitcher />
@@ -26,8 +29,13 @@ export function TopBar({ dm, effectsOpen, onToggleEffects }: Props) {
       {dm && <GroupsMenu />}
       {dm && (
         <ToolButton
-          label="Sound effects and voices"
+          label={
+            playing > 0
+              ? `Sound effects and voices: ${playing} playing`
+              : 'Sound effects and voices'
+          }
           pressed={effectsOpen}
+          {...(!effectsOpen && playing > 0 ? { text: String(playing) } : {})}
           onClick={onToggleEffects}
         >
           <AudioLines size={15} />

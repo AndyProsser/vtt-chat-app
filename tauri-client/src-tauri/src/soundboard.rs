@@ -13,7 +13,7 @@ use std::sync::{Arc, Mutex};
 
 use rust_livekit::sound::{decode_to_mono, SoundEngine, SAMPLE_RATE};
 use serde_json::Value;
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Emitter, Manager};
 
 use crate::account::{relay_path, AccountClient};
 use crate::account_commands::AccountState;
@@ -117,6 +117,9 @@ pub struct Soundboard {
     /// Plays that should still start once their clip arrives (a stop removes them).
     wanted: Mutex<HashSet<String>>,
     decoded: Mutex<HashMap<String, Arc<Vec<f32>>>>,
+    /// What is sounding now: play id → started by a scene layer. A one-shot leaves it when its clip ends, a loop when
+    /// it is stopped. The panels show how many stingers are sounding (an event, below).
+    sounding: Mutex<HashMap<String, bool>>,
 }
 
 impl Default for Soundboard {
@@ -128,11 +131,45 @@ impl Default for Soundboard {
             levels: Mutex::new((1.0, 1.0)),
             wanted: Mutex::new(HashSet::new()),
             decoded: Mutex::new(HashMap::new()),
+            sounding: Mutex::new(HashMap::new()),
         }
     }
 }
 
+/// The event the panels listen to: `{ stingers: n }`, how many stinger sounds (not scene layers) are sounding now.
+pub const ACTIVE_EVENT: &str = "soundboard:active";
+
 impl Soundboard {
+    /// Tells the panels how many stingers are sounding, after any change.
+    fn report(&self, app: &AppHandle) {
+        let stingers = self
+            .sounding
+            .lock()
+            .unwrap()
+            .values()
+            .filter(|scene| !**scene)
+            .count();
+        let _ = app.emit(ACTIVE_EVENT, serde_json::json!({ "stingers": stingers }));
+    }
+
+    fn forget(&self, app: &AppHandle, id: &str) {
+        if self.sounding.lock().unwrap().remove(id).is_some() {
+            self.report(app);
+        }
+    }
+
+    fn forget_all(&self, app: &AppHandle) {
+        let had = {
+            let mut s = self.sounding.lock().unwrap();
+            let had = !s.is_empty();
+            s.clear();
+            had
+        };
+        if had {
+            self.report(app);
+        }
+    }
+
     fn apply_levels(&self, change: impl FnOnce(&mut (f32, f32))) {
         let mut levels = self.levels.lock().unwrap();
         change(&mut levels);
@@ -166,6 +203,7 @@ pub async fn note_roster(app: &AppHandle, roster: &Value) {
     if board.is_dm.swap(dm, Ordering::Relaxed) && !dm {
         board.wanted.lock().unwrap().clear();
         board.engine.stop_all();
+        board.forget_all(app);
     }
 }
 
@@ -190,10 +228,12 @@ pub async fn on_table(app: &AppHandle, t: &str, data: &Value) {
             Action::Stop(id) => {
                 board.wanted.lock().unwrap().remove(&id);
                 board.engine.stop(&id);
+                board.forget(app, &id);
             }
             Action::StopAll => {
                 board.wanted.lock().unwrap().clear();
                 board.engine.stop_all();
+                board.forget_all(app);
             }
             Action::Play {
                 play_id,
@@ -260,6 +300,7 @@ pub fn stop_all(app: &AppHandle) {
     let board = app.state::<Soundboard>();
     board.wanted.lock().unwrap().clear();
     board.engine.stop_all();
+    board.forget_all(app);
 }
 
 fn cache_dir(app: &AppHandle) -> Option<PathBuf> {
@@ -301,10 +342,22 @@ async fn load_and_play(
     };
     // A stop (or a session ending) while the clip was loading cancels the play.
     if board.wanted.lock().unwrap().contains(play_id) {
+        let seconds = clip.len() as f64 / f64::from(SAMPLE_RATE);
         board.engine.play(play_id, clip, looping, gain, scene);
+        board
+            .sounding
+            .lock()
+            .unwrap()
+            .insert(play_id.to_string(), scene);
+        board.report(app);
         if !looping {
-            // A one-shot needs no further tracking once it has started.
+            // A one-shot needs no further tracking once it has started, except to say when it has finished.
             board.wanted.lock().unwrap().remove(play_id);
+            let (app, id) = (app.clone(), play_id.to_string());
+            tauri::async_runtime::spawn(async move {
+                tokio::time::sleep(std::time::Duration::from_secs_f64(seconds)).await;
+                app.state::<Soundboard>().forget(&app, &id);
+            });
         }
     }
     Ok(())

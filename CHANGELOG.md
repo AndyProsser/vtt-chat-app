@@ -20,6 +20,7 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ### Changed
 
+- **The sound deck shows what is playing.** Each of the Voice, Stingers and Scenes buttons shows a count while something of that kind is sounding (a character voice, the stingers still playing, a running scene), whether or not its panel is open; the sound button in the top bar shows the total while the drawer is closed. A stinger counts until its clip ends (or until you stop it, for a loop).
 - **PDFs and pictures open fitted, with a Fit button and drag to move.** A PDF page opens showing the whole page, a **Fit** button brings it back after zooming, and the viewer fills its window (no gap at the bottom); pictures work the same way (they used to fit by width only, so a tall picture needed scrolling).
 - **A PDF handout on the phone shows its first page.** The picture is drawn on the phone (the reader loads only when a PDF is opened); tap it, or the button, to open the whole PDF in the phone's own viewer.
 - **A wide or tall PDF page now scrolls**, and you can drag it to move around (handouts and GM notes); it stretched the window and cut off before. Zoomed pictures use the same drag.

@@ -7,7 +7,6 @@ import { useCampaignQuery } from '../../hooks/useCampaignQuery.js';
 import { useDeckPanels } from '../../hooks/useDeckPanels.js';
 import { usePins } from '../../hooks/usePins.js';
 import { useSoundLevels } from '../../hooks/useSoundLevels.js';
-import { VOICES } from '../../lib/commands.js';
 import type { PanelName } from '../../lib/deckPanels.js';
 import { defaultShownScenes } from '../../lib/scenes.js';
 import { defaultPins, flattenSounds, type FlatSound } from '../../lib/stingers.js';
@@ -17,6 +16,7 @@ import { ToolButton } from '../ToolButton.js';
 import { VoiceStrip } from '../VoiceStrip.js';
 import { MixSlider } from './MixSlider.js';
 import { ScenePanel } from './ScenePanel.js';
+import { useSoundActivity } from '../../hooks/useSoundActivity.js';
 import { SoundSettings } from './SoundSettings.js';
 import { StingerPanel } from './StingerPanel.js';
 
@@ -53,7 +53,6 @@ export function SoundDrawer() {
     }
     knownScenes.current = new Set(scenes.map((s) => s.id));
   }, [data, scenes, shownScenes, toggleScene]);
-  const favCount = pins.filter((id) => sounds.some((s) => s.soundId === id)).length;
 
   async function send(t: string, d: Record<string, unknown>) {
     try {
@@ -70,34 +69,29 @@ export function SoundDrawer() {
     void voiceEffectSet('normal').catch((e: unknown) => setActionError(accountErrorMessage(e)));
   };
 
-  const header: { name: PanelName; label: string; icon: typeof Mic; count: number | undefined }[] =
-    [
-      { name: 'voice', label: 'Voice', icon: Mic, count: VOICES.length },
-      { name: 'stingers', label: 'Stingers', icon: Zap, count: favCount },
-      {
-        name: 'scenes',
-        label: 'Scenes',
-        icon: Clapperboard,
-        count: shownScenes.filter((id) => scenes.some((s) => s.id === id)).length,
-      },
-    ];
+  // What is sounding now shows on each type's button whether or not its panel is open (the buttons inside a panel
+  // always show their own state), so the DM can see at a glance what is running.
+  const activity = useSoundActivity();
+  const header: { name: PanelName; label: string; icon: typeof Mic; active: number }[] = [
+    { name: 'voice', label: 'Voice', icon: Mic, active: activity.voice },
+    { name: 'stingers', label: 'Stingers', icon: Zap, active: activity.stingers },
+    { name: 'scenes', label: 'Scenes', icon: Clapperboard, active: activity.scenes },
+  ];
   const problem = error ?? actionError;
   return (
     <div className="vtt-deck">
       <div className="vtt-deck-head">
         <span className="vtt-deck-title">Sound</span>
-        {header.map(({ name, label, icon: Icon, count }) => (
+        {header.map(({ name, label, icon: Icon, active }) => (
           <span key={name} className="vtt-count-wrap">
             <ToolButton
-              label={`${panels[name] ? 'Hide' : 'Show'} ${label}`}
+              label={`${panels[name] ? 'Hide' : 'Show'} ${label}${active > 0 ? ` (${active} playing)` : ''}`}
               pressed={panels[name]}
               onClick={() => toggle(name)}
             >
               <Icon size={15} />
             </ToolButton>
-            {!panels[name] && count !== undefined && count > 0 && (
-              <span className="vtt-count">{count}</span>
-            )}
+            {active > 0 && <span className="vtt-count">{active}</span>}
           </span>
         ))}
         <span className="vtt-deck-sep" aria-hidden />
