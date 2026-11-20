@@ -19,7 +19,7 @@ Last run (2026-11-09, memory stores): backend 406 (+18 skipped without Postgres)
 
 **Verified by Andy on the real VM and apps:** protocol 4 works with nothing broken; the phone web app works; scenes work; the history screen works. Echo cancellation and noise filtering work very well on Windows with a microphone beside the speakers. A 42-second Windows recording went through the whole records pipeline: the transcript was word-for-word right and the tale, DM brief and scribe notes were produced. **Found:** that recording clips (peaks at full scale in 21 of 38 seconds, speech near -15 dBFS RMS), most likely automatic gain stacking on a hot microphone level (not yet confirmed). The bard added a closing line nobody said; Andy says that is fine, since in a tale creativity beats accuracy.
 
-**Built, not yet heard:** the sound deck changes, the Unease board, the new dungeon sounds and random layers, the storyteller dropdown, smaller loot buttons. All covered by tests; none run in a real window yet.
+**Built, not yet heard or seen in a real window (0.6.1-dev.1 and -dev.2):** the sound deck changes (8 and 8, temporary scenes), the Unease board, the new dungeon sounds and random layers, the storyteller dropdown with its operator controls (length, content, per-storyteller switches), the To confirm groups, smaller loot buttons, updated dependencies. All covered by tests, run against real Postgres and Valkey (821 backend, 233 ai, 382 app, 210 phone, 122 shared, plus Rust and the installer's own checks); none run in a real window yet.
 
 ## Built 2026-11-19 for 0.6.0: protocol 4, loot re-drop and "added to my sheet" (branch `stage-11-protocol-4`)
 

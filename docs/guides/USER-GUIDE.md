@@ -188,7 +188,9 @@ The DM drops items and coin into the **party inventory**, and a card appears in 
   - Coin can be **split** equally among chosen players (in the inventory window).
 - The DM can only **give** an item to one named player, never to the party.
 - Everyone can always see what is still unclaimed (the inventory window, "Still in the pool").
-- The inventory is a shared record of who took what. It does not change your character sheet.
+- **Re-drop** (DM): an item still on the table can be posted into the chat again; the card **moves** to the bottom (there are never two cards for one item).
+- **Added to my sheet** (since 0.6.0): a small round check box at the right of an item you hold, the party stash and your share of split coin. Tick it once the item is on your real game sheet. It unticks itself whenever the item moves, only you see your own ticks (the DM never does), and while it is ticked the item's take, store and put-back buttons are greyed out: untick it first to move it.
+- **To confirm** is the list you open on: what still needs adding to your sheet, in two groups, **Mine** (what you took, were given or share) and **Party stash**, each with an icon at the right of its heading that ticks the whole group. The Loot icon shows how many are waiting. The buttons are icons: hover (or long-press) for what each does.
 
 ## 8. Recording and summaries
 
@@ -203,6 +205,7 @@ you hear it first.
 - Each person is recorded separately; the server turns it into a **transcript** and **summaries** after the
   session. Lines typed in the **public chat** during a recording are included, marked "(typed)".
 - **Never recorded or transcribed:** whispers, sound effects from the DM's soundboard, and anything private.
+- **Who tells the tale** (Game Master): **Settings, Campaign, Storyteller** picks one of the storytellers the server offers (the Tavern Bard by default). Everyone can see who it is. Your server's operator decides which storytellers, how long the tales may be and how strong the language may be.
 - **Read them later** with the **session history** button: the tale of the session, of each part and of each hero, and a search across them.
   The DM also sees a private brief, and can open the scribe's notes (the plain list of what happened that the tales were told from) with a button. The word-for-word transcript is not shown to players; a DM can read it in the desktop app after turning on **Settings → App → Include dev builds**.
 - **If the DM drops** (their computer crashes or their network goes), the recording carries on for a short
@@ -316,7 +319,9 @@ _Top: the sound drawer (voices, stingers, scenes) and voice groups. Bottom: the 
 **The soundboard and scenes** (the effects drawer)
 
 - **Sounds and boards**: your own library of clips (several takes each), as big buttons: one-shot or looping.
-- **Scenes**: looping beds (rain) plus random drop-ins (drips), started together. **Stingers** are short effects.
+- **Scenes**: looping beds (rain) plus random drop-ins (chains, creaks, drips, a rat), started together. **Stingers** are short effects.
+- **The deck holds 8 stingers and 8 scenes** (since 0.6.1): the plus button finds any sound or scene, and once a row is full its add buttons grey out until you remove one. A new deck starts with the **Unease** board (chains, footsteps, rats, bats, rockfall, a distant shriek, a water drip, a metal scrape) for background noises that keep the table on edge. A scene you start from the picker that is not on the deck joins it with a **dashed outline** and leaves when it stops.
+- **Volume** (everyone, since 0.6.0): **Settings, Players** has a slider for each person (up to 400%), saved on that machine, for a quiet microphone.
   Players hear them through the call. They are **not** recorded; the recording's timeline just notes what played.
 - **Your own sounds** (since 0.5.4): the cog in the sound drawer, tab **My sounds**. **Add** a clip (OGG, WAV, MP3 or
   FLAC, up to 5 MB), name it and say whether it is an effect, ambience or music. An **effect** appears under Stingers by
