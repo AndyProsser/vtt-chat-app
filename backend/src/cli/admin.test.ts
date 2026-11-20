@@ -107,6 +107,21 @@ describe('settings', () => {
     expect(ai.fallback.enabled).toBe(true);
   });
 
+  it('sets the tale length and content, and turns storytellers off but never the Tavern Bard', async () => {
+    expect(await run('settings set ai.tale.length short')).toBe(0);
+    expect(await run('settings set ai.tale.content clean')).toBe(0);
+    expect(await run('settings set ai.storyteller.drunken off')).toBe(0);
+    const { ai } = await store.getSettings();
+    expect(ai.tale).toEqual({ length: 'short', content: 'clean', storytellersOff: ['drunken'] });
+    expect(await run('settings set ai.storyteller.tavern off')).not.toBe(0);
+    expect((await store.getSettings()).ai.tale.storytellersOff).toEqual(['drunken']);
+    expect(await run('settings set ai.tale.length enormous')).not.toBe(0);
+    out.length = 0;
+    await run('settings show');
+    expect(out.join('\n')).toMatch(/ai\.tale\.length\s+short/);
+    expect(out.join('\n')).toMatch(/ai\.storyteller\.drunken\s+off/);
+  });
+
   it('saves a remote backend with no URL but warns that it is unusable', async () => {
     expect(await run('settings set ai.llm.kind remote')).toBe(0);
     expect(out.join('\n')).toContain('warning');

@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
-import { DEFAULT_BARD, type BardId } from '@vtt-chat-app/shared';
+import { DEFAULT_BARD, effectiveBard, offeredBards, type BardId } from '@vtt-chat-app/shared';
 
 import { DAY_MS } from '../../consts/index.js';
 import type {
@@ -123,6 +123,12 @@ export class CampaignService {
       throw new DomainError('invalid_input', 'nothing to change');
     }
     await this.requireDm(actor.id, campaignId);
+    if (patch.bard !== undefined) {
+      const off = (await this.store.getSettings()).ai.tale.storytellersOff;
+      if (!offeredBards(off).includes(patch.bard)) {
+        throw new DomainError('invalid_input', 'this server does not offer that storyteller');
+      }
+    }
     return this.store.transaction(async (tx) => {
       const campaign = await tx.getCampaign(campaignId);
       if (!campaign) throw new DomainError('not_found');
@@ -137,6 +143,26 @@ export class CampaignService {
       await tx.putCampaign(next);
       return next;
     });
+  }
+
+  /**
+   * Which storytellers this server offers and which one will actually tell this campaign's tales. The operator can
+   * turn storytellers off (never the Tavern Bard), so a campaign whose choice was turned off is told by the Tavern
+   * Bard until its Game Master picks another. Any member may read it.
+   */
+  async storytellers(
+    actor: User,
+    campaignId: string,
+  ): Promise<{ offered: BardId[]; chosen: BardId; effective: BardId }> {
+    await this.requireMember(actor.id, campaignId);
+    const campaign = await this.store.getCampaign(campaignId);
+    if (!campaign) throw new DomainError('not_found');
+    const off = (await this.store.getSettings()).ai.tale.storytellersOff;
+    return {
+      offered: offeredBards(off),
+      chosen: campaign.bard,
+      effective: effectiveBard(campaign.bard, off),
+    };
   }
 
   async revokeInvite(actor: User, campaignId: string, code: string): Promise<void> {

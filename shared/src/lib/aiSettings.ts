@@ -1,3 +1,10 @@
+import {
+  ALWAYS_ON_BARD,
+  BARD_IDS,
+  TALE_CONTENTS,
+  TALE_LENGTHS,
+  type BardId,
+} from '../consts/bards.js';
 import type { AiSettings } from '../types/aiSettings.js';
 
 export const DEFAULT_AI_SETTINGS: AiSettings = {
@@ -5,6 +12,7 @@ export const DEFAULT_AI_SETTINGS: AiSettings = {
   llm: { kind: 'local', url: null, model: null },
   // 10 minutes unreachable before giving up on the remote; retry every 30 s meanwhile.
   fallback: { enabled: true, afterSeconds: 600, retrySeconds: 30 },
+  tale: { length: 'default', content: 'default', storytellersOff: [] },
 };
 
 /** The settable keys, in the dotted form the Admin CLI uses, with what each accepts. */
@@ -19,6 +27,13 @@ export const AI_SETTING_KEYS = {
   'ai.fallback.enabled': 'true | false',
   'ai.fallback.after-seconds': 'whole number of seconds, 0 = immediately',
   'ai.fallback.retry-seconds': 'whole number of seconds, at least 1',
+  'ai.tale.length': 'short (CPU-only) | default | long (GPU or cloud)',
+  'ai.tale.content': 'clean | default | graphic',
+  'ai.storyteller.tavern': 'on (the Tavern Bard cannot be turned off)',
+  'ai.storyteller.dry': 'on | off',
+  'ai.storyteller.drunken': 'on | off (the Tipsy Minstrel)',
+  'ai.storyteller.sarcastic': 'on | off (the Wry Jester)',
+  'ai.storyteller.bored': 'on | off',
 } as const;
 
 export type AiSettingKey = keyof typeof AI_SETTING_KEYS;
@@ -110,6 +125,36 @@ export function setAiSetting(settings: AiSettings, key: AiSettingKey, value: str
     case 'ai.fallback.retry-seconds':
       next.fallback.retrySeconds = parseSeconds(value, 1);
       break;
+    case 'ai.tale.length': {
+      const v = value.trim().toLowerCase();
+      if (!(TALE_LENGTHS as readonly string[]).includes(v))
+        throw new SettingError('must be short, default or long');
+      next.tale.length = v as AiSettings['tale']['length'];
+      break;
+    }
+    case 'ai.tale.content': {
+      const v = value.trim().toLowerCase();
+      if (!(TALE_CONTENTS as readonly string[]).includes(v))
+        throw new SettingError('must be clean, default or graphic');
+      next.tale.content = v as AiSettings['tale']['content'];
+      break;
+    }
+    case 'ai.storyteller.tavern':
+    case 'ai.storyteller.dry':
+    case 'ai.storyteller.drunken':
+    case 'ai.storyteller.sarcastic':
+    case 'ai.storyteller.bored': {
+      const id = key.slice('ai.storyteller.'.length) as BardId;
+      const on = parseBool(value);
+      if (id === ALWAYS_ON_BARD && !on) {
+        throw new SettingError(
+          'The Tavern Bard cannot be turned off: every other choice falls back to it',
+        );
+      }
+      const rest = next.tale.storytellersOff.filter((b) => b !== id);
+      next.tale.storytellersOff = on ? rest : [...rest, id];
+      break;
+    }
   }
   return next;
 }
@@ -122,6 +167,9 @@ export function validateAiSettings(settings: AiSettings): string[] {
   }
   if (settings.llm.kind === 'remote' && settings.llm.url === null) {
     problems.push('the LLM is set to remote but has no URL (ai.llm.url)');
+  }
+  if (settings.tale.storytellersOff.includes(ALWAYS_ON_BARD)) {
+    problems.push('the Tavern Bard cannot be turned off');
   }
   return problems;
 }
@@ -142,6 +190,9 @@ export function normaliseAiSettings(raw: unknown): AiSettings {
   const t = o.transcription ?? {};
   const l = o.llm ?? {};
   const f = o.fallback ?? {};
+  const ta = o.tale ?? {};
+  const oneOf = <T extends string>(v: unknown, list: readonly T[], fallback: T): T =>
+    typeof v === 'string' && (list as readonly string[]).includes(v) ? (v as T) : fallback;
   return {
     transcription: {
       kind: kind(t.kind, d.transcription.kind),
@@ -158,6 +209,15 @@ export function normaliseAiSettings(raw: unknown): AiSettings {
       enabled: typeof f.enabled === 'boolean' ? f.enabled : d.fallback.enabled,
       afterSeconds: int(f.afterSeconds, d.fallback.afterSeconds, 0),
       retrySeconds: int(f.retrySeconds, d.fallback.retrySeconds, 1),
+    },
+    tale: {
+      length: oneOf(ta.length, TALE_LENGTHS, d.tale.length),
+      content: oneOf(ta.content, TALE_CONTENTS, d.tale.content),
+      storytellersOff: Array.isArray(ta.storytellersOff)
+        ? BARD_IDS.filter(
+            (id) => id !== ALWAYS_ON_BARD && (ta.storytellersOff as unknown[]).includes(id),
+          )
+        : [],
     },
   };
 }

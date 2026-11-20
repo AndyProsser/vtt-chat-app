@@ -3,7 +3,7 @@ import { Button, Callout, Select } from '@radix-ui/themes';
 import { TriangleAlert } from 'lucide-react';
 
 import { BardAvatar } from './BardAvatar.js';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { accountErrorMessage, campaignApi } from '../../lib/tauriBridge.js';
 import type { CampaignSummary } from '../../types/index.js';
@@ -23,7 +23,23 @@ export function BardPicker({
   dm: boolean;
   onSaved: () => Promise<unknown>;
 }) {
-  const current = BARD_PERSONAS.find((b) => b.id === campaign.bard) ?? BARD_PERSONAS[0]!;
+  // The storytellers this server offers (the operator can turn some off; the Tavern Bard never). Until it is known, all.
+  const [offered, setOffered] = useState<BardId[]>();
+  useEffect(() => {
+    let live = true;
+    campaignApi<{ offered: BardId[] }>('GET', 'storytellers')
+      .then((r) => live && setOffered(r.offered))
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [campaign.id, campaign.bard]);
+  const available = BARD_PERSONAS.filter((b) => !offered || offered.includes(b.id));
+  const turnedOff = offered !== undefined && !offered.includes(campaign.bard as BardId);
+  // A storyteller the operator turned off is replaced by the default one when the tale is told.
+  const shownId = turnedOff ? DEFAULT_BARD : campaign.bard;
+  const current = BARD_PERSONAS.find((b) => b.id === shownId) ?? BARD_PERSONAS[0]!;
+  const chosenName = BARD_PERSONAS.find((b) => b.id === campaign.bard)?.name ?? 'That storyteller';
   const [asking, setAsking] = useState<BardId>();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
@@ -43,7 +59,7 @@ export function BardPicker({
   }
 
   function pick(id: BardId) {
-    if (id === current.id) return;
+    if (id === campaign.bard) return;
     const persona = BARD_PERSONAS.find((b) => b.id === id);
     if (persona?.warning) setAsking(id);
     else void choose(id);
@@ -60,6 +76,11 @@ export function BardPicker({
             <small>{current.blurb}</small>
           </span>
         </span>
+        {turnedOff && (
+          <span className="vtt-muted">
+            {chosenName} is turned off on this server, so {current.name} tells the tales.
+          </span>
+        )}
       </section>
     );
   }
@@ -78,7 +99,7 @@ export function BardPicker({
       >
         <Select.Trigger aria-label="Storyteller" className="vtt-bard-trigger" />
         <Select.Content position="popper">
-          {BARD_PERSONAS.map((b) => (
+          {available.map((b) => (
             <Select.Item key={b.id} value={b.id} className="vtt-bard-item">
               <BardAvatar id={b.id} />
               <span className="vtt-bard-text">
@@ -93,6 +114,12 @@ export function BardPicker({
         </Select.Content>
       </Select.Root>
       <span className="vtt-muted">{current.blurb}</span>
+      {turnedOff && (
+        <span className="vtt-muted">
+          <TriangleAlert size={12} /> {chosenName} is turned off on this server, so {current.name}{' '}
+          tells your tales until you pick another.
+        </span>
+      )}
       {asking && (
         <Callout.Root color="amber" size="1">
           <Callout.Icon>

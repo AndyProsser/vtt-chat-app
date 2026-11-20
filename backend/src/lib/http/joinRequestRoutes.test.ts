@@ -378,6 +378,34 @@ describe('the DM’s side', () => {
       expect((await mine()).bard).toBe('drunken');
     });
 
+    it('offers every storyteller until the operator turns one off, refuses a turned-off pick, and falls back to the Tavern Bard', async () => {
+      const read = async () =>
+        (await call('GET', `/api/campaigns/${campaign}/storytellers`, member)).body;
+      expect(await read()).toEqual({
+        offered: ['tavern', 'dry', 'drunken', 'sarcastic', 'bored'],
+        chosen: 'tavern',
+        effective: 'tavern',
+      });
+      await patch(dm, { bard: 'drunken' });
+      const settings = await backend.store.getSettings();
+      await backend.store.putSettings({
+        ...settings,
+        ai: {
+          ...settings.ai,
+          tale: { ...settings.ai.tale, storytellersOff: ['drunken', 'bored'] },
+        },
+      });
+      // The campaign keeps its choice, but the Tavern Bard tells the tales.
+      expect(await read()).toEqual({
+        offered: ['tavern', 'dry', 'sarcastic'],
+        chosen: 'drunken',
+        effective: 'tavern',
+      });
+      expect((await patch(dm, { bard: 'bored' })).status).toBe(400);
+      expect((await patch(dm, { bard: 'dry' })).status).toBe(200);
+      expect((await read()).effective).toBe('dry');
+    });
+
     it('refuses everyone but the DM, and bad input', async () => {
       expect((await patch(member, { name: 'Mine now' })).status).toBe(403);
       expect((await patch(admin, { description: 'x' })).status).toBe(403);

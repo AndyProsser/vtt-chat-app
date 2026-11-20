@@ -29,6 +29,8 @@
 #                                 network you trust; players' browsers also lose features that need HTTPS
 #   --port 8443                   serve on this port instead of 443 (with --http: instead of 80). Forward it on your router. A certificate for a
 #                                 non-standard port needs --cloudflare-dns (Let's Encrypt only checks 80 and 443); voice ports are unchanged
+#   --content clean|default|graphic   how strong the language and violence in the AI's session tales may be (default: asked on a
+#                                 fresh install when recording is on; "default" otherwise). Change it later: vtt-admin settings set ai.tale.content <level>
 #   --no-admin                    do not create the first Admin now (make one later: vtt-admin user create <email> --name <name> --accept-consent)
 #   --yes                         do not ask anything; every value must come from flags
 #   --keep-images                 on an update, do not delete the images of older VTT Chat versions (by default the version
@@ -38,7 +40,7 @@ set -euo pipefail
 
 REPO="${VTT_REPO:-AndyProsser/vtt-chat-app}"
 ASSUME_YES=0 DRY_RUN=0 SKIP_DOCKER=0 SKIP_FIREWALL=0 KEEP_IMAGES=0 PREV_IMAGE_VERSION="" WITH_RECORDS=""
-HTTP_MODE=0 PORT="" COMPAT=0 CFDNS=0 RECORDS_PROFILE=records TUNNEL=0 NO_ADMIN=0 BEHIND_CLOUDFLARE=0 DOMAIN="" EMAIL="" NAME="" VERSION="" PUBLIC_IP="" DIR="/opt/vtt-chat"
+HTTP_MODE=0 PORT="" CONTENT="" COMPAT=0 CFDNS=0 RECORDS_PROFILE=records TUNNEL=0 NO_ADMIN=0 BEHIND_CLOUDFLARE=0 DOMAIN="" EMAIL="" NAME="" VERSION="" PUBLIC_IP="" DIR="/opt/vtt-chat"
 
 # ---------- small helpers ----------
 if [[ -t 1 ]]; then B=$'\e[1m' G=$'\e[32m' Y=$'\e[33m' R=$'\e[31m' N=$'\e[0m'; else B="" G="" Y="" R="" N=""; fi
@@ -104,6 +106,7 @@ valid_host() { # valid_host <host> <http-mode 0|1>
   (($2)) || return 1
   [[ $1 =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ || $1 =~ ^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?$ ]]
 }
+valid_content() { [[ $1 == clean || $1 == default || $1 == graphic ]]; }
 valid_port() { [[ $1 =~ ^[0-9]{1,5}$ ]] && (($1 >= 1 && $1 <= 65535)); }
 # The address people open: the scheme, the host, and the port only when it is not the scheme's own.
 site_origin() { # site_origin <scheme> <host> <port>
@@ -152,6 +155,7 @@ while (($#)); do
     --cloudflare-dns) CFDNS=1; shift ;;
     --http) HTTP_MODE=1; shift ;;
     --port) PORT=${2:?--port needs a value}; shift 2 ;;
+    --content) CONTENT=${2:?--content needs clean, default or graphic}; shift 2 ;;
     --with-records) WITH_RECORDS=1; shift ;;
     --no-records) WITH_RECORDS=0; shift ;;
     --records-compat) WITH_RECORDS=1; COMPAT=1; shift ;;
@@ -166,6 +170,7 @@ while (($#)); do
   esac
 done
 
+if [[ -n $CONTENT ]]; then valid_content "$CONTENT" || die "--content must be clean, default or graphic"; fi
 if [[ -n $PORT ]]; then valid_port "$PORT" || die "--port must be a number from 1 to 65535"; fi
 ((HTTP_MODE && TUNNEL)) && die "--http and --behind-tunnel both mean plain HTTP: pick one (a tunnel brings its own HTTPS)"
 ((HTTP_MODE && CFDNS)) && die "--http has no certificate, so --cloudflare-dns does not apply: drop one of them"
@@ -246,6 +251,17 @@ else
     say "  Recording keeps a searchable history of each session with AI summaries, all on this server."
     say "  It downloads about 6 GB of models and wants 8 GB of memory; you can add it later."
     if confirm "Turn on recording and summaries now?" n; then WITH_RECORDS=1; else WITH_RECORDS=0; fi
+  fi
+  if [[ -z $CONTENT && $WITH_RECORDS == 1 ]] && ! ((ASSUME_YES)) && have_tty; then
+    say "  The AI retells each session as a tale. How strong may its language and violence be?"
+    say "    clean    no strong language, violence kept off the page (for family or school groups)"
+    say "    default  ordinary fantasy adventure"
+    say "    graphic  violence and strong language told plainly"
+    while :; do
+      ask CONTENT "Content level" default
+      valid_content "$CONTENT" && break
+      warn "type clean, default or graphic"; CONTENT=""
+    done
   fi
 fi
 
@@ -585,6 +601,11 @@ if ((public_ok)) && [[ $DOMAIN != localhost ]] && ((TUNNEL == 0 && HTTP_MODE == 
   else
     rm -f tls.d/hsts.caddy; warn "could not turn on HTTPS-only (HSTS); the next update tries again"
   fi
+fi
+
+# ---------- 9b. the tale content level ----------
+if [[ -n $CONTENT ]]; then
+  if ./vtt-admin settings set ai.tale.content "$CONTENT" >/dev/null 2>&1; then say "  tale content: $CONTENT (change later: vtt-admin settings set ai.tale.content <clean|default|graphic>)"; else warn "could not set the tale content level; set it later: vtt-admin settings set ai.tale.content $CONTENT"; fi
 fi
 
 # ---------- 10. the first Admin ----------

@@ -24,6 +24,15 @@ export interface AiFallbackSetting {
   retrySeconds: number;
 }
 
+export interface AiTaleSettings {
+  /** How long and full tales may be: the operator's ceiling (a slow CPU-only server: short). */
+  length: 'short' | 'default' | 'long';
+  /** How strong the language and violence in a tale may be. */
+  content: 'clean' | 'default' | 'graphic';
+  /** Storytellers this server does not offer. Never contains the Tavern Bard. */
+  storytellersOff: import('../consts/bards.js').BardId[];
+}
+
 export interface AiSettings {
   transcription: AiBackendSetting & {
     /** Fixed language code; a wrong auto-detect on short windows costs accuracy. */
@@ -31,4 +40,5 @@ export interface AiSettings {
   };
   llm: AiBackendSetting;
   fallback: AiFallbackSetting;
+  tale: AiTaleSettings;
 }

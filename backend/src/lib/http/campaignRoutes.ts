@@ -116,6 +116,11 @@ export function campaignRoutes(deps: CampaignRouteDeps): Router {
     res.json({ members });
   });
 
+  // Which storytellers this server offers, and who will tell this campaign's tales (the picker shows only these).
+  router.get('/:id/storytellers', async (req, res) => {
+    res.json(await campaigns.storytellers(authOf(res).user, param(req.params.id)));
+  });
+
   router.post('/:id/invites', async (req, res) => {
     const body = inviteBody.parse(req.body ?? {});
     const options = body.expiresInDays === undefined ? {} : { expiresInDays: body.expiresInDays };

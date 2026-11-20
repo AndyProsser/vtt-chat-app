@@ -14,6 +14,8 @@ for d in "" nodots "a b.com" "-x.com" "http://x.com"; do ! valid_domain "$d" || 
 valid_host 192.168.1.20 1 || fail "http mode takes an IP"; valid_host myserver 1 || fail "http mode takes a short name"; valid_host vtt.example.com 1 || fail "http mode takes a domain"
 ! valid_host 192.168.1.20 0 || fail "an IP needs --http"; ! valid_host myserver 0 || fail "a short name needs --http"; valid_host vtt.example.com 0 || fail "domain without --http"
 ! valid_host "a b" 1 || fail "space in host"; ! valid_host "" 1 || fail "empty host"
+for c in clean default graphic; do valid_content "$c" || fail "content $c"; done
+for c in Clean rude "" all; do ! valid_content "$c" || fail "bad content '$c'"; done
 for p in 1 80 8443 65535; do valid_port "$p" || fail "port $p"; done
 for p in 0 65536 abc "" -1 80.5; do ! valid_port "$p" || fail "bad port '$p'"; done
 [[ $(site_origin https vtt.example.com 443) == https://vtt.example.com ]] || fail "origin default https"

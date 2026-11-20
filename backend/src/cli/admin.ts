@@ -1,5 +1,6 @@
 import {
   AI_SETTING_KEYS,
+  BARD_IDS,
   isAiSettingKey,
   setAiSetting,
   SettingError,
@@ -193,6 +194,12 @@ function settingsLines(s: InstanceSettings): string[] {
     `ai.fallback.enabled        ${s.ai.fallback.enabled}`,
     `ai.fallback.after-seconds  ${s.ai.fallback.afterSeconds}`,
     `ai.fallback.retry-seconds  ${s.ai.fallback.retrySeconds}`,
+    `ai.tale.length             ${s.ai.tale.length}`,
+    `ai.tale.content            ${s.ai.tale.content}`,
+    ...BARD_IDS.map(
+      (id) =>
+        `ai.storyteller.${id}`.padEnd(27) + (s.ai.tale.storytellersOff.includes(id) ? 'off' : 'on'),
+    ),
   ];
 }
 

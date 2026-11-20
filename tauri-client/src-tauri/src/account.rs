@@ -135,7 +135,7 @@ fn write_private(path: &Path, saved: &Saved) -> std::io::Result<()> {
 /// The parts of the REST API a panel may reach, all under the signed-in campaign (or the DM's own
 /// sound library). The server still checks who is allowed to do what; this only stops a panel — which
 /// loads nothing but our own pages — from being turned into a general-purpose HTTP client.
-const RELAY_CAMPAIGN_AREAS: [&str; 13] = [
+const RELAY_CAMPAIGN_AREAS: [&str; 14] = [
     "handouts",
     "recordings",
     "loot",
@@ -149,6 +149,7 @@ const RELAY_CAMPAIGN_AREAS: [&str; 13] = [
     "active-character",
     "chat",
     "gm",
+    "storytellers",
 ];
 
 /// `handouts/abc/show` → `/api/campaigns/<id>/handouts/abc/show`; `soundboard/library` →

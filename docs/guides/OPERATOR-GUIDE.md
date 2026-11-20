@@ -352,6 +352,22 @@ Memory while it runs: Whisper about 0.5 GB, the language model about 3 GB.
 
 **Whisper uses every core**, at low CPU priority, so voice and the app stay responsive while a recording is transcribed (whisper-server on its own uses at most 4). On an 8-vCPU 2010 Xeon VM this took `small.en` from 1.71 to 1.26 × the length of the speech. To leave cores free for something else on the machine, set `WHISPER_THREADS` in `.env` (for example `WHISPER_THREADS=4`).
 
+### What the AI storyteller may write: length, content and who tells it
+
+Three settings keep the tales suitable for your server. The Game Master picks only a storyteller's style; these are yours, and nothing in the app changes them. (The settings are stored now; the storyteller prompts start using them in a later 0.6 release.)
+
+| Setting                 | Values                        | Use it for                                                                                                                                                                                                                                                                                                                                                            |
+| ----------------------- | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ai.tale.length`        | `short`, `default`, `long`    | The ceiling on a tale's length. **Short** suits a CPU-only server, where a long tale costs minutes of model time; **long** suits a GPU or a cloud model. The tale also follows what happened in the session, so a quiet night stays short either way.                                                                                                                 |
+| `ai.tale.content`       | `clean`, `default`, `graphic` | How strong the language and violence may be. **Clean** suits family or school groups; **graphic** tells both plainly. The installer asks, or takes `--content`.                                                                                                                                                                                                       |
+| `ai.storyteller.<name>` | `on`, `off`                   | Which storytellers your server offers: `dry`, `drunken` (the Tipsy Minstrel, which may let Game Master secrets slip), `sarcastic`, `bored`. **The Tavern Bard (`tavern`) cannot be turned off:** it is the default, and a campaign whose storyteller you turn off is told by it until the Game Master picks another. The picker in the app shows only what you offer. |
+
+```bash
+vtt-admin settings set ai.tale.length short
+vtt-admin settings set ai.tale.content clean
+vtt-admin settings set ai.storyteller.drunken off
+```
+
 ### With an NVIDIA GPU (including GTX 10-series)
 
 Add the GPU override. It builds Whisper for your card once (about 30 minutes, a ~6 GB image; upstream's

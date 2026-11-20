@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { effectiveBard, offeredBards } from '../consts/bards.js';
 import {
   AI_SETTING_KEYS,
   DEFAULT_AI_SETTINGS,
@@ -95,5 +96,47 @@ describe('normaliseAiSettings', () => {
     });
     expect(out.transcription).toMatchObject({ kind: 'remote', url: 'http://a:1', language: 'en' });
     expect(out.fallback).toEqual({ enabled: false, afterSeconds: 600, retrySeconds: 7 });
+  });
+});
+
+describe('the tale settings', () => {
+  it('start at default length, default content and every storyteller offered', () => {
+    expect(DEFAULT_AI_SETTINGS.tale).toEqual({
+      length: 'default',
+      content: 'default',
+      storytellersOff: [],
+    });
+  });
+
+  it('take the three lengths and the three content levels, and refuse anything else', () => {
+    let s = setAiSetting(DEFAULT_AI_SETTINGS, 'ai.tale.length', 'short');
+    s = setAiSetting(s, 'ai.tale.content', 'Clean');
+    expect(s.tale).toMatchObject({ length: 'short', content: 'clean' });
+    expect(() => setAiSetting(s, 'ai.tale.length', 'huge')).toThrow(SettingError);
+    expect(() => setAiSetting(s, 'ai.tale.content', 'rude')).toThrow(SettingError);
+  });
+
+  it('turn a storyteller off and on again, but never the Tavern Bard', () => {
+    let s = setAiSetting(DEFAULT_AI_SETTINGS, 'ai.storyteller.drunken', 'off');
+    s = setAiSetting(s, 'ai.storyteller.dry', 'off');
+    expect(s.tale.storytellersOff).toEqual(['drunken', 'dry']);
+    expect(offeredBards(s.tale.storytellersOff)).toEqual(['tavern', 'sarcastic', 'bored']);
+    s = setAiSetting(s, 'ai.storyteller.drunken', 'on');
+    expect(s.tale.storytellersOff).toEqual(['dry']);
+    expect(() => setAiSetting(s, 'ai.storyteller.tavern', 'off')).toThrow(/cannot be turned off/);
+    expect(setAiSetting(s, 'ai.storyteller.tavern', 'on').tale.storytellersOff).toEqual(['dry']);
+  });
+
+  it("fall back to the Tavern Bard when the campaign's storyteller is off", () => {
+    expect(effectiveBard('drunken', ['drunken'])).toBe('tavern');
+    expect(effectiveBard('drunken', [])).toBe('drunken');
+    expect(effectiveBard('tavern', ['tavern' as never])).toBe('tavern');
+  });
+
+  it('repair stored junk, and never keep the Tavern Bard off', () => {
+    const out = normaliseAiSettings({
+      tale: { length: 'giant', content: 'graphic', storytellersOff: ['tavern', 'bored', 'nope'] },
+    });
+    expect(out.tale).toEqual({ length: 'default', content: 'graphic', storytellersOff: ['bored'] });
   });
 });

@@ -1,6 +1,6 @@
 {
   "protocolVersion": 4,
-  "hash": "1b564410ec5eb929ac904af516ac2b579efb0404387785c921152844ed02ca71",
+  "hash": "89657fc93dbfaf9533d2987c7abae6e1aecdb2204c90d3a86fb1b38787ed5689",
   "summary": {
     "clientFrames": [
       "audio.state",
@@ -104,6 +104,7 @@
       "http/campaignRoutes.ts GET /:id/characters",
       "http/campaignRoutes.ts GET /:id/chat",
       "http/campaignRoutes.ts GET /:id/members",
+      "http/campaignRoutes.ts GET /:id/storytellers",
       "http/campaignRoutes.ts PATCH /:id/characters/:characterId",
       "http/campaignRoutes.ts POST /",
       "http/campaignRoutes.ts POST /:id/characters",
