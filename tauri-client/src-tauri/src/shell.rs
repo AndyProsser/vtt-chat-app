@@ -205,6 +205,7 @@ mod tests {
             recording_id: "r1".into(),
             status: change,
             started_at: None,
+            processing: None,
         })
     }
 
@@ -217,6 +218,7 @@ mod tests {
                 acknowledged,
                 started_at: None,
                 grace_seconds: None,
+                processing: None,
             }),
         })
     }

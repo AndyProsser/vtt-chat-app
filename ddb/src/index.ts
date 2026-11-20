@@ -5,4 +5,11 @@ export { fetchCharacter, portraitAllowed, type FetchOutcome } from './lib/fetchC
 export { parseCharacter } from './lib/parseCharacter.js';
 export { parseSheet } from './lib/parseSheet.js';
 export { PORTRAIT_HOSTS } from './consts/index.js';
-export type { DdbCharacter, DdbSheet, FetchLike } from './types/index.js';
+export type {
+  DdbCharacter,
+  DdbClass,
+  DdbSense,
+  DdbSenseKind,
+  DdbSheet,
+  FetchLike,
+} from './types/index.js';

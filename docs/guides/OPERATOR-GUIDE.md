@@ -133,6 +133,24 @@ The certificate is real, so **everything can be HTTPS, even inside your network*
 origin server name set to your domain, and nothing needs to skip certificate checks. Needs the `vtt-chat-caddy` image, which is Caddy with
 the Cloudflare DNS module (published with each release).
 
+### No domain, or another port: `--http` and `--port`
+
+You do not need a registered domain. A **free DDNS name** (DuckDNS, No-IP and the like) is an ordinary domain to the installer: give it as
+`--domain`, and with ports 80 and 443 reachable you get a normal certificate. Two flags cover the cases that do not fit that:
+
+- **`--port 8443`**: serve on another port (forward it on your router, and open it in the firewall; the installer does the latter).
+  Let's Encrypt can only check ports 80 and 443, so a **valid certificate on a non-standard port needs the DNS challenge**
+  (`--cloudflare-dns`, above). Without it the site still runs but the certificate will not be valid; the installer says so.
+- **`--http`** (with `--domain` set to an IP address or any name that reaches the machine, and optionally `--port`): **plain HTTP, no
+  certificate.** Passwords and sign-in codes cross the network unencrypted, so use it **only on a network you trust** (a LAN, or a VPN such as
+  WireGuard or Headscale). Browsers also withhold features that need HTTPS. In the desktop app, players type the whole address, for example
+  `http://192.168.1.20:8080`. Voice works the same (it signals over `ws://` and its media ports are separate).
+
+Both are remembered: a later plain run of the installer (or `vtt-admin update`) keeps the scheme and port. They are written to `.env` as
+`PUBLIC_ORIGIN`, `LIVEKIT_PUBLIC_URL`, `CADDY_SITE`, `CADDY_HTTP_PORTS` and `CADDY_HTTPS_PORTS` (Caddy listens on the port in its site address,
+so that is the port published; its other port is kept on this machine's loopback). A self-signed certificate with the app pinning it is a
+possible later mode ([ROADMAP Stage 14](../../ROADMAP.md)).
+
 ### Behind a Cloudflare Tunnel (a line that blocks 80/443)
 
 Most home connections block inbound 80 and 443, so Let's Encrypt and Cloudflare's proxy cannot reach the server. Use a **Cloudflare
@@ -449,6 +467,7 @@ natively. Restart the backend after changing them (`docker compose up -d`, or
 | `RECORD_SOUNDBOARD`                                                       | off                                             | `1`: also save the DM's sound effects as a separate file and note each effect by name in the timeline (testing only)                                                                                                                                                                                                                                                                                                                       |
 | `STARTER_SOUNDS`                                                          | off                                             | `1`: load the shared starter sounds (scenes and stingers every DM can use, from `backend/assets/sounds`). Off in 0.5.0 while the pack is finished; the default changes in 0.5.1                                                                                                                                                                                                                                                            |
 | `MEDIA_DIR`                                                               | (set for you)                                   | Where handouts, pictures and sound clips are stored. Needs disk space                                                                                                                                                                                                                                                                                                                                                                      |
+| `GM_NOTES_MAX_MB`                                                         | 100                                             | The largest single picture or PDF the Game Master may attach to their notes, in megabytes. A ceiling so one upload cannot fill the disk; notes themselves have no limit. Uses `MEDIA_DIR`                                                                                                                                                                                                                                                  |
 | `SMTP_URL`, `MAIL_FROM`                                                   | off                                             | Send sign-in and password-reset **links** by email (optional; needs `PUBLIC_URL`; the CLI can hand out codes without it). Example for a LAN relay: `SMTP_URL=smtp://10.0.20.105:25`, `MAIL_FROM="VTT Chat <noreply@example.com>"`                                                                                                                                                                                                          |
 | `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`                     | off                                             | Sign in through your own identity provider (Authelia and similar)                                                                                                                                                                                                                                                                                                                                                                          |
 | `DDB_SYNC`, `DDB_SYNC_HOURS`                                              | off, 12                                         | `1`: keep linked D&D Beyond characters fresh (contacts dndbeyond.com)                                                                                                                                                                                                                                                                                                                                                                      |

@@ -1,4 +1,4 @@
-import { Circle, Pause, Play, Square } from 'lucide-react';
+import { CloudUpload, Circle, Pause, Play, Square } from 'lucide-react';
 
 import { useDmAwaySince } from '../hooks/useDmAwaySince.js';
 import { useNow } from '../hooks/useNow.js';
@@ -33,12 +33,22 @@ export function RecordingIndicator({ dm }: { dm: boolean }) {
         <span
           className={bar.paused ? 'vtt-rec vtt-rec-paused' : 'vtt-rec'}
           role="status"
-          title={bar.paused ? 'Recording paused' : 'Recording'}
+          title={`${bar.paused ? 'Recording paused' : 'Recording'}. ${bar.notice ?? ''}`}
           aria-label={`${bar.paused ? 'Recording paused' : 'Recording'} ${bar.label}`}
         >
           {/* A red dot (hollow when paused) and the time: no "REC" word, to leave the bar its room. */}
           <span className="vtt-rec-dot" aria-hidden />
           <span aria-hidden>{bar.label}</span>
+        </span>
+      )}
+      {bar.offsite && (
+        <span
+          className="vtt-rec-offsite"
+          role="img"
+          aria-label={bar.notice ?? ''}
+          title={bar.notice ?? ''}
+        >
+          <CloudUpload size={14} />
         </span>
       )}
       {bar.actions.map((action) => {

@@ -1,3 +1,4 @@
+import { BARD_IDS } from '@vtt-chat-app/shared';
 import { Router } from 'express';
 import { z } from 'zod';
 
@@ -17,9 +18,14 @@ const settingsBody = z
     allowJoin: z.boolean().optional(),
     name: z.string().max(1000).optional(),
     description: z.string().max(40_000).optional(),
+    bard: z.enum(BARD_IDS).optional(),
   })
   .refine(
-    (b) => b.allowJoin !== undefined || b.name !== undefined || b.description !== undefined,
+    (b) =>
+      b.allowJoin !== undefined ||
+      b.name !== undefined ||
+      b.description !== undefined ||
+      b.bard !== undefined,
     'nothing to change',
   );
 
@@ -93,10 +99,11 @@ export function joinRequestRoutes({
     const id = param(req.params.id);
     const user = authOf(res).user;
     let campaign;
-    if (body.name !== undefined || body.description !== undefined) {
+    if (body.name !== undefined || body.description !== undefined || body.bard !== undefined) {
       campaign = await campaigns.updateCampaign(user, id, {
         ...(body.name === undefined ? {} : { name: body.name }),
         ...(body.description === undefined ? {} : { description: body.description }),
+        ...(body.bard === undefined ? {} : { bard: body.bard }),
       });
     }
     if (body.allowJoin !== undefined)

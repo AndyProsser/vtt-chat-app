@@ -25,6 +25,7 @@ const campaign = (): Campaign => ({
   description: '',
   createdAt: 1,
   allowJoin: true,
+  bard: 'tavern',
 });
 const membership = (c: Campaign, userId: string, role: 'dm' | 'player'): Membership => ({
   campaignId: c.id,

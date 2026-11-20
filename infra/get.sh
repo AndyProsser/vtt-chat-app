@@ -24,6 +24,11 @@
 #                                 tunnel: point the tunnel at https://<this machine>:443 with the origin server name set to your domain
 #   --behind-tunnel               the website arrives through a Cloudflare Tunnel (your line blocks 80/443, or you prefer it): Caddy serves plain
 #                                 HTTP and asks for no certificate; see the operator guide for the tunnel's hostname and token
+#   --http                        plain HTTP, no certificate: for a LAN or a VPN, or a server with no domain name (a bare IP address or a
+#                                 DDNS name is fine for --domain). Passwords and sign-ins cross the network unencrypted, so use it only on a
+#                                 network you trust; players' browsers also lose features that need HTTPS
+#   --port 8443                   serve on this port instead of 443 (with --http: instead of 80). Forward it on your router. A certificate for a
+#                                 non-standard port needs --cloudflare-dns (Let's Encrypt only checks 80 and 443); voice ports are unchanged
 #   --no-admin                    do not create the first Admin now (make one later: vtt-admin user create <email> --name <name> --accept-consent)
 #   --yes                         do not ask anything; every value must come from flags
 #   --keep-images                 on an update, do not delete the images of older VTT Chat versions (by default the version
@@ -33,7 +38,7 @@ set -euo pipefail
 
 REPO="${VTT_REPO:-AndyProsser/vtt-chat-app}"
 ASSUME_YES=0 DRY_RUN=0 SKIP_DOCKER=0 SKIP_FIREWALL=0 KEEP_IMAGES=0 PREV_IMAGE_VERSION="" WITH_RECORDS=""
-COMPAT=0 CFDNS=0 RECORDS_PROFILE=records TUNNEL=0 NO_ADMIN=0 BEHIND_CLOUDFLARE=0 DOMAIN="" EMAIL="" NAME="" VERSION="" PUBLIC_IP="" DIR="/opt/vtt-chat"
+HTTP_MODE=0 PORT="" COMPAT=0 CFDNS=0 RECORDS_PROFILE=records TUNNEL=0 NO_ADMIN=0 BEHIND_CLOUDFLARE=0 DOMAIN="" EMAIL="" NAME="" VERSION="" PUBLIC_IP="" DIR="/opt/vtt-chat"
 
 # ---------- small helpers ----------
 if [[ -t 1 ]]; then B=$'\e[1m' G=$'\e[32m' Y=$'\e[33m' R=$'\e[31m' N=$'\e[0m'; else B="" G="" Y="" R="" N=""; fi
@@ -93,6 +98,22 @@ enable_hsts() { # <install dir>
 header Strict-Transport-Security "max-age=2592000"
 HSTS
 }
+# A host to serve on. With --http (a LAN or VPN) a bare IPv4 address or a single-label name is fine too.
+valid_host() { # valid_host <host> <http-mode 0|1>
+  valid_domain "$1" && return 0
+  (($2)) || return 1
+  [[ $1 =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ || $1 =~ ^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?$ ]]
+}
+valid_port() { [[ $1 =~ ^[0-9]{1,5}$ ]] && (($1 >= 1 && $1 <= 65535)); }
+# The address people open: the scheme, the host, and the port only when it is not the scheme's own.
+site_origin() { # site_origin <scheme> <host> <port>
+  local default=443; [[ $1 == http || $1 == ws ]] && default=80
+  if (($3 == default)); then echo "$1://$2"; else echo "$1://$2:$3"; fi
+}
+# Sets KEY=value in an env file: replaces the line, or adds it.
+set_env() { # set_env <file> <key> <value>
+  if grep -q "^$2=" "$1" 2>/dev/null; then sed -i "s|^$2=.*|$2=${3//|/\\|}|" "$1"; else printf '%s=%s\n' "$2" "$3" >> "$1"; fi
+}
 valid_domain() { [[ $1 =~ ^([a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$ || $1 == localhost ]]; }
 valid_email() { [[ $1 =~ ^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$ ]]; }
 
@@ -129,6 +150,8 @@ while (($#)); do
     --no-admin) NO_ADMIN=1; shift ;;
     --behind-tunnel) TUNNEL=1; shift ;;
     --cloudflare-dns) CFDNS=1; shift ;;
+    --http) HTTP_MODE=1; shift ;;
+    --port) PORT=${2:?--port needs a value}; shift 2 ;;
     --with-records) WITH_RECORDS=1; shift ;;
     --no-records) WITH_RECORDS=0; shift ;;
     --records-compat) WITH_RECORDS=1; COMPAT=1; shift ;;
@@ -142,6 +165,10 @@ while (($#)); do
     *) die "unknown option: $1 (try --help)" ;;
   esac
 done
+
+if [[ -n $PORT ]]; then valid_port "$PORT" || die "--port must be a number from 1 to 65535"; fi
+((HTTP_MODE && TUNNEL)) && die "--http and --behind-tunnel both mean plain HTTP: pick one (a tunnel brings its own HTTPS)"
+((HTTP_MODE && CFDNS)) && die "--http has no certificate, so --cloudflare-dns does not apply: drop one of them"
 
 # Root is needed to install Docker, open the firewall and link /usr/local/bin. Without it (a test run, or Docker already
 # there and the firewall handled by you) pass both skip flags.
@@ -179,15 +206,36 @@ fi
 # ---------- 2. the questions ----------
 step "A few questions"
 if [[ -z $DOMAIN ]]; then
-  say "  Players will open this address in a browser. It needs a DNS record pointing at the public IP of this machine"
-  say "  (an \"A\" record) before the secure certificate can be issued."
-  ask DOMAIN "Your domain name (for example vtt.example.com)"
+  if ((HTTP_MODE)); then
+    say "  Players will open this address in a browser: this machine's IP address or any name that reaches it (a DDNS name is fine)."
+    ask DOMAIN "The address players will use (for example 192.168.1.20, or myserver.duckdns.org)"
+  else
+    say "  Players will open this address in a browser. It needs a DNS record pointing at the public IP of this machine"
+    say "  (an \"A\" record) before the secure certificate can be issued. A free DDNS name (DuckDNS, No-IP) works too."
+    ask DOMAIN "Your domain name (for example vtt.example.com)"
+  fi
 fi
 DOMAIN=$(printf '%s' "$DOMAIN" | tr '[:upper:]' '[:lower:]' | sed 's#^https\?://##; s#/.*$##')
-valid_domain "$DOMAIN" || die "\"$DOMAIN\" does not look like a domain name"
+if ! valid_host "$DOMAIN" "$HTTP_MODE"; then
+  if ((HTTP_MODE)); then die "\"$DOMAIN\" does not look like a domain name or an IP address"; else die "\"$DOMAIN\" does not look like a domain name (an IP address or a short name needs --http)"; fi
+fi
 
 EXISTING=0
 [[ -f $DIR/.env ]] && EXISTING=1
+# An update with no flags keeps how the site was set up: read it back from the existing configuration.
+if ((EXISTING)); then
+  prev_origin=$(sed -n 's/^PUBLIC_ORIGIN=//p' "$DIR/.env" | head -1)
+  if [[ -n $prev_origin && $HTTP_MODE == 0 && -z $PORT ]]; then
+    [[ $prev_origin == http://* ]] && HTTP_MODE=1
+    prev_port=${prev_origin##*:}; [[ $prev_port =~ ^[0-9]+$ ]] && PORT=$prev_port
+  fi
+fi
+# Which scheme and port the site is served on (the scheme's own unless --port or an earlier install says otherwise).
+if ((HTTP_MODE)); then SCHEME=http WSCHEME=ws DEFAULT_PORT=80; else SCHEME=https WSCHEME=wss DEFAULT_PORT=443; fi
+PORT=${PORT:-$DEFAULT_PORT}
+CUSTOM_SITE=0; ((HTTP_MODE || PORT != DEFAULT_PORT)) && CUSTOM_SITE=1
+SITE_ORIGIN=$(site_origin "$SCHEME" "$DOMAIN" "$PORT")
+if ((HTTP_MODE)); then WEB_PORTS="$PORT"; elif ((PORT != 443)); then WEB_PORTS="$PORT"; else WEB_PORTS="80 443"; fi
 if ((EXISTING)); then
   say "  An install already exists in $DIR: it will be updated and your data and secrets kept."
 else
@@ -252,7 +300,9 @@ if [[ -z $PUBLIC_IP ]]; then
     warn "could not find the public address; if this machine is behind a router, re-run with --public-ip <address>"
   fi
 fi
-if [[ $DOMAIN != localhost ]] && ((TUNNEL == 0 && CFDNS == 0)); then
+if ((HTTP_MODE)); then
+  say "  plain HTTP on port $PORT: no certificate and no DNS check; players open $SITE_ORIGIN"
+elif [[ $DOMAIN != localhost ]] && ((TUNNEL == 0 && CFDNS == 0)); then
   resolved=$(getent ahostsv4 "$DOMAIN" 2>/dev/null | awk 'NR==1 {print $1}' || true)
   expected=${PUBLIC_IP:-${detected:-}}
   if [[ -z $resolved ]]; then
@@ -351,9 +401,14 @@ else
       step "Opening the needed ports in the firewall (ufw)"
       ssh_ports=$(ss -Hltnp 2>/dev/null | awk '/sshd/ {n=split($4,a,":"); print a[n]}' | sort -u | tr '\n' ' ')
       for port in ${ssh_ports:-22}; do ufw allow "$port/tcp" >/dev/null; done
-      ufw allow 80/tcp >/dev/null
-      ufw allow 443/tcp >/dev/null
-      ufw allow 443/udp >/dev/null
+      if ((CUSTOM_SITE)); then
+        ufw allow "$PORT/tcp" >/dev/null
+        ((HTTP_MODE)) || ufw allow "$PORT/udp" >/dev/null
+      else
+        ufw allow 80/tcp >/dev/null
+        ufw allow 443/tcp >/dev/null
+        ufw allow 443/udp >/dev/null
+      fi
       ufw allow 7881/tcp >/dev/null
       ufw allow 50000:50200/udp >/dev/null
       # Caddy and the backend reach LiveKit's signalling (7880, host-networked) from Docker's bridge networks.
@@ -373,7 +428,7 @@ own_running=0
 if ((EXISTING)) && [[ -f $DIR/compose.yml ]] && [[ -n $(cd "$DIR" && docker compose ps -q 2>/dev/null) ]]; then own_running=1; fi
 if ((own_running == 0)) && command -v ss >/dev/null 2>&1; then
   busy=""
-  for port in 80 443 7880 7881; do
+  for port in $WEB_PORTS 7880 7881; do
     who=$(ss -Hltnp 2>/dev/null | awk -v p=":$port" '$4 ~ p"$" {print $NF}' | sort -u | head -2 | tr '\n' ' ')
     [[ -n $(ss -Hltn 2>/dev/null | awk -v p=":$port" '$4 ~ p"$"') ]] && busy+="    $port/tcp  ${who:-(something is listening)}\n"
   done
@@ -381,7 +436,7 @@ if ((own_running == 0)) && command -v ss >/dev/null 2>&1; then
     printf '%s\n' "${R}These ports are already in use on this machine, and VTT Chat needs them:${N}" >&2
     printf '%b' "$busy" >&2
     say "  Another web server, a proxy, or an earlier install is using them. Stop it (find it with: ss -ltnp), then run this again."
-    say "  Docker containers using them:  docker ps --format '{{.Names}}  {{.Ports}}' | grep -E ':(80|443|7880|7881)->'"
+    say "  Docker containers using them:  docker ps --format '{{.Names}}  {{.Ports}}' | grep -E ':(${WEB_PORTS// /|}|7880|7881)->'"
     die "ports busy; nothing was changed"
   fi
 fi
@@ -421,6 +476,23 @@ else
   VTT_VERSION="$IMAGE_VERSION" ./setup.sh "$DOMAIN" ${PUBLIC_IP:+"$PUBLIC_IP"}
   if [[ $WITH_RECORDS == 1 ]]; then echo "COMPOSE_PROFILES=$RECORDS_PROFILE" >> .env; say "  recording and summaries: on ($RECORDS_PROFILE)"; fi
   if ((COMPAT)); then echo "COMPOSE_FILE=compose.yml:compose.compat.yml" >> .env; say "  local AI with the Whisper built for CPUs without AVX (slow)"; fi
+fi
+if ((CUSTOM_SITE)); then
+  # A site on another port, or plain HTTP: Caddy listens on the port in its site address, so that is the port published; the
+  # other of Caddy's two ports stays on this machine's loopback, out of the way. The server's own links and the voice
+  # address carry the same scheme and port.
+  if ((HTTP_MODE)); then
+    set_env .env CADDY_SITE "http://$DOMAIN:$PORT"
+    set_env .env CADDY_HTTP_PORTS "$PORT:$PORT"
+    set_env .env CADDY_HTTPS_PORTS "127.0.0.1:18443:443"
+  else
+    set_env .env CADDY_SITE "$DOMAIN:$PORT"
+    set_env .env CADDY_HTTP_PORTS "127.0.0.1:18080:80"
+    set_env .env CADDY_HTTPS_PORTS "$PORT:$PORT"
+  fi
+  set_env .env PUBLIC_ORIGIN "$SITE_ORIGIN"
+  set_env .env LIVEKIT_PUBLIC_URL "$(site_origin "$WSCHEME" "$DOMAIN" "$PORT")/livekit"
+  say "  site on $SITE_ORIGIN"
 fi
 if ((CFDNS)); then
   mkdir -p tls.d
@@ -477,19 +549,25 @@ printf '#!/bin/sh\nexec "%s/vtt-admin" "$@"\n' "$DIR" > /usr/local/bin/vtt-admin
 step "Checking it works"
 local_ok=0 public_ok=0
 for _ in $(seq 1 30); do
-  if ((TUNNEL)); then
+  if ((HTTP_MODE)); then
+    curl -fsS --max-time 5 -H "Host: $DOMAIN:$PORT" "http://127.0.0.1:$PORT/api/health" >/dev/null 2>&1 && { local_ok=1; break; }
+  elif ((TUNNEL)); then
     curl -fsS --max-time 5 -H "Host: $DOMAIN" "http://127.0.0.1/api/health" >/dev/null 2>&1 && { local_ok=1; break; }
-  elif curl -fsS --max-time 5 -k --resolve "$DOMAIN:443:127.0.0.1" "https://$DOMAIN/api/health" >/dev/null 2>&1; then local_ok=1; break; fi
+  elif curl -fsS --max-time 5 -k --resolve "$DOMAIN:$PORT:127.0.0.1" "https://$DOMAIN:$PORT/api/health" >/dev/null 2>&1; then local_ok=1; break; fi
   sleep 2
 done
 if ((local_ok)); then say "  the server answers on this machine"; else warn "the server did not answer locally; check: docker compose -f $DIR/compose.yml logs backend caddy"; fi
 if ((CFDNS)); then
   say "  waiting for the certificate from Cloudflare's DNS challenge (normally 1 to 3 minutes: Caddy adds a DNS record, waits for it to spread, then Let's Encrypt checks it)..."
   for _ in $(seq 1 48); do
-    if curl -fsS --max-time 6 --resolve "$DOMAIN:443:127.0.0.1" "https://$DOMAIN/api/health" >/dev/null 2>&1; then public_ok=1; break; fi
+    if curl -fsS --max-time 6 --resolve "$DOMAIN:$PORT:127.0.0.1" "$SITE_ORIGIN/api/health" >/dev/null 2>&1; then public_ok=1; break; fi
     sleep 5
   done
-  if ((public_ok)); then say "  https://$DOMAIN has a valid certificate"; else warn "no certificate yet: check the token's rights and  vtt-admin logs caddy"; fi
+  if ((public_ok)); then say "  $SITE_ORIGIN has a valid certificate"; else warn "no certificate yet: check the token's rights and  vtt-admin logs caddy"; fi
+elif ((HTTP_MODE)); then
+  warn "plain HTTP: nothing here is encrypted. Use it only on a network you trust (a LAN or a VPN); anyone who can see the traffic can read passwords and sign-in codes."
+elif [[ $DOMAIN != localhost ]] && ((TUNNEL == 0)) && ((PORT != 443)); then
+  warn "$SITE_ORIGIN is on a non-standard port without the DNS challenge: Let's Encrypt can only check ports 80 and 443, so no valid certificate will be issued here. Re-run with --cloudflare-dns (your DNS on Cloudflare), or use --http on a trusted network."
 elif [[ $DOMAIN != localhost ]] && ((TUNNEL == 0)); then
   say "  waiting for the secure certificate (up to 2 minutes)..."
   for _ in $(seq 1 24); do
@@ -501,7 +579,7 @@ elif [[ $DOMAIN != localhost ]] && ((TUNNEL == 0)); then
   fi
 fi
 
-if ((public_ok)) && [[ $DOMAIN != localhost ]] && ((TUNNEL == 0)) && enable_hsts .; then
+if ((public_ok)) && [[ $DOMAIN != localhost ]] && ((TUNNEL == 0 && HTTP_MODE == 0)) && enable_hsts .; then
   if docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile >/dev/null 2>&1; then
     say "  browsers will now use HTTPS only for $DOMAIN (tls.d/hsts.caddy)"
   else
@@ -523,7 +601,7 @@ else
 fi
 
 # ---------- done ----------
-site="https://$DOMAIN"
+site="$SITE_ORIGIN"
 cat <<EOF
 
 ${G}${B}VTT Chat is running.${N}
@@ -541,8 +619,8 @@ cat <<EOF
 
 ${B}Ports${N} (firewall on this machine: $FW_NOTE)
   Your router or cloud provider's firewall must also let these through to this machine:
-    80/tcp  443/tcp  7881/tcp  50000-50200/udp
-  The website needs 80 and 443. Voice needs 7881/tcp and the UDP range, straight to this machine
+    ${WEB_PORTS// //tcp  }/tcp  7881/tcp  50000-50200/udp
+  The website needs ${WEB_PORTS// / and }. Voice needs 7881/tcp and the UDP range, straight to this machine
   (not through Cloudflare); without them chat works but voice does not connect.
 
 ${B}Running the server${N}  (from any directory)
@@ -575,6 +653,12 @@ ${Y}One step is yours:${N} in Cloudflare (Zero Trust > Networks > Tunnels) give 
 ${B}http://$(hostname -I | awk '{print $1}'):80${N} (this machine, if the tunnel runs elsewhere on your network), or run the tunnel from here:
   vtt-admin config set CLOUDFLARE_TUNNEL_TOKEN <token>   then:   cd $DIR && docker compose --profile tunnel up -d
 (with the token service set to http://caddy:80). Voice does not use the tunnel: forward 7881/tcp and 50000-50200/udp to this machine.
+EOF
+elif ((HTTP_MODE)); then
+  cat <<EOF
+
+${Y}Plain HTTP:${N} nothing is encrypted, so keep this to a network you trust. In the desktop app, players type ${B}$SITE_ORIGIN${N} as the
+server address (the ${B}http://${N} is needed). Browsers may hide features that need HTTPS.
 EOF
 elif ((public_ok == 0)) && [[ $DOMAIN != localhost ]]; then
   cat <<EOF

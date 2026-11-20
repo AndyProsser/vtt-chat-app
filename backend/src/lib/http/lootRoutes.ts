@@ -13,6 +13,15 @@ export interface LootRouteDeps {
   loot: LootService;
   /** Live notification: an item was dropped, claimed or removed. */
   onChange?: (event: 'dropped' | 'claimed' | 'removed', item: LootItem) => void;
+  /** The DM posted an item that is still on the table into chat again. */
+  onRedrop?: (item: LootItem) => void;
+  /** A player's "added to my sheet" flag changed; told only to the people who may see it. */
+  onConfirmed?: (
+    campaignId: string,
+    itemId: string,
+    confirmed: boolean,
+    userIds: readonly string[],
+  ) => void;
 }
 
 const dropBody = z.object({
@@ -126,20 +135,40 @@ export function lootRoutes(deps: LootRouteDeps): Router {
       body.for,
     );
     deps.onChange?.('claimed', item);
-    res.json({ item });
+    res.json({ item: await loot.view(authOf(res).user, campaign(req), item) });
+  });
+
+  router.post('/:itemId/redrop', async (req, res) => {
+    const item = await loot.redrop(authOf(res).user, campaign(req), param(req.params.itemId));
+    deps.onRedrop?.(item);
+    res.json({ item: await loot.view(authOf(res).user, campaign(req), item) });
+  });
+
+  router.post('/:itemId/confirm', async (req, res) => {
+    const body = z.object({ confirmed: z.boolean() }).parse(req.body);
+    const user = authOf(res).user;
+    const campaignId = campaign(req);
+    const item = await loot.confirm(user, campaignId, param(req.params.itemId), body.confirmed);
+    deps.onConfirmed?.(
+      campaignId,
+      item.id,
+      body.confirmed,
+      await loot.confirmAudience(campaignId, item, user.id),
+    );
+    res.json({ item: await loot.view(user, campaignId, item) });
   });
 
   router.post('/:itemId/store', async (req, res) => {
     const item = await loot.stash(authOf(res).user, campaign(req), param(req.params.itemId));
     deps.onChange?.('claimed', item);
-    res.json({ item });
+    res.json({ item: await loot.view(authOf(res).user, campaign(req), item) });
   });
 
   // Putting it back reuses the "claimed" notice: the item now has nobody holding it.
   router.post('/:itemId/return', async (req, res) => {
     const item = await loot.giveBack(authOf(res).user, campaign(req), param(req.params.itemId));
     deps.onChange?.('claimed', item);
-    res.json({ item });
+    res.json({ item: await loot.view(authOf(res).user, campaign(req), item) });
   });
 
   router.post('/:itemId/assign', async (req, res) => {
@@ -151,7 +180,7 @@ export function lootRoutes(deps: LootRouteDeps): Router {
       body.userId,
     );
     deps.onChange?.('claimed', item);
-    res.json({ item });
+    res.json({ item: await loot.view(authOf(res).user, campaign(req), item) });
   });
 
   router.post('/:itemId/split', async (req, res) => {
@@ -163,7 +192,7 @@ export function lootRoutes(deps: LootRouteDeps): Router {
       body.userIds,
     );
     deps.onChange?.('claimed', item);
-    res.json({ item });
+    res.json({ item: await loot.view(authOf(res).user, campaign(req), item) });
   });
 
   router.delete('/:itemId', async (req, res) => {

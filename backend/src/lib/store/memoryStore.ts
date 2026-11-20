@@ -269,6 +269,18 @@ export class MemoryStore implements Store {
   putCharacter = async (character: Character): Promise<void> => {
     this.data.characters.set(character.id, copy(character));
   };
+  deleteCharacter = async (id: string): Promise<void> => {
+    this.data.characters.delete(id);
+    // Like the database's ON DELETE SET NULL: nothing keeps pointing at a character that is gone.
+    for (const [key, m] of this.data.memberships) {
+      if (m.activeCharacterId === id || m.suspendedCharacterId === id)
+        this.data.memberships.set(key, {
+          ...m,
+          activeCharacterId: m.activeCharacterId === id ? null : m.activeCharacterId,
+          suspendedCharacterId: m.suspendedCharacterId === id ? null : m.suspendedCharacterId,
+        });
+    }
+  };
 
   recordAvatarFile = async (id: string, userId: string, at: number): Promise<void> => {
     this.data.avatarFiles.set(id, { userId, createdAt: at });

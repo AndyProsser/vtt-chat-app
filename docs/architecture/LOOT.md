@@ -14,6 +14,12 @@ flowchart LR
   Pool -->|loot.dropped / loot.claimed| Table[Chat cards, icons, glow]
 ```
 
+## Re-drop and "added to my sheet" (protocol 4, built 2026-11-19)
+
+- **Re-drop** (`POST /loot/:id/redrop`, DM only, only while nobody holds the item): the item's drop time becomes now, which is where both apps draw its chat card, so the card moves; `loot.redropped` tells live clients to drop the old card and show the new one. It does not go to the recording timeline, because nothing happened to the item.
+- **Confirmed flag** (`POST /loot/:id/confirm {confirmed}`, players only): one flag on an item a player holds or on the party stash (any player may tick it), and one per share inside a split. Every move (take, store, return, give, split, re-drop) resets it in the same SQL `UPDATE` that moves the item. The DM never gets the flags, and a player only sees their own share's. `loot.confirmed` is sent only to the people who may see the flag (the player, or every player for the stash). The count on the icon is worked out in the app from the list (`needsConfirming` in `shared/`).
+- **Notice:** when the DM gives an item (`assign`, or a drop with a recipient) the server stores a `loot_given` notification for that player. Takes, stores and splits by a player make no notice: the count rising is the only sign.
+
 ## Items
 
 Every item has an **item type** (weapon, armor, potion, ring, wondrous item, gem, coin…) that picks its

@@ -131,6 +131,10 @@ export const lootDo = (
   req: { path: string; body: Record<string, unknown> },
 ) => request('POST', `/api/campaigns/${campaignId}/loot/${itemId}/${req.path}`, { body: req.body });
 
+/** Ticks (or un-ticks) "I have added this to my game sheet" for an item you hold, the party stash or your share. */
+export const lootConfirm = (campaignId: string, itemId: string, confirmed: boolean) =>
+  request('POST', `/api/campaigns/${campaignId}/loot/${itemId}/confirm`, { body: { confirmed } });
+
 // ---- the DM's tools (the server refuses anyone else with 403) ----
 
 /** A new note: a DM-only draft until it is shown. */
@@ -232,6 +236,10 @@ export const addCharacter = (campaignId: string, body: Record<string, unknown>) 
   request<{ character: CharacterRecord }>('POST', `/api/campaigns/${campaignId}/characters`, {
     body,
   });
+
+/** Deletes one of your own characters (the server hands the part to your next one if it was the one played). */
+export const deleteCharacter = (campaignId: string, characterId: string) =>
+  request('DELETE', `/api/campaigns/${campaignId}/characters/${characterId}`);
 
 /** Makes this the character the table sees you playing. */
 export const playCharacter = (campaignId: string, characterId: string) =>

@@ -455,6 +455,27 @@ describe('campaigns', () => {
       expect(switched.activeCharacterId).toBe(second.id);
     });
 
+    it('deletes my own character: the next one takes over when it was the one played, and nobody else’s can go (protocol 4)', async () => {
+      const { campaignId } = await table();
+      const first = await w.campaigns.addCharacter(alice, campaignId, { ...sheet, name: 'Aria' });
+      const second = await w.campaigns.addCharacter(alice, campaignId, { ...sheet, name: 'Brin' });
+      const theirs = await w.campaigns.addCharacter(bob, campaignId, sheet);
+      await rejects(w.campaigns.deleteCharacter(alice, campaignId, theirs.id), 'not_found');
+      await rejects(w.campaigns.deleteCharacter(alice, campaignId, 'nonsense'), 'not_found');
+
+      // deleting a benched one changes nothing about who is played
+      await w.campaigns.deleteCharacter(alice, campaignId, second.id);
+      expect(await w.store.getCharacter(second.id)).toBeUndefined();
+      expect((await w.store.getMembership(campaignId, alice.id))?.activeCharacterId).toBe(first.id);
+
+      // deleting the played one with another waiting hands over; with none left, nobody is played
+      const third = await w.campaigns.addCharacter(alice, campaignId, { ...sheet, name: 'Cato' });
+      await w.campaigns.deleteCharacter(alice, campaignId, first.id);
+      expect((await w.store.getMembership(campaignId, alice.id))?.activeCharacterId).toBe(third.id);
+      await w.campaigns.deleteCharacter(alice, campaignId, third.id);
+      expect((await w.store.getMembership(campaignId, alice.id))?.activeCharacterId).toBeNull();
+    });
+
     it('will not activate someone else’s character', async () => {
       const { campaignId } = await table();
       const theirs = await w.campaigns.addCharacter(bob, campaignId, sheet);
@@ -654,6 +675,7 @@ describe('MemoryStore transactions', () => {
           description: '',
           createdAt: 1,
           allowJoin: true,
+          bard: 'tavern',
         });
         throw new Error('boom');
       }),

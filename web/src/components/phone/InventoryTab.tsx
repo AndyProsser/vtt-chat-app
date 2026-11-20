@@ -1,11 +1,13 @@
-import { Badge, Button, Callout, Card, Flex, SegmentedControl, Text } from '@radix-ui/themes';
+import { Badge, Callout, Card, Flex, SegmentedControl, Text } from '@radix-ui/themes';
 import {
+  canConfirm,
   defaultLootFilter,
+  isConfirmed,
   filterLootItems,
-  LOOT_ACTION_LABEL,
   lootActions,
   lootFiltersFor,
   lootRequest,
+  needsConfirming,
   type LootAction,
   type LootFilter,
 } from '@vtt-chat-app/shared';
@@ -13,12 +15,14 @@ import { useState } from 'react';
 
 import { holder } from '../../lib/phone/lootCards.js';
 import { GiveSelect } from './GiveSelect.js';
-import { ACTION_SHORT } from './LootButtons.js';
+import { LootButtons } from './LootButtons.js';
 
 import { useIsDm } from '../../hooks/useIsDm.js';
 import { useLoad } from '../../hooks/useLoad.js';
 import { ApiError } from '../../lib/api.js';
-import { lootDo, lootItems } from '../../lib/phone/phoneApi.js';
+import { lootConfirm, lootDo, lootItems } from '../../lib/phone/phoneApi.js';
+import { ConfirmBox } from './ConfirmBox.js';
+import { IconTool } from './IconTool.js';
 import { usePhoneStore } from '../../lib/phone/phoneStore.js';
 import type { LootItem } from '../../types/phone.js';
 
@@ -28,6 +32,7 @@ const FILTER_LABEL: Record<LootFilter, string> = {
   all: 'All',
   own: 'Mine',
   party: 'Party',
+  unconfirmed: 'To confirm',
 };
 const RARITY_COLOR: Record<string, 'gray' | 'green' | 'blue' | 'violet' | 'orange' | 'red'> = {
   common: 'gray',
@@ -53,6 +58,8 @@ export function InventoryTab({ campaignId }: { campaignId: string }) {
   const filters = lootFiltersFor(dm);
   const view = filters.includes(filter) ? filter : defaultLootFilter(dm);
   const shown = filterLootItems(data ?? [], view, selfId);
+  // What "Add all" would tick: this player's own items in the list that are not on their sheet yet.
+  const pending = shown.filter((i) => needsConfirming(i, selfId));
   const players = members.filter((m) => m.role !== 'dm');
 
   async function run(item: LootItem, action: LootAction, userId?: string) {
@@ -67,19 +74,50 @@ export function InventoryTab({ campaignId }: { campaignId: string }) {
     }
   }
 
+  /** Ticks every item in this list that is not on the player's sheet yet, one after another. */
+  async function confirmAll() {
+    setProblem(undefined);
+    try {
+      for (const item of pending) await lootConfirm(campaignId, item.id, true);
+    } catch (e) {
+      setProblem(e instanceof ApiError ? e.message : 'That did not work. Try again.');
+    }
+    reload();
+  }
+
+  async function confirm(item: LootItem, value: boolean) {
+    setProblem(undefined);
+    try {
+      await lootConfirm(campaignId, item.id, value);
+      reload();
+    } catch (e) {
+      setProblem(e instanceof ApiError ? e.message : 'That did not work. Try again.');
+    }
+  }
+
   return (
     <Flex direction="column" gap="3" className="phone-pad">
-      <SegmentedControl.Root
-        size="1"
-        value={view}
-        onValueChange={(v) => setFilter(v as LootFilter)}
-      >
-        {filters.map((f) => (
-          <SegmentedControl.Item key={f} value={f}>
-            {FILTER_LABEL[f]}
-          </SegmentedControl.Item>
-        ))}
-      </SegmentedControl.Root>
+      <Flex align="center" justify="between" gap="2" wrap="wrap">
+        <SegmentedControl.Root
+          size="1"
+          value={view}
+          onValueChange={(v) => setFilter(v as LootFilter)}
+        >
+          {filters.map((f) => (
+            <SegmentedControl.Item key={f} value={f}>
+              {FILTER_LABEL[f]}
+            </SegmentedControl.Item>
+          ))}
+        </SegmentedControl.Root>
+        {pending.length > 0 && (
+          <IconTool
+            label={`Mark all ${pending.length} as added to my character sheet`}
+            text={`Add all ${pending.length}`}
+            icon="listChecks"
+            onClick={() => void confirmAll()}
+          />
+        )}
+      </Flex>
       {(error || problem) && (
         <Callout.Root color="red">
           <Callout.Text>{error ?? problem}</Callout.Text>
@@ -92,11 +130,14 @@ export function InventoryTab({ campaignId }: { campaignId: string }) {
             ? 'Nothing here yet. Loot the DM drops shows up here.'
             : view === 'available'
               ? 'Nothing left to take.'
-              : 'Nothing in this list.'}
+              : view === 'unconfirmed'
+                ? 'Everything you hold is on your sheet. Look under Available for what is left to take.'
+                : 'Nothing in this list.'}
         </Text>
       )}
       {shown.map((item) => {
         const actions = lootActions(item, selfId, dm);
+        const onSheet = isConfirmed(item, selfId);
         return (
           <Card key={item.id} size="2">
             <Flex direction="column" gap="2">
@@ -114,29 +155,28 @@ export function InventoryTab({ campaignId }: { campaignId: string }) {
                     {item.itemType}
                   </Badge>
                 </Flex>
-                {actions.length > 0 && (
-                  <Flex gap="2" justify="end" style={{ flex: 'none' }}>
-                    {actions.map((action) =>
-                      action === 'give' ? (
-                        <GiveSelect
-                          key={action}
-                          players={players}
-                          onPick={(userId) => void run(item, 'give', userId)}
-                        />
-                      ) : (
-                        <Button
-                          key={action}
-                          size="1"
-                          variant={action === 'take' ? 'solid' : 'soft'}
-                          title={LOOT_ACTION_LABEL[action]}
-                          onClick={() => void run(item, action)}
-                        >
-                          {ACTION_SHORT[action]}
-                        </Button>
-                      ),
-                    )}
-                  </Flex>
-                )}
+                <Flex gap="2" align="center" justify="end" style={{ flex: 'none' }}>
+                  {actions.map((action) =>
+                    action === 'give' ? (
+                      <GiveSelect
+                        key={action}
+                        players={players}
+                        onPick={(userId) => void run(item, 'give', userId)}
+                      />
+                    ) : (
+                      <LootButtons
+                        key={action}
+                        action={action}
+                        // On the player's sheet it stays put: untick it first to move it.
+                        disabled={onSheet}
+                        onClick={() => void run(item, action)}
+                      />
+                    ),
+                  )}
+                  {canConfirm(item, selfId, dm) && (
+                    <ConfirmBox checked={onSheet} onChange={(v) => void confirm(item, v)} />
+                  )}
+                </Flex>
               </Flex>
               {item.description && (
                 <Text size="2" color="gray">

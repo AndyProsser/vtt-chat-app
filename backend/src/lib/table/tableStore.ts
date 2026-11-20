@@ -1,4 +1,4 @@
-import type { ItemType, Rarity } from '@vtt-chat-app/shared';
+import type { GlossaryKind, GlossaryStatus, ItemType, Rarity } from '@vtt-chat-app/shared';
 
 import type { MediaKind } from '../media/mediaStorage.js';
 
@@ -44,7 +44,11 @@ export type LootKind = 'item' | 'coin';
 /** Where a grabbed item went: the player's own, the party's shared pool, or a split of coin. */
 export type ClaimedFor = 'self' | 'party' | 'split' | 'assigned';
 export interface LootSplit {
-  shares: { userId: string; amount: number }[];
+  shares: {
+    userId: string;
+    amount: number;
+    /** The player has put their share on their game sheet. */ confirmed?: boolean;
+  }[];
   /** Coin that did not divide evenly; it stays in the pool. */
   remainder: number;
 }
@@ -70,6 +74,36 @@ export interface LootItem {
   claimedFor: ClaimedFor | null;
   /** Set only when a coin pile was split. */
   split: LootSplit | null;
+  /** The holder (or, for the party stash, any player) has added it to the real game sheet. Reset on every move. */
+  confirmed: boolean;
+}
+
+/** The Game Master's notes for one campaign (Stage 11 item 5): Markdown, the Game Master's alone. */
+export interface GmNotes {
+  campaignId: string;
+  body: string;
+  updatedAt: number;
+  updatedBy: string | null;
+}
+
+/** A picture or PDF attached to the notes; the bytes are an ordinary media file. */
+export interface GmNoteFile {
+  id: string;
+  campaignId: string;
+  mediaId: string;
+  name: string;
+  createdAt: number;
+}
+
+/** One term of a campaign's glossary (Stage 11 item 6). `suggested` terms wait for the Game Master's approval. */
+export interface GlossaryTerm {
+  id: string;
+  campaignId: string;
+  term: string;
+  kind: GlossaryKind;
+  aliases: string[];
+  status: GlossaryStatus;
+  createdAt: number;
 }
 
 /**
@@ -89,6 +123,21 @@ export interface TableStore {
   ownerAudioBytes(ownerId: string): Promise<number>;
   /** Bytes of files attached to a campaign's handouts, for its storage quota. */
   campaignHandoutBytes(campaignId: string): Promise<number>;
+
+  /** The notes page; `undefined` until the Game Master has saved one. */
+  getGmNotes(campaignId: string): Promise<GmNotes | undefined>;
+  putGmNotes(notes: GmNotes): Promise<void>;
+  listGmNoteFiles(campaignId: string): Promise<GmNoteFile[]>;
+  getGmNoteFile(id: string): Promise<GmNoteFile | undefined>;
+  putGmNoteFile(file: GmNoteFile): Promise<void>;
+  deleteGmNoteFile(id: string): Promise<void>;
+
+  /** Every term of a campaign, approved and suggested, by term. */
+  listGlossary(campaignId: string): Promise<GlossaryTerm[]>;
+  getGlossaryTerm(id: string): Promise<GlossaryTerm | undefined>;
+  /** Adds or replaces a term. Refuses (`false`) when another term of the campaign already has that spelling (any case). */
+  putGlossaryTerm(term: GlossaryTerm): Promise<boolean>;
+  deleteGlossaryTerm(id: string): Promise<void>;
 
   putHandout(handout: Handout): Promise<void>;
   getHandout(id: string): Promise<Handout | undefined>;
@@ -129,6 +178,16 @@ export interface TableStore {
   takeFromParty(id: string, userId: string, at: number): Promise<LootItem | undefined>;
   /** Any player puts a party-stash item back on the table, unclaimed. **Atomic**, as above. */
   returnFromParty(id: string): Promise<LootItem | undefined>;
+  /**
+   * Sets the "added to my sheet" flag as `userId` sees it: on an item they hold, on the party stash (any player),
+   * or on their own share of a split pile. `undefined` when the item is not one of those for them.
+   */
+  confirmLoot(id: string, userId: string, confirmed: boolean): Promise<LootItem | undefined>;
+  /**
+   * Moves an item still on the table to `at` in the chat: its card is drawn where it was dropped, so a re-drop is a
+   * new drop time. **Atomic**, and only while nobody holds it; otherwise `undefined`.
+   */
+  redropLoot(id: string, at: number): Promise<LootItem | undefined>;
   deleteLoot(id: string): Promise<void>;
 }
 

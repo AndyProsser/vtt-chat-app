@@ -89,7 +89,7 @@ function Levels({ levels, onLevels }: Props) {
       {row('Stingers', 'One-shot sounds', 'stingers')}
       {row('Scenes', 'Loops and random layers', 'scenes')}
       <small className="vtt-muted">
-        A sound that is already playing keeps its level; the next one uses the new level.
+        The sliders also sit on the Stingers and Scenes rows; they change what is already playing.
       </small>
     </div>
   );

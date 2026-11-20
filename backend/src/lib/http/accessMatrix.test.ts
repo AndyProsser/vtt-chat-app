@@ -101,6 +101,7 @@ const memberRoutes = (c: string): Route[] => [
   ['GET', `/api/campaigns/${c}/members`],
   ['GET', `/api/campaigns/${c}/characters`],
   ['POST', `/api/campaigns/${c}/characters`, { name: 'Zed' }],
+  ['DELETE', `/api/campaigns/${c}/characters/${ID}`],
   ['GET', `/api/campaigns/${c}/chat`],
   ['POST', `/api/campaigns/${c}/voice-token`],
   ['POST', `/api/campaigns/${c}/leave`],
@@ -141,6 +142,15 @@ const dmRoutes = (c: string): Route[] => [
   ['PATCH', `/api/campaigns/${c}`, { allowJoin: true }],
   ['PATCH', `/api/campaigns/${c}`, { name: 'Renamed', description: 'About' }],
   ['DELETE', `/api/campaigns/${c}/invites`],
+  ['GET', `/api/campaigns/${c}/gm/notes`],
+  ['PUT', `/api/campaigns/${c}/gm/notes`, { body: 'x' }],
+  ['DELETE', `/api/campaigns/${c}/gm/notes/files/${ID}`],
+  ['GET', `/api/campaigns/${c}/gm/notes/files/${ID}`],
+  ['GET', `/api/campaigns/${c}/gm/glossary`],
+  ['POST', `/api/campaigns/${c}/gm/glossary`, { term: 'Gary' }],
+  ['PATCH', `/api/campaigns/${c}/gm/glossary/${ID}`, { term: 'Gary' }],
+  ['POST', `/api/campaigns/${c}/gm/glossary/${ID}/approve`],
+  ['DELETE', `/api/campaigns/${c}/gm/glossary/${ID}`],
 ];
 
 const REFUSED = [401, 403, 404];

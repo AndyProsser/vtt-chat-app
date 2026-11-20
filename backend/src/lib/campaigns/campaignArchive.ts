@@ -69,7 +69,8 @@ export const TABLES: readonly TableSpec[] = [
   },
   {
     name: 'media_files',
-    where: `id IN (SELECT hf.media_id FROM handout_files hf JOIN handouts h ON h.id = hf.handout_id WHERE h.campaign_id = $1)`,
+    where: `id IN (SELECT hf.media_id FROM handout_files hf JOIN handouts h ON h.id = hf.handout_id WHERE h.campaign_id = $1
+      UNION SELECT g.media_id FROM gm_note_files g WHERE g.campaign_id = $1)`,
     ids: ['id'],
     users: ['owner_id'],
   },
@@ -87,6 +88,14 @@ export const TABLES: readonly TableSpec[] = [
     users: ['user_id'],
   },
   { name: 'handout_files', where: IN_CAMPAIGN_HANDOUTS, refs: ['handout_id', 'media_id'] },
+  { name: 'gm_notes', where: 'campaign_id = $1', refs: ['campaign_id'], users: ['updated_by'] },
+  {
+    name: 'gm_note_files',
+    where: 'campaign_id = $1',
+    ids: ['id'],
+    refs: ['campaign_id', 'media_id'],
+  },
+  { name: 'glossary_terms', where: 'campaign_id = $1', ids: ['id'], refs: ['campaign_id'] },
   {
     name: 'loot_items',
     where: 'campaign_id = $1',

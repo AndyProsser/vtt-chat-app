@@ -10,6 +10,40 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-20
+
+The **protocol 4** release: loot re-drop and "added to my sheet", a better soundboard mix and per-person volume, GM notes and a glossary, richer character sheets on the rail, a storyteller for each campaign, and installing a server without a domain. A **MINOR** release with a wire change: **a 0.5 app cannot join a 0.6 server and the other way round**, so update the whole stack together. **Operators:** update the server first (`get.sh` or your usual update; the database gets two small migrations on start), then `vtt-admin updates sync` so players are offered 0.6. **Players:** update the app.
+
+### Added
+
+- **Re-drop loot.** The DM can post an item that is still on the table into the chat again; the card **moves** to the bottom (there is never a second card for one item). Only unclaimed loot can be re-dropped.
+- **"Added to my sheet".** A player ticks each item they hold, the party stash and their share of split coin once it is on their real game sheet. The tick resets whenever the item moves, and the DM never sees it. It is a small round check box at the right of the item, on the inventory pages only (never on the chat cards); while an item is ticked its take, store and put-back buttons are greyed out until you untick it. Loot buttons are icons with a tooltip in both apps. Players get a **To confirm** filter (their default), and a count on the Loot icon in the desktop app and the Loot tab of the phone web app.
+- **Quick mix on the sound panel.** The Stingers and Scenes rows each get a volume slider at the right, so a DM can keep the quiet scene and the louder stingers apart while running the board; moving one changes what is already playing (it used to apply to the next sound only). No change between app and server.
+- **Settings → Players, for everyone.** The DM-only Quality tab is now **Players**: every player gets a volume slider per person (saved by account on this machine, so a quiet microphone is fixed once), with a reset button; the DM also keeps the link graphs there. The ceiling is **400%** (it was 200%), with the output soft-limited so a boosted voice does not clip. The hover-card slider is unchanged and shares the same value.
+- **A storyteller for each campaign.** The Game Master picks one of five preset bards (the Tavern Bard by default; Dry Historian, Drunken, Sarcastic, Bored Court Scribe) in Settings → Campaign; everyone else can read who it is. The Drunken Bard says plainly what it means and needs a second click: it may let Game Master secrets slip into the tale. It is stored and shown now; the AI work will make it change how the tale is told.
+- **Where a session is processed, shown to everyone.** The recording indicator's tooltip and the status page say whether the session is processed on the server's own network (a gaming PC on the operator's network counts as local) or off-site; an amber cloud icon appears beside the REC dot only when it is off-site.
+- **GM notes and a glossary (Game Master only).** A notebook button in the top bar opens a window with your **notes** (one Markdown page per campaign, view and edit modes, a list of its headings on the right, picture and PDF attachments you can preview, links that open in your normal browser) and the campaign **glossary** (names, places, items and spells with their other spellings, and room for suggestions to approve). Both are refused to players by the server, and both go into a campaign's export. The operator can cap one attachment with `GM_NOTES_MAX_MB` (default 100).
+- **The character sheet on the rail, more of it, and deleting.** Everyone at the table now sees a linked character's armour class, hit points and special senses (Darkvision, Blindsight, Tremorsense, Truesight, with their range) as small icon chips on the rail's hover card, with a **Details** button for a larger popup (classes with subclasses such as "Monk 5 (Way of the Open Hand) / Cleric 4 (Life Domain)", the six abilities, vitals, senses), in both apps. The character screens show the same. A character can now be **deleted** (from this campaign only; the next one takes over if it was the one being played), and adding one from a D&D Beyond link is **one step**: the sheet is read first, so a private or wrong link leaves nothing behind. Characters already linked pick up senses and subclasses at their next sync.
+- **Install without a domain, or on another port.** `get.sh --http` serves plain HTTP (for a LAN or VPN, with an IP address or any name as the address; passwords are not encrypted, so only on a network you trust) and `--port 8443` serves on another port (a valid certificate there needs `--cloudflare-dns`). The server's own links and its voice address follow the scheme and port, an update keeps them, and the firewall and the port check use the chosen ports. A free DDNS name already worked as a domain.
+- **A notice when the DM gives you something**, stored so a player who was away finds it next time.
+
+### Changed
+
+- **The Storyteller choice is a dropdown** in Settings → Campaign; each bard keeps its one-line description in the open list.
+- **Loot buttons are icons with tooltips** in both apps, and loot chat cards no longer carry the "added to my sheet" tick.
+
+### Fixed
+
+- **My sounds upload works again in the desktop app.** The 0.5.4 app refused the upload because the command was missing from its allow-list. (0.5.4 apps keep the fault until they move to 0.6; there is no 0.5.5.)
+
+### Known limits
+
+- **The storyteller is stored and shown, not yet used:** the AI work that changes how a tale is told comes in 0.6.x patches.
+- **GM notes and the bard picker are in the desktop app only**; the phone web app does not have them yet.
+- **Senses and subclasses** read from D&D Beyond have been tried against recorded sheets only; a character picks them up at the next sync.
+- **Plain HTTP installs (`--http`)** send passwords unencrypted: only for a network you trust. A valid certificate on another port needs `--cloudflare-dns`.
+- **The macOS app is for Apple silicon only** (no Intel build).
+
 ## [0.5.4] - 2026-11-19
 
 Cleaner character screens with D&D Beyond sync that now brings the portrait, your own sounds in the mixer, rules for who may delete a session, and new operator commands: delete a campaign, export and import one. A **PATCH** release: no protocol change, so 0.5.x apps and servers work together.

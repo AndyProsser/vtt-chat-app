@@ -1,4 +1,4 @@
-import { Clapperboard, Mic, RotateCcw, Zap } from 'lucide-react';
+import { Clapperboard, Mic, RotateCcw, Volume2, Zap } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { useAccount } from '../../hooks/useAccount.js';
@@ -15,6 +15,7 @@ import { accountErrorMessage, syncCommand, voiceEffectSet } from '../../lib/taur
 import type { SoundLibrary } from '../../types/index.js';
 import { ToolButton } from '../ToolButton.js';
 import { VoiceStrip } from '../VoiceStrip.js';
+import { MixSlider } from './MixSlider.js';
 import { ScenePanel } from './ScenePanel.js';
 import { SoundSettings } from './SoundSettings.js';
 import { StingerPanel } from './StingerPanel.js';
@@ -149,6 +150,12 @@ export function SoundDrawer() {
             onHoldEnd={(playId) => void send('sound.stop', { playId })}
             onTogglePin={togglePin}
           />
+          <MixSlider
+            label="Stinger volume"
+            icon={Volume2}
+            value={levels.stingers}
+            onChange={(v) => setLevels({ stingers: v })}
+          />
         </div>
       )}
       {panels.scenes && (
@@ -164,6 +171,12 @@ export function SoundDrawer() {
             onToggle={(scene, on) =>
               void send(on ? 'scene.start' : 'scene.stop', on ? { sceneId: scene.id } : {})
             }
+          />
+          <MixSlider
+            label="Scene volume"
+            icon={Volume2}
+            value={levels.scenes}
+            onChange={(v) => setLevels({ scenes: v })}
           />
         </div>
       )}

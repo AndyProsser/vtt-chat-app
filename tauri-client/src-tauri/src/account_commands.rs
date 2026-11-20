@@ -814,6 +814,52 @@ pub async fn handout_upload(
         .await
 }
 
+/// Attaches a picture or PDF to the Game Master's notes. `data` is the file, base64; the server checks what it really
+/// is and how big it may be (the operator's ceiling).
+#[tauri::command]
+pub async fn gm_note_upload(
+    state: State<'_, AccountState>,
+    name: String,
+    data: String,
+) -> Result<Value, AccountError> {
+    use base64::Engine;
+    let (server, token, campaign) = credentials(&state).await?;
+    let path = crate::account::gm_note_upload_path(&campaign, &name)?;
+    let bytes = base64::engine::general_purpose::STANDARD
+        .decode(data.as_bytes())
+        .map_err(|_| error("invalid_input", "that file could not be read"))?;
+    if bytes.is_empty() || bytes.len() > crate::account::MAX_GM_UPLOAD_BYTES {
+        return Err(error("invalid_input", "the file is empty or too large"));
+    }
+    AccountClient::new(&server)
+        .upload(&token, &path, bytes)
+        .await
+}
+
+/// Opens a link from the Game Master's notes in the system's default browser, never inside the app. Only `http`
+/// and `https` addresses are accepted (no `file:`, no custom schemes).
+#[tauri::command]
+pub async fn open_external_link(app: AppHandle, url: String) -> Result<(), AccountError> {
+    use tauri_plugin_opener::OpenerExt;
+    let url = external_link(&url)?;
+    app.opener()
+        .open_url(url, None::<&str>)
+        .map_err(|_| error("open_failed", "could not open your browser"))
+}
+
+/// A web address safe to hand to the system: `http` or `https` with a host, and nothing longer than 2,000 characters.
+fn external_link(raw: &str) -> Result<String, AccountError> {
+    let bad = || error("invalid_input", "only web links can be opened");
+    if raw.len() > 2000 {
+        return Err(bad());
+    }
+    let parsed = url::Url::parse(raw.trim()).map_err(|_| bad())?;
+    if !matches!(parsed.scheme(), "http" | "https") || parsed.host_str().is_none() {
+        return Err(bad());
+    }
+    Ok(parsed.to_string())
+}
+
 /// Adds a picture to a picture handout (`data` is the file, base64; the server checks it).
 #[tauri::command]
 pub async fn handout_add_image(
@@ -1077,5 +1123,31 @@ mod home_tests {
         ] {
             assert!(home_page_url(bad).is_err(), "{bad}");
         }
+    }
+}
+
+#[cfg(test)]
+mod external_link_tests {
+    use super::external_link;
+
+    #[test]
+    fn only_web_links_open() {
+        assert_eq!(
+            external_link(" https://example.com/a b ").unwrap(),
+            "https://example.com/a%20b"
+        );
+        assert!(external_link("http://localhost:8080/x").is_ok());
+        for bad in [
+            "file:///etc/passwd",
+            "javascript:alert(1)",
+            "mailto:a@b.c",
+            "steam://run/1",
+            "https://",
+            "not a url",
+            "",
+        ] {
+            assert!(external_link(bad).is_err(), "{bad}");
+        }
+        assert!(external_link(&format!("https://e.com/{}", "a".repeat(2000))).is_err());
     }
 }

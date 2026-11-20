@@ -1,7 +1,14 @@
-import { abilityTiles, vitalTiles, type CharacterSheet } from '@vtt-chat-app/shared';
+import {
+  abilityTiles,
+  classesLine,
+  senseLabel,
+  vitalTiles,
+  type CharacterSheet,
+} from '@vtt-chat-app/shared';
 
 import { Icon } from '../icons/index.js';
 import type { IconName } from '../icons/paths.js';
+import { SENSE_ICON } from './SheetChips.js';
 
 const VITAL_ICON: Record<string, IconName> = { ac: 'shield', hp: 'heart', pp: 'eye' };
 
@@ -15,6 +22,7 @@ export function CharacterStats({ sheet }: { sheet: CharacterSheet }) {
       className="phone-stats"
       title="Worked out from your D&D Beyond sheet; check it there for unusual builds"
     >
+      {classesLine(sheet) && <div className="phone-classes">{classesLine(sheet)}</div>}
       <div className="phone-vitals">
         {vitalTiles(sheet).map((t) => (
           <div key={t.key} className="phone-vital" data-vital={t.key}>
@@ -24,6 +32,15 @@ export function CharacterStats({ sheet }: { sheet: CharacterSheet }) {
           </div>
         ))}
       </div>
+      {(sheet.senses ?? []).length > 0 && (
+        <ul className="phone-senses" aria-label="Senses">
+          {(sheet.senses ?? []).map((s) => (
+            <li key={s.kind}>
+              <Icon name={SENSE_ICON[s.kind]} size={14} /> {senseLabel(s)}
+            </li>
+          ))}
+        </ul>
+      )}
       <div className="phone-abilities">
         {abilityTiles(sheet).map((t) => (
           <div key={t.key} className="phone-ability" data-ability={t.key}>

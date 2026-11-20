@@ -109,6 +109,29 @@ describe('tableModel', () => {
   });
 });
 
+describe('where a recording is processed (protocol 4)', () => {
+  const ev = (t: string, d: unknown): SyncEvent => ({ t, d });
+  it('keeps what the server says across state and status, and ignores anything odd', () => {
+    let s = applyEvent(
+      emptyTable,
+      ev('recording.state', { recording: { recordingId: 'r1', processing: 'offsite' } }),
+    );
+    expect(s.recording?.processing).toBe('offsite');
+    s = applyEvent(s, ev('recording.status', { recordingId: 'r1', status: 'PAUSED' }));
+    expect(s.recording?.processing).toBe('offsite');
+    s = applyEvent(
+      s,
+      ev('recording.status', { recordingId: 'r2', status: 'STARTED', processing: 'local' }),
+    );
+    expect(s.recording?.processing).toBe('local');
+    s = applyEvent(
+      s,
+      ev('recording.status', { recordingId: 'r3', status: 'STARTED', processing: 'mars' }),
+    );
+    expect(s.recording?.processing).toBeUndefined();
+  });
+});
+
 describe('recording state', () => {
   const ev = (t: string, d: unknown): SyncEvent => ({ t, d });
 
@@ -293,6 +316,20 @@ describe('loot and handout cards', () => {
     ]);
     state = applyEvent(state, claimed);
     expect(state.cards[0]?.claimedBy).toBe('u1');
+  });
+
+  it('moves the card to the bottom of the chat when the DM re-drops the item', () => {
+    let state = applyEvent(emptyTable, chatLine);
+    state = applyEvent(state, dropped);
+    state = applyEvent(state, {
+      t: 'chat.message',
+      d: { id: 'm2', text: 'later', from: { userId: 'u', name: 'U' }, at: 9 },
+    });
+    state = applyEvent(state, {
+      t: 'loot.redropped',
+      d: { itemId: 'i1', name: 'Potion', quantity: 2 },
+    });
+    expect(state.cards.map((c) => [c.id, c.after])).toEqual([['loot:i1', 'm2']]);
   });
 
   it('does not duplicate or un-claim when the same events are replayed', () => {

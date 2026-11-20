@@ -1,4 +1,16 @@
-import { Backpack, Inbox, List, Split, Trash2, User, UserCheck, Users } from 'lucide-react';
+import {
+  Backpack,
+  Inbox,
+  List,
+  ListChecks,
+  ListTodo,
+  Split,
+  Trash2,
+  User,
+  UserCheck,
+  Users,
+} from 'lucide-react';
+import { canConfirm, isConfirmed, needsConfirming } from '@vtt-chat-app/shared';
 import { useMemo, useState } from 'react';
 
 import { useAccount } from '../hooks/useAccount.js';
@@ -15,6 +27,7 @@ import { ItemIcon } from './ItemIcon.js';
 import { LootActions } from './LootActions.js';
 import { PlayerList } from './PlayerList.js';
 import { LootWorkbench } from './LootWorkbench.js';
+import { RoundCheck } from './RoundCheck.js';
 import { ToolButton } from './ToolButton.js';
 import { EmptyState } from './EmptyState.js';
 
@@ -24,6 +37,7 @@ const FILTER_ICON = {
   all: List,
   own: User,
   party: Users,
+  unconfirmed: ListTodo,
 } as const;
 const FILTER_LABEL: Record<LootFilter, string> = {
   available: 'Available',
@@ -31,6 +45,7 @@ const FILTER_LABEL: Record<LootFilter, string> = {
   all: 'All',
   own: 'Mine',
   party: 'Party stash',
+  unconfirmed: 'Not added to my sheet yet',
 };
 
 /**
@@ -73,6 +88,8 @@ export function LootPanel() {
   );
   const order = useMemo(() => (loot ?? []).map((i) => i.id), [loot]);
   const shown = useLeaving(filtered, order, view);
+  // What the "Add all" button would tick: this player's own items in the list that are not on their sheet yet.
+  const pending = shown.filter((i) => !i.leaving && needsConfirming(i, status?.userId ?? null));
 
   return (
     <div className="vtt-inventory">
@@ -99,6 +116,23 @@ export function LootPanel() {
             </ToolButton>
           );
         })}
+        {pending.length > 0 && (
+          <>
+            <span className="vtt-spacer" />
+            <ToolButton
+              label={`Mark all ${pending.length} as added to my character sheet`}
+              text={`Add all ${pending.length}`}
+              onClick={() =>
+                void run(async () => {
+                  for (const item of pending)
+                    await campaignApi('POST', `loot/${item.id}/confirm`, { confirmed: true });
+                })
+              }
+            >
+              <ListChecks size={14} />
+            </ToolButton>
+          </>
+        )}
       </div>
       {data &&
         shown.length === 0 &&
@@ -106,6 +140,10 @@ export function LootPanel() {
           <EmptyState>Nothing in the pool yet.</EmptyState>
         ) : view === 'available' ? (
           <p className="vtt-muted">Nothing left to take.</p>
+        ) : view === 'unconfirmed' ? (
+          <p className="vtt-muted">
+            Everything you hold is on your sheet. Look under Available for what is left to take.
+          </p>
         ) : (
           <p className="vtt-muted">Nothing matches this filter.</p>
         ))}
@@ -133,6 +171,7 @@ export function LootPanel() {
                   dm={dm}
                   players={players}
                   onDone={reload}
+                  disabled={isConfirmed(item, status?.userId ?? null)}
                 />
                 {open && item.kind === 'coin' && (
                   <ToolButton label="Split the coin equally…" onClick={() => startSplit(item.id)}>
@@ -147,6 +186,16 @@ export function LootPanel() {
                   >
                     <Trash2 size={14} />
                   </ToolButton>
+                )}
+                {canConfirm(item, status?.userId ?? null, dm) && (
+                  <RoundCheck
+                    checked={isConfirmed(item, status?.userId ?? null)}
+                    onChange={(v) =>
+                      void run(() =>
+                        campaignApi('POST', `loot/${item.id}/confirm`, { confirmed: v }),
+                      )
+                    }
+                  />
                 )}
               </div>
             </div>

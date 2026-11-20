@@ -7,7 +7,7 @@ const free = { claimedBy: null, claimedFor: null };
 describe('lootActions', () => {
   it('lets a player take or store an unclaimed item, and the DM only give it', () => {
     expect(lootActions(free, 'p1', false)).toEqual(['take', 'store']);
-    expect(lootActions(free, 'dm', true)).toEqual(['give']);
+    expect(lootActions(free, 'dm', true)).toEqual(['give', 'redrop']);
   });
   it('lets whoever took or was given an item store it or put it back', () => {
     expect(lootActions({ claimedBy: 'p1', claimedFor: 'self' }, 'p1', false)).toEqual([

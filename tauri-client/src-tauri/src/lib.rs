@@ -181,6 +181,8 @@ pub fn run() {
             account_commands::join_api,
             account_commands::handout_upload,
             account_commands::sound_upload,
+            account_commands::gm_note_upload,
+            account_commands::open_external_link,
             account_commands::handout_add_image,
             clipboard::clipboard_picture,
             soundboard::soundboard_monitor_set,

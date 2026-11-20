@@ -1512,9 +1512,20 @@ body,
   margin-top: 7px;
   color: var(--vtt-gold);
 }
-.vtt-deck-panel > :last-child {
+.vtt-deck-panel > :nth-child(2) {
   flex: 1;
   min-width: 0;
+}
+/* The level slider at the right end of a deck row (Stingers, Scenes). */
+.vtt-deck-mix {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: 110px;
+  margin-top: 7px;
+  margin-left: auto;
+  color: var(--vtt-muted);
 }
 .vtt-scene-scroll {
   display: flex;
@@ -2751,4 +2762,303 @@ body,
   font-size: 10px;
   font-style: normal;
   text-align: center;
+}
+
+/* Settings → Players: a name (and, for the DM, the link) over the volume slider. */
+.vtt-player-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.vtt-player-vol {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.vtt-player-vol > span[role='slider'],
+.vtt-player-vol > :first-child {
+  flex: 1;
+}
+
+/* Settings → Campaign → Storyteller: a dropdown of the five preset bards; each item carries its one-line blurb. */
+.vtt-bard-trigger {
+  width: 100%;
+}
+/* The closed dropdown shows the name only; the blurb is under it and in the open list. */
+.vtt-bard-trigger small {
+  display: none;
+}
+.vtt-bard-text {
+  display: flex;
+  flex-direction: column;
+}
+.vtt-bard-text small {
+  opacity: 0.7;
+  font-size: 11px;
+}
+
+/* The off-site notice beside the REC pill: only shown when session content leaves the operator's network. */
+.vtt-rec-offsite {
+  display: inline-flex;
+  align-items: center;
+  color: var(--amber-11);
+}
+
+/* The GM notes window: the page on the left; headings and attachments in a sidebar on the right. */
+.vtt-notes {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+.vtt-notes-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.vtt-notes-side {
+  flex: none;
+  width: 190px;
+  position: sticky;
+  top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-height: calc(100vh - 80px);
+  overflow-y: auto;
+}
+@media (max-width: 560px) {
+  .vtt-notes {
+    flex-direction: column;
+  }
+  .vtt-notes-side {
+    width: 100%;
+    position: static;
+  }
+}
+.vtt-notes-side-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+.vtt-notes-heading {
+  display: block;
+  width: 100%;
+  padding: 3px 4px;
+  text-align: left;
+  font-size: 12px;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.vtt-notes-heading:hover {
+  background: var(--gray-a3);
+}
+.vtt-notes-files {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.vtt-notes-file {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.vtt-notes-file-open {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 4px;
+  text-align: left;
+  font-size: 12px;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.vtt-notes-file-open:hover {
+  background: var(--gray-a3);
+}
+.vtt-notes-file-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.vtt-notes-sure {
+  font-size: 11px;
+  color: var(--red-11);
+  background: transparent;
+  border: 1px solid var(--red-a7);
+  border-radius: 4px;
+  cursor: pointer;
+}
+.vtt-md-anchor {
+  color: var(--accent-11);
+  text-decoration: underline;
+  cursor: pointer;
+}
+.vtt-glossary {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.vtt-glossary-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.vtt-glossary-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 0;
+}
+.vtt-glossary-term {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Quick numbers as icon chips (hover card), the classes line and the senses list (character screen and detail popup). */
+.vtt-sheet-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-top: 6px;
+}
+.vtt-sheet-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 12px;
+}
+.vtt-hover-card-click {
+  cursor: pointer;
+}
+.vtt-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.vtt-classes {
+  font-size: 12px;
+  opacity: 0.85;
+  margin-bottom: 4px;
+}
+.vtt-senses {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+}
+.vtt-senses li {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* The character detail popup: room between the heading, the tiles and the senses. */
+.vtt-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px;
+}
+.vtt-detail .vtt-vitals,
+.vtt-detail .vtt-abilities,
+.vtt-detail .vtt-senses {
+  margin: 0;
+}
+
+/* The glossary's sections: a heading over its rows, with room between. */
+.vtt-glossary section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* The GM notes window fills its window: the editor takes all the room that is left. */
+.vtt-notes-window {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.vtt-notes-window > [role='tabpanel']:not([hidden]) {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.vtt-notes-page {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.vtt-notes-page > .vtt-notes {
+  flex: 1;
+  min-height: 0;
+  align-items: stretch;
+}
+.vtt-notes-page .vtt-notes-main > form,
+.vtt-notes-page .vtt-notes-main > form > .vtt-editor {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.vtt-notes-page .vtt-editor-area {
+  flex: 1;
+  min-height: 200px;
+  display: flex;
+  resize: none;
+}
+.vtt-notes-page .vtt-editor-area textarea {
+  flex: 1;
+  height: 100%;
+  resize: none;
+}
+.vtt-notes-page .vtt-editor-preview {
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* "On my sheet": a small round check box at the right of an inventory item. */
+.vtt-round-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 2px solid var(--vtt-gold);
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.vtt-round-check:hover {
+  background: color-mix(in srgb, var(--vtt-gold) 18%, transparent);
+}
+.vtt-round-check-on {
+  background: var(--vtt-gold);
+  color: var(--vtt-bg);
 }

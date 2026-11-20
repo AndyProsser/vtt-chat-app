@@ -1,4 +1,4 @@
-import { Hand, Undo2, Users } from 'lucide-react';
+import { Hand, Megaphone, Undo2, Users } from 'lucide-react';
 import { useState } from 'react';
 
 import { ACTION_LABEL, lootActions, type LootAction } from '../lib/lootActions.js';
@@ -7,13 +7,7 @@ import type { Member } from '../types/index.js';
 import { GivePicker } from './GivePicker.js';
 import { ToolButton } from './ToolButton.js';
 
-const ICON = { take: Hand, store: Users, return: Undo2 } as const;
-const SHORT: Record<LootAction, string> = {
-  take: 'Take',
-  store: 'Store',
-  return: 'Return',
-  give: 'Give',
-};
+const ICON = { take: Hand, store: Users, return: Undo2, redrop: Megaphone } as const;
 
 /**
  * The buttons that fit one item for one person (see `lootActions`): take or store an item on the table,
@@ -27,6 +21,7 @@ export function LootActions({
   dm,
   players,
   onDone,
+  disabled = false,
 }: {
   item: {
     id: string;
@@ -37,6 +32,8 @@ export function LootActions({
   dm: boolean;
   players: Member[];
   onDone?: () => void;
+  /** Greyed out: an item the player has put on their sheet stays where it is until they untick it. */
+  disabled?: boolean;
 }) {
   const [error, setError] = useState<string>();
   const actions = lootActions(item, selfId, dm);
@@ -82,7 +79,7 @@ export function LootActions({
             <ToolButton
               key={action}
               label={ACTION_LABEL[action]}
-              text={SHORT[action]}
+              disabled={disabled}
               onClick={() => act(action)}
             >
               <Icon size={14} />

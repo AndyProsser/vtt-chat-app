@@ -5,13 +5,17 @@ import {
   filterLootItems,
   lootActions,
   lootFiltersFor,
+  canConfirm,
+  isConfirmed,
+  needsConfirming,
+  unconfirmedCount,
   lootRequest,
 } from './lootView.js';
 
 describe('lootActions', () => {
   it('a player can take or store an unclaimed item; the DM can only give it', () => {
     expect(lootActions({ claimedBy: null }, 'p1', false)).toEqual(['take', 'store']);
-    expect(lootActions({ claimedBy: null }, 'dm', true)).toEqual(['give']);
+    expect(lootActions({ claimedBy: null }, 'dm', true)).toEqual(['give', 'redrop']);
   });
   it('what you hold you can store or return; any player can take or return a party item; others’ items offer nothing', () => {
     expect(lootActions({ claimedBy: 'p1', claimedFor: 'self' }, 'p1', false)).toEqual([
@@ -76,10 +80,63 @@ describe('filterLootItems', () => {
   });
   it('offers the DM Available | Taken | All and players All | Own | Party | Available', () => {
     expect(lootFiltersFor(true)).toEqual(['available', 'taken', 'all']);
-    expect(lootFiltersFor(false)).toEqual(['all', 'own', 'party', 'available']);
+    expect(lootFiltersFor(false)).toEqual(['unconfirmed', 'all', 'own', 'party', 'available']);
   });
   it('opens on Available for everyone', () => {
     expect(defaultLootFilter(true)).toBe('available');
-    expect(defaultLootFilter(false)).toBe('available');
+    expect(defaultLootFilter(false)).toBe('unconfirmed');
+  });
+});
+
+describe('the added-to-my-sheet flag', () => {
+  const mine = { claimedBy: 'p1', claimedFor: 'self' as const };
+  it('counts what a player holds, the party stash and their share of a split until ticked', () => {
+    expect(needsConfirming(mine, 'p1')).toBe(true);
+    expect(needsConfirming({ ...mine, confirmed: true }, 'p1')).toBe(false);
+    expect(needsConfirming({ claimedBy: 'p2', claimedFor: 'party' }, 'p1')).toBe(true);
+    expect(needsConfirming({ claimedBy: 'p2', claimedFor: 'party', confirmed: true }, 'p1')).toBe(
+      false,
+    );
+    const split = (confirmed?: boolean) => ({
+      claimedBy: 'dm',
+      claimedFor: 'split' as const,
+      split: {
+        shares: [
+          { userId: 'p1', ...(confirmed === undefined ? {} : { confirmed }) },
+          { userId: 'p2' },
+        ],
+      },
+    });
+    expect(needsConfirming(split(), 'p1')).toBe(true);
+    expect(needsConfirming(split(true), 'p1')).toBe(false);
+    expect(needsConfirming(split(), 'p3')).toBe(false);
+  });
+  it("is nothing for the DM, for someone else's item, or for an item still on the table", () => {
+    expect(needsConfirming(mine, 'p2')).toBe(false);
+    expect(needsConfirming({ claimedBy: null }, 'p1')).toBe(false);
+    expect(needsConfirming(mine, null)).toBe(false);
+  });
+  it('counts them for the badge and filters the list', () => {
+    const items = [
+      mine,
+      { ...mine, confirmed: true },
+      { claimedBy: 'p2', claimedFor: 'party' as const },
+      { claimedBy: null },
+    ];
+    expect(unconfirmedCount(items, 'p1')).toBe(2);
+    expect(filterLootItems(items, 'unconfirmed', 'p1')).toHaveLength(2);
+  });
+});
+
+describe('where the box belongs', () => {
+  const held = { claimedBy: 'p1', claimedFor: 'self' as const };
+  it("is on a player's own item, the party stash and their share, never for the DM", () => {
+    expect(canConfirm(held, 'p1', false)).toBe(true);
+    expect(canConfirm(held, 'p2', false)).toBe(false);
+    expect(canConfirm({ claimedBy: 'p2', claimedFor: 'party' }, 'p1', false)).toBe(true);
+    expect(canConfirm(held, 'dm', true)).toBe(false);
+    expect(canConfirm({ claimedBy: null }, 'p1', false)).toBe(false);
+    expect(isConfirmed({ ...held, confirmed: true }, 'p1')).toBe(true);
+    expect(isConfirmed(held, 'p1')).toBe(false);
   });
 });

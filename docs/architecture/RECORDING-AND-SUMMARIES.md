@@ -621,6 +621,16 @@ shows as **local only**, including offloading to the operator's own gaming PC. "
 host: a private or loopback address (10/8, 172.16/12, 192.168/16, 127/8, IPv6 ULA and link-local), a single-label
 name, or a name ending in `.local`, `.lan`, `.internal` or `.home.arpa`. Anything else counts as off-site.
 
+**Built 2026-11-19 (protocol 4).** `processingLocation()` in `shared/src/lib/processingNotice.ts` applies that rule to the
+operator's AI settings (either remote backend off the own network, or a URL it cannot read, means off-site; the Claude
+connector will count as off-site when it exists). The server sends the result as `processing` on `recording.status`,
+`recording.state` and `GET /api/status`; the desktop app puts it in the REC indicator's tooltip and shows an amber
+cloud beside it only when it is off-site, and the status page has a row for it. It is re-read on every join and
+before every recording change, so changing the setting with `vtt-admin` shows up at the next recording.
+
+**The summary kinds** (`session`, `chapter`, `character`, `dm-only`, `notes`), their order, their labels and who reads
+each are one vocabulary in `shared/src/types/records.ts`, used by the server and both apps.
+
 ### Each stage does less (Andy, 2026-11-17)
 
 The pipeline's inputs shrink at every step, and each step should be asked for no more than the next one needs:

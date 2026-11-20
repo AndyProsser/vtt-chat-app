@@ -4,7 +4,7 @@ import { handoutIdFromHash, panelFromHash } from './panelName.js';
 
 describe('panelFromHash', () => {
   it('reads the window names', () => {
-    for (const name of ['main', 'settings', 'handouts', 'history', 'inventory']) {
+    for (const name of ['main', 'settings', 'handouts', 'history', 'inventory', 'notes']) {
       expect(panelFromHash(`#${name}`)).toBe(name);
     }
   });

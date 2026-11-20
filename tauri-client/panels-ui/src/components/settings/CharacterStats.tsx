@@ -1,5 +1,13 @@
-import { abilityTiles, vitalTiles, type CharacterSheet } from '@vtt-chat-app/shared';
+import {
+  abilityTiles,
+  classesLine,
+  senseLabel,
+  vitalTiles,
+  type CharacterSheet,
+} from '@vtt-chat-app/shared';
 import { Eye, Heart, Shield, type LucideIcon } from 'lucide-react';
+
+import { SENSE_ICON } from '../SheetChips.js';
 
 const VITAL_ICON: Record<string, LucideIcon> = { ac: Shield, hp: Heart, pp: Eye };
 
@@ -13,6 +21,7 @@ export function CharacterStats({ sheet }: { sheet: CharacterSheet }) {
       className="vtt-stats"
       title="Worked out from your D&D Beyond sheet; check it there for unusual builds"
     >
+      {classesLine(sheet) && <div className="vtt-classes">{classesLine(sheet)}</div>}
       <div className="vtt-vitals">
         {vitalTiles(sheet).map((t) => {
           const Icon = VITAL_ICON[t.key] ?? Shield;
@@ -25,6 +34,18 @@ export function CharacterStats({ sheet }: { sheet: CharacterSheet }) {
           );
         })}
       </div>
+      {(sheet.senses ?? []).length > 0 && (
+        <ul className="vtt-senses" aria-label="Senses">
+          {(sheet.senses ?? []).map((s) => {
+            const Icon = SENSE_ICON[s.kind];
+            return (
+              <li key={s.kind}>
+                <Icon size={14} aria-hidden /> {senseLabel(s)}
+              </li>
+            );
+          })}
+        </ul>
+      )}
       <div className="vtt-abilities">
         {abilityTiles(sheet).map((t) => (
           <div key={t.key} className="vtt-ability" data-ability={t.key}>

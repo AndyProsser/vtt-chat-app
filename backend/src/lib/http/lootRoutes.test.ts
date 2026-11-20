@@ -29,6 +29,8 @@ const CONFIG: BackendConfig = {
 
 let server: Server;
 let base: string;
+let redrops: string[];
+let confirmations: { itemId: string; confirmed: boolean; userIds: readonly string[] }[];
 let events: { event: string; id: string; claimedBy: string | null; item: any }[];
 let dm: { id: string; token: string };
 let alice: { id: string; token: string };
@@ -70,6 +72,8 @@ beforeEach(async () => {
       ? new PostgresTableStore(backend.pool)
       : new MemoryTableStore();
   events = [];
+  redrops = [];
+  confirmations = [];
   const app = createApp({
     config: CONFIG,
     store,
@@ -80,6 +84,9 @@ beforeEach(async () => {
       announceRecording() {},
       announceLoot: (event, item) =>
         events.push({ event, id: item.id, claimedBy: item.claimedBy, item }),
+      announceLootRedropped: (item) => void redrops.push(item.id),
+      announceLootConfirmed: (_c, itemId, confirmed, userIds) =>
+        void confirmations.push({ itemId, confirmed, userIds }),
     },
   });
   await new Promise<void>((resolve) => {
@@ -586,5 +593,90 @@ describe('dropping straight to a player', () => {
     expect((await call('GET', `/api/campaigns/${campaign}/loot`, dm.token)).body.loot).toHaveLength(
       before,
     );
+  });
+});
+
+const redrop = (token: string, id: string, c = campaign) =>
+  call('POST', `/api/campaigns/${c}/loot/${id}/redrop`, token, {});
+const confirm = (token: string, id: string, confirmed = true, c = campaign) =>
+  call('POST', `/api/campaigns/${c}/loot/${id}/confirm`, token, { confirmed });
+const lootOf = async (token: string) =>
+  (await call('GET', `/api/campaigns/${campaign}/loot`, token)).body.loot as any[];
+
+describe('re-dropping (protocol 4)', () => {
+  it('moves an unclaimed item to the bottom of the chat and tells everyone once', async () => {
+    const a = (await drop(dm.token, { name: 'A' })).body.item.id;
+    await drop(dm.token, { name: 'B' });
+    const before = (await lootOf(dm.token)).map((i) => i.name);
+    expect(before).toEqual(['A', 'B']);
+    await new Promise((r) => setTimeout(r, 5));
+    const r = await redrop(dm.token, a);
+    expect(r.status).toBe(200);
+    expect(redrops).toEqual([a]);
+    // Cards are drawn by drop time, so the re-dropped one now comes last: the card moved.
+    expect((await lootOf(dm.token)).map((i) => i.name)).toEqual(['B', 'A']);
+  });
+
+  it('only the DM, and only while nobody holds it', async () => {
+    const id = (await drop(dm.token)).body.item.id;
+    expect((await redrop(alice.token, id)).status).toBe(403);
+    expect((await redrop(outsider.token, id)).status).toBe(403);
+    await claim(alice.token, id);
+    expect((await redrop(dm.token, id)).status).toBe(409);
+    expect(redrops).toEqual([]);
+    const stash = (await drop(dm.token, { name: 'Pearl' })).body.item.id;
+    await call('POST', `/api/campaigns/${campaign}/loot/${stash}/claim`, alice.token, {
+      for: 'party',
+    });
+    expect((await redrop(dm.token, stash)).status).toBe(409);
+  });
+});
+
+describe('added to my sheet (protocol 4)', () => {
+  it('a player ticks what they hold; it resets when the item moves', async () => {
+    const id = (await drop(dm.token)).body.item.id;
+    await claim(alice.token, id);
+    expect((await lootOf(alice.token))[0].confirmed).toBe(false);
+    const ticked = await confirm(alice.token, id);
+    expect(ticked.status).toBe(200);
+    expect(ticked.body.item.confirmed).toBe(true);
+    expect(confirmations).toEqual([{ itemId: id, confirmed: true, userIds: [alice.id] }]);
+    // Storing it in the party stash is a move: the flag resets.
+    await call('POST', `/api/campaigns/${campaign}/loot/${id}/store`, alice.token, {});
+    expect((await lootOf(alice.token))[0].confirmed).toBe(false);
+    // Any player ticks a party item, and everybody who plays is told.
+    await confirm(bob.token, id);
+    expect((await lootOf(alice.token))[0].confirmed).toBe(true);
+    expect(confirmations.at(-1)?.userIds).toEqual(expect.arrayContaining([alice.id, bob.id]));
+    expect(confirmations.at(-1)?.userIds).not.toContain(dm.id);
+    // Taking it for oneself resets it again, and so does returning it.
+    await claim(bob.token, id);
+    expect((await lootOf(bob.token))[0].confirmed).toBe(false);
+    await confirm(bob.token, id);
+    await call('POST', `/api/campaigns/${campaign}/loot/${id}/return`, bob.token, {});
+    await claim(alice.token, id);
+    expect((await lootOf(alice.token))[0].confirmed).toBe(false);
+  });
+
+  it('is not for anyone else, nor the DM, who never sees the flags', async () => {
+    const id = (await drop(dm.token)).body.item.id;
+    expect((await confirm(alice.token, id)).status).toBe(403); // not held by anyone
+    await claim(alice.token, id);
+    expect((await confirm(bob.token, id)).status).toBe(403); // someone else's item
+    expect((await confirm(dm.token, id)).status).toBe(403);
+    await confirm(alice.token, id);
+    expect((await lootOf(dm.token))[0].confirmed).toBe(false);
+  });
+
+  it('a split pile keeps one flag per share, visible only to its owner', async () => {
+    const id = (await drop(dm.token, { name: 'Gold', kind: 'coin', quantity: 10 })).body.item.id;
+    await split(dm.token, id);
+    expect((await confirm(alice.token, id)).status).toBe(200);
+    const mine = (await lootOf(alice.token))[0].split.shares;
+    expect(mine.find((s: any) => s.userId === alice.id).confirmed).toBe(true);
+    expect(mine.find((s: any) => s.userId === bob.id).confirmed).toBeUndefined();
+    const bobs = (await lootOf(bob.token))[0].split.shares;
+    expect(bobs.find((s: any) => s.userId === bob.id).confirmed).toBeUndefined();
+    expect(JSON.stringify((await lootOf(dm.token))[0].split)).not.toContain('confirmed');
   });
 });

@@ -112,7 +112,7 @@ the others the body is the caption, up to 300 characters in the form). Maps are 
 Defaults taken (not asked): an item is claimed **whole** by one player (a stack has a quantity but is not
 split); the DM cannot claim; the DM can remove an item at any time, claimed or not.
 
-- The DM **drops** an item (name, description, quantity); every member sees it at once (`loot.dropped`).
+- The DM **drops** an item (name, description, quantity); every member sees it at once (`loot.dropped`). From protocol 4 it can be **re-dropped** (`loot.redropped`, the card moves) and players tick **added to my sheet** (`loot.confirmed`): see [LOOT.md](LOOT.md).
 - A player **claims** it. The claim is one conditional `UPDATE ... WHERE claimed_by IS NULL`, so of any
   number of simultaneous claims exactly one wins and the rest get `409`; who and when are kept
   (`loot.claimed` names the winner). Verified with concurrent requests against real Postgres.
@@ -230,6 +230,7 @@ crossfades, hotkeys, and a public broadcast link (players hear it in the app).
   the track against a real `livekit-server`, and a listener (`scripts/dev/listen-soundboard.ts`, a mock
   player) received it at the right level for the right length. Whether it _sounds_ right (pitch steadiness
   after Opus and the jitter buffer, latency, the DM's monitor sync) needs ears.
+- **The mix (built 2026-11-19, no protocol change).** The DM's level for stingers and for scenes (0 to 1 each, saved in the app) lives in the Rust mixer: every voice knows whether a scene layer started it, and the mixer applies the stinger or scene level to it **as it plays**, so a slider moves sounds that are already sounding (it was applied when a sound started). The two sliders sit at the right of the Stingers and Scenes rows of the deck; the cog's Levels tab still has them. Per-person volume (0 to 400 %, the engine's `player_volume_set`, saved by account on that machine) lives in Settings → Players for everyone, not on the sound panel. **Hold-to-loop for stingers** needed no protocol change: `sound.play` has carried an optional `playId` and `sound.stop` can name it since 0.3.
 - **The editor (built 2026-11-18, no protocol change: every call already existed).** Scenes could already be
   added, changed and removed from the audio mixer's **Scenes** tab (that line was out of date). The **My sounds** tab
   adds the rest: upload a clip (a Rust command, `sound_upload`, sends the raw bytes like a handout upload; the app

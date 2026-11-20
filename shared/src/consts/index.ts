@@ -1,4 +1,6 @@
 export * from './chat.js';
+export * from './bards.js';
+export * from './gm.js';
 
 /**
  * Tauri event names emitted by `src-tauri` and listened for in `panels-ui`.
@@ -19,7 +21,7 @@ export const PANEL_TOGGLE_EVENT = 'panel:toggle';
  *
  * Mirrored in `tauri-client/src-tauri/src/consts.rs` (PROTOCOL_VERSION): keep the two in step by hand.
  */
-export const PROTOCOL_VERSION = 3;
+export const PROTOCOL_VERSION = 4;
 /** The header the app sends on every request so the server can refuse a client it cannot talk to. */
 export const PROTOCOL_HEADER = 'x-vtt-protocol';
 

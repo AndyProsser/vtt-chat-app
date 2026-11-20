@@ -1,5 +1,5 @@
 import { Badge, Callout, Card, Flex, Text } from '@radix-ui/themes';
-import { LOOT_ACTION_LABEL, lootActions, lootRequest, type LootAction } from '@vtt-chat-app/shared';
+import { lootActions, lootRequest, type LootAction } from '@vtt-chat-app/shared';
 import { useState } from 'react';
 
 import { ApiError } from '../../lib/api.js';
@@ -72,12 +72,7 @@ export function LootChatCard({
                     onPick={(id) => void run('give', id)}
                   />
                 ) : (
-                  <LootButtons
-                    key={action}
-                    action={action}
-                    title={LOOT_ACTION_LABEL[action]}
-                    onClick={() => void run(action)}
-                  />
+                  <LootButtons key={action} action={action} onClick={() => void run(action)} />
                 ),
               )}
             </Flex>

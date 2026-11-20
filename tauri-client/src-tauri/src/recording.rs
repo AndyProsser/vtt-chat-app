@@ -293,6 +293,7 @@ mod tests {
             recording_id: "r1".into(),
             status: change,
             started_at: None,
+            processing: None,
         }
     }
 
@@ -305,6 +306,7 @@ mod tests {
                 acknowledged,
                 started_at: None,
                 grace_seconds: None,
+                processing: None,
             }),
         }
     }
@@ -451,6 +453,7 @@ mod tests {
             recording_id: "r9".into(),
             status: RecordingChange::Stopped,
             started_at: None,
+            processing: None,
         };
         c.on_server_event(&other, now());
         assert!(!c.capture_allowed());

@@ -35,6 +35,17 @@ export interface DropInput {
 export interface LootDeps {
   store: Store;
   table: TableStore;
+  /** Stores a notification for each person (the DM gave someone an item). Never throws into the request. */
+  notify?: (
+    userIds: string[],
+    n: {
+      campaignId: string | null;
+      kind: string;
+      title: string;
+      body?: string;
+      data?: Record<string, unknown>;
+    },
+  ) => Promise<void>;
   now?: () => number;
   newId?: () => string;
 }
@@ -61,7 +72,14 @@ export class LootService {
 
   async list(user: User, campaignId: string): Promise<LootItem[]> {
     const role = await this.role(user, campaignId);
-    return visibleLoot(await this.deps.table.listLoot(campaignId), user.id, role === 'dm');
+    return visibleLoot(await this.deps.table.listLoot(campaignId), user.id, role === 'dm').map(
+      (i) => withoutOthersFlags(i, user.id, role === 'dm'),
+    );
+  }
+
+  /** One item as this person may see it: the DM never sees the confirmed flags, a player only their own share's. */
+  async view(user: User, campaignId: string, item: LootItem): Promise<LootItem> {
+    return withoutOthersFlags(item, user.id, (await this.role(user, campaignId)) === 'dm');
   }
 
   /** Checks one drop and turns it into an item (not yet stored). */
@@ -111,6 +129,7 @@ export class LootService {
       claimedAt: null,
       claimedFor: null,
       split: null,
+      confirmed: false,
     };
   }
 
@@ -157,7 +176,29 @@ export class LootService {
   private async store(item: LootItem, assignTo: string | undefined): Promise<LootItem> {
     await this.deps.table.putLoot(item);
     if (assignTo === undefined) return item;
-    return (await this.deps.table.claimLoot(item.id, assignTo, this.now(), 'assigned')) ?? item;
+    const given = await this.deps.table.claimLoot(item.id, assignTo, this.now(), 'assigned');
+    if (given) await this.tellGiven(item.campaignId, given);
+    return given ?? item;
+  }
+
+  /** "The DM gave you X, add it to your sheet": stored, so a player who was away finds it next time. */
+  private async tellGiven(campaignId: string, item: LootItem): Promise<void> {
+    if (!this.deps.notify || item.claimedBy === null) return;
+    const what =
+      item.kind === 'coin'
+        ? `${item.quantity} ${item.name}`
+        : item.quantity > 1
+          ? `${item.name} ×${item.quantity}`
+          : item.name;
+    await this.deps
+      .notify([item.claimedBy], {
+        campaignId,
+        kind: 'loot_given',
+        title: `The DM gave you ${what}`,
+        body: 'Add it to your sheet, then tick it in the loot window.',
+        data: { itemId: item.id },
+      })
+      .catch(() => undefined);
   }
 
   async drop(user: User, campaignId: string, input: DropInput): Promise<LootItem> {
@@ -268,6 +309,7 @@ export class LootService {
     }
     const claimed = await this.deps.table.claimLoot(itemId, playerId, this.now(), 'assigned');
     if (!claimed) throw new DomainError('conflict', 'that was already taken, split or given out');
+    await this.tellGiven(campaignId, claimed);
     return claimed;
   }
 
@@ -307,6 +349,45 @@ export class LootService {
     return claimed;
   }
 
+  /**
+   * A player says "I have added this to my game sheet" (or takes it back). Works on what they hold, on the party
+   * stash (any player), and on their own share of a split. The DM has no flags to set.
+   */
+  async confirm(
+    user: User,
+    campaignId: string,
+    itemId: string,
+    confirmed: boolean,
+  ): Promise<LootItem> {
+    if ((await this.role(user, campaignId)) === 'dm')
+      throw new DomainError('forbidden', 'the confirmed flag belongs to the players');
+    const existing = await this.deps.table.getLoot(itemId);
+    if (!existing || existing.campaignId !== campaignId) throw new DomainError('not_found');
+    const changed = await this.deps.table.confirmLoot(itemId, user.id, confirmed);
+    if (!changed) throw new DomainError('forbidden', "that is not yours or the party's to confirm");
+    return changed;
+  }
+
+  /** Who is told a flag changed: every player for the party stash, otherwise only the person who set it. */
+  async confirmAudience(campaignId: string, item: LootItem, userId: string): Promise<string[]> {
+    if (item.claimedFor !== 'party') return [userId];
+    return (await this.deps.store.listMemberships(campaignId))
+      .filter((m) => m.role === 'player')
+      .map((m) => m.userId);
+  }
+
+  /** The DM posts an item that is still on the table into chat again, for anyone who missed it. */
+  async redrop(user: User, campaignId: string, itemId: string): Promise<LootItem> {
+    await this.requireDm(user, campaignId);
+    const existing = await this.deps.table.getLoot(itemId);
+    if (!existing || existing.campaignId !== campaignId) throw new DomainError('not_found');
+    // The card moves: it is drawn where the item was dropped, so a re-drop is a new drop time.
+    const moved = await this.deps.table.redropLoot(itemId, this.now());
+    if (!moved)
+      throw new DomainError('conflict', 'only an item still on the table can be dropped again');
+    return moved;
+  }
+
   /** The DM takes an item back off the table, claimed or not. */
   async remove(user: User, campaignId: string, itemId: string): Promise<LootItem> {
     if ((await this.role(user, campaignId)) !== 'dm')
@@ -316,4 +397,23 @@ export class LootService {
     await this.deps.table.deleteLoot(itemId);
     return existing;
   }
+}
+
+/** Hides what a viewer must not see: the DM no flags at all, a player only their own share's. */
+export function withoutOthersFlags(item: LootItem, viewerId: string, dm: boolean): LootItem {
+  const { confirmed, ...rest } = item;
+  const shown = dm ? ({ ...rest, confirmed: false } as LootItem) : { ...rest, confirmed };
+  if (!item.split) return shown;
+  return {
+    ...shown,
+    split: {
+      ...item.split,
+      shares: item.split.shares.map((s) => {
+        const { confirmed: flag, ...bare } = s;
+        return !dm && s.userId === viewerId && flag !== undefined
+          ? { ...bare, confirmed: flag }
+          : bare;
+      }),
+    },
+  };
 }

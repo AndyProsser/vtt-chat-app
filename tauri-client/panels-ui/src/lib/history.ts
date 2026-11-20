@@ -1,5 +1,7 @@
 import { DM_DELETE_MAX_MINUTES } from '@vtt-chat-app/shared';
 
+export { SUMMARY_LABELS, summaryLabel } from '@vtt-chat-app/shared';
+
 /** Wire shapes of the records API (`/api/campaigns/:id/recordings`). */
 export interface RecordingItem {
   id: string;
@@ -67,15 +69,6 @@ export interface SearchHit {
   atMs?: number;
   snippet: string;
 }
-
-export const SUMMARY_LABELS: Record<string, string> = {
-  session: 'The tale',
-  chapter: 'Chapter',
-  character: 'Hero',
-  'dm-only': 'DM brief',
-  notes: 'Scribe’s notes',
-};
-export const summaryLabel = (kind: string): string => SUMMARY_LABELS[kind] ?? kind;
 
 /** "2 h 05 min", "45 min", "under a minute"; "still going" with no stop time. */
 export function durationLabel(startedAt: number, stoppedAt: number | null): string {

@@ -423,6 +423,32 @@ describe('Hub: subscriptions, presence and the snapshot', () => {
       level: 5,
     });
   });
+
+  it('sends the linked sheet to everyone at the table, and null when there is none', async () => {
+    const sheet = {
+      abilities: { str: 16, dex: 14, con: 14, int: 10, wis: 12, cha: 8 },
+      maxHp: 50,
+      armorClass: 16,
+      passivePerception: 11,
+      senses: [{ kind: 'darkvision', range: 60 }],
+      classes: [{ name: 'Monk', level: 5, subclass: 'Way of the Open Hand' }],
+    };
+    const made = await t.campaigns.addCharacter(t.player, t.campaignId, {
+      name: 'Aria',
+      className: 'Monk',
+      race: 'Elf',
+      level: 5,
+      avatarUrl: null,
+    });
+    await t.store.putCharacter({ ...made, sheet: sheet as never });
+    // another player: they see the sheet too, not the DM alone
+    const other = await connect(t, 'p1', 'player');
+    const seen = other.last('snapshot')?.d.members.find((m: any) => m.userId === t.player.id);
+    expect(seen.character.sheet).toEqual(sheet);
+    const dm = await connect(t, 'd1', 'dm');
+    const dmSees = dm.last('snapshot')?.d.members.find((m: any) => m.userId === t.player.id);
+    expect(dmSees.character.sheet).toEqual(sheet);
+  });
 });
 
 describe('Hub: live events', () => {
@@ -902,8 +928,24 @@ describe('Hub: recording consent flow', () => {
         acknowledged: false,
         startedAt: expect.any(Number),
         graceSeconds: 30,
+        processing: 'local',
       },
     });
+  });
+
+  it('says where the session is processed: local by default, offsite when a remote is not on the own network (protocol 4)', async () => {
+    start();
+    expect(dm.last('recording.status')?.d.processing).toBe('local');
+    const settings = await t.store.getSettings();
+    await t.store.putSettings({
+      ...settings,
+      ai: { ...settings.ai, llm: { kind: 'remote', url: 'https://api.example.com', model: null } },
+    });
+    const late = await connect(t, 'p2', 'player');
+    expect(late.last('recording.state')?.d.recording).toMatchObject({ processing: 'offsite' });
+    await t.hub.refreshProcessing();
+    t.hub.announceRecording(t.hub.recording.pause(t.campaignId));
+    expect(dm.last('recording.status')?.d.processing).toBe('offsite');
   });
 
   it('remembers an ack, so a quick reconnect is told not to replay the cue', async () => {

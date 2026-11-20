@@ -66,9 +66,9 @@ _A player's window in light mode: Bram is talking (the ring), Dorn is muted, and
 The window has, from top to bottom:
 
 - **The bar**: the campaign (click to switch), a red **recording timer** (a dot and the time) when a session is being recorded, then
-  small buttons for handouts and the party inventory (and, for the DM, groups and sound effects) and **session history**, then a **Settings** cog (a dot shows when join requests are waiting). It drops the Settings panel down; for the DM that includes a **Quality** tab with each player's connection. There is no Quit button in the window: the app is meant to keep running, so quit from the **tray icon**. Your **status** is the coloured pill above the microphone button (ONLINE green, AWAY amber, OFFLINE grey): click it to change it.
+  small buttons for handouts and the party inventory (and, for the DM, groups and sound effects) and **session history**, then a **Settings** cog (a dot shows when join requests are waiting). It drops the Settings panel down; it includes a **Players** tab (each person's volume; the DM also sees each player's connection). There is no Quit button in the window: the app is meant to keep running, so quit from the **tray icon**. Your **status** is the coloured pill above the microphone button (ONLINE green, AWAY amber, OFFLINE grey): click it to change it.
 - **The rail** (the round portraits on the left): everyone at the table. Their portrait glows while they
-  speak. Hover over one for a card with their character and, for the DM, how good their connection is.
+  speak. Hover over one for a card with their character, small icon chips for armour class, hit points and special senses (when their character is linked to D&D Beyond), and a **Details** button for the full breakdown; for the DM it also shows how good their connection is. On the phone web app, tap a portrait.
 - **The chat** (middle): messages, whispers, and cards for handouts and loot.
 - **The bottom bar**: your **microphone button**, a **level meter**, and the message box.
 
@@ -115,7 +115,7 @@ item in the tray menu, and **Settings → Profile → Status**.
   mouse clicks between words; adds a very small delay). If your voice gets clipped on Strong, use Standard.
 - **Automatic volume** keeps quiet and loud talkers at a similar level; switch it off to set your volume
   yourself.
-- **Each person's volume**: hover their portrait and use the slider.
+- **Each person's volume**: hover their portrait and use the slider, or open **Settings → Players** to set everyone in one place (up to 400%, with a reset button). It is remembered for that person on this computer, so a quiet microphone only needs fixing once.
 - **Compatibility audio** (Settings → Audio): leave it off. The app runs its own audio, which is what gives you
   the volumes above and echo removal for everything the app plays. If voice sounds wrong on your computer
   (crackling, no sound, the wrong device), switch it on and join voice again: the system's own audio layer takes
@@ -243,8 +243,8 @@ Open **Settings** (the cog). It has five tabs:
   date (only if the server's operator turned this on; if not, the box says so). **Sync now** forces a refresh.
   **While a character is linked, its name, race, class, level and picture come from D&D Beyond and cannot be edited here**: change them
   on the sheet and Sync, or Unlink to edit them yourself. A linked character shows its armour class, hit points,
-  passive perception and six abilities as tiles. A row of portraits at the top lets you look at each character (click one); **Activate** on the card, after a confirmation, makes it the one the table sees
-  and the plus adds another; with the sync on, adding starts from a pasted sheet link, and a button fills it in by hand.
+  passive perception and six abilities as tiles, its classes with their subclasses ("Monk 5 (Way of the Open Hand) / Cleric 4 (Life Domain)") and any special senses (Darkvision, Tremorsense and so on, with their range). The bin button deletes a character (only from this campaign; your D&D Beyond sheet is not touched). A row of portraits at the top lets you look at each character (click one); **Activate** on the card, after a confirmation, makes it the one the table sees
+  and the plus adds another; with the sync on, adding starts from a pasted sheet link (read first, so a private or wrong link leaves nothing behind), and a button fills it in by hand.
   Activating a character switches who the table sees you playing, on every screen at once. Characters belong to one campaign, so to use the same sheet in two campaigns add it in each. The same is on the phone
   web app: menu, **My characters**.
 - **Sessions**: upcoming sessions and your answer. The DM schedules a session with the calendar-plus icon at the
@@ -275,11 +275,22 @@ different versions, update the app, or ask your DM to update the server if the a
 
 <img src="../images/screens/desktop-soundboard.png" alt="The sound drawer: character voices, stingers and scenes" width="380"> <img src="../images/screens/desktop-groups.png" alt="Voice groups: the Main Party and a place to start a new group" width="380">
 
-<img src="../images/screens/desktop-history-gm.png" alt="Session history as the DM sees it: the DM brief and the button for the scribe’s notes" width="300"> <img src="../images/screens/desktop-loot.png" alt="The party inventory as the DM sees it, with the tools to drop items and coin" width="300"> <img src="../images/screens/desktop-quality.png" alt="Settings, Quality: each player’s latency over the last two minutes" width="300">
+<img src="../images/screens/desktop-history-gm.png" alt="Session history as the DM sees it: the DM brief and the button for the scribe’s notes" width="300"> <img src="../images/screens/desktop-loot.png" alt="The party inventory as the DM sees it, with the tools to drop items and coin" width="300"> <img src="../images/screens/desktop-quality.png" alt="Settings, Players: each player’s latency over the last two minutes" width="300">
 
 _Top: the sound drawer (voices, stingers, scenes) and voice groups. Bottom: the DM brief with the scribe's notes folded behind their button, the inventory with the DM's drop tools, and each player's connection quality (Elowen's link is the slow one). The campaign's own settings (invites, handing over the DM role, join requests) are in Settings → Campaign:_
 
 <img src="../images/screens/desktop-settings-campaign.png" alt="Settings, Campaign: the description, invite links, handing over the DM role, and join requests" width="380"> <img src="../images/screens/desktop-history-notes.png" alt="The scribe’s notes, opened" width="380">
+
+**GM notes and the glossary**
+
+- The notes button in the top bar (a notebook and pen; yours only) opens a window with two tabs. **Notes** is one page of
+  Markdown for the whole campaign: secrets, non-player characters, places, whatever you need. A new page starts with a few
+  headings to prompt you; delete any you do not want. **Reading** shows the page with a list of its headings on the right
+  (click to jump) and the attachments under it (click one to preview a picture or PDF). **Editing** (the pencil) is the
+  Markdown editor, where you can also attach pictures and PDFs. Links open in your normal browser, never inside the app.
+- **Glossary** is your campaign's words: names, places, items, spells, with the other ways each is said. Players never see
+  either tab, and the server refuses them if they ask.
+- The notes and attachments are part of a campaign's export. The server's operator sets how large one attachment may be.
 
 **Start and end a session**
 

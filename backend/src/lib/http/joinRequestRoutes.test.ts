@@ -367,6 +367,17 @@ describe('the DM’s side', () => {
       expect(res.body.campaign).toMatchObject({ name: 'Hidden', allowJoin: false });
     });
 
+    it('starts on the Tavern Bard, lets the DM pick another preset, and refuses anything else (protocol 4)', async () => {
+      expect((await mine()).bard).toBe('tavern');
+      expect((await patch(dm, { bard: 'drunken' })).body.campaign.bard).toBe('drunken');
+      expect((await mine()).bard).toBe('drunken');
+      await patch(dm, { name: 'Renamed' });
+      expect((await mine()).bard).toBe('drunken');
+      expect((await patch(dm, { bard: 'a pirate who sings' })).status).toBe(400);
+      expect((await patch(member, { bard: 'dry' })).status).toBe(403);
+      expect((await mine()).bard).toBe('drunken');
+    });
+
     it('refuses everyone but the DM, and bad input', async () => {
       expect((await patch(member, { name: 'Mine now' })).status).toBe(403);
       expect((await patch(admin, { description: 'x' })).status).toBe(403);

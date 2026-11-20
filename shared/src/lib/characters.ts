@@ -18,6 +18,46 @@ export interface CharacterSheet {
   maxHp: number;
   armorClass: number;
   passivePerception: number;
+  /** Special senses with their range in feet; absent on a sheet last read before 0.6. */
+  senses?: CharacterSense[];
+  /** Each class with its level and subclass; absent on a sheet last read before 0.6. */
+  classes?: CharacterClass[];
+}
+
+export type SenseKind = 'darkvision' | 'blindsight' | 'tremorsense' | 'truesight';
+
+export interface CharacterSense {
+  kind: SenseKind;
+  /** Feet. */
+  range: number;
+}
+
+export interface CharacterClass {
+  name: string;
+  level: number;
+  subclass: string | null;
+}
+
+export const SENSE_LABELS: Record<SenseKind, string> = {
+  darkvision: 'Darkvision',
+  blindsight: 'Blindsight',
+  tremorsense: 'Tremorsense',
+  truesight: 'Truesight',
+};
+
+/** "Darkvision 60 ft", for a tooltip or a list. */
+export const senseLabel = (s: CharacterSense): string => `${SENSE_LABELS[s.kind]} ${s.range} ft`;
+
+/**
+ * "Monk 5 (Way of the Open Hand) / Cleric 4 (Life Domain)": the classes as the character screens and the detail popup
+ * write them. A class with no subclass yet is just "Wizard 1". Null when the sheet predates class detail.
+ */
+export function classesLine(sheet: CharacterSheet | null | undefined): string | null {
+  const classes = sheet?.classes;
+  if (!classes || classes.length === 0) return null;
+  return classes
+    .map((c) => `${c.name} ${c.level}${c.subclass ? ` (${c.subclass})` : ''}`)
+    .join(' / ');
 }
 
 /** "AC 16 · HP 50 · Passive Perception 11", or null with no sheet. */
@@ -80,9 +120,6 @@ export function characterDetails(c: Pick<CharacterRecord, 'race' | 'className' |
   return [c.race, c.className, c.level ? `level ${c.level}` : null].filter(Boolean).join(' · ');
 }
 
-/** The name a character gets while its D&D Beyond link is being read (the sheet then replaces it). */
-export const NEW_CHARACTER_NAME = 'New character';
-
 /** What the form holds while editing: text fields, so a half-typed level is still just text. */
 export interface CharacterDraft {
   name: string;
@@ -130,14 +167,13 @@ export function characterPatch(
   return patch;
 }
 
-/** The few calls adding a character needs, so the two apps (and the tests) can share the steps. */
+/** The one call adding a character needs, so the two apps (and the tests) share the steps. */
 export interface NewCharacterApi {
+  /** Makes the character from these fields and returns its id. */
   create(fields: Record<string, unknown>): Promise<string>;
-  update(id: string, fields: Record<string, unknown>): Promise<unknown>;
-  link(id: string, url: string): Promise<unknown>;
 }
 
-/** The create/update body for a hand-filled draft: blanks as null, a level that is not a number as null. */
+/** The create body for a hand-filled draft: blanks as null, a level that is not a number as null. */
 export function newCharacterFields(draft: CharacterDraft): Record<string, unknown> {
   return {
     name: draft.name.trim(),
@@ -148,35 +184,15 @@ export function newCharacterFields(draft: CharacterDraft): Record<string, unknow
 }
 
 /**
- * Adds a character from a D&D Beyond sheet link. The server links an existing character (a one-step route is a
- * 0.6.0 item), so this makes a placeholder first and links it. `madeId` is the placeholder from an earlier failed
- * try, reused so trying again does not make a second one; `onMade` reports the id as soon as it exists.
+ * Adds a character from a D&D Beyond sheet link, in one call (0.6.0): the server reads the sheet first and creates
+ * the character already filled in, so a private sheet or a wrong link leaves nothing behind. (Before 0.6 this made a
+ * placeholder and linked it in a second step.)
  */
-export async function createFromSheet(
-  api: NewCharacterApi,
-  url: string,
-  madeId?: string,
-  onMade?: (id: string) => void,
-): Promise<string> {
-  let id = madeId;
-  if (!id) {
-    id = await api.create({ name: NEW_CHARACTER_NAME });
-    onMade?.(id);
-  }
-  await api.link(id, url);
-  return id;
+export async function createFromSheet(api: NewCharacterApi, url: string): Promise<string> {
+  return api.create({ sourceUrl: url });
 }
 
-/** Adds a hand-filled character, or fills in the placeholder a failed link left behind. */
-export async function createByHand(
-  api: NewCharacterApi,
-  draft: CharacterDraft,
-  madeId?: string,
-): Promise<string> {
-  const fields = newCharacterFields(draft);
-  if (madeId) {
-    await api.update(madeId, fields);
-    return madeId;
-  }
-  return api.create(fields);
+/** Adds a hand-filled character. */
+export async function createByHand(api: NewCharacterApi, draft: CharacterDraft): Promise<string> {
+  return api.create(newCharacterFields(draft));
 }

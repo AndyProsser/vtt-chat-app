@@ -1,3 +1,5 @@
+import type { CharacterSheet } from '@vtt-chat-app/shared';
+
 /** `account_status` — never carries the session token. */
 export interface AccountStatus {
   signedIn: boolean;
@@ -17,6 +19,8 @@ export interface CampaignSummary {
   description: string;
   /** Public (true) or Private. Invite links work either way. */
   allowJoin: boolean;
+  /** The preset bard that tells this campaign's sessions (an id from BARD_PERSONAS); the Tavern Bard by default. */
+  bard: string;
 }
 
 export interface AccountError {
@@ -36,6 +40,8 @@ export interface Member {
     race?: string | null;
     className?: string | null;
     level?: number | null;
+    /** The linked D&D Beyond sheet's numbers, for the hover card (everyone at the table sees them). */
+    sheet?: CharacterSheet | null;
   } | null;
   online: boolean;
   /** What they are connected with: the desktop app or the web app. Absent from an older server. */
@@ -79,6 +85,8 @@ export interface RecordingView {
   startedAt: number | null;
   /** The operator's grace period in seconds (how long the DM may be away), when the server said. */
   graceSeconds?: number;
+  /** Where the session's content is processed, as the server says (protocol 4): this machine's own network, or off-site. */
+  processing?: 'local' | 'offsite';
 }
 
 export type RecordingAction = 'start' | 'pause' | 'resume' | 'stop';
@@ -242,7 +250,7 @@ export interface SrdItem {
 
 export type ClaimedFor = 'self' | 'party' | 'split' | 'assigned';
 export interface LootSplit {
-  shares: { userId: string; amount: number }[];
+  shares: { userId: string; amount: number; confirmed?: boolean }[];
   remainder: number;
 }
 
@@ -258,6 +266,8 @@ export interface LootItem {
   claimedBy: string | null;
   claimedFor: ClaimedFor | null;
   split: LootSplit | null;
+  /** "Added to my sheet": yours, or the party stash's. The server leaves it out for the DM. */
+  confirmed?: boolean;
   /** When the DM dropped it (ms); places its chat card when chat is rebuilt from the server. */
   droppedAt?: number;
 }
@@ -332,4 +342,30 @@ export interface JoinInbox {
   campaignId: string | null;
   allowJoin: boolean;
   requests: JoinRequestRow[];
+}
+
+/** An attachment to the Game Master's notes (a picture or a PDF). */
+export interface GmNoteFile {
+  id: string;
+  name: string;
+  kind: 'image' | 'pdf';
+  mime: string;
+  bytes: number;
+  createdAt: number;
+}
+
+/** `GET gm/notes`: the Game Master's notes page, its attachments and the largest attachment this server takes. */
+export interface GmNotesData {
+  body: string;
+  updatedAt: number | null;
+  files: GmNoteFile[];
+  maxFileBytes: number;
+}
+
+export interface GlossaryTerm {
+  id: string;
+  term: string;
+  kind: 'person' | 'place' | 'item' | 'spell' | 'other';
+  aliases: string[];
+  status: 'approved' | 'suggested';
 }

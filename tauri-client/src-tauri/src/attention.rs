@@ -107,7 +107,7 @@ fn classify_kinds(event: &ServerEvent, ctx: &Context<'_>) -> Attention {
                     shortened(&text(data, "title")),
                 )),
             },
-            "loot.dropped" if ctx.in_game && prefs.table => Attention {
+            "loot.dropped" | "loot.redropped" if ctx.in_game && prefs.table => Attention {
                 unread: true,
                 notify: None,
             },
@@ -117,6 +117,12 @@ fn classify_kinds(event: &ServerEvent, ctx: &Context<'_>) -> Attention {
                 // Asking to join a campaign: a pop-up for the DM, and for the person who asked.
                 "join_request" if !prefs.join_requests => Attention::default(),
                 "join_decision" if !prefs.join_decisions => Attention::default(),
+                // The DM gave you something: a pop-up (it says to add it to your sheet), under the table setting.
+                "loot_given" if !prefs.table => Attention::default(),
+                "loot_given" => Attention {
+                    unread: false,
+                    notify: Some((text(data, "title"), shortened(&text(data, "body")))),
+                },
                 _ if !prefs.sessions => Attention::default(),
                 _ => Attention {
                     unread: false,
@@ -307,6 +313,35 @@ mod tests {
         assert!(classify(&loot, &away(true)).unread);
         assert_eq!(classify(&loot, &away(true)).notify, None);
         assert_eq!(classify(&loot, &away(false)), Attention::default());
+    }
+
+    #[test]
+    fn a_re_dropped_item_counts_like_a_drop_and_a_gift_from_the_dm_pops_up() {
+        let again = table("loot.redropped", json!({ "name": "Ring" }));
+        assert!(classify(&again, &away(true)).unread);
+        assert_eq!(classify(&again, &away(false)), Attention::default());
+        let gift = table(
+            "notification",
+            json!({ "kind": "loot_given", "title": "The DM gave you Wand", "body": "Add it to your sheet." }),
+        );
+        // Stored for people who were away, so it is not tied to being in the game.
+        for game in [true, false] {
+            assert_eq!(
+                classify(&gift, &away(game)).notify,
+                Some((
+                    "The DM gave you Wand".into(),
+                    "Add it to your sheet.".into()
+                ))
+            );
+        }
+        static NO_TABLE: NotifyPrefs = NotifyPrefs {
+            table: false,
+            ..DEFAULTS
+        };
+        assert_eq!(
+            classify(&gift, &with_prefs(true, &NO_TABLE)),
+            Attention::default()
+        );
     }
 
     #[test]

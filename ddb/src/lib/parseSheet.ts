@@ -1,4 +1,4 @@
-import type { DdbSheet } from '../types/index.js';
+import type { DdbClass, DdbSense, DdbSenseKind, DdbSheet } from '../types/index.js';
 
 const isRecord = (v: unknown): v is Record<string, unknown> =>
   typeof v === 'object' && v !== null && !Array.isArray(v);
@@ -27,6 +27,53 @@ function allModifiers(data: Record<string, unknown>): Modifier[] {
       value: num(m.value) ?? num(m.fixedValue),
       statId: num(m.statId),
     }));
+}
+
+const SENSES: readonly DdbSenseKind[] = ['darkvision', 'blindsight', 'tremorsense', 'truesight'];
+
+/**
+ * Each special sense's range: the longest "set" (D&D Beyond's `set-base` for a race or feature, `set` for an item or
+ * spell) wins, then any bonus to it is added (a feature that extends darkvision by 30 feet). Our arithmetic, like the
+ * rest of the sheet; senses a character does not have are left out.
+ */
+function parseSenses(mods: Modifier[]): DdbSense[] {
+  const found: DdbSense[] = [];
+  for (const kind of SENSES) {
+    const set = mods
+      .filter((m) => (m.type === 'set-base' || m.type === 'set') && m.subType === kind)
+      .map((m) => m.value ?? 0);
+    if (set.every((v) => v <= 0)) continue;
+    const bonus = mods
+      .filter((m) => m.type === 'bonus' && m.subType === kind)
+      .reduce((sum, m) => sum + (m.value ?? 0), 0);
+    found.push({ kind, range: Math.max(...set) + bonus });
+  }
+  return found;
+}
+
+/** Name, level and subclass of each class, the biggest first (so the class that defines the build leads). */
+function parseClasses(list: unknown): DdbClass[] {
+  return (Array.isArray(list) ? list : [])
+    .filter(isRecord)
+    .flatMap((c) => {
+      const name =
+        isRecord(c.definition) && typeof c.definition.name === 'string'
+          ? c.definition.name.trim()
+          : '';
+      if (name === '') return [];
+      const sub =
+        isRecord(c.subclassDefinition) && typeof c.subclassDefinition.name === 'string'
+          ? c.subclassDefinition.name.trim()
+          : '';
+      return [
+        {
+          name: name.slice(0, 40),
+          level: num(c.level) ?? 0,
+          subclass: sub ? sub.slice(0, 60) : null,
+        },
+      ];
+    })
+    .sort((a, b) => b.level - a.level);
 }
 
 /** The value for stat `id` (1 to 6) in one of D&D Beyond's `[{ id, value }]` lists, or null. */
@@ -122,5 +169,12 @@ export function parseSheet(body: unknown): DdbSheet | null {
     .filter((m) => m.type === 'bonus' && m.subType === 'armor-class')
     .reduce((sum, m) => sum + (m.value ?? 0), 0);
 
-  return { abilities, maxHp, armorClass, passivePerception };
+  return {
+    abilities,
+    maxHp,
+    armorClass,
+    passivePerception,
+    senses: parseSenses(mods),
+    classes: parseClasses(body.classes),
+  };
 }

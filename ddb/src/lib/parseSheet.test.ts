@@ -132,3 +132,43 @@ describe('parseSheet', () => {
     expect(parseSheet(worn)?.armorClass).toBe(14); // leather 11 + Dex 3
   });
 });
+
+describe('parseSheet: senses and classes', () => {
+  it('reads each special sense at its longest set range, plus any bonus to it', () => {
+    const b = base();
+    b.modifiers.race.push({ type: 'set-base', subType: 'darkvision', value: 60 });
+    b.modifiers.item.push({ type: 'set', subType: 'darkvision', value: 120 });
+    b.modifiers.feat.push({ type: 'bonus', subType: 'darkvision', value: 30 });
+    b.modifiers.class.push({ type: 'set-base', subType: 'tremorsense', value: 100 });
+    b.modifiers.class.push({ type: 'set-base', subType: 'blindsight', value: 0 });
+    expect(parseSheet(b)?.senses).toEqual([
+      { kind: 'darkvision', range: 150 },
+      { kind: 'tremorsense', range: 100 },
+    ]);
+  });
+
+  it('has no senses when the sheet grants none', () => {
+    expect(parseSheet(base())?.senses).toEqual([]);
+  });
+
+  it('lists classes with their subclass, biggest level first, and null for a class without one yet', () => {
+    const b = {
+      ...base(),
+      classes: [
+        { level: 4, definition: { name: 'Cleric' }, subclassDefinition: { name: 'Life Domain' } },
+        {
+          level: 5,
+          definition: { name: 'Monk' },
+          subclassDefinition: { name: 'Way of the Open Hand' },
+        },
+        { level: 1, definition: { name: 'Wizard' }, subclassDefinition: null },
+        { level: 2, definition: {} },
+      ],
+    };
+    expect(parseSheet(b)?.classes).toEqual([
+      { name: 'Monk', level: 5, subclass: 'Way of the Open Hand' },
+      { name: 'Cleric', level: 4, subclass: 'Life Domain' },
+      { name: 'Wizard', level: 1, subclass: null },
+    ]);
+  });
+});

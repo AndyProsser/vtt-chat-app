@@ -1,4 +1,4 @@
-import type { ChatKind } from '@vtt-chat-app/shared';
+import type { CharacterSheet, ChatKind } from '@vtt-chat-app/shared';
 
 /** What the phone app reads from the server. Only the fields it uses. */
 
@@ -16,6 +16,8 @@ export interface Member {
     race?: string | null;
     className?: string | null;
     level?: number | null;
+    /** The linked D&D Beyond sheet's numbers (everyone at the table sees them). */
+    sheet?: CharacterSheet | null;
   } | null;
   online: boolean;
   /** What they are connected with: the desktop app or this web app. Absent from an older server. */
@@ -119,5 +121,10 @@ export interface LootItem {
   droppedAt: number;
   claimedBy: string | null;
   claimedFor: LootClaimedFor | null;
-  split: { shares: { userId: string; amount: number }[]; remainder: number } | null;
+  split: {
+    shares: { userId: string; amount: number; confirmed?: boolean }[];
+    remainder: number;
+  } | null;
+  /** "Added to my sheet": yours, or the party stash's. The server leaves it out for the DM. */
+  confirmed?: boolean;
 }

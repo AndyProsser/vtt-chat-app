@@ -10,6 +10,7 @@ import { joinRequestRoutes } from './http/joinRequestRoutes.js';
 import { DEFAULT_TRUST_PROXY, type BackendConfig } from './config.js';
 import { signupRoutes } from './http/signupRoutes.js';
 import { inviteRoutes, webNotFound, webPages } from './http/joinRoutes.js';
+import type { User } from '../types/index.js';
 import type { DdbSyncService } from './ddb/ddbSyncService.js';
 import { avatarRoutes } from './http/avatarRoutes.js';
 import { OidcClient } from './auth/oidc.js';
@@ -22,6 +23,7 @@ import { campaignRoutes } from './http/campaignRoutes.js';
 import { NoMailTransport, type MagicLinkSender } from './http/delivery.js';
 import { errorHandler, requireAuth } from './http/middleware.js';
 import { RateLimiter } from './http/rateLimit.js';
+import { gmNotesRoutes } from './http/gmNotesRoutes.js';
 import { handoutRoutes } from './http/handoutRoutes.js';
 import { lootRoutes } from './http/lootRoutes.js';
 import { notificationRoutes, sessionRoutes } from './http/scheduleRoutes.js';
@@ -32,6 +34,7 @@ import { ScheduleService } from './schedule/scheduleService.js';
 import type { ScheduleStore } from './schedule/scheduleStore.js';
 import { SoundLibraryService } from './soundboard/soundLibraryService.js';
 import type { SoundStore } from './soundboard/soundStore.js';
+import { GmNotesService } from './table/gmNotesService.js';
 import { HandoutService } from './table/handoutService.js';
 import { LootService } from './table/lootService.js';
 import type { TableStore } from './table/tableStore.js';
@@ -40,6 +43,21 @@ import type { RecordingChange } from './recording/recordingState.js';
 import type { Store } from './store/store.js';
 import { protocolGate, serverVersion, versionRoutes } from './version.js';
 import { resolveDownloads } from './updates/downloads.js';
+
+/** What the realtime layer is told about a loot item. */
+export type LootAnnouncement = {
+  id: string;
+  campaignId: string;
+  name: string;
+  description?: string;
+  quantity: number;
+  claimedBy: string | null;
+  kind: 'item' | 'coin';
+  itemType: string;
+  rarity: string | null;
+  claimedFor: 'self' | 'party' | 'split' | 'assigned' | null;
+  split: { shares: { userId: string; amount: number }[]; remainder: number } | null;
+};
 
 export interface AppDeps {
   config: BackendConfig;
@@ -63,6 +81,8 @@ export interface AppDeps {
     /** Sends a frame to every live socket of a person. */
     sendToUser?(userId: string, type: string, data: unknown): void;
     announceRecording(change: RecordingChange): void;
+    /** Re-reads where processing happens, so the notice sent with the next recording change is current. */
+    refreshProcessing?(): Promise<void>;
     /** How long the campaign's DM has had no connection (0 while connected). */
     dmAwayMs?(campaignId: string): Promise<number>;
     announceHandoutShown?(
@@ -83,22 +103,14 @@ export interface AppDeps {
       handout: { id: string; visibility: string; recipients: string[] },
       dmIds: string[],
     ): void;
-    announceLoot?(
-      event: 'dropped' | 'claimed' | 'removed',
-      item: {
-        id: string;
-        campaignId: string;
-        name: string;
-        description?: string;
-        quantity: number;
-        claimedBy: string | null;
-        kind: 'item' | 'coin';
-        itemType: string;
-        rarity: string | null;
-        claimedFor: 'self' | 'party' | 'split' | 'assigned' | null;
-        split: { shares: { userId: string; amount: number }[]; remainder: number } | null;
-      },
+    announceLootRedropped?(item: LootAnnouncement): void;
+    announceLootConfirmed?(
+      campaignId: string,
+      itemId: string,
+      confirmed: boolean,
+      userIds: readonly string[],
     ): void;
+    announceLoot?(event: 'dropped' | 'claimed' | 'removed', item: LootAnnouncement): void;
   };
   /** Shared with the realtime hub so REST changes and snapshots agree. Defaults to a fresh one. */
   recording?: RecordingState;
@@ -171,7 +183,11 @@ export function createApp({
     res.setHeader('Cache-Control', 'no-store');
     next();
   });
-  app.use(express.json({ limit: '100kb' }));
+  // The Game Master's notes page reads its own, larger JSON body (gmNotesRoutes.ts); everything else stays small.
+  const smallJson = express.json({ limit: '100kb' });
+  app.use((req, res, next) =>
+    /^\/api\/campaigns\/[^/]+\/gm\/notes$/.test(req.path) ? next() : smallJson(req, res, next),
+  );
 
   app.get('/api/health', (_req, res) => {
     res.status(200).json({ status: 'ok' });
@@ -285,6 +301,12 @@ export function createApp({
       accounts,
       campaigns,
       store,
+      ...(ddb?.enabled
+        ? {
+            createLinkedCharacter: (user: User, campaignId: string, url: string) =>
+              ddb.createLinked(user, campaignId, url),
+          }
+        : {}),
       liveKit: {
         url: config.liveKitUrl,
         apiKey: config.liveKitApiKey,
@@ -305,6 +327,9 @@ export function createApp({
         : {}),
       ...(realtime
         ? { onRecordingChanged: (change: RecordingChange) => realtime.announceRecording(change) }
+        : {}),
+      ...(realtime?.refreshProcessing
+        ? { beforeRecordingChange: () => realtime.refreshProcessing!() }
         : {}),
     }),
   );
@@ -328,6 +353,14 @@ export function createApp({
 
   if (table) {
     const handouts = new HandoutService({ store, table, media });
+    const maxFileBytes = config.gmNotesMaxBytes ?? 100 * 1024 * 1024;
+    const gm = new GmNotesService({
+      store,
+      table,
+      media,
+      maxFileBytes,
+    });
+    app.use('/api/campaigns/:campaignId/gm', gmNotesRoutes({ accounts, gm, maxFileBytes }));
     app.use(
       '/api/campaigns/:campaignId/handouts',
       handoutRoutes({
@@ -375,9 +408,22 @@ export function createApp({
       '/api/campaigns/:campaignId/loot',
       lootRoutes({
         accounts,
-        loot: new LootService({ store, table }),
+        loot: new LootService({
+          store,
+          table,
+          ...(scheduleService ? { notify: (ids, n) => scheduleService.notify(ids, n) } : {}),
+        }),
         ...(realtime?.announceLoot
           ? { onChange: (event, item) => realtime.announceLoot?.(event, item) }
+          : {}),
+        ...(realtime?.announceLootRedropped
+          ? { onRedrop: (item) => realtime.announceLootRedropped?.(item) }
+          : {}),
+        ...(realtime?.announceLootConfirmed
+          ? {
+              onConfirmed: (campaignId, itemId, confirmed, userIds) =>
+                realtime.announceLootConfirmed?.(campaignId, itemId, confirmed, userIds),
+            }
           : {}),
       }),
     );

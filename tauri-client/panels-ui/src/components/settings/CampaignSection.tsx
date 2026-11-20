@@ -8,6 +8,7 @@ import { isDm } from '../../lib/tableModel.js';
 import { useTableStore } from '../../lib/tableStore.js';
 import { accountErrorMessage, campaignApi } from '../../lib/tauriBridge.js';
 import { MemberAvatar } from '../MemberAvatar.js';
+import { BardPicker } from './BardPicker.js';
 import { CampaignDetails } from './CampaignDetails.js';
 import { ToolButton } from '../ToolButton.js';
 
@@ -47,6 +48,7 @@ export function CampaignSection() {
         dm={dm}
         onSaved={() => account.addCampaign('refresh', '')}
       />
+      <BardPicker campaign={campaign} dm={dm} onSaved={() => account.addCampaign('refresh', '')} />
       <span className="vtt-muted">
         {dm ? 'You are the DM here.' : 'You are a player here.'} Roles belong to each campaign.
       </span>

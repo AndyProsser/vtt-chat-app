@@ -53,11 +53,6 @@ fn play_action(d: &Value) -> Option<Action> {
     })
 }
 
-/// The play's gain after the DM's per-kind level: `(stingers, scenes)`.
-fn kind_gain(gain: f32, levels: (f32, f32), scene: bool) -> f32 {
-    gain * if scene { levels.1 } else { levels.0 }
-}
-
 /// Turns one table frame into actions. Unknown frames and malformed payloads give none.
 pub fn plan(t: &str, d: &Value, my_user_id: &str) -> Vec<Action> {
     match t {
@@ -119,8 +114,6 @@ pub struct Soundboard {
     /// carries them to everyone else anyway).
     monitor: AtomicBool,
     levels: Mutex<(f32, f32)>,
-    /// The DM's volume for each kind of sound, 0 to 1: (stingers, scenes). Applied as a sound starts.
-    kind_levels: Mutex<(f32, f32)>,
     /// Plays that should still start once their clip arrives (a stop removes them).
     wanted: Mutex<HashSet<String>>,
     decoded: Mutex<HashMap<String, Arc<Vec<f32>>>>,
@@ -133,7 +126,6 @@ impl Default for Soundboard {
             is_dm: AtomicBool::new(false),
             monitor: AtomicBool::new(true),
             levels: Mutex::new((1.0, 1.0)),
-            kind_levels: Mutex::new((1.0, 1.0)),
             wanted: Mutex::new(HashSet::new()),
             decoded: Mutex::new(HashMap::new()),
         }
@@ -210,12 +202,13 @@ pub async fn on_table(app: &AppHandle, t: &str, data: &Value) {
                 gain,
                 scene,
             } => {
-                let gain = kind_gain(gain, *board.kind_levels.lock().unwrap(), scene);
                 board.wanted.lock().unwrap().insert(play_id.clone());
                 attach_call(app, &board).await;
                 let app = app.clone();
                 tauri::async_runtime::spawn(async move {
-                    if let Err(err) = load_and_play(&app, &play_id, &take_id, looping, gain).await {
+                    if let Err(err) =
+                        load_and_play(&app, &play_id, &take_id, looping, gain, scene).await
+                    {
                         eprintln!("[src-tauri] soundboard: could not play {take_id}: {err}");
                     }
                 });
@@ -254,12 +247,12 @@ pub fn soundboard_monitor_set(app: AppHandle, on: bool) {
     board.engine.set_monitor(on);
 }
 
-/// The DM's volume for stingers and for scenes (0 to 1 each). A sound already playing keeps the level
-/// it started with; the next one uses the new level.
+/// The DM's volume for stingers and for scenes (0 to 1 each), live: the mixer applies it to every sound of
+/// that kind as it plays, so moving a slider changes what is already sounding.
 #[tauri::command]
 pub fn soundboard_levels_set(app: AppHandle, stingers: f32, scenes: f32) {
     let board = app.state::<Soundboard>();
-    *board.kind_levels.lock().unwrap() = (stingers.clamp(0.0, 1.0), scenes.clamp(0.0, 1.0));
+    board.engine.set_levels(stingers, scenes);
 }
 
 /// Everything stops when the session ends (sign-out, revoked, switching campaign).
@@ -279,6 +272,7 @@ async fn load_and_play(
     take_id: &str,
     looping: bool,
     gain: f32,
+    scene: bool,
 ) -> Result<(), String> {
     if !plain_id(take_id) {
         return Err("bad take id".into());
@@ -307,7 +301,7 @@ async fn load_and_play(
     };
     // A stop (or a session ending) while the clip was loading cancels the play.
     if board.wanted.lock().unwrap().contains(play_id) {
-        board.engine.play(play_id, clip, looping, gain);
+        board.engine.play(play_id, clip, looping, gain, scene);
         if !looping {
             // A one-shot needs no further tracking once it has started.
             board.wanted.lock().unwrap().remove(play_id);
@@ -367,8 +361,6 @@ mod tests {
             &plan("sound.play", &layered, "me")[0],
             Action::Play { scene: true, .. }
         ));
-        assert_eq!(kind_gain(0.5, (0.8, 0.4), true), 0.2);
-        assert_eq!(kind_gain(0.5, (0.8, 0.4), false), 0.4);
         let one = json!({"playId":"p","takeId":"t","mode":"oneshot","volume":1,"level":1});
         assert!(matches!(
             &plan("sound.play", &one, "me")[0],

@@ -72,6 +72,12 @@ export interface BackendConfig {
   recordCues: ReadonlySet<CueKind>;
   /** Directory for uploaded files (handouts, soundboard clips). Unset: only text snippets work. */
   mediaDir: string | undefined;
+  /**
+   * The largest single file the Game Master may attach to their notes, in bytes (`GM_NOTES_MAX_MB`, default 100).
+   * A technical ceiling so one upload cannot fill the disk, in the operator's hands (Stage 11 item 5): the product
+   * puts no limit on notes or attachments. Pictures and PDFs only; the campaign's overall file quota still applies.
+   */
+  gmNotesMaxBytes: number;
   /** Built join page (`web/dist`). Unset: no browser pages are served and invites are API-only. */
   webDir: string | undefined;
   /** Built status page (`status/dist`), served at `/status`. Unset: only `/api/status` (the data) exists. */
@@ -133,6 +139,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): BackendConfig 
     starterSounds: env.STARTER_SOUNDS !== '0',
     recordCues: parseRecordCues(env.RECORD_CUES),
     mediaDir: env.MEDIA_DIR || undefined,
+    gmNotesMaxBytes: megabytes(env.GM_NOTES_MAX_MB, 100),
     webDir: env.WEB_DIR || undefined,
     statusDir: env.STATUS_DIR || undefined,
     updatesDir: env.UPDATES_DIR || undefined,
@@ -241,4 +248,10 @@ export function parseRecordCues(raw: string | undefined): ReadonlySet<CueKind> {
   if (words.includes('none')) return new Set<CueKind>();
   if (words.includes('all')) return new Set<CueKind>(CUE_KINDS);
   return new Set(CUE_KINDS.filter((k) => words.includes(k)));
+}
+
+/** A size in whole megabytes from the environment, as bytes; a missing or unusable value is the default. */
+function megabytes(value: string | undefined, fallback: number): number {
+  const n = Number(value);
+  return (Number.isFinite(n) && n >= 1 ? Math.floor(n) : fallback) * 1024 * 1024;
 }

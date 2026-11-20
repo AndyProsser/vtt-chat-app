@@ -1,5 +1,5 @@
 import { Popover, Text } from '@radix-ui/themes';
-import { useId, useMemo, useRef } from 'react';
+import { useId, useMemo, useRef, useState } from 'react';
 
 import { usePopout } from '../../hooks/usePopout.js';
 import {
@@ -11,6 +11,8 @@ import {
   railOrder,
 } from '../../lib/phone/rail.js';
 import type { Member } from '../../types/phone.js';
+import { CharacterDetail } from './CharacterDetail.js';
+import { SheetChips } from './SheetChips.js';
 
 /**
  * Who is at the table and how they show, as a slim version of the desktop app's avatar rail: a horizontal
@@ -67,83 +69,97 @@ function RailMember({
   const closedByHover = useRef(false);
   const dm = member.role === 'dm';
   const classes = `phone-av phone-av-${card.presence}${dm ? ' phone-av-dm' : ''}`;
+  const sheet = member.character?.sheet ?? null;
+  const [detail, setDetail] = useState(false);
   return (
-    <Popover.Root
-      open={open}
-      onOpenChange={(next) => {
-        if (!next) {
-          closedByHover.current = false;
-          onDismiss();
-        }
-      }}
-    >
-      <Popover.Trigger>
-        <button
-          type="button"
-          className={classes}
-          aria-haspopup="dialog"
-          aria-expanded={open}
-          aria-controls={open ? id : undefined}
-          aria-label={`${card.title}${dm ? ', DM' : ''}, ${presenceLabel(card.presence, member.via)}`}
+    <>
+      <Popover.Root
+        open={open}
+        onOpenChange={(next) => {
+          if (!next) {
+            closedByHover.current = false;
+            onDismiss();
+          }
+        }}
+      >
+        <Popover.Trigger>
+          <button
+            type="button"
+            className={classes}
+            aria-haspopup="dialog"
+            aria-expanded={open}
+            aria-controls={open ? id : undefined}
+            aria-label={`${card.title}${dm ? ', DM' : ''}, ${presenceLabel(card.presence, member.via)}`}
+            onPointerEnter={mouseOnly(onEnter)}
+            onPointerLeave={mouseOnly(() => {
+              closedByHover.current = true;
+              onLeave();
+            })}
+            onClick={(e) => {
+              // Our own state machine decides open/close; stop Radix toggling it a second time.
+              e.preventDefault();
+              closedByHover.current = false;
+              onClick();
+            }}
+          >
+            {picture ? (
+              <img className="phone-av-img" src={picture} alt="" draggable={false} />
+            ) : (
+              <span aria-hidden="true">{initials(card.title)}</span>
+            )}
+            {dm && (
+              <span className="phone-av-dmtag" aria-hidden="true">
+                DM
+              </span>
+            )}
+            <span
+              className={`phone-av-dot phone-av-dot-${presenceOf(member)}`}
+              aria-hidden="true"
+            />
+          </button>
+        </Popover.Trigger>
+        <Popover.Content
+          id={id}
+          role="dialog"
+          aria-label={card.title}
+          size="1"
+          maxWidth="240px"
+          className={sheet ? 'phone-rail-card phone-rail-card-click' : 'phone-rail-card'}
+          {...(sheet
+            ? { onClick: () => setDetail(true), title: 'Tap for the full character details' }
+            : {})}
+          side="bottom"
+          onOpenAutoFocus={(e) => e.preventDefault()}
+          onCloseAutoFocus={(e) => {
+            if (closedByHover.current) e.preventDefault();
+          }}
           onPointerEnter={mouseOnly(onEnter)}
           onPointerLeave={mouseOnly(() => {
             closedByHover.current = true;
             onLeave();
           })}
-          onClick={(e) => {
-            // Our own state machine decides open/close; stop Radix toggling it a second time.
-            e.preventDefault();
-            closedByHover.current = false;
-            onClick();
-          }}
         >
-          {picture ? (
-            <img className="phone-av-img" src={picture} alt="" draggable={false} />
-          ) : (
-            <span aria-hidden="true">{initials(card.title)}</span>
-          )}
-          {dm && (
-            <span className="phone-av-dmtag" aria-hidden="true">
-              DM
-            </span>
-          )}
-          <span className={`phone-av-dot phone-av-dot-${presenceOf(member)}`} aria-hidden="true" />
-        </button>
-      </Popover.Trigger>
-      <Popover.Content
-        id={id}
-        role="dialog"
-        aria-label={card.title}
-        size="1"
-        maxWidth="240px"
-        className="phone-rail-card"
-        side="bottom"
-        onOpenAutoFocus={(e) => e.preventDefault()}
-        onCloseAutoFocus={(e) => {
-          if (closedByHover.current) e.preventDefault();
-        }}
-        onPointerEnter={mouseOnly(onEnter)}
-        onPointerLeave={mouseOnly(() => {
-          closedByHover.current = true;
-          onLeave();
-        })}
-      >
-        <Text as="div" weight="bold" size="2">
-          {card.title}
-        </Text>
-        {card.lines.map((line) => (
-          <Text as="div" size="1" key={line}>
-            {line}
+          <Text as="div" weight="bold" size="2">
+            {card.title}
           </Text>
-        ))}
-        <Text as="div" size="1" color="gray" className="phone-rail-status">
-          <span
-            className={`phone-av-dot phone-av-dot-${card.presence} phone-av-dot-inline`}
-            aria-hidden="true"
-          />
-          {presenceLabel(card.presence, member.via)}
-        </Text>
-      </Popover.Content>
-    </Popover.Root>
+          {card.lines.map((line) => (
+            <Text as="div" size="1" key={line}>
+              {line}
+            </Text>
+          ))}
+          <SheetChips sheet={sheet} />
+          <Text as="div" size="1" color="gray" className="phone-rail-status">
+            <span
+              className={`phone-av-dot phone-av-dot-${card.presence} phone-av-dot-inline`}
+              aria-hidden="true"
+            />
+            {presenceLabel(card.presence, member.via)}
+          </Text>
+        </Popover.Content>
+      </Popover.Root>
+      {sheet && (
+        <CharacterDetail member={member} sheet={sheet} open={detail} onOpenChange={setDetail} />
+      )}
+    </>
   );
 }

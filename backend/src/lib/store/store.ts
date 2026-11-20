@@ -103,6 +103,8 @@ export interface Store {
   /** One person's characters in one campaign, by name. */
   listCharacters(userId: string, campaignId: string): Promise<Character[]>;
   putCharacter(character: Character): Promise<void>;
+  /** Removes a character. A membership that had it active or parked stops pointing at it (the database nulls it). */
+  deleteCharacter(id: string): Promise<void>;
   /** Characters linked to a D&D Beyond sheet, least recently synced first. */
   listLinkedCharacters(): Promise<Character[]>;
 

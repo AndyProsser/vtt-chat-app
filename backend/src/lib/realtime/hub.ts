@@ -4,7 +4,9 @@ import {
   isChatKind,
   isChatLanguageKey,
   PROTOCOL_VERSION as APP_PROTOCOL,
+  processingLocation,
   type ChatKind,
+  type ProcessingLocation,
 } from '@vtt-chat-app/shared';
 
 import { CHAT_RETENTION_MESSAGES, SNAPSHOT_CHAT_LINES } from '../../consts/index.js';
@@ -127,6 +129,8 @@ interface ConnState {
 export class Hub {
   readonly presence: PresenceTracker;
   readonly recording: RecordingState;
+  /** See `refreshProcessing`. */
+  private processing: ProcessingLocation = 'local';
   private readonly acks: AckStore;
   private readonly soundboard: SoundboardRuntime | undefined;
   private readonly soundLimiter = new RateLimiter(30, 10_000);
@@ -264,7 +268,23 @@ export class Hub {
       recordingId: change.recordingId,
       status: change.event,
       startedAt: change.startedAt,
+      processing: this.processing,
     });
+  }
+
+  /**
+   * Where a recording's content is processed (`local` or `offsite`), read from the operator's AI settings. Sent with
+   * every recording change and state so each app can say it plainly (CLAUDE.md §8.4). Cached, because
+   * `announceRecording` is synchronous; refreshed on every join and before every recording change.
+   */
+  async refreshProcessing(): Promise<void> {
+    try {
+      this.processing = processingLocation((await this.options.store.getSettings()).ai);
+    } catch (error) {
+      // Cannot read the setting: say "offsite", never claim a privacy we cannot vouch for.
+      console.error('[backend] could not read the AI settings for the recording notice', error);
+      this.processing = 'offsite';
+    }
   }
 
   /** A handout was just shown: tell exactly the people who may now see it (the DM's own sockets included). */
@@ -348,6 +368,43 @@ export class Hub {
         ? { claimedBy: item.claimedBy, claimedFor: item.claimedFor, split: item.split }
         : {}),
     });
+  }
+
+  /**
+   * The DM posted an item that is still on the table into chat again. Same card as a drop, so every client shows
+   * it as a new line, and removes the card it had (the card moves; one item is never shown twice). It does not go to
+   * the recording's timeline (nothing happened to the item).
+   */
+  announceLootRedropped(item: Parameters<Hub['announceLoot']>[1]): void {
+    this.broadcast(item.campaignId, 'loot.redropped', {
+      campaignId: item.campaignId,
+      itemId: item.id,
+      name: item.name,
+      ...(item.description ? { description: item.description.slice(0, 500) } : {}),
+      quantity: item.quantity,
+      kind: item.kind,
+      itemType: item.itemType,
+      rarity: item.rarity,
+    });
+  }
+
+  /**
+   * A player's "added to my sheet" flag changed. Told only to the people who may see it (the player, or every
+   * player for the party stash), never to the DM, so the flags stay the players' own.
+   */
+  announceLootConfirmed(
+    campaignId: string,
+    itemId: string,
+    confirmed: boolean,
+    userIds: readonly string[],
+  ): void {
+    const allowed = new Set(userIds);
+    this.broadcast(
+      campaignId,
+      'loot.confirmed',
+      { campaignId, itemId, confirmed },
+      { only: (s) => s.auth !== null && allowed.has(s.auth.user.id) },
+    );
   }
 
   /** A handout was hidden or deleted: every client drops it (an unknown id is ignored). */
@@ -1029,6 +1086,8 @@ export class Hub {
               className: character.className,
               race: character.race,
               level: character.level,
+              // The linked sheet's numbers, for the hover card: everyone at the table sees them (Andy, 2026-11-18).
+              sheet: character.sheet,
             }
           : null,
         online: presence?.online ?? false,
@@ -1085,7 +1144,9 @@ export class Hub {
   private async recordingSnapshot(campaignId: string, viewerId: string) {
     const current = this.recording.current(campaignId);
     if (!current) return null;
+    await this.refreshProcessing();
     return {
+      processing: this.processing,
       recordingId: current.recordingId,
       status: current.status,
       startedAt: current.startedAt,

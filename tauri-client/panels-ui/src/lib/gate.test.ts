@@ -27,8 +27,15 @@ describe('gateState', () => {
         status({
           signedIn: true,
           campaigns: [
-            { id: 'a', name: 'A', role: 'dm', description: '', allowJoin: true },
-            { id: 'b', name: 'B', role: 'player', description: '', allowJoin: true },
+            { id: 'a', name: 'A', role: 'dm', description: '', allowJoin: true, bard: 'tavern' },
+            {
+              id: 'b',
+              name: 'B',
+              role: 'player',
+              description: '',
+              allowJoin: true,
+              bard: 'tavern',
+            },
           ],
         }),
       ),
@@ -43,7 +50,9 @@ describe('gateState', () => {
         status({
           signedIn: true,
           campaignId: 'a',
-          campaigns: [{ id: 'a', name: 'A', role: 'dm', description: '', allowJoin: true }],
+          campaigns: [
+            { id: 'a', name: 'A', role: 'dm', description: '', allowJoin: true, bard: 'tavern' },
+          ],
         }),
       ),
     ).toBe('ready');

@@ -8,21 +8,19 @@ import { Card, Flex, Text, TextField } from '@radix-ui/themes';
 import { useState } from 'react';
 
 import { ApiError } from '../../lib/api.js';
-import { addCharacter, ddbCall, saveCharacter } from '../../lib/phone/phoneApi.js';
+import { addCharacter } from '../../lib/phone/phoneApi.js';
 import { DdbLinkField } from './DdbLinkField.js';
 import { IconTool } from './IconTool.js';
 
 const api = (campaignId: string): NewCharacterApi => ({
   create: async (fields) => (await addCharacter(campaignId, fields)).character.id,
-  update: (id, fields) => saveCharacter(campaignId, id, fields),
-  link: (id, url) => ddbCall('link', campaignId, id, url),
 });
 
 /**
  * Adding a character. With the D&D Beyond sync on, it starts from a pasted sheet link (name, race, class, level and
  * picture all come from the sheet) and a button switches to filling it in by hand; with the sync off, or when
- * D&D Beyond could not be read, the form is the way. The link is made after the character exists (the server has no
- * one-step route yet), so a link that fails leaves a plain character to fill in, never a half-made one.
+ * D&D Beyond could not be read, the form is the way. The server reads the sheet before it makes anything, so a link
+ * that fails leaves nothing behind.
  */
 export function NewCharacter({
   campaignId,
@@ -39,8 +37,6 @@ export function NewCharacter({
   const [draft, setDraft] = useState(blankDraft());
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
-  // Set once the character has been made, so trying again does not make a second one.
-  const [madeId, setMadeId] = useState<string>();
   const fromSheet = ddbOn === true && !byHand;
 
   const attempt = async (work: () => Promise<string>) => {
@@ -55,10 +51,9 @@ export function NewCharacter({
     }
   };
 
-  const importSheet = (url: string) =>
-    attempt(() => createFromSheet(api(campaignId), url, madeId, setMadeId));
+  const importSheet = (url: string) => attempt(() => createFromSheet(api(campaignId), url));
 
-  const addByHand = () => attempt(() => createByHand(api(campaignId), draft, madeId));
+  const addByHand = () => attempt(() => createByHand(api(campaignId), draft));
 
   return (
     <Card size="2">
