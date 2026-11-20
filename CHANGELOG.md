@@ -17,6 +17,7 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ### Changed
 
+- **A wide or tall PDF page now scrolls**, and you can drag it to move around (handouts and GM notes); it stretched the window and cut off before. Zoomed pictures use the same drag.
 - **The To confirm list is grouped** into **Mine** (what you took, were given or share) and **Party stash**, each with a count, in both apps, so copying to a character sheet goes in order. Each group has its own **Add all** icon at the right of its heading; the single Add all at the top is gone.
 - **In session history the Scribe's notes button stays above the notes** when you open them (it used to jump below).
 - **The sound deck holds at most 8 stingers and 8 scenes.** Once it is full the add buttons are greyed with a tip ("The deck holds 8: remove one first"); remove one to pick another. A deck saved with more keeps its first 8.

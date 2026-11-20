@@ -1,6 +1,7 @@
 import { Maximize, ZoomIn, ZoomOut } from 'lucide-react';
 import { useRef, useState } from 'react';
 
+import { useDragPan } from '../hooks/useDragPan.js';
 import { clampZoom, stepZoom, zoomLabel } from '../lib/zoom.js';
 import { ToolButton } from './ToolButton.js';
 
@@ -11,7 +12,7 @@ import { ToolButton } from './ToolButton.js';
 export function ImageZoom({ src, alt }: { src: string; alt: string }) {
   const [zoom, setZoom] = useState(1);
   const frame = useRef<HTMLDivElement>(null);
-  const drag = useRef<{ x: number; y: number; left: number; top: number } | null>(null);
+  const pan = useDragPan(frame, zoom > 1);
 
   return (
     <div className="vtt-zoom">
@@ -38,20 +39,7 @@ export function ImageZoom({ src, alt }: { src: string; alt: string }) {
           e.preventDefault();
           setZoom((z) => clampZoom(z * (e.deltaY < 0 ? 1.1 : 1 / 1.1)));
         }}
-        onPointerDown={(e) => {
-          const el = frame.current;
-          if (!el || zoom <= 1) return;
-          el.setPointerCapture(e.pointerId);
-          drag.current = { x: e.clientX, y: e.clientY, left: el.scrollLeft, top: el.scrollTop };
-        }}
-        onPointerMove={(e) => {
-          const el = frame.current;
-          const d = drag.current;
-          if (!el || !d) return;
-          el.scrollLeft = d.left - (e.clientX - d.x);
-          el.scrollTop = d.top - (e.clientY - d.y);
-        }}
-        onPointerUp={() => (drag.current = null)}
+        {...pan}
       >
         <img src={src} alt={alt} style={{ width: `${zoom * 100}%` }} draggable={false} />
       </div>

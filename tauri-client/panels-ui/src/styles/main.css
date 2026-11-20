@@ -1762,6 +1762,8 @@ body,
   display: flex;
   flex-direction: column;
   gap: 8px;
+  /* Both zero so a wide or tall page scrolls inside its frame instead of stretching the window. */
+  min-width: 0;
   min-height: 0;
   flex: 1;
 }
@@ -1779,11 +1781,15 @@ body,
 .vtt-zoom-frame {
   overflow: auto;
   flex: 1;
+  min-width: 0;
   min-height: 240px;
+  max-width: 100%;
+  max-height: calc(100vh - 190px);
   border: 1px solid var(--vtt-edge);
   border-radius: var(--vtt-radius-control);
   background: var(--vtt-chat);
 }
+.vtt-zoom-pannable,
 .vtt-zoom-frame[data-zoomed='true'] {
   cursor: grab;
 }

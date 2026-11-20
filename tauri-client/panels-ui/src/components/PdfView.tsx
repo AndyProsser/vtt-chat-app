@@ -1,6 +1,7 @@
 import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
+import { useDragPan } from '../hooks/useDragPan.js';
 import { bytesFromDataUrl } from '../lib/dataUrl.js';
 import { clampZoom, stepZoom, zoomLabel } from '../lib/zoom.js';
 import { ToolButton } from './ToolButton.js';
@@ -11,6 +12,8 @@ import { ToolButton } from './ToolButton.js';
  */
 export function PdfView({ dataUrl }: { dataUrl: string }) {
   const canvas = useRef<HTMLCanvasElement>(null);
+  const frame = useRef<HTMLDivElement>(null);
+  const pan = useDragPan(frame, true);
   const [pdf, setPdf] = useState<{ numPages: number; getPage: (n: number) => Promise<unknown> }>();
   const [page, setPage] = useState(1);
   const [zoom, setZoom] = useState(1);
@@ -97,7 +100,7 @@ export function PdfView({ dataUrl }: { dataUrl: string }) {
           <ZoomIn size={14} />
         </ToolButton>
       </div>
-      <div className="vtt-zoom-frame">
+      <div ref={frame} className="vtt-zoom-frame vtt-zoom-pannable" {...pan}>
         <canvas ref={canvas} />
       </div>
     </div>
