@@ -23,7 +23,7 @@ the GitHub release notes and refuses to build a release without one. How to writ
 - **A new Unease board comes first** (chains, footsteps, creaks, a cave-in, bats, knocking, a thud, a groan) and a new deck starts with it: background noises to keep the table on edge. Most stingers now have an icon that suits them instead of a speaker.
 - **The picker's scrollbar no longer covers the favourite buttons.**
 - **Starter scenes are alive.** Twelve of them (Dungeon, Cave, Dungeon halls, Castle, Forest, Forest at night, Night, Harbour, Infernal, Tavern, Storm, Mountain) now drop in occasional sounds at random intervals on top of the bed: chains rattling, creaks, footsteps, a distant thud, bats, a splash, a wolf, a bell, thunder. The server's starter catalogue updates when the server does; scenes you made yourself are untouched.
-- **The storytellers have new names and a badge each.** The Drunken Bard is **The Tipsy Minstrel** and the Sarcastic Bard is **The Wry Jester** ("bard" belongs to the Tavern Bard), and the picker has more room, with a round portrait beside each (starter illustrations, to be replaced by richer art). Your campaign's choice is kept.
+- **The storytellers have new names and a badge each.** The Drunken Bard is **The Tipsy Minstrel** and the Sarcastic Bard is **The Wry Jester** ("bard" belongs to the Tavern Bard), and the picker has more room, with a round emblem beside each (stand-ins until there is portrait art). Your campaign's choice is kept.
 - **Smaller loot buttons in both apps** (32 by 24 pixels: short and wide, sitting beside the item's heading), and the **Add all** and **Give** buttons are icons with a tooltip.
 - **The desktop join switch says "Allow join"**, with the phone web app's wording.
 

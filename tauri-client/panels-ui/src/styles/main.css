@@ -2811,10 +2811,14 @@ body,
   gap: 12px;
 }
 .vtt-bard-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   flex: none;
   border-radius: 50%;
-  object-fit: cover;
-  border: 1px solid var(--gray-a6);
+  color: var(--vtt-gold);
+  background: color-mix(in srgb, var(--vtt-gold) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--vtt-gold) 45%, transparent);
 }
 .vtt-bard-text {
   display: flex;
