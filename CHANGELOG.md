@@ -14,9 +14,6 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 - **Operator controls for the AI storyteller** (`vtt-admin settings`), stored now and used by the storyteller prompts in a later 0.6 release: `ai.tale.length` (`short` for a CPU-only server, `default`, `long` for a GPU or cloud model), `ai.tale.content` (`clean`, `default`, `graphic`) and `ai.storyteller.<name> on|off` for the Dry Historian, Tipsy Minstrel, Wry Jester and Bored Court Scribe. The Tavern Bard cannot be turned off and is the fallback: a campaign whose storyteller you turn off is told by it. The Settings → Campaign picker shows only the storytellers your server offers. The installer takes `--content clean|default|graphic` and asks on a fresh install with recording on. No protocol change (one new read-only route, `GET /api/campaigns/:id/storytellers`).
 - **Six new sounds for dungeons, picked by Andy** (all public domain): rats, a metal scrape, water drips (three takes), a rockfall (two takes), a distant shriek and a chain gate. The Unease board's first eight buttons are the deck's defaults (chains, footsteps, rats, bats, rockfall, a distant shriek, a water drip, a metal scrape). The Dungeon, Cave and Dungeon halls scenes drop them in at random.
-
-### Added
-
 - **An old browser is told so, instead of showing a blank page.** If the browser cannot run the web app (it needs ES modules, `structuredClone`, `100dvh` and CSS `color-mix`: Chrome or Edge 111, Firefox 113, Safari 16.2 or newer), the join and phone pages show a notice over the natural 1 picture asking for a newer browser, with an "Open it anyway" link.
 
 ### Changed
