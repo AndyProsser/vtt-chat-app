@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import { togglePin } from '../lib/stingers.js';
+import { MAX_PINS, togglePin } from '../lib/stingers.js';
 
 const key = (kind: string, campaignId: string) => `vtt.${kind}.${campaignId}`;
 
@@ -9,7 +9,7 @@ function read(kind: string, campaignId: string): string[] | undefined {
     const raw = localStorage.getItem(key(kind, campaignId));
     const parsed: unknown = raw ? JSON.parse(raw) : undefined;
     return Array.isArray(parsed) && parsed.every((p) => typeof p === 'string')
-      ? (parsed as string[])
+      ? (parsed as string[]).slice(0, MAX_PINS)
       : undefined;
   } catch {
     return undefined;

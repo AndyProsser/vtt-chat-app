@@ -853,6 +853,9 @@ body,
   background: color-mix(in srgb, var(--vtt-gold) 28%, transparent);
   box-shadow: inset 0 0 0 1px var(--vtt-gold);
 }
+.vtt-tool-temp {
+  border-style: dashed;
+}
 .vtt-tool-danger {
   color: #ff8a80;
   border-color: #ff8a80;
@@ -1428,6 +1431,8 @@ body,
   padding: 0;
   max-height: 220px;
   overflow-y: auto;
+  /* Room for the scrollbar, so it never covers the row's button. */
+  padding-right: 12px;
   display: flex;
   flex-direction: column;
   gap: 2px;

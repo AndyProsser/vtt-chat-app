@@ -643,6 +643,47 @@
   ],
   "boards": [
     {
+      "key": "unease",
+      "name": "Unease",
+      "buttons": [
+        {
+          "label": "Chains",
+          "sound": "fx-chains",
+          "note": "Something is being dragged nearby."
+        },
+        {
+          "label": "Footsteps",
+          "sound": "fx-footsteps",
+          "note": "Someone else is in here."
+        },
+        {
+          "label": "Creak",
+          "sound": "fx-creak"
+        },
+        {
+          "label": "Cave-in",
+          "sound": "fx-cave-in",
+          "note": "Rock giving way somewhere close."
+        },
+        {
+          "label": "Bats",
+          "sound": "fx-bats"
+        },
+        {
+          "label": "Knocking",
+          "sound": "fx-knock"
+        },
+        {
+          "label": "Heavy thud",
+          "sound": "fx-thud"
+        },
+        {
+          "label": "Groan or cry",
+          "sound": "fx-groan"
+        }
+      ]
+    },
+    {
       "key": "combat",
       "name": "Combat",
       "buttons": [

@@ -2,7 +2,7 @@ import { Popover, TextField } from '@radix-ui/themes';
 import { Plus, Search, Star } from 'lucide-react';
 import { useState } from 'react';
 
-import { searchSounds, type FlatSound } from '../lib/stingers.js';
+import { deckFull, MAX_PINS, searchSounds, type FlatSound } from '../lib/stingers.js';
 import { soundIcon } from '../lib/soundIcons.js';
 import { ToolButton } from './ToolButton.js';
 
@@ -23,6 +23,7 @@ export function SoundPicker({
 }) {
   const [query, setQuery] = useState('');
   const hits = searchSounds(sounds, query);
+  const full = deckFull(pinned);
   return (
     <Popover.Root onOpenChange={(open) => open && setQuery('')}>
       <Popover.Trigger>
@@ -59,8 +60,15 @@ export function SoundPicker({
                     <span className="vtt-muted">{s.board}</span>
                   </button>
                   <ToolButton
-                    label={isPinned ? 'Unpin from the deck' : 'Pin to the deck'}
+                    label={
+                      isPinned
+                        ? 'Unpin from the deck'
+                        : full
+                          ? `The deck holds ${MAX_PINS}: unpin one first`
+                          : 'Pin to the deck'
+                    }
                     pressed={isPinned}
+                    disabled={!isPinned && full}
                     onClick={() => onTogglePin(s.soundId)}
                   >
                     <Star size={13} />

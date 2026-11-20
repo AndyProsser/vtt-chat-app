@@ -1,8 +1,8 @@
 import type { SoundBoard } from '../types/index.js';
 
-/** How many stingers fit on the deck's row. */
-export const MAX_PINS = 12;
-const DEFAULT_PINS = 6;
+/** The most stingers (and, separately, scenes) the deck holds: at most 8 each (Andy, 2026-11-20). */
+export const MAX_PINS = 8;
+const DEFAULT_PINS = 8;
 const RESULTS = 8;
 
 export interface FlatSound {
@@ -39,9 +39,10 @@ export function togglePin(pins: string[], soundId: string): string[] {
   return pins.length >= MAX_PINS ? pins : [...pins, soundId];
 }
 
-/** What is pinned before the DM chooses: the first sound of each board, so the deck starts varied, then the rest in order. */
+/** What is pinned before the DM chooses: the first sounds in the library's order, which starts with the board of background unease (chains, footsteps, creaks, bats...). */
 export function defaultPins(sounds: FlatSound[]): string[] {
-  const firstOfEach = sounds.filter((s, i) => sounds.findIndex((o) => o.board === s.board) === i);
-  const rest = sounds.filter((s) => !firstOfEach.includes(s));
-  return [...firstOfEach, ...rest].slice(0, DEFAULT_PINS).map((s) => s.soundId);
+  return sounds.slice(0, DEFAULT_PINS).map((s) => s.soundId);
 }
+
+/** Whether the deck already holds the most it may. */
+export const deckFull = (pins: readonly string[]): boolean => pins.length >= MAX_PINS;

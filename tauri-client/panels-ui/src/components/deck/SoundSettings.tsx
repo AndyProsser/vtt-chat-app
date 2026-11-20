@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 
 import { soundIcon } from '../../lib/soundIcons.js';
 import type { SoundLevels } from '../../lib/soundLevels.js';
-import { searchSounds, type FlatSound } from '../../lib/stingers.js';
+import { deckFull, MAX_PINS, searchSounds, type FlatSound } from '../../lib/stingers.js';
 import { accountErrorMessage, campaignApi } from '../../lib/tauriBridge.js';
 import type { SoundBoard, SoundRecord, SoundScene } from '../../types/index.js';
 import { ToolButton } from '../ToolButton.js';
@@ -102,6 +102,7 @@ function Favourites({ sounds, pins, onTogglePin }: Props) {
   const results = searchSounds(sounds, query)
     .filter((s) => !pins.includes(s.soundId))
     .slice(0, 5);
+  const full = deckFull(pins);
   const row = (s: FlatSound, add: boolean) => {
     const Icon = soundIcon(s.label, s.board);
     return (
@@ -114,8 +115,15 @@ function Favourites({ sounds, pins, onTogglePin }: Props) {
           <small>{s.board}</small>
         </span>
         <ToolButton
-          label={add ? `Favourite ${s.label}` : `Remove ${s.label} from favourites`}
+          label={
+            add
+              ? full
+                ? `The deck holds ${MAX_PINS}: remove one first`
+                : `Favourite ${s.label}`
+              : `Remove ${s.label} from favourites`
+          }
           danger={!add}
+          disabled={add && full}
           onClick={() => onTogglePin(s.soundId)}
         >
           {add ? <Plus size={14} /> : <X size={14} />}

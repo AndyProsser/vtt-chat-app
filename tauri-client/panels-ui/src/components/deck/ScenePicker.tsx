@@ -4,6 +4,7 @@ import { useState } from 'react';
 
 import { sceneIcon } from '../../lib/sceneIcons.js';
 import { searchScenes } from '../../lib/scenes.js';
+import { deckFull, MAX_PINS } from '../../lib/stingers.js';
 import type { SoundScene } from '../../types/index.js';
 import { ToolButton } from '../ToolButton.js';
 import { SceneEditor } from './SceneEditor.js';
@@ -29,11 +30,20 @@ export function ScenePicker({
 }) {
   const [query, setQuery] = useState('');
   const [creating, setCreating] = useState(false);
+  const [open, setOpen] = useState(false);
   const hits = searchScenes(scenes, query);
+  const full = deckFull(shown);
+  // Starting a scene closes the picker; one that is not on the deck joins it, dashed, until it stops.
+  const start = (sc: SoundScene) => {
+    onStart(sc);
+    setOpen(false);
+  };
   return (
     <Popover.Root
-      onOpenChange={(open) => {
-        if (open) {
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (next) {
           setQuery('');
           setCreating(false);
         }
@@ -67,7 +77,7 @@ export function ScenePicker({
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter' && hits[0]) onStart(hits[0]);
+                    if (e.key === 'Enter' && hits[0]) start(hits[0]);
                   }}
                 />
               </label>
@@ -82,15 +92,20 @@ export function ScenePicker({
                 const isShown = shown.includes(sc.id);
                 return (
                   <li key={sc.id} className="vtt-picker-row">
-                    <button type="button" className="vtt-picker-play" onClick={() => onStart(sc)}>
+                    <button type="button" className="vtt-picker-play" onClick={() => start(sc)}>
                       <Icon size={14} aria-hidden />
                       <span>{sc.name}</span>
                     </button>
                     <ToolButton
                       label={
-                        isShown ? `Hide ${sc.name} from the deck` : `Show ${sc.name} on the deck`
+                        isShown
+                          ? `Hide ${sc.name} from the deck`
+                          : full
+                            ? `The deck holds ${MAX_PINS} scenes: hide one first`
+                            : `Show ${sc.name} on the deck`
                       }
                       pressed={isShown}
+                      disabled={!isShown && full}
                       onClick={() => onToggleShown(sc.id)}
                     >
                       {isShown ? <Eye size={13} /> : <EyeOff size={13} />}

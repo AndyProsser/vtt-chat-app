@@ -12,6 +12,10 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ### Changed
 
+- **The sound deck holds at most 8 stingers and 8 scenes.** Once it is full the add buttons are greyed with a tip ("The deck holds 8: remove one first"); remove one to pick another. A deck saved with more keeps its first 8.
+- **A scene you start from the picker that is not on the deck joins it with a dashed outline** while it plays and leaves when it stops; starting one closes the picker.
+- **A new Unease board comes first** (chains, footsteps, creaks, a cave-in, bats, knocking, a thud, a groan) and a new deck starts with it: background noises to keep the table on edge. Most stingers now have an icon that suits them instead of a speaker.
+- **The picker's scrollbar no longer covers the favourite buttons.**
 - **Starter scenes are alive.** Twelve of them (Dungeon, Cave, Dungeon halls, Castle, Forest, Forest at night, Night, Harbour, Infernal, Tavern, Storm, Mountain) now drop in occasional sounds at random intervals on top of the bed: chains rattling, creaks, footsteps, a distant thud, bats, a splash, a wolf, a bell, thunder. The server's starter catalogue updates when the server does; scenes you made yourself are untouched.
 - **The storytellers have new names and a badge each.** The Drunken Bard is **The Tipsy Minstrel** and the Sarcastic Bard is **The Wry Jester** ("bard" belongs to the Tavern Bard), and the picker has more room, with a round emblem beside each (stand-ins until there is portrait art). Your campaign's choice is kept.
 - **Smaller loot buttons on the phone web app**, sized to sit beside the item's heading, and the **Add all** button is an icon with a tooltip in both apps.

@@ -1,0 +1,16 @@
+[
+  {"key":"rat-scurry","name":"Rat scurry","kind":"effect","category":"effect","min":1,"max":8,"top":6,
+   "queries":["rat scurry","rat scurrying","mouse scurry floor","rodent scratching skittering"]},
+  {"key":"scrape","name":"Stone or metal scrape","kind":"effect","category":"effect","min":1,"max":8,"top":6,
+   "queries":["stone scrape dungeon","stone drag heavy","metal scrape","sarcophagus lid slide"]},
+  {"key":"drip","name":"Single water drip","kind":"effect","category":"effect","min":1,"max":6,"top":6,
+   "queries":["single water drip cave","water drop echo","drip cave reverb"]},
+  {"key":"rockfall","name":"Rocks falling","kind":"effect","category":"effect","min":1,"max":10,"top":6,
+   "queries":["rocks falling cave","rock fall rubble","stones tumbling small rockslide"]},
+  {"key":"shout","name":"Distant shout or scream","kind":"effect","category":"effect","min":1,"max":8,"top":6,
+   "queries":["distant scream","distant shout echo","faraway yell cave","man scream distant"]},
+  {"key":"chain-drag","name":"Chains dragging","kind":"effect","category":"effect","min":1,"max":10,"top":6,
+   "queries":["chain drag floor","chains rattle dungeon","chain clank"]},
+  {"key":"skitter","name":"Skittering claws","kind":"effect","category":"effect","min":1,"max":8,"top":6,
+   "queries":["claws skittering stone","insect skitter floor","scratching wall"]}
+]

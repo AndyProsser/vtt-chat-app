@@ -27,20 +27,31 @@ export function ScenePanel({
   const visible = shown
     .map((id) => scenes.find((s) => s.id === id))
     .filter((s): s is SoundScene => s !== undefined);
+  // A scene started from the picker that is not on the deck stays here, dashed, only while it plays.
+  const guest = active && !shown.includes(active) ? scenes.find((s) => s.id === active) : undefined;
+  if (guest) visible.push(guest);
   return (
     <div className="vtt-deck-chips" role="group" aria-label="Scenes">
       {visible.map((sc) => {
         const on = active === sc.id;
+        const temp = sc === guest;
         const Icon = sceneIcon(sc.name);
         return (
           <ToolButton
             key={sc.id}
-            label={on ? `Stop ${sc.name}` : `${sc.name}; right-click to hide`}
+            label={
+              temp
+                ? `Stop ${sc.name} (not on your deck: it leaves when it stops)`
+                : on
+                  ? `Stop ${sc.name}`
+                  : `${sc.name}; right-click to hide`
+            }
             pressed={on}
+            {...(temp ? { className: 'vtt-tool-temp' } : {})}
             onClick={() => onToggle(sc, !on)}
             onContextMenu={(e) => {
               e.preventDefault();
-              onToggleShown(sc.id);
+              if (!temp) onToggleShown(sc.id);
             }}
           >
             <Icon size={15} />

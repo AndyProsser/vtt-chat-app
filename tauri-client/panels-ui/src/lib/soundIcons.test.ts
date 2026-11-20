@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import {
   Anvil,
   Axe,
@@ -68,5 +69,20 @@ describe('sound icons', () => {
 
   it('fall back to the speaker', () => {
     expect(soundIcon('zzz')).toBe(Volume2);
+  });
+});
+
+describe('the starter stingers', () => {
+  it('each get an icon of their own, not the default speaker', () => {
+    const catalogue = JSON.parse(
+      readFileSync('../../backend/assets/sounds/catalogue.json', 'utf8'),
+    ) as { boards: { name: string; buttons: { label: string; mode?: string }[] }[] };
+    const plain = catalogue.boards.flatMap((b) =>
+      b.buttons
+        .filter((x) => x.mode !== 'loop')
+        .filter((x) => soundIcon(x.label, b.name) === Volume2)
+        .map((x) => `${b.name}: ${x.label}`),
+    );
+    expect(plain).toEqual([]);
   });
 });

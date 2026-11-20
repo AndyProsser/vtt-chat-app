@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { SoundBoard, SoundButton } from '../types/index.js';
 import {
+  deckFull,
   defaultPins,
   flattenSounds,
   searchSounds,
@@ -51,8 +52,12 @@ describe('pins', () => {
     const full = Array.from({ length: MAX_PINS }, (_, i) => `s${i}`);
     expect(togglePin(full, 'new')).toEqual(full);
   });
-  it('starts with the first sound of each board, then the rest', () => {
-    expect(defaultPins(flattenSounds(boards))).toEqual(['open', 'grass', 'close']);
+  it('starts with the library in order', () => {
+    expect(defaultPins(flattenSounds(boards))).toEqual(flattenSounds(boards).map((s) => s.soundId));
+  });
+  it('knows when the deck is full', () => {
+    expect(deckFull(Array.from({ length: MAX_PINS }, (_, i) => `s${i}`))).toBe(true);
+    expect(deckFull(['a'])).toBe(false);
   });
 });
 
@@ -63,12 +68,12 @@ describe('defaultPins', () => {
     board,
     volume: 1,
   });
-  it('starts the deck with the first sound of each board before any second ones', () => {
-    const sounds = [fx('a1', 'A'), fx('a2', 'A'), fx('b1', 'B'), fx('c1', 'C'), fx('c2', 'C')];
-    expect(defaultPins(sounds)).toEqual(['a1', 'b1', 'c1', 'a2', 'c2']);
+  it('starts the deck with the first sounds in library order', () => {
+    const sounds = [fx('a1', 'A'), fx('a2', 'A'), fx('b1', 'B')];
+    expect(defaultPins(sounds)).toEqual(['a1', 'a2', 'b1']);
   });
-  it('stops at six', () => {
-    const many = Array.from({ length: 10 }, (_, i) => fx(`s${i}`, `B${i}`));
-    expect(defaultPins(many)).toHaveLength(6);
+  it('stops at eight', () => {
+    const many = Array.from({ length: 12 }, (_, i) => fx(`s${i}`, `B${i}`));
+    expect(defaultPins(many)).toHaveLength(8);
   });
 });
