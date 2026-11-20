@@ -2834,6 +2834,22 @@ body,
   padding: 10px 14px 10px 12px;
   line-height: 1.35;
 }
+/* The chosen bard is shown by highlighting its row, not Radix's tick (which sat on top of the badge). */
+.vtt-bard-item .rt-SelectItemIndicator {
+  display: none;
+}
+.vtt-bard-item[data-state='checked'] {
+  background: color-mix(in srgb, var(--vtt-gold) 16%, transparent);
+  box-shadow: inset 3px 0 0 var(--vtt-gold);
+}
+.vtt-bard-item[data-state='checked'][data-highlighted] {
+  background: color-mix(in srgb, var(--vtt-gold) 26%, transparent);
+  color: inherit;
+}
+.vtt-bard-item[data-state='checked'] .vtt-bard-avatar {
+  color: var(--vtt-bg);
+  background: var(--vtt-gold);
+}
 .vtt-bard-row {
   display: flex;
   align-items: center;

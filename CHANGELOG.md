@@ -15,6 +15,10 @@ the GitHub release notes and refuses to build a release without one. How to writ
 - **`vtt-admin` output is easier to read:** on a terminal it now draws in colour, with ✔/▲/✖ marks, aligned tables with headings (accounts, campaigns, recordings, jobs, sign-ups) and settings grouped by area. **`vtt-admin status` shows more:** besides each service, what the instance is doing (sign-ups waiting, a live recording and its campaign, the AI job queue, the app version offered) and the machine's CPU, memory and disks as usage bars. A nearly full disk or a failed job is a warning; only a service that is down makes it exit 1, as before. Add `--plain` for plain text (piped output is plain on its own); scripts that read the old line formats need updating.
 - **`vtt-admin help` is easier to read:** every command is listed in groups (accounts, campaigns, recordings, updates, this machine) and wrapped to the width of your terminal, so long descriptions no longer run off the edge or break mid-word. `vtt-admin <group>` (for example `vtt-admin campaign`) shows just that group, and a mistyped command shows its group's commands. A native install's help also lists the `systemctl`, `journalctl` and backup scripts that do the machine jobs. The terminal width reaches the help after the next server update.
 
+### Fixed
+
+- **Storyteller dropdown:** the chosen bard is now shown by highlighting its row (gold tint and edge, filled badge) instead of a tick that sat on top of its badge.
+
 ## [0.6.1] - 2026-11-20
 
 A fuller sound deck, the table's page and Invite on the phone, the first macOS build for Intel Macs, and tidier loot and PDFs. A **PATCH** release: no protocol change, so 0.6.0 apps and servers work together. **Operators:** update the server first (the storyteller picker asks it which storytellers you offer), then `vtt-admin updates sync`. **Players:** update the app.
