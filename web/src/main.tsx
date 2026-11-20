@@ -61,4 +61,6 @@ function Root() {
   );
 }
 
-createRoot(container).render(<Root />);
+// An old browser was shown a notice by /old-browser.js (before this ran): do not start the app behind it.
+if (!(window as { __vttOldBrowser?: boolean }).__vttOldBrowser)
+  createRoot(container).render(<Root />);

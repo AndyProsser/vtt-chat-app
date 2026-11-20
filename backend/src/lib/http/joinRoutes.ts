@@ -173,6 +173,8 @@ export function webPages(webDir: string, options?: WebPagesOptions): Router | un
     '/app-icon-512.png': 'image/png',
     '/apple-touch-icon.png': 'image/png',
     '/og-banner.jpg': 'image/jpeg',
+    '/old-browser.js': 'text/javascript',
+    '/old-browser.jpg': 'image/jpeg',
   };
   router.get(Object.keys(installFiles), (req, res, next) => {
     const file = resolve(root, req.path.slice(1));
