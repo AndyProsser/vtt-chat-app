@@ -37,6 +37,12 @@ export interface AiSettings {
   transcription: AiBackendSetting & {
     /** Fixed language code; a wrong auto-detect on short windows costs accuracy. */
     language: string;
+    /**
+     * What the campaign's names are used for (Stage 12): `corrections` fixes misheard names afterwards, `prompt` also
+     * tells Whisper the names up front, `both` does both, `off` neither. Default `corrections`: an earlier name
+     * prompt lowered accuracy, so the prompt stays opt-in until it is measured to help.
+     */
+    glossary: 'off' | 'corrections' | 'prompt' | 'both';
   };
   llm: AiBackendSetting;
   fallback: AiFallbackSetting;

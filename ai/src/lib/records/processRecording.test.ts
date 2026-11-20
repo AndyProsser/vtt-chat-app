@@ -321,3 +321,48 @@ describe('through the queue', () => {
     expect((await records.getRecording(REC))?.status).toBe('processed');
   });
 });
+
+describe('the campaign vocabulary (Stage 12 B and C)', () => {
+  const names = [{ term: 'Ravenshade', aliases: ['raven shade'], rank: 0 }];
+  const heard = async (): Promise<Segment[]> => say('We met raven shade at dawn.');
+
+  async function run(glossary: string) {
+    records.vocabulary.set('camp-1', names);
+    records.aiSettings = setAiSetting(DEFAULT_AI_SETTINGS, 'ai.transcription.glossary', glossary);
+    let prompt: string | undefined = 'untouched';
+    await handler({
+      transcribeAudioFile: heard,
+      buildProviders: (settings, deps) => {
+        prompt = deps.transcriptionPrompt;
+        return buildJobProviders(settings, deps);
+      },
+    }).run(job());
+    const [first] = await records.listTranscripts(REC);
+    return { prompt, text: first?.segments[0]?.text };
+  }
+
+  it('corrects by default and sends no prompt', async () => {
+    expect(await run('corrections')).toEqual({
+      prompt: undefined,
+      text: 'We met Ravenshade at dawn.',
+    });
+  });
+
+  it('with prompt only, sends the names and leaves the text as heard', async () => {
+    expect(await run('prompt')).toEqual({
+      prompt: 'Names in this game: Ravenshade.',
+      text: 'We met raven shade at dawn.',
+    });
+  });
+
+  it('with both, does both', async () => {
+    expect(await run('both')).toEqual({
+      prompt: 'Names in this game: Ravenshade.',
+      text: 'We met Ravenshade at dawn.',
+    });
+  });
+
+  it('with off, does neither', async () => {
+    expect(await run('off')).toEqual({ prompt: undefined, text: 'We met raven shade at dawn.' });
+  });
+});

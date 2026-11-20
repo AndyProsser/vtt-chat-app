@@ -26,6 +26,8 @@ export interface OpenAiCompatOptions {
 export interface OpenAiTranscribeOptions extends OpenAiCompatOptions {
   /** Fixed language code. A wrong auto-detect on a short window costs accuracy, so this is explicit. */
   language?: string;
+  /** Whisper's starting prompt (the campaign's names): what the speech is likely to be about. */
+  prompt?: string;
   /** Drops segments the server rates as probably silence. Servers that don't report it are unaffected. */
   maxNoSpeechProb?: number;
   /**
@@ -162,6 +164,7 @@ export function createOpenAiTranscribe(options: OpenAiTranscribeOptions): Transc
     // Deterministic output: a summary is built on this text, so no sampling randomness.
     form.append('temperature', '0');
     if (options.language) form.append('language', options.language);
+    if (options.prompt) form.append('prompt', options.prompt);
     const audioCtx = options.fitAudioContext
       ? audioContextFor(wavSeconds(audio.length), options.audioContextMargin)
       : undefined;

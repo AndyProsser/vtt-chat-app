@@ -450,6 +450,17 @@ What it showed, and what changed:
 - `base.en` was not worth it (0.937 fitted). A **name prompt** (character and place names sent as Whisper's `prompt`)
   made accuracy worse (0.930) and was dropped. **Parakeet** (reported about 4× Whisper `small` on CPU) was not measured:
   it needs a third-party server we have not vetted, and it takes no vocabulary hints.
+- **Campaign vocabulary (Stage 12 B and C, built 2026-11-20, not yet measured on speech).** `RecordsStore.campaignVocabulary`
+  gathers the names the server holds, ranked so the Game Master's approved glossary comes first, then characters, players,
+  the Game Master's scene names, handout titles and loot names (a title over five words is a sentence and is skipped).
+  `ai.transcription.glossary` chooses what they are used for: **corrections** (default) fix the text after Whisper, **prompt**
+  sends the best 600 characters as Whisper's `prompt` (a whisper.cpp server and the OpenAI API both take one), **both**, or
+  **off**. Corrections are the safe half: a dictionary pass for the glossary's aliases, then a fuzzy pass that needs a
+  capital, the same first letter, a name of at least five letters and one slip per five letters (two at most), so "Pam" and
+  "the raven shade" are not turned into "Pim" and "Ravenshade". The prompt stays opt-in because the 2026-11-16 name prompt
+  lost accuracy. Both run per job; a remote Whisper receives the prompt (names only, never audio that was not already going
+  there), the corrections always run on the server. Test: `ai/src/lib/vocabulary.test.ts`, and the handler test in
+  `processRecording.test.ts`.
 - 280 words of clean TTS: a difference of one point is three words. Compare rows, do not predict a real table.
 
 | Summary model on CPU (2014 desktop, one summary of the scene) | Time      | Judged                                                             |

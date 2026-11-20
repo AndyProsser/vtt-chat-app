@@ -170,6 +170,7 @@ function settingValues(s: InstanceSettings): [string, string | null][] {
     ['ai.transcription.url', s.ai.transcription.url],
     ['ai.transcription.model', s.ai.transcription.model],
     ['ai.transcription.language', s.ai.transcription.language],
+    ['ai.transcription.glossary', s.ai.transcription.glossary],
     ['ai.llm.kind', s.ai.llm.kind],
     ['ai.llm.url', s.ai.llm.url],
     ['ai.llm.model', s.ai.llm.model],

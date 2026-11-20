@@ -121,13 +121,14 @@ async function main(): Promise<void> {
 
   const handler = createProcessRecordingHandler({
     records: new PostgresRecordsStore(pool),
-    localTranscribe: (language) =>
+    localTranscribe: (language, prompt) =>
       localUrl && whisperReady
         ? holdForWhisper(
             createOpenAiTranscribe({
               baseUrl: localUrl,
               model: 'whisper-1',
               language,
+              ...(prompt ? { prompt } : {}),
               // The local Whisper is whisper.cpp: have it encode only as much audio as each window holds, when the
               // model is one that was measured to cope (not turbo: it repeats itself).
               fitAudioContext: fitAudioContext(process.env),
@@ -141,6 +142,7 @@ async function main(): Promise<void> {
               modelPath,
               ...(threads ? { threads } : {}),
               language,
+              ...(prompt ? { prompt } : {}),
             }),
     // The bard always gets its own generator: the same model may be both, but it samples differently.
     localGenerate: holdForModel(ollamaGenerate(ollamaModel, SCRIBE_SAMPLING), modelKeeper, hold),

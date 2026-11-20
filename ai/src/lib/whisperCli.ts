@@ -14,6 +14,8 @@ export interface WhisperCliOptions {
   threads?: number;
   /** Fixed language code (`en`), or `auto`. A wrong guess on a short window costs accuracy. */
   language?: string;
+  /** Whisper's starting prompt (the campaign's names). */
+  prompt?: string;
 }
 
 /**
@@ -36,6 +38,7 @@ export async function transcribeWavWithWhisperCli(
     '-l',
     options.language ?? 'en',
   ];
+  if (options.prompt) args.push('--prompt', options.prompt);
   if (options.threads !== undefined) args.push('-t', String(options.threads));
   await execFileAsync(options.bin ?? 'whisper-cli', args, { maxBuffer: 16 * 1024 * 1024 });
   return parseWhisperJson(JSON.parse(await readFile(`${workBase}.json`, 'utf8')));

@@ -10,6 +10,7 @@ import type {
   StoredSummary,
   TrackTranscript,
 } from '../../types/index.js';
+import type { VocabularyTerm } from '../vocabulary.js';
 
 /**
  * What the records pipeline needs from storage. Postgres is the real one; the in-memory one backs
@@ -89,6 +90,11 @@ export interface RecordsStore {
    */
   notifyAudioPurgeSoon(recordingId: string, purgeAt: number, at: number): Promise<void>;
 
+  /**
+   * The names this campaign uses, for Whisper's prompt and the corrections (Stage 12): the Game Master's approved
+   * glossary (with aliases) first, then characters, players, the Game Master's scene names, handout and loot titles.
+   */
+  campaignVocabulary(campaignId: string): Promise<VocabularyTerm[]>;
   campaignName(campaignId: string): Promise<string | undefined>;
   /** Account ids of the campaign's players (every member but the DM): who gets a character summary. */
   playerIds(campaignId: string): Promise<string[]>;

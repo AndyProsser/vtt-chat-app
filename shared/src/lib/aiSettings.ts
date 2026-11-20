@@ -7,8 +7,10 @@ import {
 } from '../consts/bards.js';
 import type { AiSettings } from '../types/aiSettings.js';
 
+export const TRANSCRIPTION_GLOSSARY_MODES = ['off', 'corrections', 'prompt', 'both'] as const;
+
 export const DEFAULT_AI_SETTINGS: AiSettings = {
-  transcription: { kind: 'local', url: null, model: null, language: 'en' },
+  transcription: { kind: 'local', url: null, model: null, language: 'en', glossary: 'corrections' },
   llm: { kind: 'local', url: null, model: null },
   // 10 minutes unreachable before giving up on the remote; retry every 30 s meanwhile.
   fallback: { enabled: true, afterSeconds: 600, retrySeconds: 30 },
@@ -21,6 +23,8 @@ export const AI_SETTING_KEYS = {
   'ai.transcription.url': 'http(s) URL of an OpenAI-compatible server, or "none"',
   'ai.transcription.model': 'model name the remote server expects, or "none"',
   'ai.transcription.language': 'language code such as en',
+  'ai.transcription.glossary':
+    'corrections (default: fix misheard names afterwards) | prompt | both | off',
   'ai.llm.kind': 'local | remote',
   'ai.llm.url': 'http(s) URL of an OpenAI-compatible server, or "none"',
   'ai.llm.model': 'model name, or "none"',
@@ -105,6 +109,14 @@ export function setAiSetting(settings: AiSettings, key: AiSettingKey, value: str
         throw new SettingError('must be a language code such as en, or auto');
       }
       next.transcription.language = language;
+      break;
+    }
+    case 'ai.transcription.glossary': {
+      const v = value.trim().toLowerCase();
+      if (!(TRANSCRIPTION_GLOSSARY_MODES as readonly string[]).includes(v)) {
+        throw new SettingError(`must be one of: ${TRANSCRIPTION_GLOSSARY_MODES.join(', ')}`);
+      }
+      next.transcription.glossary = v as AiSettings['transcription']['glossary'];
       break;
     }
     case 'ai.llm.kind':
@@ -199,6 +211,7 @@ export function normaliseAiSettings(raw: unknown): AiSettings {
       url: str(t.url, d.transcription.url),
       model: str(t.model, d.transcription.model),
       language: typeof t.language === 'string' ? t.language : d.transcription.language,
+      glossary: oneOf(t.glossary, TRANSCRIPTION_GLOSSARY_MODES, d.transcription.glossary),
     },
     llm: {
       kind: kind(l.kind, d.llm.kind),

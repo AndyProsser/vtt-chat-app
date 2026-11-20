@@ -10,10 +10,12 @@ export interface ProviderDeps {
   env?: { WHISPER_API_KEY?: string | undefined; LLM_API_KEY?: string | undefined };
   /** The always-configured local backends: the default, and the fallback for a remote one. */
   /** Builds the local transcriber for the operator's configured language. */
-  localTranscribe: (language: string) => TranscribeWav;
+  localTranscribe: (language: string, prompt?: string) => TranscribeWav;
   localGenerate: GenerateText;
   /** The local story-teller (the bard): its own model or sampling; without it the scribe's generator tells the tales. */
   localStory?: GenerateText;
+  /** Whisper's starting prompt for this job (the campaign's names), when the operator has it on. */
+  transcriptionPrompt?: string | undefined;
   /** Called when a job moves to the local backend because the remote was unreachable. */
   onFallback?: (what: 'transcription' | 'llm', reason: string) => void;
   signal?: AbortSignal;
@@ -39,7 +41,7 @@ export function buildJobProviders(settings: AiSettings, deps: ProviderDeps): Job
 
   const { fallback } = settings;
   const language = settings.transcription.language;
-  const localTranscribe = deps.localTranscribe(language);
+  const localTranscribe = deps.localTranscribe(language, deps.transcriptionPrompt);
   const timing = {
     retryIntervalMs: fallback.retrySeconds * 1000,
     fallbackAfterMs: fallback.enabled ? fallback.afterSeconds * 1000 : undefined,
@@ -54,6 +56,7 @@ export function buildJobProviders(settings: AiSettings, deps: ProviderDeps): Job
             baseUrl: settings.transcription.url,
             model: settings.transcription.model ?? 'whisper-1',
             language: settings.transcription.language,
+            ...(deps.transcriptionPrompt ? { prompt: deps.transcriptionPrompt } : {}),
             ...(deps.env?.WHISPER_API_KEY ? { apiKey: deps.env.WHISPER_API_KEY } : {}),
             ...common,
           }),

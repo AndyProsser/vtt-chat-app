@@ -1,5 +1,7 @@
 import { DEFAULT_AI_SETTINGS, type AiSettings } from '@vtt-chat-app/shared';
 
+import type { VocabularyTerm } from '../vocabulary.js';
+
 import type {
   Recording,
   RecordingEvent,
@@ -192,6 +194,8 @@ export class MemoryRecordsStore implements RecordsStore {
   putSummary = async (s: StoredSummary) =>
     void this.summaries.set(this.key(s.recordingId, s.kind, s.subject), { ...s });
 
+  vocabulary = new Map<string, VocabularyTerm[]>();
+  campaignVocabulary = async (campaignId: string) => this.vocabulary.get(campaignId) ?? [];
   campaignName = async (campaignId: string) => this.campaigns.get(campaignId);
   /** Players per campaign (everyone but the DM). */
   players = new Map<string, string[]>();

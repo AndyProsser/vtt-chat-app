@@ -12,6 +12,7 @@ import { chatUtterances, mergeTimeline } from '../chat.js';
 import { formatTranscript } from '../format.js';
 import type { JobHandler } from '../jobs/worker.js';
 import { mergeTranscripts } from '../merge.js';
+import { buildWhisperPrompt, correctSegments } from '../vocabulary.js';
 import { buildJobProviders } from '../providers/fromSettings.js';
 import { formatNotes } from '../prompts.js';
 import { takeNotes, writeFromNotes, type SummaryModels } from '../summarise.js';
@@ -23,7 +24,7 @@ export const PROCESS_RECORDING_JOB = 'process-recording';
 export interface ProcessRecordingDeps {
   records: RecordsStore;
   /** The always-configured local backends: the default, and the fallback for a remote one. */
-  localTranscribe: (language: string) => TranscribeWav;
+  localTranscribe: (language: string, prompt?: string) => TranscribeWav;
   localGenerate: GenerateText;
   /** The local story-teller, when it is a different model from `localGenerate` (the scribe). */
   localStory?: GenerateText;
@@ -58,7 +59,15 @@ export function createProcessRecordingHandler(deps: ProcessRecordingDeps): JobHa
       await deps.records.setRecordingStatus(recording.id, 'processing');
 
       const settings: AiSettings = await deps.records.getAiSettings();
+      // The campaign's names (Stage 12): Whisper's starting prompt when the operator has it on, and the corrections
+      // after. Gathered once per job; none of it for a recording whose campaign is gone.
+      const mode = settings.transcription.glossary;
+      const vocabulary =
+        mode === 'off' ? [] : await deps.records.campaignVocabulary(recording.campaignId);
+      const prompt =
+        mode === 'prompt' || mode === 'both' ? buildWhisperPrompt(vocabulary) : undefined;
       const providers = build(settings, {
+        transcriptionPrompt: prompt,
         ...(deps.env ? { env: deps.env } : {}),
         localTranscribe: deps.localTranscribe,
         localGenerate: deps.localGenerate,
@@ -75,7 +84,9 @@ export function createProcessRecordingHandler(deps: ProcessRecordingDeps): JobHa
         }
         if (track.transcribedAt !== null) continue;
         log(`${recording.id}: transcribing ${track.speakerName}`);
-        const segments = await deps.transcribeAudioFile(track.filePath, providers.transcribe.call);
+        const heard = await deps.transcribeAudioFile(track.filePath, providers.transcribe.call);
+        const segments =
+          mode === 'corrections' || mode === 'both' ? correctSegments(heard, vocabulary) : heard;
         await deps.records.saveTrackTranscript(track.id, segments, now());
       }
 

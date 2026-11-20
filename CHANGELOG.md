@@ -10,6 +10,11 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ## [Unreleased]
 
+### Added
+
+- **Misheard names are corrected in transcripts.** After Whisper has written a line, the campaign's own names put it right: the Game Master's approved glossary (with its aliases), characters, players, the Game Master's scene names, and handout and loot titles. A known wrong spelling (an alias) is replaced exactly; a capitalised near-miss of a long name ("Ravenshaid" for "Ravenshade", "Blackstone Kepe") is replaced too. Short names, lower-case words and ordinary words are left alone. It runs on the server's CPU for a few milliseconds a line, and it is on by default. It reaches transcripts of recordings processed after the update; `vtt-admin recording reprocess <id> --retranscribe` redoes an older one.
+- **`ai.transcription.glossary`** (`vtt-admin settings set ai.transcription.glossary corrections|prompt|both|off`): `prompt` also hands Whisper the names as its starting prompt, `both` does both, `off` neither. The prompt is **off by default**: an earlier name prompt made accuracy worse, so it is there to try, and is kept only if it measures better on your own table.
+
 ### Fixed
 
 - **`vtt-admin update` no longer ends with shell errors:** the update replaces the `vtt-admin` script while it is running, and bash then read the new file from the old position (`term_env: command not found`, `syntax error near unexpected token ;;`, then a help screen). The command now stops right after the update and exits with the installer's status. The update itself was never affected; the fix reaches you with the update after next, since the old script is what runs the update.

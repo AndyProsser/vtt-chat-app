@@ -13,6 +13,7 @@ import type {
   StoredSummaryKind,
   TrackTranscript,
 } from '../../types/index.js';
+import type { VocabularyTerm } from '../vocabulary.js';
 import type { RecordsStore } from './recordsStore.js';
 
 type Row = Record<string, unknown>;
@@ -410,6 +411,29 @@ export class PostgresRecordsStore implements RecordsStore {
       campaignId,
     ]);
     return rows[0]?.name as string | undefined;
+  }
+
+  async campaignVocabulary(campaignId: string): Promise<VocabularyTerm[]> {
+    // One round trip: each source with the rank that decides who gets into a full prompt. Glossary terms that wait
+    // for approval are not used. A title of more than five words is a sentence, not a name.
+    const { rows } = await this.pool.query<Row>(
+      `SELECT term, aliases, 0 AS rank FROM glossary_terms WHERE campaign_id = $1 AND status = 'approved'
+       UNION ALL SELECT name, '[]'::jsonb, 1 FROM characters WHERE campaign_id = $1
+       UNION ALL SELECT u.display_name, '[]'::jsonb, 2 FROM memberships m JOIN users u ON u.id = m.user_id
+                 WHERE m.campaign_id = $1
+       UNION ALL SELECT s.name, '[]'::jsonb, 3 FROM scenes s JOIN memberships m ON m.user_id = s.owner_id
+                 WHERE m.campaign_id = $1 AND m.role = 'dm'
+       UNION ALL SELECT title, '[]'::jsonb, 3 FROM handouts WHERE campaign_id = $1
+       UNION ALL SELECT name, '[]'::jsonb, 4 FROM loot_items WHERE campaign_id = $1`,
+      [campaignId],
+    );
+    return rows
+      .map((r) => ({
+        term: String(r.term).trim(),
+        aliases: Array.isArray(r.aliases) ? (r.aliases as unknown[]).map(String) : [],
+        rank: Number(r.rank),
+      }))
+      .filter((t) => t.term !== '' && t.term.split(/\s+/).length <= 5);
   }
 
   async playerIds(campaignId: string): Promise<string[]> {
