@@ -2784,6 +2784,10 @@ body,
 .vtt-bard-trigger {
   width: 100%;
 }
+/* The closed dropdown shows the name only; the blurb is under it and in the open list. */
+.vtt-bard-trigger small {
+  display: none;
+}
 .vtt-bard-text {
   display: flex;
   flex-direction: column;

@@ -75,7 +75,7 @@ export function BardPicker({
           {BARD_PERSONAS.map((b) => (
             <Select.Item key={b.id} value={b.id} className="vtt-bard-item">
               <span className="vtt-bard-text">
-                <Select.ItemText>{b.name}</Select.ItemText>
+                <b>{b.name}</b>
                 <small>
                   {b.blurb}
                   {b.id === DEFAULT_BARD ? ' (the default)' : ''}
