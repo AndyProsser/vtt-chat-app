@@ -41,7 +41,7 @@ export const IconTool = forwardRef<HTMLButtonElement, Props>(function IconTool(
           .filter(Boolean)
           .join(' ')}
       >
-        <Icon name={icon} size={small ? 16 : 18} />
+        <Icon name={icon} size={small ? 14 : 18} />
         {text !== undefined && <span className="phone-tool-text">{text}</span>}
       </button>
     </Tooltip>

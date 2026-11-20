@@ -78,6 +78,7 @@ export function LootActions({
           return (
             <ToolButton
               key={action}
+              className="vtt-tool-wide"
               label={ACTION_LABEL[action]}
               disabled={disabled}
               onClick={() => act(action)}

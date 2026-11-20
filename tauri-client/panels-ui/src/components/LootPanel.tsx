@@ -120,6 +120,7 @@ export function LootPanel() {
           <>
             <span className="vtt-spacer" />
             <ToolButton
+              className="vtt-tool-wide"
               label={`Mark all ${pending.length} as added to my character sheet`}
               onClick={() =>
                 void run(async () => {

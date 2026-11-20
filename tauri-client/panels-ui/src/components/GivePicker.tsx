@@ -25,7 +25,7 @@ export function GivePicker({
   return (
     <DropdownMenu.Root>
       <DropdownMenu.Trigger>
-        <ToolButton label={label} text="Give" disabled={players.length === 0}>
+        <ToolButton label={label} className="vtt-tool-wide" disabled={players.length === 0}>
           <UserPlus size={14} />
         </ToolButton>
       </DropdownMenu.Trigger>
