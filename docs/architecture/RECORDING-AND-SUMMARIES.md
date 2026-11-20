@@ -474,7 +474,7 @@ transcript is searchable, but the story is what will be remembered."_ So a summa
 flowchart LR
     T["Transcript\n(one stretch of recording)"] --> S["Scribe\nnotes: every event, big or small"]
     S --> N[("Notes\n(stored for the Game Master)")]
-    N --> B1["Bard: the session's tale (≤350 words)"]
+    N --> B1["Bard: the session's tale (300–800 words, more if the story needs it)"]
     N --> B2["Bard: each part's tale (≤200)"]
     N --> B3["Bard: each hero's tale (≤200)"]
     N --> G["Scribe: the Game Master's brief (plain)"]
@@ -501,6 +501,7 @@ flowchart LR
 - **The tale is about the people who mattered.** The bard is told that not everyone in the notes belongs in the tale:
   a player or creature who did little may be left out or pass in a clause, and nobody is given a moment just to be
   included. Each hero still gets their own tale.
+- **Decided 2026-11-20 (Andy): tales run 300 to 800 words for every storyteller, longer if the story needs it, and inventing a little is fine** (the Tipsy Minstrel may stretch the truth freely, staying close to what happened). The prompts still say 350 words until the persona work (0.6.4); the rule below stays so a very short session keeps a short tale.
 - **A tale is never longer than its notes.** The word limit in the bard's prompt is the kind's cap or 0.8 × the notes'
   word count, whichever is less (floor 30). Given six lines of notes and "at most 350 words", a bard fills the space
   with invention: the end-to-end test's four-line recap came back as a dungeon crawl. The scribe is likewise told that
@@ -641,7 +642,7 @@ flowchart LR
     W --> T["Transcript<br/>~40–60k tokens"]
     T --> S["Scribe<br/>key events, quotes"]
     S --> N["Notes<br/>≤ ~3,000 words"]
-    N --> B["Bard<br/>one tale, 300–500 words"]
+    N --> B["Bard<br/>one tale, 300–800 words (longer if the story needs it)"]
     N --> C["Chronicler<br/>GM brief, 200–300 words,<br/>under headings"]
 ```
 
