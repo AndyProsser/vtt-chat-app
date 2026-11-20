@@ -1,6 +1,6 @@
 import { BARD_PERSONAS, DEFAULT_BARD, type BardId } from '@vtt-chat-app/shared';
-import { Button, Callout } from '@radix-ui/themes';
-import { Check, TriangleAlert } from 'lucide-react';
+import { Button, Callout, Select } from '@radix-ui/themes';
+import { TriangleAlert } from 'lucide-react';
 import { useState } from 'react';
 
 import { accountErrorMessage, campaignApi } from '../../lib/tauriBridge.js';
@@ -64,55 +64,46 @@ export function BardPicker({
         The bard who tells each session&apos;s tale, as if following the party around. Same bard for
         every session.
       </span>
-      <div className="vtt-bards" role="radiogroup" aria-label="Storyteller">
-        {BARD_PERSONAS.map((b) => {
-          const on = b.id === current.id;
-          return (
-            <div key={b.id} className="vtt-bard-wrap">
-              <button
-                type="button"
-                role="radio"
-                aria-checked={on}
-                disabled={busy}
-                className={`vtt-bard${on ? ' vtt-bard-on' : ''}`}
-                onClick={() => pick(b.id)}
-              >
-                <span className="vtt-bard-tick">{on && <Check size={14} />}</span>
-                <span className="vtt-bard-text">
-                  <b>{b.name}</b>
-                  <small>
-                    {b.blurb}
-                    {b.id === DEFAULT_BARD ? ' (the default)' : ''}
-                  </small>
-                </span>
-              </button>
-              {asking === b.id && b.warning && (
-                <Callout.Root color="amber" size="1">
-                  <Callout.Icon>
-                    <TriangleAlert size={14} />
-                  </Callout.Icon>
-                  <Callout.Text>
-                    {b.warning}
-                    <span className="vtt-form-row" style={{ marginTop: 6 }}>
-                      <Button size="1" loading={busy} onClick={() => void choose(b.id)}>
-                        Choose the Drunken Bard
-                      </Button>
-                      <Button
-                        size="1"
-                        variant="soft"
-                        color="gray"
-                        onClick={() => setAsking(undefined)}
-                      >
-                        Cancel
-                      </Button>
-                    </span>
-                  </Callout.Text>
-                </Callout.Root>
-              )}
-            </div>
-          );
-        })}
-      </div>
+      <Select.Root
+        size="2"
+        value={current.id}
+        disabled={busy}
+        onValueChange={(v) => pick(v as BardId)}
+      >
+        <Select.Trigger aria-label="Storyteller" className="vtt-bard-trigger" />
+        <Select.Content position="popper">
+          {BARD_PERSONAS.map((b) => (
+            <Select.Item key={b.id} value={b.id} className="vtt-bard-item">
+              <span className="vtt-bard-text">
+                <Select.ItemText>{b.name}</Select.ItemText>
+                <small>
+                  {b.blurb}
+                  {b.id === DEFAULT_BARD ? ' (the default)' : ''}
+                </small>
+              </span>
+            </Select.Item>
+          ))}
+        </Select.Content>
+      </Select.Root>
+      <span className="vtt-muted">{current.blurb}</span>
+      {asking && (
+        <Callout.Root color="amber" size="1">
+          <Callout.Icon>
+            <TriangleAlert size={14} />
+          </Callout.Icon>
+          <Callout.Text>
+            {BARD_PERSONAS.find((b) => b.id === asking)?.warning}
+            <span className="vtt-form-row" style={{ marginTop: 6 }}>
+              <Button size="1" loading={busy} onClick={() => void choose(asking)}>
+                Choose the Drunken Bard
+              </Button>
+              <Button size="1" variant="soft" color="gray" onClick={() => setAsking(undefined)}>
+                Cancel
+              </Button>
+            </span>
+          </Callout.Text>
+        </Callout.Root>
+      )}
       {current.warning && (
         <span className="vtt-muted">
           <TriangleAlert size={12} /> {current.warning}

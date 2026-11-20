@@ -2780,36 +2780,9 @@ body,
   flex: 1;
 }
 
-/* Settings → Campaign → Storyteller: the five preset bards as a radio list. */
-.vtt-bards {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.vtt-bard {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
+/* Settings → Campaign → Storyteller: a dropdown of the five preset bards; each item carries its one-line blurb. */
+.vtt-bard-trigger {
   width: 100%;
-  padding: 6px 8px;
-  text-align: left;
-  color: inherit;
-  background: transparent;
-  border: 1px solid var(--gray-a5);
-  border-radius: 8px;
-  cursor: pointer;
-}
-.vtt-bard:hover:not(:disabled) {
-  background: var(--gray-a3);
-}
-.vtt-bard-on {
-  border-color: var(--accent-9);
-  background: var(--accent-a3);
-}
-.vtt-bard-tick {
-  width: 14px;
-  flex: none;
-  margin-top: 2px;
 }
 .vtt-bard-text {
   display: flex;
