@@ -44,7 +44,7 @@ A fuller sound deck, the table's page and Invite on the phone, the first macOS b
 
 - **The tale length, content and storyteller settings are stored and shown, but the storyteller does not use them yet.** They take effect with the storyteller work in a later 0.6 release.
 - **The macOS app for Intel Macs is new**; like the Apple silicon one it is not signed, so macOS asks you to allow it the first time ([installing the app](docs/guides/INSTALLING-THE-APP.md)).
-- **Not yet tried against the real thing:** reading senses and subclasses from a live D&D Beyond sheet, and GM notes attachments with PDF preview in every setup.
+- **Not yet tried against the real thing:** GM notes attachments with PDF preview in every setup.
 - **Old browsers** (before Chrome or Edge 111, Firefox 113, Safari 16.2) are told to update; the desktop app needs no browser.
 
 ## [0.6.0] - 2026-11-20
