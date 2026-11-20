@@ -16,6 +16,9 @@ dc() {
   if can_run; then docker compose "$@"; else sudo -- docker compose "$@"; fi
 }
 
+# The terminal width, so the CLI wraps its help (and `<group>` help) to fit.
+cols() { tput cols 2>/dev/null || echo 100; }
+
 case ${1:-} in
   logs)
     shift
@@ -85,20 +88,11 @@ case ${1:-} in
     dc restart livekit
     ;;
   help | --help | -h)
-    dc exec -T backend node backend/dist/cli/main.js help
-    cat <<'EOT'
-
-  logs [service]                         follow a service's log (default: backend; others: caddy, livekit, worker, egress, postgres)
-  restart [service]                      restart everything, or one service
-  ps                                     what is running
-  backup [--audio]                       a backup folder of the database, uploads and settings (see the operator guide)
-  restore <folder> --yes                 put a backup back (replaces what is here)
-  update [--version x.y.z]               update this server to the newest release of its line (your data stays)
-  config show | config set KEY VALUE     the settings file (.env): show it (secrets hidden) or change one value and apply it
-  voice-address <ip|name|auto>           the address players' voice connects to (use when the web name is behind Cloudflare)
-EOT
+    # One help for both kinds of command: the CLI also prints this wrapper's commands (VTT_ADMIN_HOST),
+    # wrapped to this terminal (exec -T has none of its own to ask).
+    dc exec -T -e COLUMNS="$(cols)" -e VTT_ADMIN_HOST=compose backend node backend/dist/cli/main.js help
     ;;
   *)
-    dc exec backend node backend/dist/cli/main.js "$@"
+    dc exec -e COLUMNS="$(cols)" -e VTT_ADMIN_HOST=compose backend node backend/dist/cli/main.js "$@"
     ;;
 esac

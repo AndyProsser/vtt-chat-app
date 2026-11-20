@@ -371,6 +371,7 @@ EOF
 #!/usr/bin/env bash
 # The Admin CLI, run as the service user with the service environment.
 set -a; . $ENV_FILE; set +a
+export VTT_ADMIN_HOST=native COLUMNS=\${COLUMNS:-\$(tput cols 2>/dev/null || echo 100)}
 exec runuser -m -u $APP_USER -- $NODE_DIR/bin/node $APP_DIR/backend/dist/cli/main.js "\$@"
 EOF
 

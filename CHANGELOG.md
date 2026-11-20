@@ -10,6 +10,10 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ## [Unreleased]
 
+### Changed
+
+- **`vtt-admin help` is easier to read:** every command is listed in groups (accounts, campaigns, recordings, updates, this machine) and wrapped to the width of your terminal, so long descriptions no longer run off the edge or break mid-word. `vtt-admin <group>` (for example `vtt-admin campaign`) shows just that group, and a mistyped command shows its group's commands. A native install's help also lists the `systemctl`, `journalctl` and backup scripts that do the machine jobs. The terminal width reaches the help after the next server update.
+
 ## [0.6.1] - 2026-11-20
 
 A fuller sound deck, the table's page and Invite on the phone, the first macOS build for Intel Macs, and tidier loot and PDFs. A **PATCH** release: no protocol change, so 0.6.0 apps and servers work together. **Operators:** update the server first (the storyteller picker asks it which storytellers you offer), then `vtt-admin updates sync`. **Players:** update the app.

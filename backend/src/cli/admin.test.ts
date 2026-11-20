@@ -74,6 +74,21 @@ describe('help and misuse', () => {
     expect(await run('frobnicate')).toBe(2);
     expect(err.join('\n')).toContain('unknown command');
   });
+
+  it('shows one group for a group without a command, or with help', async () => {
+    expect(await run('campaign')).toBe(2);
+    expect(out.join('\n')).toContain('campaign import <file> [--as-new]');
+    out = [];
+    expect(await run('user help')).toBe(0);
+    expect(out.join('\n')).toContain('user revoke-sessions <email>');
+    expect(out.join('\n')).not.toContain('campaign list');
+  });
+
+  it("names a group's unknown command and shows that group", async () => {
+    expect(await run('recording frob')).toBe(2);
+    expect(err.join('\n')).toContain('unknown recording command "frob"');
+    expect(err.join('\n')).toContain('recording purge --older-than <days>');
+  });
 });
 
 describe('settings', () => {

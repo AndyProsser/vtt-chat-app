@@ -19,7 +19,6 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import { formatBytes, freePercent, isLow, measureDisk } from '../lib/status/storage.js';
-import { MAGIC_LINK_TTL_MINUTES, RESET_LINK_TTL_MINUTES } from '../consts/index.js';
 import {
   ArchiveError,
   type ImportResult,
@@ -31,6 +30,7 @@ import type { Store } from '../lib/store/store.js';
 import { publishUpdates } from '../lib/updates/publish.js';
 import { mirrorUsage, type SyncResult } from '../lib/updates/sync.js';
 import type { CampaignCreation, InstanceSettings, User } from '../types/index.js';
+import { formatGroupHelp, formatHelp, type AdminHost } from './help.js';
 
 /** One line of `status`: a service, whether it answered, and a short detail. */
 export interface Probe {
@@ -39,6 +39,10 @@ export interface Probe {
 }
 
 export interface AdminDeps {
+  /** Columns to wrap `help` to (see help.ts `helpWidth`); default 100. */
+  helpWidth?: number;
+  /** Which wrapper ran the CLI, for the help's "this machine" section (`VTT_ADMIN_HOST`). */
+  host?: AdminHost;
   store: Store;
   accounts: AccountService;
   signups: SignupService;
@@ -91,46 +95,6 @@ const SIMPLE_SETTINGS = {
   'consent-version':
     'version label of the "you may be recorded" text; changing it re-prompts everyone',
 } as const;
-
-const USAGE = `vtt-admin — system operations for this instance (gameplay is managed inside the app)
-
-  status                                 health of the database, Valkey and LiveKit
-  settings show                          every setting and its value
-  settings keys                          every setting you can change, and what it accepts
-  settings set <key> <value>             change one setting
-  user list                              all accounts
-  user create <email> --name <name> --accept-consent [--admin]
-                                         make an account (no password; the first one is the Admin)
-  user admin <email> grant|revoke        give or take away Admin (the last Admin cannot be removed)
-  user code <email> [signin|reset]       issue a one-time code to hand over on a side channel (${MAGIC_LINK_TTL_MINUTES} min, ${RESET_LINK_TTL_MINUTES} for reset); a signin code also connects the app (its Connect screen's code box) when no browser is at hand
-  user revoke-sessions <email>           sign that account out on every device
-  signup list [pending|approved|rejected]
-                                         sign-up requests from visitors (default: pending)
-  signup approve <id|email>              make the account and print a one-time code to hand over on a side channel
-  signup reject <id|email>               turn a request down (nothing is sent)
-  campaign list                          every campaign: id, name, DM, players, recordings
-  campaign delete <id> [--yes]           remove a campaign for good: its sessions and audio (via the worker), chat, handouts and
-                                         their files. Without --yes it only shows what would go
-  campaign export <id> <file> [--accept-loss]
-                                         write one campaign to a .vttcampaign file (a zip): text, handout files, transcripts and summaries, not the
-                                         audio (the server backup has that). Refuses while a session has no transcript yet,
-                                         unless --accept-loss says to go ahead without it
-  campaign import <file> [--as-new]      restore a campaign from such a file. --as-new makes a copy with fresh ids when the
-                                         campaign is still here
-  storage                                disk use: recordings, free space, database size
-  jobs list [queued|running|done|failed] records-pipeline jobs, newest last
-  jobs retry <job-id>                    put a failed job back in the queue
-  recording list                         recent recordings and their status
-  recording delete <id>                  remove a whole session: its audio, transcript and summaries (the worker does it)
-  recording purge <id> | --older-than <days>
-                                         delete the raw audio of processed recordings (the text stays)
-  recording reprocess <id> [--retranscribe]
-                                         redo the summaries (and with the flag, the transcripts) from the kept audio
-  updates publish <dir> --version <v> --base-url <url> [--notes <text>]
-                                         publish a signed client release (the bundler's output) to UPDATES_DIR
-  updates sync                           fetch the newest release of this server's line from GitHub now (UPDATES_SOURCE)
-  updates status                         the update source, what players are offered, and what the mirror holds
-`;
 
 const isSimpleKey = (key: string): key is keyof typeof SIMPLE_SETTINGS => key in SIMPLE_SETTINGS;
 
@@ -234,9 +198,27 @@ async function findUser(deps: AdminDeps, email: string | undefined): Promise<Use
   return user;
 }
 
+/**
+ * A group run with no command, or one it does not have: that group's commands, and exit 2. Without a
+ * command it goes to stdout (the operator asked what the group does), with a wrong one to stderr.
+ */
+function misuse(deps: AdminDeps, group: string, command: string | undefined): void {
+  const groupHelp = formatGroupHelp(group, deps.helpWidth ?? 100) ?? '';
+  if (command === undefined) deps.out(groupHelp);
+  else deps.err(`unknown ${group} command "${command}"\n\n${groupHelp}`);
+}
+
 /** Runs one admin command. Returns the process exit code: 0 ok, 1 failed, 2 misused. */
 export async function runAdmin(argv: string[], deps: AdminDeps): Promise<number> {
   const [group, command, ...rest] = argv;
+  const width = deps.helpWidth ?? 100;
+  if (group !== undefined && (command === 'help' || command === '--help' || command === '-h')) {
+    const groupHelp = formatGroupHelp(group, width);
+    if (groupHelp !== undefined) {
+      deps.out(groupHelp);
+      return 0;
+    }
+  }
   try {
     switch (group) {
       case 'status':
@@ -260,10 +242,11 @@ export async function runAdmin(argv: string[], deps: AdminDeps): Promise<number>
       case undefined:
       case 'help':
       case '--help':
-        deps.out(USAGE);
+      case '-h':
+        deps.out(formatHelp(width, deps.host));
         return group === undefined ? 2 : 0;
       default:
-        deps.err(`unknown command "${group}"\n\n${USAGE}`);
+        deps.err(`unknown command "${group}"\n\n${formatHelp(width, deps.host)}`);
         return 2;
     }
   } catch (error) {
@@ -333,7 +316,7 @@ async function settings(
       return 0;
     }
     default:
-      deps.err('usage: settings show | keys | set <key> <value>');
+      misuse(deps, 'settings', command);
       return 2;
   }
 }
@@ -430,9 +413,7 @@ async function users(
       return 0;
     }
     default:
-      deps.err(
-        'usage: user list | create <email> --name <name> --accept-consent [--admin] | admin <email> grant|revoke | code <email> [signin|reset] | revoke-sessions <email>',
-      );
+      misuse(deps, 'user', command);
       return 2;
   }
 }
@@ -494,9 +475,7 @@ async function signupRequests(
       return 0;
     }
     default:
-      deps.err(
-        'usage: signup list [pending|approved|rejected] | approve <id|email> | reject <id|email>',
-      );
+      misuse(deps, 'signup', command);
       return 2;
   }
 }
@@ -534,7 +513,7 @@ async function jobs(deps: AdminDeps, command: string | undefined, rest: string[]
       return 0;
     }
     default:
-      deps.err('usage: jobs list [state] | retry <job-id>');
+      misuse(deps, 'jobs', command);
       return 2;
   }
 }
@@ -649,7 +628,7 @@ async function updates(
       return 0;
     }
     default:
-      deps.err(`unknown updates command "${command ?? ''}"\n\n${USAGE}`);
+      misuse(deps, 'updates', command);
       return 2;
   }
 }
@@ -767,9 +746,7 @@ async function recordings(
       return 0;
     }
     default:
-      deps.err(
-        'usage: recording list | reprocess <recording-id> [--retranscribe] | purge <id> | delete <id>',
-      );
+      misuse(deps, 'recording', command);
       return 2;
   }
 }
@@ -919,9 +896,7 @@ async function campaigns(
       return 0;
     }
     default:
-      deps.err(
-        'usage: campaign list | export <id> <file> | import <file> | delete <campaign-id> [--yes]',
-      );
+      misuse(deps, 'campaign', command);
       return 2;
   }
 }

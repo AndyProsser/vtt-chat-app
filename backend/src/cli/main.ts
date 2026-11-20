@@ -29,6 +29,7 @@ import { PostgresTableStore } from '../lib/table/postgresTableStore.js';
 import { migrate } from '../lib/store/migrate.js';
 import { createPool, PostgresStore } from '../lib/store/postgresStore.js';
 import { runAdmin, type Probe } from './admin.js';
+import { adminHost, helpWidth } from './help.js';
 import { syncFromConfig } from '../lib/updates/runSync.js';
 
 /**
@@ -170,6 +171,8 @@ async function main(): Promise<number> {
         return Number(rows[0]?.size ?? 0);
       },
       probes,
+      helpWidth: helpWidth(process.env.COLUMNS, process.stdout.columns),
+      host: adminHost(process.env.VTT_ADMIN_HOST),
       out: (line) => console.log(line),
       err: (line) => console.error(line),
     });
