@@ -50,6 +50,32 @@ function Option({ guide, url, platform }: { guide: InstallGuide; url?: string; p
   );
 }
 
+/** macOS: Apple silicon and Intel are different files; the choice only shows when the server has both. */
+function MacOptions({ downloads }: { downloads: Downloads }) {
+  const [chip, setChip] = useState<'apple' | 'intel'>('apple');
+  const both = Boolean(downloads.macos && downloads.macosIntel);
+  const shown = both ? chip : downloads.macos ? 'apple' : downloads.macosIntel ? 'intel' : 'apple';
+  return (
+    <Flex direction="column" gap="3" className="fit">
+      {both && (
+        <SegmentedControl.Root
+          className="segmented-fit"
+          value={shown}
+          onValueChange={(v) => setChip(v as 'apple' | 'intel')}
+        >
+          <SegmentedControl.Item value="apple">Apple silicon</SegmentedControl.Item>
+          <SegmentedControl.Item value="intel">Intel</SegmentedControl.Item>
+        </SegmentedControl.Root>
+      )}
+      <Option
+        guide={MACOS_GUIDE}
+        url={shown === 'intel' ? downloads.macosIntel : downloads.macos}
+        platform={both ? `macOS (${shown === 'intel' ? 'Intel' : 'Apple silicon'})` : 'macOS'}
+      />
+    </Flex>
+  );
+}
+
 function LinuxOptions({ downloads }: { downloads: Downloads }) {
   const offered = LINUX_GUIDES.filter((g) => downloads[LINUX_URL[g.id]!]);
   const choices = offered.length > 0 ? offered : LINUX_GUIDES;
@@ -133,7 +159,7 @@ function DownloadContent({ onBack }: { onBack?: () => void }) {
             <Option guide={WINDOWS_GUIDE} url={downloads.windows} platform="Windows" />
           </Tabs.Content>
           <Tabs.Content value="macos">
-            <Option guide={MACOS_GUIDE} url={downloads.macos} platform="macOS" />
+            <MacOptions downloads={downloads} />
           </Tabs.Content>
           <Tabs.Content value="linux">
             <LinuxOptions downloads={downloads} />

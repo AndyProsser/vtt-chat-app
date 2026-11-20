@@ -27,8 +27,23 @@ describe('pickDownloads', () => {
     expect(picked).toEqual({
       windows: 'https://dl.test/a_x64-setup.exe',
       macos: 'https://dl.test/a_aarch64.dmg',
+      macosIntel: 'https://dl.test/a_x64.dmg',
       linux: 'https://dl.test/a_amd64.AppImage',
       linuxRpm: 'https://dl.test/a.rpm',
+    });
+  });
+});
+
+describe('pickDownloads on a Mac', () => {
+  it('keeps an Intel-only release in the Intel slot, and a .dmg with no architecture in the main one', () => {
+    expect(pickDownloads([asset('VTT.Chat_1.0.0_x64.dmg')])).toEqual({
+      macosIntel: 'https://dl.test/VTT.Chat_1.0.0_x64.dmg',
+    });
+    expect(pickDownloads([asset('VTT.Chat_1.0.0.dmg')])).toEqual({
+      macos: 'https://dl.test/VTT.Chat_1.0.0.dmg',
+    });
+    expect(pickDownloads([asset('VTT.Chat_1.0.0_universal.dmg')])).toEqual({
+      macos: 'https://dl.test/VTT.Chat_1.0.0_universal.dmg',
     });
   });
 });

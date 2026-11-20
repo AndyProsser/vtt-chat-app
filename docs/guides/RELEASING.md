@@ -71,7 +71,7 @@ flowchart LR
    notes and the file list, and publish it (tick "Set as the latest release", or `gh release edit vX.Y.Z --draft=false --latest`).
 4. On each server: `infra/fetch-release.sh vX.Y.Z ./release` then
    `vtt-admin updates publish ./release --version X.Y.Z --base-url https://play.example.com/updates --notes "…"`.
-5. For the join page's download buttons, point `CLIENT_URL_WINDOWS`, `CLIENT_URL_MACOS`, `CLIENT_URL_LINUX`
+5. For the join page's download buttons, point `CLIENT_URL_WINDOWS`, `CLIENT_URL_MACOS`, `CLIENT_URL_MACOS_INTEL`, `CLIENT_URL_LINUX`
    at the release's files (or at your own copies). Point them at releases, not dev builds.
 
 ## What is not done yet
@@ -85,5 +85,5 @@ flowchart LR
   signature is separate and is what protects updates.
 - **Linux ships `.AppImage`, `.deb` and `.rpm`.** Only the AppImage self-updates through the server; the
   `.deb` and `.rpm` are for people who prefer their package manager and are updated by installing the new file.
-- **macOS builds Apple silicon only** (the runner's architecture). Intel Macs need a second matrix entry.
+- **macOS builds twice**: Apple silicon (`macos-latest`) and Intel (`macos-15-intel`, native). The updater archive is renamed with its architecture, so each Mac is offered its own; the Intel build is optional for the update sync (the release is offered once Windows, Linux and Apple silicon are in), and an old Intel Mac that never got a build simply keeps its version. Windows and macOS builds are unsigned.
 - **Linux builds on Ubuntu 24.04**, so the AppImage needs a glibc at least that new.

@@ -12,7 +12,10 @@ import type { OidcConfig } from './auth/oidc.js';
 
 export interface ClientDownloads {
   windows?: string;
+  /** The macOS installer for Apple silicon (M1 and later). */
   macos?: string;
+  /** The macOS installer for Intel Macs, offered by the update sync when the release has one. */
+  macosIntel?: string;
   linux?: string;
   /** Extra Linux formats, offered by the update sync only. */
   linuxDeb?: string;
@@ -147,6 +150,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): BackendConfig 
     clientDownloads: {
       ...(env.CLIENT_URL_WINDOWS ? { windows: env.CLIENT_URL_WINDOWS } : {}),
       ...(env.CLIENT_URL_MACOS ? { macos: env.CLIENT_URL_MACOS } : {}),
+      ...(env.CLIENT_URL_MACOS_INTEL ? { macosIntel: env.CLIENT_URL_MACOS_INTEL } : {}),
       ...(env.CLIENT_URL_LINUX ? { linux: env.CLIENT_URL_LINUX } : {}),
     },
     oidc:

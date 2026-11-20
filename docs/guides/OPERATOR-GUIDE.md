@@ -283,7 +283,7 @@ LXC containers are possible but unsupported ([DEPLOYMENT-AND-TRANSPORT.md](../ar
    `$UPDATES_DIR/downloads.json`, and the front page, join page and status page show them (a button for the visitor's
    OS, the others as links). Always GitHub links, in both `github` and `mirror` mode (the mirror holds only the
    signed updater files). To send players somewhere else, set `CLIENT_URL_WINDOWS`, `CLIENT_URL_MACOS`,
-   `CLIENT_URL_LINUX` in `.env` (any of them; they are shown only to signed-in accounts, so to share the app with someone who has no account yet, give them an invite or account first): if any is set, those are used **instead of** the synced file. Until
+   `CLIENT_URL_MACOS_INTEL`, `CLIENT_URL_LINUX` in `.env` (any of them; they are shown only to signed-in accounts, so to share the app with someone who has no account yet, give them an invite or account first): if any is set, those are used **instead of** the synced file. Until
    the first sync finishes (or with `UPDATES_SOURCE=off`) and with no `CLIENT_URL_*`, the page says to ask the DM.
 4. **Invite a table.** In the app, the DM creates an invite (an emailed link, a code, or a QR code). Anyone
    with the code joins; invites expire (default set by `invite-expiry-days`) and can be used by the whole

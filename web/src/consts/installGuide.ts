@@ -31,7 +31,7 @@ export const WINDOWS_GUIDE: InstallGuide = {
 export const MACOS_GUIDE: InstallGuide = {
   id: 'macos',
   label: 'macOS',
-  who: 'Apple silicon Macs (M1 and later). Intel Macs are not supported yet.',
+  who: 'Macs with Apple silicon (M1 and later) or an Intel processor. Not sure which? Open the Apple menu, choose About This Mac, and look for “Chip” (Apple silicon) or “Processor” (Intel).',
   steps: [
     { text: 'Open the downloaded .dmg and drag VTT Chat into Applications.' },
     {

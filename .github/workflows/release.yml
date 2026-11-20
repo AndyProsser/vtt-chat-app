@@ -70,6 +70,8 @@ jobs:
           - { name: Linux, os: ubuntu-24.04 }
           - { name: Windows, os: windows-latest }
           - { name: macOS (Apple silicon), os: macos-latest }
+          # An Intel runner builds the Intel app natively (the name's arch is taken from the runner in the upload step).
+          - { name: macOS (Intel), os: macos-15-intel }
     runs-on: ${{ matrix.os }}
     # A hung step must fail the build, not sit for the default six hours (the Linux apt step hung for three
     # tags in a row on 2026-11-11 and left every release without its Linux installers).

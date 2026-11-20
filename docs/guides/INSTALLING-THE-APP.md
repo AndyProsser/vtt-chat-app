@@ -24,7 +24,9 @@ steps, one tab per system, and the download buttons.
 
 The warning goes away on its own as more people install the same file.
 
-## macOS (Apple silicon: M1 and later)
+## macOS (Apple silicon or Intel)
+
+The download page offers two files when your server has both: **Apple silicon** (M1 and later) and **Intel**. Not sure which Mac you have? Open the Apple menu and choose **About This Mac**: it says "Chip" for Apple silicon and "Processor" for Intel.
 
 1. Open the `.dmg` and drag the app into **Applications**.
 2. Try to open it. macOS says it **cannot be opened** or **is damaged**. It is not damaged; this is the
@@ -37,8 +39,6 @@ The warning goes away on its own as more people install the same file.
    ```bash
    xattr -dr com.apple.quarantine "/Applications/VTT Chat.app"
    ```
-
-Intel Macs are not supported yet.
 
 ## Linux
 

@@ -6,7 +6,7 @@ import type { ClientDownloads } from '../config.js';
 /** The file next to `latest.json` that the update sync writes: where a person installs the app from. */
 export const DOWNLOADS_FILE = 'downloads.json';
 
-const KEYS = ['windows', 'macos', 'linux', 'linuxDeb', 'linuxRpm'] as const;
+const KEYS = ['windows', 'macos', 'macosIntel', 'linux', 'linuxDeb', 'linuxRpm'] as const;
 
 /** Rank assets so the best single installer per slot wins (lower is better); undefined = not an installer. */
 function rank(name: string): { slot: (typeof KEYS)[number]; score: number } | undefined {
@@ -14,8 +14,12 @@ function rank(name: string): { slot: (typeof KEYS)[number]; score: number } | un
   const arm = /aarch64|arm64/.test(n);
   if (n.endsWith('-setup.exe')) return { slot: 'windows', score: arm ? 2 : 0 };
   if (n.endsWith('.msi')) return { slot: 'windows', score: arm ? 3 : 1 };
-  // Apple-silicon Macs are the common case; an Intel-only release falls through to the x64 build.
-  if (n.endsWith('.dmg')) return { slot: 'macos', score: arm || /universal/.test(n) ? 0 : 1 };
+  // Apple silicon (or a universal build) is the main macOS slot; an x64 .dmg is the Intel one. A .dmg that names no
+  // architecture counts as the main slot, as before.
+  if (n.endsWith('.dmg')) {
+    if (/x64|x86_64|intel/.test(n) && !/universal/.test(n)) return { slot: 'macosIntel', score: 0 };
+    return { slot: 'macos', score: arm || /universal/.test(n) ? 0 : 1 };
+  }
   if (n.endsWith('.appimage')) return { slot: 'linux', score: arm ? 1 : 0 };
   if (n.endsWith('.deb')) return { slot: 'linuxDeb', score: arm ? 1 : 0 };
   if (n.endsWith('.rpm')) return { slot: 'linuxRpm', score: arm ? 1 : 0 };

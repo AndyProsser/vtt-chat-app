@@ -2,7 +2,10 @@ export type Platform = 'windows' | 'macos' | 'linux' | 'other';
 
 export interface Downloads {
   windows?: string;
+  /** Apple silicon (M1 and later). */
   macos?: string;
+  /** Intel Macs, when the release has one. */
+  macosIntel?: string;
   linux?: string;
   /** Extra Linux formats, present when the server's update sync found them. */
   linuxDeb?: string;
