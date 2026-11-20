@@ -52,7 +52,10 @@ case ${1:-} in
     site=$(sed -n 's/^SITE_ADDRESS=//p' .env)
     [ -n "$site" ] || { echo "no SITE_ADDRESS in $here/.env" >&2; exit 1; }
     repo=${VTT_REPO:-AndyProsser/vtt-chat-app}
+    # The installer replaces this very script. Bash reads a script as it goes, so it must stop here (exit, with the
+    # installer's status) rather than carry on reading the new file from the old offset.
     curl -fsSL "https://raw.githubusercontent.com/$repo/main/infra/get.sh" | sudo bash -s -- --yes --domain "$site" "$@"
+    exit "${PIPESTATUS[1]}"
     ;;
   config)
     case ${2:-show} in

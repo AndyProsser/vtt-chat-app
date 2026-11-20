@@ -10,6 +10,10 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ## [Unreleased]
 
+### Fixed
+
+- **`vtt-admin update` no longer ends with shell errors:** the update replaces the `vtt-admin` script while it is running, and bash then read the new file from the old position (`term_env: command not found`, `syntax error near unexpected token ;;`, then a help screen). The command now stops right after the update and exits with the installer's status. The update itself was never affected; the fix reaches you with the update after next, since the old script is what runs the update.
+
 ### Changed
 
 - **`vtt-admin` output is easier to read:** on a terminal it now draws in colour, with ✔/▲/✖ marks, aligned tables with headings (accounts, campaigns, recordings, jobs, sign-ups) and settings grouped by area. **`vtt-admin status` shows more:** besides each service, what the instance is doing (sign-ups waiting, a live recording and its campaign, the AI job queue, the app version offered) and the machine's CPU, memory and disks as usage bars. A nearly full disk or a failed job is a warning; only a service that is down makes it exit 1, as before. Add `--plain` for plain text (piped output is plain on its own); scripts that read the old line formats need updating.
