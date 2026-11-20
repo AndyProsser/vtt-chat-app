@@ -86,6 +86,23 @@ export function needsConfirming(item: Filterable, selfId: string | null): boolea
   return item.claimedBy === selfId && item.confirmed !== true;
 }
 
+/** The two groups in the "to confirm" list, in the order they are shown. */
+export type ConfirmGroup = 'mine' | 'party';
+
+/** Which group an item belongs to in the "to confirm" list: the party stash, or what this player holds or shares. */
+export const confirmGroup = (item: LootHeld): ConfirmGroup =>
+  item.claimedFor === 'party' ? 'party' : 'mine';
+
+/** The "to confirm" list grouped: what is mine first, then the party stash, each keeping its order. */
+export function groupForConfirming<T extends LootHeld>(
+  items: readonly T[],
+): { mine: T[]; party: T[] } {
+  return {
+    mine: items.filter((i) => confirmGroup(i) === 'mine'),
+    party: items.filter((i) => confirmGroup(i) === 'party'),
+  };
+}
+
 /** The number on the loot icon: how many items this player has yet to confirm. */
 export function unconfirmedCount(items: readonly Filterable[], selfId: string | null): number {
   return items.filter((i) => needsConfirming(i, selfId)).length;

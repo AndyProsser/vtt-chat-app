@@ -17,6 +17,7 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ### Changed
 
+- **The To confirm list is grouped** into **Mine** (what you took, were given or share) and **Party stash**, each with a count, in both apps, so copying to a character sheet goes in order.
 - **In session history the Scribe's notes button stays above the notes** when you open them (it used to jump below).
 - **The sound deck holds at most 8 stingers and 8 scenes.** Once it is full the add buttons are greyed with a tip ("The deck holds 8: remove one first"); remove one to pick another. A deck saved with more keeps its first 8.
 - **A scene you start from the picker that is not on the deck joins it with a dashed outline** while it plays and leaves when it stops; starting one closes the picker.

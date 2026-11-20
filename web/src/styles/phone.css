@@ -703,6 +703,13 @@ button.phone-picture-button {
 .phone-tool-danger:hover:not([disabled]) {
   background: color-mix(in srgb, var(--red-9) 14%, transparent);
 }
+.phone-group-head {
+  margin-top: 4px;
+  padding-inline: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 12px;
+}
 .phone-tool-sm {
   min-width: 32px;
   height: 24px;

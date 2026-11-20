@@ -10,8 +10,14 @@ import {
   UserCheck,
   Users,
 } from 'lucide-react';
-import { canConfirm, isConfirmed, needsConfirming } from '@vtt-chat-app/shared';
-import { useMemo, useState } from 'react';
+import {
+  canConfirm,
+  confirmGroup,
+  groupForConfirming,
+  isConfirmed,
+  needsConfirming,
+} from '@vtt-chat-app/shared';
+import { Fragment, useMemo, useState } from 'react';
 
 import { useAccount } from '../hooks/useAccount.js';
 import { useCampaignQuery } from '../hooks/useCampaignQuery.js';
@@ -87,7 +93,10 @@ export function LootPanel() {
     [loot, view, status?.userId],
   );
   const order = useMemo(() => (loot ?? []).map((i) => i.id), [loot]);
-  const shown = useLeaving(filtered, order, view);
+  const leaving = useLeaving(filtered, order, view);
+  // To confirm is grouped: what is mine first, then the party stash, which makes copying to a sheet easier.
+  const groups = view === 'unconfirmed' ? groupForConfirming(leaving) : undefined;
+  const shown = groups ? [...groups.mine, ...groups.party] : leaving;
   // What the "Add all" button would tick: this player's own items in the list that are not on their sheet yet.
   const pending = shown.filter((i) => !i.leaving && needsConfirming(i, status?.userId ?? null));
 
@@ -147,8 +156,13 @@ export function LootPanel() {
         ) : (
           <p className="vtt-muted">Nothing matches this filter.</p>
         ))}
-      {shown.map((item) => {
+      {shown.map((item, index) => {
         const open = !item.claimedBy;
+        const heading = groups
+          ? confirmGroup(item) === 'mine'
+            ? index === 0 && `Mine (${groups.mine.length})`
+            : index === groups.mine.length && `Party stash (${groups.party.length})`
+          : false;
         const className = [
           'vtt-loot',
           open ? '' : 'vtt-loot-taken',
@@ -157,81 +171,84 @@ export function LootPanel() {
           .filter(Boolean)
           .join(' ');
         return (
-          <div key={item.id} className={className} aria-hidden={item.leaving}>
-            <div className="vtt-loot-row">
-              <ItemIcon type={item.itemType} rarity={item.rarity} size={22} />
-              <div className="vtt-loot-text" style={{ flex: 1 }}>
-                <b>{itemLabel(item, members)}</b>
-                {item.description && <span className="vtt-muted">{item.description}</span>}
-              </div>
-              <div className="vtt-drawer-row">
-                <LootActions
-                  item={item}
-                  selfId={status?.userId ?? null}
-                  dm={dm}
-                  players={players}
-                  onDone={reload}
-                  disabled={isConfirmed(item, status?.userId ?? null)}
-                />
-                {open && item.kind === 'coin' && (
-                  <ToolButton label="Split the coin equally…" onClick={() => startSplit(item.id)}>
-                    <Split size={14} />
-                  </ToolButton>
-                )}
-                {dm && (
-                  <ToolButton
-                    label="Remove it"
-                    danger
-                    onClick={() => void run(() => campaignApi('DELETE', `loot/${item.id}`))}
-                  >
-                    <Trash2 size={14} />
-                  </ToolButton>
-                )}
-                {canConfirm(item, status?.userId ?? null, dm) && (
-                  <RoundCheck
-                    checked={isConfirmed(item, status?.userId ?? null)}
-                    onChange={(v) =>
-                      void run(() =>
-                        campaignApi('POST', `loot/${item.id}/confirm`, { confirmed: v }),
-                      )
-                    }
-                  />
-                )}
-              </div>
-            </div>
-            {splitting === item.id && (
-              <fieldset className="vtt-split">
-                <legend>
-                  Split {item.quantity} {item.name} equally among
-                </legend>
-                <PlayerList
-                  mode="multi"
-                  label="Split among"
-                  players={players}
-                  selected={chosen}
-                  onChange={setChosen}
-                  hint={(p) => (p.online ? undefined : 'offline')}
-                />
-                <div className="vtt-drawer-row">
-                  <ToolButton
-                    label={`Split among ${chosen.length}`}
-                    disabled={chosen.length === 0}
-                    text={`Split among ${chosen.length}`}
-                    onClick={() =>
-                      void run(() =>
-                        campaignApi('POST', `loot/${item.id}/split`, { userIds: chosen }),
-                      ).then(() => setSplitting(undefined))
-                    }
-                  >
-                    <Split size={14} />
-                  </ToolButton>
-                  <ToolButton label="Cancel" onClick={() => setSplitting(undefined)}>
-                    ×
-                  </ToolButton>
+          <Fragment key={item.id}>
+            {heading && <h3 className="vtt-loot-group">{heading}</h3>}
+            <div className={className} aria-hidden={item.leaving}>
+              <div className="vtt-loot-row">
+                <ItemIcon type={item.itemType} rarity={item.rarity} size={22} />
+                <div className="vtt-loot-text" style={{ flex: 1 }}>
+                  <b>{itemLabel(item, members)}</b>
+                  {item.description && <span className="vtt-muted">{item.description}</span>}
                 </div>
-              </fieldset>
-            )}
-          </div>
+                <div className="vtt-drawer-row">
+                  <LootActions
+                    item={item}
+                    selfId={status?.userId ?? null}
+                    dm={dm}
+                    players={players}
+                    onDone={reload}
+                    disabled={isConfirmed(item, status?.userId ?? null)}
+                  />
+                  {open && item.kind === 'coin' && (
+                    <ToolButton label="Split the coin equally…" onClick={() => startSplit(item.id)}>
+                      <Split size={14} />
+                    </ToolButton>
+                  )}
+                  {dm && (
+                    <ToolButton
+                      label="Remove it"
+                      danger
+                      onClick={() => void run(() => campaignApi('DELETE', `loot/${item.id}`))}
+                    >
+                      <Trash2 size={14} />
+                    </ToolButton>
+                  )}
+                  {canConfirm(item, status?.userId ?? null, dm) && (
+                    <RoundCheck
+                      checked={isConfirmed(item, status?.userId ?? null)}
+                      onChange={(v) =>
+                        void run(() =>
+                          campaignApi('POST', `loot/${item.id}/confirm`, { confirmed: v }),
+                        )
+                      }
+                    />
+                  )}
+                </div>
+              </div>
+              {splitting === item.id && (
+                <fieldset className="vtt-split">
+                  <legend>
+                    Split {item.quantity} {item.name} equally among
+                  </legend>
+                  <PlayerList
+                    mode="multi"
+                    label="Split among"
+                    players={players}
+                    selected={chosen}
+                    onChange={setChosen}
+                    hint={(p) => (p.online ? undefined : 'offline')}
+                  />
+                  <div className="vtt-drawer-row">
+                    <ToolButton
+                      label={`Split among ${chosen.length}`}
+                      disabled={chosen.length === 0}
+                      text={`Split among ${chosen.length}`}
+                      onClick={() =>
+                        void run(() =>
+                          campaignApi('POST', `loot/${item.id}/split`, { userIds: chosen }),
+                        ).then(() => setSplitting(undefined))
+                      }
+                    >
+                      <Split size={14} />
+                    </ToolButton>
+                    <ToolButton label="Cancel" onClick={() => setSplitting(undefined)}>
+                      ×
+                    </ToolButton>
+                  </div>
+                </fieldset>
+              )}
+            </div>
+          </Fragment>
         );
       })}
       <p className="vtt-attribution">

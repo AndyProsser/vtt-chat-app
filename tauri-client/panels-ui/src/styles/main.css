@@ -853,6 +853,14 @@ body,
   background: color-mix(in srgb, var(--vtt-gold) 28%, transparent);
   box-shadow: inset 0 0 0 1px var(--vtt-gold);
 }
+.vtt-loot-group {
+  margin: 6px 0 2px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.75;
+}
 .vtt-tool-wide {
   min-width: 32px;
   height: 24px;

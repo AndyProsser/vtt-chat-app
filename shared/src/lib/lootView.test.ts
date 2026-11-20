@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  groupForConfirming,
   defaultLootFilter,
   filterLootItems,
   lootActions,
@@ -138,5 +139,18 @@ describe('where the box belongs', () => {
     expect(canConfirm({ claimedBy: null }, 'p1', false)).toBe(false);
     expect(isConfirmed({ ...held, confirmed: true }, 'p1')).toBe(true);
     expect(isConfirmed(held, 'p1')).toBe(false);
+  });
+});
+
+describe('the to-confirm groups', () => {
+  it('puts what I hold, was given or share first, then the party stash, each keeping its order', () => {
+    const a = { id: 'a', claimedBy: 'me', claimedFor: 'party' as const };
+    const b = { id: 'b', claimedBy: 'me', claimedFor: 'self' as const };
+    const c = { id: 'c', claimedBy: 'dm', claimedFor: 'assigned' as const };
+    const d = { id: 'd', claimedBy: 'x', claimedFor: 'party' as const };
+    const e = { id: 'e', claimedBy: 'dm', claimedFor: 'split' as const };
+    const g = groupForConfirming([a, b, c, d, e]);
+    expect(g.mine.map((i) => i.id)).toEqual(['b', 'c', 'e']);
+    expect(g.party.map((i) => i.id)).toEqual(['a', 'd']);
   });
 });

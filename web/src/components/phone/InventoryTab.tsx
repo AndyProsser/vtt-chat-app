@@ -1,5 +1,7 @@
 import { Badge, Callout, Card, Flex, SegmentedControl, Text } from '@radix-ui/themes';
 import {
+  confirmGroup,
+  groupForConfirming,
   canConfirm,
   defaultLootFilter,
   isConfirmed,
@@ -11,7 +13,7 @@ import {
   type LootAction,
   type LootFilter,
 } from '@vtt-chat-app/shared';
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 
 import { holder } from '../../lib/phone/lootCards.js';
 import { GiveSelect } from './GiveSelect.js';
@@ -57,7 +59,10 @@ export function InventoryTab({ campaignId }: { campaignId: string }) {
   const [problem, setProblem] = useState<string>();
   const filters = lootFiltersFor(dm);
   const view = filters.includes(filter) ? filter : defaultLootFilter(dm);
-  const shown = filterLootItems(data ?? [], view, selfId);
+  const filtered = filterLootItems(data ?? [], view, selfId);
+  // To confirm is grouped: what is mine first, then the party stash, which makes copying to a sheet easier.
+  const groups = view === 'unconfirmed' ? groupForConfirming(filtered) : undefined;
+  const shown = groups ? [...groups.mine, ...groups.party] : filtered;
   // What "Add all" would tick: this player's own items in the list that are not on their sheet yet.
   const pending = shown.filter((i) => needsConfirming(i, selfId));
   const players = members.filter((m) => m.role !== 'dm');
@@ -135,59 +140,71 @@ export function InventoryTab({ campaignId }: { campaignId: string }) {
                 : 'Nothing in this list.'}
         </Text>
       )}
-      {shown.map((item) => {
+      {shown.map((item, index) => {
         const actions = lootActions(item, selfId, dm);
         const onSheet = isConfirmed(item, selfId);
+        const heading = groups
+          ? confirmGroup(item) === 'mine'
+            ? index === 0 && `Mine (${groups.mine.length})`
+            : index === groups.mine.length && `Party stash (${groups.party.length})`
+          : false;
         return (
-          <Card key={item.id} size="2">
-            <Flex direction="column" gap="2">
-              <Flex gap="2" align="start" justify="between">
-                <Flex gap="2" align="center" wrap="wrap" style={{ minWidth: 0 }}>
-                  <Text weight="medium">
-                    {item.kind === 'coin'
-                      ? `${item.quantity} ${item.name}`
-                      : `${item.name}${item.quantity > 1 ? ` ×${item.quantity}` : ''}`}
-                  </Text>
-                  {item.rarity && (
-                    <Badge color={RARITY_COLOR[item.rarity] ?? 'gray'}>{item.rarity}</Badge>
-                  )}
-                  <Badge variant="soft" color="gray">
-                    {item.itemType}
-                  </Badge>
-                </Flex>
-                <Flex gap="2" align="center" justify="end" style={{ flex: 'none' }}>
-                  {actions.map((action) =>
-                    action === 'give' ? (
-                      <GiveSelect
-                        key={action}
-                        players={players}
-                        onPick={(userId) => void run(item, 'give', userId)}
-                      />
-                    ) : (
-                      <LootButtons
-                        key={action}
-                        action={action}
-                        // On the player's sheet it stays put: untick it first to move it.
-                        disabled={onSheet}
-                        onClick={() => void run(item, action)}
-                      />
-                    ),
-                  )}
-                  {canConfirm(item, selfId, dm) && (
-                    <ConfirmBox checked={onSheet} onChange={(v) => void confirm(item, v)} />
-                  )}
-                </Flex>
-              </Flex>
-              {item.description && (
-                <Text size="2" color="gray">
-                  {item.description}
-                </Text>
-              )}
-              <Text size="1" color={item.claimedBy ? 'violet' : 'green'}>
-                {holder(item, members)}
+          <Fragment key={item.id}>
+            {heading && (
+              <Text as="div" size="2" weight="bold" color="gray" className="phone-group-head">
+                {heading}
               </Text>
-            </Flex>
-          </Card>
+            )}
+            <Card size="2">
+              <Flex direction="column" gap="2">
+                <Flex gap="2" align="start" justify="between">
+                  <Flex gap="2" align="center" wrap="wrap" style={{ minWidth: 0 }}>
+                    <Text weight="medium">
+                      {item.kind === 'coin'
+                        ? `${item.quantity} ${item.name}`
+                        : `${item.name}${item.quantity > 1 ? ` ×${item.quantity}` : ''}`}
+                    </Text>
+                    {item.rarity && (
+                      <Badge color={RARITY_COLOR[item.rarity] ?? 'gray'}>{item.rarity}</Badge>
+                    )}
+                    <Badge variant="soft" color="gray">
+                      {item.itemType}
+                    </Badge>
+                  </Flex>
+                  <Flex gap="2" align="center" justify="end" style={{ flex: 'none' }}>
+                    {actions.map((action) =>
+                      action === 'give' ? (
+                        <GiveSelect
+                          key={action}
+                          players={players}
+                          onPick={(userId) => void run(item, 'give', userId)}
+                        />
+                      ) : (
+                        <LootButtons
+                          key={action}
+                          action={action}
+                          // On the player's sheet it stays put: untick it first to move it.
+                          disabled={onSheet}
+                          onClick={() => void run(item, action)}
+                        />
+                      ),
+                    )}
+                    {canConfirm(item, selfId, dm) && (
+                      <ConfirmBox checked={onSheet} onChange={(v) => void confirm(item, v)} />
+                    )}
+                  </Flex>
+                </Flex>
+                {item.description && (
+                  <Text size="2" color="gray">
+                    {item.description}
+                  </Text>
+                )}
+                <Text size="1" color={item.claimedBy ? 'violet' : 'green'}>
+                  {holder(item, members)}
+                </Text>
+              </Flex>
+            </Card>
+          </Fragment>
         );
       })}
     </Flex>
