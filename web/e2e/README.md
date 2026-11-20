@@ -33,6 +33,10 @@ Flows: `landing`, `download`, `chat` (commands, autocomplete, /late and RSVP), `
 status, 404, focus order, accessibility basics), `frame` (sign-in and table-picker header). Exit code is 1 when a
 check fails. Env: `BASE` (default `https://localhost`), `CHROMIUM`, `COMPOSE_DIR` (default `../../infra/compose`).
 
+`campaign-screens.mjs` is a separate script for the phone app's table page, Invite page (with the QR code) and Leave, as a
+DM and as a player, light and dark: run `infra/records-smoke/protocol4-e2e.ts` first (it makes the accounts and the campaign),
+then `node campaign-screens.mjs` with the same environment. It restores what it changes.
+
 ## Things to know
 
 - The join flow creates fresh accounts each run (a declined account cannot ask the same table again for days). They

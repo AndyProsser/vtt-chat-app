@@ -58,5 +58,14 @@ export default tseslint.config(
       },
     },
   },
+  {
+    // The old-browser notice runs in the browser before the app, in plain ES5 (a test checks that).
+    files: ['web/public/**/*.js'],
+    languageOptions: {
+      sourceType: 'script',
+      globals: { window: 'readonly', document: 'readonly' },
+    },
+    rules: { '@typescript-eslint/no-unused-vars': ['error', { caughtErrors: 'none' }] },
+  },
   prettierConfig,
 );

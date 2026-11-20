@@ -23,6 +23,8 @@ import { HandoutsTab } from './HandoutsTab.js';
 import { HistoryTab } from './HistoryTab.js';
 import { InventoryTab } from './InventoryTab.js';
 import { useUnconfirmed } from '../../hooks/useUnconfirmed.js';
+import { CampaignInfoScreen } from './CampaignInfoScreen.js';
+import { InviteScreen } from './InviteScreen.js';
 import { JoinRequestsScreen } from './JoinRequestsScreen.js';
 import { OpenTables } from './OpenTables.js';
 import { SessionsTab } from './SessionsTab.js';
@@ -195,7 +197,17 @@ function Shell({
   const say = useLiveChat(campaignId, onSessionEnded);
   const isDm = campaign?.role === 'dm';
   const pending = usePhoneStore((s) => s.joinPending.length);
-  const [screen, setScreen] = useState<'tables' | 'requests' | 'characters'>();
+  const [screen, setScreen] = useState<
+    'tables' | 'requests' | 'characters' | 'campaign' | 'invite'
+  >();
+  // The DM changed the name, description or storyteller (a live frame): read the list again.
+  const campaignRev = usePhoneStore((s) => s.campaignRev);
+  useEffect(() => {
+    if (campaignRev === 0) return;
+    campaigns()
+      .then((mine) => usePhoneStore.getState().setCampaigns(mine))
+      .catch(() => undefined);
+  }, [campaignRev]);
 
   // A DM's pending count: loaded once here, then kept by live `join.request` frames.
   useEffect(() => {
@@ -286,6 +298,11 @@ function Shell({
                     Find another table
                   </DropdownMenu.Item>
                   {isDm && (
+                    <DropdownMenu.Item onSelect={() => setScreen('invite')}>
+                      Invite
+                    </DropdownMenu.Item>
+                  )}
+                  {isDm && (
                     <DropdownMenu.Item onSelect={() => setScreen('requests')}>
                       Join requests
                       {pending > 0 && (
@@ -321,9 +338,29 @@ function Shell({
               role="img"
               aria-label={live === 'live' ? 'Connected' : 'Not connected'}
             />
-            <Text size="4" weight="medium" className="phone-title">
-              {campaign?.name ?? 'Your table'}
-            </Text>
+            <button
+              type="button"
+              className="phone-title phone-title-btn"
+              aria-label={`About ${campaign?.name ?? 'your table'}`}
+              onClick={() => setScreen('campaign')}
+            >
+              <Text size="4" weight="medium">
+                {campaign?.name ?? 'Your table'}
+              </Text>
+              <svg
+                viewBox="0 0 24 24"
+                width="16"
+                height="16"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="m9 18 6-6-6-6" />
+              </svg>
+            </button>
           </Flex>
         </header>
         <InstallHint />
@@ -337,6 +374,16 @@ function Shell({
           {screen === 'characters' && (
             <SubScreen title="My characters" onBack={() => setScreen(undefined)}>
               <CharactersScreen campaignId={campaignId} />
+            </SubScreen>
+          )}
+          {screen === 'campaign' && (
+            <SubScreen title="This table" onBack={() => setScreen(undefined)}>
+              <CampaignInfoScreen campaignId={campaignId} onLeft={() => setScreen(undefined)} />
+            </SubScreen>
+          )}
+          {screen === 'invite' && isDm && (
+            <SubScreen title="Invite" onBack={() => setScreen(undefined)}>
+              <InviteScreen campaignId={campaignId} />
             </SubScreen>
           )}
           {screen === 'requests' && isDm && (

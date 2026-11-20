@@ -45,6 +45,8 @@ interface PhoneState {
   sessionsRev: number;
   /** Bumped when a live `loot.*` frame arrives; the Loot tab reads its list again. */
   lootRev: number;
+  /** Bumped when the DM changed the campaign's name, description or storyteller; the campaign list is read again. */
+  campaignRev: number;
 
   signedIn(userId: string | undefined): void;
   signedOut(): void;
@@ -86,6 +88,7 @@ export const usePhoneStore = create<PhoneState>((set, get) => ({
   handoutsRev: 0,
   sessionsRev: 0,
   lootRev: 0,
+  campaignRev: 0,
   ...FRESH,
 
   signedIn: (userId) => set({ authed: true, userId }),
@@ -197,6 +200,9 @@ export const usePhoneStore = create<PhoneState>((set, get) => ({
       case 'loot.redropped': // the card moves: both apps draw cards by drop time, so a re-read puts it right
       case 'loot.confirmed':
         set({ lootRev: s.lootRev + 1 });
+        return;
+      case 'campaign.updated':
+        set({ campaignRev: s.campaignRev + 1 });
         return;
       case 'notification': {
         // The server tells members about a scheduled, moved or cancelled session (and the DM about answers).

@@ -48,7 +48,13 @@ export const me = () =>
 export async function campaigns(): Promise<CampaignItem[]> {
   const res = await request<{
     campaigns: {
-      campaign: { id: string; name: string; allowJoin?: boolean };
+      campaign: {
+        id: string;
+        name: string;
+        allowJoin?: boolean;
+        description?: string;
+        bard?: string;
+      };
       role: 'dm' | 'player';
     }[];
   }>('GET', '/api/campaigns');
@@ -57,6 +63,8 @@ export async function campaigns(): Promise<CampaignItem[]> {
     name: c.campaign.name,
     role: c.role,
     ...(c.campaign.allowJoin === undefined ? {} : { allowJoin: c.campaign.allowJoin }),
+    ...(c.campaign.description === undefined ? {} : { description: c.campaign.description }),
+    ...(c.campaign.bard === undefined ? {} : { bard: c.campaign.bard }),
   }));
 }
 
@@ -83,6 +91,30 @@ export const decideJoinRequest = (campaignId: string, requestId: string, approve
   request('POST', `/api/campaigns/${campaignId}/join-requests/${requestId}/decision`, {
     body: { approve },
   });
+
+/** The DM edits the name and description. */
+export const updateCampaign = (campaignId: string, body: { name: string; description: string }) =>
+  request('PATCH', `/api/campaigns/${campaignId}`, { body });
+
+/** Which storytellers this server offers, and who will tell this campaign's tales. */
+export const storytellers = (campaignId: string) =>
+  request<{ offered: string[]; chosen: string; effective: string }>(
+    'GET',
+    `/api/campaigns/${campaignId}/storytellers`,
+  );
+
+/** One invite code for the whole group (the server's default expiry). */
+export const createInvite = (campaignId: string) =>
+  request<{ code: string; expiresAt?: number }>('POST', `/api/campaigns/${campaignId}/invites`, {
+    body: {},
+  });
+
+/** Stops every invite link still in use. */
+export const resetInvites = (campaignId: string) =>
+  request('DELETE', `/api/campaigns/${campaignId}/invites`);
+
+export const leaveCampaign = (campaignId: string) =>
+  request('POST', `/api/campaigns/${campaignId}/leave`, { body: {} });
 
 export const setAllowJoin = (campaignId: string, allowJoin: boolean) =>
   request('PATCH', `/api/campaigns/${campaignId}`, { body: { allowJoin } });

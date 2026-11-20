@@ -231,6 +231,8 @@ person), **Sessions** (when the next one is, and your answer), **Handouts** (wha
 app for that. It does not buzz you when closed; the desktop app does that. **Menu → Sign out** when you are on
 someone else's phone.
 
+**The table's page.** Tap the table's name at the top: you read its description and who tells its tales; the DM edits the name and description there, and a player can leave the table. The DM's **menu → Invite** makes the invite link, with a **QR code** another phone can scan. If your browser is too old for the app (Safari before 16.2, for example) you see a notice asking for a newer one.
+
 ## 10. Your character and settings
 
 Open **Settings** (the cog). It has five tabs:

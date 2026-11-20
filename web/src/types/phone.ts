@@ -32,6 +32,10 @@ export interface CampaignItem {
   role: Role;
   /** DM view of the campaign: it takes requests to join. Absent from an older server. */
   allowJoin?: boolean;
+  /** The DM's Markdown description of the table; empty when there is none. */
+  description?: string;
+  /** The storyteller the Game Master chose (an id from the shared list). */
+  bard?: string;
 }
 
 /** One line of the chat, public or whisper, from history or from the live stream. */

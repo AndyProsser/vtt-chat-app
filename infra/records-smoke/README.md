@@ -56,6 +56,23 @@ moment if it is closed. `--verify <A>,<B>` re-checks two earlier recordings with
 **Measuring a server:** `whisper-bench.ts` (Whisper real-time factor and accuracy through the worker's
 own code path, against any whisper-server) and `llm-bench.ts` (the summary models on one transcript).
 
+## The protocol 4 end-to-end test (`protocol4-e2e.ts`)
+
+What 0.6.0 added to the wire, driven as real people would use it, against a running stack (no voice, no AI, so any
+install will do; **do not point it at a server you care about**: it makes three `p4-*@example.com` accounts and the
+campaign "E2E: Protocol 4", and puts back every setting it touches). 39 checks: the handshake (protocol 4 accepted,
+3 told to update), the storyteller (default, DM-only change, live `campaign.updated`, the operator switches and the
+Tavern Bard that cannot be turned off, where tales are processed), loot (re-drop moves one card, "added to my sheet"
+per person, resets, announced only to who may see it, never shown to the DM), GM notes and the glossary (a picture
+attached, every route refused to players, only pictures and PDFs accepted) and deleting a character.
+
+```bash
+NODE_EXTRA_CA_CERTS=<path to Caddy's root.crt> node infra/records-smoke/protocol4-e2e.ts
+```
+
+It is safe to run again and again. First run 2026-11-20 against the local smoke stack on a rebuilt backend: 39 of 39.
+The phone app's table page, invite page and Leave have their own browser test, `web/e2e/campaign-screens.mjs`.
+
 ## What you need on the server (native; or use Docker as above)
 
 | Piece                           | Used for                        | Notes                                                        |

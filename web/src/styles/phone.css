@@ -138,6 +138,75 @@ body,
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* The table's name is a button: tap it for the table's page. */
+.phone-title-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  padding: 2px 4px;
+  margin-left: -4px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.phone-title-btn:hover {
+  background: var(--gray-a3);
+}
+.phone-title-btn:focus-visible {
+  outline: 2px solid var(--focus-8);
+  outline-offset: 2px;
+}
+.phone-title-btn svg {
+  flex: none;
+  opacity: 0.6;
+}
+/* The table's page and the invite page: groups of related things. */
+.phone-info-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  background: var(--color-panel-solid);
+  border: 1px solid var(--gray-a5);
+  border-radius: var(--radius-4);
+}
+.phone-info-name {
+  overflow-wrap: anywhere;
+}
+.phone-info-label {
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.phone-bard-badge {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: var(--vtt-gold);
+  background: color-mix(in srgb, var(--vtt-gold) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--vtt-gold) 45%, transparent);
+}
+.phone-invite-link {
+  display: block;
+  padding: 8px 10px;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+  user-select: all;
+  background: var(--gray-a3);
+  border-radius: var(--radius-2);
+}
+.phone-qr {
+  align-self: center;
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-3);
+  background: #fff;
+}
 .phone-dot {
   flex: none;
   width: 10px;
