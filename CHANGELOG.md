@@ -10,6 +10,10 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-11-20
+
+A fuller sound deck, the table's page and Invite on the phone, the first macOS build for Intel Macs, and tidier loot and PDFs. A **PATCH** release: no protocol change, so 0.6.0 apps and servers work together. **Operators:** update the server first (the storyteller picker asks it which storytellers you offer), then `vtt-admin updates sync`. **Players:** update the app.
+
 ### Added
 
 - **Operator controls for the AI storyteller** (`vtt-admin settings`), stored now and used by the storyteller prompts in a later 0.6 release: `ai.tale.length` (`short` for a CPU-only server, `default`, `long` for a GPU or cloud model), `ai.tale.content` (`clean`, `default`, `graphic`) and `ai.storyteller.<name> on|off` for the Dry Historian, Tipsy Minstrel, Wry Jester and Bored Court Scribe. The Tavern Bard cannot be turned off and is the fallback: a campaign whose storyteller you turn off is told by it. The Settings → Campaign picker shows only the storytellers your server offers. The installer takes `--content clean|default|graphic` and asks on a fresh install with recording on. No protocol change (one new read-only route, `GET /api/campaigns/:id/storytellers`).
@@ -34,6 +38,14 @@ the GitHub release notes and refuses to build a release without one. How to writ
 - **The storytellers have new names and a badge each.** The Drunken Bard is **The Tipsy Minstrel** and the Sarcastic Bard is **The Wry Jester** ("bard" belongs to the Tavern Bard), and the picker has more room, with a round emblem beside each (stand-ins until there is portrait art). Your campaign's choice is kept.
 - **Smaller loot buttons in both apps** (32 by 24 pixels: short and wide, sitting beside the item's heading), and the **Add all** and **Give** buttons are icons with a tooltip.
 - **The desktop join switch says "Allow join"**, with the phone web app's wording.
+- **Updated packages:** nodemailer 10.6, pdfjs-dist 6.5, jsdom 31 (TypeScript stays on 6 until its linter supports 7).
+
+### Known limits
+
+- **The tale length, content and storyteller settings are stored and shown, but the storyteller does not use them yet.** They take effect with the storyteller work in a later 0.6 release.
+- **The macOS app for Intel Macs is new**; like the Apple silicon one it is not signed, so macOS asks you to allow it the first time ([installing the app](docs/guides/INSTALLING-THE-APP.md)).
+- **Not yet tried against the real thing:** reading senses and subclasses from a live D&D Beyond sheet, and GM notes attachments with PDF preview in every setup.
+- **Old browsers** (before Chrome or Edge 111, Firefox 113, Safari 16.2) are told to update; the desktop app needs no browser.
 
 ## [0.6.0] - 2026-11-20
 
