@@ -43,6 +43,7 @@ function handler(overrides: Partial<Parameters<typeof createProcessRecordingHand
     localTranscribe: () => async () => [],
     localGenerate: async (prompt) => {
       prompts.push(prompt);
+      if (prompt.startsWith('You keep the campaign memory')) return 'NONE';
       // The scribe lays its notes out under headings (Stage 12 D); the other roles answer in plain text.
       return prompt.startsWith('You are the scribe')
         ? `## Events\n- summary #${prompts.length}`
@@ -419,6 +420,87 @@ describe('the storyteller and the Game Master’s notes (Stage 12 E and G)', () 
     await handler().run(job());
     expect(prompts.filter((p) => p.includes('You are the bard')).join('\n')).toMatch(
       /language clean/,
+    );
+  });
+});
+
+describe('campaign memory (Stage 12 F)', () => {
+  const gary = {
+    id: 'm-gary',
+    kind: 'npc' as const,
+    name: 'Gary the Grumpy Gnome',
+    aliases: ['Gary'],
+    gist: 'Sells lanterns in Dunmere and owes the party a favour.',
+    firstRecordingId: 'rec-0',
+    firstSeen: 1,
+    lastSeen: 1,
+    timesSeen: 1,
+  };
+
+  /** A scribe that says the party met Gary, and a memory step that answers `memoryAnswer`. */
+  function handlerWith(memoryAnswer: string) {
+    return handler({
+      localGenerate: async (prompt) => {
+        prompts.push(prompt);
+        if (prompt.startsWith('You keep the campaign memory')) return memoryAnswer;
+        return prompt.startsWith('You are the scribe')
+          ? '## Events\n- The party found Gary again and bought a lantern.'
+          : 'told';
+      },
+    });
+  }
+
+  it('hands the tale and the brief what earlier sessions learned, and never the scribe', async () => {
+    records.memory.set('camp-1', [gary]);
+    await handlerWith('NONE').run(job());
+    const tale = prompts.find((p) => p.includes('You are the bard'));
+    expect(tale).toContain('Gary the Grumpy Gnome (person; also Gary): Sells lanterns');
+    expect(prompts.find((p) => p.includes('You are the Chronicler'))).toContain('Gary the Grumpy');
+    expect(prompts.find((p) => p.startsWith('You are the scribe'))).not.toContain(
+      'Gary the Grumpy',
+    );
+  });
+
+  it('does not show a session the entries it taught itself', async () => {
+    records.memory.set('camp-1', [{ ...gary, firstRecordingId: REC }]);
+    await handlerWith('NONE').run(job());
+    expect(prompts.find((p) => p.includes('You are the bard'))).not.toContain(
+      'From earlier sessions',
+    );
+  });
+
+  it('learns from the session: a new entry, and Gary met again', async () => {
+    records.memory.set('camp-1', [gary]);
+    await handlerWith(
+      'npc | Gary the Grumpy Gnome | Gary | Sold the party a lantern; still owes a favour.\nlocation | Dunmere | none | A market town where Gary has his stall.',
+    ).run(job());
+    const kept = await records.listMemory('camp-1');
+    const g = kept.find((e) => e.id === 'm-gary');
+    expect(g?.timesSeen).toBe(2);
+    expect(g?.gist).toMatch(/lantern/);
+    expect(kept.find((e) => e.name === 'Dunmere')?.firstRecordingId).toBe(REC);
+    expect(await records.memoryApplied(REC)).toBe(true);
+  });
+
+  it('counts a session once, however often the job runs', async () => {
+    await handlerWith('npc | Pim | none | A halfling with a lantern.').run(job());
+    await handlerWith('npc | Pim | none | A halfling with a lantern.').run(job());
+    expect((await records.listMemory('camp-1'))[0]?.timesSeen).toBe(1);
+  });
+
+  it('never fails the job when the memory step cannot be done', async () => {
+    await handlerWith('I could not do that.').run(job());
+    expect((await records.getRecording(REC))?.status).toBe('processed');
+    expect(await records.memoryApplied(REC)).toBe(false); // so a later run tries again
+  });
+
+  it('does nothing when the operator has turned it off', async () => {
+    records.memory.set('camp-1', [gary]);
+    records.aiSettings = setAiSetting(DEFAULT_AI_SETTINGS, 'ai.memory.enabled', 'false');
+    await handlerWith('npc | Pim | none | Someone.').run(job());
+    expect(prompts.some((p) => p.startsWith('You keep the campaign memory'))).toBe(false);
+    expect(prompts.find((p) => p.includes('You are the bard'))).not.toContain(
+      'From earlier sessions',
     );
   });
 });

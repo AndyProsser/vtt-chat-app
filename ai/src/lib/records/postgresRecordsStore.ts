@@ -19,6 +19,7 @@ import type {
   StoredSummaryKind,
   TrackTranscript,
 } from '../../types/index.js';
+import type { MemoryEntry } from '../memory.js';
 import type { VocabularyTerm } from '../vocabulary.js';
 import type { RecordsStore } from './recordsStore.js';
 
@@ -456,6 +457,90 @@ export class PostgresRecordsStore implements RecordsStore {
       [campaignId],
     );
     return typeof rows[0]?.body === 'string' ? rows[0].body : '';
+  }
+
+  async listMemory(campaignId: string): Promise<MemoryEntry[]> {
+    const { rows } = await this.pool.query<Row>(
+      'SELECT * FROM campaign_memory WHERE campaign_id = $1 ORDER BY times_seen DESC, lower(name)',
+      [campaignId],
+    );
+    return rows.map((r) => ({
+      id: r.id as string,
+      kind: r.kind as MemoryEntry['kind'],
+      name: r.name as string,
+      aliases: Array.isArray(r.aliases) ? (r.aliases as unknown[]).map(String) : [],
+      gist: r.gist as string,
+      firstRecordingId: (r.first_recording_id as string | null) ?? null,
+      firstSeen: Number(r.first_seen),
+      lastSeen: Number(r.last_seen),
+      timesSeen: Number(r.times_seen),
+    }));
+  }
+
+  async forgetMemory(campaignId: string, name: string): Promise<number> {
+    const { rowCount } = await this.pool.query(
+      `DELETE FROM campaign_memory WHERE campaign_id = $1
+         AND (lower(name) = lower($2)
+              OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(aliases) a WHERE lower(a) = lower($2)))`,
+      [campaignId, name.trim()],
+    );
+    return rowCount ?? 0;
+  }
+
+  async memoryApplied(recordingId: string): Promise<boolean> {
+    const { rowCount } = await this.pool.query(
+      'SELECT 1 FROM campaign_memory_applied WHERE recording_id = $1',
+      [recordingId],
+    );
+    return (rowCount ?? 0) > 0;
+  }
+
+  async saveMemory(
+    campaignId: string,
+    recordingId: string,
+    entries: readonly MemoryEntry[],
+    now: number,
+  ): Promise<boolean> {
+    const client = await this.pool.connect();
+    try {
+      await client.query('BEGIN');
+      const marked = await client.query(
+        'INSERT INTO campaign_memory_applied (recording_id, campaign_id, applied_at) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING',
+        [recordingId, campaignId, now],
+      );
+      if (marked.rowCount === 0) {
+        await client.query('ROLLBACK');
+        return false;
+      }
+      for (const e of entries) {
+        await client.query(
+          `INSERT INTO campaign_memory
+             (id, campaign_id, kind, name, aliases, gist, first_recording_id, first_seen, last_seen, times_seen)
+           VALUES ($1, $2, $3, $4, $5::jsonb, $6, $7, $8, $9, $10)
+           ON CONFLICT (id) DO UPDATE SET aliases = EXCLUDED.aliases, gist = EXCLUDED.gist,
+             last_seen = EXCLUDED.last_seen, times_seen = EXCLUDED.times_seen`,
+          [
+            e.id,
+            campaignId,
+            e.kind,
+            e.name,
+            JSON.stringify(e.aliases),
+            e.gist,
+            e.firstRecordingId,
+            e.firstSeen,
+            e.lastSeen,
+            e.timesSeen,
+          ],
+        );
+      }
+      await client.query('COMMIT');
+      return true;
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
   }
 
   async playerIds(campaignId: string): Promise<string[]> {

@@ -267,6 +267,14 @@ export const GM_NOTES_PROMPT_CHARS = 6000;
 const gmNotesBlock = (text: string | undefined): string | undefined =>
   text && text.trim() !== '' ? text.trim().slice(0, GM_NOTES_PROMPT_CHARS) : undefined;
 
+/** Earlier sessions' memory, for a tale or the brief; undefined when there is none. */
+const memoryBlock = (context: SummaryContext, use: string): string[] =>
+  context.memory && context.memory.length > 0
+    ? [
+        `From earlier sessions (what the campaign already knows of these; ${use}):\n${context.memory.map((l) => `- ${l}`).join('\n')}`,
+      ]
+    : [];
+
 /** The bard's prompt: a retelling in the campaign's storyteller's voice, written from the scribe's notes, never from the transcript. */
 export function buildStoryPrompt(
   kind: Exclude<SummaryKind, 'dm-only'>,
@@ -311,6 +319,10 @@ export function buildStoryPrompt(
           `The Game Master's own notes, the start of them (what they know and have planned; you have read them over their shoulder):\n${secrets}`,
         ]
       : []),
+    ...memoryBlock(
+      context,
+      'refer back to one only where this session\'s notes show the party meeting, recalling or hearing of it again, as "once again" or "as before"; never bring one in otherwise, and never change what it is',
+    ),
     "The scribe's notes of what happened, in order:",
     joinNotes(notes),
     'The tale:',
@@ -349,6 +361,10 @@ export function buildChroniclerPrompt(notes: readonly string[], context: Summary
       .join('\n'),
     ...briefLoot(context),
     ...(planned ? [`The Game Master's own notes, the start of them:\n${planned}`] : []),
+    ...memoryBlock(
+      context,
+      'use it for continuity: say where one of these came back, changed or was left open',
+    ),
     "The scribe's notes of what happened, in order:",
     joinNotes(notes),
     'Brief:',

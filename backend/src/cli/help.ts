@@ -114,6 +114,22 @@ export const SERVER_SECTIONS: HelpSection[] = [
     ],
   },
   {
+    group: 'memory',
+    title: 'Campaign memory',
+    commands: [
+      {
+        usage: 'memory show <campaign-id>',
+        summary:
+          'what the campaign has already met (people, creatures, places, groups, quests, items) as kept ' +
+          'from its sessions, for the tale and the Game Master brief to refer back to',
+      },
+      {
+        usage: 'memory forget <campaign-id> <name>',
+        summary: 'remove one wrong entry by its name or alias (a later session may learn it again)',
+      },
+    ],
+  },
+  {
     group: 'recording',
     title: 'Recordings',
     commands: [

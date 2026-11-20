@@ -737,6 +737,31 @@ describe('campaigns', () => {
     expect(out.join('\n')).toMatch(/camp-1\s+Sunken Temple\s+dana\s+2\s+1$/m);
   });
 
+  it('shows what the campaign has met, and forgets one wrong entry', async () => {
+    await setup();
+    records.memory.set('camp-1', [
+      {
+        id: 'm1',
+        kind: 'npc',
+        name: 'Gary the Grumpy Gnome',
+        aliases: ['Gary'],
+        gist: 'Sells lanterns.',
+        firstRecordingId: null,
+        firstSeen: 1,
+        lastSeen: 2,
+        timesSeen: 3,
+      },
+    ]);
+    expect(await run('memory show camp-1')).toBe(0);
+    expect(out.join('\n')).toMatch(/Gary the Grumpy Gnome\s+person\s+Gary\s+Sells lanterns\.\s+3/);
+    out = [];
+    expect(await run('memory forget camp-1 gary')).toBe(0);
+    expect(out.join('\n')).toContain('forgot 1 entry');
+    expect(await records.listMemory('camp-1')).toEqual([]);
+    expect(await run('memory forget camp-1 gary')).toBe(1);
+    expect(await run('memory show nope')).toBe(1);
+  });
+
   it('shows what would go and deletes nothing without --yes', async () => {
     await setup();
     await rec('r1');

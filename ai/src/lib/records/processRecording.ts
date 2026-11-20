@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+
 import { effectiveBard, type AiSettings } from '@vtt-chat-app/shared';
 
 import type {
@@ -14,9 +16,18 @@ import { formatTranscript } from '../format.js';
 import type { JobHandler } from '../jobs/worker.js';
 import { mergeTranscripts } from '../merge.js';
 import { buildWhisperPrompt, correctSegments } from '../vocabulary.js';
+import {
+  applyMemoryUpdate,
+  buildMemoryPrompt,
+  MEMORY_MAX_SHOWN_FOR_TALE,
+  MEMORY_MAX_SHOWN_FOR_UPDATE,
+  memoryLine,
+  parseMemoryUpdate,
+  relevantMemory,
+} from '../memory.js';
 import { buildJobProviders } from '../providers/fromSettings.js';
 import { formatNotes } from '../prompts.js';
-import { takeNotes, writeFromNotes, type SummaryModels } from '../summarise.js';
+import { stripThinking, takeNotes, writeFromNotes, type SummaryModels } from '../summarise.js';
 import { planSummaries } from '../summaryPlan.js';
 import type { RecordsStore } from './recordsStore.js';
 
@@ -116,16 +127,49 @@ export function createProcessRecordingHandler(deps: ProcessRecordingDeps): JobHa
         settings.tale.storytellersOff,
       );
       let gmNotes: Promise<string> | undefined;
-      const telling = async (kind: SummaryKind): Promise<Partial<SummaryContext>> => {
+      // Campaign memory (Stage 12 F): what earlier sessions taught. Read before this session changes it, and only for
+      // the tale and the brief; this session's own first-met entries (a reprocess) are left out, so it is not "met before".
+      const memoryOn = settings.memory.enabled;
+      const known = memoryOn ? await deps.records.listMemory(recording.campaignId) : [];
+      const telling = async (
+        kind: SummaryKind,
+        notes: readonly string[],
+      ): Promise<Partial<SummaryContext>> => {
+        const remembered = relevantMemory(known, notes.join('\n'), MEMORY_MAX_SHOWN_FOR_TALE, {
+          alwaysQuests: kind === 'dm-only',
+          excludeFirstRecording: recording.id,
+        }).map(memoryLine);
         const wantsNotes = kind === 'dm-only' || storyteller === 'drunken';
         gmNotes ??= wantsNotes ? deps.records.gmNotes(recording.campaignId) : undefined;
-        const notes = wantsNotes ? await gmNotes : undefined;
+        const gm = wantsNotes ? await gmNotes : undefined;
         return {
           storyteller,
           taleLength: settings.tale.length,
           taleContent: settings.tale.content,
-          ...(notes ? { gmNotes: notes } : {}),
+          ...(gm ? { gmNotes: gm } : {}),
+          ...(remembered.length > 0 ? { memory: remembered } : {}),
         };
+      };
+
+      const learn = async (notes: readonly string[]): Promise<void> => {
+        const shown = relevantMemory(known, notes.join('\n'), MEMORY_MAX_SHOWN_FOR_UPDATE, {
+          alwaysQuests: true,
+        });
+        const prompt = buildMemoryPrompt(notes, shown, {
+          campaignName: campaignName ?? undefined,
+        });
+        // An answer that is not entries or NONE is asked for once more; after that, this session teaches nothing.
+        const updates =
+          parseMemoryUpdate(stripThinking(await models.scribe(prompt))) ??
+          parseMemoryUpdate(stripThinking(await models.scribe(prompt)));
+        if (!updates) throw new Error('the model did not answer in the memory format');
+        const changed = applyMemoryUpdate(known, updates, {
+          recordingId: recording.id,
+          now: now(),
+          newId: randomUUID,
+        });
+        await deps.records.saveMemory(recording.campaignId, recording.id, changed, now());
+        log(`${recording.id}: campaign memory: ${changed.length} entries new or changed`);
       };
 
       // The scribe's notes are taken once per stretch of recording and shared by every summary of it. With
@@ -214,7 +258,7 @@ export function createProcessRecordingHandler(deps: ProcessRecordingDeps): JobHa
             : await sessionNotes(context);
         const result = await writeFromNotes(models, notes, {
           kind,
-          context: { ...context, ...(await telling(kind)) },
+          context: { ...context, ...(await telling(kind, notes)) },
         });
         const modelCalls = result.modelCalls + uncounted;
         uncounted = 0;
@@ -226,6 +270,18 @@ export function createProcessRecordingHandler(deps: ProcessRecordingDeps): JobHa
           text: result.text,
           modelCalls,
           createdAt: now(),
+        });
+      }
+
+      // Last, and never a reason to fail a job whose tales are written: teach the memory from this session's notes.
+      if (
+        memoryOn &&
+        session &&
+        utterances.length > 0 &&
+        !(await deps.records.memoryApplied(recording.id))
+      ) {
+        await learn(await sessionNotes(session.context)).catch((error: unknown) => {
+          log(`${recording.id}: campaign memory not updated: ${String(error)}`);
         });
       }
 

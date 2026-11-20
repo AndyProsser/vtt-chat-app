@@ -354,19 +354,26 @@ Memory while it runs: Whisper about 0.5 GB, the language model about 3 GB.
 
 ### What the AI storyteller may write: length, content and who tells it
 
-Three settings keep the tales suitable for your server. The Game Master picks only a storyteller's style; these are yours, and nothing in the app changes them. (The settings are stored now; the storyteller prompts start using them in a later 0.6 release.)
-
-| Setting                 | Values                        | Use it for                                                                                                                                                                                                                                                                                                                                                            |
+Three settings keep the tales suitable for your server. The Game Master picks only a storyteller's style; these are yours, and nothing in the app changes them. | Setting | Values | Use it for |
 | ----------------------- | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ai.tale.length`        | `short`, `default`, `long`    | The ceiling on a tale's length. **Short** suits a CPU-only server, where a long tale costs minutes of model time; **long** suits a GPU or a cloud model. The tale also follows what happened in the session, so a quiet night stays short either way.                                                                                                                 |
-| `ai.tale.content`       | `clean`, `default`, `graphic` | How strong the language and violence may be. **Clean** suits family or school groups; **graphic** tells both plainly. The installer asks, or takes `--content`.                                                                                                                                                                                                       |
-| `ai.storyteller.<name>` | `on`, `off`                   | Which storytellers your server offers: `dry`, `drunken` (the Tipsy Minstrel, which may let Game Master secrets slip), `sarcastic`, `bored`. **The Tavern Bard (`tavern`) cannot be turned off:** it is the default, and a campaign whose storyteller you turn off is told by it until the Game Master picks another. The picker in the app shows only what you offer. |
+| `ai.tale.length` | `short`, `default`, `long` | The ceiling on a tale's length. **Short** suits a CPU-only server, where a long tale costs minutes of model time; **long** suits a GPU or a cloud model. The tale also follows what happened in the session, so a quiet night stays short either way. |
+| `ai.tale.content` | `clean`, `default`, `graphic` | How strong the language and violence may be. **Clean** suits family or school groups; **graphic** tells both plainly. The installer asks, or takes `--content`. |
+| `ai.storyteller.<name>` | `on`, `off` | Which storytellers your server offers: `dry`, `drunken` (the Tipsy Minstrel, which may let Game Master secrets slip), `sarcastic`, `bored`. **The Tavern Bard (`tavern`) cannot be turned off:** it is the default, and a campaign whose storyteller you turn off is told by it until the Game Master picks another. The picker in the app shows only what you offer. |
 
 ```bash
 vtt-admin settings set ai.tale.length short
 vtt-admin settings set ai.tale.content clean
 vtt-admin settings set ai.storyteller.drunken off
 ```
+
+### Names, notes and memory: three more settings for the AI workflow
+
+| Setting                     | Values                                 | What it does                                                                                                                                                                                                                                                    |
+| --------------------------- | -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ai.transcription.glossary` | `corrections`, `prompt`, `both`, `off` | Uses the campaign's own names (the Game Master's glossary, characters, players, scene, handout and loot titles) to fix what Whisper misheard (`corrections`, the default), and/or to tell Whisper the names up front (`prompt`, which is off until you try it). |
+| `ai.memory.enabled`         | `true`, `false`                        | Campaign memory: after each session one more model call keeps a list of the people, places, groups, quests and items the party has met, so the tale can say "once again". On by default; turn it off on a very slow CPU-only server to save that call.          |
+
+`vtt-admin memory show <campaign-id>` lists what a campaign remembers; `vtt-admin memory forget <campaign-id> <name>` removes a wrong entry (a later session may learn it again if its notes mention it). Memory is kept only from what was said and typed at the table, never from whispers or private audio. It is **not** part of a `.vttcampaign` export, and deleting a session does not remove what it taught; deleting the campaign does.
 
 ### With an NVIDIA GPU (including GTX 10-series)
 

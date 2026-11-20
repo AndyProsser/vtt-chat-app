@@ -10,6 +10,7 @@ import type {
   StoredSummary,
   TrackTranscript,
 } from '../../types/index.js';
+import type { MemoryEntry } from '../memory.js';
 import type { VocabularyTerm } from '../vocabulary.js';
 
 /**
@@ -99,6 +100,22 @@ export interface RecordsStore {
   campaignBard(campaignId: string): Promise<BardId>;
   /** The Game Master's notes page, as written (empty when there is none). Only the Chronicler and the Tipsy Minstrel may read it. */
   gmNotes(campaignId: string): Promise<string>;
+  /** The campaign's memory (Stage 12 F), every entry. */
+  listMemory(campaignId: string): Promise<MemoryEntry[]>;
+  /** Removes the entries whose name or an alias is `name` (any case); how many went. For `vtt-admin memory forget`. */
+  forgetMemory(campaignId: string, name: string): Promise<number>;
+  /** Whether this recording has already taught the memory (so a retry or a reprocess does not count a session twice). */
+  memoryApplied(recordingId: string): Promise<boolean>;
+  /**
+   * Saves new and changed entries and marks the recording as applied, in one step. `false`, and nothing saved, when it
+   * was already applied. Saving zero entries still marks it.
+   */
+  saveMemory(
+    campaignId: string,
+    recordingId: string,
+    entries: readonly MemoryEntry[],
+    now: number,
+  ): Promise<boolean>;
   campaignName(campaignId: string): Promise<string | undefined>;
   /** Account ids of the campaign's players (every member but the DM): who gets a character summary. */
   playerIds(campaignId: string): Promise<string[]>;

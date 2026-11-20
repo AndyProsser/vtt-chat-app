@@ -6,6 +6,7 @@ import {
   type BardId,
 } from '@vtt-chat-app/shared';
 
+import type { MemoryEntry } from '../memory.js';
 import type { VocabularyTerm } from '../vocabulary.js';
 
 import type {
@@ -205,6 +206,33 @@ export class MemoryRecordsStore implements RecordsStore {
   campaignBard = async (campaignId: string): Promise<BardId> =>
     this.bards.get(campaignId) ?? DEFAULT_BARD;
   gmNotes = async (campaignId: string) => this.notesOf.get(campaignId) ?? '';
+  memory = new Map<string, MemoryEntry[]>();
+  appliedMemory = new Set<string>();
+  listMemory = async (campaignId: string) =>
+    (this.memory.get(campaignId) ?? []).map((e) => ({ ...e }));
+  forgetMemory = async (campaignId: string, name: string): Promise<number> => {
+    const key = name.trim().toLowerCase();
+    const all = this.memory.get(campaignId) ?? [];
+    const kept = all.filter(
+      (e) => ![e.name, ...e.aliases].some((n) => n.trim().toLowerCase() === key),
+    );
+    this.memory.set(campaignId, kept);
+    return all.length - kept.length;
+  };
+  memoryApplied = async (recordingId: string) => this.appliedMemory.has(recordingId);
+  saveMemory = async (
+    campaignId: string,
+    recordingId: string,
+    entries: readonly MemoryEntry[],
+    _now: number,
+  ): Promise<boolean> => {
+    if (this.appliedMemory.has(recordingId)) return false;
+    const all = new Map((this.memory.get(campaignId) ?? []).map((e) => [e.id, e]));
+    for (const e of entries) all.set(e.id, { ...e });
+    this.memory.set(campaignId, [...all.values()]);
+    this.appliedMemory.add(recordingId);
+    return true;
+  };
   vocabulary = new Map<string, VocabularyTerm[]>();
   campaignVocabulary = async (campaignId: string) => this.vocabulary.get(campaignId) ?? [];
   campaignName = async (campaignId: string) => this.campaigns.get(campaignId);

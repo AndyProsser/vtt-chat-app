@@ -10,6 +10,10 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ## [Unreleased]
 
+### Added
+
+- **Campaign memory.** After each session one more step reads the scribe's notes and keeps a short list of the people, creatures, places, groups, quests and items the party has met, each with a one-line gist and what it is also called. The next sessions' tales and the Game Master's brief are shown the entries their notes mention, so the tale can say "once again the party crossed paths with Gary", and the brief can say which quests are still open. It is built only from what was said and typed at the table (never whispers or private audio), and only for the server's own use for now: there is no screen for it in the apps yet. The operator reads and fixes it with `vtt-admin memory show <campaign-id>` and `memory forget <campaign-id> <name>`, and can turn it off with `vtt-admin settings set ai.memory.enabled false` (it costs one more model call per session). It is not included in a `.vttcampaign` export, a session's entries stay if the session is deleted, and a session processed again does not teach it twice. Needs the update's new database table (applied by the server on start).
+
 ### Changed
 
 - **The scribe's notes are laid out under headings, and checked.** Events, Decisions, Combat, Non-player characters, Locations, Loot, Quests, Secrets and reveals, Character moments, and Memorable quotes (word for word, with who said them). The Game Master reads them under those headings in the session notes, and the tale and the Game Master's brief are written from them. A whole session's notes are kept to about 3,000 words. If a model's notes cannot be read (no headings, or nothing under them), the scribe is first asked to lay them out again, then to read that part of the transcript again, and after three readings the job fails and is retried later, rather than carry on with weaker notes. Sessions processed before this keep their old notes until reprocessed (`vtt-admin recording reprocess <id>`).

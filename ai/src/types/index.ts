@@ -78,6 +78,11 @@ export interface SummaryContext {
    * given them, and the prompt builders ignore this field for them as a second guard.
    */
   gmNotes?: string;
+  /**
+   * What the campaign has already met that this session's notes mention (campaign memory, one line each), from earlier
+   * sessions only. For the tale and the Game Master's brief; never the scribe, whose job is what happened.
+   */
+  memory?: string[];
 }
 
 /** Sends a prompt to a language model and returns its text. Local (Ollama) by default. */

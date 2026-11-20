@@ -12,6 +12,7 @@ import {
   PROCESS_RECORDING_JOB,
   PURGE_RECORDING_JOB,
   type JobQueue,
+  MEMORY_KIND_LABELS,
   type RecordsStore,
 } from '@vtt-chat-app/ai';
 
@@ -177,6 +178,7 @@ function settingValues(s: InstanceSettings): [string, string | null][] {
     ['ai.fallback.enabled', String(s.ai.fallback.enabled)],
     ['ai.fallback.after-seconds', String(s.ai.fallback.afterSeconds)],
     ['ai.fallback.retry-seconds', String(s.ai.fallback.retrySeconds)],
+    ['ai.memory.enabled', String(s.ai.memory.enabled)],
     ['ai.tale.length', s.ai.tale.length],
     ['ai.tale.content', s.ai.tale.content],
     ...BARD_IDS.map((id): [string, string] => [
@@ -295,6 +297,8 @@ export async function runAdmin(args: string[], options: AdminDeps): Promise<numb
         return await recordings(deps, command, rest);
       case 'campaign':
         return await campaigns(deps, command, rest);
+      case 'memory':
+        return await memory(deps, command, rest);
       case 'updates':
         return await updates(deps, command, rest);
       case undefined:
@@ -1040,6 +1044,64 @@ async function recordings(deps: Ctx, command: string | undefined, rest: string[]
     }
     default:
       misuse(deps, 'recording', command);
+      return 2;
+  }
+}
+
+async function memory(deps: Ctx, command: string | undefined, rest: string[]): Promise<number> {
+  const { ui } = deps;
+  const campaignId = rest[0];
+  switch (command) {
+    case 'show': {
+      if (!campaignId) {
+        deps.err('usage: memory show <campaign-id>');
+        return 2;
+      }
+      const found = (await deps.store.listCampaignSummaries()).find(
+        (c) => c.campaign.id === campaignId,
+      );
+      if (!found) throw new SettingError('no campaign with that id (see: campaign list)');
+      const entries = await deps.records.listMemory(campaignId);
+      deps.out(
+        ui.title(`memory of ${found.campaign.name}`, plural(entries.length, 'entry', 'entries')),
+      );
+      deps.out('');
+      if (entries.length === 0) {
+        deps.out(ui.dim('  nothing yet: it fills as sessions are processed (ai.memory.enabled)'));
+        return 0;
+      }
+      ui.table(
+        entries.map((e) => [
+          ui.bold(e.name),
+          MEMORY_KIND_LABELS[e.kind],
+          e.aliases.join(', ') || ui.dim('none'),
+          e.gist,
+          String(e.timesSeen),
+        ]),
+        { header: ['name', 'kind', 'also', 'gist', 'sessions'] },
+      ).forEach(deps.out);
+      return 0;
+    }
+    case 'forget': {
+      const name = rest.slice(1).join(' ').trim();
+      if (!campaignId || !name) {
+        deps.err('usage: memory forget <campaign-id> <name>');
+        return 2;
+      }
+      const gone = await deps.records.forgetMemory(campaignId, name);
+      if (gone === 0)
+        throw new SettingError(
+          `nothing called "${name}" in that campaign's memory (see: memory show)`,
+        );
+      deps.out(
+        ui.good(
+          `forgot ${plural(gone, 'entry', 'entries')}. A later session may learn it again if the notes mention it.`,
+        ),
+      );
+      return 0;
+    }
+    default:
+      misuse(deps, 'memory', command);
       return 2;
   }
 }

@@ -47,4 +47,10 @@ export interface AiSettings {
   llm: AiBackendSetting;
   fallback: AiFallbackSetting;
   tale: AiTaleSettings;
+  /**
+   * Campaign memory (Stage 12 F): after each session one more model call keeps a list of the people, places, groups,
+   * quests and items the party has met, for the tale and the Game Master's brief to refer back to. On by default; a
+   * slow CPU-only server may turn it off to save that call.
+   */
+  memory: { enabled: boolean };
 }

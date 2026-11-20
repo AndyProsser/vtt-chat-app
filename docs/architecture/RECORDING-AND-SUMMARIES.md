@@ -482,6 +482,22 @@ What it showed, and what changed:
   `processRecording.test.ts`). `ai.tale.length` sets the ceiling (400, 800, 1,200 words; a chapter or a character gets half), the
   notes' own length still pulls it down, and `ai.tale.content` adds a clean or graphic rule. Not done: the Chronicler and the bards
   read the notes as plain text (not section by section), and campaign memory (F) is not used yet.
+- **Campaign memory (Stage 12 F, built 2026-11-20, not yet run on two real sessions).** Decided with Andy: **a step of its own**
+  after the scribe (not the scribe's job: that stays "what happened"), **named entries with a one-line gist**, and **server-only
+  with an operator CLI** (a Game Master screen needs a wire change and waits for a later bump). Table `campaign_memory`
+  (migration 0042): kind (`npc`, `creature`, `location`, `faction`, `quest`, `item`), name, aliases, a gist of at most 25 words,
+  first and last seen, and how many sessions. After a session's tales are written, one scribe-model call (`buildMemoryPrompt`)
+  gets the session's notes and the known entries the notes mention (plus open quests), up to 40, and answers one line per new or
+  changed entry (`kind | name | other names | gist`, or `NONE`); `parseMemoryUpdate` is forgiving and `applyMemoryUpdate` matches
+  by name or any alias (whole words, any case) so "Gary" updates "Gary the Grumpy Gnome". **Reading:** the tale and the brief get the
+  entries _their_ notes mention, at most 12 (the brief also the open quests), from **earlier** sessions only (an entry a
+  reprocessed recording first taught itself is left out, so it is not "met before"); the bard is told to refer back only where
+  the notes show the party meeting or recalling it again. The scribe never sees memory. **Failure:** it never fails a job whose
+  tales are written; an unreadable answer is asked for once more, then logged, and the next run tries again. **Once per
+  session:** `campaign_memory_applied` marks a recording (no foreign key, like the entries, so deleting a session does not
+  unlearn the campaign). **Privacy:** it is built from the notes, so only from what was said and typed at the table; the
+  Game Master's own notes are not an input. **Limits:** not in a `.vttcampaign` export; the models will get names wrong, so
+  `vtt-admin memory forget` exists; the Game Master cannot yet read or correct it in the app. Switch: `ai.memory.enabled`.
 - 280 words of clean TTS: a difference of one point is three words. Compare rows, do not predict a real table.
 
 | Summary model on CPU (2014 desktop, one summary of the scene) | Time      | Judged                                                             |
