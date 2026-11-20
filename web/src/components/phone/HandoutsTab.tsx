@@ -16,6 +16,7 @@ import {
   hideHandout,
   showHandout,
 } from '../../lib/phone/phoneApi.js';
+import { renderFirstPage } from '../../lib/phone/pdfPreview.js';
 import { usePhoneStore } from '../../lib/phone/phoneStore.js';
 import type { HandoutItem } from '../../types/phone.js';
 import { IconTool } from './IconTool.js';
@@ -310,15 +311,40 @@ function Pictures({ item, campaignId }: { item: HandoutItem; campaignId: string 
   );
 }
 
-/** A PDF opens in the phone's own viewer: fetch it with the sign-in, then open the result in a new tab. */
+/**
+ * A PDF handout: a picture of its first page (tap it), and a button. Either opens the whole PDF in the phone's own
+ * viewer: fetch it with the sign-in, then open the result in a new tab. If the picture cannot be drawn, only the
+ * button shows.
+ */
 function PdfLink({ item, campaignId }: { item: HandoutItem; campaignId: string }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
+  const [preview, setPreview] = useState<{ height: number } | 'none' | undefined>();
+  const blobRef = useRef<Blob | undefined>(undefined);
+  const canvas = useRef<HTMLCanvasElement>(null);
+  const holder = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let live = true;
+    (async () => {
+      const blob = await handoutFile(campaignId, item.id, 0);
+      blobRef.current = blob;
+      const el = canvas.current;
+      const width = Math.min(holder.current?.clientWidth ?? 320, 560);
+      if (!el || width < 50) throw new Error('no room');
+      const height = await renderFirstPage(blob, el, width);
+      if (live) setPreview({ height });
+    })().catch(() => live && setPreview('none'));
+    return () => {
+      live = false;
+    };
+  }, [campaignId, item.id]);
+
   async function open() {
     setBusy(true);
     setError(undefined);
     try {
-      const blob = await handoutFile(campaignId, item.id, 0);
+      const blob = blobRef.current ?? (await handoutFile(campaignId, item.id, 0));
       const url = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
       window.open(url, '_blank', 'noopener');
       setTimeout(() => URL.revokeObjectURL(url), 60_000);
@@ -329,7 +355,21 @@ function PdfLink({ item, campaignId }: { item: HandoutItem; campaignId: string }
     }
   }
   return (
-    <Flex direction="column" gap="2" align="start">
+    <Flex direction="column" gap="2" align="start" style={{ width: '100%' }}>
+      <div ref={holder} style={{ width: '100%' }}>
+        <button
+          type="button"
+          className="phone-pdf-preview"
+          hidden={preview === undefined || preview === 'none'}
+          aria-label="Open the PDF (a picture of its first page)"
+          onClick={() => void open()}
+        >
+          <canvas
+            ref={canvas}
+            style={preview && preview !== 'none' ? { height: preview.height } : undefined}
+          />
+        </button>
+      </div>
       <Button size="3" loading={busy} onClick={() => void open()}>
         Open the PDF
       </Button>

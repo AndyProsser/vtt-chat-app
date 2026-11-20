@@ -165,6 +165,23 @@ body,
   opacity: 0.6;
 }
 /* The table's page and the invite page: groups of related things. */
+.phone-pdf-preview {
+  display: block;
+  width: 100%;
+  padding: 0;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid var(--gray-a6);
+  border-radius: var(--radius-3);
+  cursor: pointer;
+}
+.phone-pdf-preview[hidden] {
+  display: none;
+}
+.phone-pdf-preview canvas {
+  display: block;
+  width: 100%;
+}
 .phone-info-card {
   display: flex;
   flex-direction: column;

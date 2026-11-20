@@ -1784,7 +1784,8 @@ body,
   min-width: 0;
   min-height: 240px;
   max-width: 100%;
-  max-height: calc(100vh - 190px);
+  /* Its height is set from the window (useFillHeight); this only guards the first paint. */
+  max-height: 100vh;
   border: 1px solid var(--vtt-edge);
   border-radius: var(--vtt-radius-control);
   background: var(--vtt-chat);
@@ -1796,7 +1797,12 @@ body,
 .vtt-zoom-frame img {
   display: block;
   max-width: none;
+  margin: 0 auto;
   user-select: none;
+}
+.vtt-zoom-frame canvas {
+  display: block;
+  margin: 0 auto;
 }
 
 /* A handout in chat: a thumbnail for a picture, three lines for a note; click opens it large. */

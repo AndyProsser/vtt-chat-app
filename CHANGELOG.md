@@ -20,6 +20,8 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ### Changed
 
+- **PDFs and pictures open fitted, with a Fit button and drag to move.** A PDF page opens showing the whole page, a **Fit** button brings it back after zooming, and the viewer fills its window (no gap at the bottom); pictures work the same way (they used to fit by width only, so a tall picture needed scrolling).
+- **A PDF handout on the phone shows its first page.** The picture is drawn on the phone (the reader loads only when a PDF is opened); tap it, or the button, to open the whole PDF in the phone's own viewer.
 - **A wide or tall PDF page now scrolls**, and you can drag it to move around (handouts and GM notes); it stretched the window and cut off before. Zoomed pictures use the same drag.
 - **The To confirm list is grouped** into **Mine** (what you took, were given or share) and **Party stash**, each with a count, in both apps, so copying to a character sheet goes in order. Each group has its own **Add all** icon at the right of its heading; the single Add all at the top is gone.
 - **In session history the Scribe's notes button stays above the notes** when you open them (it used to jump below).
