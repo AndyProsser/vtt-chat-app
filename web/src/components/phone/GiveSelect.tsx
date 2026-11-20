@@ -18,7 +18,7 @@ export function GiveSelect({
   return (
     <DropdownMenu.Root>
       <DropdownMenu.Trigger disabled={players.length === 0}>
-        <IconTool label="Give it to a player…" icon="gift" disabled={players.length === 0} />
+        <IconTool small label="Give it to a player…" icon="gift" disabled={players.length === 0} />
       </DropdownMenu.Trigger>
       <DropdownMenu.Content size="1" align="end">
         {players.map((m) => {

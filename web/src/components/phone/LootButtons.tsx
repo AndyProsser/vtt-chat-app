@@ -23,6 +23,7 @@ export function LootButtons({
 }) {
   return (
     <IconTool
+      small
       label={LOOT_ACTION_LABEL[action]}
       icon={ACTION_ICON[action]}
       {...(disabled ? { disabled: true } : {})}

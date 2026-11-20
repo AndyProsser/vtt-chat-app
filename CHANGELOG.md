@@ -12,6 +12,7 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ### Changed
 
+- **Smaller loot buttons on the phone web app**, sized to sit beside the item's heading, and the **Add all** button is an icon with a tooltip in both apps.
 - **The desktop join switch says "Allow join"**, with the phone web app's wording.
 
 ## [0.6.0] - 2026-11-20

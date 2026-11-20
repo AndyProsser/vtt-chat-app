@@ -703,6 +703,11 @@ button.phone-picture-button {
 .phone-tool-danger:hover:not([disabled]) {
   background: color-mix(in srgb, var(--red-9) 14%, transparent);
 }
+.phone-tool-sm {
+  min-width: 32px;
+  height: 32px;
+  padding: 0 6px;
+}
 .phone-tool-text {
   white-space: nowrap;
 }
@@ -1170,8 +1175,8 @@ button.phone-picture-button {
   align-items: center;
   justify-content: center;
   flex: none;
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
   padding: 0;
   border: 2px solid var(--vtt-gold);
   border-radius: 50%;

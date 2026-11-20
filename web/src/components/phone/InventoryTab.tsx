@@ -111,8 +111,8 @@ export function InventoryTab({ campaignId }: { campaignId: string }) {
         </SegmentedControl.Root>
         {pending.length > 0 && (
           <IconTool
+            small
             label={`Mark all ${pending.length} as added to my character sheet`}
-            text={`Add all ${pending.length}`}
             icon="listChecks"
             onClick={() => void confirmAll()}
           />

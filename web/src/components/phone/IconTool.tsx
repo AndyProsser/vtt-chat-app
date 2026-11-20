@@ -14,11 +14,13 @@ interface Props extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'children'
   submit?: boolean;
   /** A toggle: shown filled while on. */
   pressed?: boolean;
+  /** A compact button (loot cards and filters), sized to sit beside the item's heading. */
+  small?: boolean;
 }
 
 /** An icon button with a tip: the same gold-outline control the desktop app uses (its ToolButton). */
 export const IconTool = forwardRef<HTMLButtonElement, Props>(function IconTool(
-  { label, icon, text, danger, submit, pressed, className, ...rest },
+  { label, icon, text, danger, submit, pressed, small, className, ...rest },
   ref,
 ) {
   return (
@@ -33,12 +35,13 @@ export const IconTool = forwardRef<HTMLButtonElement, Props>(function IconTool(
           'phone-tool',
           danger ? 'phone-tool-danger' : '',
           pressed ? 'phone-tool-on' : '',
+          small ? 'phone-tool-sm' : '',
           className ?? '',
         ]
           .filter(Boolean)
           .join(' ')}
       >
-        <Icon name={icon} size={18} />
+        <Icon name={icon} size={small ? 16 : 18} />
         {text !== undefined && <span className="phone-tool-text">{text}</span>}
       </button>
     </Tooltip>
