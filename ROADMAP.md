@@ -60,7 +60,8 @@ releases; the 0.4.5 changelog covers both).
 6. **[Stage 14](#stage-14--a-self-signed-certificate-the-app-can-pin-idea-2026-11-19-not-scheduled):** a self-signed HTTPS mode the desktop app can pin (an idea, not scheduled; `--http` covers trusted networks today).
 7. The open design topics in [.claude/intent.md](.claude/intent.md).
 
---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Area | What shipped |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **One web app** | A landing page at `/`, `/download` (per-OS steps, sign-in required), `/full-app`, and the chat web app at `/app` as the same product on phones and desktops; one 640px column, the Default look, light/dark |
 | **Sessions in the browser** | A secure, long-lived cookie (HttpOnly, SameSite, `__Host-`) that slides with the operator's offline limit; Origin checks on cookie writes and the WebSocket; OIDC fits later without rework |
 | **Getting an account** | Visitor sign-up requests (off by default, approved in `vtt-admin signup`), short typeable `ABCD-EFGH` codes, a starter campaign for the first Admin |
