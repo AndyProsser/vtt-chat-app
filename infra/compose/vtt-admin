@@ -16,8 +16,16 @@ dc() {
   if can_run; then docker compose "$@"; else sudo -- docker compose "$@"; fi
 }
 
-# The terminal width, so the CLI wraps its help (and `<group>` help) to fit.
-cols() { tput cols 2>/dev/null || echo 100; }
+# What the CLI in the container needs to know about this terminal: its width (for wrapping), whether
+# output is a terminal at all (colour and graphics; plain when piped, as the container cannot tell),
+# NO_COLOR if set, and this machine's name (inside the container it would be the container's id).
+# Checked here, not inside term_env: that runs in a process substitution, where stdout is always a pipe.
+if [ -t 1 ]; then out_is_tty=1; else out_is_tty=0; fi
+term_env() {
+  printf '%s\n' -e "COLUMNS=$(tput cols 2>/dev/null || echo 100)" -e VTT_ADMIN_HOST=compose -e "VTT_HOST_NAME=$(hostname)"
+  if ((out_is_tty)); then printf '%s\n' -e FORCE_COLOR=1; else printf '%s\n' -e VTT_ADMIN_PLAIN=1; fi
+  if [ -n "${NO_COLOR:-}" ]; then printf '%s\n' -e NO_COLOR=1; fi
+}
 
 case ${1:-} in
   logs)
@@ -88,11 +96,12 @@ case ${1:-} in
     dc restart livekit
     ;;
   help | --help | -h)
-    # One help for both kinds of command: the CLI also prints this wrapper's commands (VTT_ADMIN_HOST),
-    # wrapped to this terminal (exec -T has none of its own to ask).
-    dc exec -T -e COLUMNS="$(cols)" -e VTT_ADMIN_HOST=compose backend node backend/dist/cli/main.js help
+    # One help for both kinds of command: the CLI also prints this wrapper's commands (VTT_ADMIN_HOST).
+    mapfile -t envs < <(term_env)
+    dc exec -T "${envs[@]}" backend node backend/dist/cli/main.js help
     ;;
   *)
-    dc exec -e COLUMNS="$(cols)" -e VTT_ADMIN_HOST=compose backend node backend/dist/cli/main.js "$@"
+    mapfile -t envs < <(term_env)
+    dc exec "${envs[@]}" backend node backend/dist/cli/main.js "$@"
     ;;
 esac

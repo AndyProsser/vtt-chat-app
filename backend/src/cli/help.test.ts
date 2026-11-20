@@ -8,8 +8,10 @@ import {
   SERVER_SECTIONS,
   wrapWords,
 } from './help.js';
+import { createUi, plainUi, visibleLength } from './ui.js';
 
-const longestLine = (text: string): number => Math.max(...text.split('\n').map((l) => l.length));
+const longestLine = (text: string): number =>
+  Math.max(...text.split('\n').map((l) => visibleLength(l)));
 
 describe('helpWidth', () => {
   it('takes COLUMNS, then the terminal, then 100, kept between 60 and 120', () => {
@@ -40,11 +42,18 @@ describe('wrapWords', () => {
 
 describe('formatHelp', () => {
   it.each([60, 80, 100, 120])('never runs past %i columns', (width) => {
-    expect(longestLine(formatHelp(width, 'compose'))).toBeLessThanOrEqual(width);
+    expect(longestLine(formatHelp(plainUi(width), 'compose'))).toBeLessThanOrEqual(width);
+  });
+
+  it.each([60, 80, 120])('with colour, still never runs past %i columns', (width) => {
+    const ui = createUi({ isTTY: true, env: {}, width });
+    const text = formatHelp(ui, 'compose');
+    expect(text).toContain('\x1b[');
+    expect(longestLine(text)).toBeLessThanOrEqual(width);
   });
 
   it('lists every command, under its section title', () => {
-    const text = formatHelp(100, undefined);
+    const text = formatHelp(plainUi(100), undefined);
     for (const section of SERVER_SECTIONS) {
       expect(text).toContain(section.title);
       for (const command of section.commands) expect(text).toContain(command.usage);
@@ -52,25 +61,25 @@ describe('formatHelp', () => {
   });
 
   it('puts a long usage on its own line with the summary indented beneath', () => {
-    const lines = formatHelp(100, undefined).split('\n');
+    const lines = formatHelp(plainUi(100), undefined).split('\n');
     const at = lines.findIndex((l) => l.includes('updates publish <dir>'));
     expect(lines[at]?.trimEnd().endsWith('[--notes <text>]')).toBe(true);
     expect(lines[at + 1]).toMatch(/^ {40}publish a signed client release/);
   });
 
   it("adds the wrapper's machine commands only for the install that has them", () => {
-    expect(formatHelp(100, 'compose')).toContain('voice-address <ip|name|auto>');
-    expect(formatHelp(100, 'native')).toContain('journalctl -u vtt-backend -f');
-    expect(formatHelp(100, undefined)).not.toContain('This machine');
+    expect(formatHelp(plainUi(100), 'compose')).toContain('voice-address <ip|name|auto>');
+    expect(formatHelp(plainUi(100), 'native')).toContain('journalctl -u vtt-backend -f');
+    expect(formatHelp(plainUi(100), undefined)).not.toContain('This machine');
   });
 });
 
 describe('formatGroupHelp', () => {
   it('shows one group, and nothing for a group that does not exist', () => {
-    const text = formatGroupHelp('campaign', 100) ?? '';
+    const text = formatGroupHelp('campaign', plainUi(100)) ?? '';
     expect(text).toContain('campaign export <id> <file> [--accept-loss]');
     expect(text).not.toContain('user list');
-    expect(formatGroupHelp('nope', 100)).toBeUndefined();
+    expect(formatGroupHelp('nope', plainUi(100))).toBeUndefined();
   });
 });
 

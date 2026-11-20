@@ -220,7 +220,7 @@ out** and, because Postgres keeps the password it first started with, also means
 Check it worked:
 
 ```bash
-./vtt-admin status          # accounts, signups, database, Valkey and LiveKit should all say ok
+./vtt-admin status          # every service should say ok
 ```
 
 (`./vtt-admin` runs the CLI inside the `backend` container of the Compose project named in `.env` or the current
@@ -504,11 +504,11 @@ Runtime settings (no restart) live in the database: `./vtt-admin settings show`.
 
 _The operator's console: real `vtt-admin` output from a test server (listings cut to their last lines)._
 
-**The admin command** (`./vtt-admin` in `infra/compose`; natively `node backend/dist/cli/main.js`):
+**The admin command** (`./vtt-admin` in `infra/compose`; natively `node backend/dist/cli/main.js`). On a terminal it draws in colour with status marks and usage bars; add `--plain` anywhere (or pipe it, or set `VTT_ADMIN_PLAIN=1`) for plain ASCII with the same layout, and `NO_COLOR=1` keeps the layout without colour:
 
 | Command                                                                            | Use                                                                                                                                                                                                                                                                                                                                                  |
 | ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `status`                                                                           | Is everything up? Exits 1 if not (good for monitoring)                                                                                                                                                                                                                                                                                               |
+| `status`                                                                           | Is everything up? Each service, what the instance is doing (sign-ups waiting, a live recording, AI jobs, app updates) and the machine's CPU, memory and disks. Exits 1 if a service is down (good for monitoring); a full disk or a failed job is a warning, not a failure                                                                           |
 | `settings show` / `keys` / `set <key> <value>`                                     | Campaign creation, offline limit, invite expiry, AI backends                                                                                                                                                                                                                                                                                         |
 | `user list`, `user admin <email> grant\|revoke`                                    | See accounts; make or remove an Admin                                                                                                                                                                                                                                                                                                                |
 | `user code <email> [signin\|reset]`                                                | One-time code for someone locked out                                                                                                                                                                                                                                                                                                                 |

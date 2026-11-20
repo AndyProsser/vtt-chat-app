@@ -30,6 +30,9 @@ import { migrate } from '../lib/store/migrate.js';
 import { createPool, PostgresStore } from '../lib/store/postgresStore.js';
 import { runAdmin, type Probe } from './admin.js';
 import { adminHost, helpWidth } from './help.js';
+import { createUi } from './ui.js';
+import { readMachine } from '../lib/status/machine.js';
+import { serverVersion } from '../lib/version.js';
 import { syncFromConfig } from '../lib/updates/runSync.js';
 
 /**
@@ -171,7 +174,23 @@ async function main(): Promise<number> {
         return Number(rows[0]?.size ?? 0);
       },
       probes,
-      helpWidth: helpWidth(process.env.COLUMNS, process.stdout.columns),
+      ui: createUi({
+        isTTY: process.stdout.isTTY,
+        env: process.env,
+        width: helpWidth(process.env.COLUMNS, process.stdout.columns),
+      }),
+      version: serverVersion(),
+      machine: async () => {
+        const places = [
+          { label: 'system', path: '/' },
+          ...(config.recordingsDir ? [{ label: 'recordings', path: config.recordingsDir }] : []),
+          ...(config.mediaDir ? [{ label: 'handouts', path: config.mediaDir }] : []),
+          ...(config.updatesDir ? [{ label: 'updates', path: config.updatesDir }] : []),
+        ];
+        const machine = await readMachine(places);
+        // Inside a container the hostname is the container's id; the wrapper passes the real one.
+        return { ...machine, hostname: process.env.VTT_HOST_NAME || machine.hostname };
+      },
       host: adminHost(process.env.VTT_ADMIN_HOST),
       out: (line) => console.log(line),
       err: (line) => console.error(line),

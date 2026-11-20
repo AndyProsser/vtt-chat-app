@@ -120,7 +120,10 @@ async function ok(method: string, route: string, token?: string, body?: unknown)
 
 /** Runs the Admin CLI. Its output can hold a sign-in code, so it is returned, never logged. */
 async function admin(...args: string[]): Promise<string> {
-  const { stdout } = await run(path.join(COMPOSE_DIR, 'vtt-admin'), args, { cwd: COMPOSE_DIR });
+  // --plain: stable text to parse, whatever the terminal.
+  const { stdout } = await run(path.join(COMPOSE_DIR, 'vtt-admin'), [...args, '--plain'], {
+    cwd: COMPOSE_DIR,
+  });
   return stdout;
 }
 
@@ -741,7 +744,7 @@ async function fallbackDrill(
 ): Promise<void> {
   const before = await admin('settings', 'show');
   const value = (key: string) =>
-    new RegExp(`^${key.replace(/\./g, '\\.')}\\s+(.*)$`, 'm').exec(before)?.[1]?.trim() ?? '';
+    new RegExp(`^\\s*${key.replace(/\./g, '\\.')}\\s+(.*)$`, 'm').exec(before)?.[1]?.trim() ?? '';
   const restore: [string, string][] = [
     ['ai.transcription.kind', value('ai.transcription.kind')],
     ['ai.transcription.url', value('ai.transcription.url').replace('(none)', 'none')],

@@ -1,4 +1,5 @@
 import { MAGIC_LINK_TTL_MINUTES, RESET_LINK_TTL_MINUTES } from '../consts/index.js';
+import type { Ui } from './ui.js';
 
 /**
  * `vtt-admin help`: every command, grouped, word-wrapped to the terminal.
@@ -32,7 +33,9 @@ export const SERVER_SECTIONS: HelpSection[] = [
     commands: [
       {
         usage: 'status',
-        summary: 'health of the database, Valkey and LiveKit, and pending sign-ups',
+        summary:
+          'health of each service; what the instance is doing (sign-ups, a live recording, AI jobs, ' +
+          'app updates); CPU, memory and disk use',
       },
       { usage: 'storage', summary: 'disk use: recordings, free space, database size' },
     ],
@@ -217,9 +220,7 @@ const NATIVE_SECTION: HelpSection = {
   ],
 };
 
-const HEADER =
-  'vtt-admin: system operations for this instance (gameplay is managed inside the app)';
-const FOOTER = 'vtt-admin <group> shows one group, e.g.  vtt-admin campaign';
+const HEADER = 'system operations (gameplay is managed inside the app)';
 
 const MIN_WIDTH = 60;
 const MAX_WIDTH = 120;
@@ -253,7 +254,8 @@ export function wrapWords(text: string, width: number): string[] {
   return lines;
 }
 
-function commandLines(command: HelpCommand, width: number): string[] {
+function commandLines(command: HelpCommand, ui: Ui): string[] {
+  const { width } = ui;
   const pad = ' '.repeat(INDENT);
   const summaryIndent = INDENT + USAGE_COLUMN + GAP;
   // Narrow terminals: the summary goes under the usage instead of beside it.
@@ -263,17 +265,18 @@ function commandLines(command: HelpCommand, width: number): string[] {
   const hang = ' '.repeat(indent);
   if (besideFits && command.usage.length <= USAGE_COLUMN) {
     const [first = '', ...more] = summary;
-    return [pad + command.usage.padEnd(USAGE_COLUMN + GAP) + first, ...more.map((l) => hang + l)];
+    const gap = ' '.repeat(USAGE_COLUMN + GAP - command.usage.length);
+    return [pad + ui.command(command.usage) + gap + first, ...more.map((l) => hang + l)];
   }
   // A usage too long for the line wraps between words, its later lines indented a little further.
-  const usage = wrapWords(command.usage, width - INDENT - 2).map((l, i) =>
-    i === 0 ? pad + l : pad + '  ' + l,
+  const usage = wrapWords(command.usage, width - INDENT - 2).map(
+    (l, i) => (i === 0 ? pad : pad + '  ') + ui.command(l),
   );
   return [...usage, ...summary.map((l) => hang + l)];
 }
 
-function sectionLines(section: HelpSection, width: number): string[] {
-  return [section.title, ...section.commands.flatMap((c) => commandLines(c, width))];
+function sectionLines(section: HelpSection, ui: Ui): string[] {
+  return [ui.section(section.title), ...section.commands.flatMap((c) => commandLines(c, ui))];
 }
 
 /** Every section this CLI is run with: the server's, then the machine's for the wrapper that ran it. */
@@ -284,15 +287,20 @@ export function helpSections(host: AdminHost): HelpSection[] {
 }
 
 /** The full help. */
-export function formatHelp(width: number, host: AdminHost): string {
-  const body = helpSections(host).map((s) => sectionLines(s, width).join('\n'));
-  return [wrapWords(HEADER, width).join('\n'), ...body, FOOTER].join('\n\n');
+export function formatHelp(ui: Ui, host: AdminHost): string {
+  const body = helpSections(host).map((s) => sectionLines(s, ui).join('\n'));
+  // Two short lines, so they never need wrapping (the narrowest width is 60).
+  const footer = [
+    `${ui.command('vtt-admin <group>')} shows one group, e.g. ${ui.command('vtt-admin campaign')}`,
+    `${ui.command('--plain')} anywhere: no colour or graphics`,
+  ].join('\n');
+  return [ui.title('vtt-admin', HEADER), ...body, footer].join('\n\n');
 }
 
 /** One group's commands, for `vtt-admin <group>` without a command; undefined for an unknown group. */
-export function formatGroupHelp(group: string, width: number): string | undefined {
+export function formatGroupHelp(group: string, ui: Ui): string | undefined {
   const section = SERVER_SECTIONS.find((s) => s.group === group);
-  return section ? sectionLines(section, width).join('\n') : undefined;
+  return section ? sectionLines(section, ui).join('\n') : undefined;
 }
 
 /** Reads `VTT_ADMIN_HOST`; anything else (or unset) shows no machine section. */

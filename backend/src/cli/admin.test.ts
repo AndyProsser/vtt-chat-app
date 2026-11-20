@@ -11,6 +11,8 @@ import { hashSecret, normaliseShortCode } from '../lib/auth/crypto.js';
 import { SignupService } from '../lib/auth/signupService.js';
 import { MemoryStore } from '../lib/store/memoryStore.js';
 import { runAdmin, type Probe } from './admin.js';
+import { createUi } from './ui.js';
+import type { MachineInfo } from '../lib/status/machine.js';
 
 let store: MemoryStore;
 let accounts: AccountService;
@@ -172,8 +174,10 @@ describe('users', () => {
     await register('alice');
     await register('bob');
     await run('user list');
-    expect(out[0]).toMatch(/^admin\s+alice@example\.com/);
-    expect(out[1]).toMatch(/^user\s+bob@example\.com/);
+    const text = out.join('\n');
+    expect(text).toMatch(/role\s+email\s+name/);
+    expect(text).toMatch(/^ {2}admin\s+alice@example\.com/m);
+    expect(text).toMatch(/^ {2}user\s+bob@example\.com/m);
   });
 
   it('grants and revokes Admin', async () => {
@@ -282,7 +286,7 @@ describe('status', () => {
   it('reports every probe and exits 0 when all answer', async () => {
     const probes: Probe[] = [{ name: 'database', run: async () => 'reachable' }];
     expect(await run('status', probes)).toBe(0);
-    expect(out.join('\n')).toContain('ok    database');
+    expect(out.join('\n')).toMatch(/ok\s+database\s+reachable/);
   });
 
   it('shows a failing probe and exits 1, without hiding the others', async () => {
@@ -297,9 +301,60 @@ describe('status', () => {
     ];
     expect(await run('status', probes)).toBe(1);
     const text = out.join('\n');
-    expect(text).toContain('FAIL  valkey');
+    expect(text).toMatch(/FAIL\s+valkey/);
     expect(text).toContain('connection refused');
-    expect(text).toContain('ok    livekit');
+    expect(text).toMatch(/ok\s+livekit/);
+  });
+});
+
+describe('status: the instance and the machine', () => {
+  const machine: MachineInfo = {
+    hostname: 'vtt-apps',
+    os: 'Linux 6.8.0',
+    uptimeSeconds: 3 * 86_400 + 4 * 3600,
+    cpu: { cores: 4, model: 'Test CPU', busy: 0.25, load: [0.5, 0.4, 0.3] },
+    memory: { totalBytes: 8 * 2 ** 30, usedBytes: 7.6 * 2 ** 30, limited: false },
+    disks: [{ label: 'system, recordings', path: '/', use: { totalBytes: 100, freeBytes: 5 } }],
+  };
+
+  it('titles the screen with version, host and uptime, and shows CPU, memory and disks as bars', async () => {
+    expect(await run('status', [], { machine: async () => machine, version: '0.6.1' })).toBe(0);
+    const text = out.join('\n');
+    expect(text).toContain('VTT Chat - status  v0.6.1  vtt-apps  up 3d 4h');
+    expect(text).toMatch(/ok\s+cpu\s+\[#{5}\.{15}\]\s+25%\s+4 cores, load 0\.50 0\.40 0\.30/);
+    // 95 % memory and a nearly full disk are warnings, not failures.
+    expect(text).toMatch(/WARN\s+memory\s+\[#{19}\.\]\s+95%/);
+    expect(text).toMatch(/WARN\s+disk \(system, recordings\)\s+\[#{19}\.\]\s+95%/);
+  });
+
+  it('shows a live recording with its campaign, and failed jobs with the next command', async () => {
+    await records.putRecording({
+      id: 'r1',
+      campaignId: 'c1',
+      startedAt: 1_000 - 90 * 60_000,
+      stoppedAt: null,
+      status: 'recording',
+    });
+    const job = await jobs.enqueue({ kind: 'k', maxAttempts: 1 }, 1);
+    await jobs.claim(1, 60_000);
+    await jobs.fail(job.id, 'boom', 1, 1);
+    await run('status');
+    const text = out.join('\n');
+    expect(text).toMatch(/ok\s+recording\s+\* live in c1 for 1h 30m/);
+    expect(text).toMatch(
+      /WARN\s+AI jobs\s+0 queued, 0 running, 1 failed\s+see: vtt-admin jobs list failed/,
+    );
+  });
+
+  it('draws colour and graphics on a terminal, and none with --plain', async () => {
+    const ui = createUi({ isTTY: true, env: {}, width: 100 });
+    await run('status', [{ name: 'database', run: async () => 'reachable' }], { ui });
+    expect(out.join('\n')).toContain('\x1b[');
+    expect(out.join('\n')).toContain('✔ ok');
+    out.length = 0;
+    await run('status --plain', [{ name: 'database', run: async () => 'reachable' }], { ui });
+    expect(out.join('\n')).not.toContain('\x1b[');
+    expect(out.join('\n')).toMatch(/ok\s+database\s+reachable/);
   });
 });
 
@@ -319,7 +374,7 @@ describe('jobs and recordings', () => {
     expect(out.join('\n')).toContain('process-recording');
     out.length = 0;
     await run('jobs list failed');
-    expect(out).toEqual(['no jobs']);
+    expect(out.join('\n')).toContain('no jobs');
     expect(await run('jobs list sideways')).toBe(1);
   });
 
@@ -344,7 +399,7 @@ describe('jobs and recordings', () => {
   it('lists recordings with their status and track count', async () => {
     await rec('r1');
     await run('recording list');
-    expect(out.join('\n')).toMatch(/r1\s+stopped\s+2023-11-14 \d\d:\d\d\s+0 track\(s\)/);
+    expect(out.join('\n')).toMatch(/r1\s+stopped\s+2023-11-14 \d\d:\d\d\s+.*0 tracks/);
   });
 
   it('reprocess clears summaries only, by default, and queues one job', async () => {
@@ -388,7 +443,7 @@ describe('jobs and recordings', () => {
       transcribedAt: 5,
     });
     await run('recording list');
-    expect(out.join('\n')).toContain('1 track(s)  audio kept');
+    expect(out.join('\n')).toMatch(/1 track\s+audio kept/);
     await records.markTrackPurged('t', 9);
     out.length = 0;
     await run('recording list');
@@ -512,8 +567,8 @@ describe('updates', () => {
     expect(out.join('\n')).toContain('dev build');
     out.length = 0;
     await run('updates status');
-    expect(out.join('\n')).toMatch(/releases: offering 0\.3\.0/);
-    expect(out.join('\n')).toMatch(/dev builds: offering 0\.4\.0-dev\.1/);
+    expect(out.join('\n')).toMatch(/releases\s+offering 0\.3\.0/);
+    expect(out.join('\n')).toMatch(/dev builds\s+offering 0\.4\.0-dev\.1/);
   });
 
   it('explains what is missing instead of guessing', async () => {
@@ -535,12 +590,12 @@ describe('storage', () => {
     expect(await run('storage')).toBe(0);
     const text = out.join('\n');
     expect(text).toMatch(/recordings\s+2\.0 KB/);
-    expect(text).toMatch(/free on that disk/);
+    expect(text).toMatch(/that disk\s+\[[#.]+\]\s+\d+% +[\d.]+ \w+ free of/);
     expect(text).toMatch(/database\s+4\.8 MB/);
   });
   it('says plainly when recordings are not kept on this server', async () => {
     expect(await run('storage')).toBe(0);
-    expect(out.join('\n')).toContain('recordings are not kept on this server');
+    expect(out.join('\n')).toMatch(/recordings\s+not kept on this server/);
   });
 });
 
@@ -595,15 +650,15 @@ describe('signup requests', () => {
     await ask('Zed@Example.com', 'Zed', 'friend of Sam');
     out.length = 0;
     expect(await run('signup list')).toBe(0);
-    expect(out[0]).toContain('Zed');
-    expect(out[0]).toContain('<zed@example.com>');
-    expect(out[0]).toContain('friend of Sam');
+    const row = out.find((l) => l.includes('Zed')) ?? '';
+    expect(row).toContain('<zed@example.com>');
+    expect(row).toContain('friend of Sam');
     out.length = 0;
     await run('status');
-    expect(out.join('\n')).toContain('1 pending sign-up request(s)');
+    expect(out.join('\n')).toMatch(/WARN\s+sign-ups\s+1 request waiting/);
     out.length = 0;
     await run('signup list approved');
-    expect(out).toEqual(['no approved sign-up requests']);
+    expect(out.join('\n')).toContain('no approved sign-up requests');
     expect(await run('signup list sideways')).toBe(1);
   });
 
@@ -678,9 +733,8 @@ describe('campaigns', () => {
     await setup();
     await rec('r1');
     expect(await run('campaign list')).toBe(0);
-    expect(out.join('\n')).toMatch(
-      /camp-1 {2}Sunken Temple {2}\(DM dana, 2 member\(s\), 1 recording\(s\)\)/,
-    );
+    expect(out.join('\n')).toMatch(/id\s+name\s+DM\s+members\s+recordings/);
+    expect(out.join('\n')).toMatch(/camp-1\s+Sunken Temple\s+dana\s+2\s+1$/m);
   });
 
   it('shows what would go and deletes nothing without --yes', async () => {

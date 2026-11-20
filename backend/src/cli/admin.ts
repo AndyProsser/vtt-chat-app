@@ -30,7 +30,9 @@ import type { Store } from '../lib/store/store.js';
 import { publishUpdates } from '../lib/updates/publish.js';
 import { mirrorUsage, type SyncResult } from '../lib/updates/sync.js';
 import type { CampaignCreation, InstanceSettings, User } from '../types/index.js';
-import { formatGroupHelp, formatHelp, type AdminHost } from './help.js';
+import { formatGroupHelp, formatHelp, wrapWords, type AdminHost } from './help.js';
+import { duration, plainUi, plural, stamp, type BadgeKind, type Ui } from './ui.js';
+import type { MachineInfo } from '../lib/status/machine.js';
 
 /** One line of `status`: a service, whether it answered, and a short detail. */
 export interface Probe {
@@ -39,8 +41,12 @@ export interface Probe {
 }
 
 export interface AdminDeps {
-  /** Columns to wrap `help` to (see help.ts `helpWidth`); default 100. */
-  helpWidth?: number;
+  /** How output is drawn (colour, graphics, width); plain when absent, and always with `--plain`. */
+  ui?: Ui;
+  /** This server's version, for the `status` title. */
+  version?: string;
+  /** CPU, memory, load and disks, for `status`. Injected so tests need no real machine. */
+  machine?: () => Promise<MachineInfo>;
   /** Which wrapper ran the CLI, for the help's "this machine" section (`VTT_ADMIN_HOST`). */
   host?: AdminHost;
   store: Store;
@@ -81,6 +87,9 @@ export interface AdminDeps {
   out: (line: string) => void;
   err: (line: string) => void;
 }
+
+/** What every command works with: the dependencies, and how to draw. */
+type Ctx = AdminDeps & { ui: Ui };
 
 const SIMPLE_SETTINGS = {
   'campaign-creation': 'closed | open  (who may create campaigns)',
@@ -138,33 +147,62 @@ export function applySetting(
   }
 }
 
-function settingsLines(s: InstanceSettings): string[] {
-  const dash = (v: string | null): string => v ?? '(none)';
+/** Which section of `settings show` / `settings keys` a key belongs to, by its prefix. */
+const SETTING_SECTIONS: [title: string, matches: (key: string) => boolean][] = [
+  ['General', (k) => !k.startsWith('ai.')],
+  ['Transcription (Whisper)', (k) => k.startsWith('ai.transcription.')],
+  ['Summary model (LLM)', (k) => k.startsWith('ai.llm.')],
+  ['Fallback to local AI', (k) => k.startsWith('ai.fallback.')],
+  ['Storyteller', (k) => k.startsWith('ai.tale.') || k.startsWith('ai.storyteller')],
+];
+
+/** Every setting and its value, in `settings show` order. */
+function settingValues(s: InstanceSettings): [string, string | null][] {
   return [
-    `campaign-creation          ${s.campaignCreation}`,
-    `signup.requests            ${s.signupRequests}`,
-    `campaign-directory         ${s.campaignDirectory}`,
-    `audio-purge-next-session   ${s.audioPurgeOnNextSession}`,
-    `offline-limit-days         ${s.offlineLimitDays}`,
-    `invite-expiry-days         ${s.inviteExpiryDays}`,
-    `consent-version            ${s.consentVersion}`,
-    `ai.transcription.kind      ${s.ai.transcription.kind}`,
-    `ai.transcription.url       ${dash(s.ai.transcription.url)}`,
-    `ai.transcription.model     ${dash(s.ai.transcription.model)}`,
-    `ai.transcription.language  ${s.ai.transcription.language}`,
-    `ai.llm.kind                ${s.ai.llm.kind}`,
-    `ai.llm.url                 ${dash(s.ai.llm.url)}`,
-    `ai.llm.model               ${dash(s.ai.llm.model)}`,
-    `ai.fallback.enabled        ${s.ai.fallback.enabled}`,
-    `ai.fallback.after-seconds  ${s.ai.fallback.afterSeconds}`,
-    `ai.fallback.retry-seconds  ${s.ai.fallback.retrySeconds}`,
-    `ai.tale.length             ${s.ai.tale.length}`,
-    `ai.tale.content            ${s.ai.tale.content}`,
-    ...BARD_IDS.map(
-      (id) =>
-        `ai.storyteller.${id}`.padEnd(27) + (s.ai.tale.storytellersOff.includes(id) ? 'off' : 'on'),
-    ),
+    ['campaign-creation', s.campaignCreation],
+    ['signup.requests', s.signupRequests],
+    ['campaign-directory', s.campaignDirectory],
+    ['audio-purge-next-session', s.audioPurgeOnNextSession],
+    ['offline-limit-days', String(s.offlineLimitDays)],
+    ['invite-expiry-days', String(s.inviteExpiryDays)],
+    ['consent-version', s.consentVersion],
+    ['ai.transcription.kind', s.ai.transcription.kind],
+    ['ai.transcription.url', s.ai.transcription.url],
+    ['ai.transcription.model', s.ai.transcription.model],
+    ['ai.transcription.language', s.ai.transcription.language],
+    ['ai.llm.kind', s.ai.llm.kind],
+    ['ai.llm.url', s.ai.llm.url],
+    ['ai.llm.model', s.ai.llm.model],
+    ['ai.fallback.enabled', String(s.ai.fallback.enabled)],
+    ['ai.fallback.after-seconds', String(s.ai.fallback.afterSeconds)],
+    ['ai.fallback.retry-seconds', String(s.ai.fallback.retrySeconds)],
+    ['ai.tale.length', s.ai.tale.length],
+    ['ai.tale.content', s.ai.tale.content],
+    ...BARD_IDS.map((id): [string, string] => [
+      `ai.storyteller.${id}`,
+      s.ai.tale.storytellersOff.includes(id) ? 'off' : 'on',
+    ]),
   ];
+}
+
+/** A value, coloured by what it means: on and off, unset, or just a value. */
+function paintValue(ui: Ui, value: string | null): string {
+  if (value === null) return ui.dim('(none)');
+  if (['on', 'open', 'true'].includes(value)) return ui.good(value);
+  if (['off', 'closed', 'false'].includes(value)) return ui.warn(value);
+  return ui.accent(value);
+}
+
+/** Rows under section headings, aligned as one table so every section lines up. */
+function sectioned(ui: Ui, rows: [key: string, ...cells: string[]][]): string[] {
+  const lines = ui.table(rows.map(([key, ...cells]) => [ui.bold(key), ...cells]));
+  const out: string[] = [];
+  for (const [title, matches] of SETTING_SECTIONS) {
+    const mine = rows.flatMap((row, i) => (matches(row[0]) ? [lines[i] ?? ''] : []));
+    if (mine.length === 0) continue;
+    out.push('', ui.section(title), ...mine);
+  }
+  return out;
 }
 
 /** `--name Some Words --accept-consent --admin`: the name runs until the next flag. */
@@ -191,7 +229,7 @@ function parseCreateFlags(flags: string[]): {
   return { name: words.join(' ').trim(), acceptConsent, admin };
 }
 
-async function findUser(deps: AdminDeps, email: string | undefined): Promise<User> {
+async function findUser(deps: Ctx, email: string | undefined): Promise<User> {
   if (!email) throw new SettingError('an email address is required');
   const user = await deps.store.getUserByEmail(email.trim().toLowerCase());
   if (!user) throw new SettingError(`no account with the address ${email}`);
@@ -202,18 +240,37 @@ async function findUser(deps: AdminDeps, email: string | undefined): Promise<Use
  * A group run with no command, or one it does not have: that group's commands, and exit 2. Without a
  * command it goes to stdout (the operator asked what the group does), with a wrong one to stderr.
  */
-function misuse(deps: AdminDeps, group: string, command: string | undefined): void {
-  const groupHelp = formatGroupHelp(group, deps.helpWidth ?? 100) ?? '';
+function misuse(deps: Ctx, group: string, command: string | undefined): void {
+  const groupHelp = formatGroupHelp(group, deps.ui) ?? '';
   if (command === undefined) deps.out(groupHelp);
-  else deps.err(`unknown ${group} command "${command}"\n\n${groupHelp}`);
+  else deps.err(`${deps.ui.error(`unknown ${group} command "${command}"`)}\n\n${groupHelp}`);
+}
+
+/** A one-time code, `ABCD-EFGH`, large enough to read out. */
+function showCode(ui: Ui, token: string): string {
+  const code = `${token.slice(0, 4)}-${token.slice(4)}`;
+  return ui.unicode ? `\n    ${ui.bold(ui.accent(code))}\n` : code;
+}
+
+/** A job's or recording's state, coloured: done is green, running cyan, waiting amber, failed red. */
+function paintState(ui: Ui, state: string): string {
+  if (['done', 'processed'].includes(state)) return ui.good(state);
+  if (['running', 'processing'].includes(state)) return ui.accent(state);
+  if (state === 'recording') return ui.bold(ui.bad(state));
+  if (state === 'failed') return ui.bold(ui.bad(state));
+  return ui.warn(state);
 }
 
 /** Runs one admin command. Returns the process exit code: 0 ok, 1 failed, 2 misused. */
-export async function runAdmin(argv: string[], deps: AdminDeps): Promise<number> {
+export async function runAdmin(args: string[], options: AdminDeps): Promise<number> {
+  // `--plain` may come anywhere: no colour, ASCII only, the same layout (for scripts and old terminals).
+  const plain = args.includes('--plain');
+  const argv = args.filter((a) => a !== '--plain');
+  const width = options.ui?.width ?? 100;
+  const deps: Ctx = { ...options, ui: plain || !options.ui ? plainUi(width) : options.ui };
   const [group, command, ...rest] = argv;
-  const width = deps.helpWidth ?? 100;
   if (group !== undefined && (command === 'help' || command === '--help' || command === '-h')) {
-    const groupHelp = formatGroupHelp(group, width);
+    const groupHelp = formatGroupHelp(group, deps.ui);
     if (groupHelp !== undefined) {
       deps.out(groupHelp);
       return 0;
@@ -243,62 +300,226 @@ export async function runAdmin(argv: string[], deps: AdminDeps): Promise<number>
       case 'help':
       case '--help':
       case '-h':
-        deps.out(formatHelp(width, deps.host));
+        deps.out(formatHelp(deps.ui, deps.host));
         return group === undefined ? 2 : 0;
       default:
-        deps.err(`unknown command "${group}"\n\n${formatHelp(width, deps.host)}`);
+        deps.err(
+          `${deps.ui.error(`unknown command "${group}"`)}\n\n${formatHelp(deps.ui, deps.host)}`,
+        );
         return 2;
     }
   } catch (error) {
     if (error instanceof SettingError || error instanceof ArchiveError) {
-      deps.err(`error: ${error.message}`);
+      deps.err(deps.ui.error(error.message));
       return 1;
     }
     throw error;
   }
 }
 
-async function status(deps: AdminDeps): Promise<number> {
+type Row = [BadgeKind, string, string];
+
+async function status(deps: Ctx): Promise<number> {
+  const { ui } = deps;
+  const now = (deps.now ?? Date.now)();
+  const machine = deps.machine ? await deps.machine().catch(() => undefined) : undefined;
+  const detail = [
+    deps.version ? `v${deps.version}` : undefined,
+    machine?.hostname,
+    machine ? `up ${duration(machine.uptimeSeconds)}` : undefined,
+  ]
+    .filter(Boolean)
+    .join('  ');
+  deps.out(ui.title('status', detail));
+
+  // Services: a failure here is what makes `status` exit 1.
   let healthy = true;
-  const probes: Probe[] = [
-    { name: 'accounts', run: async () => `${await deps.store.countUsers()} account(s)` },
-    {
-      name: 'signups',
-      run: async () => {
-        const n = (await deps.store.listSignupRequests('pending')).length;
-        return `${n} pending sign-up request(s)${n > 0 ? ' (see: signup list)' : ''}`;
-      },
-    },
-    ...(deps.probes ?? []),
-  ];
-  for (const probe of probes) {
+  const services: Row[] = [];
+  for (const probe of deps.probes ?? []) {
     try {
-      deps.out(`ok    ${probe.name.padEnd(10)} ${await probe.run()}`);
+      services.push(['ok', probe.name, await probe.run()]);
     } catch (error) {
       healthy = false;
-      deps.out(
-        `FAIL  ${probe.name.padEnd(10)} ${error instanceof Error ? error.message : String(error)}`,
-      );
+      services.push(['fail', probe.name, error instanceof Error ? error.message : String(error)]);
     }
   }
+  const sections: [string, Row[]][] = [
+    ['Services', services],
+    ['This instance', await instanceRows(deps, now)],
+    ['This machine', machine ? machineRows(ui, machine) : []],
+  ];
+  // One table for every section, so the columns line up down the whole screen.
+  const all = sections.flatMap(([, rows]) => rows);
+  const lines = ui.table(all.map(([kind, name, value]) => [ui.badge(kind), ui.bold(name), value]));
+  let at = 0;
+  for (const [title, rows] of sections) {
+    if (rows.length === 0) continue;
+    deps.out('');
+    deps.out(ui.section(title));
+    lines.slice(at, at + rows.length).forEach(deps.out);
+    at += rows.length;
+  }
+  deps.out('');
   return healthy ? 0 : 1;
 }
 
-async function settings(
-  deps: AdminDeps,
-  command: string | undefined,
-  rest: string[],
-): Promise<number> {
+/** Accounts, sign-ups, campaigns, recordings, the job queue and updates: what the instance is doing. */
+async function instanceRows(deps: Ctx, now: number): Promise<Row[]> {
+  const { ui } = deps;
+  const rows: Row[] = [];
+  const pending = (await deps.store.listSignupRequests('pending')).length;
+  rows.push(['ok', 'accounts', plural(await deps.store.countUsers(), 'account')]);
+  rows.push(
+    pending > 0
+      ? [
+          'warn',
+          'sign-ups',
+          `${plural(pending, 'request')} waiting  ${ui.hint('vtt-admin signup list')}`,
+        ]
+      : ['ok', 'sign-ups', 'none waiting'],
+  );
+  const campaigns = await deps.store.listCampaignSummaries();
+  rows.push(['ok', 'campaigns', plural(campaigns.length, 'campaign')]);
+
+  const recent = await deps.records.listRecordings(50);
+  const live = recent.filter((r) => r.status === 'recording');
+  const names = new Map(campaigns.map((c) => [c.campaign.id, c.campaign.name]));
+  rows.push(
+    live.length > 0
+      ? [
+          'ok',
+          'recording',
+          live
+            .map(
+              (r) =>
+                `${ui.bad(ui.unicode ? '●' : '*')} ${ui.bold('live')} in ${ui.accent(names.get(r.campaignId) ?? r.campaignId)} for ${duration((now - r.startedAt) / 1000)}`,
+            )
+            .join('; '),
+        ]
+      : ['off', 'recording', ui.dim('nothing recording right now')],
+  );
+
+  const jobs = await deps.jobs.list(['queued', 'running', 'failed']);
+  const count = (state: string): number => jobs.filter((j) => j.state === state).length;
+  const failed = count('failed');
+  const queue = `${count('queued')} queued, ${count('running')} running, ${failed} failed`;
+  rows.push(
+    failed > 0
+      ? ['warn', 'AI jobs', `${queue}  ${ui.hint('vtt-admin jobs list failed')}`]
+      : ['ok', 'AI jobs', queue],
+  );
+
+  if (deps.updatesDir) {
+    const feeds = await readFeeds(deps.updatesDir);
+    const release = feeds.find((f) => f.channel === 'releases');
+    const dev = feeds.find((f) => f.channel === 'dev builds');
+    rows.push(
+      release || dev
+        ? [
+            'ok',
+            'app updates',
+            [
+              release && `release ${ui.accent(release.version)}`,
+              dev && `dev ${ui.accent(dev.version)}`,
+            ]
+              .filter(Boolean)
+              .join(', '),
+          ]
+        : ['warn', 'app updates', `none offered  ${ui.hint('vtt-admin updates sync')}`],
+    );
+  }
+  return rows;
+}
+
+function machineRows(ui: Ui, m: MachineInfo): Row[] {
+  const load = m.cpu.load.map((l) => l.toFixed(2)).join(' ');
+  const rows: Row[] = [
+    [
+      m.cpu.load[1] > m.cpu.cores ? 'warn' : 'ok',
+      'cpu',
+      `${ui.bar(m.cpu.busy)}  ${plural(m.cpu.cores, 'core')}, load ${load}`,
+    ],
+  ];
+  const memShare = m.memory.totalBytes > 0 ? m.memory.usedBytes / m.memory.totalBytes : 0;
+  rows.push([
+    memShare >= 0.9 ? 'warn' : 'ok',
+    'memory',
+    `${ui.bar(memShare)}  ${formatBytes(m.memory.usedBytes)} of ${formatBytes(m.memory.totalBytes)}${m.memory.limited ? ' (container limit)' : ''}`,
+  ]);
+  for (const disk of m.disks) {
+    const used = disk.use.totalBytes > 0 ? 1 - disk.use.freeBytes / disk.use.totalBytes : 0;
+    const low = isLow(disk.use);
+    rows.push([
+      low ? 'warn' : 'ok',
+      `disk (${disk.label})`,
+      `${ui.bar(used)}  ${formatBytes(disk.use.freeBytes)} free of ${formatBytes(disk.use.totalBytes)}` +
+        (low && disk.label.includes('recordings')
+          ? `  ${ui.hint('vtt-admin recording purge --older-than 30')}`
+          : ''),
+    ]);
+  }
+  rows.push(['ok', 'system', ui.dim(`${m.os}, ${m.cpu.model}`)]);
+  return rows;
+}
+
+/** The release and dev feeds this server offers (`latest.json` in UPDATES_DIR and its `dev/`). */
+async function readFeeds(
+  dir: string,
+): Promise<
+  { channel: 'releases' | 'dev builds'; version: string; date: string; platforms: string[] }[]
+> {
+  const feeds = [
+    ['releases', path.join(dir, 'latest.json')],
+    ['dev builds', path.join(dir, 'dev', 'latest.json')],
+  ] as const;
+  const found = [];
+  for (const [channel, file] of feeds) {
+    try {
+      const latest = JSON.parse(await readFile(file, 'utf8')) as {
+        version: string;
+        pub_date: string;
+        platforms: Record<string, unknown>;
+      };
+      found.push({
+        channel,
+        version: latest.version,
+        date: latest.pub_date,
+        platforms: Object.keys(latest.platforms),
+      });
+    } catch {
+      // this channel has nothing yet
+    }
+  }
+  return found;
+}
+
+async function settings(deps: Ctx, command: string | undefined, rest: string[]): Promise<number> {
   const current = await deps.store.getSettings();
   switch (command) {
     case 'show':
-      settingsLines(current).forEach(deps.out);
+      deps.out(deps.ui.title('settings'));
+      sectioned(
+        deps.ui,
+        settingValues(current).map(([key, value]) => [key, paintValue(deps.ui, value)]),
+      ).forEach(deps.out);
+      deps.out('');
+      deps.out(
+        `${deps.ui.dim('change one:')} ${deps.ui.command('vtt-admin settings set <key> <value>')}`,
+      );
       return 0;
-    case 'keys':
-      for (const [key, what] of Object.entries({ ...SIMPLE_SETTINGS, ...AI_SETTING_KEYS })) {
-        deps.out(`${key.padEnd(27)}${what}`);
-      }
+    case 'keys': {
+      deps.out(deps.ui.title('settings you can change'));
+      const keys = Object.entries({ ...SIMPLE_SETTINGS, ...AI_SETTING_KEYS });
+      // The description wraps beside its key, so a long one does not run off the screen.
+      const keyWidth = Math.max(...keys.map(([k]) => k.length));
+      const room = Math.max(30, deps.ui.width - keyWidth - 4);
+      const rows = keys.map(([key, what]): [string, string] => [
+        key,
+        wrapWords(what, room).join(`\n${' '.repeat(keyWidth + 4)}`),
+      ]);
+      sectioned(deps.ui, rows).forEach(deps.out);
       return 0;
+    }
     case 'set': {
       const [key, ...valueParts] = rest;
       if (!key || valueParts.length === 0) {
@@ -310,9 +531,13 @@ async function settings(
       }
       const next = applySetting(current, key, valueParts.join(' '));
       await deps.store.putSettings(next);
-      deps.out(`set ${key}`);
+      deps.out(
+        deps.ui.done(
+          `set ${key} = ${paintValue(deps.ui, settingValues(next).find(([k]) => k === key)?.[1] ?? null)}`,
+        ),
+      );
       // Saved, but say so loudly if it leaves AI processing unusable (e.g. remote without a URL).
-      for (const problem of validateAiSettings(next.ai)) deps.out(`warning: ${problem}`);
+      for (const problem of validateAiSettings(next.ai)) deps.out(deps.ui.caution(problem));
       return 0;
     }
     default:
@@ -321,16 +546,23 @@ async function settings(
   }
 }
 
-async function users(
-  deps: AdminDeps,
-  command: string | undefined,
-  rest: string[],
-): Promise<number> {
+async function users(deps: Ctx, command: string | undefined, rest: string[]): Promise<number> {
   switch (command) {
     case 'list': {
-      for (const u of await deps.store.listUsers()) {
-        deps.out(`${u.isAdmin ? 'admin' : 'user '}  ${u.email.padEnd(32)} ${u.displayName}`);
-      }
+      const { ui } = deps;
+      const all = await deps.store.listUsers();
+      deps.out(ui.title('accounts', plural(all.length, 'account')));
+      deps.out('');
+      ui.table(
+        all.map((u) => [
+          u.isAdmin ? ui.bold(ui.accent('admin')) : ui.dim('user'),
+          u.email,
+          u.displayName,
+          u.passwordHash ? 'password' : ui.dim('code or link'),
+          ui.dim(stamp(u.createdAt).slice(0, 10)),
+        ]),
+        { header: ['role', 'email', 'name', 'signs in with', 'joined'] },
+      ).forEach(deps.out);
       return 0;
     }
     case 'admin': {
@@ -348,11 +580,11 @@ async function users(
         }
       }
       if (user.isAdmin === grant) {
-        deps.out(`${user.email} is already ${grant ? 'an Admin' : 'not an Admin'}`);
+        deps.out(deps.ui.done(`${user.email} is already ${grant ? 'an Admin' : 'not an Admin'}`));
         return 0;
       }
       await deps.store.putUser({ ...user, isAdmin: grant });
-      deps.out(`${user.email} is ${grant ? 'now an Admin' : 'no longer an Admin'}`);
+      deps.out(deps.ui.done(`${user.email} is ${grant ? 'now an Admin' : 'no longer an Admin'}`));
       return 0;
     }
     case 'code': {
@@ -366,9 +598,9 @@ async function users(
       if (!issued) throw new SettingError('could not issue a code');
       const minutes = Math.round((issued.expiresAt - Date.now()) / 60_000);
       deps.out(
-        `one-time ${purposeArg} code for ${user.email} (valid about ${minutes} min, works once):`,
+        `one-time ${purposeArg} code for ${deps.ui.accent(user.email)} (valid about ${minutes} min, works once):`,
       );
-      deps.out(`${issued.token.slice(0, 4)}-${issued.token.slice(4)}`);
+      deps.out(showCode(deps.ui, issued.token));
       return 0;
     }
     case 'create': {
@@ -401,15 +633,19 @@ async function users(
       }
       await deps.accounts.ensureStarterCampaign(user);
       deps.out(
-        `created ${user.email}${user.isAdmin ? ' (Admin)' : ''}; it has no password. ` +
-          `Hand over a sign-in code with: user code ${user.email}`,
+        deps.ui.done(
+          `created ${deps.ui.accent(user.email)}${user.isAdmin ? ' (Admin)' : ''}; it has no password.`,
+        ),
+      );
+      deps.out(
+        `Hand over a sign-in code with: ${deps.ui.command(`vtt-admin user code ${user.email}`)}`,
       );
       return 0;
     }
     case 'revoke-sessions': {
       const user = await findUser(deps, rest[0]);
       await deps.accounts.revokeAllSessions(user.id);
-      deps.out(`${user.email} is signed out everywhere`);
+      deps.out(deps.ui.done(`${user.email} is signed out everywhere`));
       return 0;
     }
     default:
@@ -421,7 +657,7 @@ async function users(
 const SIGNUP_STATES = ['pending', 'approved', 'rejected'] as const;
 
 async function signupRequests(
-  deps: AdminDeps,
+  deps: Ctx,
   command: string | undefined,
   rest: string[],
 ): Promise<number> {
@@ -439,12 +675,29 @@ async function signupRequests(
         throw new SettingError(`state must be one of ${SIGNUP_STATES.join(', ')}`);
       }
       const list = await deps.signups.list(state as (typeof SIGNUP_STATES)[number]);
-      for (const r of list) {
-        const when = new Date(r.createdAt).toISOString().slice(0, 16).replace('T', ' ');
-        const note = r.message ? `  "${r.message.replace(/\s+/g, ' ')}"` : '';
-        deps.out(`${r.id}  ${when}  ${r.displayName}  <${r.email}>${note}`);
+      const { ui } = deps;
+      deps.out(ui.title(`${state} sign-up requests`, plural(list.length, 'request')));
+      deps.out('');
+      if (list.length === 0) {
+        deps.out(ui.dim(`  no ${state} sign-up requests`));
+        return 0;
       }
-      if (list.length === 0) deps.out(`no ${state} sign-up requests`);
+      ui.table(
+        list.map((r) => [
+          ui.dim(r.id),
+          stamp(r.createdAt),
+          r.displayName,
+          `<${r.email}>`,
+          r.message ? ui.dim(`"${r.message.replace(/\s+/g, ' ')}"`) : '',
+        ]),
+        { header: ['id', 'asked (UTC)', 'name', 'email', 'message'] },
+      ).forEach(deps.out);
+      if (state === 'pending') {
+        deps.out('');
+        deps.out(
+          `  ${ui.hint('vtt-admin signup approve <id|email>')}  or  ${ui.command('reject')}`,
+        );
+      }
       return 0;
     }
     case 'approve': {
@@ -455,9 +708,9 @@ async function signupRequests(
       }
       const { request, token, expiresAt } = await asSettingError(deps.signups.approve(target));
       const minutes = Math.max(0, Math.round((expiresAt - Date.now()) / 60_000));
-      deps.out(`approved ${request.email}`);
+      deps.out(deps.ui.done(`approved ${deps.ui.accent(request.email)}`));
       deps.out(`sign-in code (valid about ${minutes} min, works once):`);
-      deps.out(`${token.slice(0, 4)}-${token.slice(4)}`);
+      deps.out(showCode(deps.ui, token));
       deps.out(
         'Hand it to them on a side channel (message, in person), not by replying to the request. ' +
           `They enter it under "I have a sign-in code" and accept the recording notice. Need a new one: user code ${request.email}`,
@@ -471,7 +724,7 @@ async function signupRequests(
         return 2;
       }
       const request = await asSettingError(deps.signups.reject(target));
-      deps.out(`rejected ${request.email}`);
+      deps.out(deps.ui.done(`rejected ${request.email}`));
       return 0;
     }
     default:
@@ -482,7 +735,7 @@ async function signupRequests(
 
 const JOB_STATES = ['queued', 'running', 'done', 'failed'] as const;
 
-async function jobs(deps: AdminDeps, command: string | undefined, rest: string[]): Promise<number> {
+async function jobs(deps: Ctx, command: string | undefined, rest: string[]): Promise<number> {
   const now = deps.now ?? Date.now;
   switch (command) {
     case 'list': {
@@ -491,13 +744,27 @@ async function jobs(deps: AdminDeps, command: string | undefined, rest: string[]
         throw new SettingError(`state must be one of ${JOB_STATES.join(', ')}`);
       }
       const list = await deps.jobs.list(state ? [state as (typeof JOB_STATES)[number]] : undefined);
-      for (const j of list) {
-        const error = j.lastError ? `  ${j.lastError.slice(0, 80)}` : '';
-        deps.out(
-          `${j.id}  ${j.state.padEnd(7)} ${j.kind}  attempt ${j.attempts}/${j.maxAttempts}${error}`,
-        );
+      const { ui } = deps;
+      deps.out(ui.title(`${state ?? 'all'} jobs`, plural(list.length, 'job')));
+      deps.out('');
+      if (list.length === 0) {
+        deps.out(ui.dim('  no jobs'));
+        return 0;
       }
-      if (list.length === 0) deps.out('no jobs');
+      ui.table(
+        list.map((j) => [
+          ui.dim(j.id),
+          paintState(ui, j.state),
+          j.kind,
+          `${j.attempts}/${j.maxAttempts}`,
+          j.lastError ? ui.bad(j.lastError.slice(0, 80)) : '',
+        ]),
+        { header: ['id', 'state', 'kind', 'tries', 'last error'] },
+      ).forEach(deps.out);
+      if (list.some((j) => j.state === 'failed')) {
+        deps.out('');
+        deps.out(`  ${ui.hint('vtt-admin jobs retry <job-id>')}`);
+      }
       return 0;
     }
     case 'retry': {
@@ -509,7 +776,7 @@ async function jobs(deps: AdminDeps, command: string | undefined, rest: string[]
       const job = await deps.jobs.retry(id, now());
       if (!job) throw new SettingError('no failed job with that id');
       if (job.recordingId) await deps.records.setRecordingStatus(job.recordingId, 'stopped');
-      deps.out(`job ${job.id} is queued again with a fresh set of attempts`);
+      deps.out(deps.ui.done(`job ${job.id} is queued again with a fresh set of attempts`));
       return 0;
     }
     default:
@@ -523,11 +790,7 @@ function flag(args: string[], name: string): string | undefined {
   return i >= 0 ? args[i + 1] : undefined;
 }
 
-async function updates(
-  deps: AdminDeps,
-  command: string | undefined,
-  rest: string[],
-): Promise<number> {
+async function updates(deps: Ctx, command: string | undefined, rest: string[]): Promise<number> {
   const dir = deps.updatesDir;
   switch (command) {
     case 'publish': {
@@ -545,7 +808,9 @@ async function updates(
       }
       if (!dir) {
         deps.err(
-          'error: UPDATES_DIR is not set; set it to the folder the backend serves at /updates',
+          deps.ui.error(
+            'UPDATES_DIR is not set; set it to the folder the backend serves at /updates',
+          ),
         );
         return 1;
       }
@@ -559,18 +824,22 @@ async function updates(
           ...(notes ? { notes } : {}),
         });
         deps.out(
-          `published ${version} (${result.channel === 'dev' ? 'dev build: only players who opted in to dev builds are offered it' : 'release: every player is offered it'}) for ${result.platforms.join(', ')} to ${dir}`,
+          deps.ui.done(
+            `published ${deps.ui.accent(version)} (${result.channel === 'dev' ? 'dev build: only players who opted in to dev builds are offered it' : 'release: every player is offered it'}) for ${result.platforms.join(', ')} to ${dir}`,
+          ),
         );
         return 0;
       } catch (error) {
-        deps.err(`error: ${error instanceof Error ? error.message : String(error)}`);
+        deps.err(deps.ui.error(error instanceof Error ? error.message : String(error)));
         return 1;
       }
     }
     case 'sync': {
       if (!deps.syncUpdates) {
         deps.err(
-          'error: update sync is off; set UPDATES_SOURCE=github (or mirror) and UPDATES_DIR',
+          deps.ui.error(
+            'update sync is off; set UPDATES_SOURCE=github (or mirror) and UPDATES_DIR',
+          ),
         );
         return 1;
       }
@@ -578,53 +847,55 @@ async function updates(
         const r = await deps.syncUpdates();
         if (!r) {
           deps.err(
-            'error: update sync is off; set UPDATES_SOURCE=github (or mirror) and UPDATES_DIR',
+            deps.ui.error(
+              'update sync is off; set UPDATES_SOURCE=github (or mirror) and UPDATES_DIR',
+            ),
           );
           return 1;
         }
-        deps.out(`offering ${r.release ?? 'no release'}${r.dev ? `, dev build ${r.dev}` : ''}`);
-        if (r.downloaded.length) deps.out(`downloaded: ${r.downloaded.join(', ')}`);
-        if (r.removed.length) deps.out(`removed old versions: ${r.removed.join(', ')}`);
-        for (const s of r.skipped) deps.out(`skipped ${s}`);
+        const { ui } = deps;
+        deps.out(
+          ui.done(
+            `offering ${r.release ? ui.accent(r.release) : 'no release'}${r.dev ? `, dev build ${ui.accent(r.dev)}` : ''}`,
+          ),
+        );
+        if (r.downloaded.length) deps.out(`  downloaded: ${r.downloaded.join(', ')}`);
+        if (r.removed.length) deps.out(`  removed old versions: ${ui.dim(r.removed.join(', '))}`);
+        for (const s of r.skipped) deps.out(ui.caution(`skipped ${s}`));
         return 0;
       } catch (error) {
-        deps.err(`error: ${error instanceof Error ? error.message : String(error)}`);
+        deps.err(deps.ui.error(error instanceof Error ? error.message : String(error)));
         return 1;
       }
     }
     case 'status': {
       if (!dir) {
-        deps.err('error: UPDATES_DIR is not set');
+        deps.err(deps.ui.error('UPDATES_DIR is not set'));
         return 1;
       }
-      deps.out(`source: ${deps.updatesSource ?? 'manual (vtt-admin updates publish)'}`);
+      const { ui } = deps;
+      deps.out(ui.title('app updates'));
+      deps.out('');
+      const rows: [string, string][] = [
+        ['source', ui.accent(deps.updatesSource ?? 'manual (vtt-admin updates publish)')],
+      ];
       if (deps.updatesSource === 'mirror') {
         const usage = await mirrorUsage(dir);
-        deps.out(
-          `mirror holds: ${usage.versions.join(', ') || 'nothing yet'} (${(usage.bytes / 1_048_576).toFixed(0)} MB)`,
-        );
+        rows.push([
+          'mirror holds',
+          `${usage.versions.join(', ') || 'nothing yet'} (${(usage.bytes / 1_048_576).toFixed(0)} MB)`,
+        ]);
       }
-      const feeds: [string, string][] = [
-        ['releases', path.join(dir, 'latest.json')],
-        ['dev builds', path.join(dir, 'dev', 'latest.json')],
-      ];
-      let any = false;
-      for (const [name, file] of feeds) {
-        try {
-          const latest = JSON.parse(await readFile(file, 'utf8')) as {
-            version: string;
-            pub_date: string;
-            platforms: Record<string, unknown>;
-          };
-          deps.out(
-            `${name}: offering ${latest.version} (${latest.pub_date}) for ${Object.keys(latest.platforms).join(', ')}`,
-          );
-          any = true;
-        } catch {
-          // this channel has nothing yet
-        }
+      const feeds = await readFeeds(dir);
+      for (const feed of feeds) {
+        rows.push([
+          feed.channel,
+          `offering ${ui.bold(ui.accent(feed.version))} ${ui.dim(`(${stamp(Date.parse(feed.date))} UTC)`)}`,
+        ]);
+        rows.push(['', ui.dim(feed.platforms.join(', '))]);
       }
-      if (!any) deps.out('no update published');
+      ui.pairs(rows).forEach(deps.out);
+      if (feeds.length === 0) deps.out(ui.caution('no update published'));
       return 0;
     }
     default:
@@ -633,16 +904,18 @@ async function updates(
   }
 }
 
-async function recordings(
-  deps: AdminDeps,
-  command: string | undefined,
-  rest: string[],
-): Promise<number> {
+async function recordings(deps: Ctx, command: string | undefined, rest: string[]): Promise<number> {
   switch (command) {
     case 'list': {
+      const { ui } = deps;
       const list = await deps.records.listRecordings(20);
+      const names = new Map(
+        (await deps.store.listCampaignSummaries()).map((c) => [c.campaign.id, c.campaign.name]),
+      );
+      deps.out(ui.title('recordings', `the newest ${list.length}`));
+      deps.out('');
+      const rows: string[][] = [];
       for (const r of list) {
-        const when = new Date(r.startedAt).toISOString().slice(0, 16).replace('T', ' ');
         const tracks = await deps.records.listTracks(r.id);
         const purged = tracks.filter((t) => (t.purgedAt ?? null) !== null).length;
         const audio =
@@ -653,11 +926,22 @@ async function recordings(
               : purged === tracks.length
                 ? 'audio purged'
                 : 'audio partly purged';
-        deps.out(
-          `${r.id}  ${r.status.padEnd(10)} ${when}  ${tracks.length} track(s)  ${audio}`.trimEnd(),
-        );
+        const length = r.stoppedAt ? duration((r.stoppedAt - r.startedAt) / 1000) : '';
+        rows.push([
+          ui.dim(r.id),
+          paintState(ui, r.status),
+          stamp(r.startedAt),
+          length,
+          names.get(r.campaignId) ?? ui.dim('(deleted)'),
+          plural(tracks.length, 'track'),
+          audio === 'audio kept' ? ui.good(audio) : ui.dim(audio),
+        ]);
       }
-      if (list.length === 0) deps.out('no recordings');
+      if (list.length === 0) deps.out(ui.dim('  no recordings'));
+      else
+        ui.table(rows, {
+          header: ['id', 'status', 'started (UTC)', 'length', 'campaign', 'tracks', 'audio'],
+        }).forEach(deps.out);
       return 0;
     }
     case 'reprocess': {
@@ -690,7 +974,9 @@ async function recordings(
         (deps.now ?? Date.now)(),
       );
       deps.out(
-        `queued ${job.id}: will redo the ${transcripts ? 'transcripts and ' : ''}summaries from the kept audio`,
+        deps.ui.done(
+          `queued ${job.id}: will redo the ${transcripts ? 'transcripts and ' : ''}summaries from the kept audio`,
+        ),
       );
       return 0;
     }
@@ -710,7 +996,9 @@ async function recordings(
         (deps.now ?? Date.now)(),
       );
       deps.out(
-        `queued ${job.id}: the worker will delete the audio files, then the recording, its transcript and summaries`,
+        deps.ui.done(
+          `queued ${job.id}: the worker will delete the audio files, then the recording, its transcript and summaries`,
+        ),
       );
       return 0;
     }
@@ -723,7 +1011,9 @@ async function recordings(
           await deps.jobs.enqueue({ kind: PURGE_RECORDING_JOB, recordingId: r.id }, now);
         }
         deps.out(
-          `queued ${due.length} purge(s) of raw audio older than ${days} day(s); the worker deletes the files`,
+          deps.ui.done(
+            `queued ${due.length} purge(s) of raw audio older than ${days} day(s); the worker deletes the files`,
+          ),
         );
         return 0;
       }
@@ -741,7 +1031,9 @@ async function recordings(
       }
       const job = await deps.jobs.enqueue({ kind: PURGE_RECORDING_JOB, recordingId: id }, now);
       deps.out(
-        `queued ${job.id}: the worker will delete the raw audio and keep the transcript and summaries`,
+        deps.ui.done(
+          `queued ${job.id}: the worker will delete the raw audio and keep the transcript and summaries`,
+        ),
       );
       return 0;
     }
@@ -751,21 +1043,29 @@ async function recordings(
   }
 }
 
-async function campaigns(
-  deps: AdminDeps,
-  command: string | undefined,
-  rest: string[],
-): Promise<number> {
+async function campaigns(deps: Ctx, command: string | undefined, rest: string[]): Promise<number> {
   switch (command) {
     case 'list': {
+      const { ui } = deps;
       const all = await deps.store.listCampaignSummaries();
+      deps.out(ui.title('campaigns', plural(all.length, 'campaign')));
+      deps.out('');
+      if (all.length === 0) {
+        deps.out(ui.dim('  no campaigns'));
+        return 0;
+      }
+      const rows: string[][] = [];
       for (const { campaign, members, dmName } of all) {
         const sessions = (await deps.records.listRecordingsForCampaign(campaign.id)).length;
-        deps.out(
-          `${campaign.id}  ${campaign.name}  (DM ${dmName ?? 'none'}, ${members} member(s), ${sessions} recording(s))`,
-        );
+        rows.push([
+          ui.dim(campaign.id),
+          ui.bold(campaign.name),
+          dmName ?? ui.dim('none'),
+          String(members),
+          String(sessions),
+        ]);
       }
-      if (all.length === 0) deps.out('no campaigns');
+      ui.table(rows, { header: ['id', 'name', 'DM', 'members', 'recordings'] }).forEach(deps.out);
       return 0;
     }
     case 'delete': {
@@ -786,10 +1086,10 @@ async function campaigns(
         );
       }
       deps.out(
-        `"${found.campaign.name}": ${found.members} member(s), ${recordings.length} recording(s) with their audio, transcripts and summaries, plus its chat, handouts, loot and schedule.`,
+        `"${deps.ui.bold(found.campaign.name)}": ${found.members} member(s), ${recordings.length} recording(s) with their audio, transcripts and summaries, plus its chat, handouts, loot and schedule.`,
       );
       if (!flags.includes('--yes')) {
-        deps.out('This cannot be undone. Run it again with --yes to delete it.');
+        deps.out(deps.ui.caution('This cannot be undone. Run it again with --yes to delete it.'));
         return 2;
       }
       const now = (deps.now ?? Date.now)();
@@ -815,10 +1115,10 @@ async function campaigns(
         }
       }
       await deps.store.deleteCampaign(id);
-      deps.out(`deleted the campaign "${found.campaign.name}".`);
+      deps.out(deps.ui.done(`deleted the campaign "${found.campaign.name}".`));
       if (deps.sweepMedia) {
         const files = await deps.sweepMedia();
-        deps.out(`removed ${files} handout file(s) no longer used by anything.`);
+        deps.out(deps.ui.done(`removed ${files} handout file(s) no longer used by anything.`));
       } else {
         deps.out(
           'MEDIA_DIR is not set here, so its handout files were left; the backend removes unused ones daily.',
@@ -847,7 +1147,9 @@ async function campaigns(
           `${unfinished.length} session(s) of "${found.campaign.name}" have no transcript or summary yet, so the file would hold nothing of them (the audio is not exported):`,
         );
         for (const r of unfinished) {
-          deps.out(`  ${r.id}  ${new Date(r.startedAt).toISOString()}  ${r.status}`);
+          deps.out(
+            `  ${deps.ui.dim(r.id)}  ${stamp(r.startedAt)}  ${paintState(deps.ui, r.status)}`,
+          );
         }
         if (!flags.includes('--accept-loss')) {
           deps.out(
@@ -855,17 +1157,27 @@ async function campaigns(
           );
           return 2;
         }
-        deps.out('going ahead without them (--accept-loss).');
+        deps.out(deps.ui.caution('going ahead without them (--accept-loss).'));
       }
       // One extension, so the files are recognisable: `.vttcampaign` is added when it is missing.
       const target = file.endsWith('.vttcampaign') ? file : `${file}.vttcampaign`;
       const { bytes, missingMedia } = await deps.archive.export(id, target);
-      deps.out(`wrote "${found.campaign.name}" to ${target} (${formatBytes(bytes)}).`);
+      deps.out(
+        deps.ui.done(
+          `wrote "${found.campaign.name}" to ${deps.ui.accent(target)} (${formatBytes(bytes)}).`,
+        ),
+      );
       if (missingMedia.length > 0) {
-        deps.err(`${missingMedia.length} handout file(s) were missing on disk and are not in it.`);
+        deps.err(
+          deps.ui.caution(
+            `${missingMedia.length} handout file(s) were missing on disk and are not in it.`,
+          ),
+        );
       }
       deps.out(
-        'It holds the whole campaign, whispers included: keep it as private as the database.',
+        deps.ui.caution(
+          'It holds the whole campaign, whispers included: keep it as private as the database.',
+        ),
       );
       return 0;
     }
@@ -881,14 +1193,16 @@ async function campaigns(
         throw new SettingError('import needs the database; run it through vtt-admin');
       const result = await deps.archive.import(file, { asNew: flags.includes('--as-new') });
       deps.out(
-        `imported "${result.name}" (${result.campaignId}): ${result.recordings} recording(s), ${result.files} handout file(s).`,
+        deps.ui.done(
+          `imported "${result.name}" (${result.campaignId}): ${result.recordings} recording(s), ${result.files} handout file(s).`,
+        ),
       );
       deps.out(`${result.matched} member(s) matched an account here by email.`);
       if (result.created.length > 0) {
         deps.out(
           `${result.created.length} had no account here, so one was made with no password (they sign in by emailed link or single sign-on, or you can give them a code: user ...):`,
         );
-        for (const p of result.created) deps.out(`  ${p.email}  ${p.displayName}`);
+        deps.ui.table(result.created.map((p) => [p.email, p.displayName])).forEach(deps.out);
       }
       deps.out(
         'The audio of its sessions is not in the file: restore it from the server backup if you need it.',
@@ -901,25 +1215,36 @@ async function campaigns(
   }
 }
 
-async function storage(deps: AdminDeps): Promise<number> {
+async function storage(deps: Ctx): Promise<number> {
+  const { ui } = deps;
+  deps.out(ui.title('storage'));
+  deps.out('');
+  const rows: [string, string][] = [];
+  let ok = true;
   if (deps.recordingsDir === undefined) {
-    deps.out('recordings are not kept on this server (RECORDINGS_DIR is not set)');
+    rows.push(['recordings', ui.dim('not kept on this server (RECORDINGS_DIR is not set)')]);
   } else {
     const use = await measureDisk(deps.recordingsDir, { walk: true });
     if (!use) {
-      deps.err(`cannot read ${deps.recordingsDir}`);
+      deps.err(ui.error(`cannot read ${deps.recordingsDir}`));
       return 1;
     }
-    deps.out(`recordings   ${formatBytes(use.dirBytes ?? 0)}   (${deps.recordingsDir})`);
-    deps.out(
-      `             ${formatBytes(use.freeBytes)} free on that disk of ${formatBytes(use.totalBytes)} (${freePercent(use)}%)`,
-    );
-    if (isLow(use)) {
-      deps.out(
-        'WARNING: that disk is nearly full. Purge raw audio: recording purge --older-than 30',
-      );
-    }
+    rows.push([
+      'recordings',
+      `${ui.bold(formatBytes(use.dirBytes ?? 0))}  ${ui.dim(deps.recordingsDir)}`,
+    ]);
+    rows.push([
+      'that disk',
+      `${ui.bar(1 - freePercent(use) / 100)}  ${formatBytes(use.freeBytes)} free of ${formatBytes(use.totalBytes)} (${freePercent(use)}%)`,
+    ]);
+    ok = !isLow(use);
   }
-  if (deps.databaseBytes) deps.out(`database     ${formatBytes(await deps.databaseBytes())}`);
+  if (deps.databaseBytes) rows.push(['database', ui.bold(formatBytes(await deps.databaseBytes()))]);
+  ui.pairs(rows).forEach(deps.out);
+  if (!ok) {
+    deps.out('');
+    deps.out(ui.caution('that disk is nearly full. Purge raw audio:'));
+    deps.out(`  ${ui.hint('vtt-admin recording purge --older-than 30')}`);
+  }
   return 0;
 }
