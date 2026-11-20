@@ -183,5 +183,14 @@ Author column must stay with the pack, and the clips are adapted (trimmed, norma
 | `ambience/amb-crickets.ogg` | Crickets Ambient Noise - loopable | wolfgang | https://opengameart.org/content/crickets-ambient-noise-loopable | 123 KB |
 | `ambience/amb-drips.ogg` | Dripping water loop | qubodup | https://opengameart.org/content/dripping-water-loop | 241 KB |
 | `ambience/amb-fire.ogg` | Fireplace Sound loop | pagdev | https://opengameart.org/content/fireplace-sound-loop | 402 KB |
+| `effect/fx-rats.ogg` | Rodents - Brown Rats; Several Babies Squeaking, Close Perspective | TheKingOfGeeks360 | https://freesound.org/people/TheKingOfGeeks360/sounds/841571/ | 61 KB |
+| `effect/fx-scrape.ogg` | S023_Metal_Rail_Scrape_Mono.wav | Pól | https://freesound.org/people/P%C3%B3l/sounds/385939/ | 38 KB |
+| `effect/fx-drip-1.ogg` | Cave Water Droplet 2.wav | Selulance | https://freesound.org/people/Selulance/sounds/395259/ | 6 KB |
+| `effect/fx-drip-2.ogg` | Cave Water Droplet 1.WAV | Selulance | https://freesound.org/people/Selulance/sounds/395258/ | 15 KB |
+| `effect/fx-drip-3.ogg` | Cave Drops.wav | opticaillusions | https://freesound.org/people/opticaillusions/sounds/532739/ | 80 KB |
+| `effect/fx-rockfall-1.ogg` | avl01.wav | blaukreuz | https://freesound.org/people/blaukreuz/sounds/162671/ | 90 KB |
+| `effect/fx-rockfall-2.ogg` | avl04.wav | blaukreuz | https://freesound.org/people/blaukreuz/sounds/162668/ | 108 KB |
+| `effect/fx-shriek.ogg` | Haunted 1 | DavidKronberg | https://freesound.org/people/DavidKronberg/sounds/789680/ | 12 KB |
+| `effect/fx-chain-gate.ogg` | Metal warehouse door opened with chains.wav | MichelleGrobler | https://freesound.org/people/MichelleGrobler/sounds/410560/ | 63 KB |
 
-Total: 23047 KB.
+Total: 23433 KB.

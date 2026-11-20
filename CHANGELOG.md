@@ -10,8 +10,13 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ## [Unreleased]
 
+### Added
+
+- **Six new sounds for dungeons, picked by Andy** (all public domain): rats, a metal scrape, water drips (three takes), a rockfall (two takes), a distant shriek and a chain gate. The Unease board's first eight buttons are the deck's defaults (chains, footsteps, rats, bats, rockfall, a distant shriek, a water drip, a metal scrape). The Dungeon, Cave and Dungeon halls scenes drop them in at random.
+
 ### Changed
 
+- **In session history the Scribe's notes button stays above the notes** when you open them (it used to jump below).
 - **The sound deck holds at most 8 stingers and 8 scenes.** Once it is full the add buttons are greyed with a tip ("The deck holds 8: remove one first"); remove one to pick another. A deck saved with more keeps its first 8.
 - **A scene you start from the picker that is not on the deck joins it with a dashed outline** while it plays and leaves when it stops; starting one closes the picker.
 - **A new Unease board comes first** (chains, footsteps, creaks, a cave-in, bats, knocking, a thud, a groan) and a new deck starts with it: background noises to keep the table on edge. Most stingers now have an icon that suits them instead of a speaker.

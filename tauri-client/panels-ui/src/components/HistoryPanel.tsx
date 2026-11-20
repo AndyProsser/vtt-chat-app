@@ -270,16 +270,9 @@ function Detail({ id, canReadTranscript }: { id: string; canReadTranscript: bool
         <span className="vtt-muted">No summary yet: it appears once processing finishes.</span>
       )}
       {summaries
-        ?.filter((s) => s.kind !== 'notes' || showNotes)
+        ?.filter((s) => s.kind !== 'notes')
         .map((s, i) => (
-          <article key={i} className="vtt-session">
-            <b>
-              {summaryLabel(s.kind)}
-              {s.subject ? `: ${s.subject}` : ''}
-              {s.title ? ` · ${s.title}` : ''}
-            </b>
-            <MarkdownView text={s.text} />
-          </article>
+          <SummaryCard key={i} s={s} />
         ))}
       {notes.length > 0 && (
         <div>
@@ -292,6 +285,10 @@ function Detail({ id, canReadTranscript }: { id: string; canReadTranscript: bool
           </ToolButton>
         </div>
       )}
+      {showNotes &&
+        summaries
+          ?.filter((s) => s.kind === 'notes')
+          .map((s, i) => <SummaryCard key={`n${i}`} s={s} />)}
       {transcript ? (
         <div className="vtt-transcript">
           {transcript.length === 0 && <span className="vtt-muted">No transcript yet.</span>}
@@ -326,5 +323,19 @@ function Detail({ id, canReadTranscript }: { id: string; canReadTranscript: bool
         </div>
       )}
     </div>
+  );
+}
+
+/** One summary: the tale, the DM brief or the scribe's notes. */
+function SummaryCard({ s }: { s: SummaryView }) {
+  return (
+    <article className="vtt-session">
+      <b>
+        {summaryLabel(s.kind)}
+        {s.subject ? `: ${s.subject}` : ''}
+        {s.title ? ` · ${s.title}` : ''}
+      </b>
+      <MarkdownView text={s.text} />
+    </article>
   );
 }

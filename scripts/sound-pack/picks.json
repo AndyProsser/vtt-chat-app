@@ -1365,9 +1365,149 @@
       "maxSec": 90,
       "page": "fireplace-sound-loop",
       "file": "fire"
+    },
+    {
+      "key": "fx-rats",
+      "name": "Rats",
+      "category": "effect",
+      "kind": "oneshot",
+      "takes": [
+        {
+          "freesound": 841571
+        }
+      ]
+    },
+    {
+      "key": "fx-scrape",
+      "name": "Metal scrape",
+      "category": "effect",
+      "kind": "oneshot",
+      "takes": [
+        {
+          "freesound": 385939
+        }
+      ]
+    },
+    {
+      "key": "fx-drip",
+      "name": "Water drip",
+      "category": "effect",
+      "kind": "oneshot",
+      "takes": [
+        {
+          "freesound": 395259
+        },
+        {
+          "freesound": 395258
+        },
+        {
+          "freesound": 532739
+        }
+      ]
+    },
+    {
+      "key": "fx-rockfall",
+      "name": "Rockfall",
+      "category": "effect",
+      "kind": "oneshot",
+      "takes": [
+        {
+          "freesound": 162671
+        },
+        {
+          "freesound": 162668
+        }
+      ]
+    },
+    {
+      "key": "fx-shriek",
+      "name": "Distant shriek",
+      "category": "effect",
+      "kind": "oneshot",
+      "takes": [
+        {
+          "freesound": 789680
+        }
+      ]
+    },
+    {
+      "key": "fx-chain-gate",
+      "name": "Chain gate",
+      "category": "effect",
+      "kind": "oneshot",
+      "takes": [
+        {
+          "freesound": 410560
+        }
+      ]
     }
   ],
   "boards": [
+    {
+      "key": "unease",
+      "name": "Unease",
+      "buttons": [
+        {
+          "label": "Chains",
+          "sound": "fx-chains",
+          "note": "Something is being dragged nearby."
+        },
+        {
+          "label": "Footsteps",
+          "sound": "fx-footsteps",
+          "note": "Someone else is in here."
+        },
+        {
+          "label": "Rats",
+          "sound": "fx-rats"
+        },
+        {
+          "label": "Bats",
+          "sound": "fx-bats"
+        },
+        {
+          "label": "Rockfall",
+          "sound": "fx-rockfall"
+        },
+        {
+          "label": "Distant shriek",
+          "sound": "fx-shriek"
+        },
+        {
+          "label": "Water drip",
+          "sound": "fx-drip"
+        },
+        {
+          "label": "Metal scrape",
+          "sound": "fx-scrape"
+        },
+        {
+          "label": "Creak",
+          "sound": "fx-creak"
+        },
+        {
+          "label": "Knocking",
+          "sound": "fx-knock"
+        },
+        {
+          "label": "Heavy thud",
+          "sound": "fx-thud"
+        },
+        {
+          "label": "Groan or cry",
+          "sound": "fx-groan"
+        },
+        {
+          "label": "Chain gate",
+          "sound": "fx-chain-gate"
+        },
+        {
+          "label": "Cave-in",
+          "sound": "fx-cave-in",
+          "note": "Rock giving way somewhere close."
+        }
+      ]
+    },
     {
       "key": "combat",
       "name": "Combat",
@@ -1730,6 +1870,20 @@
           "sound": "amb-fire",
           "mode": "loop",
           "volume": 0.2
+        },
+        {
+          "sound": "fx-door-slam",
+          "mode": "random",
+          "volume": 0.25,
+          "minIntervalSec": 90,
+          "maxIntervalSec": 240
+        },
+        {
+          "sound": "fx-coins",
+          "mode": "random",
+          "volume": 0.25,
+          "minIntervalSec": 60,
+          "maxIntervalSec": 150
         }
       ]
     },
@@ -1741,6 +1895,69 @@
           "sound": "amb-dungeon",
           "mode": "loop",
           "volume": 0.6
+        },
+        {
+          "sound": "fx-chains",
+          "mode": "random",
+          "volume": 0.35,
+          "minIntervalSec": 45,
+          "maxIntervalSec": 120
+        },
+        {
+          "sound": "fx-creak",
+          "mode": "random",
+          "volume": 0.3,
+          "minIntervalSec": 30,
+          "maxIntervalSec": 90
+        },
+        {
+          "sound": "fx-thud",
+          "mode": "random",
+          "volume": 0.3,
+          "minIntervalSec": 60,
+          "maxIntervalSec": 150
+        },
+        {
+          "sound": "fx-footsteps",
+          "mode": "random",
+          "volume": 0.2,
+          "minIntervalSec": 80,
+          "maxIntervalSec": 200
+        },
+        {
+          "sound": "fx-rats",
+          "mode": "random",
+          "volume": 0.3,
+          "minIntervalSec": 90,
+          "maxIntervalSec": 240
+        },
+        {
+          "sound": "fx-scrape",
+          "mode": "random",
+          "volume": 0.3,
+          "minIntervalSec": 100,
+          "maxIntervalSec": 240
+        },
+        {
+          "sound": "fx-rockfall",
+          "mode": "random",
+          "volume": 0.25,
+          "minIntervalSec": 150,
+          "maxIntervalSec": 360
+        },
+        {
+          "sound": "fx-shriek",
+          "mode": "random",
+          "volume": 0.2,
+          "minIntervalSec": 240,
+          "maxIntervalSec": 600
+        },
+        {
+          "sound": "fx-drip",
+          "mode": "random",
+          "volume": 0.3,
+          "minIntervalSec": 25,
+          "maxIntervalSec": 70
         }
       ]
     },
@@ -1752,6 +1969,20 @@
           "sound": "amb-forest",
           "mode": "loop",
           "volume": 0.6
+        },
+        {
+          "sound": "fx-crows",
+          "mode": "random",
+          "volume": 0.3,
+          "minIntervalSec": 40,
+          "maxIntervalSec": 110
+        },
+        {
+          "sound": "fx-wolf",
+          "mode": "random",
+          "volume": 0.2,
+          "minIntervalSec": 150,
+          "maxIntervalSec": 360
         }
       ]
     },
@@ -1862,6 +2093,27 @@
           "sound": "amb-forest-night",
           "mode": "loop",
           "volume": 0.6
+        },
+        {
+          "sound": "fx-wolf",
+          "mode": "random",
+          "volume": 0.25,
+          "minIntervalSec": 90,
+          "maxIntervalSec": 240
+        },
+        {
+          "sound": "fx-bats",
+          "mode": "random",
+          "volume": 0.25,
+          "minIntervalSec": 60,
+          "maxIntervalSec": 170
+        },
+        {
+          "sound": "fx-insects",
+          "mode": "random",
+          "volume": 0.2,
+          "minIntervalSec": 45,
+          "maxIntervalSec": 120
         }
       ]
     },
@@ -1873,6 +2125,20 @@
           "sound": "amb-crickets",
           "mode": "loop",
           "volume": 0.6
+        },
+        {
+          "sound": "fx-wolf",
+          "mode": "random",
+          "volume": 0.2,
+          "minIntervalSec": 120,
+          "maxIntervalSec": 300
+        },
+        {
+          "sound": "fx-bats",
+          "mode": "random",
+          "volume": 0.2,
+          "minIntervalSec": 70,
+          "maxIntervalSec": 180
         }
       ]
     },
@@ -1884,6 +2150,20 @@
           "sound": "amb-storm",
           "mode": "loop",
           "volume": 0.7
+        },
+        {
+          "sound": "fx-thunder",
+          "mode": "random",
+          "volume": 0.5,
+          "minIntervalSec": 25,
+          "maxIntervalSec": 70
+        },
+        {
+          "sound": "fx-lightning",
+          "mode": "random",
+          "volume": 0.4,
+          "minIntervalSec": 50,
+          "maxIntervalSec": 140
         }
       ]
     },
@@ -1917,6 +2197,27 @@
           "sound": "amb-harbour",
           "mode": "loop",
           "volume": 0.6
+        },
+        {
+          "sound": "fx-creak",
+          "mode": "random",
+          "volume": 0.3,
+          "minIntervalSec": 25,
+          "maxIntervalSec": 80
+        },
+        {
+          "sound": "fx-bell",
+          "mode": "random",
+          "volume": 0.25,
+          "minIntervalSec": 60,
+          "maxIntervalSec": 160
+        },
+        {
+          "sound": "fx-splash",
+          "mode": "random",
+          "volume": 0.2,
+          "minIntervalSec": 40,
+          "maxIntervalSec": 120
         }
       ]
     },
@@ -1933,6 +2234,48 @@
           "sound": "amb-drips",
           "mode": "loop",
           "volume": 0.3
+        },
+        {
+          "sound": "fx-bats",
+          "mode": "random",
+          "volume": 0.3,
+          "minIntervalSec": 60,
+          "maxIntervalSec": 150
+        },
+        {
+          "sound": "fx-splash",
+          "mode": "random",
+          "volume": 0.2,
+          "minIntervalSec": 40,
+          "maxIntervalSec": 110
+        },
+        {
+          "sound": "fx-thud",
+          "mode": "random",
+          "volume": 0.25,
+          "minIntervalSec": 70,
+          "maxIntervalSec": 180
+        },
+        {
+          "sound": "fx-drip",
+          "mode": "random",
+          "volume": 0.35,
+          "minIntervalSec": 15,
+          "maxIntervalSec": 50
+        },
+        {
+          "sound": "fx-rockfall",
+          "mode": "random",
+          "volume": 0.3,
+          "minIntervalSec": 120,
+          "maxIntervalSec": 300
+        },
+        {
+          "sound": "fx-rats",
+          "mode": "random",
+          "volume": 0.25,
+          "minIntervalSec": 120,
+          "maxIntervalSec": 300
         }
       ]
     },
@@ -1944,6 +2287,55 @@
           "sound": "amb-dungeon-halls",
           "mode": "loop",
           "volume": 0.6
+        },
+        {
+          "sound": "fx-chains",
+          "mode": "random",
+          "volume": 0.3,
+          "minIntervalSec": 50,
+          "maxIntervalSec": 130
+        },
+        {
+          "sound": "fx-footsteps",
+          "mode": "random",
+          "volume": 0.25,
+          "minIntervalSec": 60,
+          "maxIntervalSec": 160
+        },
+        {
+          "sound": "fx-creak",
+          "mode": "random",
+          "volume": 0.3,
+          "minIntervalSec": 40,
+          "maxIntervalSec": 100
+        },
+        {
+          "sound": "fx-knock",
+          "mode": "random",
+          "volume": 0.2,
+          "minIntervalSec": 120,
+          "maxIntervalSec": 300
+        },
+        {
+          "sound": "fx-rats",
+          "mode": "random",
+          "volume": 0.25,
+          "minIntervalSec": 100,
+          "maxIntervalSec": 260
+        },
+        {
+          "sound": "fx-scrape",
+          "mode": "random",
+          "volume": 0.25,
+          "minIntervalSec": 120,
+          "maxIntervalSec": 300
+        },
+        {
+          "sound": "fx-drip",
+          "mode": "random",
+          "volume": 0.3,
+          "minIntervalSec": 30,
+          "maxIntervalSec": 90
         }
       ]
     },
@@ -1955,6 +2347,27 @@
           "sound": "amb-castle",
           "mode": "loop",
           "volume": 0.6
+        },
+        {
+          "sound": "fx-creak",
+          "mode": "random",
+          "volume": 0.3,
+          "minIntervalSec": 30,
+          "maxIntervalSec": 90
+        },
+        {
+          "sound": "fx-footsteps",
+          "mode": "random",
+          "volume": 0.25,
+          "minIntervalSec": 60,
+          "maxIntervalSec": 150
+        },
+        {
+          "sound": "fx-latch",
+          "mode": "random",
+          "volume": 0.25,
+          "minIntervalSec": 90,
+          "maxIntervalSec": 240
         }
       ]
     },
@@ -1966,6 +2379,13 @@
           "sound": "amb-wind",
           "mode": "loop",
           "volume": 0.7
+        },
+        {
+          "sound": "fx-wolf",
+          "mode": "random",
+          "volume": 0.2,
+          "minIntervalSec": 180,
+          "maxIntervalSec": 420
         }
       ]
     },
@@ -1977,6 +2397,27 @@
           "sound": "amb-hell",
           "mode": "loop",
           "volume": 0.6
+        },
+        {
+          "sound": "fx-groan",
+          "mode": "random",
+          "volume": 0.3,
+          "minIntervalSec": 40,
+          "maxIntervalSec": 110
+        },
+        {
+          "sound": "fx-cackle",
+          "mode": "random",
+          "volume": 0.25,
+          "minIntervalSec": 90,
+          "maxIntervalSec": 240
+        },
+        {
+          "sound": "fx-ghoul",
+          "mode": "random",
+          "volume": 0.25,
+          "minIntervalSec": 70,
+          "maxIntervalSec": 180
         }
       ]
     }

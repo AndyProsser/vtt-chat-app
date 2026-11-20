@@ -639,6 +639,42 @@
       "name": "Fireplace",
       "category": "ambience",
       "takes": ["ambience/amb-fire.ogg"]
+    },
+    {
+      "key": "fx-rats",
+      "name": "Rats",
+      "category": "effect",
+      "takes": ["effect/fx-rats.ogg"]
+    },
+    {
+      "key": "fx-scrape",
+      "name": "Metal scrape",
+      "category": "effect",
+      "takes": ["effect/fx-scrape.ogg"]
+    },
+    {
+      "key": "fx-drip",
+      "name": "Water drip",
+      "category": "effect",
+      "takes": ["effect/fx-drip-1.ogg", "effect/fx-drip-2.ogg", "effect/fx-drip-3.ogg"]
+    },
+    {
+      "key": "fx-rockfall",
+      "name": "Rockfall",
+      "category": "effect",
+      "takes": ["effect/fx-rockfall-1.ogg", "effect/fx-rockfall-2.ogg"]
+    },
+    {
+      "key": "fx-shriek",
+      "name": "Distant shriek",
+      "category": "effect",
+      "takes": ["effect/fx-shriek.ogg"]
+    },
+    {
+      "key": "fx-chain-gate",
+      "name": "Chain gate",
+      "category": "effect",
+      "takes": ["effect/fx-chain-gate.ogg"]
     }
   ],
   "boards": [
@@ -657,17 +693,32 @@
           "note": "Someone else is in here."
         },
         {
-          "label": "Creak",
-          "sound": "fx-creak"
-        },
-        {
-          "label": "Cave-in",
-          "sound": "fx-cave-in",
-          "note": "Rock giving way somewhere close."
+          "label": "Rats",
+          "sound": "fx-rats"
         },
         {
           "label": "Bats",
           "sound": "fx-bats"
+        },
+        {
+          "label": "Rockfall",
+          "sound": "fx-rockfall"
+        },
+        {
+          "label": "Distant shriek",
+          "sound": "fx-shriek"
+        },
+        {
+          "label": "Water drip",
+          "sound": "fx-drip"
+        },
+        {
+          "label": "Metal scrape",
+          "sound": "fx-scrape"
+        },
+        {
+          "label": "Creak",
+          "sound": "fx-creak"
         },
         {
           "label": "Knocking",
@@ -680,6 +731,15 @@
         {
           "label": "Groan or cry",
           "sound": "fx-groan"
+        },
+        {
+          "label": "Chain gate",
+          "sound": "fx-chain-gate"
+        },
+        {
+          "label": "Cave-in",
+          "sound": "fx-cave-in",
+          "note": "Rock giving way somewhere close."
         }
       ]
     },
@@ -1098,6 +1158,41 @@
           "volume": 0.2,
           "minIntervalSec": 80,
           "maxIntervalSec": 200
+        },
+        {
+          "sound": "fx-rats",
+          "mode": "random",
+          "volume": 0.3,
+          "minIntervalSec": 90,
+          "maxIntervalSec": 240
+        },
+        {
+          "sound": "fx-scrape",
+          "mode": "random",
+          "volume": 0.3,
+          "minIntervalSec": 100,
+          "maxIntervalSec": 240
+        },
+        {
+          "sound": "fx-rockfall",
+          "mode": "random",
+          "volume": 0.25,
+          "minIntervalSec": 150,
+          "maxIntervalSec": 360
+        },
+        {
+          "sound": "fx-shriek",
+          "mode": "random",
+          "volume": 0.2,
+          "minIntervalSec": 240,
+          "maxIntervalSec": 600
+        },
+        {
+          "sound": "fx-drip",
+          "mode": "random",
+          "volume": 0.3,
+          "minIntervalSec": 25,
+          "maxIntervalSec": 70
         }
       ]
     },
@@ -1395,6 +1490,27 @@
           "volume": 0.25,
           "minIntervalSec": 70,
           "maxIntervalSec": 180
+        },
+        {
+          "sound": "fx-drip",
+          "mode": "random",
+          "volume": 0.35,
+          "minIntervalSec": 15,
+          "maxIntervalSec": 50
+        },
+        {
+          "sound": "fx-rockfall",
+          "mode": "random",
+          "volume": 0.3,
+          "minIntervalSec": 120,
+          "maxIntervalSec": 300
+        },
+        {
+          "sound": "fx-rats",
+          "mode": "random",
+          "volume": 0.25,
+          "minIntervalSec": 120,
+          "maxIntervalSec": 300
         }
       ]
     },
@@ -1434,6 +1550,27 @@
           "volume": 0.2,
           "minIntervalSec": 120,
           "maxIntervalSec": 300
+        },
+        {
+          "sound": "fx-rats",
+          "mode": "random",
+          "volume": 0.25,
+          "minIntervalSec": 100,
+          "maxIntervalSec": 260
+        },
+        {
+          "sound": "fx-scrape",
+          "mode": "random",
+          "volume": 0.25,
+          "minIntervalSec": 120,
+          "maxIntervalSec": 300
+        },
+        {
+          "sound": "fx-drip",
+          "mode": "random",
+          "volume": 0.3,
+          "minIntervalSec": 30,
+          "maxIntervalSec": 90
         }
       ]
     },

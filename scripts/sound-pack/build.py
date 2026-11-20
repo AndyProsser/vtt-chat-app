@@ -7,6 +7,8 @@ one-shots are trimmed of silence). Writes catalogue.json and SOURCES.md (who mad
 its licence). Downloads are cached in scripts/sound-pack/.cache (git-ignored); one request per second.
 
     scripts/sound-pack/build.py            # needs ffmpeg
+    scripts/sound-pack/build.py --only fx-rats,fx-drip   # just those sounds, merged into the existing pack
+                                                         # (boards and scenes always come from picks.json)
 """
 import json, os, pathlib, re, subprocess, sys, time, urllib.parse, urllib.request, html, zipfile
 
@@ -167,8 +169,11 @@ def main():
     picks = json.loads((HERE / 'picks.json').read_text())
     PACKS.update(picks.get('packs', {}))
     CACHE.mkdir(exist_ok=True)
+    only = set(sys.argv[sys.argv.index('--only') + 1].split(',')) if '--only' in sys.argv else None
     sources, sounds = [], []
     for p in picks['sounds']:
+        if only is not None and p['key'] not in only:
+            continue
         specs = p.get('takes') or [p]
         (OUT / p['category']).mkdir(parents=True, exist_ok=True)
         rels = []
@@ -194,6 +199,14 @@ def main():
             rels.append(rel)
             sources.append((rel, title, author, page, size))
         sounds.append({'key': p['key'], 'name': p['name'], 'category': p['category'], 'takes': rels})
+    if only is not None:
+        old = json.loads((OUT / 'catalogue.json').read_text())
+        keep = [x for x in old['sounds'] if x['key'] not in only]
+        sounds = keep + sounds
+        old_rows = [l for l in (OUT / 'SOURCES.md').read_text().splitlines() if l.startswith('| `')]
+        stale = tuple(f'| `{x["takes"][0].rsplit("/", 1)[0]}/{x["key"]}' for x in sounds if x['key'] in only)
+        kept_rows = [l for l in old_rows if not l.startswith(stale)]
+        sources = [('__old__', l) for l in kept_rows] + sources
     catalogue = {'version': 1, 'sounds': sounds, 'boards': picks['boards'], 'scenes': picks['scenes']}
     (OUT / 'catalogue.json').write_text(json.dumps(catalogue, indent=2) + '\n')
     lines = ['# Starter sound pack: sources and licences', '',
@@ -202,11 +215,18 @@ def main():
              'loudness-normalised and re-encoded to Ogg Vorbis; beds are crossfaded to loop. CC0 needs no credit (given here anyway).',
              'Rows marked **CC BY 3.0** are used under that licence (https://creativecommons.org/licenses/by/3.0/): the credit in the',
              'Author column must stay with the pack, and the clips are adapted (trimmed, normalised, re-encoded, layered).', '', '| File | Work | Author | Page | Size |', '| --- | --- | --- | --- | --- |']
-    for rel, title, author, page, size in sources:
+    total = 0
+    for row in sources:
+        if row[0] == '__old__':
+            lines.append(row[1])
+            total += int(row[1].rsplit('|', 2)[-2].strip().split()[0])
+            continue
+        rel, title, author, page, size = row
         lines.append(f'| `{rel}` | {title} | {author} | {page} | {size // 1024} KB |')
-    lines.append(f'\nTotal: {sum(s[4] for s in sources) // 1024} KB.')
+        total += size // 1024
+    lines.append(f'\nTotal: {total} KB.')
     (OUT / 'SOURCES.md').write_text('\n'.join(lines) + '\n')
-    print('total', sum(s[4] for s in sources) // 1024, 'KB')
+    print('total', total, 'KB')
     print('now run: npx prettier --write backend/assets/sounds/catalogue.json')
 
 
