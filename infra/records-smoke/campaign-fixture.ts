@@ -43,12 +43,13 @@ export interface Person {
   name: string;
   email: string;
   voice?: string;
-  character?: { name: string };
+  character?: { name: string; class?: string; subclass?: string; race?: string; level?: number };
   silent?: boolean;
 }
 export interface Campaign {
   name: string;
   cast: { dm: Person; players: Person[]; observer: Person };
+  storyteller: string;
   sessions: { n: number; title: string; file: string }[];
   gmNotes: string;
   glossary: { term: string; kind: string; aliases: string[] }[];

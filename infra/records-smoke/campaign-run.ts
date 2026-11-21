@@ -1,6 +1,7 @@
 // The runner and monitor for the demo campaign (Stage 13; docs/architecture/QUALITY-VALIDATION.md).
 //
 //   node infra/records-smoke/campaign-run.ts dry    [options]   walk the plan compressed while measuring the real target
+//   node infra/records-smoke/campaign-run.ts live   [options]   play the sessions into a real server, wait for the records, score them
 //   node infra/records-smoke/campaign-run.ts report <run dir>   write report.md again from a finished run's files
 //
 // Options (dry):
@@ -12,6 +13,15 @@
 //   --label name        a word for the results folder
 //   --out dir           results folder (default ~/.local/state/vtt-validation/<time>-<target>-<label>)
 //
+// Options (live), besides --target, --sessions, --interval, --label and --out:
+//   --glossary off|corrections|prompt|both|keep   the transcription glossary mode for the run (default keep)
+//   --no-observer       do not wait for player 5 (the developer) to join
+//   --max-lines N       play only the first N lines of each session (a smoke test of the machinery)
+//   --timeout-min 90    how long to wait for each recording to be processed
+//   --baseline 60  --idle 120   seconds of idle before and after
+// A live run creates five accounts (lanterns-*@example.com) and a campaign on the target, and leaves them there.
+// Set NODE_EXTRA_CA_CERTS for a server with a private certificate.
+//
 // A dry run sends nothing to the server: no accounts, no chat, no recording. It measures the target at idle and
 // writes the same files and report a live run does, so the report can be reviewed before any audio plays.
 
@@ -20,6 +30,7 @@ import { homedir } from 'node:os';
 import path from 'node:path';
 
 import { DEFAULT_DIR, load, validate } from './campaign-fixture.ts';
+import { runLive } from './validation/live.ts';
 import { Monitor, type RunEvent, type Sample } from './validation/monitor.ts';
 import { planCampaign } from './validation/plan.ts';
 import { renderReport, summarise_run, type RunMeta } from './validation/report.ts';
@@ -147,6 +158,92 @@ async function dry(): Promise<void> {
   await finish();
 }
 
+async function live(): Promise<void> {
+  const targetName = opt('--target') ?? 'local';
+  const intervalMs = Number(opt('--interval') ?? 5) * 1000;
+  const baselineSec = Number(opt('--baseline') ?? 60);
+  const idleSec = Number(opt('--idle') ?? 120);
+  const sessions = opt('--sessions')?.split(',').map(Number) ?? [1, 2, 3];
+  const label = opt('--label') ?? 'live';
+  const root =
+    process.env.VTT_VALIDATION_DIR ?? path.join(homedir(), '.local/state/vtt-validation');
+  const outDir = opt('--out') ?? path.join(root, `${stamp()}-${targetName}-${label}`);
+  const maxLines = opt('--max-lines') ? Number(opt('--max-lines')) : undefined;
+
+  const l = await load(DEFAULT_DIR);
+  const v = validate(l);
+  if (v.errors.length)
+    throw new Error('the campaign fixtures are not valid: run `npm run campaign:check`');
+  const plan = planCampaign(l, v, sessions);
+  const target = targetByName(targetName);
+  const monitor = new Monitor({ target, outDir, intervalMs, log });
+  const startedAt = new Date().toISOString();
+  await mkdir(outDir, { recursive: true });
+  let result: Awaited<ReturnType<typeof runLive>> | undefined;
+  let failure: string | undefined;
+  await monitor.start();
+  try {
+    await monitor.setPhase('baseline', 'idle before anything starts');
+    log(`baseline ${baselineSec} s`);
+    await sleep(baselineSec * 1000);
+    result = await runLive({
+      target,
+      monitor,
+      loaded: l,
+      report: v,
+      plan,
+      sessions,
+      outDir,
+      runLabel: `${label} ${stamp().slice(4, 13)}`,
+      glossary: opt('--glossary') ?? 'keep',
+      waitForObserver: !argv.includes('--no-observer'),
+      ...(maxLines !== undefined ? { maxLines } : {}),
+      timeoutMin: Number(opt('--timeout-min') ?? 90),
+      log,
+    });
+    await monitor.setPhase('idle-after', 'after the last job');
+    log(`idle-after ${idleSec} s`);
+    await sleep(idleSec * 1000);
+  } catch (e) {
+    failure = (e as Error).message;
+    log(`the run stopped: ${failure}`);
+  }
+  await monitor.stop();
+  await target.close();
+  const meta: RunMeta = {
+    mode: 'live',
+    target: `${target.label} (${target.kind === 'ssh' ? 'remote host over SSH' : 'this machine'})`,
+    label,
+    startedAt,
+    endedAt: new Date().toISOString(),
+    info: monitor.info,
+    intervalMs,
+    plan,
+    checks: [
+      ...(result?.checks ?? []),
+      ...(failure ? [{ name: 'the run finished', status: 'fail' as const, detail: failure }] : []),
+    ],
+    scores: result?.scores ?? [],
+    notes: [
+      "The monitor's own cost is part of the numbers (each sample runs `docker stats` and a few reads on the target).",
+      ...(maxLines
+        ? [`Smoke test: only the first ${maxLines} lines of each session were played.`]
+        : []),
+      ...(result?.notes ?? []),
+    ],
+    notMeasured: [
+      'Whether the tales are good: read outputs/session-N-summaries.md. Facts and canaries are scored by code; flavour is not.',
+      'The desktop app (player 5): its own CPU and memory come from the measuring scripts in scripts/test, not from this run.',
+    ],
+  };
+  await writeFile(path.join(outDir, 'meta.json'), JSON.stringify(meta, null, 2));
+  const summary = summarise_run(monitor.samples, monitor.events, meta);
+  await writeFile(path.join(outDir, 'summary.json'), JSON.stringify(summary, null, 2));
+  await writeFile(path.join(outDir, 'report.md'), renderReport(summary));
+  log(`wrote ${path.join(outDir, 'report.md')}`);
+  if (failure || meta.checks.some((c) => c.status === 'fail')) process.exitCode = 1;
+}
+
 async function report(): Promise<void> {
   const dir = argv[1];
   if (!dir) throw new Error('usage: campaign-run.ts report <run dir>');
@@ -168,9 +265,15 @@ async function report(): Promise<void> {
 
 try {
   if (cmd === 'dry') await dry();
-  else if (cmd === 'report') await report();
+  else if (cmd === 'live') {
+    await live();
+    // The voice client leaves sockets open that would keep the process alive: the report is written, so end here.
+    process.exit(process.exitCode ?? 0);
+  } else if (cmd === 'report') await report();
   else {
-    console.error('usage: campaign-run.ts dry|report [options]  (see the header of this file)');
+    console.error(
+      'usage: campaign-run.ts dry|live|report [options]  (see the header of this file)',
+    );
     process.exit(2);
   }
 } catch (e) {

@@ -29,6 +29,13 @@ export interface Target {
   close(): Promise<void>;
 }
 
+/** The Admin CLI's arguments, with `--plain` (stable text, whatever the terminal) except where a command refuses it. */
+const adminArgs = (args: string[]): string => {
+  const noPlain =
+    (args[0] === 'user' && args[1] === 'create') || (args[0] === 'settings' && args[1] === 'set'); // their parsers take --plain as a value or reject it
+  return [...args, ...(noPlain ? [] : ['--plain'])].map(shq).join(' ');
+};
+
 const shq = (s: string): string => `'${s.replace(/'/g, `'\\''`)}'`;
 
 function spawnScript(
@@ -72,7 +79,7 @@ export function localTarget(): Target {
     composeDir,
     run,
     admin: (...args) =>
-      run(`${shq(path.join(composeDir, 'vtt-admin'))} ${args.map(shq).join(' ')} --plain`, 120_000),
+      run(`${shq(path.join(composeDir, 'vtt-admin'))} ${adminArgs(args)}`, 120_000),
     sql: async (q) =>
       (
         await run(`docker compose exec -T postgres psql -U vtt -d vtt -At -c ${shq(q)}`, 60_000)
@@ -110,7 +117,7 @@ export function sshTarget(): Target {
     apiBase: api.replace(/\/+$/, ''),
     composeDir,
     run,
-    admin: (...args) => run(`vtt-admin ${args.map(shq).join(' ')} --plain`, 120_000),
+    admin: (...args) => run(`vtt-admin ${adminArgs(args)}`, 120_000),
     sql: async (q) =>
       (
         await run(

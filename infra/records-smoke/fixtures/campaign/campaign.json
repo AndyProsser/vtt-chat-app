@@ -2,7 +2,7 @@
   "about": "The reusable demo campaign for the long-session test (docs/architecture/QUALITY-VALIDATION.md). Original setting; rules are D&D 5e from the SRD 5.1 only (CC BY 4.0, see docs/LEGAL-SRD.md). Nothing here is from a published adventure.",
   "name": "Lanterns of Saltmarrow",
   "system": "D&D 5th edition, System Reference Document 5.1",
-  "storyteller": "tavern-bard",
+  "storyteller": "tavern",
   "setting": "The kingdom of Aldermere: the walled harbour of Saltmarrow, the Greywick Light on Gullcrag Point, and the Greywater Fens. Level 3 party, three sessions of about 25 minutes each.",
   "cast": {
     "dm": {

@@ -10,7 +10,23 @@ Throwaway scripts that prove the server-side records chain on a real Linux box a
 
 **Restart drill:** `infra/records-smoke/restart-drill.sh` starts its own LiveKit and Egress, records a synthetic speaker, simulates a backend restart and checks that recovery stops the egress, keeps the audio and queues processing (see [RECORDING-AND-SUMMARIES.md](../../docs/architecture/RECORDING-AND-SUMMARIES.md)).
 
-**The demo campaign (Stage 13).** A reusable three-session campaign for the long test, with a validator: [`fixtures/campaign/`](fixtures/campaign/README.md) (`npm run campaign:check`, `npm run campaign:test`). Its runner and monitor are the next part of the stage.
+**The demo campaign and its runner (Stage 13).** A reusable three-session campaign, a runner that plays it into a real server, and a monitor that records the machine while it does: [`fixtures/campaign/`](fixtures/campaign/README.md), `campaign-run.ts` and [`validation/`](validation/). Design: [QUALITY-VALIDATION.md](../../docs/architecture/QUALITY-VALIDATION.md).
+
+```bash
+npm run campaign:check                       # validate the fixtures (no services needed)
+npm run campaign:test                        # the tests for the fixtures, the monitor, the report and the scoring
+
+# Where: --target local (the Compose stack on this machine) or --target vm (over SSH)
+export VTT_VM_SSH=<user@host>  VTT_API=<the server's URL as players reach it>   # for --target vm; never commit these
+export NODE_EXTRA_CA_CERTS=<Caddy's root.crt>                                   # for a server with a private certificate
+
+npm run campaign:dry -- --target vm          # walk the plan compressed while measuring the real server: sends nothing
+node infra/records-smoke/campaign-run.ts live --target local --glossary both     # play the sessions for real and score them
+node infra/records-smoke/campaign-run.ts live --target local --sessions 1 --max-lines 45 --no-observer   # a quick smoke test of the machinery
+node infra/records-smoke/campaign-run.ts report <run dir>                        # write report.md again from a finished run
+```
+
+A **dry run** needs nothing but the server's address: it measures the server at idle and shows the report's shape. A **live run** creates five accounts (`lanterns-*@example.com`) and a campaign on the target and leaves them (delete the campaign with `vtt-admin campaign delete <id>`), prints an **invite code for player 5** and waits up to ten minutes for the developer's own client to join (skip with `--no-observer`), then plays each session in real time with piper voices (the five voices are listed in the campaign README), waits for the records, and scores them: facts, canaries, glossary terms, word accuracy, memory and callbacks. Results go to `~/.local/state/vtt-validation/<time>-<target>-<label>/` (outside the repo): `report.md` (read this), `summary.json`, `samples.jsonl` (every sample), `events.jsonl` (phases, actions, error lines) and `outputs/` (each session's transcript, summaries and memory). The remote host's address is never written to a file.
 
 ## The Compose end-to-end test (`compose-e2e.ts`): run it after an install
 

@@ -22,6 +22,8 @@ export interface RunMeta {
   speed?: number;
   plan: SessionPlan[];
   checks: Check[];
+  /** Numbers a live run produced (recall, accuracy, timings). No thresholds yet: they are reported, not judged. */
+  scores?: { name: string; value: string; detail?: string }[];
   notes: string[];
   /** What this run did not measure, said plainly in the report. */
   notMeasured: string[];
@@ -375,6 +377,20 @@ export function renderReport(s: RunSummary): string {
       L.push(
         `| ${e.container} | ${e.count} | ${cell(e.examples.map((x) => x.slice(0, 160)).join(' ⏎ '))} |`,
       );
+    L.push('');
+  }
+
+  if (m.scores?.length) {
+    L.push(
+      '## Scores',
+      '',
+      'Measured against the script. There are no pass marks yet: the first runs set them.',
+      '',
+      '| Score | Value | Detail |',
+      '| --- | --- | --- |',
+    );
+    for (const x of m.scores)
+      L.push(`| ${cell(x.name)} | ${cell(x.value)} | ${cell(x.detail ?? '')} |`);
     L.push('');
   }
 
