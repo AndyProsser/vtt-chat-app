@@ -496,7 +496,7 @@ What it showed, and what changed:
   tales are written; an unreadable answer is asked for once more, then logged, and the next run tries again. **Once per
   session:** `campaign_memory_applied` marks a recording (no foreign key, like the entries, so deleting a session does not
   unlearn the campaign). **Privacy:** it is built from the notes, so only from what was said and typed at the table; the
-  Game Master's own notes are not an input. **Limits:** not in a `.vttcampaign` export; the models will get names wrong, so
+  Game Master's own notes are not an input. **Limits:** travels in a `.vttcampaign` export; the models will get names wrong, so
   `vtt-admin memory forget` exists; the Game Master cannot yet read or correct it in the app. Switch: `ai.memory.enabled`.
 - 280 words of clean TTS: a difference of one point is three words. Compare rows, do not predict a real table.
 

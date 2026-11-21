@@ -134,6 +134,18 @@ export const TABLES: readonly TableSpec[] = [
     refs: ['track_id'],
   },
   { name: 'summaries', where: IN_CAMPAIGN_RECORDINGS, ids: ['id'], refs: ['recording_id'] },
+  // Campaign memory (Stage 12 F). The marker table travels with it so a re-imported session is not counted twice.
+  {
+    name: 'campaign_memory',
+    where: 'campaign_id = $1',
+    ids: ['id'],
+    refs: ['campaign_id', 'first_recording_id'],
+  },
+  {
+    name: 'campaign_memory_applied',
+    where: 'campaign_id = $1',
+    refs: ['campaign_id', 'recording_id'],
+  },
 ];
 
 /** Tables that hang off a campaign or its recordings and are deliberately left out, and why. */
