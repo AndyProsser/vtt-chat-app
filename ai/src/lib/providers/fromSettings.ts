@@ -11,12 +11,16 @@ import { createClaudeGenerate } from './claude.js';
 import { createFailover, type Failover } from './failover.js';
 import { createOpenAiGenerate, createOpenAiTranscribe } from './openaiCompat.js';
 
+/** OpenAI's API (Stage 12 CL, the OpenAI connector). Fixed on purpose: `openai` means OpenAI; any other server is `remote`. */
+export const OPENAI_BASE_URL = 'https://api.openai.com';
+
 export interface ProviderDeps {
   /** Secrets come from the environment, never from the database. */
   env?: {
     WHISPER_API_KEY?: string | undefined;
     LLM_API_KEY?: string | undefined;
     ANTHROPIC_API_KEY?: string | undefined;
+    OPENAI_API_KEY?: string | undefined;
   };
   /** The always-configured local backends: the default, and the fallback for a remote one. */
   /** Builds the local transcriber for the operator's configured language. */
@@ -27,7 +31,12 @@ export interface ProviderDeps {
   /** Whisper's starting prompt for this job (the campaign's names), when the operator has it on. */
   transcriptionPrompt?: string | undefined;
   /** Called after each Claude call, so the job can add up its tokens (Stage 12 CL). */
-  onUsage?: (usage: { model: string; inputTokens: number; outputTokens: number }) => void;
+  onUsage?: (usage: {
+    model: string;
+    inputTokens: number;
+    outputTokens: number;
+    costUsd?: number;
+  }) => void;
   /** Called when a job moves to the local backend because the remote was unreachable. */
   onFallback?: (what: 'transcription' | 'llm', reason: string) => void;
   signal?: AbortSignal;
@@ -84,14 +93,39 @@ export function buildJobProviders(settings: AiSettings, deps: ProviderDeps): Job
     // No key: there is nothing to wait for, so this job runs on the local model from the start.
     deps.onFallback?.('llm', 'ai.llm.kind is claude but ANTHROPIC_API_KEY is not set');
   }
+  const openaiKey = deps.env?.OPENAI_API_KEY;
+  if (settings.llm.kind === 'openai' && !openaiKey) {
+    deps.onFallback?.('llm', 'ai.llm.kind is openai but OPENAI_API_KEY is not set');
+  }
+  // The cost of a call, when the operator gave prices (OpenAI has no built-in table: its prices are the operator's).
+  const { priceIn, priceOut } = settings.llm;
+  const priced = (usage: { model: string; inputTokens: number; outputTokens: number }) => ({
+    ...usage,
+    ...(priceIn !== null && priceOut !== null
+      ? { costUsd: (usage.inputTokens * priceIn + usage.outputTokens * priceOut) / 1_000_000 }
+      : {}),
+  });
   const remoteAs = (sampling: Sampling): GenerateText | undefined => {
+    if (settings.llm.kind === 'openai') {
+      // OpenAI's own API, fixed address, no sampling settings (its current models refuse them); the roles differ by prompt.
+      return openaiKey
+        ? createOpenAiGenerate({
+            baseUrl: OPENAI_BASE_URL,
+            apiKey: openaiKey,
+            model: settings.llm.model ?? '',
+            noSampling: true,
+            ...common,
+            ...(deps.onUsage ? { onUsage: (u) => deps.onUsage?.(priced(u)) } : {}),
+          })
+        : undefined;
+    }
     if (settings.llm.kind === 'claude') {
       // Claude takes no sampling settings (its current models refuse `temperature`); the roles differ by prompt.
       return claudeKey
         ? createClaudeGenerate({
             apiKey: claudeKey,
             model: settings.llm.model ?? DEFAULT_CLAUDE_MODEL,
-            ...(deps.onUsage ? { onUsage: deps.onUsage } : {}),
+            ...(deps.onUsage ? { onUsage: (u) => deps.onUsage?.(priced(u)) } : {}),
           })
         : undefined;
     }

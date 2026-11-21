@@ -178,11 +178,16 @@ export interface OpenAiGenerateOptions extends OpenAiCompatOptions {
   /** How to sample; default the scribe's (low temperature, no presence penalty). Sent explicitly, so a server's own
    * defaults for the model (Ollama's Modelfile, say) never apply. */
   sampling?: Sampling;
+  /** Send no `temperature` or `presence_penalty`: OpenAI's own current models reject them. */
+  noSampling?: boolean;
+  /** Called after each successful call with the tokens it used (`usage` in the reply), when the server reports them. */
+  onUsage?: (usage: { model: string; inputTokens: number; outputTokens: number }) => void;
 }
 
 /** A {@link GenerateText} backed by any server implementing `POST /v1/chat/completions` (Ollama does). */
 export function createOpenAiGenerate(options: OpenAiGenerateOptions): GenerateText {
   return async (prompt) => {
+    const sampling = options.sampling ?? SCRIBE_SAMPLING;
     const json = (await post(
       options,
       '/v1/chat/completions',
@@ -190,13 +195,33 @@ export function createOpenAiGenerate(options: OpenAiGenerateOptions): GenerateTe
         model: options.model,
         messages: [{ role: 'user', content: prompt }],
         stream: false,
-        temperature: (options.sampling ?? SCRIBE_SAMPLING).temperature,
-        presence_penalty: (options.sampling ?? SCRIBE_SAMPLING).presencePenalty,
+        ...(options.noSampling
+          ? {}
+          : { temperature: sampling.temperature, presence_penalty: sampling.presencePenalty }),
       }),
       'application/json',
-    )) as { choices?: { message?: { content?: unknown } }[] };
-    const content = json.choices?.[0]?.message?.content;
-    if (typeof content !== 'string') throw new Error('chat reply had no message content');
-    return content;
+    )) as {
+      choices?: { message?: { content?: unknown; refusal?: unknown }; finish_reason?: unknown }[];
+      usage?: { prompt_tokens?: unknown; completion_tokens?: unknown };
+    };
+    const usage = json.usage;
+    if (options.onUsage && typeof usage?.prompt_tokens === 'number') {
+      options.onUsage({
+        model: options.model,
+        inputTokens: usage.prompt_tokens,
+        outputTokens: typeof usage.completion_tokens === 'number' ? usage.completion_tokens : 0,
+      });
+    }
+    const message = json.choices?.[0]?.message;
+    if (typeof message?.refusal === 'string' && message.refusal !== '') {
+      throw new ProviderUnavailableError(
+        `the model declined the request: ${message.refusal.slice(0, 200)}`,
+      );
+    }
+    if (typeof message?.content !== 'string') throw new Error('chat reply had no message content');
+    if (message.content.trim() === '' && json.choices?.[0]?.finish_reason === 'length') {
+      throw new Error('the model ran out of output tokens before writing anything');
+    }
+    return message.content;
   };
 }

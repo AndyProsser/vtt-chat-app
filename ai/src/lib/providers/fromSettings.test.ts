@@ -127,4 +127,99 @@ describe('buildJobProviders', () => {
       expect(onFallback).toHaveBeenCalledWith('llm', expect.stringMatching(/ANTHROPIC_API_KEY/));
     });
   });
+
+  describe('openai', () => {
+    const openai = (): AiSettings => {
+      let s = setAiSetting(DEFAULT_AI_SETTINGS, 'ai.llm.kind', 'openai');
+      s = setAiSetting(s, 'ai.llm.model', 'some-model');
+      s = setAiSetting(s, 'ai.llm.price-in', '0.5');
+      return setAiSetting(s, 'ai.llm.price-out', '2');
+    };
+
+    it('needs a named model', () => {
+      const s = setAiSetting(DEFAULT_AI_SETTINGS, 'ai.llm.kind', 'openai');
+      expect(() => buildJobProviders(s, base)).toThrow(/no model is named/);
+    });
+
+    it('calls api.openai.com with the key, no sampling, and reports tokens with the operator cost', async () => {
+      const calls: { url: string; body: Record<string, unknown>; auth: string }[] = [];
+      const fetchImpl = vi.fn(async (url: string, init: RequestInit) => {
+        calls.push({
+          url,
+          body: JSON.parse(init.body as string),
+          auth: (init.headers as Record<string, string>).Authorization!,
+        });
+        return json({
+          choices: [{ message: { content: 'ok' } }],
+          usage: { prompt_tokens: 1_000_000, completion_tokens: 500_000 },
+        });
+      });
+      const onUsage = vi.fn();
+      const p = buildJobProviders(openai(), {
+        ...base,
+        env: { OPENAI_API_KEY: 'sk-oa' },
+        onUsage,
+        fetchImpl: fetchImpl as unknown as typeof fetch,
+      });
+      expect(await p.generate.call('prompt')).toBe('ok');
+      expect(calls[0]!.url).toBe('https://api.openai.com/v1/chat/completions');
+      expect(calls[0]!.auth).toBe('Bearer sk-oa');
+      expect(calls[0]!.body).not.toHaveProperty('temperature');
+      expect(calls[0]!.body).not.toHaveProperty('presence_penalty');
+      expect(calls[0]!.body.model).toBe('some-model');
+      expect(onUsage).toHaveBeenCalledWith({
+        model: 'some-model',
+        inputTokens: 1_000_000,
+        outputTokens: 500_000,
+        costUsd: 1.5,
+      });
+    });
+
+    it('gives tokens only when no prices are set', async () => {
+      const s = setAiSetting(
+        setAiSetting(DEFAULT_AI_SETTINGS, 'ai.llm.kind', 'openai'),
+        'ai.llm.model',
+        'm',
+      );
+      const onUsage = vi.fn();
+      const p = buildJobProviders(s, {
+        ...base,
+        env: { OPENAI_API_KEY: 'k' },
+        onUsage,
+        fetchImpl: (async () =>
+          json({
+            choices: [{ message: { content: 'ok' } }],
+            usage: { prompt_tokens: 10, completion_tokens: 5 },
+          })) as unknown as typeof fetch,
+      });
+      await p.generate.call('x');
+      expect(onUsage).toHaveBeenCalledWith({ model: 'm', inputTokens: 10, outputTokens: 5 });
+    });
+
+    it('runs locally from the start, and says so, with no key', async () => {
+      const onFallback = vi.fn();
+      const p = buildJobProviders(openai(), { ...base, onFallback });
+      expect(await p.generate.call('x')).toBe('local summary');
+      expect(onFallback).toHaveBeenCalledWith('llm', expect.stringMatching(/OPENAI_API_KEY/));
+    });
+
+    it('treats a refusal as unavailable', async () => {
+      const p = buildJobProviders(
+        {
+          ...openai(),
+          fallback: { ...DEFAULT_AI_SETTINGS.fallback, enabled: false, afterSeconds: 0 },
+        },
+        {
+          ...base,
+          env: { OPENAI_API_KEY: 'k' },
+          signal: AbortSignal.abort(),
+          fetchImpl: (async () =>
+            json({
+              choices: [{ message: { content: null, refusal: 'no' } }],
+            })) as unknown as typeof fetch,
+        },
+      );
+      await expect(p.generate.call('x')).rejects.toBeDefined();
+    });
+  });
 });

@@ -11,7 +11,7 @@ export const TRANSCRIPTION_GLOSSARY_MODES = ['off', 'corrections', 'prompt', 'bo
 
 export const DEFAULT_AI_SETTINGS: AiSettings = {
   transcription: { kind: 'local', url: null, model: null, language: 'en', glossary: 'corrections' },
-  llm: { kind: 'local', url: null, model: null },
+  llm: { kind: 'local', url: null, model: null, priceIn: null, priceOut: null },
   // 10 minutes unreachable before giving up on the remote; retry every 30 s meanwhile.
   fallback: { enabled: true, afterSeconds: 600, retrySeconds: 30 },
   tale: { length: 'default', content: 'default', storytellersOff: [] },
@@ -27,9 +27,11 @@ export const AI_SETTING_KEYS = {
   'ai.transcription.glossary':
     'corrections (default: fix misheard names afterwards) | prompt | both | off',
   'ai.llm.kind':
-    'local | remote | claude (claude needs ANTHROPIC_API_KEY; session text leaves the server)',
+    'local | remote | claude | openai (claude needs ANTHROPIC_API_KEY, openai needs OPENAI_API_KEY and ai.llm.model; session text leaves the server)',
   'ai.llm.url': 'http(s) URL of an OpenAI-compatible server, or "none"',
   'ai.llm.model': 'model name, or "none"',
+  'ai.llm.price-in': 'US dollars per million input tokens, for the cost in jobs list, or "none"',
+  'ai.llm.price-out': 'US dollars per million output tokens, or "none"',
   'ai.fallback.enabled': 'true | false',
   'ai.fallback.after-seconds': 'whole number of seconds, 0 = immediately',
   'ai.fallback.retry-seconds': 'whole number of seconds, at least 1',
@@ -74,6 +76,15 @@ const parseText = (value: string): string | null =>
 function parseKind(value: string): 'local' | 'remote' {
   if (value === 'local' || value === 'remote') return value;
   throw new SettingError('must be "local" or "remote"');
+}
+
+function parsePrice(value: string): number | null {
+  if (NONE.has(value.trim().toLowerCase())) return null;
+  const n = Number(value);
+  if (!Number.isFinite(n) || n < 0) {
+    throw new SettingError('must be a price in dollars per million tokens, such as 0.4, or "none"');
+  }
+  return n;
 }
 
 function parseBool(value: string): boolean {
@@ -123,7 +134,7 @@ export function setAiSetting(settings: AiSettings, key: AiSettingKey, value: str
       break;
     }
     case 'ai.llm.kind':
-      if (value === 'claude') next.llm.kind = 'claude';
+      if (value === 'claude' || value === 'openai') next.llm.kind = value;
       else next.llm.kind = parseKind(value);
       break;
     case 'ai.llm.url':
@@ -131,6 +142,12 @@ export function setAiSetting(settings: AiSettings, key: AiSettingKey, value: str
       break;
     case 'ai.llm.model':
       next.llm.model = parseText(value);
+      break;
+    case 'ai.llm.price-in':
+      next.llm.priceIn = parsePrice(value);
+      break;
+    case 'ai.llm.price-out':
+      next.llm.priceOut = parsePrice(value);
       break;
     case 'ai.fallback.enabled':
       next.fallback.enabled = parseBool(value);
@@ -187,6 +204,9 @@ export function validateAiSettings(settings: AiSettings): string[] {
   if (settings.llm.kind === 'remote' && settings.llm.url === null) {
     problems.push('the LLM is set to remote but has no URL (ai.llm.url)');
   }
+  if (settings.llm.kind === 'openai' && settings.llm.model === null) {
+    problems.push('the LLM is set to openai but no model is named (ai.llm.model)');
+  }
   if (settings.tale.storytellersOff.includes(ALWAYS_ON_BARD)) {
     problems.push('the Tavern Bard cannot be turned off');
   }
@@ -205,7 +225,9 @@ export function normaliseAiSettings(raw: unknown): AiSettings {
   const kind = (v: unknown, fallback: 'local' | 'remote'): 'local' | 'remote' =>
     v === 'local' || v === 'remote' ? v : fallback;
   const llmKind = (v: unknown, fallback: AiLlmKind): AiLlmKind =>
-    v === 'local' || v === 'remote' || v === 'claude' ? v : fallback;
+    v === 'local' || v === 'remote' || v === 'claude' || v === 'openai' ? v : fallback;
+  const price = (v: unknown): number | null =>
+    typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : null;
   const int = (v: unknown, fallback: number, min: number): number =>
     typeof v === 'number' && Number.isInteger(v) && v >= min ? v : fallback;
   const t = o.transcription ?? {};
@@ -227,6 +249,8 @@ export function normaliseAiSettings(raw: unknown): AiSettings {
       kind: llmKind(l.kind, d.llm.kind),
       url: str(l.url, d.llm.url),
       model: str(l.model, d.llm.model),
+      priceIn: price(l.priceIn),
+      priceOut: price(l.priceOut),
     },
     fallback: {
       enabled: typeof f.enabled === 'boolean' ? f.enabled : d.fallback.enabled,

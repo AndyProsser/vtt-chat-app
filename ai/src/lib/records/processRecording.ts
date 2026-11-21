@@ -70,7 +70,12 @@ export function createProcessRecordingHandler(deps: ProcessRecordingDeps): JobHa
 
   const runJob = async (
     job: Job,
-    onUsage: (u: { model: string; inputTokens: number; outputTokens: number }) => void,
+    onUsage: (u: {
+      model: string;
+      inputTokens: number;
+      outputTokens: number;
+      costUsd?: number;
+    }) => void,
   ): Promise<void> => {
     if (!job.recordingId) throw new Error('process-recording job has no recording');
     const recording = await deps.records.getRecording(job.recordingId);
@@ -304,12 +309,20 @@ export function createProcessRecordingHandler(deps: ProcessRecordingDeps): JobHa
       // What Claude was asked, summed over the whole job (all calls), recorded even when the job fails: the tokens
       // were spent either way.
       let used: LlmUsage | undefined;
-      const onUsage = (u: { model: string; inputTokens: number; outputTokens: number }): void => {
+      const onUsage = (u: {
+        model: string;
+        inputTokens: number;
+        outputTokens: number;
+        costUsd?: number;
+      }): void => {
         used = {
           model: u.model,
           inputTokens: (used?.inputTokens ?? 0) + u.inputTokens,
           outputTokens: (used?.outputTokens ?? 0) + u.outputTokens,
           calls: (used?.calls ?? 0) + 1,
+          ...(u.costUsd !== undefined || used?.costUsd !== undefined
+            ? { costUsd: (used?.costUsd ?? 0) + (u.costUsd ?? 0) }
+            : {}),
         };
       };
       try {

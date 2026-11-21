@@ -46,6 +46,20 @@ describe('setAiSetting', () => {
     );
   });
 
+  it('accepts openai with a model, prices in dollars, and needs the model named', () => {
+    let s = setAiSetting(DEFAULT_AI_SETTINGS, 'ai.llm.kind', 'openai');
+    expect(validateAiSettings(s).join()).toMatch(/no model is named/);
+    s = setAiSetting(s, 'ai.llm.model', 'm');
+    s = setAiSetting(s, 'ai.llm.price-in', '0.4');
+    s = setAiSetting(s, 'ai.llm.price-out', '1.6');
+    expect(validateAiSettings(s)).toEqual([]);
+    const back = normaliseAiSettings(JSON.parse(JSON.stringify(s)));
+    expect(back.llm).toMatchObject({ kind: 'openai', priceIn: 0.4, priceOut: 1.6 });
+    expect(setAiSetting(s, 'ai.llm.price-in', 'none').llm.priceIn).toBeNull();
+    expect(() => setAiSetting(s, 'ai.llm.price-in', '-1')).toThrow(SettingError);
+    expect(() => setAiSetting(s, 'ai.llm.price-in', 'cheap')).toThrow(SettingError);
+  });
+
   it.each([
     ['ai.transcription.url', 'not a url'],
     ['ai.transcription.url', 'ftp://host/'],

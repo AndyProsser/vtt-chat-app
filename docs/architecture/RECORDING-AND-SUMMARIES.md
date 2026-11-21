@@ -658,6 +658,12 @@ leaves the server, and private lines and whispers are never in that text to begi
   then fails, since the tokens were spent. `jobs list` shows them with an estimate from `CLAUDE_PRICES` (dated 2026-11-03).
 - **Not built:** `vtt-admin status` naming the LLM a job used; the Batch API; Anthropic's server-side refusal fallback to a
   second Claude model (our own fallback is the local model, which keeps a declined request on the server).
+- **OpenAI connector (2026-11-21):** `ai.llm.kind openai`, key `OPENAI_API_KEY`, fixed address `https://api.openai.com`, through the
+  existing OpenAI-compatible client with `noSampling` (its current models refuse `temperature` and `presence_penalty`),
+  token usage read from the reply, and a refusal (`message.refusal`) treated as unavailable. Decided with Andy: **LLM only**
+  (no cloud Whisper kind: that would send audio off the server; `ai.transcription.kind remote` already allows it, with the notice),
+  and **no built-in default model or price table**, since OpenAI's change faster than the code: `ai.llm.model` is required, and
+  `ai.llm.price-in`/`price-out` (dollars per million tokens) give each job's `costUsd`, saved with its usage at the time of the call.
 - The off-site notice needed no new code beyond `processingLocation()` treating `claude` as off-site.
 
 **How the estimate is made** (estimated, not measured; to check against the first real session): a table talks

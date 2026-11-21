@@ -75,8 +75,11 @@ describe('processingLocation', () => {
     ).toBe('local');
   });
 
-  it('is offsite whenever the LLM is Claude, whatever else is configured', () => {
-    const s = setAiSetting(DEFAULT_AI_SETTINGS, 'ai.llm.kind', 'claude');
-    expect(processingLocation(s)).toBe('offsite');
+  it('is offsite whenever the LLM is Claude or OpenAI', () => {
+    for (const kind of ['claude', 'openai']) {
+      expect(processingLocation(setAiSetting(DEFAULT_AI_SETTINGS, 'ai.llm.kind', kind))).toBe(
+        'offsite',
+      );
+    }
   });
 });

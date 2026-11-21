@@ -495,8 +495,18 @@ export class PostgresRecordsStore implements RecordsStore {
          'inputTokens', COALESCE((usage->>'inputTokens')::bigint, 0) + $3::bigint,
          'outputTokens', COALESCE((usage->>'outputTokens')::bigint, 0) + $4::bigint,
          'calls', COALESCE((usage->>'calls')::bigint, 0) + $5::bigint)
+         || CASE WHEN $6::float8 IS NOT NULL OR usage ? 'costUsd'
+              THEN jsonb_build_object('costUsd', COALESCE((usage->>'costUsd')::float8, 0) + COALESCE($6::float8, 0))
+              ELSE '{}'::jsonb END
        WHERE id = $1`,
-      [jobId, usage.model, usage.inputTokens, usage.outputTokens, usage.calls],
+      [
+        jobId,
+        usage.model,
+        usage.inputTokens,
+        usage.outputTokens,
+        usage.calls,
+        usage.costUsd ?? null,
+      ],
     );
   }
 

@@ -471,6 +471,21 @@ details. A GPU PC does the same work in minutes with the better models. So:
    the job finishes on the local model; it is never lost. `./vtt-admin jobs list` shows each job's tokens and an
    estimated cost (from a dated price table, so check it against the console).
 
+   **Or use OpenAI the same way** (also opt-in and off-site, with the same notice and the same local fallback). OpenAI
+   changes its model names and prices often, so nothing is built in: you name the model, and give its prices if you
+   want a dollar figure in `jobs list` (without them it shows tokens only).
+
+   ```bash
+   # in the Compose .env: OPENAI_API_KEY=sk-...   then: ./vtt-admin restart
+   ./vtt-admin settings set ai.llm.kind openai
+   ./vtt-admin settings set ai.llm.model <the model id from platform.openai.com>
+   ./vtt-admin settings set ai.llm.price-in 0.40     # US dollars per million input tokens (optional)
+   ./vtt-admin settings set ai.llm.price-out 1.60    # and output tokens
+   ```
+
+   `openai` always means api.openai.com. For any other OpenAI-compatible server (Ollama, vLLM, a gateway) use `remote`.
+   Transcription is unchanged: only text leaves the server.
+
 3. **No local AI on the VM (an old CPU, or you simply do not want it)?** Local Whisper and the LLM need a CPU with **AVX** (anything from
    about 2012 on; some old servers, such as a 2010 Xeon, lack it and the Whisper container dies with an illegal instruction). Install
    with `--records-remote` (the installer picks it by itself when it finds no AVX): the Compose profile `records-remote` runs recording

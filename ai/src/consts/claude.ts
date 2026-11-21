@@ -18,10 +18,13 @@ export interface LlmUsage {
   inputTokens: number;
   outputTokens: number;
   calls: number;
+  /** Dollars, summed, when the operator gave prices (`ai.llm.price-in`/`price-out`); absent otherwise. */
+  costUsd?: number;
 }
 
-/** Estimated dollars for a usage, or `undefined` for a model not in the price table. */
+/** Dollars for a usage: the operator's own prices when they gave them, else the built-in Claude table; or `undefined` for a model not in the price table. */
 export function estimateClaudeCost(usage: LlmUsage): number | undefined {
+  if (usage.costUsd !== undefined) return usage.costUsd;
   const price = CLAUDE_PRICES[usage.model];
   if (!price) return undefined;
   return (usage.inputTokens * price.input + usage.outputTokens * price.output) / 1_000_000;

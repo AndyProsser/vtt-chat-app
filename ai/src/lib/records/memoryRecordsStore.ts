@@ -243,6 +243,9 @@ export class MemoryRecordsStore implements RecordsStore {
       inputTokens: (before?.inputTokens ?? 0) + usage.inputTokens,
       outputTokens: (before?.outputTokens ?? 0) + usage.outputTokens,
       calls: (before?.calls ?? 0) + usage.calls,
+      ...(usage.costUsd !== undefined || before?.costUsd !== undefined
+        ? { costUsd: (before?.costUsd ?? 0) + (usage.costUsd ?? 0) }
+        : {}),
     });
   };
   vocabulary = new Map<string, VocabularyTerm[]>();

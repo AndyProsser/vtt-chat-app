@@ -40,8 +40,8 @@ export function isOwnNetworkHost(hostname: string): boolean {
 
 /** `offsite` when any configured remote backend is not on the operator's own network; otherwise `local`. */
 export function processingLocation(ai: AiSettings): ProcessingLocation {
-  // Claude is always off-site: the transcript text goes to Anthropic.
-  if (ai.llm.kind === 'claude') return 'offsite';
+  // Claude and OpenAI are always off-site: the transcript text goes to Anthropic or OpenAI.
+  if (ai.llm.kind === 'claude' || ai.llm.kind === 'openai') return 'offsite';
   for (const backend of [ai.transcription, ai.llm]) {
     if (backend.kind !== 'remote' || backend.url === null) continue;
     try {

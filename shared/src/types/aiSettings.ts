@@ -8,8 +8,8 @@
  */
 export type AiBackendKind = 'local' | 'remote';
 
-/** The LLM may also be Claude (Stage 12 CL): an opt-in off-site adapter, never the default. */
-export type AiLlmKind = AiBackendKind | 'claude';
+/** The LLM may also be Claude or OpenAI (Stage 12 CL): opt-in off-site adapters, never the default. */
+export type AiLlmKind = AiBackendKind | 'claude' | 'openai';
 
 export interface AiBackendSetting {
   kind: AiBackendKind;
@@ -47,8 +47,17 @@ export interface AiSettings {
      */
     glossary: 'off' | 'corrections' | 'prompt' | 'both';
   };
-  /** For `claude`, `model` is a Claude model id (default `claude-sonnet-5-5`) and `url` is unused. */
-  llm: Omit<AiBackendSetting, 'kind'> & { kind: AiLlmKind };
+  /**
+   * For `claude`, `model` is a Claude model id (default `claude-sonnet-5-5`); for `openai` it is required (the operator
+   * names it; no default goes stale). `url` is unused for both. `priceIn` and `priceOut` are US dollars per million
+   * tokens, for the cost shown in `jobs list` (a Claude model in the built-in table needs neither; OpenAI needs them
+   * for a cost, otherwise only tokens are shown).
+   */
+  llm: Omit<AiBackendSetting, 'kind'> & {
+    kind: AiLlmKind;
+    priceIn: number | null;
+    priceOut: number | null;
+  };
   fallback: AiFallbackSetting;
   tale: AiTaleSettings;
   /**
