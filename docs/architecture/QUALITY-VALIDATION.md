@@ -12,7 +12,7 @@ A real table session is the best test and the slowest and least repeatable one. 
 
 ```mermaid
 flowchart LR
-  D["Real dialogue<br/>30 to 60 min<br/>1 DM + 4 or more players"] --> P["Prep: lines, speakers,<br/>planted facts, canaries"]
+  D["Written session<br/>30 to 60 min<br/>1 DM + 4 or more players"] --> P["Prep: lines, speakers,<br/>planted facts, canaries"]
   P --> V["Piper voices<br/>one per speaker<br/>+ room degradation"]
   V --> R["Runner: each speaker is a<br/>LiveKit participant and a<br/>WebSocket client"]
   R --> S["The real server:<br/>Egress, worker, Whisper,<br/>scribe, Chronicler, memory,<br/>storytellers"]
@@ -26,16 +26,18 @@ Everything between the runner and the outputs is the production code and the pro
 
 ## The source dialogue
 
-- **Real, not written for the test.** The existing vault fixture is hand-written, 12 minutes, and tidy. A real dialogue has the mess the pipeline must cope with: interruptions, jokes that go nowhere, rules arguments, a player who is away from the table, names that are invented on the spot and used again an hour later, and in-character and out-of-character talk in the same breath.
+**Decided 2026-11-21 (Andy): the session is written for the test**, not taken from an existing recording or transcript. The plan had been a real dialogue; a written one costs more of Claude's time and less of Andy's, and has no sourcing or licensing question at all. The price is realism, so the writing has to put the mess back in on purpose.
+
+- **Written to be messy, not tidy.** The existing vault fixture is hand-written, 12 minutes, and tidy. The long session is written the way real play sounds: interruptions and talking over each other, jokes that go nowhere, rules arguments, a player who is away from the table for ten minutes, names invented on the spot and used again an hour later, a long Game Master description, an in-character speech, and in-character and out-of-character talk in the same breath. It is written in parts (an evening in four or five scenes) so no part is rushed.
 - **30 to 60 minutes**, roughly 4,500 to 9,000 spoken words at 150 words a minute. Long enough to push the records pipeline through several pieces of notes (the map-reduce path), which no real or synthetic session has done yet.
-- **At least one Game Master voice and four player voices.** A dialogue that already has a Game Master and a table of players is ideal. Anything with five or more speakers can be reshaped into that.
-- **It is throwaway.** Andy's decision (2026-11-21): licensing is not a concern because the text and the audio are used once for this stress test and then deleted, and the repository does not name the source. The repo records only the method and the results. To keep that true, the source text, the prepared script and the rendered audio live **outside the repository** (a scratch directory under `~/.local/share/`), are never committed, and are deleted when Stage 13 closes. The harness code takes the paths as arguments, so no file in the repo points at them.
+- **One Game Master voice and five player voices** (one more than the minimum, so one can be the late joiner or the player who leaves).
+- **What is committed and what is not.** The script and its facts file are ours, so they are committed as a fixture beside the vault one (repeatable runs, and a regression test for every later prompt change). The **rendered audio is never committed** (it is large, and regenerates from the script); it lives in a scratch directory under `~/.local/share/` and is deleted when Stage 13 closes. _Default chosen by Claude, not asked: if Andy would rather the long script stayed out of the repo too, it moves to the same scratch directory._
 
 ### Preparing it (once)
 
 A prep script turns the source into the format the vault fixture already uses (`Speaker: words`, one line per utterance, `(typed)` for chat lines) and a facts file in the shape of `session-vault.facts.json`:
 
-1. **Map speakers** to the cast: one Game Master and four to six players, each with a character name, so the glossary and the roster have something to correct against.
+1. **Write the cast first**: one Game Master and five players, each with a character name, so the glossary and the roster have something to correct against.
 2. **Choose the facts to plant and score.** Read the dialogue and pick 25 to 40 facts that a good set of notes must keep: a throwaway non-player character, a promise with a deadline, a secret only the Game Master understands, a loot item, a failed roll, a place visited twice. Each gets a pattern in the facts file. This is the same method that gave the 24 to 26 of 26 recall figures for the 4B model in Stage 12 A.
 3. **Add canaries.** A canary is a word that appears nowhere else, put in a line that must never reach a shared artifact: an `/ooc` aside, a whisper, a Game Master private talk, a line spoken while the recording is paused, and a line a late joiner says before acknowledging the cue. The existing end-to-end test already uses this trick ("absent" becomes a plain text check); this reuses it at length.
 4. **Mark scene changes and a few table events** (loot dropped, a handout shown, a pause for a break) at the points the dialogue suggests, so the cues, chapters and chat features are exercised in the middle of real conversation instead of in a separate scene.
@@ -130,12 +132,13 @@ Runs 4 and 5 spend real money and send the (synthetic) session off the server; e
 | Stages 3b to 10 (audit) | **A reachability pass over every earlier stage**: Stage 10's audit found two built features a player could not reach and only looked at two; check that everything built has a way in, in both apps                                                                                                             | Reading the apps                         |
 | Stage 7 (never run)     | Android browsers and iOS Safari on the phone web app; deep links on Windows and macOS; the Linux AppImage                                                                                                                                                                                                       | Real devices                             |
 
-## Open questions
+## Decisions and open questions
 
-Andy's to decide when this stage starts; none blocks writing the harness.
+**Decided with Andy, 2026-11-21:**
 
-1. **Which dialogue.** Andy picks it; the repo never names it. What matters for the harness: five or more distinct speakers, one of them a Game Master, 30 to 60 minutes, and a text transcript with speaker labels that can be reshaped into the script format.
-2. **Where the long runs happen.** The VM is the realistic CPU case and the baseline; the dev PC has a GPU and is faster for building the harness. Probably both, as the run matrix says.
-3. **Cloud spend and consent for runs 4 and 5** (the keys, a ceiling on tokens, and that a throwaway synthetic session leaving the server is fine).
-4. **Who is the real client** in the room, and on which operating system.
-5. **How many facts to plant** (25 to 40 is the starting guess) and whether Andy wants to read all five tales or sample.
+1. **The session is written for the test** (see [The source dialogue](#the-source-dialogue)).
+2. **The long runs happen on both machines:** the harness is built and iterated on the dev PC (a GPU, so a run takes minutes), and the baseline and the soak run on the VM (the realistic CPU case).
+3. **No cloud runs yet.** Runs 4 and 5 (Claude and OpenAI) stay open in Stage 13 until Andy says go, and he supplies the keys himself.
+4. **One real client in the room: Andy's Linux desktop app**, joining as an extra participant for the whole run, with the measuring scripts recording its CPU, memory and jitter. The Windows app is a separate check (the microphone clipping retest).
+
+**Still open (Claude's defaults, change freely):** plant **25 to 40 facts**, and Andy reads **all five tales from run 1**, then a sample from later runs.

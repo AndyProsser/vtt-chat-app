@@ -83,14 +83,13 @@ Update this file as threads open, progress, or close — stale entries here are 
 - **Re-plan after Stage 12, 2026-11-21 (Andy): testing becomes Stage 13, the next protocol bump Stage 14.** Stages 11 and 12 are
   closed for building. Everything built and never run for real moved to **Stage 13, Quality Validation**
   ([QUALITY-VALIDATION.md](../docs/architecture/QUALITY-VALIDATION.md)): led by a **30 to 60 minute synthetic session**, a real
-  multi-voice dialogue (one Game Master, four or more players) spoken by TTS voices into the real system, scored against the
-  script. The source dialogue is Andy's choice, is throwaway, lives outside the repo and is never named in it. Every wire
+  multi-voice session (one Game Master, five players) **written for the test** (Andy's choice, 2026-11-21), spoken by TTS voices
+  into the real system and scored against the script. Rendered audio is never committed. Harness built on the dev PC, baseline
+  and soak on the VM, one real Linux desktop client in the room, cloud runs wait for Andy's go. Every wire
   change waits for **Stage 14, 0.7.0 (protocol 5)**, which is not completely designed: step H (memory in the glossary, lore
   import, DDB backstories) is the only designed item. Polyglot, web push and the Admin quick-access screen are **Future ideas**
   (Andy, 2026-11-21). The roadmap was slimmed the same day: detail moved to `docs/tracker/`, the legacy record to `docs/archive/`. The old Stages 13 and 14 (Linux package repositories,
   self-signed certificate) are now **15 and 16**. Order: Stage 13 first, on protocol 4, so fixes ship as 0.6.x patches; then 14.
-  **Open (ask Andy):** the dialogue, where the long runs happen, cloud spend for the Claude and OpenAI runs, who is the real
-  client in the room.
 
 ## Design topics (1–4 are decided; 5–9 still open — ask Andy, don't resolve by writing code)
 
