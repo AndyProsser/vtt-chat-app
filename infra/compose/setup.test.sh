@@ -37,4 +37,10 @@ run_v 203.0.113.9; grep -q '^  node_ip: 203.0.113.9$' "$tmp/infra/compose/liveki
 [[ $(val VOICE_ADDRESS) == 203.0.113.9 ]] || fail "VOICE_ADDRESS recorded"
 run_v localhost; grep -q '^  node_ip: 127.0.0.1$' "$tmp/infra/compose/livekit.yaml" || fail "node_ip resolved from a name"
 run_v auto; grep -q 'use_external_ip: true' "$tmp/infra/compose/livekit.yaml" && ! grep -q node_ip "$tmp/infra/compose/livekit.yaml" || fail "auto means STUN"
+# backup and restore: the services drop every capability, so the throwaway root containers that read and write the
+# volumes must add back what they need, or they cannot read other users' private files (backups broke from 0.5.2)
+src="$(dirname "$0")"
+grep -q 'cap_drop: \[ALL\]' "$src/compose.yml" || fail "compose.yml no longer drops capabilities: revisit the next two checks"
+[[ $(grep -c -- '--cap-add DAC_READ_SEARCH' "$src/backup.sh") == 2 ]] || fail "backup.sh must add DAC_READ_SEARCH to both volume readers"
+[[ $(grep -c -- '--cap-add CHOWN --cap-add DAC_OVERRIDE --cap-add FOWNER' "$src/restore.sh") == 2 ]] || fail "restore.sh must add CHOWN, DAC_OVERRIDE and FOWNER to both volume writers"
 echo "setup.sh: all checks passed"

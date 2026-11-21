@@ -34,13 +34,16 @@ echo "  database…"
 docker compose exec -T postgres pg_dump -U vtt -d vtt --no-owner | gzip > "$out/database.sql.gz"
 [[ -s $out/database.sql.gz ]] || { echo "the database dump is empty; stopping" >&2; exit 1; }
 
-# The volumes are read through throwaway containers of the services that own them (as root, so any file is readable).
+# The volumes are read through throwaway containers of the services that own them. These run as root, but the services
+# drop every Linux capability (compose.yml, x-hardened), and root without DAC_READ_SEARCH cannot read a file that belongs
+# to another user and is private: so the copy adds back that one capability, for reading only. (Without it this step
+# fails with "tar: can't open ... Permission denied" on every upload, which broke backups from 0.5.2.)
 echo "  uploaded files…"
-docker compose run --rm --no-deps -T --user 0 --entrypoint sh backend -c 'tar -C /data/media -cz .' > "$out/media.tar.gz" 2> >(grep -v '^ Container ' >&2)
+docker compose run --rm --no-deps -T --user 0 --cap-add DAC_READ_SEARCH --entrypoint sh backend -c 'tar -C /data/media -cz .' > "$out/media.tar.gz" 2> >(grep -v '^ Container ' >&2)
 
 if ((audio)); then
   echo "  recorded audio (this can be large)…"
-  docker compose --profile records run --rm --no-deps -T --user 0 --entrypoint sh worker -c 'tar -C /out -cz .' > "$out/recordings.tar.gz" 2> >(grep -v '^ Container ' >&2)
+  docker compose --profile records run --rm --no-deps -T --user 0 --cap-add DAC_READ_SEARCH --entrypoint sh worker -c 'tar -C /out -cz .' > "$out/recordings.tar.gz" 2> >(grep -v '^ Container ' >&2)
 fi
 
 echo "  configuration (contains secrets)…"

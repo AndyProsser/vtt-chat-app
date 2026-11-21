@@ -32,6 +32,7 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ### Fixed
 
+- **`vtt-admin backup` and `vtt-admin restore` work again on a Compose install.** Since the container hardening of 0.5.2 the backup's uploaded-files step failed with `tar: can't open … Permission denied` for every upload and stopped before saving the configuration, so no backup since then was complete (the database dump was fine); a restore would have failed the same way at `chown`. The throwaway root containers that read and write the volumes now add back only the capabilities they need (`DAC_READ_SEARCH` to read; `CHOWN`, `DAC_OVERRIDE` and `FOWNER` to restore). **Take a fresh backup after updating**: an older backup folder has an incomplete or missing `media.tar.gz` and no `config/`.
 - **`vtt-admin update` no longer ends with shell errors:** the update replaces the `vtt-admin` script while it is running, and bash then read the new file from the old position (`term_env: command not found`, `syntax error near unexpected token ;;`, then a help screen). The command now stops right after the update and exits with the installer's status. The update itself was never affected; the fix reaches you with the update after next, since the old script is what runs the update.
 
 ### Changed
