@@ -2,7 +2,7 @@
 
 The public, read-only status page — see [CLAUDE.md §6](../.claude/CLAUDE.md).
 
-**Status:** scaffold only — not yet implemented ([ROADMAP Stage 8](../ROADMAP.md#stage-8--operations-admin-cli--status-page)).
+**Status:** scaffold only — not yet implemented ([ROADMAP Stage 8](../docs/tracker/STAGES-0-TO-8.md#stage-8--operations-admin-cli--status-page)).
 
 ## Responsibilities
 

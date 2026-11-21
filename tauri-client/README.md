@@ -2,7 +2,7 @@
 
 The cross-platform **system-tray** client — see [CLAUDE.md §8.1](../.claude/CLAUDE.md) and [docs/architecture/OVERVIEW.md](../docs/architecture/OVERVIEW.md).
 
-**Status:** the previous design's browser/overlay code is gone (Stage 1). `rust-livekit/` (audio) is the focus of [ROADMAP Stage 2](../ROADMAP.md#stage-2--audio--records-spike); `src-tauri/` is a windowless shell until the tray arrives in [Stage 4](../ROADMAP.md#stage-4--tray-client); `panels-ui/` is a minimal placeholder panel.
+**Status:** the previous design's browser/overlay code is gone (Stage 1). `rust-livekit/` (audio) is the focus of [ROADMAP Stage 2](../docs/tracker/STAGES-0-TO-8.md#stage-2--audio--records-spike); `src-tauri/` is a windowless shell until the tray arrives in [Stage 4](../docs/tracker/STAGES-0-TO-8.md#stage-4--tray-client); `panels-ui/` is a minimal placeholder panel.
 
 A tiny app that lives in the tray, with floating React panels the user opens when they want them. It serves **only its own pages** — no embedded browser, no remote origins, no injected content. Players leave it hidden ~90% of the time, so it is built to be quiet: near-zero idle CPU, autostart, auto-update, auto-rejoin, crash recovery, and a tray icon that always shows live / muted / recording / disconnected.
 

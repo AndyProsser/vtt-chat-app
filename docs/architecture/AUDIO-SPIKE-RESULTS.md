@@ -1,6 +1,6 @@
 # Audio Spike Results (Stage 2, running log)
 
-Measured numbers and findings from [ROADMAP Stage 2](../../ROADMAP.md#stage-2--audio--records-spike), kept short and dated. Design conclusions are copied into the architecture docs once they stop moving.
+Measured numbers and findings from [ROADMAP Stage 2](../tracker/STAGES-0-TO-8.md#stage-2--audio--records-spike), kept short and dated. Design conclusions are copied into the architecture docs once they stop moving.
 
 ## Finding 1 — use WebRTC's platform audio layer, not hand-rolled `cpal` + AEC (2026-11-05)
 
@@ -47,7 +47,7 @@ Hardware: 8-core desktop CPU, 31 GB RAM, GTX 1080 (not used for Whisper in these
 
 ## Finding 5 — GPU, and speech-window segmentation (2026-11-07)
 
-**GPU (GTX 1080, 8 GB, via Docker CDI).** Upstream's prebuilt `whisper.cpp:main-cuda` image only contains kernels for sm_75/80/86/90 (it is built on CUDA 13, which dropped Pascal), so on a GTX 10-series card it dies with `no kernel image is available`. [`whisper-cuda.Dockerfile`](../../infra/records-smoke/whisper-cuda.Dockerfile) rebuilds it on CUDA 12.4 for `61;75;86;89`; **the build takes ~30 minutes** (once), the image is ~5.8 GB. Anyone pointing the pipeline at a remote GPU box needs to check the card's compute capability first.
+**GPU (GTX 1080, 8 GB, via Docker CDI).** Upstream's prebuilt `whisper.cpp:main-cuda` image only contains kernels for sm_75/80/86/90 (it is built on CUDA 13, which dropped Pascal), so on a GTX 10-series card it dies with `no kernel image is available`. [`whisper-cuda.Dockerfile`](../../infra/compose/whisper-cuda.Dockerfile) rebuilds it on CUDA 12.4 for `61;75;86;89`; **the build takes ~30 minutes** (once), the image is ~5.8 GB. Anyone pointing the pipeline at a remote GPU box needs to check the card's compute capability first.
 
 | Whisper run, same sparse 10-min track    | Time     | RTF (whole track) | Result                                                             |
 | ---------------------------------------- | -------- | ----------------- | ------------------------------------------------------------------ |

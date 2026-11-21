@@ -16,7 +16,7 @@ import type {
 } from './soundStore.js';
 
 /**
- * The server's shared starter catalogue (decided 2026-11-16, docs/superpowers/specs/2026-11-16-starter-sounds-design.md):
+ * The server's shared starter catalogue (decided 2026-11-16, docs/tracker/specs/2026-11-16-starter-sounds-design.md):
  * sounds, boards of stingers and scenes that every DM sees from their first minute, written at start-up from the
  * pack that ships in `backend/assets/sounds/`. They have no owner (`ownerId` null), so a DM can use them but not
  * edit or delete them, and a server update can add to or change them.

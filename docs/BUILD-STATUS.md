@@ -116,7 +116,7 @@ refusal or a worker job behind an existing one.
 ## Built 2026-11-17: loot management and chat history, 0.5.x part (branch `loot-chat-history`)
 
 ROADMAP Stage 10 "Loot management and chat history", parts 1 to 3. No wire change (protocol stays). Plan:
-`docs/superpowers/plans/2026-11-17-loot-and-chat-history.md`.
+`docs/tracker/plans/2026-11-17-loot-and-chat-history.md`.
 
 - **Built and tested:** snapshot chat from Postgres (a restart test in `realtime.test.ts`); player loot
   visibility and party take/return (`lootRoutes.test.ts`, run on memory **and** real Postgres, including a

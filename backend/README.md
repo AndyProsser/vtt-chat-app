@@ -36,7 +36,7 @@ System operations only — gameplay stays in the app (CLAUDE.md §7). It talks t
 
 **AI backend settings** (`ai.*`, stored in `instance_settings.ai`): each of transcription and the LLM is `local` or `remote` (an OpenAI-compatible server URL + model), plus `ai.fallback.enabled / after-seconds / retry-seconds`. API keys are **not** stored — they come from `WHISPER_API_KEY` / `LLM_API_KEY` in the environment. `ai/`'s `buildJobProviders` turns these settings into the providers for one job.
 
-Still to build ([ROADMAP Stage 3](../ROADMAP.md#stage-3--server-core)): the realtime and WebSocket suites still run on `MemoryStore` only, per-recording cue acknowledgements, OIDC, the email sender (optional SMTP), recording status events, chat persistence, and the Admin CLI.
+Still to build ([ROADMAP Stage 3](../docs/tracker/STAGES-0-TO-8.md#stage-3--server-core)): the realtime and WebSocket suites still run on `MemoryStore` only, per-recording cue acknowledgements, OIDC, the email sender (optional SMTP), recording status events, chat persistence, and the Admin CLI.
 
 ## Responsibilities
 

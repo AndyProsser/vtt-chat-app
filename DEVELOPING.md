@@ -11,7 +11,7 @@ npm test   # the store and replay suites now also run against the real servers
 
 Without those variables the same suites run against the in-memory stand-ins, so CI and a bare checkout need no services. To run the backend itself on them: `DATABASE_URL=… VALKEY_URL=… npm start -w @vtt-chat-app/backend` (migrations apply on start).
 
-**Status:** mid-pivot. The docs describe the new design (a self-hosted tray app + server with records and AI summaries); the **code is still the previous design** until [ROADMAP Stage 1](ROADMAP.md#stage-1--pivot-cleanup) removes it. Sections below are marked **(works today)** or **(planned)** so this guide doesn't pretend otherwise.
+**Status:** mid-pivot. The docs describe the new design (a self-hosted tray app + server with records and AI summaries); the **code is still the previous design** until [ROADMAP Stage 1](docs/tracker/STAGES-0-TO-8.md#stage-1--pivot-cleanup) removes it. Sections below are marked **(works today)** or **(planned)** so this guide doesn't pretend otherwise.
 
 Primary server target: **Ubuntu Server**. Client targets, in priority order: **Windows**, **Ubuntu/Linux**, macOS.
 
@@ -179,7 +179,7 @@ VS Code is the recommended editor; enable format-on-save with Prettier and rust-
 - [backend/README.md](backend/README.md)
 - [tauri-client/README.md](tauri-client/README.md)
 - [ai/README.md](ai/README.md)
-- [web/](ROADMAP.md#stage-7--mobile-spa) (planned)
+- [web/](docs/tracker/STAGES-0-TO-8.md#stage-7--mobile-spa) (planned)
 - [ddb/README.md](ddb/README.md) (optional)
 - [status/README.md](status/README.md)
 - [livekit/README.md](livekit/README.md)

@@ -8,7 +8,7 @@
 
 **Tech Stack:** Tauri 2.12, Rust (cargo workspace in `tauri-client/`), React 19 + Radix Themes + Zustand, TypeScript 7, vitest, `@fontsource/cinzel` (bundled font), Node backend for one small field.
 
-**Spec:** [docs/superpowers/specs/2026-11-08-main-window-design.md](../specs/2026-11-08-main-window-design.md)
+**Spec:** [docs/tracker/specs/2026-11-08-main-window-design.md](../specs/2026-11-08-main-window-design.md)
 
 **Not in this plan (separate plans, in this order):** spec step 5 (party-inventory `claimed_for`, coin items, split), spec step 6 (DM voice effect in Rust). Also deferred and flagged: the Audio tab of Settings (no device selection exists in `rust-livekit` yet, and the spec forbids controls that do nothing), recording history, drag-avatar-to-group (Groups menu only), remembering the Connect/Disconnect choice across restarts.
 

@@ -85,8 +85,9 @@ Update this file as threads open, progress, or close — stale entries here are 
   ([QUALITY-VALIDATION.md](../docs/architecture/QUALITY-VALIDATION.md)): led by a **30 to 60 minute synthetic session**, a real
   multi-voice dialogue (one Game Master, four or more players) spoken by TTS voices into the real system, scored against the
   script. The source dialogue is Andy's choice, is throwaway, lives outside the repo and is never named in it. Every wire
-  change waits for **Stage 14, 0.7.0 (protocol 5)**: step H (memory in the glossary, lore import, DDB backstories) plus any
-  candidate Andy picks (polyglot, web push, Admin quick-access). The old Stages 13 and 14 (Linux package repositories,
+  change waits for **Stage 14, 0.7.0 (protocol 5)**, which is not completely designed: step H (memory in the glossary, lore
+  import, DDB backstories) is the only designed item. Polyglot, web push and the Admin quick-access screen are **Future ideas**
+  (Andy, 2026-11-21). The roadmap was slimmed the same day: detail moved to `docs/tracker/`, the legacy record to `docs/archive/`. The old Stages 13 and 14 (Linux package repositories,
   self-signed certificate) are now **15 and 16**. Order: Stage 13 first, on protocol 4, so fixes ship as 0.6.x patches; then 14.
   **Open (ask Andy):** the dialogue, where the long runs happen, cloud spend for the Claude and OpenAI runs, who is the real
   client in the room.

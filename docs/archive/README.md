@@ -24,5 +24,7 @@ the current doc wins.
 | `architecture/DDB-AUTH.md`                                                                                                                | Cobalt cookie → JWT exchange, DDB login flow, Akamai notes                                                                          | **Optional** DDB character import — the Character Service endpoints and the "re-exchange, don't cache" lesson. The login-flow sections no longer apply.                                                               |
 | `superpowers/specs/`, `superpowers/plans/`                                                                                                | Stage 1–3a designs and implementation plans (dev VM, shell hardening, overlay compact view, WS layer "Plan B", conditions "Plan C") | **Plan B's** Rust-owned WebSocket state machine with a bounded replay buffer is the likeliest thing to be revived for the new client/server sync layer. Plan A (overlay UI) and Plan C (D&D conditions) are obsolete. |
 
+The roadmap's record of what happened to the first four stages, and what carried over, is [LEGACY-DDB-OVERLAY-DESIGN.md](LEGACY-DDB-OVERLAY-DESIGN.md).
+
 Prior art from the two earlier repos (`vtt-chat`, `vtt-chat-extension`) is a separate matter — see
 [.claude/CLAUDE.md](../../.claude/CLAUDE.md) §15.

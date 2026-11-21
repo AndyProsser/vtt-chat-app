@@ -536,7 +536,8 @@ doc in the same change as the code it describes — don't batch documentation fo
 - `DEVELOPING.md` — local dev environment setup, and the short release procedure
 - `CHANGELOG.md` — one section per release (Keep a Changelog). **Add user-visible changes under `## [Unreleased]` in the same change that makes them.**
 - `docs/guides/RELEASING.md` — the release cycle in full: channels, tags, signing key, what the workflow does
-- `ROADMAP.md` — staged build order, dependencies, and definition-of-done per stage
+- `ROADMAP.md` — the plan and a one-line summary per stage; keep it short (detail, design and decisions for a stage go in `docs/tracker/`, moved there when the stage closes)
+- `docs/tracker/` — the build tracker: per-stage design, decisions and build record, plus completed plans and specs
 - `docs/BUILD-STATUS.md` — what is built vs verified, what needs the dev box, unconfirmed assumptions (update with the work)
 - `docs/architecture/OVERVIEW.md` — system diagram + module responsibilities
 - `docs/architecture/RECORDING-AND-SUMMARIES.md` — recording, consent cue, transcription, summaries

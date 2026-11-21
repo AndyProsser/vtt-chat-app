@@ -320,7 +320,7 @@ moved from Cellar to Roof", "The table is together again", "The DM took Mira asi
 
 The tray client shows these features through **one main window**, not one panel each; occasional tasks
 (account, schedule, theme, handouts, party inventory) open as separate windows. Design rationale:
-[2026-11-08-main-window-design.md](../superpowers/specs/2026-11-08-main-window-design.md).
+[2026-11-08-main-window-design.md](../tracker/specs/2026-11-08-main-window-design.md).
 
 ```mermaid
 flowchart LR

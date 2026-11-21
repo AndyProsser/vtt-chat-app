@@ -2,7 +2,7 @@
 
 React 19 + Radix UI + Zustand panels, served as **local pages** by the Tauri app — no injection, no Shadow DOM, no remote content. Light/dark follows the OS.
 
-**Status:** a minimal placeholder (`PanelRoot`: mute control + connected state) that proves the page → Rust core wiring. It replaced the old `overlay-ui` in Stage 1. The real panels arrive in [Stage 4](../../ROADMAP.md#stage-4--tray-client) and later.
+**Status:** a minimal placeholder (`PanelRoot`: mute control + connected state) that proves the page → Rust core wiring. It replaced the old `overlay-ui` in Stage 1. The real panels arrive in [Stage 4](../../docs/tracker/STAGES-0-TO-8.md#stage-4--tray-client) and later.
 
 **Kept from the old overlay:** the Vite + Vitest scaffolding, the Radix Themes + Zustand setup, the leaf-isolated stores (`speakingStore`, `microphoneStore`, `useIsSpeaking`, …), the churn-diagnostics tooling, and the `avatarColor` helper. See [STATE-AND-RESILIENCE.md](../../docs/architecture/STATE-AND-RESILIENCE.md).
 
