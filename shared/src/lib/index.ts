@@ -12,3 +12,4 @@ export * from './processingNotice.js';
 export * from './invites.js';
 export * from './campaignDetails.js';
 export * from './nextSession.js';
+export * from './historyView.js';

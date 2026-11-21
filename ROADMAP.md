@@ -109,6 +109,10 @@ The campaign switcher in both apps should say **who the DM is** for each table (
 
 Both ride this bump, so the upgrade and the protocol change are tested together. **Valkey 8.1.12 to 9.1.4** (9.2 needs time): run LiveKit, the live-chat replay buffer and the demo campaign on it. **Postgres 17 to 18**: a major upgrade, done by **dump and restore into a new volume**, because the official 18 image keeps its data in a version-specific directory and mounts `/var/lib/postgresql` instead of `/var/lib/postgresql/data` (changing only the tag fails or starts on an empty directory). What has to be designed: how `vtt-admin update` carries an existing install across automatically (a backup first, the restore into the new volume, the old volume kept until the operator confirms), what the native install does (it uses Ubuntu's packages), and how it is rehearsed (the demo campaign on a restored copy). Review and sources: [DEPENDENCY-VERSIONS.md](docs/architecture/DEPENDENCY-VERSIONS.md).
 
+### The History list shows the session's title (Andy, 2026-11-21; built as far as it can go without the wire)
+
+The storyteller now opens each tale with a short title, and the History screens show it as the tale's heading. Showing it **in the list** (the in-world title with the date beneath, in both apps) needs the recordings list to carry that title, a new field on a response, so it is part of this bump. Until then the list title stays the date. See [QUALITY-VALIDATION.md](docs/architecture/QUALITY-VALIDATION.md#decisions-on-what-players-see-andy-2026-11-21).
+
 ### Anything else
 
 Anything Stage 13 finds that cannot be fixed without a wire change is added here when found. The wire-change ideas that are not decided (polyglot masking, web push, the Admin quick-access screen) are parked in [Future ideas](#future-ideas), not in 0.7.0.

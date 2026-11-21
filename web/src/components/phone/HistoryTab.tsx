@@ -1,5 +1,6 @@
 import { LazyMarkdown } from './LazyMarkdown.js';
 import { Badge, Button, Callout, Card, Flex, Heading, Text, TextField } from '@radix-ui/themes';
+import { moreDetailLabel, partitionSummaries, splitTaleTitle } from '@vtt-chat-app/shared';
 import { useEffect, useState } from 'react';
 
 import { useLoad } from '../../hooks/useLoad.js';
@@ -78,8 +79,15 @@ function RecordingView({
   // The scribe's notes come to the DM alone and stay folded away: the tale and the brief are what is read.
   const [showNotes, setShowNotes] = useState(false);
   const all = detail.data?.summaries ?? [];
-  const hasNotes = all.some((s) => s.kind === 'notes');
-  const summaries = all.filter((s) => s.kind !== 'notes' || showNotes);
+  const parts = partitionSummaries(all);
+  const hasNotes = parts.notes.length > 0;
+  // The tale (and the DM's brief) first; the chapters and hero summaries fold under "More detail".
+  const [showMore, setShowMore] = useState(false);
+  const summaries = [
+    ...parts.main,
+    ...(showMore ? parts.more : []),
+    ...(showNotes ? parts.notes : []),
+  ];
   return (
     <Flex direction="column" gap="3" className="phone-pad">
       <Flex align="center" gap="3">
@@ -96,21 +104,31 @@ function RecordingView({
       {!detail.loading && !detail.error && summaries.length === 0 && (
         <Text color="gray">No summary yet. It appears here when it has been written.</Text>
       )}
-      {summaries.map((s, i) => (
-        <Card key={`${s.kind}:${s.subject ?? ''}:${i}`} size="2">
-          <Flex direction="column" gap="2">
-            <Flex gap="2" align="center">
-              <Text size="2" weight="medium">
-                {summaryTitle(s.kind)}
-                {s.subject ? `: ${s.subject}` : ''}
-                {s.title ? ` · ${s.title}` : ''}
-              </Text>
-              {s.visibility !== 'members' && <Badge color="violet">DM only</Badge>}
+      {summaries.map((s, i) => {
+        // The storyteller titles the tale on its first line: that is its heading here.
+        const tale = s.kind === 'session' ? splitTaleTitle(s.text) : { title: null, body: s.text };
+        return (
+          <Card key={`${s.kind}:${s.subject ?? ''}:${i}`} size="2">
+            <Flex direction="column" gap="2">
+              <Flex gap="2" align="center">
+                <Text size="2" weight="medium">
+                  {tale.title ?? summaryTitle(s.kind)}
+                  {tale.title ? ` · ${summaryTitle(s.kind)}` : ''}
+                  {s.subject ? `: ${s.subject}` : ''}
+                  {s.title ? ` · ${s.title}` : ''}
+                </Text>
+                {s.visibility !== 'members' && <Badge color="violet">DM only</Badge>}
+              </Flex>
+              <LazyMarkdown text={tale.body} />
             </Flex>
-            <LazyMarkdown text={s.text} />
-          </Flex>
-        </Card>
-      ))}
+          </Card>
+        );
+      })}
+      {parts.more.length > 0 && (
+        <Button variant="soft" onClick={() => setShowMore((v) => !v)}>
+          {showMore ? 'Less detail' : moreDetailLabel(parts.more)}
+        </Button>
+      )}
       {hasNotes && (
         <Button variant="soft" onClick={() => setShowNotes((v) => !v)}>
           {showNotes ? 'Hide the scribe’s notes' : 'Show the scribe’s notes'}

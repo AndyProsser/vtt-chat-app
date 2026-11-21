@@ -310,7 +310,9 @@ export function buildStoryPrompt(
             '- Nothing happens in the tale that the notes do not say happened. A plan for next time is still only a plan, and a recap is told as a recap.',
           ]),
       '- When the notes are short, the tale is a few sentences: never pad, and never mention the notes, the recording or what is missing.',
-      '- No headings, no lists, no title.',
+      kind === 'session'
+        ? '- Begin with one line that is the title of the session as you would announce it: two to six words, written as "# The Weeping Anchor" (a heading, then a blank line, then the tale). The title names a place, a person or the turn of events, in your own voice, and never the table, the dice or the date. No other headings, no lists.'
+        : '- No headings, no lists, no title.',
       ...(content ? [content] : []),
       `- If something was left unresolved, end with one line that starts "Next time:". If nothing was, leave that line out.${gm}${taleLoot(context)}`,
     ].join('\n'),

@@ -215,9 +215,33 @@ Noted while the run was still processing, from reading session 1's stored summar
 
 - **What a session produces, and how long.** The scribe's notes (DM-only) are **4,388 words**; the tale **748** (inside the 300 to 800 target); the Chronicler's brief **236** (inside 200 to 300); and **six chapter summaries of 220 to 363 words each** (about 1,800 words, visible to players), with one per hero still to come. So "long and detailed" is the scribe's notes, or the chapters taken together, not the tale.
 - **The notes are longer than the design says.** The design is "at most about 3,000 words for a whole session" (`NOTES_MAX_WORDS`), but the cap is applied **inside each stretch** (`summarise.ts`), and with scene-change chapters the notes are taken **per chapter and concatenated** (`processRecording.ts`), so six chapters can each reach the cap. A whole-session cap is not enforced.
-- **Possible overflow of the model's context.** `ollama ps` shows a context of **8,192 tokens** for `qwen3:8b`. The notes alone are about 6,000 tokens, and the tale and brief prompts add instructions, memory, the glossary and the output. If the input does not fit, Ollama drops the oldest tokens, which would be the instructions. Not verified: check whether the tale and brief are being written from a truncated prompt (the tale reaches Mabel, Barnaby, the crabs and the whistle, but misses **Odalys Venn**, who hires the party, **Saint Ostren's**, **Verse Nine** and the **three-day deadline**, which are all late in the session).
+- **The context window is not overflowing yet, but the headroom is thin and shrinks with session length.** First suspected, then checked in Ollama's log: all 48 model calls for session 1 logged `truncated = 0`, and the largest prompt was **5,092 tokens against an 8,192-token window (62 %)**. So the tale's missing late-session beats (Saint Ostren's, Verse Nine, the three-day deadline; and the tale writes "Odaly's Venn" and "Vek" for the glossary's Odalys Venn and Varek) are the model compressing 4,400 words into 750, not a cut prompt. The model itself is trained to 40,960 tokens; **Ollama runs it at 8,192** (`n_ctx_slot`), which is the limit. A 60-minute session would have notes of 8,000+ words and would overflow. Andy's point (2026-11-21): chunk, and allow several summary and scribe passes so that things fit. See [Fitting a long session in the window](#fitting-a-long-session-in-the-models-window).
 - **The tale opens with table chatter.** It begins "The session began with a dice check, a welcome, and a half-Elf Rogue with pink dice claiming they were lucky", out-of-character talk told as the story, and it misreads "slightly out of tune" (a lute) as being about loot. A prompt problem for the storyteller: tell the story in the fiction, leave the table talk out.
 - **Time.** Processing session 1 took well over an hour on the dev PC's GTX 1080 with `qwen3:8b` split 20 % CPU and 80 % GPU, inside Andy's 12 to 24 hour budget for a real session.
+
+## Fitting a long session in the model's window
+
+**The problem (Andy, 2026-11-21).** A model reads a fixed number of tokens at once. The scribe already works in pieces (the transcript is split by chapter and by length, notes are merged and condensed within a stretch), but the later steps are not: the **tale**, the **Chronicler's brief** and the **memory** update each read the **whole** set of notes in one prompt, plus instructions, the glossary and the memory. At 25 minutes that is 5,092 of 8,192 tokens. At 60 minutes it would not fit, and the failure is silent: the server drops the oldest tokens, which are the instructions.
+
+**What the evidence says** (session 1, local `qwen3:8b`): no truncation yet; the notes (4,388 words) are longer than the design's whole-session cap (about 3,000) because the cap is applied per chapter, not to the whole session.
+
+**A design to fit any session** (to build and test in this stage; the demo campaign can be lengthened to exercise it):
+
+1. **A token budget, not a word budget.** Estimate each prompt's tokens before the call (characters divided by about 3.5, checked against the model's real count: Ollama's `usage.prompt_tokens`, which the connector already records) and compare with the window with a margin for the output. The window is a setting (`ai.llm.context`), because the OpenAI-compatible API cannot ask Ollama for it. A prompt over about 70 % takes the chunked path; the decision is logged.
+2. **A whole-session cap on the notes.** After the chapters are noted, if the joined notes exceed the budget, run a **condense pass** (the prompt exists: `buildCondensePrompt`) over groups of chapters, repeating until they fit. Facts are kept, wording is not.
+3. **The tale as a map and a reduce.** For a session that does not fit, write a short **tale of each chapter** (the chapter summaries already exist) and then write the **session's tale from those**, with the condensed notes' key facts, so no single prompt holds the whole session.
+4. **The Chronicler and memory the same way:** read the condensed notes (the facts they need are few), not the raw chapter notes.
+5. **Detect truncation, never assume.** Compare `prompt_tokens` with the window after every call; a call at or near the window is recorded on the job and flagged in `vtt-admin jobs list` and in the validation report ("prompt used 98 % of the window"). Ollama's own log line `truncated = 1` is the cross-check.
+6. **The operator's lever:** `OLLAMA_CONTEXT_LENGTH` raises the window (the model supports 40,960) at a cost in VRAM and speed. On Andy's 8 GB GPU a bigger window pushes more of the model onto the CPU. So fitting in a small window by chunking is the better default for a modest GPU, and a bigger window is for those who have the VRAM.
+7. **More passes are acceptable.** Andy's budget is 12 to 24 hours for a real session, so extra passes cost time, not correctness.
+
+Open: where the window setting lives for each backend (Ollama, a remote OpenAI-compatible server, Claude, OpenAI), and whether the chapters stay in the pipeline at all given the player-detail decision below.
+
+## Decisions on what players see (Andy, 2026-11-21)
+
+- **Tale first, the rest folded.** A past session opens on the tale. The chapter and hero summaries sit under "More detail"; nothing is removed. (Built in both apps, 0.6.x, no wire change.)
+- **The storyteller names the session.** The tale's first line is a short title in the storyteller's voice (`# The Weeping Anchor`), shown as the tale's heading. The History list shows it only when the server sends it with the list, a new field and so a wire change: **0.7.0** (Stage 14). Until then the list title stays the date.
+- **A tidier subtitle:** "27 min · Tale ready · 6 chapters · 4 heroes" in place of a list of kinds, with "processing" shown only while there is no tale yet.
 
 ## Decisions and open questions
 

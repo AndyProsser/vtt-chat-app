@@ -1,4 +1,10 @@
 import { TextField } from '@radix-ui/themes';
+import {
+  moreDetailLabel,
+  partitionSummaries,
+  splitTaleTitle,
+  summaryBlurb,
+} from '@vtt-chat-app/shared';
 import { ChevronDown, ChevronRight, Search, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
@@ -211,8 +217,10 @@ function Recording({
             <b>{dateOf(item.startedAt)}</b>
             <span className="vtt-muted">
               {durationLabel(item.startedAt, item.stoppedAt)}
-              {item.status !== 'processed' ? ` · ${statusWord(item.status)}` : ''}
-              {item.summaries.length > 0 ? ` · ${item.summaries.map(summaryLabel).join(', ')}` : ''}
+              {item.summaries.length === 0 && item.status !== 'processed'
+                ? ` · ${statusWord(item.status)}`
+                : ''}
+              {item.summaries.length > 0 ? ` · ${summaryBlurb(item.summaries)}` : ''}
               {dm && item.audio === 'purged' ? ' · audio deleted' : ''}
             </span>
           </span>
@@ -236,7 +244,10 @@ function Detail({ id, canReadTranscript }: { id: string; canReadTranscript: bool
   const [transcript, setTranscript] = useState<TranscriptRow[]>();
   // The scribe's notes come to the DM alone and stay folded away: the tale and the brief are what is read.
   const [showNotes, setShowNotes] = useState(false);
-  const notes = summaries?.filter((s) => s.kind === 'notes') ?? [];
+  const parts = partitionSummaries(summaries ?? []);
+  const notes = parts.notes;
+  // The tale is what is read; the chapters and hero summaries are there for the table that wants them.
+  const [showMore, setShowMore] = useState(false);
   useEffect(() => {
     let cancelled = false;
     campaignApi<{ summaries: SummaryView[] }>('GET', `recordings/${id}`)
@@ -269,11 +280,21 @@ function Detail({ id, canReadTranscript }: { id: string; canReadTranscript: bool
       {summaries?.length === 0 && (
         <span className="vtt-muted">No summary yet: it appears once processing finishes.</span>
       )}
-      {summaries
-        ?.filter((s) => s.kind !== 'notes')
-        .map((s, i) => (
-          <SummaryCard key={i} s={s} />
-        ))}
+      {parts.main.map((s, i) => (
+        <SummaryCard key={i} s={s} />
+      ))}
+      {parts.more.length > 0 && (
+        <div>
+          <ToolButton
+            label={showMore ? 'Hide the chapters and hero summaries' : moreDetailLabel(parts.more)}
+            text={showMore ? 'Less detail' : moreDetailLabel(parts.more)}
+            onClick={() => setShowMore((v) => !v)}
+          >
+            {showMore ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+          </ToolButton>
+        </div>
+      )}
+      {showMore && parts.more.map((s, i) => <SummaryCard key={`m${i}`} s={s} />)}
       {notes.length > 0 && (
         <div>
           <ToolButton
@@ -285,10 +306,7 @@ function Detail({ id, canReadTranscript }: { id: string; canReadTranscript: bool
           </ToolButton>
         </div>
       )}
-      {showNotes &&
-        summaries
-          ?.filter((s) => s.kind === 'notes')
-          .map((s, i) => <SummaryCard key={`n${i}`} s={s} />)}
+      {showNotes && notes.map((s, i) => <SummaryCard key={`n${i}`} s={s} />)}
       {transcript ? (
         <div className="vtt-transcript">
           {transcript.length === 0 && <span className="vtt-muted">No transcript yet.</span>}
@@ -328,14 +346,17 @@ function Detail({ id, canReadTranscript }: { id: string; canReadTranscript: bool
 
 /** One summary: the tale, the DM brief or the scribe's notes. */
 function SummaryCard({ s }: { s: SummaryView }) {
+  // The storyteller titles the tale on its first line: show that as the heading, and "The tale" beside it.
+  const tale = s.kind === 'session' ? splitTaleTitle(s.text) : { title: null, body: s.text };
   return (
     <article className="vtt-session">
       <b>
-        {summaryLabel(s.kind)}
+        {tale.title ?? summaryLabel(s.kind)}
+        {tale.title ? <span className="vtt-muted"> · {summaryLabel(s.kind)}</span> : null}
         {s.subject ? `: ${s.subject}` : ''}
         {s.title ? ` · ${s.title}` : ''}
       </b>
-      <MarkdownView text={s.text} />
+      <MarkdownView text={tale.body} />
     </article>
   );
 }
