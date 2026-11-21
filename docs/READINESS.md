@@ -1,0 +1,121 @@
+# Readiness for a real group: the go / no-go list
+
+**Why this exists.** The first real group gets one chance at a first impression. Andy's groups are picky and will push back hard if the system fails (2026-11-21). So "ready" is not a feeling: it is a short list of bars, each with the evidence that it is met, and a rule for when to go. It is **updated after every validation run** ([QUALITY-VALIDATION.md](architecture/QUALITY-VALIDATION.md)) and read before a group is switched over.
+
+**Who it is for.** Two real tables, with Andy as **operator and a player, not the Game Master**: the main campaign (a Game Master who is experienced and less technical) and a side campaign (a Game Master who is less experienced and more technical, who likes to tinker), with a mix of players. So: a Game Master must be able to run a session without the operator at their shoulder; the operator must be able to see and fix a problem quickly; and every failure must be **loud and recoverable, never silent**.
+
+## How to read it
+
+| Mark | Meaning                                                          |
+| ---- | ---------------------------------------------------------------- |
+| ✅   | Proven by a run, a drill or a real use, with the date            |
+| 🟡   | Measured or built, and not yet at the bar (or only partly shown) |
+| ⚪   | Not tested yet                                                   |
+| ❌   | Failed; a bug is open                                            |
+
+**MUST** bars gate the go decision. **SHOULD** bars should be met but may be accepted with the risk written down.
+
+**The go rule.** Go when every MUST is ✅, or Andy has accepted it in writing here with the risk. **A ❌ or ⚪ on Recording or Privacy blocks the go, with no exceptions.** A 🟡 on Tale quality blocks only if a player would notice (a wrong name, a made-up event, a leak).
+
+## Summary (as of 2026-11-21, during the first full run)
+
+| Area                                        | MUST bars | ✅  | 🟡  | ⚪  | ❌  |
+| ------------------------------------------- | --------- | --- | --- | --- | --- |
+| A. A session is never lost                  | 4         | 2   | 2   | 0   | 0   |
+| B. Nothing private leaks                    | 3         | 1   | 0   | 2   | 0   |
+| C. The tale is good                         | 6         | 0   | 3   | 3   | 0   |
+| D. The voice is good enough                 | 4         | 1   | 0   | 3   | 0   |
+| E. A Game Master and an operator can run it | 4         | 3   | 0   | 1   | 0   |
+| F. Every player can get in                  | 2         | 1   | 1   | 0   | 0   |
+| G. When something fails                     | 3         | 2   | 1   | 0   | 0   |
+
+**Not ready yet**, and the run in progress is what moves most of the ⚪ and 🟡. The biggest unknown is area C (does the tale thread across sessions); the most important to get right is A and B.
+
+## A. A session is never lost
+
+| #   | Bar                                                                                                            | Evidence                                                                                                                                                                                                                             | State                                                                         |
+| --- | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------- |
+| A1  | A dropped connection and a rejoin do not lose or duplicate the recording (MUST)                                | Demo campaign session 2 drops and rejoins a player; the run scores it. The Stage 11 end-to-end test covers the consent loop                                                                                                          | 🟡 played in the live run; the score arrives with its report                  |
+| A2  | A restart of the server or the worker mid-session recovers: audio kept, processing queued (MUST)               | The restart drill (2026-11-10) and the kill drill pass. Must be re-run on the release candidate, in the middle of a demo session                                                                                                     | ✅ 2026-11-10 (re-run on 0.7.0 ⚪)                                            |
+| A3  | Backups are complete and a restore works (MUST)                                                                | Found 2026-11-21: since 0.5.2 every backup stopped at the uploads and never saved the configuration, and a restore would have failed at `chown`. Fixed; a complete backup taken on the VM; the restore's media step verified locally | 🟡 fixed, not yet in a release; a full restore drill on a blank machine is ⚪ |
+| A4  | Disk never fills without warning: the status page and `vtt-admin` show it, old audio is purged by rules (MUST) | Disk figures on the status page, purge rules and the 3-day warning are built (2026-11-10 to 13); the 8-hour soak watches it                                                                                                          | ✅ built and used; ⚪ in the soak                                             |
+
+## B. Nothing private leaks
+
+| #   | Bar                                                                                                                                                             | Evidence                                                                                                     | State                                       |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------- |
+| B1  | Out-of-character lines, whispers, paused talk and a late joiner's words before the cue are in no transcript, note, brief, tale, memory, search or export (MUST) | 8 canary words in the demo campaign, searched for in every artifact (and as the Game Master and as a player) | ⚪ scored in the live run                   |
+| B2  | Nothing from the Game Master's private notes reaches a tale, except the one storyteller the Game Master chose to leak (MUST)                                    | 2 canary words that exist only in the GM notes                                                               | ⚪ scored in the live run                   |
+| B3  | Players cannot read Game Master-only records, or another table's (MUST)                                                                                         | The access matrix tests (Stage 9 security pass), and the two-tables-at-once check (Stage 13)                 | ✅ matrix 2026-11-10; ⚪ two tables at once |
+
+## C. The tale is good (the product)
+
+| #   | Bar                                                                                                                                                            | Evidence                                                                                                                                                                                                                                      | State                                                  |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| C1  | Every name in the tale is spelled as the table spells it (MUST)                                                                                                | The glossary's score per term; Whisper's word accuracy on names. First run: the tale wrote "Odaly's Venn" and "Vek" for Odalys Venn and Varek                                                                                                 | 🟡 measured, below the bar                             |
+| C2  | The facts that mattered are kept (MUST)                                                                                                                        | 54 planted facts scored against the notes, the brief and the tale                                                                                                                                                                             | ⚪ scores in the report                                |
+| C3  | The tale threads across sessions: a person met in session 1 and returned to in session 3 is recognised, two people with a similar name are not confused (MUST) | 12 planted callbacks, the "find Gary" test (a ferrywoman paid in pickled onions), the two Tobiases. **Andy reads the three tales**                                                                                                            | ⚪ the big test; read the tales                        |
+| C4  | It reads as a story, not minutes: no table chatter, no invented events, a title (MUST)                                                                         | First run: the tale opened with the dice and "pink dice". The prompt now asks for an in-world title and tells the story in the fiction                                                                                                        | 🟡 fixed in the prompt, not yet re-read                |
+| C5  | A long session fits the model's window, or is chunked so it does (MUST)                                                                                        | 25 minutes used 62 % of an 8,192-token window with no truncation; a 60-minute session would not fit. The chunking design is written ([QUALITY-VALIDATION.md](architecture/QUALITY-VALIDATION.md#fitting-a-long-session-in-the-models-window)) | ⚪ design only; add a 60-minute demo session           |
+| C6  | Players are not overwhelmed: the tale first, the rest folded; the Game Master's brief is usable (MUST)                                                         | Tale first with "More detail" built in both apps; a Game Master reads the brief for hooks                                                                                                                                                     | 🟡 built, not yet seen in a real window                |
+| C7  | Processing stays inside the operator's budget: 12 to 24 hours per real session (SHOULD)                                                                        | Session 1 took about 2.5 hours on a GTX 1080 and `qwen3:8b`; the five hero summaries were about 1 h 40 of it                                                                                                                                  | ✅ inside the budget; hero summaries are a tuning lead |
+
+## D. The voice is good enough
+
+| #   | Bar                                                                        | Evidence                                                                               | State                                                                     |
+| --- | -------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| D1  | Audio is clear and the latency is not noticeable in a real session (MUST)  | Andy, 2026-11-21: clear, no latency, indicators correct (Linux, five synthetic voices) | ✅ Linux; Windows echo and noise ✅ 2026-11-20; headsets and Bluetooth ⚪ |
+| D2  | The Windows microphone does not clip (MUST)                                | The first Windows recording clipped (auto gain suspected)                              | ⚪ retest with auto gain off                                              |
+| D3  | An 8-hour session with churn holds steady: memory, handles, disk (MUST)    | The soak (the demo campaign looped, with the monitor)                                  | ⚪                                                                        |
+| D4  | A laptop sleep or a network drop on a real device rejoins by itself (MUST) | Desktop auto-rejoin built; checked only on the dev PC                                  | ⚪ on a real laptop                                                       |
+
+## E. A Game Master and an operator can run it
+
+| #   | Bar                                                                                       | Evidence                                                                                                                                                                                                                        | State                       |
+| --- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
+| E1  | A fresh install works from the docs (MUST)                                                | A second person installed it from the docs on a blank Ubuntu VM, first time (2026-11-19). Re-run before the release                                                                                                             | ✅ 2026-11-19               |
+| E2  | An update keeps data and applies migrations (MUST)                                        | The VM went 0.6.2-dev.1 to dev.3 with migrations 0042 and 0043 on 2026-11-21                                                                                                                                                    | ✅                          |
+| E3  | The operator can see what is happening: status, jobs, errors, the monitor's report (MUST) | `vtt-admin status`, `jobs list` (with what a job waits for), the status page, the validation report                                                                                                                             | ✅                          |
+| E4  | **A Game Master can run a session unaided** (MUST)                                        | Invite, start and stop recording, the consent cue, the soundboard, the notes. **Needs a trial with each Game Master**: the experienced, less technical one first; the technical one will also tinker (settings, the soundboard) | ⚪ the biggest manual check |
+
+## F. Every player can get in
+
+| #   | Bar                                                       | Evidence                                                                                                                                | State                            |
+| --- | --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
+| F1  | Joining by invite code works with no approval step (MUST) | Andy joined by code on 2026-11-21 and appeared at once                                                                                  | ✅                               |
+| F2  | The app runs on each player's machine (MUST)              | Windows ✅, Linux (Wayland, Ubuntu 26.04) ✅, iPhone web app ✅. macOS (Apple silicon and Intel), Android and the AppImage are untested | 🟡 ask each player what they use |
+| F3  | The app updates itself where it can (SHOULD)              | Windows updated in place (0.5.3 to 0.5.4); Linux packages update by hand                                                                | ⚪ macOS                         |
+
+## G. When something fails
+
+| #   | Bar                                                                                                                          | Evidence                                                                                                                                                | State |
+| --- | ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
+| G1  | A failed job is visible and can be retried (MUST)                                                                            | `jobs list`, `jobs retry`                                                                                                                               | ✅    |
+| G2  | A failed session does not let a later session be processed out of order, and the operator can release it deliberately (MUST) | Built 2026-11-21 (the queue order rule, `jobs release`); unit-tested on the in-memory queue; the Postgres claim SQL has not run against a real database | 🟡    |
+| G3  | The audio is kept until the Game Master confirms the summary, so any failure can be reprocessed (MUST)                       | The purge rules keep raw audio until confirmed; `recording reprocess`                                                                                   | ✅    |
+
+## What is consciously not needed for the first session
+
+Several workers, per-table activity dots, the Game Master's name in the table switcher, polyglot languages, web push, the title in the History list (all in the roadmap's Stage 14, 17 or Future ideas). None of them blocks a good first session.
+
+## The first session itself
+
+1. **Rehearse first, separately.** A short session (20 minutes) with each Game Master and two or three players, before the group, with Andy watching the status and the logs. Run it as the real thing: consent cue, recording, a scene change, a whisper, loot.
+2. **Back up before, check the backup after.** A complete backup (`vtt-admin backup`, with the folder checked) the evening before.
+3. **Tell the group what to expect**, in two sentences: it records, and the tale and the Game Master's notes appear **hours later**, not at the end of the night. (Say it before the first session, because the wait is the thing a picky group will notice.)
+4. **Keep the old way as the fallback.** If voice fails, they keep playing on what they use today; the recording and chat features can be switched on afterwards.
+5. **Andy on call** for the first two sessions, with `vtt-admin status` and the logs to hand.
+
+## Collecting the group's feedback
+
+After session one, ask each person a few things, and keep the answers in the repo (without names):
+
+- **Players:** Did the voice and the app work? Was anything confusing? Read the tale: _is this our story?_ (1 to 5), what was wrong or missing, what was a good surprise?
+- **Game Masters:** Was starting and stopping simple? Did the brief help you plan the next session? What did you want and not find?
+- **Operator (Andy):** What did the monitor and the logs show? What took time to fix?
+
+Their answers decide what moves from "consciously not needed" into the next stage.
+
+## Updating this file
+
+After each validation run: change the marks, put the date and the evidence in the row, and recount the summary table. A bar changes from ⚪ to ✅ only on evidence (a report, a drill, a real use), never on a belief that it works.

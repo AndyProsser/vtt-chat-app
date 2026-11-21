@@ -546,6 +546,7 @@ doc in the same change as the code it describes — don't batch documentation fo
 - `docs/architecture/SYNC-PROTOCOL.md` — WebSocket/REST split, envelope, auth, replay, presence tiers
 - `docs/architecture/VERSIONING-AND-DEPLOYMENT.md` — version-number rules, server-chosen client builds, update mirror, container workflow
 - `docs/architecture/STATE-AND-RESILIENCE.md` — client state boundaries, leaf isolation, and recovery rules
+- `docs/READINESS.md` — the go / no-go list for switching a real group over: each bar, its evidence and its state; update it after every validation run
 - `docs/architecture/DEPENDENCY-VERSIONS.md` — what each third-party service is pinned to, what is current and when support ends; review it before a release and after a security advisory
 - `docs/architecture/QUALITY-VALIDATION.md` — Stage 13: the long synthetic session and everything else tested end to end; results go in BUILD-STATUS
 - `docs/CONVENTIONS.md` — folder/style conventions, detailed version of §4

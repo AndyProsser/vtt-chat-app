@@ -3,6 +3,7 @@
 //   node infra/records-smoke/campaign-run.ts dry    [options]   walk the plan compressed while measuring the real target
 //   node infra/records-smoke/campaign-run.ts live   [options]   play the sessions into a real server, wait for the records, score them
 //   node infra/records-smoke/campaign-run.ts report <run dir>   write report.md again from a finished run's files
+//   node infra/records-smoke/campaign-run.ts pack <run dir>     a reading pack: the tales, the Game Master's brief and notes, the memory
 //
 // Options (dry):
 //   --target local|vm   which machine to measure (default local). `vm` needs VTT_VM_SSH and VTT_API (see validation/target.ts)
@@ -36,6 +37,12 @@ import path from 'node:path';
 import { DEFAULT_DIR, load, validate } from './campaign-fixture.ts';
 import { runLive } from './validation/live.ts';
 import { Monitor, type RunEvent, type Sample } from './validation/monitor.ts';
+import {
+  buildPack,
+  parseSummaries,
+  type CallbackResult,
+  type SessionInput,
+} from './validation/pack.ts';
 import { planCampaign } from './validation/plan.ts';
 import { renderReport, summarise_run, type RunMeta } from './validation/report.ts';
 import { targetByName, type Target } from './validation/target.ts';
@@ -254,6 +261,32 @@ async function live(): Promise<void> {
   if (failure || meta.checks.some((c) => c.status === 'fail')) process.exitCode = 1;
 }
 
+/** A reading pack from a finished run's outputs: the tales, the Game Master's brief and notes, and the memory, to read. */
+async function pack(): Promise<void> {
+  const dir = argv[1];
+  if (!dir) throw new Error('usage: campaign-run.ts pack <run dir>');
+  const l = await load(DEFAULT_DIR);
+  const meta = JSON.parse(await readFile(path.join(dir, 'meta.json'), 'utf8')) as RunMeta;
+  const read = async (f: string) => readFile(path.join(dir, 'outputs', f), 'utf8').catch(() => '');
+  const sessions: SessionInput[] = [];
+  for (const s of l.campaign.sessions) {
+    const summaries = parseSummaries(await read(`session-${s.n}-summaries.md`));
+    if (summaries.length === 0) continue;
+    sessions.push({
+      n: s.n,
+      title: s.title,
+      summaries,
+      memory: await read(`session-${s.n}-memory.txt`),
+      scores: (meta.scores ?? []).filter((x) => x.name.startsWith(`session ${s.n}:`)),
+    });
+  }
+  const callbacks = JSON.parse((await read('callbacks.json')) || '[]') as CallbackResult[];
+  const callbackText = Object.fromEntries(l.callbacks.callbacks.map((c) => [c.id, c.what]));
+  const out = path.join(dir, 'reading-pack.md');
+  await writeFile(out, buildPack({ label: meta.label, sessions, callbacks, callbackText }));
+  log(`wrote ${out} (${sessions.length} session(s))`);
+}
+
 async function report(): Promise<void> {
   const dir = argv[1];
   if (!dir) throw new Error('usage: campaign-run.ts report <run dir>');
@@ -280,6 +313,7 @@ try {
     // The voice client leaves sockets open that would keep the process alive: the report is written, so end here.
     process.exit(process.exitCode ?? 0);
   } else if (cmd === 'report') await report();
+  else if (cmd === 'pack') await pack();
   else {
     console.error(
       'usage: campaign-run.ts dry|live|report [options]  (see the header of this file)',
