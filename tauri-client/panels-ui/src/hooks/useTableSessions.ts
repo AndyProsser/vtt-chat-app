@@ -39,8 +39,6 @@ export function useTableSessions(campaignIds: readonly string[], enabled: boolea
     return () => {
       alive = false;
     };
-    // `key` stands for the ids: the array itself is new on every render.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, key]);
 
   /** Answers for one table; the row updates at once and goes back if the server refuses. */

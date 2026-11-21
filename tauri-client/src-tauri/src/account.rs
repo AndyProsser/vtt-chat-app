@@ -1069,7 +1069,10 @@ mod tests {
     fn table_calls_are_fixed_paths_with_checked_ids() {
         use super::table_call;
         let (m, p, b) = table_call("sessions", "c1", None, None).unwrap();
-        assert_eq!((m, p.as_str(), b), ("GET", "/api/campaigns/c1/sessions", None));
+        assert_eq!(
+            (m, p.as_str(), b),
+            ("GET", "/api/campaigns/c1/sessions", None)
+        );
         let (m, p, b) = table_call("rsvp", "c1", Some("s-2"), Some("late")).unwrap();
         assert_eq!(m, "PUT");
         assert_eq!(p, "/api/campaigns/c1/sessions/s-2/rsvp");
