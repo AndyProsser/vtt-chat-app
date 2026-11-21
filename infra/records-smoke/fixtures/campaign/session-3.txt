@@ -1,0 +1,193 @@
+# Lanterns of Saltmarrow, session 3: "The Night of Lamps". See README.md for the line format.
+# The payoffs (the memory and the bard must connect these to sessions 1 and 2): Mabel Thrupp returns and remembers the pickled
+# onions; Granny Brinewhistle collects Fennimore's debt, and Mabel settles it; Captain Rook Harrow returns; Odalys Venn is the
+# traitor and is redeemed; the Weeping Anchor and Hollin Marsh; Tobias Quillfeather relights Greywick Light; the Gullbone Whistle.
+# A name trap: Tobias Wick, the lanternwright, is a different Tobias from Tobias Quillfeather. Rowan also says "the Gullbone
+# Whistle" and "Gullcrag Point" in the same breath on purpose.
+# Canaries: artichoke (/ooc), walnut (/tell), rhubarb (said during a pause).
+
+[start]
+Rowan: Okay, we are recording. This is the last session of Lanterns of Saltmarrow, and I would like to say thank you for playing, and then I would like to say that I have been looking forward to this for six weeks.
+Priya: Say it again. We are your favourite players.
+Rowan: You are my only players. Right. A quick recap. You have found Tobias Quillfeather, the keeper, alive in the crypt under Saint Ostren's. Captain Rook Harrow got away. Granny Brinewhistle took the last verse of Fennimore's song and says he owes her another debt. And the Harbourmaster, Odalys Venn, has sent for you.
+Tomasz: I want to make it very clear I am still upset about the verse.
+Marcus: We know. We all know.
+Elise: It is the night of the Night of Lamps. Is that how we say it? It is the Night of Lamps tonight.
+Rowan: It is. The sun has gone down on the last day. The festival starts at dusk, and the Choir plans to raise the lens in the Cathedral of Tides at the stroke of midnight. You have until then.
+[scene: Tavern]
+Rowan: The Weeping Anchor is almost empty. The festival has pulled everyone out into the streets. Hollin Marsh is behind the bar with his arms folded, and he does not look at you when you come in. He says, she is upstairs. Be gentle with her.
+Priya: Be gentle? That is not what I expected.
+Rowan: At the corner table, in the dark, sits Odalys Venn. The candle has gone out. Her coat is on the back of the chair. She has her face in her hands, and a brass key on a blue cord on the table in front of her. She says, I knew you would come. I am sorry.
+Marcus: Ghorrim sits down opposite her. He does not say anything.
+Elise: Aelwen puts a hand on her notebook. Aelwen says, you gave them the key.
+Rowan: Odalys says, I did. She says, my brother Corin was a sailor on the Marigold. She went down off the Point eleven years ago. I have heard him sing in the night ever since, out on the water, and when the Archdeacon came to me last winter and said the Choir could give the drowned back their voices, I believed him. I gave him the key to the lighthouse. I did not know he would take the lens. I did not know he would take Tobias.
+Priya: Why did you hire us?
+Rowan: She says, because I could not stop him myself. And because someone had to.
+Tomasz: That is the most tragic thing I have ever heard.
+Elise: Do you believe her, Marcus?
+Marcus: I believe she believes it. That is not the same thing, but I will take it.
+Priya (typed): /do I keep my hand on my dagger anyway
+Rowan: She slides the brass key across the table. She says, that opens the grating at the foot of the Chandlers' Guildhall, the one that leads down to the Old Cistern. There are guards on the front. There are none on the water. But you will need a boat, and nobody will take a boat out tonight.
+Priya: A boat. Okay. I know someone with a boat.
+Elise: Mabel Thrupp!
+Priya: Mabel Thrupp. With the Damp Duchess. Kestrel takes out the Gullbone Whistle.
+Rowan: The whistle is humming loudly. Louder than it has ever been, loud enough to make the table shake.
+Marcus: Does Mabel know the Gullbone Whistle?
+Rowan: You will find out. Hollin Marsh says, you will want these. He puts a box on the bar. Inside are six flasks of lamp oil, tightly stoppered, and a wad of rags. He says, the zombies burn. Everybody knows that. I have a boy who tends the festival lamps, and he says it is the only thing they are afraid of.
+Marcus: Thank you, Hollin Marsh. Ghorrim takes them. We are in your debt.
+Rowan: He says, bring my sign back its tear.
+Priya (typed): /ooc brb getting an artichoke from the fridge, back in one minute
+Priya: Right. I am back. What did I miss?
+Rowan: Nothing. You were gone for ten seconds.
+[scene: Market]
+Rowan: The streets of Saltmarrow are alive with lamps. Thousands of them, paper and glass and tin, hung on strings across the alleys, floating on the canals, carried in procession by children. The air smells of roasting chestnuts and hot wine. A brass band plays something cheerful and slightly out of tune, and Tomasz, I believe you will be pleased to hear it is a lute piece.
+Tomasz: I am not pleased. It is not in tune. Fennimore winces.
+Rowan: On the corner of the market square, a stall is selling lanterns shaped like fish. A man stands behind it, young and enthusiastic, with ink on his fingers and a wooden stool covered in half-finished frames. He says, welcome, welcome! Tobias Wick, lanternwright, the best lanterns in Saltmarrow, and if you want a good one, you will need to decide quickly!
+Elise: Wait. Tobias Wick? Not Tobias Quillfeather?
+Rowan: Tobias Wick. No relation. Tobias Quillfeather is the keeper, and he is sitting on a bench at the other end of the square, being fed soup by a stranger, and he is crying, because for the first time in a week he is surrounded by lights.
+Marcus: That is lovely. And confusing. Two Tobiases.
+Priya: I will call this one Wick. And the other one Quillfeather. Always. For my own sanity.
+Rowan: Tobias Wick sells you a dozen hooded lanterns, cheap. He says, are you going to the Cathedral? The midnight lighting is going to be extraordinary, I have heard they have a new lens. A wonderful lens. A great glass thing from the lighthouse. The Archdeacon says it will light the whole harbour.
+Elise: That is the lens. They are going to show it in public.
+Rowan: Tobias Wick beams. He says, the Archdeacon is a saint. A saint! He is blessing every lamp in the city tonight.
+Priya: Is he, now?
+Marcus: We do not tell him. He is just a lanternwright. We buy the lanterns and we smile.
+Tomasz (typed): /tell Priya do not trust the lanternwright, I will explain at the quay. walnut
+Rowan: You have about three hours before midnight. What do you do with them?
+Priya: I want to buy something fried. Kestrel has been living on porridge and stew for a week.
+Rowan: A woman with a cart is selling fried eel on sticks, a copper each.
+Priya: Four. No, five. Kestrel buys five and gives one to Varek, who accepts it with the dignity of a king.
+Marcus: Ghorrim buys a hot wine and sits on a wall with his feet dangling. He says, I am only doing this once. I want to remember what a festival is like.
+Elise: Aelwen is at a bookstall. There is a book called The Tides of Aldermere, a very old edition. Can I buy it?
+Rowan: Twelve gold pieces.
+Elise: That is robbery. Is there anything I can do? Persuasion?
+Rowan: Roll it.
+Elise: Fifteen. Plus four. Nineteen.
+Rowan: The bookseller, who has clearly been waiting for someone to haggle, takes it down to eight gold pieces and a firm handshake.
+Elise: I am going to read it on the roof of the lighthouse. Aelwen is going to be so happy.
+Tomasz: Fennimore finds a spot on the edge of the square and plays, for coins. And I want to improvise something about the last week.
+Rowan: Roll Performance. You have no last verse, so there is a disadvantage.
+Tomasz: Disadvantage. Twelve and nine. Nine.
+Rowan: Nine. You play, and it is all right, but there is a hole in the middle of it, and a few of the listeners look puzzled. A child says, mummy, why does the song stop?
+Tomasz: That child is going to be my arch-enemy.
+Priya: I want to see if the crowd has any cultists in it. Kestrel watches the faces.
+Rowan: Perception. And you have the whistle in your pocket, which is warm.
+Priya: Eleven. That is bad. Is there anything?
+Rowan: A man in a seaweed-green scarf, standing by himself near the cathedral steps, not carrying a lamp. When your eyes meet, he turns away and walks up the steps.
+Priya: Okay. We know where they are going to be. That is enough.
+[stinger: Mood > Ship's bell]
+Rowan: Down at the end of the quay, a ship's bell begins to toll, slow and strange, and it is not in time with the band.
+[scene: Harbour]
+Rowan: The quay is almost empty. The festival crowds have gone up to the square, and the water is black and still. Moored at the end of the long jetty, a flat barge with a patched sail rocks gently, and there is a lamp on its bow, and a woman sitting under the lamp, eating out of a jar.
+Tomasz: That is the Damp Duchess!
+Priya: That is Mabel Thrupp. Kestrel blows the whistle.
+Rowan: The whistle makes a note you can barely hear. It is a gull's cry, thin and high. And the woman on the barge looks up, and pushes back her enormous hat, and fixes you with her one eye.
+Tomasz: Fennimore waves. Hello, Mabel! It is us! It is Fennimore! The one with the pickled onions!
+Rowan: Mabel Thrupp says, I remember you. The little one. The proper onion. She says, I was wondering when you would come back. The green water has been talking about you for days.
+Elise: What does the green water say?
+Rowan: She says, that five fools and a very big quiet one are going to try to stop the Choir, and that I should be there to pole the barge. She grins. She says, I have been waiting for this a long time.
+Marcus: Mabel, we need to get under the Chandlers' Guildhall. Into the Old Cistern. We have a key. Can you take us?
+Rowan: She says, the old cistern channel? Nobody has taken a boat in there for thirty years. The water is high tonight, and it is full of things. But I know the way.
+Tomasz: Fennimore has a message for you. Granny Brinewhistle says she remembers you.
+Rowan: Mabel's face changes. The jar drops from her hand, and it rolls across the planks and does not break. She says, Granny Brinewhistle is alive?
+Tomasz: Very much so. She was in the Fens. She took the last verse of my song.
+Rowan: Mabel says, then she has not forgotten me, and I have not forgotten her. That old hag took my first boat, forty years ago, on a bargain I was too young to understand. She says, get in. All of you. Quietly. And she pushes the Damp Duchess off the jetty with a long pole.
+Priya: Does she know a way to cancel a debt?
+Rowan: She says, in my experience, Granny likes a trade. If it comes to it, we will trade.
+[pause]
+Rowan: We are at a natural break, let us take ten minutes, I need to refill my tea.
+Marcus: Does anyone have rhubarb? I have a rhubarb crumble in the oven and I forgot to take it out.
+Elise: Go, go, go. Go and take it out.
+[resume]
+Rowan: All right, everyone. Back to the table.
+[scene: Cave]
+Rowan: The Damp Duchess slides out of the basin and into a narrow channel between two tall warehouses, with the festival lamps floating past. Mabel poles in silence. The channel narrows. The warehouses give way to old brick, green with slime. And then you are in the dark, in a long vaulted tunnel, and the water slaps on the walls, and the only light is the hooded lanterns that Tobias Wick sold you.
+[stinger: Unease > Water drip]
+Priya: The whistle has stopped humming. That is bad. Or good.
+Rowan: It has gone quiet, because the humming is now coming from all around you, and the whistle is no longer louder than the song.
+Marcus: Ghorrim lowers his voice. Orsolin, Lampbearer, be a light for us.
+Rowan: The tunnel opens into the Old Cistern, an enormous chamber of pillars and still water, three storeys high, lit by hundreds of candles floating in the dark. In the middle, on a raised dais, stands the Tidecaller's Lens, a huge ring of glass in a brass frame, taller than a house, glowing with a pale greenish light. Around it, in robes the colour of seaweed, stand forty cultists, singing. And in front of them, in a robe of black and silver, is a tall man with a long thin face and a very kind smile.
+Elise: That is the Archdeacon.
+Rowan: He says, in a soft, gentle voice, welcome. I am Valmeric Dusk. I have been expecting you. Brother Duskhammer, I believe? It has been so long.
+Marcus: What?
+Rowan: He says, you were once a novice of the Lampbearer's order at the Brackenford temple, were you not? Before you left? Your teacher was my teacher. Orsolin's light is not the only light, you know.
+Marcus: Ghorrim does not know this man. I swear he does not.
+Rowan: He smiles. He says, you will. Sing, my brothers. Sing them home.
+[stinger: Undead and horrors > Ghost voices]
+Rowan: Roll initiative. And as the cultists sing, the water of the cistern begins to boil, and the dead of the harbour rise up, dripping, with seaweed in their hair.
+Elise: I have an eighteen. Aelwen casts Scorching Ray on the nearest zombie. Three rays.
+Rowan: Roll them.
+Elise: Fourteen, eleven, and a natural twenty.
+Rowan: A critical hit. Roll your damage.
+Elise: Two d six, then two d six again, doubled on the crit. That is nineteen, and seven, and nine. Thirty-five damage.
+[stinger: Spells > Fire spell]
+Rowan: The first zombie is blown apart. The second is on fire. The third is smouldering.
+Marcus: Ghorrim throws a flask of lamp oil at the burning ones. The ones that are on fire. Does that go up?
+Rowan: It goes up. The whole group of them. Dexterity saves for the four zombies next to the fire.
+Marcus: Burn, you drowned things.
+[stinger: Spells > Fireball]
+Priya: Kestrel sneaks along the side of the cistern, behind the pillars, looking for a way up to the dais. I want to cut the cord that holds the lens frame.
+Rowan: Roll Stealth.
+Priya: Twenty. With the pink dice.
+Rowan: You get right up behind the dais without anyone seeing. But as you reach for the cord, a cold hand closes around your ankle. Prone, grappled. It is a specter. One of the drowned. It has the face of a young man, with a sailor's cap.
+Priya: Corin?
+Rowan: It is a ghost of a sailor. The Choir has called back the dead, and it looks up at you with empty eyes. It whispers, are you here to take me home?
+Priya: Oh no. Kestrel does not know what to do.
+Elise: Odalys! The Harbourmaster. She came with us, did she? Is she here?
+Rowan: She did. She has been following the barge along the quay with Hollin Marsh's boy. She comes down the cistern steps, alone, in her blue coat, with a lantern in her hand. She says, Corin. It is me. Odalys. I am here.
+Tomasz: Fennimore plays. I play my lute, the old tune. The one I do not have the last verse for.
+Rowan: Roll Performance, with advantage, because everyone at the table is crying.
+Tomasz: Eighteen. Twenty. Take the twenty.
+Rowan: You play the first two verses of the song you wrote for your mother, and you leave a gap where the third verse should be, and Odalys fills it in, from memory, because it is an old sailor's lullaby. And the specter lets go of Kestrel. It looks at the Harbourmaster. It smiles. It says, Dally. And it fades, like a candle going out.
+Priya: Rowan, I am not okay.
+Rowan: Odalys is on her knees on the stones, sobbing, and she does not hear the next thing, which is Valmeric Dusk raising both arms. He shouts, the lens! The lens! Raise it!
+Marcus: Varek! Varek, now!
+Rowan: Varek, who has not said a word all night, and has said nothing in three sessions, roars. He breaks through the line of cultists with the greataxe, and the Archdeacon steps back with a cry. And from the shadows behind him, a hooded figure with a scarred jaw drops a cutlass and lunges.
+Priya: Rook Harrow.
+Rowan: Captain Rook Harrow. He says, halfling! I told you I would remember you!
+Tomasz: Why does everyone keep saying that? I did not do anything to him!
+Rowan: Rook attacks. Seventeen to hit. Fennimore, you are at five hit points. You take eight damage.
+Tomasz: I go down.
+Marcus: I cast Healing Word. Ghorrim shouts it across the cistern. A bonus action.
+Rowan: You heal Fennimore for six. He is back on his feet. And from the dark water at the edge of the cistern, something very old, and very bent, climbs out onto the stones, dripping black bog-water, and she is knitting.
+[stinger: Creatures > Monster]
+Rowan: Granny Brinewhistle says, hello, dearies. I did say I would collect.
+Tomasz: Not now. Granny, not now!
+Rowan: She says, a debt is a debt. She says, the last verse was only half. She says, I want your name, little bard. Your true name, and your voice, and the lute.
+Marcus: No!
+Rowan: And Mabel Thrupp steps out of the shadows behind her, with her pole in her hand, and says, Granny.
+Rowan: The two of them stand there, the old hag and the old ferrywoman, for a very long moment. Granny says, Mabel. Mabel, my girl. You look well. Still owe me a boat.
+Elise: I think this is the most exciting thing that has ever happened.
+Rowan: Mabel says, I have a better offer than a boat. She takes a jar from her coat. It is full of pickled onions. The proper kind. She says, forty years of them. One jar for every year I owed. And a jar for the little one's debt, as well. It will settle everything.
+Tomasz: Pickled onions. Oh, that is the onion payoff. That is the whole setup! I want to cry.
+Rowan: Granny Brinewhistle takes the jar. She turns it in the lantern light. She unscrews it, sniffs it, and eats one in a single bite. She says, that is a proper onion. That will do. We are even, Mabel Thrupp. We are even, little bard. And she slides back into the dark water and she is gone.
+Priya: That is a wonderful ending. And we are not done yet.
+Rowan: No. You are not done. Valmeric Dusk is at the dais. He has his hand on the lens.
+Marcus: Ghorrim runs for him. I cast Guiding Bolt, radiant damage, and I shout, Orsolin, light my way.
+Rowan: Roll to hit.
+Marcus: Nineteen.
+Rowan: It hits. Four d six radiant.
+Marcus: That is fifteen.
+[stinger: Combat > Critical hit]
+Rowan: Valmeric staggers. His kind smile has gone, and under it his face is full of sorrow and rage. He says, you do not understand. They are lonely. They are all so lonely. And he puts his hand on the frame of the lens and it screams.
+Elise: Aelwen casts Counterspell. No, she cannot. She is level three. She casts Shield, to protect Varek.
+Rowan: The lens blazes, and a column of green light shoots up through the roof of the cistern, through the floor of the Guildhall, and out into the night sky over Saltmarrow. For a moment the whole city is lit green, and the festival lamps flicker. And then Varek, with a single, enormous swing, cuts the cord that holds the lens in its frame.
+[stinger: Combat > Critical hit]
+Rowan: The Tidecaller's Lens falls. It does not break, but it dims, and the green light goes out. Valmeric Dusk falls to his knees. The cultists stop singing. And the drowned, all the drowned, lie down in the water and are still.
+Priya: Rowan, what happens to Valmeric?
+Rowan: He looks up at Marcus. He says, tell them. Tell them I only wanted them home. And his body slumps. He is dead. You do not know whether the Choir took him or whether it was his own heart.
+Marcus: Ghorrim closes his eyes. I say a prayer for him. I do not know why.
+Rowan: Captain Rook Harrow throws down his cutlass. Varek has a hand on his collar. He says, I surrender, I surrender, I will take the gaol.
+Tomasz: Varek. I want to say that Varek has been the real hero all along.
+Rowan: Varek grunts.
+[scene: Harbour]
+Rowan: It takes the rest of the night to carry the lens up out of the cistern, onto the Damp Duchess, and along the sea road to Gullcrag Point. At dawn, with Tobias Quillfeather beside you, you mount it in the cradle at the top of Greywick Light. He lights the wick with his own hands. And for the first time in seven nights, a beam sweeps out across the water, and the ships in the harbour sound their horns, one after another, all the way down the coast.
+[stinger: Jingles > Victory]
+Priya: That is the nicest moment I have had in a game in a long time.
+Rowan: Odalys Venn pays you three hundred gold pieces, the full amount, and resigns the post of Harbourmaster that same morning. Hollin Marsh has a new tear carved under the anchor on the sign of the Weeping Anchor. And Mabel Thrupp is seen on the quay for years afterwards, with the Damp Duchess tied to the jetty, telling everyone who will listen that she once poled five fools and a very big quiet one into the Old Cistern and out again.
+Tomasz: And I get my voice back.
+Rowan: And you get your voice back, and the last verse of the song comes to you one night in the bath, and it is the best verse you have ever written.
+Tomasz: I am going to cry.
+Priya: Thank you, Rowan. That was brilliant.
+Rowan: Thank you all. That is the end of the first campaign of Lanterns of Saltmarrow.
+[stop]

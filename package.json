@@ -30,7 +30,9 @@
     "dev:mock": "node scripts/dev/mock-table.ts",
     "protocol:update": "node scripts/protocol-update.ts",
     "srd:build": "node scripts/srd/build.ts",
-    "sounds:import": "node scripts/sounds/import.ts"
+    "sounds:import": "node scripts/sounds/import.ts",
+    "campaign:check": "node infra/records-smoke/campaign-fixture.ts check",
+    "campaign:test": "node --test infra/records-smoke/campaign-fixture.test.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

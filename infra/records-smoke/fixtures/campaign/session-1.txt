@@ -1,0 +1,203 @@
+# Lanterns of Saltmarrow, session 1: "The Weeping Anchor". See README.md for the line format.
+# Rowan is the Game Master. Priya plays Kestrel, Marcus plays Ghorrim, Elise plays Aelwen, Tomasz plays Fennimore.
+# Varek (a silent fifth player, the developer's own client) is never given a line: the Game Master only mentions him.
+# Planted: Mabel Thrupp, a throwaway ferrywoman paid in pickled onions (returns in session 3); a deadline (the Lantern Festival);
+# a missing keeper; a stolen lens; the Drowned Choir; a Gullbone Whistle. See facts.json and callbacks.json.
+
+[start]
+Rowan: Right, are we recording? Good. Welcome, everyone, to the first session of Lanterns of Saltmarrow. Before we start, did anybody bring the good dice?
+Priya: I brought my own, thank you. The pink ones. They are lucky.
+Elise: Your pink dice rolled three ones in a row last week.
+Priya: That was a different game. That was a game I do not discuss.
+Tomasz: I have a question about my lute. Do I actually have a lute, or do I just have a bard who says he has a lute?
+Rowan: You have a lute. It is slightly out of tune, because you rolled a one on your starting gear and I decided that was funny.
+Tomasz: Perfect. That is who Fennimore is. Slightly out of tune, always confident.
+Elise: Where is Marcus? He was supposed to be here at seven.
+Priya: He said he would be late. Something about a bus.
+Rowan: We will start without him and he can walk in when he walks in. Is Varek's player here?
+Rowan: Okay. Good. Varek is here, silent as ever, which suits a half-orc barbarian who does not like to talk. Welcome, Varek.
+[late-join: Marcus]
+Marcus: Sorry, sorry, sorry. I am here. The bus was late and then I stopped for quince jam, because my gran gave me a jar for the toast tonight.
+[ack: Marcus]
+Marcus: Okay. Okay. I am sitting down. Did I miss anything?
+Rowan: Only the part where Priya refused to discuss her dice.
+Marcus: I would refuse too. Right. Ghorrim Duskhammer, hill dwarf, cleric of Orsolin the Lampbearer, reporting for duty.
+Rowan: Wonderful. Before we start properly, let us do introductions for the recording, because Marcus has missed the first ones. Priya, who is your character?
+Priya: Kestrel Vanterpool, a half-elf rogue. Thief, if you are being formal. She is quick, she is quiet, and she has a very large number of knives.
+Elise: Aelwen Thistledown, high elf wizard, school of evocation. Aelwen is only interested in things that explode and things that can be written down.
+Tomasz: Fennimore Quickwhistle. Everyone calls me Fen. Lightfoot halfling, bard, college of lore. I know a little about everything and a great deal about nothing.
+Marcus: Ghorrim Duskhammer, hill dwarf, cleric of the Life domain, sworn to Orsolin the Lampbearer, god of lamps and lighthouses and anyone who is afraid of the dark.
+Rowan: And Varek, half-orc barbarian, path of the Berserker, who has never said a word and I suspect never will. Is that right, Varek?
+Rowan: He nods. Good. That is Varek. Let me set the scene. Everyone is level three. You are a party of five who answered the same notice, pinned to the door of a chandler's shop in the inland town of Brackenford, asking for sensible adventurers willing to travel to the coast and, quote, do something about the dark.
+[scene: Harbour]
+Rowan: It is the evening of the fourth day of travel. The road has given up and turned into a long causeway across the mudflats of the Skelling estuary, and on the far side, grey against a greyer sky, is the walled port of Saltmarrow, the greatest harbour in the kingdom of Aldermere. You can smell tar and fish and wet rope. But you cannot see the lighthouse. There should be a beam sweeping out from Gullcrag Point to keep the ships off the rocks, and tonight there is nothing but cloud.
+Elise: That is ominous. Aelwen would write that down. Aelwen writes everything down.
+Rowan: The causeway ends at a stone jetty where the tide has cut the road. There is a ferry, a flat barge with a patched sail, and a woman sitting on the bow eating something out of a jar. She has one eye and a very large hat.
+Tomasz: I do not like that she is eating out of a jar. I like it very much. Fennimore walks up and says, good evening, ma'am, is this the ferry to Saltmarrow?
+Rowan: She looks you up and down, which does not take long. She says, it is the Damp Duchess, and I am Mabel Thrupp, and the fare is two silver a head, or one jar of anything pickled.
+Priya: Two silver each is ten silver. How much do we have?
+Marcus: I have a gold piece, and a lot of jam.
+Elise: I only have gold pieces. Nobody has silver. I am not paying a gold piece to cross a puddle.
+Tomasz: Wait. Wait. I have pickled onions. Fennimore has pickled onions. He bought a jar at the last market and I have been waiting to use them. I hold up the jar and say, for all five of us, madam?
+Rowan: Mabel Thrupp takes the jar. She turns it in the light. She unscrews it, sniffs it, and eats one onion in a single bite. She says, that is a proper onion. That will do for the lot of you, and the big quiet one gets the dry seat.
+Priya: The big quiet one is Varek.
+Rowan: The big quiet one is Varek. Varek nods once and sits at the very front of the boat like a figurehead.
+Elise: I love that Varek has a seat.
+Rowan: As she poles you across, she says, if you ever need the water crossed, in the town, in the fens, anywhere the water runs, you ask for Mabel Thrupp. The green water knows me. And mind the left oar, the left oar bites.
+Priya (typed): /do I make a mental note of her name and her boat
+Marcus: What does she look like again? I want to remember her.
+Rowan: One eye, a hat the size of a cartwheel, and a grey braid down to her belt. She smells strongly of onions now, which is your fault, Fennimore.
+Tomasz: I accept that responsibility.
+Rowan: The ferry bumps against the quay at the Salt Gate, which is the great arch on the water side of Saltmarrow, with two lamps hanging from it, and both of them are dark. A guard in a salt-stained tabard looks at you and says, you are the adventurers from the notice. The Harbourmaster is waiting at the Weeping Anchor. Straight up the hill, the tavern with the broken sign.
+[scene: Tavern]
+Rowan: The Weeping Anchor is a low timber tavern at the top of a crooked street. The sign has a ship's anchor with a single tear carved under it, and the tear has been chipped away so it looks like the anchor is bleeding. Inside, it is warm and crowded and smells of woodsmoke and spilled cider. The innkeeper is a broad man with a bald head and a leather apron, who plants both hands on the bar and says, you will be the notice lot. I am Hollin Marsh. Rooms are upstairs, supper is the stew, and the Harbourmaster has the corner table.
+Marcus: What is in the stew?
+Rowan: Stew.
+Marcus: Fair enough. I will have the stew.
+Rowan: In the corner, at a table with a single candle, sits a woman in a dark blue coat with brass buttons, grey hair cut short, a ledger under her elbow. She stands as you approach. She says, I am Odalys Venn, Harbourmaster of Saltmarrow. Please sit. I will be quick, because there is not much time.
+Elise: Aelwen sits with her back straight and says, we are listening.
+Rowan: Odalys says, six nights ago the light at Greywick, the great lighthouse on Gullcrag Point, went out. The keeper, a man named Tobias Quillfeather, has not been seen since. Three ships have already struck the rocks. And the Lantern Festival, the Night of Lamps, is in four days. Every ship in the kingdom comes to Saltmarrow for it. If the great lens is not lit by then, the harbour is closed, the festival is cancelled, and the city loses a season's trade. I would like you to find the keeper, find out why the lens has gone dark, and put it right.
+Priya: You said the lens has gone dark. Not broken?
+Rowan: She hesitates. She says, the lens is not at the top of the tower. The room is empty. Someone has taken it.
+Tomasz: The lens. A giant glass lens. Somebody stole a giant glass lens.
+Rowan: She says, the Tidecaller's Lens. It is taller than you are, Master halfling. It took eight men to carry it in.
+Marcus: How do you carry a thing like that out of a lighthouse without anyone noticing?
+Rowan: That is exactly the question. She will pay three hundred gold pieces on completion, fifty up front today, and she slides a small purse across the table.
+Priya (typed): /do I count the fifty gold and check the purse for tricks before I pocket it
+Elise: Insight check on her. I want to know if she is lying.
+Rowan: Roll it.
+Elise: That is a fourteen, plus one. Fifteen.
+Rowan: She is tired and frightened and holding something back, but she is not lying about the lighthouse. You cannot tell what the something is.
+Elise: I do not like that. I do not like that at all.
+Priya: Rowan, can I look at her hands? Kestrel is a rogue, Kestrel watches hands.
+Rowan: Give me a Perception.
+Priya: Seventeen.
+Rowan: Her right cuff is stained with black ink, and there is a small brass key on a cord under her collar that she keeps touching. That is all.
+Priya (typed): /dm I think the key is important. tangerine
+Priya: I will tell you later. I will tell you all later. Over cider.
+Marcus (typed): /ooc is anyone else getting hungry, I want to order a cantaloupe pizza after this
+Rowan: I heard that, Marcus, and you are not allowed to order a pizza in a tavern in Aldermere.
+Marcus: It was a typo.
+Rowan: Before you go, she says, there is a sailor on the quay called Old Barnaby Crewe, who has watched the Point for forty years. Speak to him. And please, be careful of the singing.
+Tomasz: The singing?
+Rowan: She stops. She says, it is probably nothing. And she leaves.
+Tomasz: Okay. That is the worst possible way to leave. That is a story hook.
+Priya: I want to hear about the singing.
+[scene: Harbour]
+Rowan: It is almost dark. Down at the quay, the lamps are being lit one at a time by a boy with a taper, and the ships are crowded together in the basin like sleeping animals. On a coil of rope at the end of the quay sits an old man smoking a clay pipe, with a face like old leather. He says, you are the ones the Harbourmaster hired. I am Old Barnaby Crewe, and I have been watching that Point since before your fathers were born.
+Marcus: Ghorrim bows his head politely. Dwarves respect age.
+Rowan: Barnaby says, six nights back I was on the north jetty, and the light went out, and then I heard it. Voices, out on the water. Singing. No words, just a long low hum, like a hymn sung underwater. And the water was calm. No wind. Not a breath. But the boats started to rock, all of them, all at once, in time with the song.
+Elise: Aelwen wants to know what the pitch was. Is it a key? Was it a mode?
+Rowan: He says, young lady, it was a sad key. That is all I know. And then he tells you the story of the light, because old men cannot help it. He says, Greywick Light was built two hundred years ago by the first Harbourmaster, after the Great Wreck, when forty ships went onto the Gullcrag rocks in a single night. The lamp was the finest in the kingdom. Then, a hundred years back, the Tidecaller's Lens was installed, a gift from the elves of the north, ground from a single block of sea-glass and blessed by Mother Tidewarden herself. It is said that when it is lit, no drowned man can pass it. It is said it keeps the dead in their graves. He says, that is just a sailor's tale, but I have never seen a ship wreck on the Point while it burned.
+Marcus: Mother Tidewarden. The goddess of the sea. Ghorrim respects her, even though he is a Lampbearer's man. The two of them are on the same side of the harbour.
+Elise: Aelwen is writing that down. A lens that keeps the dead in their graves.
+Priya: That is a very specific kind of thing to steal.
+Tomasz: That is a very specific kind of thing to want to steal. I would like to find out who wants the dead out of their graves.
+Tomasz: I could try to hum it. Can I ask him to hum it and then repeat it back with my lute?
+Rowan: Roll Performance, with a bonus, because you are a bard and he is eager.
+Tomasz: Natural twenty!
+Rowan: A natural twenty. You play the five notes he hums, perfectly, on the lute, and the old man goes pale and takes the pipe out of his mouth. He says, that is it. That is exactly it. And something rattles in the water out in the basin, as if the sea itself has noticed.
+[stinger: Unease > Water drip]
+Priya: Okay, that is creepy. Can we go to the lighthouse now?
+Rowan: Barnaby says, the Point is a mile along the sea road, past the Hangman's Steps. Go before the tide turns. After the tide turns the road is gone until morning.
+Marcus: Ghorrim lights his lantern, and mutters a quick prayer to Orsolin.
+Rowan: You head out along the sea road in the dusk.
+[scene: Storm]
+Rowan: Clouds roll in off the water. Thunder grumbles somewhere far out to sea. The road is a spit of black rock with the surf crashing on either side, and at the end of it, on top of a spur of cliff called Gullcrag Point, stands Greywick Light. It is a tall tower of grey stone, forty feet across at the base and a hundred and fifty feet high, and its great windows at the top are black. The door at the bottom is hanging open.
+[stinger: Mood > Thunder]
+Elise: Is anything moving?
+Rowan: Aelwen, roll Perception, please.
+Elise: Eleven.
+Rowan: You see nothing in the dark. But Fennimore, you have darkvision of a sort, no, wait, halflings do not. Sorry. Priya, Kestrel, what are you doing?
+Priya: I am creeping ahead to look at the door. Stealth check. Twenty-two.
+Rowan: You slip up the rocks to the doorway, and as you reach it there is a scuttling sound on the stones to your left. Three shapes burst from the tide pools. Two giant crabs, each the size of a wheelbarrow, and a thing behind them walking upright, with a green fin along its back and a trident in its webbed hand.
+Marcus: What is that?
+Rowan: That is a sahuagin. A sea devil. It hisses something in a language you do not know. Everybody roll initiative.
+Tomasz: Fennimore rolled a four. Plus two. Six.
+Elise: I got a nineteen!
+Priya: Nineteen too! Mine is a nineteen.
+Elise: Mine is a nineteen, I said it first.
+Rowan: Ties go to the higher modifier, and Kestrel has the higher Dexterity. Priya, you go first, and then Elise, then the crabs, then the sahuagin, then Marcus, then Tomasz, and Varek is going to wait his turn.
+Priya: I draw my shortsword and I sneak attack the nearest crab, because it is not looking at me.
+Rowan: Roll to hit.
+Priya: Seventeen plus five. Twenty-two.
+Rowan: That hits. Damage?
+Priya: Oh, nice. One d six, plus three, plus two d six for sneak attack. That is a nine, plus a ten. Nineteen damage.
+Rowan: The crab has thirteen hit points. It splits in half like a boiled egg.
+[stinger: Combat > Critical hit]
+Priya: Yes! The pink dice!
+Elise: I cast Magic Missile on the sahuagin. Three darts.
+Rowan: Magic Missile never misses. Roll your damage.
+Elise: One d four plus one, three times. That is two, five, and four. Eleven damage.
+[stinger: Spells > Magic missile]
+Rowan: The sahuagin shrieks. It has twenty-two hit points and now it has eleven. The second crab clamps one claw on Priya's leg. Kestrel, you are grappled, escape is DC eleven, and you take three points of bludgeoning damage.
+Priya: Ow. I try to wriggle free. Athletics check.
+Rowan: You could use Acrobatics instead, that is allowed.
+Priya: Acrobatics is better. Sixteen.
+Rowan: You slip out of its grip. Wait, first, Priya, you are going to ask whether you can still sneak attack.
+Priya: Can I? I have not got advantage now. I am grappled.
+Elise: Sneak attack does not need advantage. It needs an ally next to the target, or advantage.
+Marcus: Aelwen is right. Varek is next to the crab. That counts.
+Rowan: Good lawyering, all of you. Yes. Next turn, Kestrel, you can sneak attack if Varek is within five feet of the target. You are all quite annoying when you are right.
+Priya: Thank you. I will remember it. It is in the rulebook, the System Reference Document, page, uh, whatever.
+Rowan: The sahuagin lunges with the trident at Aelwen. Fifteen to hit.
+Elise: My armour class is twelve, because I have Mage Armor. Wait, I did not cast Mage Armor yet.
+Marcus: I will take that one. I use my reaction. Shield of Faith, no. Wait. Ghorrim does not have Shield of Faith prepared.
+Rowan: Elise, a trident with a fifteen against an armour class of thirteen. It hits you. Six damage.
+Elise: Ow. Aelwen goes down to ten hit points.
+Marcus: Ghorrim steps forward and casts Sacred Flame on the sahuagin. It must make a Dexterity save.
+Rowan: It fails. Radiant damage?
+Marcus: Four. Four on the d eight. That is not enough.
+Rowan: It is hurt, down to seven. And now it is seriously considering swimming away.
+Tomasz: I cast Vicious Mockery on it. I yell, your mother was a codfish!
+Rowan: Wisdom save. It fails. One d four psychic damage.
+Tomasz: That is a three!
+Rowan: The sahuagin, with four hit points left, looks at the crab, looks at the five of you, drops its trident, and dives into the surf.
+Priya: No! My sneak attack!
+Rowan: The last crab will fight on, because crabs are not smart.
+Marcus: Varek, then.
+Rowan: Varek, who has been very patient, steps forward and breaks the crab with one swing of his greataxe. There is a sound like a barrel being split. And it is over.
+[stinger: Combat > Sword clash]
+Elise: Varek is my hero.
+Rowan: Varek accepts the praise with a grunt. Okay. You have a moment. The door is hanging open and the tower is dark. Do you search the crabs?
+Priya: I search the crab nest. There is always loot in the nest.
+Rowan: Investigation.
+Priya: Eighteen.
+Rowan: Behind the tide pool, in a crack in the rock, you find a small silver whistle on a chain, carved from a gull's bone and capped with silver. It is called, you will learn, the Gullbone Whistle. And two potions of healing, and thirty-five gold pieces that some sailor lost.
+[loot: Potion of healing x2 | party]
+[loot: Gullbone Whistle | Priya]
+[loot: 35 gp | party]
+Priya: I take the whistle. Kestrel always takes the shiny thing.
+Marcus: Can I cast Detect Magic? I would like to know if it is cursed.
+Rowan: It is a ritual, it takes ten minutes, you have time. It radiates faint magic. Transmutation. It is not cursed. It hums very softly when you hold it, as if it were listening to something far away.
+Elise: That is going to be useful, or terrible.
+Priya: Both.
+[scene: Dungeon halls]
+Rowan: You climb the tower. A hundred and twenty steps, spiralling up. Halfway up, the windows have been smashed and wet salt wind howls through. At the top of the stairs is the lantern room, an enormous circular chamber of iron and glass, with a great empty brass cradle in the middle where the lens should be. Scratches on the floor. Dragged. Something heavy was slid across the planks and out through a trapdoor.
+Elise: Aelwen kneels and looks at the scratches. Investigation, please. Is it a seventeen? No, twelve. Plus five for proficiency. Seventeen.
+Rowan: A seventeen. The scratches go to the trapdoor. Below the trapdoor is a winch and a rope, and below that, a boat hook is still dangling over the sea. They lowered it down the cliff to a boat. Someone with a boat took the lens.
+Tomasz: Somebody with a boat and eight men and a very bad attitude.
+Marcus: I go through the keeper's desk. Tobias Quillfeather. He kept a journal, surely.
+Rowan: He did. It is on the desk, half burnt. Most pages are ash, but one page survives, and it reads, in a trembling hand. They are coming at every tide turn. The Archdeacon says the Choir must be satisfied. I did not understand until I saw the lens move. I have hidden what I could. If you find this, the key is under the third step. And the page ends.
+Priya: The Archdeacon. The Choir. The Drowned Choir, was that what Barnaby said? A hymn underwater.
+Rowan: He did not say Drowned Choir. Barnaby said singing. But on the back of the page, scratched in charcoal, there are two words in a neat clerk's hand. The Drowned Choir.
+Elise: Aelwen wants to copy it into her notebook.
+Priya: And the key. The third step. I want to go down and look.
+Rowan: Roll Investigation.
+Priya: Another seventeen! Wow.
+Rowan: Under the third step from the top of the stairs there is a hollow in the stone, and inside is a brass lighthouse key and a folded piece of oilcloth. Inside the oilcloth is a hymnal page, torn from a book, with the title Verse Nine in black ink and a drawing of a bell at the bottom, a bell sunk under waves.
+Marcus: The Drowned Choir. A bell under the waves. Ghorrim does not like it.
+Rowan: At the bottom of the page is a line in a different hand. Saint Ostren's, in the Greywater Fens. Vespers.
+Tomasz: Okay. So the keeper hid a clue to where they are taking the lens, and he is probably still alive, because someone needed him to hide it before they took him away. That is my theory.
+Priya: It is a good theory.
+Elise: What is the date? How many days until the festival?
+Rowan: You were told four days at supper. After tomorrow's sunrise that is three.
+Priya: Right. We should rest, go to the Greywater Fens, and be back before the festival.
+Marcus: We hold the tower first. We sleep in the lantern room, Varek takes the first watch, and in the morning we go back to the Weeping Anchor and tell Odalys Venn everything.
+Rowan: Varek takes the watch. The storm passes, and for the first time in six nights the stars come out over Gullcrag Point, and far to the south, out on the dark water, you hear it. A long low hum, a hymn underwater, and it stops as soon as you listen for it.
+[stinger: Undead and horrors > Ghost whispers]
+Rowan: And that is where we will stop for tonight.
+Elise: Oh, that is a good stopping place.
+Tomasz: Can we do a short rest first? I want to use my Bardic Inspiration before the end of the session.
+Rowan: It does not carry over a session, Tomasz, but let us say yes. Good game, everybody.
+[stop]

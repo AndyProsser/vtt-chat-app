@@ -1,6 +1,6 @@
-# Quality validation: testing the whole system with a long synthetic session
+# Quality validation: testing the whole system with a demo campaign
 
-**Roadmap:** [Stage 13](../../ROADMAP.md). **Status:** planned 2026-11-21 with Andy; the approach is decided, the details are not (see [Open questions](#decisions-and-open-questions)). Nothing here is built yet.
+**Roadmap:** [Stage 13](../../ROADMAP.md). **Status:** planned 2026-11-21 with Andy; the approach is decided. **Built so far:** the demo campaign and its validator ([fixtures](../../infra/records-smoke/fixtures/campaign/README.md)). **Not built yet:** the voices' audio, the runner and the monitor (see [Decisions and open questions](#decisions-and-open-questions)).
 
 ## Why this exists
 
@@ -12,7 +12,7 @@ A real table session is the best test and the slowest and least repeatable one. 
 
 ```mermaid
 flowchart LR
-  D["Written session<br/>30 to 60 min<br/>1 DM + 4 or more players"] --> P["Prep: lines, speakers,<br/>planted facts, canaries"]
+  D["Demo campaign<br/>3 sessions, about 80 min<br/>1 DM + 4 players + silent player 5"] --> P["Prep: lines, speakers,<br/>planted facts, canaries"]
   P --> V["Piper voices<br/>one per speaker<br/>+ room degradation"]
   V --> R["Runner: each speaker is a<br/>LiveKit participant and a<br/>WebSocket client"]
   R --> S["The real server:<br/>Egress, worker, Whisper,<br/>scribe, Chronicler, memory,<br/>storytellers"]
@@ -24,23 +24,30 @@ flowchart LR
 
 Everything between the runner and the outputs is the production code and the production services. Only the people are fake.
 
-## The source dialogue
+## The demo campaign
 
-**Decided 2026-11-21 (Andy): the session is written for the test**, not taken from an existing recording or transcript. The plan had been a real dialogue; a written one costs more of Claude's time and less of Andy's, and has no sourcing or licensing question at all. The price is realism, so the writing has to put the mess back in on purpose.
+**Decided 2026-11-21 (Andy): written for the test, and reusable.** The first plan was one long real dialogue, thrown away afterwards. Andy then asked for something better: a **demo campaign of two or three connected sessions**, D&D with the SRD rules in a generic fantasy setting, full of invented names and game words (to test the glossary), and committed to the repo so the same test can be run again after any change, on the dev PC or on the VM. It is built: [`infra/records-smoke/fixtures/campaign/`](../../infra/records-smoke/fixtures/campaign/README.md).
 
-- **Written to be messy, not tidy.** The existing vault fixture is hand-written, 12 minutes, and tidy. The long session is written the way real play sounds: interruptions and talking over each other, jokes that go nowhere, rules arguments, a player who is away from the table for ten minutes, names invented on the spot and used again an hour later, a long Game Master description, an in-character speech, and in-character and out-of-character talk in the same breath. It is written in parts (an evening in four or five scenes) so no part is rushed.
-- **30 to 60 minutes**, roughly 4,500 to 9,000 spoken words at 150 words a minute. Long enough to push the records pipeline through several pieces of notes (the map-reduce path), which no real or synthetic session has done yet.
-- **One Game Master voice and five player voices** (one more than the minimum, so one can be the late joiner or the player who leaves).
-- **What is committed and what is not.** The script and its facts file are ours, so they are committed as a fixture beside the vault one (repeatable runs, and a regression test for every later prompt change). The **rendered audio is never committed** (it is large, and regenerates from the script); it lives in a scratch directory under `~/.local/share/` and is deleted when Stage 13 closes. _Default chosen by Claude, not asked: if Andy would rather the long script stayed out of the repo too, it moves to the same scratch directory._
+- **Lanterns of Saltmarrow:** three sessions of about 25 minutes (about 80 minutes in all, 10,500 spoken words). A missing lighthouse keeper and a stolen lens (session 1), a sea hag's bargain and a crypt in the fens (session 2), the Night of Lamps (session 3). The setting and names are original; the rules are D&D 5e from the SRD 5.1 only, with the attribution in [LEGAL-SRD.md](../LEGAL-SRD.md).
+- **One Game Master and four voice players, and a silent fifth.** Player 5 is **the developer's own client**, joined to the demo campaign as a real player who never speaks or types, only listens and monitors. The scripts mention Varek (his character) so a silent track and a person with no lines are in every run.
+- **Written to sound like real play,** not tidy minutes: interruptions, rules arguments, jokes that go nowhere, a long Game Master description, in-character and out-of-character talk together.
+- **Built for three jobs at once.** _Hearing_: 53 glossary terms, mostly invented, with the aliases Whisper is likely to write. _Weaving_: voice, every kind of typed chat, soundboard scenes and stingers (16 scenes and 20 stingers: light use), loot drops, a pause, a late joiner and a dropped connection arrive together and have to come out as one record. _Remembering_: 12 planted **callbacks** across sessions, led by a throwaway ferrywoman paid in pickled onions in session 1 who returns in session 3 (the "find Gary" test from Stage 12), and a trap: two different Tobiases.
+- **54 facts, 8 table canaries and 2 GM canaries.** Each fact has a pattern for scoring the notes and a `source` the validator proves is in the script. A canary is a word placed only on lines that must never be recorded (an `/ooc` aside, a whisper, a pause, a late joiner before the cue), or only in the GM notes; finding one anywhere downstream is a leak.
+- **A validator keeps it honest.** `node infra/records-smoke/campaign-fixture.ts check` fails if a speaker is not on the cast, a scene or stinger is not in the shipped soundboard catalogue, a canary is on a recorded line, a fact or callback is not in the script it names, or a glossary term is unused. It already caught a canary hidden in a simile in its first draft.
+- **Committed, except the audio.** The scripts, notes, facts and callbacks are ours and live in the repo. The **rendered audio is never committed** (it is large and regenerates from the script); it lives in a scratch directory under `~/.local/share/` and can be deleted at any time.
 
-### Preparing it (once)
+### How the sessions test memory
 
-A prep script turns the source into the format the vault fixture already uses (`Speaker: words`, one line per utterance, `(typed)` for chat lines) and a facts file in the shape of `session-vault.facts.json`:
+```mermaid
+flowchart LR
+  S1["Session 1<br/>Mabel Thrupp, pickled onions<br/>a deadline, a missing keeper"] --> M1[("Memory after 1")]
+  M1 --> S2["Session 2<br/>Granny Brinewhistle's bargain<br/>Rook Harrow escapes<br/>Mabel named, absent"]
+  S2 --> M2[("Memory after 2")]
+  M2 --> S3["Session 3<br/>Mabel returns, the onions<br/>settle the debt, Rook is caught"]
+  S3 --> Q{"Does the tale connect<br/>3 back to 1 and 2?<br/>Are the two Tobiases kept apart?"}
+```
 
-1. **Write the cast first**: one Game Master and five players, each with a character name, so the glossary and the roster have something to correct against.
-2. **Choose the facts to plant and score.** Read the dialogue and pick 25 to 40 facts that a good set of notes must keep: a throwaway non-player character, a promise with a deadline, a secret only the Game Master understands, a loot item, a failed roll, a place visited twice. Each gets a pattern in the facts file. This is the same method that gave the 24 to 26 of 26 recall figures for the 4B model in Stage 12 A.
-3. **Add canaries.** A canary is a word that appears nowhere else, put in a line that must never reach a shared artifact: an `/ooc` aside, a whisper, a Game Master private talk, a line spoken while the recording is paused, and a line a late joiner says before acknowledging the cue. The existing end-to-end test already uses this trick ("absent" becomes a plain text check); this reuses it at length.
-4. **Mark scene changes and a few table events** (loot dropped, a handout shown, a pause for a break) at the points the dialogue suggests, so the cues, chapters and chat features are exercised in the middle of real conversation instead of in a separate scene.
+The scripts are replayed in order against one campaign. After each session's job the harness reads the campaign memory and checks the entries `callbacks.json` says should exist; after session 3 it checks that the tale and the Chronicler's brief connect the payoffs back to where they began. Because the sessions are replayed from a fixed script, a change to the memory step or the storyteller prompts can be compared run against run.
 
 ## The voices
 
@@ -55,11 +62,41 @@ Text-to-speech is enough (Andy, 2026-11-21). The existing harness uses **piper**
 The runner extends the Compose end-to-end test ([`compose-e2e.ts`](../../infra/records-smoke/README.md)), which already connects people over the WebSocket and LiveKit and publishes a TTS microphone track for each. The difference is length, cast size, and what happens in the middle:
 
 - **Real time, with a faster mode.** The live run is at real speed (the capture path has to be exercised as it runs). A second, **offline mode** feeds the rendered per-speaker tracks straight to the worker (the way `records-smoke` does today) so Whisper and prompt changes can be iterated in minutes instead of an hour.
-- **Typed chat in every kind**, spread through the hour: plain, `/say`, `/do`, `/ooc`, `/late`, `/dm`, `/tell`, whispers.
+- **Typed chat in every kind**, spread through the sessions: plain, `/say`, `/do`, `/ooc`, `/late`, `/dm`, `/tell`, whispers.
 - **Table activity**: scene changes (they start chapters), loot dropped, split and claimed, a handout, a party split and merge, the soundboard (local, so absent from recordings and checked to be absent).
 - **Consent and recording controls**: a pause and resume, a late joiner who joins before and after acknowledging, a stop and a second recording the same evening.
 - **Churn and faults**: a player leaves and rejoins; one loses the network for a minute (a `tc netem` drop, or a forced disconnect); a mute and unmute storm; the worker is killed mid-job and the job must finish on a retry; with `--fallback` the remote AI is made unreachable and the job must fall back to local.
-- **One real client in the room (optional).** The synthetic players are headless Node participants, not the Tauri app, so they say nothing about the app's audio engine. Andy's real desktop app can join as an extra person (listening, or playing the Game Master) for the whole hour, with the existing measuring scripts ([`scripts/test/`](../../scripts/test/README.md)) recording its CPU, memory and jitter. That is the one part of the run that needs a human and a machine.
+- **Player 5 is a real client (decided).** The four voice players are headless Node participants, not the Tauri app, so they say nothing about the app's audio engine. The developer's own desktop app joins the demo campaign as player 5 for the whole run, silent, listening and monitoring: that is the one part of the run that exercises the real app, and its CPU, memory and jitter are recorded by the monitor below.
+
+## The monitor
+
+Logging and monitoring are not an extra: a long run that only says "passed" cannot show a slow leak, a CPU spike during Whisper, a disk that fills, a latency that creeps or an error that scrolled past. The monitor is built **with the runner**, writes to the same results folder, and runs the same way on the dev PC and on the VM. It is a reusable tool, not a one-off.
+
+**What it samples** (every 5 seconds by default, plus an event line whenever the runner changes phase):
+
+| Area     | Measured                                                                                                                                                               | From                                                                                              |
+| -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| CPU      | Host CPU, and each container's CPU (backend, worker, Whisper, Ollama, LiveKit, Egress, Postgres, Valkey, Caddy)                                                        | `docker stats` on Compose; `/proc` and `ps` on the host (and for the native install)              |
+| Memory   | Host used and available; each container's resident memory and its limit; swap; the number of OOM kills                                                                 | `docker stats`, `/proc/meminfo`, the kernel log                                                   |
+| Disk     | The recordings and media volumes' size and free space; Postgres size; write rate during recording; the host's free space                                               | `du` and `df`, `/proc/diskstats`                                                                  |
+| Network  | Bytes in and out per container and per interface; LiveKit's media rate; packet loss and retransmits where `ss` and the stats frames report them                        | `docker stats`, `/proc/net/dev`, the server's own 5-second stats frames                           |
+| Latency  | HTTP round trip to `/api/health` and an authenticated route; WebSocket ping round trip for each synthetic client; chat send-to-receive time; LiveKit jitter and RTT    | The runner's own clients (it knows when it sent and when each client saw it)                      |
+| The jobs | Each pipeline stage's start, end and duration (transcode, Whisper per track, scribe, Chronicler, memory, each tale); Whisper's real-time factor; model tokens and cost | `vtt-admin jobs list --json` and the job tables                                                   |
+| Errors   | Every `ERROR`, `WARN`, `panic`, `OOM`, restart and failed health check in every service's log during the run, counted and kept with their lines                        | `docker compose logs --since`, the journal on a native install, and the clients' own error events |
+| The app  | The desktop app (player 5): CPU, memory, threads and file handles, from the existing measuring scripts, plus its own connection stats                                  | [`scripts/test/`](../../scripts/test/README.md)                                                   |
+
+**Phases.** Every sample carries the phase the runner was in, so numbers can be compared like with like: `baseline` (60 seconds of idle before anything starts), `session-N-recording`, `session-N-processing`, `idle-after` (five minutes after the last job). A run is judged by phase, not by the whole hour.
+
+**What it writes**, per run, to `~/.local/state/vtt-validation/<date>-<target>-<label>/` (outside the repo, like the rendered audio):
+
+- `samples.jsonl`: one line per sample, every metric, with the phase and the target;
+- `events.jsonl`: phase changes, the runner's actions, every error line found, every job's timings;
+- `summary.json`: min, mean, p95 and max per metric per phase, the error counts, the scores from [What is scored](#what-is-scored), and the pass or fail of each check;
+- `report.md`: the same, readable, with a short table per phase and a list of every error and warning, so a run can be pasted into [BUILD-STATUS.md](../BUILD-STATUS.md) and compared with the last one.
+
+**Where it runs.** The runner and monitor take a **target**: `local` (the stack on this machine, the dev PC) or a remote host (the VM) over SSH, where the sampler runs on the target itself and the runner pulls the results afterwards. The remote host's name and address come from an environment variable and are **never committed** (the dev VM's address is private). The same fixtures, the same sessions and the same report run against both, which is what makes a dev-PC run and a VM run comparable.
+
+**Limits and honesty.** Sampling every 5 seconds misses a spike shorter than that (the report says the sampling interval). A sample is a measurement of this run on this machine; it is a baseline to compare the next run with, not a promise. Thresholds are set after the first runs ([What is scored](#what-is-scored)), and a metric with no threshold is reported, never failed.
 
 ## What is scored
 
@@ -81,22 +118,22 @@ Every number is compared with the script, which is the ground truth. **Threshold
 
 Not every combination runs every time; the first run is the baseline and each later run changes one thing.
 
-| Run | Backend                                          | Why                                                                                       |
-| --- | ------------------------------------------------ | ----------------------------------------------------------------------------------------- |
-| 1   | The VM's CPU defaults (`small.en`, the 4B model) | The default install is the one most operators will have; this is the baseline             |
-| 2   | The same session again, straight after run 1     | Campaign memory across two sessions                                                       |
-| 3   | The GPU PC as a remote backend                   | The fast path; also the remote-with-fallback drill                                        |
-| 4   | Claude (`ai.llm.kind claude`)                    | The connector against the real API: tokens, cost against the console, the off-site notice |
-| 5   | OpenAI (`ai.llm.kind openai`)                    | The same, with an operator-named model and operator-set prices                            |
-| 6   | The session looped for 8 hours with churn        | The soak, the memory rules of Stage 0.5, and the `kill -9` drill                          |
+| Run | Backend                                                                        | Why                                                                                                                           |
+| --- | ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| 1   | The VM's CPU defaults (`small.en`, the 4B model): sessions 1, 2 and 3 in order | The default install is the one most operators have; this is the baseline, and the three sessions in order are the memory test |
+| 2   | The same three sessions on the dev PC (GPU)                                    | The same fixtures on the fast machine: the comparison between the two targets                                                 |
+| 3   | The GPU PC as a remote backend                                                 | The fast path; also the remote-with-fallback drill                                                                            |
+| 4   | Claude (`ai.llm.kind claude`)                                                  | The connector against the real API: tokens, cost against the console, the off-site notice                                     |
+| 5   | OpenAI (`ai.llm.kind openai`)                                                  | The same, with an operator-named model and operator-set prices                                                                |
+| 6   | The session looped for 8 hours with churn                                      | The soak, the memory rules of Stage 0.5, and the `kill -9` drill                                                              |
 
 Runs 4 and 5 spend real money and send the (synthetic) session off the server; each needs Andy's say-so first, and a key kept in the `.env`, never in a command or a chat.
 
 ## Order of work
 
 1. **A real Postgres first.** Run the backend's Postgres-only tests (27 are skipped without a database) against a throwaway database, and exercise what Stage 12 added that only the in-memory stores have tested: migrations 0042 and 0043, `addJobUsage`, the memory queries and the export round trip. Cheap, and it finds the kind of bug a unit test with a fake store cannot.
-2. **Prep the dialogue and the voices**: the prep script, the facts file, the cast, the degradations.
-3. **Build the long-session runner** on the existing harness, with the offline mode.
+2. **The demo campaign and its validator** (**built 2026-11-21**: the scripts, glossary, facts, callbacks, canaries, GM notes and a validator with 9 tests). Still to do: the voices (a fifth piper voice) and the audio degradations.
+3. **Build the runner and the monitor** on the existing harness: the script player (speech, typed chat, scenes, stingers, loot, pause, late join, leave and rejoin), the sampler, the phase markers, the report; the offline mode; and a target that is either the local stack or the VM over SSH.
 4. **Run 1, then read everything.** Fix what is wrong as bugs, with a test each, in 0.6.x patches.
 5. **Runs 2 to 5**, one change at a time. Settle `ai.transcription.glossary`'s default, tune the prompts from reading the output.
 6. **The soak** (run 6), and the human-only checks from the roadmap table (the real desktop client in the room, the phone, the Intel Mac, the Windows microphone).
@@ -136,9 +173,11 @@ Runs 4 and 5 spend real money and send the (synthetic) session off the server; e
 
 **Decided with Andy, 2026-11-21:**
 
-1. **The session is written for the test** (see [The source dialogue](#the-source-dialogue)).
+1. **The session is written for the test** (see [The source dialogue](#the-demo-campaign)).
 2. **The long runs happen on both machines:** the harness is built and iterated on the dev PC (a GPU, so a run takes minutes), and the baseline and the soak run on the VM (the realistic CPU case).
 3. **No cloud runs yet.** Runs 4 and 5 (Claude and OpenAI) stay open in Stage 13 until Andy says go, and he supplies the keys himself.
-4. **One real client in the room: Andy's Linux desktop app**, joining as an extra participant for the whole run, with the measuring scripts recording its CPU, memory and jitter. The Windows app is a separate check (the microphone clipping retest).
+4. **Player 5 is Andy's own Linux desktop app**, joined to the demo campaign as a real player who never speaks or types, listening and monitoring, with the measuring scripts recording its CPU, memory and jitter. The Windows app is a separate check (the microphone clipping retest).
+5. **A demo campaign of three sessions, reusable** (2026-11-21, after the first decisions): D&D with only the SRD 5.1 rules in an original fantasy setting, with a glossary-heavy vocabulary, chat, light soundboard use, and callbacks across sessions to test campaign memory and the bard. Committed to the repo, validated by a script, and replayable on the dev PC and the VM.
+6. **Logging and monitoring are part of the tool** (CPU, memory, disk, network, latency and errors, by phase, in the same results folder on either target); see [The monitor](#the-monitor).
 
-**Still open (Claude's defaults, change freely):** plant **25 to 40 facts**, and Andy reads **all five tales from run 1**, then a sample from later runs.
+**Still open (Claude's defaults, change freely):** Andy reads **all five tales from run 1**, then a sample from later runs; the fixtures hold 18 facts a session (54 in all).

@@ -1,0 +1,414 @@
+{
+  "about": "The reusable demo campaign for the long-session test (docs/architecture/QUALITY-VALIDATION.md). Original setting; rules are D&D 5e from the SRD 5.1 only (CC BY 4.0, see docs/LEGAL-SRD.md). Nothing here is from a published adventure.",
+  "name": "Lanterns of Saltmarrow",
+  "system": "D&D 5th edition, System Reference Document 5.1",
+  "storyteller": "tavern-bard",
+  "setting": "The kingdom of Aldermere: the walled harbour of Saltmarrow, the Greywick Light on Gullcrag Point, and the Greywater Fens. Level 3 party, three sessions of about 25 minutes each.",
+  "cast": {
+    "dm": {
+      "name": "Rowan",
+      "email": "lanterns-rowan@example.com",
+      "voice": "en_GB-alan-medium"
+    },
+    "players": [
+      {
+        "name": "Priya",
+        "email": "lanterns-priya@example.com",
+        "voice": "en_US-amy-medium",
+        "character": {
+          "name": "Kestrel Vanterpool",
+          "class": "Rogue",
+          "subclass": "Thief",
+          "race": "Half-elf",
+          "level": 3
+        }
+      },
+      {
+        "name": "Marcus",
+        "email": "lanterns-marcus@example.com",
+        "voice": "en_US-ryan-medium",
+        "character": {
+          "name": "Ghorrim Duskhammer",
+          "class": "Cleric",
+          "subclass": "Life Domain",
+          "race": "Hill dwarf",
+          "level": 3
+        }
+      },
+      {
+        "name": "Elise",
+        "email": "lanterns-elise@example.com",
+        "voice": "en_GB-southern_english_female-low",
+        "character": {
+          "name": "Aelwen Thistledown",
+          "class": "Wizard",
+          "subclass": "School of Evocation",
+          "race": "High elf",
+          "level": 3
+        }
+      },
+      {
+        "name": "Tomasz",
+        "email": "lanterns-tomasz@example.com",
+        "voice": "en_GB-northern_english_male-medium",
+        "character": {
+          "name": "Fennimore Quickwhistle",
+          "class": "Bard",
+          "subclass": "College of Lore",
+          "race": "Lightfoot halfling",
+          "level": 3
+        }
+      }
+    ],
+    "observer": {
+      "name": "The developer",
+      "email": "set per run (a real account on the real client)",
+      "silent": true,
+      "character": {
+        "name": "Varek",
+        "class": "Barbarian",
+        "subclass": "Path of the Berserker",
+        "race": "Half-orc",
+        "level": 3
+      },
+      "note": "Player 5. The developer's own client joins the demo campaign, never speaks or types, and monitors. The scripts only mention Varek, so a connected but silent track is part of every run."
+    }
+  },
+  "sessions": [
+    {
+      "n": 1,
+      "title": "The Weeping Anchor",
+      "file": "session-1.txt"
+    },
+    {
+      "n": 2,
+      "title": "The Greywater Fens",
+      "file": "session-2.txt"
+    },
+    {
+      "n": 3,
+      "title": "The Night of Lamps",
+      "file": "session-3.txt"
+    }
+  ],
+  "gmNotes": "gm-notes.md",
+  "glossary": [
+    {
+      "term": "Odalys Venn",
+      "kind": "person",
+      "aliases": ["Odalis Venn", "Odalice Venn"]
+    },
+    {
+      "term": "Hollin Marsh",
+      "kind": "person",
+      "aliases": ["Holland Marsh", "Hollin Marsch"]
+    },
+    {
+      "term": "Tobias Quillfeather",
+      "kind": "person",
+      "aliases": ["Tobias Quill Feather", "Tobias Quilfeather"]
+    },
+    {
+      "term": "Tobias Wick",
+      "kind": "person",
+      "aliases": ["Tobias Wik"]
+    },
+    {
+      "term": "Mabel Thrupp",
+      "kind": "person",
+      "aliases": ["Mabel Throp", "Mabel Thrup"]
+    },
+    {
+      "term": "Barnaby Crewe",
+      "kind": "person",
+      "aliases": ["Barnaby Crew"]
+    },
+    {
+      "term": "Rook Harrow",
+      "kind": "person",
+      "aliases": ["Rooke Harrow", "Rook Harold"]
+    },
+    {
+      "term": "Granny Brinewhistle",
+      "kind": "person",
+      "aliases": ["Granny Brine Whistle", "Granny Brynwhistle"]
+    },
+    {
+      "term": "Valmeric Dusk",
+      "kind": "person",
+      "aliases": ["Valmerick Dusk", "Valmeric Dust"]
+    },
+    {
+      "term": "Corin",
+      "kind": "person",
+      "aliases": ["Coren"]
+    },
+    {
+      "term": "Kestrel Vanterpool",
+      "kind": "person",
+      "aliases": ["Kestrel Vanderpool", "Kestrel Van der Pool"]
+    },
+    {
+      "term": "Ghorrim Duskhammer",
+      "kind": "person",
+      "aliases": ["Gorim Duskhammer", "Gorrim Duskhammer"]
+    },
+    {
+      "term": "Aelwen Thistledown",
+      "kind": "person",
+      "aliases": ["Elwen Thistledown", "Ailwen Thistledown"]
+    },
+    {
+      "term": "Fennimore Quickwhistle",
+      "kind": "person",
+      "aliases": ["Fenimore Quickwhistle", "Fennimore Quick Whistle"]
+    },
+    {
+      "term": "Varek",
+      "kind": "person",
+      "aliases": ["Varick", "Varrick"]
+    },
+    {
+      "term": "Aldermere",
+      "kind": "place",
+      "aliases": ["Alder Mere", "Aldermeer"]
+    },
+    {
+      "term": "Saltmarrow",
+      "kind": "place",
+      "aliases": ["Salt Marrow", "Saltmarow"]
+    },
+    {
+      "term": "Greywick Light",
+      "kind": "place",
+      "aliases": ["Greywick Lighthouse", "Grey Wick Light"]
+    },
+    {
+      "term": "Gullcrag Point",
+      "kind": "place",
+      "aliases": ["Gull Crag Point"]
+    },
+    {
+      "term": "Skelling",
+      "kind": "place",
+      "aliases": ["Skelling Estuary"]
+    },
+    {
+      "term": "Greywater Fens",
+      "kind": "place",
+      "aliases": ["Grey Water Fens"]
+    },
+    {
+      "term": "Saint Ostren's",
+      "kind": "place",
+      "aliases": ["Saint Ostrens", "St. Ostren's"]
+    },
+    {
+      "term": "Weeping Anchor",
+      "kind": "place",
+      "aliases": ["The Weeping Anchor"]
+    },
+    {
+      "term": "Chandlers' Guildhall",
+      "kind": "place",
+      "aliases": ["Chandler's Guildhall", "Chandlers Guildhall"]
+    },
+    {
+      "term": "Old Cistern",
+      "kind": "place",
+      "aliases": []
+    },
+    {
+      "term": "Salt Gate",
+      "kind": "place",
+      "aliases": ["Saltgate"]
+    },
+    {
+      "term": "Hangman's Steps",
+      "kind": "place",
+      "aliases": ["Hangmans Steps"]
+    },
+    {
+      "term": "Brackenford",
+      "kind": "place",
+      "aliases": ["Bracken Ford"]
+    },
+    {
+      "term": "Cathedral of Tides",
+      "kind": "place",
+      "aliases": []
+    },
+    {
+      "term": "Tidecaller's Lens",
+      "kind": "item",
+      "aliases": ["Tide Caller's Lens", "Tidecallers Lens"]
+    },
+    {
+      "term": "Gullbone Whistle",
+      "kind": "item",
+      "aliases": ["Gull Bone Whistle"]
+    },
+    {
+      "term": "Damp Duchess",
+      "kind": "item",
+      "aliases": ["The Damp Duchess"]
+    },
+    {
+      "term": "Magic Missile",
+      "kind": "spell",
+      "aliases": []
+    },
+    {
+      "term": "Sacred Flame",
+      "kind": "spell",
+      "aliases": []
+    },
+    {
+      "term": "Vicious Mockery",
+      "kind": "spell",
+      "aliases": []
+    },
+    {
+      "term": "Detect Magic",
+      "kind": "spell",
+      "aliases": []
+    },
+    {
+      "term": "Mage Armor",
+      "kind": "spell",
+      "aliases": ["Mage Armour"]
+    },
+    {
+      "term": "Burning Hands",
+      "kind": "spell",
+      "aliases": []
+    },
+    {
+      "term": "Scorching Ray",
+      "kind": "spell",
+      "aliases": []
+    },
+    {
+      "term": "Healing Word",
+      "kind": "spell",
+      "aliases": []
+    },
+    {
+      "term": "Guiding Bolt",
+      "kind": "spell",
+      "aliases": []
+    },
+    {
+      "term": "Spiritual Weapon",
+      "kind": "spell",
+      "aliases": []
+    },
+    {
+      "term": "Shield of Faith",
+      "kind": "spell",
+      "aliases": []
+    },
+    {
+      "term": "Drowned Choir",
+      "kind": "other",
+      "aliases": ["The Drowned Choir"]
+    },
+    {
+      "term": "Mother Tidewarden",
+      "kind": "other",
+      "aliases": ["Mother Tide Warden"]
+    },
+    {
+      "term": "Orsolin the Lampbearer",
+      "kind": "other",
+      "aliases": ["Orsolin the Lamp Bearer", "Orsolin"]
+    },
+    {
+      "term": "Lantern Festival",
+      "kind": "other",
+      "aliases": ["Night of Lamps"]
+    },
+    {
+      "term": "sahuagin",
+      "kind": "other",
+      "aliases": ["sahagin", "sa-hoo-gin", "sahuaghin"]
+    },
+    {
+      "term": "Sneak Attack",
+      "kind": "other",
+      "aliases": []
+    },
+    {
+      "term": "Cunning Action",
+      "kind": "other",
+      "aliases": []
+    },
+    {
+      "term": "Bardic Inspiration",
+      "kind": "other",
+      "aliases": []
+    },
+    {
+      "term": "Channel Divinity",
+      "kind": "other",
+      "aliases": []
+    },
+    {
+      "term": "Turn Undead",
+      "kind": "other",
+      "aliases": []
+    }
+  ],
+  "canaries": [
+    {
+      "word": "quince",
+      "session": 1,
+      "how": "spoken by a late joiner before they acknowledged the recording cue"
+    },
+    {
+      "word": "cantaloupe",
+      "session": 1,
+      "how": "typed with /ooc"
+    },
+    {
+      "word": "tangerine",
+      "session": 1,
+      "how": "typed with /dm (a whisper to the Game Master)"
+    },
+    {
+      "word": "turnip",
+      "session": 2,
+      "how": "typed with /dm (a whisper to the Game Master)"
+    },
+    {
+      "word": "gingham",
+      "session": 2,
+      "how": "spoken while the recording was paused"
+    },
+    {
+      "word": "artichoke",
+      "session": 3,
+      "how": "typed with /ooc"
+    },
+    {
+      "word": "walnut",
+      "session": 3,
+      "how": "typed with /tell (a whisper to one player)"
+    },
+    {
+      "word": "rhubarb",
+      "session": 3,
+      "how": "spoken while the recording was paused"
+    }
+  ],
+  "gmCanaries": [
+    {
+      "word": "moonlily",
+      "how": "a secret in the GM notes only: never said at the table, so it must never reach a tale except the Tipsy Minstrel's"
+    },
+    {
+      "word": "gallowglass",
+      "how": "a name in the GM notes only: never said at the table"
+    }
+  ]
+}

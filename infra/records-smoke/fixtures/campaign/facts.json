@@ -1,0 +1,387 @@
+{
+  "about": "What a faithful record of each session holds. A fact is found when every pattern in `all` matches the output being scored (case-insensitive regular expressions); `source` must match the session's script, which proves the fact is really said or typed there (the validator checks it). `importance`: core (a good set of notes keeps it), subtle (a good set might lose it), trap (written to be mixed up). Crude on purpose: it counts recall the same way for every model and says nothing about the writing.",
+  "1": [
+    {
+      "id": "hire",
+      "what": "The Harbourmaster, Odalys Venn, hired the party",
+      "all": ["odalys"],
+      "source": "Odalys Venn",
+      "importance": "core"
+    },
+    {
+      "id": "keeper-missing",
+      "what": "The lighthouse keeper, Tobias Quillfeather, is missing",
+      "all": ["quillfeather|keeper"],
+      "source": "Tobias Quillfeather",
+      "importance": "core"
+    },
+    {
+      "id": "lens-stolen",
+      "what": "The Tidecaller's Lens was stolen from the lighthouse",
+      "all": ["lens"],
+      "source": "Tidecaller's Lens",
+      "importance": "core"
+    },
+    {
+      "id": "deadline",
+      "what": "The Lantern Festival (Night of Lamps) is in four days",
+      "all": ["festival|night of lamps", "four days|4 days"],
+      "source": "four days",
+      "importance": "core"
+    },
+    {
+      "id": "reward",
+      "what": "Three hundred gold on completion, fifty up front",
+      "all": ["300|three hundred", "50|fifty"],
+      "source": "three hundred gold",
+      "importance": "core"
+    },
+    {
+      "id": "mabel",
+      "what": "A one-eyed ferrywoman, Mabel Thrupp, took them across in the Damp Duchess",
+      "all": ["mabel"],
+      "source": "Mabel Thrupp",
+      "importance": "core"
+    },
+    {
+      "id": "onions",
+      "what": "Fennimore paid the fare with pickled onions",
+      "all": ["onion"],
+      "source": "pickled onions",
+      "importance": "core"
+    },
+    {
+      "id": "mabel-offer",
+      "what": "Mabel said to ask for her whenever water needs crossing",
+      "all": ["mabel", "cross|ferry|boat|water"],
+      "source": "you ask for Mabel Thrupp",
+      "importance": "subtle"
+    },
+    {
+      "id": "inn",
+      "what": "They met Hollin Marsh at the Weeping Anchor tavern",
+      "all": ["weeping anchor", "hollin"],
+      "source": "Hollin Marsh",
+      "importance": "core"
+    },
+    {
+      "id": "barnaby",
+      "what": "Old Barnaby Crewe heard singing the night the light went out",
+      "all": ["barnaby", "sing|hymn|hum"],
+      "source": "Barnaby Crewe",
+      "importance": "core"
+    },
+    {
+      "id": "natural-20",
+      "what": "Fennimore rolled a natural 20 and played back the five notes",
+      "all": ["fennimore|fen\\b", "natural (20|twenty)|nat(ural)? ?20|critical|perfectly"],
+      "source": "Natural twenty",
+      "importance": "core"
+    },
+    {
+      "id": "fight",
+      "what": "They fought giant crabs and a sahuagin at Greywick Light; the sahuagin fled",
+      "all": ["crab", "sahuagin"],
+      "source": "sahuagin",
+      "importance": "core"
+    },
+    {
+      "id": "whistle",
+      "what": "They found the Gullbone Whistle",
+      "all": ["whistle"],
+      "source": "Gullbone Whistle",
+      "importance": "core"
+    },
+    {
+      "id": "potions",
+      "what": "They found two potions of healing",
+      "all": ["potion"],
+      "source": "two potions of healing",
+      "importance": "core"
+    },
+    {
+      "id": "journal",
+      "what": "The keeper's journal names the Archdeacon and the Drowned Choir",
+      "all": ["drowned choir", "archdeacon"],
+      "source": "Drowned Choir",
+      "importance": "core"
+    },
+    {
+      "id": "ostren",
+      "what": "A clue points to Saint Ostren's in the Greywater Fens",
+      "all": ["ostren"],
+      "source": "Saint Ostren's",
+      "importance": "core"
+    },
+    {
+      "id": "hymnal",
+      "what": "A hymnal page, Verse Nine, shows a bell sunk under waves",
+      "all": ["hymn", "bell"],
+      "source": "Verse Nine",
+      "importance": "core"
+    },
+    {
+      "id": "odalys-key",
+      "what": "Odalys keeps touching a brass key on a cord under her collar",
+      "all": ["key", "odalys|harbourmaster"],
+      "source": "brass key on a cord",
+      "importance": "subtle"
+    }
+  ],
+  "2": [
+    {
+      "id": "archdeacon-name",
+      "what": "Hollin says Odalys brought the Archdeacon, Valmeric Dusk, to the Cathedral",
+      "all": ["valmeric|archdeacon", "odalys"],
+      "source": "Odalys Venn brought him",
+      "importance": "core"
+    },
+    {
+      "id": "map",
+      "what": "Odalys gave them a map with the dry paths marked",
+      "all": ["map"],
+      "source": "folded map",
+      "importance": "core"
+    },
+    {
+      "id": "granny",
+      "what": "They met Granny Brinewhistle, a sea hag, in the Fens",
+      "all": ["brinewhistle", "hag"],
+      "source": "Granny Brinewhistle",
+      "importance": "core"
+    },
+    {
+      "id": "song-debt",
+      "what": "Fennimore gave up the last verse of his song and owes another debt",
+      "all": ["fennimore|fen\\b", "verse|song", "debt"],
+      "source": "another debt",
+      "importance": "core"
+    },
+    {
+      "id": "granny-mabel",
+      "what": "Granny said Mabel Thrupp owes her a boat",
+      "all": ["mabel", "granny|brinewhistle"],
+      "source": "owes me a boat",
+      "importance": "core"
+    },
+    {
+      "id": "granny-info",
+      "what": "Valmeric Dusk has the lens and will raise it in Saltmarrow on the Night of Lamps",
+      "all": ["valmeric", "lens"],
+      "source": "Valmeric Dusk",
+      "importance": "core"
+    },
+    {
+      "id": "crypt",
+      "what": "Under Saint Ostren's chapel they fought zombies and a ghoul",
+      "all": ["zombie", "ghoul"],
+      "source": "ghoul",
+      "importance": "core"
+    },
+    {
+      "id": "elf-ghoul",
+      "what": "Aelwen, an elf, is immune to the ghoul's paralysis",
+      "all": ["elf|aelwen", "paralys|immune"],
+      "source": "immune to the ghoul",
+      "importance": "subtle"
+    },
+    {
+      "id": "turn-undead",
+      "what": "Ghorrim used Turn Undead",
+      "all": ["turn undead"],
+      "source": "Turn Undead",
+      "importance": "core"
+    },
+    {
+      "id": "rook",
+      "what": "Captain Rook Harrow escaped by smoke pellet and swore to remember the halfling",
+      "all": ["rook", "escap|fled|smoke|gone|away"],
+      "source": "Rook Harrow",
+      "importance": "core"
+    },
+    {
+      "id": "tobias-freed",
+      "what": "They freed Tobias Quillfeather alive from a cell in the crypt",
+      "all": ["tobias|quillfeather", "free|rescu|cell|alive"],
+      "source": "Tobias Quillfeather",
+      "importance": "core"
+    },
+    {
+      "id": "cistern",
+      "what": "The lens is hidden in the Old Cistern under the Chandlers' Guildhall",
+      "all": ["cistern", "guildhall|chandler"],
+      "source": "Old Cistern",
+      "importance": "core"
+    },
+    {
+      "id": "blue-cord",
+      "what": "The key used at the lighthouse had a blue cord with a brass tag, from the Harbourmaster's office",
+      "all": ["blue"],
+      "source": "blue cord",
+      "importance": "core"
+    },
+    {
+      "id": "suspicion",
+      "what": "The party suspects Odalys",
+      "all": ["odalys", "suspect|trust|traitor|distrust|hid|hiding"],
+      "source": "traitor",
+      "importance": "core"
+    },
+    {
+      "id": "loot",
+      "what": "Loot: a bell pin, a potion of water breathing, 120 gold",
+      "all": ["water breathing"],
+      "source": "water breathing",
+      "importance": "subtle"
+    },
+    {
+      "id": "whistle-hum",
+      "what": "The Gullbone Whistle hums louder near the Choir",
+      "all": ["whistle", "hum"],
+      "source": "humming",
+      "importance": "core"
+    },
+    {
+      "id": "two-days",
+      "what": "Two days remain until the Night of Lamps",
+      "all": ["two days|2 days"],
+      "source": "Two days remain",
+      "importance": "subtle"
+    },
+    {
+      "id": "messenger",
+      "what": "Hollin's messenger summons them back to the Weeping Anchor",
+      "all": ["messenger|boy|summon|summoned"],
+      "source": "Master Marsh sent me",
+      "importance": "subtle"
+    }
+  ],
+  "3": [
+    {
+      "id": "confession",
+      "what": "Odalys gave the lighthouse key to the Archdeacon; her brother Corin drowned on the Marigold",
+      "all": ["odalys", "corin"],
+      "source": "Corin",
+      "importance": "core"
+    },
+    {
+      "id": "oil",
+      "what": "Hollin Marsh gave them six flasks of lamp oil",
+      "all": ["oil", "hollin"],
+      "source": "six flasks of lamp oil",
+      "importance": "core"
+    },
+    {
+      "id": "tobias-wick",
+      "what": "Tobias Wick, a lanternwright, is a different man from Tobias Quillfeather",
+      "all": ["wick"],
+      "source": "Tobias Wick\\. No relation",
+      "importance": "trap"
+    },
+    {
+      "id": "mabel-returns",
+      "what": "Mabel Thrupp poled them in the Damp Duchess to the Old Cistern",
+      "all": ["mabel", "duchess|barge|boat"],
+      "source": "Damp Duchess",
+      "importance": "core"
+    },
+    {
+      "id": "mabel-remembers",
+      "what": "Mabel remembered Fennimore from the pickled onions",
+      "all": ["mabel", "onion"],
+      "source": "proper onion",
+      "importance": "core"
+    },
+    {
+      "id": "valmeric-choir",
+      "what": "Valmeric Dusk led the Choir and the Lens in the Old Cistern",
+      "all": ["valmeric", "cistern"],
+      "source": "Valmeric Dusk",
+      "importance": "core"
+    },
+    {
+      "id": "novice",
+      "what": "Valmeric said Ghorrim had been a novice at the Brackenford temple",
+      "all": ["ghorrim|duskhammer", "novice|brackenford|teacher|temple"],
+      "source": "novice of the Lampbearer",
+      "importance": "subtle"
+    },
+    {
+      "id": "zombies-fire",
+      "what": "The zombies were burned with lamp oil and fire",
+      "all": ["zombie", "oil|fire|burn"],
+      "source": "flask of lamp oil",
+      "importance": "core"
+    },
+    {
+      "id": "specter",
+      "what": "A specter of Odalys's drowned brother let go and faded",
+      "all": ["specter|ghost", "corin|brother|odalys|sailor"],
+      "source": "specter",
+      "importance": "core"
+    },
+    {
+      "id": "granny-collects",
+      "what": "Granny Brinewhistle came to collect Fennimore's debt",
+      "all": ["brinewhistle|granny", "debt"],
+      "source": "I did say I would collect",
+      "importance": "core"
+    },
+    {
+      "id": "onions-settle",
+      "what": "Mabel settled the debt with jars of pickled onions",
+      "all": ["onion", "debt|settle|even|paid|trade"],
+      "source": "We are even",
+      "importance": "core"
+    },
+    {
+      "id": "rook-returns",
+      "what": "Rook Harrow returned and surrendered to Varek",
+      "all": ["rook", "surrender|captur|gaol|jail"],
+      "source": "I surrender",
+      "importance": "core"
+    },
+    {
+      "id": "lens-falls",
+      "what": "Varek cut the cord, the lens fell and the song ended",
+      "all": ["varek", "lens"],
+      "source": "cuts the cord",
+      "importance": "core"
+    },
+    {
+      "id": "valmeric-dies",
+      "what": "Valmeric Dusk died",
+      "all": ["valmeric", "dead|died|dies|death"],
+      "source": "He is dead",
+      "importance": "core"
+    },
+    {
+      "id": "relit",
+      "what": "Tobias Quillfeather relit Greywick Light at dawn",
+      "all": ["quillfeather|keeper", "light"],
+      "source": "lights the wick",
+      "importance": "core"
+    },
+    {
+      "id": "pay",
+      "what": "Odalys paid the full three hundred gold and resigned",
+      "all": ["300|three hundred", "resign"],
+      "source": "resigns the post",
+      "importance": "core"
+    },
+    {
+      "id": "sign",
+      "what": "Hollin's sign got a new tear carved",
+      "all": ["tear|sign"],
+      "source": "new tear",
+      "importance": "subtle"
+    },
+    {
+      "id": "voice",
+      "what": "Fennimore got his voice and the last verse back",
+      "all": ["fennimore|fen\\b", "voice|verse"],
+      "source": "get your voice back",
+      "importance": "core"
+    }
+  ]
+}

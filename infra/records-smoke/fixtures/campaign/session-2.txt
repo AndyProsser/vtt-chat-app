@@ -1,0 +1,194 @@
+# Lanterns of Saltmarrow, session 2: "The Greywater Fens". See README.md for the line format.
+# Callbacks to session 1 (the bard and the memory must connect them): the Weeping Anchor and Hollin Marsh, Odalys Venn and the
+# deadline, Tobias Quillfeather, Mabel Thrupp (named but absent), the Gullbone Whistle, the Drowned Choir, Saint Ostren's.
+# New and returning later: Granny Brinewhistle (a sea hag) and Fennimore's debt; Captain Rook Harrow, who escapes; the Old Cistern.
+# Also in this session: Elise drops off the network and comes back; a pause with a canary word spoken during it.
+
+[start]
+Rowan: Okay, we are recording. Welcome back, everyone. Before anything else, a recap, because it has been a week and I would like to see whether you were listening. Last time, you reached Saltmarrow by ferry, met the Harbourmaster, Odalys Venn, and she hired you to find the lighthouse keeper.
+Priya: And the lens. Do not forget the lens. The Tidecaller's Lens.
+Rowan: Thank you, Priya. You went out to Greywick Light and fought three giant crabs.
+Tomasz: Two crabs and a sahuagin. It was two crabs and a sahuagin, and the sahuagin got away with four hit points because of my Vicious Mockery.
+Rowan: I stand corrected. Two crabs and a sahuagin. You found a bone whistle, two potions of healing, and the keeper's burnt journal with a page that mentions the Drowned Choir, and an Archdeacon, and a clue to Saint Ostren's chapel in the Greywater Fens.
+Elise: And the hymnal page. Verse nine. With the bell under the waves.
+Marcus: And the festival is in three days. No, two. How many days is it now?
+Rowan: Three days, counting today. The Night of Lamps is on the evening of the third day.
+Priya: So we have to be quick. I really do not want to be the people who let down the Harbourmaster.
+Elise: I still do not entirely trust the Harbourmaster. I said so last time, with my Insight check.
+Rowan: You did. Noted. Let us begin. It is morning, you slept on the floor of the lantern room, and Varek has been awake the whole night and looks no different from how he looked yesterday.
+[scene: Harbour]
+Rowan: You walk back along the sea road at dawn, with the tide out and the sand shining. By the time you reach the Weeping Anchor, the cider smell has gone and the smell of porridge has taken over. Hollin Marsh is wiping a table with a grey rag. He says, you are back. She is upstairs. Eat first.
+Marcus: Ghorrim eats first. I take the stew.
+Rowan: It is porridge, Marcus.
+Marcus: I take the porridge, then, with great dignity.
+Rowan: While you eat, Hollin Marsh leans on the bar and gives you the gossip, because innkeepers cannot help themselves. He says, three more ships went on the rocks last night. Old Barnaby Crewe has been up on the north jetty since dawn, waving a lantern at anything that moves. And the festival committee is getting jumpy, because the Archdeacon of the Cathedral of Tides has been seen about the town, blessing the lamps, and saying the light will come back.
+Tomasz: The Archdeacon. That is the word from the journal page. The Archdeacon says the Choir must be satisfied.
+Elise: Do not say it out loud. Fennimore, do not say it out loud.
+Tomasz: I said it very quietly.
+Rowan: Hollin Marsh does not seem to notice. He goes on, he says, a very holy man. Valmeric Dusk. He came in from the north last winter. Odalys Venn brought him to the Cathedral herself.
+Priya: Odalys Venn brought him.
+Rowan: He says it just like that, and then goes back to polishing a mug.
+Priya: Okay. I am saying nothing. I am saying nothing at all.
+Elise: You are saying nothing very loudly.
+[scene: Tavern]
+Rowan: Odalys Venn is in the same corner, in the same blue coat, and she has clearly not slept. She says, tell me everything.
+Elise: Aelwen tells her. She leaves out the hymnal page.
+Priya: Kestrel does not say anything at all about the brass key. Kestrel sits on her hands. Metaphorically.
+Rowan: Odalys asks to see the journal page. Aelwen hands over the copy, not the original, because she has been smart. Odalys reads it twice. She says, Saint Ostren's. That is a ruin. Nobody has prayed there in a century. The Fens will swallow you if you do not know the way.
+Tomasz: Do we get a guide?
+Rowan: She says, I cannot spare a guide. But take this. She puts a small folded map on the table, with the dry paths marked in red. She says, be back before the festival, and she says it twice.
+Marcus (typed): /do Ghorrim thanks her with a nod and folds the map into his belt
+Priya: Rowan, I want to ask her about the singing. She said last time that it was probably nothing. Is it still nothing?
+Rowan: She says, it is a legend. The Drowned Choir was a story told to children, about sailors who lost their way and sing under the sea waiting for the tide to bring them home. It is not real. Please do not mention it to anyone else in the town. It would frighten them.
+Elise: That is the second time she has told us not to say something. I wrote that down.
+[scene: Forest night]
+Rowan: The Greywater Fens begin an hour north of the town, where the dry road finally gives up and the earth turns to black peat and still green water. There are reeds as tall as a man, and bright green lights that flicker among them, and the red-marked path on Odalys's map winds through all of it. The mist comes up from the water and it is cold, and wet, and very quiet.
+Elise: Is it a will-o'-wisp? Aelwen thinks it is a will-o'-wisp. She knows they are real. She has read about them.
+Rowan: It is only marsh gas. You are fairly sure. Make a Survival check, anyone who wants to try to keep to the path.
+Priya: Fourteen.
+Marcus: Nine. I am a dwarf. I do not like swamps.
+Rowan: Priya leads, and the fens throw things at you. A skill challenge. Each of you needs to roll something, and I need three successes before three failures. Describe how you are getting through.
+Elise: Aelwen is levitating her notebook over the water so it does not get wet. I will roll Arcana. Eleven plus five. Sixteen.
+Rowan: That is a success. Not a good use of a spell, but it is a success.
+Marcus: Ghorrim is testing every plank with his hammer before he steps on it. Athletics. Nine, no, thirteen with proficiency.
+Rowan: Success. Two.
+Tomasz: Fennimore is complaining loudly and it is the only thing that is keeping us together. Persuasion. Okay, that is a six.
+Rowan: Failure. A leech the size of your forearm drops off the reeds and lands on your neck.
+Tomasz: Get it off! Get it off me!
+Priya: Kestrel flicks it into the water with a knife. Quick, easy, no fuss. Sleight of Hand. Eighteen.
+Rowan: Success. That is three. You have gone through, soaked, bitten, and mostly dignified, and you keep to the path for about two hours, and then the path just stops, in the middle of a pool of black water, with a plank walkway that has rotted through.
+Tomasz: I cast Light on the end of my lute and hold it out in front of me. I say, I do not like this.
+[stinger: Creatures > Crows]
+Rowan: Out of the mist, sitting on a floating log, is an old woman. She is very small and very bent, with a face like a dried apple, and she is knitting. The needles click in the quiet. She says, well, well. Company. I have not had company for a hundred years.
+Elise: She is a hag. Aelwen knows it is a hag. Can I make an Arcana check?
+Rowan: You may. Roll it.
+Elise: Fifteen plus five. Twenty.
+Rowan: A sea hag. A very old one, a long way from the sea. If she wanted to hurt you, you would already be in the water. She says, I am Granny Brinewhistle, and this is my bog, and you are on my planks, dearies, so you will pay the toll or you will swim.
+Priya: What is the toll?
+Rowan: She says, a song. The littlest one has a lute. She points her needle at Fennimore. A song, and not just any song. His best. The one he sings at night when he thinks no one can hear.
+Tomasz: I do not have a best song.
+Marcus: Everybody has a best song.
+Rowan: Tomasz, give me an Insight check on her.
+Tomasz: Eight.
+Rowan: She smiles, and her smile is full of teeth. She says, a song, and the last verse of it, and I will tell you where the Archdeacon keeps his lamp, and where the Choir sings, and which way is the dry way to Saint Ostren's.
+Priya (typed): /dm tell the bard I do not like this deal. turnip
+Marcus: Ghorrim says, no deal. No bargaining with a hag. That is just good sense.
+Tomasz: But she knows about the Archdeacon, and the lamp, and the Choir. It is the lens. She is saying she knows where the lens is.
+Elise: Fennimore, the last verse of a song is the part that makes it yours. She will take it. It will be gone.
+Tomasz: I am a bard. I will write another. Fennimore says, deal, Granny, and I sing it.
+Rowan: Roll Performance.
+Tomasz: Eighteen.
+Rowan: You sing the song you wrote for your mother, with the verse that begins, when the lanterns are lit and the road runs home. You hear it leave you, like a thread being drawn out of a needle. The hag closes her eyes and sways. She says, a good verse. A sweet verse. That is one debt paid and another owed, little bard, and one day I will come and collect the rest.
+Tomasz: Wait. What? Another debt?
+Rowan: She grins. She says, nothing is free, dearie. Now listen. The Choir sings in the crypt under Saint Ostren's. The Archdeacon is a man called Valmeric Dusk, and he has the lens, and he is going to raise it in Saltmarrow on the night of the lamps. And you can tell Mabel Thrupp that Granny Brinewhistle remembers her.
+Priya: Mabel Thrupp. The ferrywoman with the onions.
+Elise: Aelwen is writing that down. Mabel Thrupp and Granny Brinewhistle, a connection.
+Tomasz: Granny, how do you know Mabel?
+Rowan: She says, she owes me a boat. And she vanishes in a puff of black bog-water, and the plank walkway beneath you is whole again.
+Priya: I do not like this. I like this less and less.
+[pause]
+Rowan: Let us take five minutes, everyone, get a drink, stretch.
+Marcus: My gran's gingham tablecloth is on this table and I have just spilled tea on it. Wish me luck.
+Elise: Do not wipe it with your sleeve!
+Priya: I am getting a snack. Does anyone else want anything?
+[resume]
+Rowan: Right, we are back. Aelwen, I need to ask you to roll for something.
+[leave: Elise]
+Priya: Elise, you froze. Elise? Rowan, I think Elise has dropped.
+Rowan: I think she is gone. Okay. We will keep going and wait for her. Aelwen stays at the back of the party, quiet, listening.
+Marcus: She is in the middle of a bog. Of course she dropped.
+[rejoin: Elise]
+Elise: Sorry. Sorry. My router decided to go for a walk. I am back, I am back. What did I miss?
+Rowan: The party has been listening to the water. Aelwen, you can hear the next thing coming.
+[scene: Campfire]
+Rowan: It is almost evening, and the dry way is going to take another hour. Do you want to stop and rest before the chapel, or go on?
+Marcus: We go on. Ghorrim wants to be in the chapel by dusk. I do not want to be out in a swamp after dark.
+Elise: We rest. Aelwen has two spell slots. She would like four. She will not be able to think clearly without a short rest.
+Priya: Let us split the difference. We light a fire, we sit for half an hour, we eat the last of the bread, and we go in at dusk.
+Rowan: All right. A short rest by a fire on a dry hummock. What do you talk about?
+Tomasz: Fennimore tries to hum the last verse of the song to himself, and he cannot, and he gets a bit weepy. He says, it is just gone. It was a nice verse. It had a rhyme in it that I was proud of.
+Priya: Kestrel puts an arm round him. She says, you will write another. You are a bard. You will write fifty.
+Marcus: Ghorrim says, in a gruff way, that no one in Orsolin's order would have made that bargain. And then he says, I would have, though. For the right song.
+Elise: I want to talk about Odalys. Aelwen has been thinking. She hid something from us. We know she hid something. And we know she gave us a map that went by the dry path and did not tell us about the hag.
+Priya: She might not have known about the hag.
+Elise: She knew the Fens well enough to mark the dry paths in red.
+Marcus: That is fair. That is a very fair point.
+Priya: We do not say anything to her, but we watch what she does when we come back.
+Tomasz: Agreed. Fennimore says, and I will be charming. I am very good at being charming when I want to find out what someone is hiding.
+Elise: You are not.
+Tomasz: I am a bard! It is literally the class!
+Rowan: You finish your rest. Your hit dice are spent, your spell slots are restored, and Priya, you have the Gullbone Whistle out on your knee, and it is humming faintly.
+Priya: Louder than before, or the same?
+Rowan: Slightly louder. We are getting closer.
+[scene: Cave]
+Rowan: The dry way leads you to a hill in the middle of the fen, and on top of the hill, half sunk in the peat, stands the ruin of Saint Ostren's Chapel. A single bell tower leans against the sky. The roof has collapsed. The door is a black arch with a scrawl of white chalk over it, a bell, sunk beneath wavy lines.
+Marcus: That is the same symbol. The bell under the waves. The same as the hymnal page.
+Rowan: As you creep inside, you hear a low hum, many voices, coming up through the floor. Kestrel, you are in front.
+Priya: I look for a way down. Stealth and Perception.
+Rowan: Twelve and seventeen? You find a trapdoor in the floor of the sanctuary, and it is open. A steep stair goes down into candlelight. You can see the first of them. Hooded figures standing around a pit, singing. And in front of them a man in a captain's coat, with a scarred jaw, a cutlass and a ring of keys.
+Tomasz: That is a bad guy. That is a bad guy with a cutlass.
+Rowan: He says, in a low, rich voice, I am Captain Rook Harrow, and you are trespassing in the house of the Choir. Kill them.
+[stinger: Combat > Draw blade]
+Rowan: Roll initiative. And as you do, from the pit behind him, three zombies and one very hungry ghoul pull themselves out onto the floor.
+Elise: I have a nineteen. And Aelwen casts Burning Hands on the zombies, because they are lined up.
+Rowan: Fifteen-foot cone, Dexterity saves. Three zombies, two of them fail. Roll damage.
+Elise: Three d six. Four, five, and one. Ten damage.
+[stinger: Spells > Fire spell]
+Rowan: The two zombies burn, and both are still standing, but they are smoking, and the cultists back away from the fire.
+Marcus: Ghorrim steps forward and uses Channel Divinity. Turn Undead. Holy symbol up.
+Rowan: Every undead who can see or hear you must make a Wisdom saving throw, DC thirteen. The zombies fail. The ghoul passes.
+Marcus: The ghoul passes. Of course the ghoul passes.
+Rowan: The three zombies turn and stagger back from you, frightened, for a full minute. The ghoul comes straight at Aelwen, with its claws out.
+Elise: I am an elf. Elves are immune to the ghoul's paralysis. I looked this up. Rowan, I am an elf.
+Rowan: You are. Well remembered. The claws rake you for seven damage, but you do not freeze. Aelwen, you are at nine.
+Priya: Kestrel flanks the ghoul. Cunning Action, I dash around the back. Sneak attack.
+Rowan: Roll it.
+Priya: Twenty-one to hit. Damage is eleven and then another seven.
+Rowan: The ghoul is horribly wounded.
+[stinger: Combat > Critical hit]
+Tomasz: I use Bardic Inspiration on Priya. For her next roll.
+Priya: Thank you! Oh, that is a four. Plus the d six from the inspiration. Another nine damage.
+Rowan: The ghoul collapses in a heap and begins to rot twice as fast as it has any right to.
+Marcus: Ghorrim casts Spiritual Weapon, a floating glowing hammer. I send it into the cultists.
+Rowan: Two cultists go down. The rest scream and run for the water gate behind the pit. And Captain Rook Harrow, with a cutlass in his hand, looks at the five of you, and at Varek's greataxe.
+Priya: Varek, hit him.
+Rowan: Varek charges. Rook Harrow uses his parry reaction. His blade rings against the greataxe. And then, with a bark of laughter, he throws a smoke pellet on the flagstones.
+Tomasz: Smoke! Everyone cough!
+Rowan: When the smoke clears, he is gone. Through the water gate. You hear a boat's oars, splashing away into the fen. And from the dark, he calls, tell the harbourmaster that Rook Harrow sends his regards, halfling. I will remember you.
+Tomasz: Why me?
+Marcus: Because you cast Vicious Mockery at his mother.
+Tomasz: I did not cast anything at his mother!
+Rowan: And then the hum stops, completely. The crypt is silent, except for the sound of the water.
+[stinger: Doors, traps and loot > Iron gate]
+Rowan: Behind the pit, in an iron cell with a rusted lock, sits a gaunt man in a keeper's oilskins, with a grey beard and his hands tied. He looks up and says, are you the ones Odalys sent? Praise Mother Tidewarden. I am Tobias Quillfeather.
+Priya: Oh, we found him. We actually found him.
+Marcus: Ghorrim picks the lock with his holy symbol. No, that is stupid. Priya, can you pick it?
+Priya: With thieves' tools? Eighteen. Done.
+Rowan: Tobias comes out blinking. He is thin and shaking and starving, but alive. He says, the lens. They put it on a cart in the night, with six men from the harbour. They took it to Saltmarrow. They are hiding it in the Old Cistern, the one under the Chandlers' Guildhall, until the Night of Lamps. When it is lit, in the Cathedral, the Choir will be sung home. And the dead will rise out of the harbour.
+Elise: That is a very bad plan.
+Rowan: Tobias adds, and whoever let them into the lighthouse had a key. It was not forced. Somebody gave them the key.
+Priya: A brass key. On a cord.
+Rowan: Priya, what do you do?
+Priya: I do not say anything. I pull out the brass key from the keeper's hiding place, the one from the third step. I say, this key?
+Rowan: Tobias looks at it. He says, no. That is the cellar key, the one I hid. The one they used had a different cord. A blue cord, with a brass tag. The kind the Harbourmaster's office issues.
+Elise: A blue cord. Odalys had a brass key on a cord under her collar. I knew it.
+Marcus: She is the traitor. She hired us. She hired us to get the lens back, and she is the one who took it.
+Priya: Or she is being used. I do not know. I want to look in her ledger.
+Elise: Let us not accuse her until we know. But we do not tell her anything else.
+Tomasz: Agreed. We are polite. We are very polite.
+[loot: Captain Rook's coat badge | party]
+[loot: Potion of water breathing | party]
+[loot: 120 gp | party]
+Rowan: On Rook's table you find a silver pin in the shape of a bell beneath waves, a potion of water breathing in a green bottle, and a purse with a hundred and twenty gold pieces. And as you leave, with Tobias leaning on Varek, the Gullbone Whistle in Kestrel's pocket starts to hum so loudly that you can all hear it.
+Priya: It is louder than yesterday.
+Rowan: It is louder because the Drowned Choir is near. It gets quieter as you climb the stairs out of the crypt.
+Marcus: It is a warning whistle. That is useful. I want to know if we hear it in the town.
+[scene: Rainfall]
+Rowan: By the time you cross the Fens, with the keeper between you, the rain has come in, and the sky is the colour of a bruise. Two days remain until the Night of Lamps. On the last dry road before the town a rider gallops towards you on a lathered grey horse. It is a boy in the Weeping Anchor's colours. He says, Master Marsh sent me. He says the Harbourmaster is asking for you, and that she wants you at the Anchor tonight, all of you, and the keeper too. Straight away.
+Elise: That is a trap.
+Priya: That is a trap. Obviously a trap.
+Marcus: So we go. But we go carefully.
+Rowan: Varek lifts Tobias onto his shoulders, and the party turns toward Saltmarrow. And that is where we will stop for tonight.
+Tomasz: I need to say something. I want it on the record that I have lost the last verse of my song and I am extremely upset.
+Priya: It is on the record.
+[stop]

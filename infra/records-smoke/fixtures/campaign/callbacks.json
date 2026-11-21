@@ -1,0 +1,198 @@
+{
+  "about": "The links between sessions that campaign memory and the bard are tested on. `source` must match each session in `introduced` and `recurs` (the validator checks the scripts). `memory`: after this session's job, the campaign memory must hold an entry matching `pattern`. `weave`: the tale or the Chronicler's brief for `session` should connect the thing back to its first appearance, judged by `pattern` and then by reading. `trap` entries are written to be confused and must stay separate.",
+  "callbacks": [
+    {
+      "id": "mabel",
+      "what": "Mabel Thrupp, the throwaway ferrywoman paid in pickled onions (the 'find Gary' test)",
+      "introduced": 1,
+      "recurs": [2, 3],
+      "source": "Mabel Thrupp",
+      "memory": {
+        "after": 1,
+        "pattern": "mabel"
+      },
+      "weave": {
+        "session": 3,
+        "outputs": ["tale", "brief"],
+        "pattern": "mabel.{0,200}(onion|ferr|duchess)|(onion|ferr|duchess).{0,200}mabel"
+      }
+    },
+    {
+      "id": "onion-payoff",
+      "what": "The pickled onions: the fare in session 1, the price that cancels Fennimore's debt in session 3",
+      "introduced": 1,
+      "recurs": [3],
+      "source": "pickled onion",
+      "memory": {
+        "after": 1,
+        "pattern": "onion"
+      },
+      "weave": {
+        "session": 3,
+        "outputs": ["tale"],
+        "pattern": "onion"
+      }
+    },
+    {
+      "id": "odalys",
+      "what": "Odalys Venn: hires the party, is the traitor, is redeemed",
+      "introduced": 1,
+      "recurs": [2, 3],
+      "source": "Odalys",
+      "memory": {
+        "after": 1,
+        "pattern": "odalys"
+      },
+      "weave": {
+        "session": 3,
+        "outputs": ["tale", "brief"],
+        "pattern": "odalys.{0,300}(key|brother|corin|betray|traitor)|(key|brother|corin|betray|traitor).{0,300}odalys"
+      }
+    },
+    {
+      "id": "deadline",
+      "what": "The Lantern Festival deadline: four days, two days, tonight",
+      "introduced": 1,
+      "recurs": [2, 3],
+      "source": "festival|Night of Lamps",
+      "memory": {
+        "after": 1,
+        "pattern": "festival|night of lamps"
+      },
+      "weave": {
+        "session": 3,
+        "outputs": ["brief"],
+        "pattern": "festival|night of lamps"
+      }
+    },
+    {
+      "id": "granny-debt",
+      "what": "Granny Brinewhistle and Fennimore's debt (session 2) collected in session 3",
+      "introduced": 2,
+      "recurs": [3],
+      "source": "Brinewhistle",
+      "memory": {
+        "after": 2,
+        "pattern": "brinewhistle"
+      },
+      "weave": {
+        "session": 3,
+        "outputs": ["tale", "brief"],
+        "pattern": "(brinewhistle|granny).{0,300}(debt|verse|song)|(debt|verse|song).{0,300}(brinewhistle|granny)"
+      }
+    },
+    {
+      "id": "granny-mabel",
+      "what": "Granny and Mabel know each other: said in session 2 without Mabel present, played in session 3",
+      "introduced": 2,
+      "recurs": [3],
+      "source": "Mabel Thrupp",
+      "memory": {
+        "after": 2,
+        "pattern": "mabel"
+      },
+      "weave": {
+        "session": 3,
+        "outputs": ["tale"],
+        "pattern": "(brinewhistle|granny).{0,300}mabel|mabel.{0,300}(brinewhistle|granny)"
+      }
+    },
+    {
+      "id": "rook",
+      "what": "Captain Rook Harrow escapes in session 2 and surrenders in session 3",
+      "introduced": 2,
+      "recurs": [3],
+      "source": "Rook Harrow",
+      "memory": {
+        "after": 2,
+        "pattern": "rook"
+      },
+      "weave": {
+        "session": 3,
+        "outputs": ["tale", "brief"],
+        "pattern": "rook"
+      }
+    },
+    {
+      "id": "tobias-trap",
+      "what": "Two Tobiases: Quillfeather (the keeper) and Wick (the lanternwright) must stay separate",
+      "introduced": 1,
+      "recurs": [2, 3],
+      "source": "Tobias",
+      "memory": {
+        "after": 3,
+        "pattern": "wick"
+      },
+      "weave": {
+        "session": 3,
+        "outputs": ["tale"],
+        "pattern": "quillfeather"
+      },
+      "trap": true
+    },
+    {
+      "id": "whistle",
+      "what": "The Gullbone Whistle: found in 1, humming in 2, guides them in 3",
+      "introduced": 1,
+      "recurs": [2, 3],
+      "source": "Gullbone Whistle|whistle",
+      "memory": {
+        "after": 1,
+        "pattern": "whistle"
+      },
+      "weave": {
+        "session": 3,
+        "outputs": ["tale"],
+        "pattern": "whistle"
+      }
+    },
+    {
+      "id": "weeping-anchor",
+      "what": "The Weeping Anchor and Hollin Marsh: where the job is given, and where it is settled",
+      "introduced": 1,
+      "recurs": [2, 3],
+      "source": "Weeping Anchor",
+      "memory": {
+        "after": 1,
+        "pattern": "weeping anchor|hollin"
+      },
+      "weave": {
+        "session": 3,
+        "outputs": ["tale"],
+        "pattern": "weeping anchor|hollin"
+      }
+    },
+    {
+      "id": "valmeric-ghorrim",
+      "what": "Valmeric Dusk named in 2; claims in 3 that Ghorrim was a novice of his own order (subtle)",
+      "introduced": 2,
+      "recurs": [3],
+      "source": "Valmeric",
+      "memory": {
+        "after": 2,
+        "pattern": "valmeric"
+      },
+      "weave": {
+        "session": 3,
+        "outputs": ["brief"],
+        "pattern": "valmeric.{0,300}(ghorrim|novice|teacher)|(ghorrim|novice|teacher).{0,300}valmeric"
+      }
+    },
+    {
+      "id": "greywick",
+      "what": "Greywick Light: visited in 1, its keeper freed in 2, relit in 3",
+      "introduced": 1,
+      "recurs": [2, 3],
+      "source": "Greywick",
+      "memory": {
+        "after": 1,
+        "pattern": "greywick"
+      },
+      "weave": {
+        "session": 3,
+        "outputs": ["tale"],
+        "pattern": "greywick|lighthouse"
+      }
+    }
+  ]
+}

@@ -10,6 +10,8 @@ Throwaway scripts that prove the server-side records chain on a real Linux box a
 
 **Restart drill:** `infra/records-smoke/restart-drill.sh` starts its own LiveKit and Egress, records a synthetic speaker, simulates a backend restart and checks that recovery stops the egress, keeps the audio and queues processing (see [RECORDING-AND-SUMMARIES.md](../../docs/architecture/RECORDING-AND-SUMMARIES.md)).
 
+**The demo campaign (Stage 13).** A reusable three-session campaign for the long test, with a validator: [`fixtures/campaign/`](fixtures/campaign/README.md) (`npm run campaign:check`, `npm run campaign:test`). Its runner and monitor are the next part of the stage.
+
 ## The Compose end-to-end test (`compose-e2e.ts`): run it after an install
 
 The whole records path against a **running** Docker Compose stack with the `records` profile up, as players
