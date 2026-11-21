@@ -5,7 +5,7 @@ import {
   TALE_LENGTHS,
   type BardId,
 } from '../consts/bards.js';
-import type { AiSettings } from '../types/aiSettings.js';
+import type { AiLlmKind, AiSettings } from '../types/aiSettings.js';
 
 export const TRANSCRIPTION_GLOSSARY_MODES = ['off', 'corrections', 'prompt', 'both'] as const;
 
@@ -26,7 +26,8 @@ export const AI_SETTING_KEYS = {
   'ai.transcription.language': 'language code such as en',
   'ai.transcription.glossary':
     'corrections (default: fix misheard names afterwards) | prompt | both | off',
-  'ai.llm.kind': 'local | remote',
+  'ai.llm.kind':
+    'local | remote | claude (claude needs ANTHROPIC_API_KEY; session text leaves the server)',
   'ai.llm.url': 'http(s) URL of an OpenAI-compatible server, or "none"',
   'ai.llm.model': 'model name, or "none"',
   'ai.fallback.enabled': 'true | false',
@@ -122,7 +123,8 @@ export function setAiSetting(settings: AiSettings, key: AiSettingKey, value: str
       break;
     }
     case 'ai.llm.kind':
-      next.llm.kind = parseKind(value);
+      if (value === 'claude') next.llm.kind = 'claude';
+      else next.llm.kind = parseKind(value);
       break;
     case 'ai.llm.url':
       next.llm.url = parseUrl(value);
@@ -202,6 +204,8 @@ export function normaliseAiSettings(raw: unknown): AiSettings {
     typeof v === 'string' ? v : v === null ? null : fallback;
   const kind = (v: unknown, fallback: 'local' | 'remote'): 'local' | 'remote' =>
     v === 'local' || v === 'remote' ? v : fallback;
+  const llmKind = (v: unknown, fallback: AiLlmKind): AiLlmKind =>
+    v === 'local' || v === 'remote' || v === 'claude' ? v : fallback;
   const int = (v: unknown, fallback: number, min: number): number =>
     typeof v === 'number' && Number.isInteger(v) && v >= min ? v : fallback;
   const t = o.transcription ?? {};
@@ -220,7 +224,7 @@ export function normaliseAiSettings(raw: unknown): AiSettings {
       glossary: oneOf(t.glossary, TRANSCRIPTION_GLOSSARY_MODES, d.transcription.glossary),
     },
     llm: {
-      kind: kind(l.kind, d.llm.kind),
+      kind: llmKind(l.kind, d.llm.kind),
       url: str(l.url, d.llm.url),
       model: str(l.model, d.llm.model),
     },

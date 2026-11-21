@@ -12,6 +12,8 @@ import {
   PROCESS_RECORDING_JOB,
   PURGE_RECORDING_JOB,
   type JobQueue,
+  estimateClaudeCost,
+  type Job,
   MEMORY_KIND_LABELS,
   type RecordsStore,
 } from '@vtt-chat-app/ai';
@@ -740,6 +742,16 @@ async function signupRequests(
 
 const JOB_STATES = ['queued', 'running', 'done', 'failed'] as const;
 
+/** "claude-sonnet-5-5 112k in / 9k out, about $0.31" for a job that used Claude; empty for one that ran locally. */
+function claudeUsage(usage: Job['usage']): string {
+  if (!usage) return '';
+  const k = (n: number): string => (n >= 1000 ? `${Math.round(n / 100) / 10}k` : String(n));
+  const cost = estimateClaudeCost(usage);
+  return `${usage.model} ${k(usage.inputTokens)} in / ${k(usage.outputTokens)} out${
+    cost === undefined ? '' : `, about $${cost.toFixed(2)}`
+  }`;
+}
+
 async function jobs(deps: Ctx, command: string | undefined, rest: string[]): Promise<number> {
   const now = deps.now ?? Date.now;
   switch (command) {
@@ -762,9 +774,10 @@ async function jobs(deps: Ctx, command: string | undefined, rest: string[]): Pro
           paintState(ui, j.state),
           j.kind,
           `${j.attempts}/${j.maxAttempts}`,
+          claudeUsage(j.usage),
           j.lastError ? ui.bad(j.lastError.slice(0, 80)) : '',
         ]),
-        { header: ['id', 'state', 'kind', 'tries', 'last error'] },
+        { header: ['id', 'state', 'kind', 'tries', 'claude', 'last error'] },
       ).forEach(deps.out);
       if (list.some((j) => j.state === 'failed')) {
         deps.out('');

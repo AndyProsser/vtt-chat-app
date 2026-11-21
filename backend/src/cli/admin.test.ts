@@ -378,6 +378,18 @@ describe('jobs and recordings', () => {
     expect(await run('jobs list sideways')).toBe(1);
   });
 
+  it('shows what a job used of Claude, with an estimated cost', async () => {
+    const job = await jobs.enqueue({ kind: PROCESS_RECORDING_JOB, recordingId: 'r1' }, 1);
+    jobs.jobs.get(job.id)!.usage = {
+      model: 'claude-sonnet-5-5',
+      inputTokens: 110_000,
+      outputTokens: 10_000,
+      calls: 8,
+    };
+    await run('jobs list');
+    expect(out.join('\n')).toContain('claude-sonnet-5-5 110k in / 10k out, about $0.32');
+  });
+
   it('puts a failed job back in the queue and the recording back to stopped', async () => {
     await rec('r1', 'failed');
     const job = await jobs.enqueue(

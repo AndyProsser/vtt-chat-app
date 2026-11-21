@@ -6,6 +6,7 @@ import {
   type BardId,
 } from '@vtt-chat-app/shared';
 
+import type { LlmUsage } from '../../consts/claude.js';
 import type { MemoryEntry } from '../memory.js';
 import type { VocabularyTerm } from '../vocabulary.js';
 
@@ -232,6 +233,17 @@ export class MemoryRecordsStore implements RecordsStore {
     this.memory.set(campaignId, [...all.values()]);
     this.appliedMemory.add(recordingId);
     return true;
+  };
+  /** What each job used of Claude (test-facing). */
+  jobUsage = new Map<string, LlmUsage>();
+  addJobUsage = async (jobId: string, usage: LlmUsage): Promise<void> => {
+    const before = this.jobUsage.get(jobId);
+    this.jobUsage.set(jobId, {
+      model: usage.model,
+      inputTokens: (before?.inputTokens ?? 0) + usage.inputTokens,
+      outputTokens: (before?.outputTokens ?? 0) + usage.outputTokens,
+      calls: (before?.calls ?? 0) + usage.calls,
+    });
   };
   vocabulary = new Map<string, VocabularyTerm[]>();
   campaignVocabulary = async (campaignId: string) => this.vocabulary.get(campaignId) ?? [];

@@ -4,9 +4,12 @@
  * or a cloud API) is optional, reached over the OpenAI-compatible API.
  *
  * API keys are **not** stored here — they come from the environment (`WHISPER_API_KEY`,
- * `LLM_API_KEY`), so a database dump never contains a credential.
+ * `LLM_API_KEY`, `ANTHROPIC_API_KEY`), so a database dump never contains a credential.
  */
 export type AiBackendKind = 'local' | 'remote';
+
+/** The LLM may also be Claude (Stage 12 CL): an opt-in off-site adapter, never the default. */
+export type AiLlmKind = AiBackendKind | 'claude';
 
 export interface AiBackendSetting {
   kind: AiBackendKind;
@@ -44,7 +47,8 @@ export interface AiSettings {
      */
     glossary: 'off' | 'corrections' | 'prompt' | 'both';
   };
-  llm: AiBackendSetting;
+  /** For `claude`, `model` is a Claude model id (default `claude-sonnet-5-5`) and `url` is unused. */
+  llm: Omit<AiBackendSetting, 'kind'> & { kind: AiLlmKind };
   fallback: AiFallbackSetting;
   tale: AiTaleSettings;
   /**

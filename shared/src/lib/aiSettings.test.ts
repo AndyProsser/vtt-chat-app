@@ -36,6 +36,16 @@ describe('setAiSetting', () => {
     expect(setAiSetting(withModel, 'ai.llm.model', 'none').llm.model).toBeNull();
   });
 
+  it('accepts claude as the LLM kind only (not for transcription), and keeps it when read back', () => {
+    const next = setAiSetting(DEFAULT_AI_SETTINGS, 'ai.llm.kind', 'claude');
+    expect(next.llm.kind).toBe('claude');
+    expect(validateAiSettings(next)).toEqual([]);
+    expect(normaliseAiSettings(JSON.parse(JSON.stringify(next))).llm.kind).toBe('claude');
+    expect(() => setAiSetting(DEFAULT_AI_SETTINGS, 'ai.transcription.kind', 'claude')).toThrow(
+      SettingError,
+    );
+  });
+
   it.each([
     ['ai.transcription.url', 'not a url'],
     ['ai.transcription.url', 'ftp://host/'],

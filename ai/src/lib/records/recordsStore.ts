@@ -10,6 +10,7 @@ import type {
   StoredSummary,
   TrackTranscript,
 } from '../../types/index.js';
+import type { LlmUsage } from '../../consts/claude.js';
 import type { MemoryEntry } from '../memory.js';
 import type { VocabularyTerm } from '../vocabulary.js';
 
@@ -116,6 +117,8 @@ export interface RecordsStore {
     entries: readonly MemoryEntry[],
     now: number,
   ): Promise<boolean>;
+  /** Adds what a job used of Claude to the job's total (`vtt-admin jobs list` shows it). */
+  addJobUsage(jobId: string, usage: LlmUsage): Promise<void>;
   campaignName(campaignId: string): Promise<string | undefined>;
   /** Account ids of the campaign's players (every member but the DM): who gets a character summary. */
   playerIds(campaignId: string): Promise<string[]>;

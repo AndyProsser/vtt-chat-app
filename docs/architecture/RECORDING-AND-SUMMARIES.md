@@ -625,7 +625,7 @@ The budget for a whole session's processing is **8 to 12 hours**. Operators get 
 Whisper stays where it is in every row: the audio never goes to Claude (it does not transcribe), so only text
 leaves the server, and private lines and whispers are never in that text to begin with.
 
-### The Claude connector (design)
+### The Claude connector (built 2026-11-21, not yet run against the real API)
 
 - **A third LLM kind, not a reuse of the OpenAI-compatible one:** `ai.llm.kind` gains `claude` beside `local` and
   `remote`, set with `vtt-admin settings set ai.llm.kind claude` and `ai.llm.model` (default `claude-sonnet-5-5`;
@@ -646,6 +646,19 @@ leaves the server, and private lines and whispers are never in that text to begi
 - **Saving more, later and only if it matters:** the Batch API halves the price and suits an overnight job, at the
   cost of results arriving within hours rather than minutes; prompt caching would save little, because the
   long input (the transcript) is read only once. Neither is in the first version.
+
+**As built (2026-11-21), and where it differs from the design above:**
+
+- `createClaudeGenerate` (`ai/src/lib/providers/claude.ts`) calls the Messages API through the SDK at **low effort**, with no
+  sampling settings; one model plays every role, as a remote does. Output ceiling 16,000 tokens (a long session's notes).
+- **No key** (`ANTHROPIC_API_KEY` unset) means the job runs on the local model from the start, and says so in the log; there
+  is nothing to wait for. An unreachable or overloaded API (connection errors, 408, 429, 5xx, 529) and a **refusal** wait,
+  then fall back after `ai.fallback.after-seconds`; a bad key or a bad request fails the job with the reason.
+- **Cost:** each call's tokens are added up per job and saved on the job (`jobs.usage`, migration 0043), also when the job
+  then fails, since the tokens were spent. `jobs list` shows them with an estimate from `CLAUDE_PRICES` (dated 2026-11-03).
+- **Not built:** `vtt-admin status` naming the LLM a job used; the Batch API; Anthropic's server-side refusal fallback to a
+  second Claude model (our own fallback is the local model, which keeps a declined request on the server).
+- The off-site notice needed no new code beyond `processingLocation()` treating `claude` as off-site.
 
 **How the estimate is made** (estimated, not measured; to check against the first real session): a table talks
 about 6,000 to 9,000 words an hour, so 5 hours is roughly 40,000 to 60,000 tokens of transcript. The scribe reads

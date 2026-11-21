@@ -454,6 +454,23 @@ details. A GPU PC does the same work in minutes with the better models. So:
    ./vtt-admin settings set ai.fallback.after-seconds 600
    ```
 
+   **Or use Claude for the summaries (opt-in, off-site).** Claude writes the notes, tales and brief; Whisper stays where
+   it is, so no audio ever leaves your server, only the transcript text does (never a whisper or private line). The
+   players are told: the app and the status page show the off-site notice as soon as this is on. It is billed per token on
+   an account at console.anthropic.com (a Claude subscription does not cover the API); a five-hour session on Sonnet is
+   about thirty cents.
+
+   ```bash
+   # in the Compose .env (never in the database), then: ./vtt-admin restart
+   ANTHROPIC_API_KEY=sk-ant-...
+   ./vtt-admin settings set ai.llm.kind claude
+   ./vtt-admin settings set ai.llm.model claude-sonnet-5-5   # the default; claude-haiku-5-5 is cheapest, claude-opus-5-5 the best
+   ```
+
+   With no key set, or when Anthropic is unreachable for `ai.fallback.after-seconds`, or if Claude declines a request,
+   the job finishes on the local model; it is never lost. `./vtt-admin jobs list` shows each job's tokens and an
+   estimated cost (from a dated price table, so check it against the console).
+
 3. **No local AI on the VM (an old CPU, or you simply do not want it)?** Local Whisper and the LLM need a CPU with **AVX** (anything from
    about 2012 on; some old servers, such as a 2010 Xeon, lack it and the Whisper container dies with an illegal instruction). Install
    with `--records-remote` (the installer picks it by itself when it finds no AVX): the Compose profile `records-remote` runs recording

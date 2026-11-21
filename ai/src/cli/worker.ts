@@ -20,6 +20,7 @@
  *                       same id takes back its own interrupted job at once instead of waiting out the
  *                       5-minute lease; never give two running workers the same id
  *   WHISPER_API_KEY / LLM_API_KEY   only if a remote backend needs one
+ *   ANTHROPIC_API_KEY               only for ai.llm.kind claude
  *   RECORDINGS_DIR      where the audio files live (needed to delete raw audio)
  *   RECORDING_RETENTION_DAYS   delete the raw audio of processed recordings after this many days
  *                       (0 or unset: keep it for ever; `vtt-admin recording purge` still works)

@@ -95,6 +95,8 @@ export interface SearchHit {
 export type JobState = 'queued' | 'running' | 'done' | 'failed';
 
 export interface Job {
+  /** What the job used of Claude, summed over its attempts; absent when it ran locally. */
+  usage?: import('../consts/claude.js').LlmUsage | null;
   id: string;
   kind: string;
   recordingId: string | null;

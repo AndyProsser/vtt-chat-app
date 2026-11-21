@@ -82,6 +82,28 @@ beforeEach(async () => {
 });
 
 describe('process-recording handler', () => {
+  it('adds up what Claude was asked and records it on the job, even when the job then fails', async () => {
+    const claudeCall = { model: 'claude-sonnet-5-5', inputTokens: 1000, outputTokens: 200 };
+    const withUsage = (fail: boolean) =>
+      handler({
+        buildProviders: (settings, deps) => {
+          deps.onUsage?.(claudeCall);
+          deps.onUsage?.(claudeCall);
+          if (fail) throw new Error('boom');
+          return buildJobProviders(settings, deps);
+        },
+      });
+    await expect(withUsage(true).run(job())).rejects.toThrow('boom');
+    expect(records.jobUsage.get('j')).toEqual({
+      model: 'claude-sonnet-5-5',
+      inputTokens: 2000,
+      outputTokens: 400,
+      calls: 2,
+    });
+    await withUsage(false).run(job());
+    expect(records.jobUsage.get('j')?.calls).toBe(4);
+  });
+
   it('transcribes every track, writes both summaries and marks the recording processed', async () => {
     await handler().run(job());
     expect(transcribed.sort()).toEqual(['/audio/t-alice.ogg', '/audio/t-bob.ogg']);

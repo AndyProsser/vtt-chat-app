@@ -1,13 +1,23 @@
 import { validateAiSettings, type AiSettings } from '@vtt-chat-app/shared';
 
-import { BARD_SAMPLING, SCRIBE_SAMPLING, type Sampling } from '../../consts/index.js';
+import {
+  BARD_SAMPLING,
+  DEFAULT_CLAUDE_MODEL,
+  SCRIBE_SAMPLING,
+  type Sampling,
+} from '../../consts/index.js';
 import type { GenerateText, Segment, TranscribeWav } from '../../types/index.js';
+import { createClaudeGenerate } from './claude.js';
 import { createFailover, type Failover } from './failover.js';
 import { createOpenAiGenerate, createOpenAiTranscribe } from './openaiCompat.js';
 
 export interface ProviderDeps {
   /** Secrets come from the environment, never from the database. */
-  env?: { WHISPER_API_KEY?: string | undefined; LLM_API_KEY?: string | undefined };
+  env?: {
+    WHISPER_API_KEY?: string | undefined;
+    LLM_API_KEY?: string | undefined;
+    ANTHROPIC_API_KEY?: string | undefined;
+  };
   /** The always-configured local backends: the default, and the fallback for a remote one. */
   /** Builds the local transcriber for the operator's configured language. */
   localTranscribe: (language: string, prompt?: string) => TranscribeWav;
@@ -16,6 +26,8 @@ export interface ProviderDeps {
   localStory?: GenerateText;
   /** Whisper's starting prompt for this job (the campaign's names), when the operator has it on. */
   transcriptionPrompt?: string | undefined;
+  /** Called after each Claude call, so the job can add up its tokens (Stage 12 CL). */
+  onUsage?: (usage: { model: string; inputTokens: number; outputTokens: number }) => void;
   /** Called when a job moves to the local backend because the remote was unreachable. */
   onFallback?: (what: 'transcription' | 'llm', reason: string) => void;
   signal?: AbortSignal;
@@ -67,8 +79,23 @@ export function buildJobProviders(settings: AiSettings, deps: ProviderDeps): Job
 
   // One remote model plays both roles (a remote is usually a bigger model that does both well), sampling as each role
   // does. Each role has its own failover, so each falls back to its own local model.
-  const remoteAs = (sampling: Sampling): GenerateText | undefined =>
-    settings.llm.kind === 'remote' && settings.llm.url !== null
+  const claudeKey = deps.env?.ANTHROPIC_API_KEY;
+  if (settings.llm.kind === 'claude' && !claudeKey) {
+    // No key: there is nothing to wait for, so this job runs on the local model from the start.
+    deps.onFallback?.('llm', 'ai.llm.kind is claude but ANTHROPIC_API_KEY is not set');
+  }
+  const remoteAs = (sampling: Sampling): GenerateText | undefined => {
+    if (settings.llm.kind === 'claude') {
+      // Claude takes no sampling settings (its current models refuse `temperature`); the roles differ by prompt.
+      return claudeKey
+        ? createClaudeGenerate({
+            apiKey: claudeKey,
+            model: settings.llm.model ?? DEFAULT_CLAUDE_MODEL,
+            ...(deps.onUsage ? { onUsage: deps.onUsage } : {}),
+          })
+        : undefined;
+    }
+    return settings.llm.kind === 'remote' && settings.llm.url !== null
       ? createOpenAiGenerate({
           baseUrl: settings.llm.url,
           model: settings.llm.model ?? 'default',
@@ -77,6 +104,7 @@ export function buildJobProviders(settings: AiSettings, deps: ProviderDeps): Job
           ...common,
         })
       : undefined;
+  };
   const role = (local: GenerateText, remote: GenerateText | undefined): Failover<string, string> =>
     remote
       ? createFailover(remote, fallback.enabled ? local : undefined, {

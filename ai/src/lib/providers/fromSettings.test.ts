@@ -103,4 +103,28 @@ describe('buildJobProviders', () => {
     await expect(p.generate.call('prompt')).rejects.toThrow('stop waiting');
     expect(localGenerate).not.toHaveBeenCalledWith('prompt');
   });
+
+  describe('claude', () => {
+    const claude = (): AiSettings => setAiSetting(DEFAULT_AI_SETTINGS, 'ai.llm.kind', 'claude');
+
+    it('is usable settings, and uses Claude when the key is set', async () => {
+      const fetchImpl = vi.fn(async () => {
+        throw new Error('the connector uses the SDK, not this fetch');
+      });
+      const p = buildJobProviders(claude(), {
+        ...base,
+        env: { ANTHROPIC_API_KEY: 'sk-ant' },
+        fetchImpl: fetchImpl as unknown as typeof fetch,
+      });
+      expect(p.generate.backend()).toBe('primary');
+    });
+
+    it('runs on the local model from the start, and says so, when there is no key', async () => {
+      const onFallback = vi.fn();
+      const p = buildJobProviders(claude(), { ...base, onFallback });
+      expect(await p.generate.call('prompt')).toBe('local summary');
+      expect(await p.story.call('prompt')).toBe('local summary');
+      expect(onFallback).toHaveBeenCalledWith('llm', expect.stringMatching(/ANTHROPIC_API_KEY/));
+    });
+  });
 });

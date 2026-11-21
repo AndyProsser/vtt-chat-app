@@ -16,6 +16,7 @@ const toJob = (r: Row): Job => ({
   lockedUntil: (r.locked_until as number | null) ?? null,
   lockedBy: (r.locked_by as string | null) ?? null,
   lastError: (r.last_error as string | null) ?? null,
+  usage: (r.usage as Job['usage']) ?? null,
   createdAt: r.created_at as number,
   updatedAt: r.updated_at as number,
 });

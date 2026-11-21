@@ -55,3 +55,4 @@ export const DEFAULT_RETRY_INTERVAL_MS = 30_000;
 export const DEFAULT_FALLBACK_AFTER_MS = 10 * 60_000;
 /** A segment Whisper itself thinks is probably not speech, when the server reports it. */
 export const DEFAULT_MAX_NO_SPEECH_PROB = 0.8;
+export * from './claude.js';

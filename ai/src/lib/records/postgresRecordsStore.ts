@@ -19,6 +19,7 @@ import type {
   StoredSummaryKind,
   TrackTranscript,
 } from '../../types/index.js';
+import type { LlmUsage } from '../../consts/claude.js';
 import type { MemoryEntry } from '../memory.js';
 import type { VocabularyTerm } from '../vocabulary.js';
 import type { RecordsStore } from './recordsStore.js';
@@ -485,6 +486,18 @@ export class PostgresRecordsStore implements RecordsStore {
       [campaignId, name.trim()],
     );
     return rowCount ?? 0;
+  }
+
+  async addJobUsage(jobId: string, usage: LlmUsage): Promise<void> {
+    await this.pool.query(
+      `UPDATE jobs SET usage = jsonb_build_object(
+         'model', $2::text,
+         'inputTokens', COALESCE((usage->>'inputTokens')::bigint, 0) + $3::bigint,
+         'outputTokens', COALESCE((usage->>'outputTokens')::bigint, 0) + $4::bigint,
+         'calls', COALESCE((usage->>'calls')::bigint, 0) + $5::bigint)
+       WHERE id = $1`,
+      [jobId, usage.model, usage.inputTokens, usage.outputTokens, usage.calls],
+    );
   }
 
   async memoryApplied(recordingId: string): Promise<boolean> {

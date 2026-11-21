@@ -268,6 +268,8 @@ services:
       OLLAMA_STORY_MODEL: ${OLLAMA_STORY_MODEL:-}
       WHISPER_API_KEY: ${WHISPER_API_KEY:-}
       LLM_API_KEY: ${LLM_API_KEY:-}
+      # The Claude connector (ai.llm.kind claude): billed per token at console.anthropic.com. Blank: Claude is not used.
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       # Delete raw audio this many days after a recording is processed (blank or 0: keep it).
       RECORDINGS_DIR: /out
       RECORDING_RETENTION_DAYS: ${RECORDING_RETENTION_DAYS:-}
