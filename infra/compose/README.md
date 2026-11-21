@@ -32,7 +32,7 @@ sets it to public once under the repository's Packages settings.
 | `caddy`    | `caddy:2-alpine`                | TLS (Let's Encrypt for a real domain; internal CA for `localhost`). `/api`, `/ws` → backend; `/livekit/*` → LiveKit signalling       |
 | `backend`  | built from `backend.Dockerfile` | Runs migrations on start. Production deps only, non-root                                                                             |
 | `postgres` | `postgres:17-alpine`            | Named volume. Never on NFS                                                                                                           |
-| `valkey`   | `valkey/valkey:8-alpine`        | Replay buffer; also LiveKit's Redis. Published on loopback only (`VALKEY_HOST_PORT`, default 6379) because LiveKit is host-networked |
+| `valkey`   | `valkey/valkey:8.1.12-alpine`   | Replay buffer; also LiveKit's Redis. Published on loopback only (`VALKEY_HOST_PORT`, default 6379) because LiveKit is host-networked |
 | `livekit`  | `livekit/livekit-server`        | **`network_mode: host`** on purpose: a NATed UDP port range is slow to start and advertises wrong ICE addresses                      |
 
 **Records profile** (`docker compose --profile records up -d`): adds

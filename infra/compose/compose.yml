@@ -43,7 +43,9 @@ services:
   valkey:
     <<: *hardened
     cap_add: *drops-to-user
-    image: valkey/valkey:8-alpine
+    # An exact patch, not the floating `8`: 8.1.12 (2026-11-18) is a security release, and a floating tag only updates when
+    # someone pulls. Moves to 9.1 with 0.7.0 (docs/architecture/DEPENDENCY-VERSIONS.md).
+    image: valkey/valkey:8.1.12-alpine
     restart: unless-stopped
     # LiveKit runs on the host network (below) and reaches Valkey through this loopback-only port.
     ports: ['127.0.0.1:${VALKEY_HOST_PORT:-6379}:6379']
@@ -220,7 +222,7 @@ services:
     <<: *hardened
     profiles: [records]
     # A fixed version, the one this release was tested with: `latest` meant every update could bring a different Ollama.
-    image: ollama/ollama:${OLLAMA_VERSION:-0.40.16}
+    image: ollama/ollama:${OLLAMA_VERSION:-0.40.17}
     restart: unless-stopped
     volumes: [ollama-data:/root/.ollama]
     environment:

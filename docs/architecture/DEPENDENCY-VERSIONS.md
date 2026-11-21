@@ -4,6 +4,18 @@ A review of the third-party services the Docker Compose stack runs (Postgres, Va
 
 **Nothing was changed by this review.** The recommendations are for Andy to choose from; each bump is tested with the demo campaign ([QUALITY-VALIDATION.md](QUALITY-VALIDATION.md)) before it ships.
 
+## Decided by Andy, 2026-11-21
+
+| Service                                       | Decision                                                                                                                                     | When                                |
+| --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| Valkey                                        | Pin the **security fix now** (`8.1.12-alpine`); move to **9.1.4** with 0.7.0. 9.2 needs time                                                 | Pin: done in the repo; 9.1.4: 0.7.0 |
+| Postgres                                      | Move to **18** with 0.7.0 (dump and restore into a new volume; the data directory moves to `/var/lib/postgresql`)                            | 0.7.0                               |
+| Ollama                                        | **0.40.17**                                                                                                                                  | Done in the repo                    |
+| whisper.cpp                                   | **v1.9.5**: the CUDA build is pinned to the release tag (it floated on `master`); the no-AVX build and the native installer already build it | Done in the repo                    |
+| LiveKit server 1.13.11, cloudflared 2026.11.1 | Recommended below; **not yet decided**                                                                                                       | Waiting for Andy                    |
+
+The repo changes take effect on a machine when it pulls the new images (`vtt-admin update`, or `docker compose pull`); the running dev stack and the VM are not touched by the commit.
+
 ## The short version
 
 | Service            | We pin                                                                                             | Running (VM)                  | Current                                                                        | Supported until                                             | Verdict                                                                                                                                               |

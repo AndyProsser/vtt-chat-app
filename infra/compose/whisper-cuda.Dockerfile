@@ -15,7 +15,8 @@
 # Common values: 61 = GTX 10xx, 75 = RTX 20xx/GTX 16xx, 86 = RTX 30xx, 89 = RTX 40xx.
 ARG CUDA_VERSION=12.4.1
 FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu22.04 AS build
-ARG WHISPER_REF=master
+# A release tag, not `master` (which silently differs from one build to the next); the no-AVX image builds the same tag.
+ARG WHISPER_REF=v1.9.5
 ARG CUDA_ARCHS="61;75;86;89"
 RUN apt-get update && apt-get install -y --no-install-recommends build-essential cmake git ca-certificates \
     && rm -rf /var/lib/apt/lists/*

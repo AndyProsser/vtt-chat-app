@@ -105,6 +105,10 @@ Andy now plays in two tables and has to remember to switch. He wants **some sign
 
 The campaign switcher in both apps should say **who the DM is** for each table (the crown only says that _you_ are the DM). The server does not send it: `GET /api/campaigns` returns the campaign and the caller's role, and `GET /api/campaigns/:id/members` returns user ids and roles without display names. Adding the Game Master's name to the campaign list is a small additive response field, but it is an API change, so it rides this bump with the activity indicator. The rest of the switcher work (long names, next session, quick answer) needed no wire change and was built as a 0.6.x patch.
 
+### Service upgrades: Valkey 9.1 and Postgres 18 (decided by Andy, 2026-11-21)
+
+Both ride this bump, so the upgrade and the protocol change are tested together. **Valkey 8.1.12 to 9.1.4** (9.2 needs time): run LiveKit, the live-chat replay buffer and the demo campaign on it. **Postgres 17 to 18**: a major upgrade, done by **dump and restore into a new volume**, because the official 18 image keeps its data in a version-specific directory and mounts `/var/lib/postgresql` instead of `/var/lib/postgresql/data` (changing only the tag fails or starts on an empty directory). What has to be designed: how `vtt-admin update` carries an existing install across automatically (a backup first, the restore into the new volume, the old volume kept until the operator confirms), what the native install does (it uses Ubuntu's packages), and how it is rehearsed (the demo campaign on a restored copy). Review and sources: [DEPENDENCY-VERSIONS.md](docs/architecture/DEPENDENCY-VERSIONS.md).
+
 ### Anything else
 
 Anything Stage 13 finds that cannot be fixed without a wire change is added here when found. The wire-change ideas that are not decided (polyglot masking, web push, the Admin quick-access screen) are parked in [Future ideas](#future-ideas), not in 0.7.0.

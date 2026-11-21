@@ -255,9 +255,10 @@ Three hardening changes for 0.5.2, each chosen so a deployment that worked befor
 - **Fixed versions.** `ollama/ollama:latest` and `cloudflared:latest` are now version tags, and whisper.cpp, which
   publishes only a moving `main`, is pinned by digest to the build tested on 2026-11-14. Each has an override in `.env`.
   The cost is that upstream fixes arrive with our releases, not by themselves; the gain is that an update never changes
-  the AI stack under a release that was not tested with it. Still floating: `whisper-cuda.Dockerfile` builds whisper.cpp
-  from `master` (the GPU path builds on the operator's machine), and the base images follow their major version
-  (`postgres:17-alpine`, `valkey:8-alpine`, `node:26-alpine`, `caddy:2`).
+  the AI stack under a release that was not tested with it. Since 2026-11-21 `whisper-cuda.Dockerfile` builds the release tag
+  `v1.9.5` (it floated on `master`), Valkey is pinned to an exact patch (`8.1.12-alpine`), and Ollama is `0.40.17`. Still
+  floating: the base images follow their major version (`postgres:17-alpine`, `node:26-alpine`, `caddy:2`). The version
+  review and the plan are in [DEPENDENCY-VERSIONS.md](DEPENDENCY-VERSIONS.md).
 
 - **HSTS** is the installer's job, not the Caddyfile's, because the Caddyfile serves every kind of install: `localhost`
   with Caddy's own CA, plain HTTP behind a tunnel, and real certificates. Only the last should send it. `get.sh` writes
