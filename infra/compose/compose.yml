@@ -136,7 +136,7 @@ services:
     <<: *hardened
     # NET_BIND_SERVICE only matters if you move a port (for example TURN) below 1024.
     cap_add: [DAC_READ_SEARCH, NET_BIND_SERVICE]
-    image: livekit/livekit-server:${LIVEKIT_VERSION:-v1.13.5}
+    image: livekit/livekit-server:${LIVEKIT_VERSION:-v1.13.11}
     restart: unless-stopped
     network_mode: host
     command: ['--config', '/etc/livekit.yaml']
@@ -320,7 +320,7 @@ services:
   cloudflared:
     <<: *hardened
     profiles: [tunnel]
-    image: cloudflare/cloudflared:${CLOUDFLARED_VERSION:-2026.11.0}
+    image: cloudflare/cloudflared:${CLOUDFLARED_VERSION:-2026.11.1}
     restart: unless-stopped
     command: tunnel --no-autoupdate run
     environment:
