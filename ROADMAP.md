@@ -97,6 +97,14 @@ Moved here from Stage 12. It needs a wire change, so it rides this bump.
 
 **Likely wire shape (my reading, to confirm when it is built):** a glossary entry gains `kind`, `gist`, `source` (`gm`, `session`, `import`, `backstory`) and a `tableKnows` flag; the memory entries the server keeps today are served through the glossary routes instead of the CLI alone (`vtt-admin memory` stays); an import route that returns a **preview** and an apply route that saves the ticked entries (Game Master only, like the glossary); and `CharacterSheet` gains the backstory. The tests that matter: a short lore file imports, a backstory villain is flagged when a like-named non-player character appears, and **no Game Master-only entry ever shows in a tale** (except the Tipsy Minstrel's, by the Game Master's choice).
 
+### Activity on the tables you are not in (Andy, 2026-11-21; wanted, not designed)
+
+Andy now plays in two tables and has to remember to switch. He wants **some sign of activity on the tables he is not connected to**, so he knows to switch (a dot or count in the campaign switcher, and perhaps an optional notification). It needs the server to count or push chat for a person's other tables, which is a wire change (today the socket carries one table at a time), so it belongs in this bump. Open: what counts as activity (any chat, only whispers and the Game Master's lines, a recording starting), whether a count or a dot, and how it stays quiet (the project's rule that playing comes first). Needs a short design with Andy first.
+
+### Who the Game Master is, on every table (Andy, 2026-11-21; wanted)
+
+The campaign switcher in both apps should say **who the DM is** for each table (the crown only says that _you_ are the DM). The server does not send it: `GET /api/campaigns` returns the campaign and the caller's role, and `GET /api/campaigns/:id/members` returns user ids and roles without display names. Adding the Game Master's name to the campaign list is a small additive response field, but it is an API change, so it rides this bump with the activity indicator. The rest of the switcher work (long names, next session, quick answer) needed no wire change and was built as a 0.6.x patch.
+
 ### Anything else
 
 Anything Stage 13 finds that cannot be fixed without a wire change is added here when found. The wire-change ideas that are not decided (polyglot masking, web push, the Admin quick-access screen) are parked in [Future ideas](#future-ideas), not in 0.7.0.

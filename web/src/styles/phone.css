@@ -1285,3 +1285,61 @@ button.phone-picture-button {
   background: var(--vtt-gold);
   color: var(--color-background);
 }
+
+/* The table picker: a long name wraps; the crown marks a table you run; the next session and a quick answer sit under the card. */
+.phone-picker-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.phone-picker-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.phone-dm-crown {
+  display: inline-flex;
+  flex: none;
+  color: var(--violet-9, currentColor);
+}
+.phone-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.phone-next-session {
+  padding: 0 4px;
+  min-width: 0;
+}
+.phone-next-when {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.phone-rsvp {
+  display: inline-flex;
+  gap: 6px;
+  flex: none;
+}
+.phone-rsvp-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--gray-a7, currentColor);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+.phone-rsvp-button[aria-pressed='true'] {
+  border-color: var(--violet-9, currentColor);
+  color: var(--violet-11, currentColor);
+  background: var(--violet-a3, transparent);
+}

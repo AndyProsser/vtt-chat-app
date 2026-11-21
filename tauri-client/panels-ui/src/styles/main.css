@@ -954,9 +954,69 @@ body,
   font-size: 10px;
   font-family: var(--vtt-font-head);
 }
-.vtt-campaign {
+.vtt-campaign-row {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+/* A long name wraps inside its row (the tick keeps its own column) instead of pushing the tick out or overflowing. */
+.vtt-campaign-name {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  min-width: 0;
+  flex: 1;
+  overflow-wrap: anywhere;
+  line-height: 1.3;
+}
+.vtt-campaign-name > svg {
+  flex: none;
+  margin-top: 2px;
+}
+.vtt-campaign-check {
+  flex: none;
+}
+.vtt-campaign-next {
   display: flex;
   align-items: center;
+  gap: 6px;
+  padding: 0 6px 2px;
+  font-size: 11px;
+  color: var(--vtt-muted, inherit);
+  min-width: 0;
+}
+.vtt-campaign-when {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.vtt-rsvp {
+  display: inline-flex;
+  gap: 3px;
+  flex: none;
+}
+.vtt-rsvp-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 20px;
+  border-radius: var(--vtt-radius-control);
+  border: 1px solid var(--vtt-edge);
+  background: var(--vtt-bubble);
+  color: var(--vtt-ink);
+  cursor: pointer;
+  padding: 0;
+}
+.vtt-rsvp-button[aria-pressed='true'] {
+  border-color: var(--vtt-gold);
+  color: var(--vtt-gold);
+}
+.vtt-campaign {
+  display: flex;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 8px;
   padding: 6px 10px;

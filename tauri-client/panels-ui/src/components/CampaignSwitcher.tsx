@@ -1,10 +1,14 @@
 import { Popover, TextField } from '@radix-ui/themes';
-import { Check, Crown, KeyRound, Plus, Swords } from 'lucide-react';
+import { RSVP_CHOICES, whenLabel, type RsvpChoice } from '@vtt-chat-app/shared';
+import { CalendarClock, Check, Clock, Crown, KeyRound, Plus, Swords, X } from 'lucide-react';
 import { useState } from 'react';
 
 import { useAccount } from '../hooks/useAccount.js';
+import { useTableSessions } from '../hooks/useTableSessions.js';
 import { useTableStore } from '../lib/tableStore.js';
 import { ToolButton } from './ToolButton.js';
+
+const ICONS: Record<RsvpChoice, typeof Check> = { yes: Check, late: Clock, no: X };
 
 /**
  * Which campaign this window is in. A player can be in several (each with its own DM); choosing one
@@ -17,6 +21,8 @@ export function CampaignSwitcher() {
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
   const recording = useTableStore((s) => s.recording !== null);
+  const { next, rsvp } = useTableSessions(status?.campaigns.map((c) => c.id) ?? [], open);
+  const [rsvpError, setRsvpError] = useState<string>();
   if (!status) return null;
   const current = status.campaigns.find((c) => c.id === status.campaignId);
   // A DM cannot leave a campaign that is recording; players come and go.
@@ -32,22 +38,65 @@ export function CampaignSwitcher() {
           <Swords size={15} />
         </ToolButton>
       </Popover.Trigger>
-      <Popover.Content size="1" width="300px" align="start">
+      <Popover.Content size="1" width="320px" align="start">
         <div className="vtt-groups">
-          {status.campaigns.map((c) => (
-            <button
-              key={c.id}
-              type="button"
-              className="vtt-campaign"
-              disabled={account.busy || held || c.id === status.campaignId}
-              onClick={() => void account.selectCampaign(c.id).then(() => setOpen(false))}
-            >
-              <span>
-                {c.role === 'dm' && <Crown size={13} aria-label="You are the DM" />} {c.name}
-              </span>
-              {c.id === status.campaignId && <Check size={14} aria-label="Current" />}
-            </button>
-          ))}
+          {status.campaigns.map((c) => {
+            const n = next[c.id];
+            return (
+              <div key={c.id} className="vtt-campaign-row">
+                <button
+                  type="button"
+                  className="vtt-campaign"
+                  title={c.name}
+                  disabled={account.busy || held || c.id === status.campaignId}
+                  onClick={() => void account.selectCampaign(c.id).then(() => setOpen(false))}
+                >
+                  <span className="vtt-campaign-name">
+                    {c.role === 'dm' && <Crown size={13} aria-label="You are the DM" />}
+                    <span>{c.name}</span>
+                  </span>
+                  {c.id === status.campaignId && (
+                    <Check size={14} aria-label="Current" className="vtt-campaign-check" />
+                  )}
+                </button>
+                {n && (
+                  <div className="vtt-campaign-next">
+                    <CalendarClock size={12} aria-hidden="true" />
+                    <span className="vtt-campaign-when" title={n.title}>
+                      {n.title} · {whenLabel(n.startsAt, Date.now())}
+                    </span>
+                    <span
+                      className="vtt-rsvp"
+                      role="group"
+                      aria-label={`Your answer for ${n.title}`}
+                    >
+                      {RSVP_CHOICES.map((choice) => {
+                        const Icon = ICONS[choice.status];
+                        return (
+                          <button
+                            key={choice.status}
+                            type="button"
+                            className="vtt-rsvp-button"
+                            aria-label={choice.label}
+                            title={choice.label}
+                            aria-pressed={n.mine === choice.status}
+                            onClick={() => {
+                              setRsvpError(undefined);
+                              void rsvp(c.id, n.id, choice.status).catch(() =>
+                                setRsvpError('Could not save your answer.'),
+                              );
+                            }}
+                          >
+                            <Icon size={12} />
+                          </button>
+                        );
+                      })}
+                    </span>
+                  </div>
+                )}
+              </div>
+            );
+          })}
           <form
             className="vtt-form-row"
             onSubmit={(e) => {
@@ -98,6 +147,11 @@ export function CampaignSwitcher() {
             <span className="vtt-muted">
               A recording is running. Stop it before switching campaigns.
             </span>
+          )}
+          {rsvpError && (
+            <div className="vtt-composer-error" role="alert" style={{ position: 'static' }}>
+              {rsvpError}
+            </div>
           )}
           {account.error && (
             <div className="vtt-composer-error" role="alert" style={{ position: 'static' }}>

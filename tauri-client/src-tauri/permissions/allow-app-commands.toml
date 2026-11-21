@@ -70,6 +70,7 @@ commands.allow = [
   "recording_control",
   "campaign_api",
   "join_api",
+  "table_api",
   "campaign_file",
   "handout_upload",
   "handout_add_image",

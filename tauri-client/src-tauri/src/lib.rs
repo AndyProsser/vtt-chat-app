@@ -179,6 +179,7 @@ pub fn run() {
             account_commands::recording_control,
             account_commands::campaign_api,
             account_commands::join_api,
+            account_commands::table_api,
             account_commands::handout_upload,
             account_commands::sound_upload,
             account_commands::gm_note_upload,

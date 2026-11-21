@@ -21,6 +21,8 @@ import type {
   JoinRequestRow,
   OpenCampaignCard,
   RecordingAction,
+  RsvpStatus,
+  SessionView,
   SyncEvent,
 } from '../types/index.js';
 import {
@@ -183,6 +185,15 @@ type Method = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 /** A REST call relayed by Rust (`campaign_api`); `path` is relative to the campaign, e.g. `loot`. */
 export const campaignApi = <T = unknown>(method: Method, path: string, body?: unknown) =>
   invoke<T>('campaign_api', { method, path, body });
+
+/**
+ * What the campaign switcher asks about a table the app is NOT in (`table_api`): its upcoming sessions, and the
+ * person's own RSVP to one. Unlike `campaignApi` it is not scoped to the current campaign.
+ */
+export const tableSessions = (campaignId: string) =>
+  invoke<{ sessions: SessionView[] }>('table_api', { action: 'sessions', campaignId });
+export const tableRsvp = (campaignId: string, sessionId: string, status: RsvpStatus) =>
+  invoke<unknown>('table_api', { action: 'rsvp', campaignId, sessionId, status });
 
 /**
  * Asking to join a campaign (`join_api`, docs/architecture/CAMPAIGN-JOIN-REQUESTS.md). Not scoped to the

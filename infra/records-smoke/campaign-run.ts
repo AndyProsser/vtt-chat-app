@@ -15,7 +15,11 @@
 //
 // Options (live), besides --target, --sessions, --interval, --label and --out:
 //   --glossary off|corrections|prompt|both|keep   the transcription glossary mode for the run (default keep)
-//   --no-observer       do not wait for player 5 (the developer) to join
+//   --no-observer       do not wait for player 5 (the developer) to join (default wait: 10 minutes)
+//   --resume <id>       carry on in an existing campaign (no new accounts, glossary or notes, no waiting for player 5)
+//   --collect 1,2       sessions already played: wait for their processing and score them, without playing them
+//   --no-overlap        play the last session only after the one before is processed (default: start it at once)
+//   --restore-glossary <mode>   what the glossary mode goes back to at the end
 //   --max-lines N       play only the first N lines of each session (a smoke test of the machinery)
 //   --timeout-min 90    how long to wait for each recording to be processed
 //   --baseline 60  --idle 120   seconds of idle before and after
@@ -197,6 +201,12 @@ async function live(): Promise<void> {
       runLabel: `${label} ${stamp().slice(4, 13)}`,
       glossary: opt('--glossary') ?? 'keep',
       waitForObserver: !argv.includes('--no-observer'),
+      ...(opt('--resume') ? { resume: opt('--resume') as string } : {}),
+      ...(opt('--collect') ? { collect: (opt('--collect') as string).split(',').map(Number) } : {}),
+      overlapLast: !argv.includes('--no-overlap'),
+      ...(opt('--restore-glossary')
+        ? { restoreGlossary: opt('--restore-glossary') as string }
+        : {}),
       ...(maxLines !== undefined ? { maxLines } : {}),
       timeoutMin: Number(opt('--timeout-min') ?? 90),
       log,

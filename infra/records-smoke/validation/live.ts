@@ -39,6 +39,8 @@ import type { Target } from './target.ts';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- loosely typed JSON from our own API
 type Json = any;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const fmtLong = (sec: number): string =>
+  sec < 5400 ? `${Math.round(sec / 60)} min` : `${(sec / 3600).toFixed(1)} h`;
 
 export interface Score {
   name: string;
@@ -58,6 +60,14 @@ export interface LiveOptions {
   /** off | corrections | prompt | both: set for the run and put back after. `keep` leaves the server's setting alone. */
   glossary: string;
   waitForObserver: boolean;
+  /** Carry on in an existing campaign (its id): no new accounts, campaign, glossary or notes, and no waiting for player 5. */
+  resume?: string;
+  /** Sessions already played (and their recordings queued): only wait for their processing and score them. */
+  collect?: number[];
+  /** Start the last session without waiting for the one before to finish processing, so live recording and processing overlap. */
+  overlapLast?: boolean;
+  /** What the glossary mode goes back to at the end (a resumed run no longer knows the server's original). */
+  restoreGlossary?: string;
   /** Stop each session after this many lines (a smoke test of the machinery, not a real run). */
   maxLines?: number;
   timeoutMin: number;
@@ -142,13 +152,14 @@ export async function runLive(o: LiveOptions): Promise<LiveResult> {
   const was = (key: string) =>
     new RegExp(`${key.replace(/\./g, '\\.')}\\s+(\\S+)`).exec(settingsText)?.[1];
   const restore: (() => Promise<void>)[] = [];
-  const setSetting = async (key: string, value: string) => {
-    const before = was(key);
+  const setSetting = async (key: string, value: string, restoreTo?: string) => {
+    const before = restoreTo ?? was(key);
     await target.admin('settings', 'set', key, value);
     if (before !== undefined && before !== value)
       restore.push(async () => void (await target.admin('settings', 'set', key, before)));
   };
-  if (o.glossary !== 'keep') await setSetting('ai.transcription.glossary', o.glossary);
+  if (o.glossary !== 'keep')
+    await setSetting('ai.transcription.glossary', o.glossary, o.restoreGlossary);
   await monitor.event('setting', { glossary: o.glossary });
 
   try {
@@ -193,45 +204,56 @@ export async function runLive(o: LiveOptions): Promise<LiveResult> {
     const dm = seats.get(cast.dm.name)!;
 
     // ---- the campaign -----------------------------------------------------------------------
-    const closed = /campaign-creation\s+closed/.test(settingsText);
-    if (closed) await target.admin('settings', 'set', 'campaign-creation', 'open');
-    let campaignId: string;
-    try {
-      campaignId = (
-        await ok('POST', '/api/campaigns', dm.token, { name: `${l.campaign.name} (${o.runLabel})` })
-      ).campaign.id as string;
-    } finally {
-      if (closed) await target.admin('settings', 'set', 'campaign-creation', 'closed');
+    const setUpCampaign = async (): Promise<string> => {
+      const closed = /campaign-creation\s+closed/.test(settingsText);
+      if (closed) await target.admin('settings', 'set', 'campaign-creation', 'open');
+      let campaignId: string;
+      try {
+        campaignId = (
+          await ok('POST', '/api/campaigns', dm.token, {
+            name: `${l.campaign.name} (${o.runLabel})`,
+          })
+        ).campaign.id as string;
+      } finally {
+        if (closed) await target.admin('settings', 'set', 'campaign-creation', 'closed');
+      }
+      await monitor.event('campaign', { campaignId });
+      log(`campaign ${campaignId}`);
+      const invite = (await ok('POST', `/api/campaigns/${campaignId}/invites`, dm.token, {}))
+        .code as string;
+      for (const pl of cast.players) {
+        const seat = seats.get(pl.name)!;
+        await ok('POST', '/api/campaigns/join', seat.token, { code: invite });
+        const created = (
+          await ok('POST', `/api/campaigns/${campaignId}/characters`, seat.token, {
+            name: pl.character!.name,
+            className: pl.character!.class,
+            race: pl.character!.race,
+            level: 3,
+          })
+        ).character;
+        await ok('PUT', `/api/campaigns/${campaignId}/active-character`, seat.token, {
+          characterId: created.id,
+        });
+      }
+      for (const g of l.campaign.glossary)
+        await ok('POST', `/api/campaigns/${campaignId}/gm/glossary`, dm.token, g);
+      await ok('PUT', `/api/campaigns/${campaignId}/gm/notes`, dm.token, { body: l.gmNotes });
+      await ok('PATCH', `/api/campaigns/${campaignId}`, dm.token, { bard: l.campaign.storyteller });
+      notes.push(
+        `The campaign "${l.campaign.name} (${o.runLabel})" has ${l.campaign.glossary.length} glossary terms and the GM notes. It stays on the server after the run: delete it with \`vtt-admin campaign delete ${campaignId}\`.`,
+      );
+      return campaignId;
+    };
+
+    const campaignId = o.resume ?? (await setUpCampaign());
+    if (o.resume) {
+      await monitor.event('campaign', { campaignId, resumed: true });
+      log(`resuming campaign ${campaignId}`);
     }
-    await monitor.event('campaign', { campaignId });
-    log(`campaign ${campaignId}`);
-    const invite = (await ok('POST', `/api/campaigns/${campaignId}/invites`, dm.token, {}))
-      .code as string;
-    for (const pl of cast.players) {
-      const seat = seats.get(pl.name)!;
-      await ok('POST', '/api/campaigns/join', seat.token, { code: invite });
-      const created = (
-        await ok('POST', `/api/campaigns/${campaignId}/characters`, seat.token, {
-          name: pl.character!.name,
-          className: pl.character!.class,
-          race: pl.character!.race,
-          level: 3,
-        })
-      ).character;
-      await ok('PUT', `/api/campaigns/${campaignId}/active-character`, seat.token, {
-        characterId: created.id,
-      });
-    }
-    for (const g of l.campaign.glossary)
-      await ok('POST', `/api/campaigns/${campaignId}/gm/glossary`, dm.token, g);
-    await ok('PUT', `/api/campaigns/${campaignId}/gm/notes`, dm.token, { body: l.gmNotes });
-    await ok('PATCH', `/api/campaigns/${campaignId}`, dm.token, { bard: l.campaign.storyteller });
-    notes.push(
-      `The campaign "${l.campaign.name} (${o.runLabel})" has ${l.campaign.glossary.length} glossary terms and the GM notes. It stays on the server after the run: delete it with \`vtt-admin campaign delete ${campaignId}\`.`,
-    );
 
     // ---- player 5 ---------------------------------------------------------------------------
-    if (o.waitForObserver) {
+    if (o.waitForObserver && !o.resume) {
       const code = (await ok('POST', `/api/campaigns/${campaignId}/invites`, dm.token, {}))
         .code as string;
       log(
@@ -276,14 +298,26 @@ export async function runLive(o: LiveOptions): Promise<LiveResult> {
     }));
 
     // ---- the sessions -----------------------------------------------------------------------
-    const recordingIds = new Map<number, string>();
     const memoryAfter: Record<number, string> = {};
-    const spokenByWho = new Map<number, Record<string, string>>();
-    for (const n of o.sessions) {
-      const events = (o.report.parsed.get(n)?.events ?? []).slice(0, o.maxLines ?? Infinity);
+    interface Played {
+      recordingId: string;
+      events: Event[];
+      stoppedAt: number;
+    }
+    const eventsOf = (n: number): Event[] =>
+      (o.report.parsed.get(n)?.events ?? []).slice(0, o.maxLines ?? Infinity);
+    /** What each person said while recorded, joined: the ground truth for word accuracy. */
+    const spokenBy = (events: Event[]): Record<string, string> => {
+      const said: Record<string, string[]> = {};
+      for (const e of events)
+        if (e.kind === 'say' && e.expect === 'captured') (said[e.who] ??= []).push(e.text);
+      return Object.fromEntries(Object.entries(said).map(([k, v]) => [k, v.join(' ')]));
+    };
+
+    const playSession = async (n: number): Promise<Played> => {
+      const events = eventsOf(n);
       const sessionPlan = o.plan.find((p) => p.n === n)!;
       const titled = l.campaign.sessions.find((s) => s.n === n)?.title ?? `session ${n}`;
-      await monitor.setPhase(`session-${n}-recording`, titled);
       log(
         `session ${n} "${titled}": ${events.length} lines (planned ${Math.round(sessionPlan.estimatedSec / 60)} min)`,
       );
@@ -456,21 +490,21 @@ export async function runLive(o: LiveOptions): Promise<LiveResult> {
         await control('stop');
       }
       for (const c of clients.values()) await c.close();
-      recordingIds.set(n, recordingId);
-      spokenByWho.set(
-        n,
-        Object.fromEntries(Object.entries(said).map(([k, v]) => [k, v.join(' ')])),
-      );
+      const stoppedAt = Date.now();
       scores.push({
         name: `session ${n}: played`,
         value: `${Math.round((Date.now() - began) / 60000)} min`,
         detail: `planned ${Math.round(sessionPlan.estimatedSec / 60)} min`,
       });
 
+      return { recordingId, events, stoppedAt };
+    };
+
+    const finishSession = async (n: number, info: Played) => {
+      const { recordingId, events } = info;
       // ---- processing ------------------------------------------------------------------------
-      await monitor.setPhase(`session-${n}-processing`, 'transcription and summaries');
       const deadline = Date.now() + o.timeoutMin * 60_000;
-      const t1 = Date.now();
+      const t1 = info.stoppedAt;
       for (;;) {
         const list = await ok('GET', `/api/campaigns/${campaignId}/recordings`, dm.token);
         const st = (list.recordings as Json[]).find((r) => r.id === recordingId)?.status as
@@ -490,8 +524,10 @@ export async function runLive(o: LiveOptions): Promise<LiveResult> {
         await sleep(5000);
       }
       scores.push({
-        name: `session ${n}: processing time`,
-        value: `${Math.round((Date.now() - t1) / 1000)} s`,
+        name: `session ${n}: processing time (from the recording's stop)`,
+        value: fmtLong((Date.now() - t1) / 1000),
+        detail:
+          'Local processing is a choice some tables will make: judge it against the budget for a real session (12 to 24 hours, Andy 2026-11-21), not against the length of the session.',
       });
 
       // ---- collect ---------------------------------------------------------------------------
@@ -566,7 +602,7 @@ export async function runLive(o: LiveOptions): Promise<LiveResult> {
       for (const u of transcript)
         if (!u.typed) byUser[u.speaker.id] = `${byUser[u.speaker.id] ?? ''} ${u.text}`;
       const acc = speakerAccuracy(
-        spokenByWho.get(n) ?? {},
+        spokenBy(events),
         Object.fromEntries(
           people.map(({ p }) => [p.name, byUser[seats.get(p.name)!.userId] ?? '']),
         ),
@@ -604,7 +640,69 @@ export async function runLive(o: LiveOptions): Promise<LiveResult> {
           )
           .join('; ')}`,
       });
+      // Player 5 never speaks into the scripts, but the microphone was on: whatever Whisper heard on that track.
+      const observerLines = transcript.filter(
+        (u) => !u.typed && !people.some(({ p }) => seats.get(p.name)!.userId === u.speaker.id),
+      );
+      scores.push({
+        name: `session ${n}: lines on player 5's (silent, microphone on) track`,
+        value: String(observerLines.length),
+        detail:
+          observerLines
+            .slice(0, 4)
+            .map((u) => `"${String(u.text).slice(0, 80)}"`)
+            .join('; ') || 'none',
+      });
+    };
+
+    // ---- order of play: sessions in turn; the last one overlaps the one before's processing ------------------
+    const collectOnly = new Set(o.collect ?? []);
+    const infos = new Map<number, Played>();
+    const waiting: number[] = [];
+    const finishAll = async () => {
+      for (const m of waiting.splice(0)) {
+        await monitor.setPhase(`session-${m}-processing`, 'transcription and summaries');
+        await finishSession(m, infos.get(m)!);
+      }
+    };
+    const lastSession = o.sessions[o.sessions.length - 1];
+    for (const n of o.sessions) {
+      if (collectOnly.has(n)) {
+        const rows = (
+          await target.sql(
+            `select id, coalesce(stopped_at, 0) from recordings where campaign_id='${campaignId}' order by started_at`,
+          )
+        )
+          .split('\n')
+          .filter(Boolean);
+        const row = rows[n - 1];
+        if (!row)
+          throw new Error(
+            `session ${n} is to be collected but the campaign has only ${rows.length} recording(s)`,
+          );
+        const [id, stopped] = row.split('|') as [string, string];
+        infos.set(n, {
+          recordingId: id,
+          events: eventsOf(n),
+          stoppedAt: Number(stopped) || Date.now(),
+        });
+        waiting.push(n);
+        continue;
+      }
+      // Normally the previous session is processed before the next is played. The last session starts at
+      // once, so a live recording runs while the previous one is still processing.
+      const overlap = o.overlapLast && n === lastSession && waiting.length > 0;
+      if (!overlap) await finishAll();
+      await monitor.setPhase(
+        overlap
+          ? `session-${n}-recording+${waiting.map((m) => `session-${m}-processing`).join('+')}`
+          : `session-${n}-recording`,
+        l.campaign.sessions.find((x) => x.n === n)?.title ?? `session ${n}`,
+      );
+      infos.set(n, await playSession(n));
+      waiting.push(n);
     }
+    await finishAll();
 
     // ---- across the whole run -----------------------------------------------------------------
     const search = async (word: string, token: string) =>

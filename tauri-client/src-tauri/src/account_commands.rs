@@ -692,6 +692,34 @@ pub async fn campaign_api(
         .await
 }
 
+/// What the campaign switcher asks about a table the app is not in: its upcoming sessions (`sessions`) and the
+/// person's own answer to one (`rsvp`). The paths are fixed by [`crate::account::table_call`].
+#[tauri::command]
+pub async fn table_api(
+    state: State<'_, AccountState>,
+    action: String,
+    campaign_id: String,
+    session_id: Option<String>,
+    status: Option<String>,
+) -> Result<Value, AccountError> {
+    let (method, path, body) = crate::account::table_call(
+        &action,
+        &campaign_id,
+        session_id.as_deref(),
+        status.as_deref(),
+    )?;
+    let (server, token) = {
+        let inner = state.0.lock().await;
+        match (&inner.saved.server, &inner.saved.session_token) {
+            (Some(s), Some(t)) => (s.clone(), t.clone()),
+            _ => return Err(error("signed_out", "sign in first")),
+        }
+    };
+    AccountClient::new(&server)
+        .relay(&token, method, &path, body)
+        .await
+}
+
 /// Asking to join a campaign, and the DM's side of it. Works with no campaign chosen (the list of open
 /// tables is for someone who is in none); the paths are fixed by [`crate::account::join_call`].
 #[tauri::command]

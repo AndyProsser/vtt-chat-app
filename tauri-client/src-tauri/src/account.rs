@@ -190,6 +190,43 @@ pub fn ddb_call(
     Ok(("POST", path, Some(body)))
 }
 
+/// The calls the campaign switcher makes about a table the app is NOT in: its upcoming sessions, and the
+/// person's own RSVP to one (`(method, path, body)`). Not scoped to the current campaign (that is the point), so
+/// each id is checked as a plain segment and the paths are fixed: a panel cannot use this to reach anything else.
+pub fn table_call(
+    action: &str,
+    campaign_id: &str,
+    session_id: Option<&str>,
+    status: Option<&str>,
+) -> Result<(&'static str, String, Option<Value>), AccountError> {
+    let bad = || AccountError::new("bad_path", "that request is not allowed");
+    let plain = |s: &str| {
+        !s.is_empty()
+            && s.len() <= 64
+            && s.chars()
+                .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+    };
+    if !plain(campaign_id) {
+        return Err(bad());
+    }
+    let base = format!("/api/campaigns/{campaign_id}/sessions");
+    Ok(match action {
+        "sessions" => ("GET", base, None),
+        "rsvp" => {
+            let session = session_id.filter(|x| plain(x)).ok_or_else(bad)?;
+            let status = status
+                .filter(|x| ["yes", "late", "no"].contains(x))
+                .ok_or_else(bad)?;
+            (
+                "PUT",
+                format!("{base}/{session}/rsvp"),
+                Some(serde_json::json!({ "status": status })),
+            )
+        }
+        _ => return Err(bad()),
+    })
+}
+
 /// The join-request calls a panel may make (docs/architecture/CAMPAIGN-JOIN-REQUESTS.md):
 /// `(method, path, body)`. They are not scoped to the campaign the app is in (the list of open tables is
 /// for someone in none), so each id is checked as a plain segment and the message travels as data.
@@ -1026,6 +1063,25 @@ mod tests {
         assert!(records_search_path("c1", "a").is_err());
         assert!(records_search_path("c/1", "dragon").is_err());
         assert!(super::relay_path("c1", "recordings/abc/transcript").is_ok());
+    }
+
+    #[test]
+    fn table_calls_are_fixed_paths_with_checked_ids() {
+        use super::table_call;
+        let (m, p, b) = table_call("sessions", "c1", None, None).unwrap();
+        assert_eq!((m, p.as_str(), b), ("GET", "/api/campaigns/c1/sessions", None));
+        let (m, p, b) = table_call("rsvp", "c1", Some("s-2"), Some("late")).unwrap();
+        assert_eq!(m, "PUT");
+        assert_eq!(p, "/api/campaigns/c1/sessions/s-2/rsvp");
+        assert_eq!(b, Some(serde_json::json!({ "status": "late" })));
+        // Anything that is not a plain id, a known status or a known action is refused.
+        assert!(table_call("sessions", "../x", None, None).is_err());
+        assert!(table_call("sessions", "a/b", None, None).is_err());
+        assert!(table_call("sessions", "", None, None).is_err());
+        assert!(table_call("rsvp", "c1", None, Some("yes")).is_err());
+        assert!(table_call("rsvp", "c1", Some("s?x=1"), Some("yes")).is_err());
+        assert!(table_call("rsvp", "c1", Some("s1"), Some("maybe")).is_err());
+        assert!(table_call("delete", "c1", Some("s1"), None).is_err());
     }
 
     #[test]

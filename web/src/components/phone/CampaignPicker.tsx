@@ -1,7 +1,9 @@
-import { Badge, Card, Flex, Heading, Text } from '@radix-ui/themes';
+import { Card, Flex, Heading, Text } from '@radix-ui/themes';
 
 import type { CampaignItem } from '../../types/phone.js';
+import { Icon } from '../icons/index.js';
 import { DecisionBanner } from './DecisionBanner.js';
+import { NextSessionRow } from './NextSessionRow.js';
 import { OpenTables } from './OpenTables.js';
 
 export function CampaignPicker({
@@ -28,16 +30,24 @@ export function CampaignPicker({
         </>
       )}
       {campaigns.map((c) => (
-        <Card key={c.id} asChild size="2">
-          <button type="button" className="phone-card-button" onClick={() => onPick(c.id)}>
-            <Flex justify="between" align="center" gap="3">
-              <Text size="4" weight="medium">
-                {c.name}
-              </Text>
-              {c.role === 'dm' && <Badge color="violet">DM</Badge>}
-            </Flex>
-          </button>
-        </Card>
+        <div key={c.id} className="phone-picker-item">
+          <Card asChild size="2">
+            <button type="button" className="phone-card-button" onClick={() => onPick(c.id)}>
+              <Flex align="center" gap="2">
+                {c.role === 'dm' && (
+                  <span className="phone-dm-crown" title="You are the DM">
+                    <Icon name="crown" size={16} />
+                    <span className="phone-visually-hidden">You are the DM</span>
+                  </span>
+                )}
+                <Text size="4" weight="medium" className="phone-picker-name">
+                  {c.name}
+                </Text>
+              </Flex>
+            </button>
+          </Card>
+          <NextSessionRow campaignId={c.id} />
+        </div>
       ))}
     </Flex>
   );
