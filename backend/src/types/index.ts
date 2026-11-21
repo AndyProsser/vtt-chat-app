@@ -221,6 +221,11 @@ export interface InstanceSettings {
   /** A device unseen for this long must sign in again. */
   offlineLimitDays: number;
   inviteExpiryDays: number;
+  /**
+   * How many tables may be recording at the same time on this server (default 2; 0 = no limit). Only the start of a
+   * recording is refused past it: chat, voice and processing are unaffected. Processing stays one job at a time.
+   */
+  maxRecordingTables: number;
   /** The current "you may be recorded" text version; a change re-prompts at next sign-in. */
   consentVersion: string;
   /** Where Whisper and the LLM run, and what happens when a remote is unreachable. */

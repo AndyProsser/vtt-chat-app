@@ -114,6 +114,21 @@ describe('settings', () => {
     expect((await store.getSettings()).offlineLimitDays).toBe(14);
   });
 
+  it('limits how many tables may record at once: two by default, 0 for no limit', async () => {
+    expect((await store.getSettings()).maxRecordingTables).toBe(2);
+    expect(await run('settings set recording.max-tables 3')).toBe(0);
+    expect((await store.getSettings()).maxRecordingTables).toBe(3);
+    expect(await run('settings set recording.max-tables 0')).toBe(0);
+    expect((await store.getSettings()).maxRecordingTables).toBe(0);
+    for (const bad of ['-1', 'two', '1.5', '101', '']) {
+      expect(await run(`settings set recording.max-tables ${bad}`)).toBe(1);
+    }
+    expect((await store.getSettings()).maxRecordingTables).toBe(0);
+    out.length = 0;
+    await run('settings show');
+    expect(out.join('\n')).toMatch(/recording\.max-tables\s+0/);
+  });
+
   it('points the AI backend at a remote GPU box with a local fallback after 5 minutes', async () => {
     await run('settings set ai.transcription.url http://gaming-pc:8080/');
     await run('settings set ai.transcription.kind remote');
@@ -401,6 +416,23 @@ describe('jobs and recordings', () => {
     expect(await run(`jobs retry ${job.id}`)).toBe(0);
     expect((await jobs.get(job.id))?.state).toBe('queued');
     expect((await records.getRecording('r1'))?.status).toBe('stopped');
+  });
+
+  it('releases a failed job so later sessions of its table are not held back, and only a failed job', async () => {
+    const job = await jobs.enqueue(
+      { kind: PROCESS_RECORDING_JOB, recordingId: 'r1', maxAttempts: 1 },
+      1,
+    );
+    expect(await run(`jobs release ${job.id}`)).toBe(1); // still queued: nothing to release
+    await jobs.claim(2, 1000);
+    await jobs.fail(job.id, 'whisper down', 3, 4);
+    out.length = 0;
+    expect(await run('jobs list')).toBe(0);
+    expect(out.join('\n')).toContain('jobs release <job-id>');
+    expect(await run(`jobs release ${job.id}`)).toBe(0);
+    expect(out.join('\n')).toContain('no longer holds back the later sessions');
+    expect((await jobs.get(job.id))?.released).toBe(true);
+    expect(await run('jobs release')).toBe(2);
   });
 
   it('refuses to retry a job that has not failed', async () => {

@@ -21,6 +21,7 @@ export const DEFAULT_INSTANCE_SETTINGS: InstanceSettings = {
   audioPurgeOnNextSession: 'off',
   offlineLimitDays: 30,
   inviteExpiryDays: 7,
+  maxRecordingTables: 2,
   consentVersion: '1',
   ai: DEFAULT_AI_SETTINGS,
 };

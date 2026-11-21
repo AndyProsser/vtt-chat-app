@@ -26,9 +26,12 @@ let handle: WsHandle;
 let base: string;
 let removed: string[];
 
+let theStore: MemoryStore;
+
 beforeEach(async () => {
   removed = [];
   const store = new MemoryStore();
+  theStore = store;
   const hub = new Hub({
     store,
     accounts: new AccountService({ store }),
@@ -306,6 +309,38 @@ describe('recording consent over the wire', () => {
     };
     return { dmToken, playerToken, campaignId, join };
   }
+
+  it("refuses to start a recording past the operator's limit on tables recording at once, and only a start", async () => {
+    // Default: two tables at once.
+    const dm = await signUp('multi-dm');
+    const make = async (name: string) =>
+      (await rest('POST', '/api/campaigns', dm, { name })).body.campaign.id as string;
+    const [a, b, c] = [await make('A'), await make('B'), await make('C')] as [
+      string,
+      string,
+      string,
+    ];
+    const action = (id: string, what: string) =>
+      rest('POST', `/api/campaigns/${id}/recording`, dm, { action: what });
+    expect((await action(a, 'start')).status).toBe(200);
+    expect((await action(b, 'start')).status).toBe(200);
+    const refused = await action(c, 'start');
+    expect(refused.status).toBe(409);
+    expect(refused.body.message).toMatch(/already recording 2 tables.*operator allows/);
+    // The tables already recording are not disturbed: pause, resume and stop still work.
+    expect((await action(a, 'pause')).status).toBe(200);
+    expect((await action(a, 'resume')).status).toBe(200);
+    // A stop frees a place.
+    expect((await action(b, 'stop')).status).toBe(200);
+    expect((await action(c, 'start')).status).toBe(200);
+    // Raising the limit to 0 (no limit) lets a fourth table in; lowering it never stops one already recording.
+    const d = await make('D');
+    expect((await action(d, 'start')).status).toBe(409);
+    await theStore.putSettings({ ...(await theStore.getSettings()), maxRecordingTables: 0 });
+    expect((await action(d, 'start')).status).toBe(200);
+    await theStore.putSettings({ ...(await theStore.getSettings()), maxRecordingTables: 1 });
+    expect((await action(d, 'pause')).status).toBe(200);
+  });
 
   it('lets the DM drive recording, and every client hears each change', async () => {
     const { dmToken, playerToken, campaignId, join } = await table();

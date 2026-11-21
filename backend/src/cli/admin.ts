@@ -102,6 +102,8 @@ const SIMPLE_SETTINGS = {
     'on | off  (list campaigns that allow it to every signed-in account so people can ask to join; off = invites only; default on)',
   'audio-purge-next-session':
     "on | off  (when a recording starts, delete the raw audio of that campaign's earlier processed recordings; the text stays; default off)",
+  'recording.max-tables':
+    'how many tables may be recording at the same time (default 2; 0 = no limit). Only the start of a recording is refused past it; processing stays one job at a time',
   'offline-limit-days': 'whole days a device may stay unseen before it must sign in again',
   'invite-expiry-days': 'whole days a new invite code stays valid',
   'consent-version':
@@ -138,6 +140,10 @@ export function applySetting(
     case 'audio-purge-next-session':
       if (value !== 'on' && value !== 'off') throw new SettingError('must be "on" or "off"');
       return { ...settings, audioPurgeOnNextSession: value };
+    case 'recording.max-tables':
+      if (!/^\d+$/.test(value) || Number(value) > 100)
+        throw new SettingError('must be a whole number from 0 (no limit) to 100');
+      return { ...settings, maxRecordingTables: Number(value) };
     case 'offline-limit-days':
       return { ...settings, offlineLimitDays: positiveInt(value, 'offline-limit-days') };
     case 'invite-expiry-days':
@@ -166,6 +172,7 @@ function settingValues(s: InstanceSettings): [string, string | null][] {
     ['signup.requests', s.signupRequests],
     ['campaign-directory', s.campaignDirectory],
     ['audio-purge-next-session', s.audioPurgeOnNextSession],
+    ['recording.max-tables', String(s.maxRecordingTables)],
     ['offline-limit-days', String(s.offlineLimitDays)],
     ['invite-expiry-days', String(s.inviteExpiryDays)],
     ['consent-version', s.consentVersion],
@@ -768,6 +775,17 @@ async function jobs(deps: Ctx, command: string | undefined, rest: string[]): Pro
         deps.out(ui.dim('  no jobs'));
         return 0;
       }
+      // A queued job may be held back by an earlier session of its table (see the order rule in the queue).
+      const holders = new Map<string, string>();
+      for (const j of list)
+        if (j.state === 'queued') {
+          const by = await deps.jobs.blockedBy(j.id);
+          if (by)
+            holders.set(
+              j.id,
+              `waits for an earlier session's job ${by.id.slice(0, 8)} (${by.state})`,
+            );
+        }
       ui.table(
         list.map((j) => [
           ui.dim(j.id),
@@ -775,13 +793,22 @@ async function jobs(deps: Ctx, command: string | undefined, rest: string[]): Pro
           j.kind,
           `${j.attempts}/${j.maxAttempts}`,
           cloudUsage(j.usage),
-          j.lastError ? ui.bad(j.lastError.slice(0, 80)) : '',
+          holders.has(j.id)
+            ? ui.dim(holders.get(j.id) as string)
+            : j.lastError
+              ? ui.bad(j.lastError.slice(0, 80))
+              : j.released
+                ? ui.dim('released from the order rule')
+                : '',
         ]),
-        { header: ['id', 'state', 'kind', 'tries', 'cloud AI', 'last error'] },
+        { header: ['id', 'state', 'kind', 'tries', 'cloud AI', 'last error / waiting'] },
       ).forEach(deps.out);
       if (list.some((j) => j.state === 'failed')) {
         deps.out('');
         deps.out(`  ${ui.hint('vtt-admin jobs retry <job-id>')}`);
+        deps.out(
+          `  ${ui.hint("vtt-admin jobs release <job-id>   (let the table's later sessions go ahead without it)")}`,
+        );
       }
       return 0;
     }
@@ -795,6 +822,21 @@ async function jobs(deps: Ctx, command: string | undefined, rest: string[]): Pro
       if (!job) throw new SettingError('no failed job with that id');
       if (job.recordingId) await deps.records.setRecordingStatus(job.recordingId, 'stopped');
       deps.out(deps.ui.done(`job ${job.id} is queued again with a fresh set of attempts`));
+      return 0;
+    }
+    case 'release': {
+      const id = rest[0];
+      if (!id) {
+        deps.err('usage: jobs release <job-id>');
+        return 2;
+      }
+      const job = await deps.jobs.release(id);
+      if (!job) throw new SettingError('no failed job with that id');
+      deps.out(
+        deps.ui.done(
+          `job ${job.id} no longer holds back the later sessions of its table. They will be processed without what this one would have added to the campaign memory; \`jobs retry\` puts it back in the queue`,
+        ),
+      );
       return 0;
     }
     default:

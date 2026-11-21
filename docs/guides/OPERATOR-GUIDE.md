@@ -332,8 +332,18 @@ container fetches its own, the worker asks Ollama for the summary model). You ca
 recording made before the models are there waits for them. Watch it with `./vtt-admin status` (the `local AI`
 line says "downloading (43%)", "ready", or why it failed) or `./vtt-admin logs whisper worker`; the status page
 shows a "Summary model" row while it downloads. A download that fails (no route out, a mistyped model name) is
-retried with a growing pause and shows as `FAIL local AI` in `vtt-admin status`. Needs Docker Engine 25 or newer
-(`docker version`); the installer checks.
+\1
+
+**More than one table.** A server can record **several tables at once**: each table has its own voice room, recording,
+chat and memory, and one table never sees another's records. How many may record at the same time is
+`vtt-admin settings set recording.max-tables <n>` (default **2**; `0` means no limit). It only refuses the **start** of a
+recording past the limit, with a message to the Game Master; a table already recording is never interrupted, and chat,
+voice and processing are unaffected. **Processing is one job at a time, in the order the jobs were queued**, and this
+version runs **one worker** (a second worker stands by until the first stops; running several is a future stage). Two
+tables recording at once therefore queue their processing one after the other. Within one table the queue keeps the
+sessions **in the order they were recorded**: if a session's job fails, the table's later sessions wait for it (so the
+campaign memory and tales stay in order) until you `jobs retry` it, or `jobs release <id>` it to let the later ones go
+ahead without it. `jobs list` says what a waiting job is waiting for.
 
 **What the summaries are.** A recording is summarised in two passes. A _scribe_ reads the transcript once and writes
 down what happened, big and small. A _bard_ then tells it, from the scribe's notes, as a short heroic tale with dry
@@ -553,7 +563,8 @@ _The operator's console: real `vtt-admin` output from a test server (listings cu
 | `user code <email> [signin\|reset]`                                                | One-time code for someone locked out                                                                                                                                                                                                                                                                                                                 |
 | `signup list [state]`, `signup approve <id\|email>`, `signup reject <id\|email>`   | Handle visitor account requests (needs `signup.requests on`); approve prints a code to hand over                                                                                                                                                                                                                                                     |
 | `user revoke-sessions <email>`                                                     | Sign a person out everywhere (lost laptop)                                                                                                                                                                                                                                                                                                           |
-| `jobs list [state]`, `jobs retry <id>`                                             | Look at the summary queue; retry a failed job                                                                                                                                                                                                                                                                                                        |
+| `jobs list [state]`, `jobs retry <id>`, `jobs release <id>`                        | Look at the summary queue; retry a failed job; let a table's later sessions go ahead without a failed one                                                                                                                                                                                                                                            |
+| `settings set recording.max-tables <n>`                                            | How many tables may record at once (default 2; 0 = no limit). Only the start of a recording is refused past it                                                                                                                                                                                                                                       |
 | `recording list`, `recording reprocess <id> [--retranscribe]`                      | Redo a recording's summaries (or transcript) from the kept audio                                                                                                                                                                                                                                                                                     |
 | `recording purge <id>` or `--older-than <days>`                                    | Delete the raw audio of processed recordings (transcript and summaries stay)                                                                                                                                                                                                                                                                         |
 | `recording delete <id>`                                                            | Remove a whole session: its audio, transcript and summaries (the worker does it)                                                                                                                                                                                                                                                                     |

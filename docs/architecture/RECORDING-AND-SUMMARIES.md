@@ -53,6 +53,8 @@ flowchart LR
 Job orchestration, retries and the queue live in `ai/` (backed by Postgres/Redis). A failed stage
 leaves the previous stages' output intact and is retryable from the Admin CLI without re-recording.
 
+**The queue's order rules (2026-11-21).** Jobs are taken first in, first out. **One table's sessions are processed in the order they were recorded**: a `process-recording` job is not taken while an earlier session of the same campaign has a job that is queued, running or **failed** (a failed job counts, and so does one waiting out a retry delay, which is the case a plain FIFO gets wrong). Why: campaign memory is built session by session, so session 3's tale must know what session 2 added; running them out of order silently weakens the later tale. The operator can break the hold on purpose: `vtt-admin jobs release <id>` marks a failed job as no longer holding the later sessions back (`jobs retry` puts it back in the queue and takes the release away). Reprocessing the earliest session, other kinds of job and other tables are never held. **One worker runs per database** (a Postgres advisory lock; a second stands by), because the model servers are tuned for one job at a time; several workers are [ROADMAP Stage 17](../../ROADMAP.md). **Several tables may record at once**: `recording.max-tables` (default 2, 0 = no limit) refuses only the start of a recording past the limit.
+
 ## Consent cue
 
 Recording people is a trust matter before it is a technical one. The design is:

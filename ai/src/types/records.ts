@@ -108,6 +108,8 @@ export interface Job {
   /** The worker (`WORKER_ID`) holding the lease on a running job, when it said who it is. */
   lockedBy?: string | null;
   lastError: string | null;
+  /** The operator released this failed job from the order rule, so later sessions of its table no longer wait for it. */
+  released?: boolean;
   createdAt: number;
   updatedAt: number;
 }

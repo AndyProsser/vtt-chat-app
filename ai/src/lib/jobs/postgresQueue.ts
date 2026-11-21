@@ -2,6 +2,20 @@ import type pg from 'pg';
 
 import type { Job } from '../../types/index.js';
 import type { EnqueueInput, JobQueue } from './queue.js';
+import { ORDERED_JOB_KIND } from './queue.js';
+
+/**
+ * The rule that keeps one table's sessions in order (see the contract in queue.ts): true for a row `jq` whose
+ * earlier session, in the same campaign, still has a job that is queued, running or failed and not released.
+ * Written once so the claim and `blockedBy` agree. `$K` is the job kind parameter's number.
+ */
+const heldBack = (jq: string, kind: string): string => `(${jq}.kind = ${kind} AND EXISTS (
+    SELECT 1 FROM recordings r
+    JOIN recordings r0 ON r0.campaign_id = r.campaign_id
+      AND (r0.started_at < r.started_at OR (r0.started_at = r.started_at AND r0.id < r.id))
+    JOIN jobs j0 ON j0.recording_id = r0.id AND j0.kind = ${kind}
+      AND j0.state IN ('queued', 'running', 'failed') AND NOT j0.order_released
+    WHERE r.id = ${jq}.recording_id))
 
 type Row = Record<string, unknown>;
 
@@ -16,6 +30,7 @@ const toJob = (r: Row): Job => ({
   lockedUntil: (r.locked_until as number | null) ?? null,
   lockedBy: (r.locked_by as string | null) ?? null,
   lastError: (r.last_error as string | null) ?? null,
+  released: (r.order_released as boolean | undefined) ?? false,
   usage: (r.usage as Job['usage']) ?? null,
   createdAt: r.created_at as number,
   updatedAt: r.updated_at as number,
@@ -68,16 +83,17 @@ export class PostgresJobQueue implements JobQueue {
        WHERE ${orphaned('$2')} AND attempts >= max_attempts`,
       [now, workerId ?? null],
     );
+    // A queued job waits while an earlier session of its table has a job that has not finished (heldBack).
     const { rows } = await this.pool.query<Row>(
       `UPDATE jobs SET state = 'running', attempts = attempts + 1, locked_until = $1 + $2::bigint, locked_by = $3::text, updated_at = $1
        WHERE id = (
-         SELECT id FROM jobs
-         WHERE (state = 'queued' AND run_after <= $1) OR (${orphaned('$3')})
-         ORDER BY created_at
-         FOR UPDATE SKIP LOCKED
+         SELECT jq.id FROM jobs jq
+         WHERE (jq.state = 'queued' AND jq.run_after <= $1 AND NOT ${heldBack('jq', '$4')}) OR (${orphaned('$3')})
+         ORDER BY jq.created_at
+         FOR UPDATE OF jq SKIP LOCKED
          LIMIT 1)
        RETURNING *`,
-      [now, leaseMs, workerId ?? null],
+      [now, leaseMs, workerId ?? null, ORDERED_JOB_KIND],
     );
     return rows[0] ? toJob(rows[0]) : undefined;
   }
@@ -110,9 +126,37 @@ export class PostgresJobQueue implements JobQueue {
 
   async retry(id: string, now: number): Promise<Job | undefined> {
     const { rows } = await this.pool.query<Row>(
-      `UPDATE jobs SET state = 'queued', attempts = 0, run_after = $2, last_error = NULL, updated_at = $2
+      `UPDATE jobs SET state = 'queued', attempts = 0, run_after = $2, last_error = NULL, order_released = false, updated_at = $2
        WHERE id = $1 AND state = 'failed' RETURNING *`,
       [id, now],
+    );
+    return rows[0] ? toJob(rows[0]) : undefined;
+  }
+
+  async release(id: string): Promise<Job | undefined> {
+    try {
+      const { rows } = await this.pool.query<Row>(
+        `UPDATE jobs SET order_released = true WHERE id = $1 AND state = 'failed' RETURNING *`,
+        [id],
+      );
+      return rows[0] ? toJob(rows[0]) : undefined;
+    } catch (error) {
+      if ((error as { code?: string }).code === '22P02') return undefined; // not a UUID
+      throw error;
+    }
+  }
+
+  async blockedBy(id: string): Promise<Job | undefined> {
+    const { rows } = await this.pool.query<Row>(
+      `SELECT j0.* FROM jobs jq
+         JOIN recordings r ON r.id = jq.recording_id
+         JOIN recordings r0 ON r0.campaign_id = r.campaign_id
+           AND (r0.started_at < r.started_at OR (r0.started_at = r.started_at AND r0.id < r.id))
+         JOIN jobs j0 ON j0.recording_id = r0.id AND j0.kind = $2
+           AND j0.state IN ('queued', 'running', 'failed') AND NOT j0.order_released
+         WHERE jq.id = $1 AND jq.kind = $2
+         ORDER BY r0.started_at LIMIT 1`,
+      [id, ORDERED_JOB_KIND],
     );
     return rows[0] ? toJob(rows[0]) : undefined;
   }

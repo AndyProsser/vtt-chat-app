@@ -260,6 +260,15 @@ export function campaignRoutes(deps: CampaignRouteDeps): Router {
     }
 
     await deps.beforeRecordingChange?.();
+    if (body.action === 'start' && !recording.current(campaignId)) {
+      // The operator's cap on tables recording at once (`recording.max-tables`; 0 = no limit). Only a start is refused.
+      const limit = (await store.getSettings()).maxRecordingTables;
+      if (limit > 0 && recording.activeCount() >= limit)
+        throw new DomainError(
+          'conflict',
+          `this server is already recording ${recording.activeCount()} table${recording.activeCount() === 1 ? '' : 's'}, the most its operator allows at once; try again when one stops`,
+        );
+    }
     const change = recording[body.action](campaignId);
     onRecordingChanged?.(change);
     res.json({ recordingId: change.recordingId, event: change.event });

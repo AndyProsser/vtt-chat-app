@@ -161,6 +161,11 @@ export const SERVER_SECTIONS: HelpSection[] = [
         summary: 'records-pipeline jobs, newest last',
       },
       { usage: 'jobs retry <job-id>', summary: 'put a failed job back in the queue' },
+      {
+        usage: 'jobs release <job-id>',
+        summary:
+          "let the later sessions of a table go ahead without a failed job (the queue keeps one table's sessions in order)",
+      },
     ],
   },
   {

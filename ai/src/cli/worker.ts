@@ -16,6 +16,7 @@
  *   OLLAMA_STORY_MODEL  the model that tells the tale from the notes (the bard). Unset: OLLAMA_MODEL does both.
  *   OLLAMA_KEEP_ALIVE   how long Ollama keeps the model loaded after a request (e.g. 2m; unset: the
  *                       Ollama server's own setting)
+ *   ALLOW_MULTIPLE_WORKERS  1 skips the one-worker-per-database check (unsupported: ROADMAP Stage 17)
  *   WORKER_ID           this worker's stable name (default: the hostname). A restarted worker with the
  *                       same id takes back its own interrupted job at once instead of waiting out the
  *                       5-minute lease; never give two running workers the same id
@@ -41,6 +42,7 @@ import { hostname } from 'node:os';
 import path from 'node:path';
 
 import { PostgresJobQueue } from '../lib/jobs/postgresQueue.js';
+import { waitToBeOnlyWorker } from '../lib/jobs/singleWorker.js';
 import { processNext, resolveWorkerId, runWorker } from '../lib/jobs/worker.js';
 import {
   holdForModel,
@@ -93,6 +95,16 @@ async function main(): Promise<void> {
   const once = process.argv.includes('--once');
   const abort = new AbortController();
   for (const signal of ['SIGINT', 'SIGTERM'] as const) process.once(signal, () => abort.abort());
+
+  // One worker per database (jobs/singleWorker.ts). `--once` is a manual run and is not held to it.
+  const onlyWorker =
+    once || process.env.ALLOW_MULTIPLE_WORKERS === '1'
+      ? undefined
+      : await waitToBeOnlyWorker(pool, { signal: abort.signal, log });
+  if (!once && process.env.ALLOW_MULTIPLE_WORKERS !== '1' && !onlyWorker) {
+    await pool.end();
+    return;
+  }
 
   // The local AI may not be ready when the worker starts: on a first start the Whisper container is still fetching
   // its model, and the summary model is fetched here (lib/localAi/keepers.ts). Neither holds up start-up; the state
@@ -252,6 +264,7 @@ async function main(): Promise<void> {
     // Also when the job loop died (the database went away): the background model checks must not keep a worker
     // alive that no longer takes jobs. It exits, and the service manager starts a fresh one.
     abort.abort();
+    await onlyWorker?.release();
     await pool.end();
   }
 }
