@@ -78,7 +78,7 @@ made.
 
 ## Server-hosted Linux repositories (designed 2026-11-19)
 
-Roadmap: [Stage 13](../../ROADMAP.md). Andy asked whether the server could host the APT repository so the app stays
+Roadmap: [Stage 15](../../ROADMAP.md). Andy asked whether the server could host the APT repository so the app stays
 in step with the server, and what happens when the server is offline. This is the answer; **nothing is built**.
 
 ```mermaid

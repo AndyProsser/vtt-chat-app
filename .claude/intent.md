@@ -80,6 +80,17 @@ Update this file as threads open, progress, or close — stale entries here are 
   - Remaining small ones (loot with atomic claim, session schedule + RSVP + stored notifications) use
     plain defaults, listed in docs/architecture/TABLE-FEATURES.md when built.
 
+- **Re-plan after Stage 12, 2026-11-21 (Andy): testing becomes Stage 13, the next protocol bump Stage 14.** Stages 11 and 12 are
+  closed for building. Everything built and never run for real moved to **Stage 13, Quality Validation**
+  ([QUALITY-VALIDATION.md](../docs/architecture/QUALITY-VALIDATION.md)): led by a **30 to 60 minute synthetic session**, a real
+  multi-voice dialogue (one Game Master, four or more players) spoken by TTS voices into the real system, scored against the
+  script. The source dialogue is Andy's choice, is throwaway, lives outside the repo and is never named in it. Every wire
+  change waits for **Stage 14, 0.7.0 (protocol 5)**: step H (memory in the glossary, lore import, DDB backstories) plus any
+  candidate Andy picks (polyglot, web push, Admin quick-access). The old Stages 13 and 14 (Linux package repositories,
+  self-signed certificate) are now **15 and 16**. Order: Stage 13 first, on protocol 4, so fixes ship as 0.6.x patches; then 14.
+  **Open (ask Andy):** the dialogue, where the long runs happen, cloud spend for the Claude and OpenAI runs, who is the real
+  client in the room.
+
 ## Design topics (1–4 are decided; 5–9 still open — ask Andy, don't resolve by writing code)
 
 1. **Identity & access model** — _decided 2026-11-05:_ local accounts (email/password, magic

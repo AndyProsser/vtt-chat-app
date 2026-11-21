@@ -10,10 +10,10 @@ VTT Chat App is the missing piece that sits **beside** whatever virtual tabletop
 
 ### And then the Bard tells the tale
 
-The part nothing else gives a table: **it remembers the session for you.** The server records each speaker on their own track, turns the talk into text on your own hardware, and then two AI storytellers go to work. A **scribe** keeps the facts: what happened, who did what, what was left hanging. A **bard** retells the evening as a short tale of the party's adventure, the fumbles told as proudly as the feats, so that on the morning after, everyone gets to read how legendary (or ridiculous) they were.
+The part nothing else gives a table: **it remembers the session for you.** The server records each speaker on their own track, turns the talk into text on your own hardware, and then a small crew of AI roles goes to work. A **scribe** keeps the facts: what happened, who did what, what was left hanging. A **Chronicler** writes the Game Master's notes for next time, and a campaign **memory** carries the names and places from one session to the next. A **bard** retells the evening as a short tale of the party's adventure, the fumbles told as proudly as the feats, so that on the morning after, everyone gets to read how legendary (or ridiculous) they were.
 
 - **Players read the tale.** The DM also gets a private brief: the open threads and what to prepare next.
-- **Pick your storyteller.** Each campaign chooses its bard: the grandiose Tavern Bard, the exact Dry Historian, the unreliable Tipsy Minstrel, the Wry Jester or the Bored Court Scribe. Choosing one is built; teaching each its own voice is the work in progress.
+- **Pick your storyteller.** Each campaign chooses its bard: the grandiose Tavern Bard, the exact Dry Historian, the unreliable Tipsy Minstrel, the Wry Jester or the Bored Court Scribe. Each has its own voice. This is built and unit-tested; it has not yet been read on real sessions (see [Stage 13](ROADMAP.md)).
 - **Recording is never a secret.** Every recording starts with a visible and audible cue, and private talk is never recorded.
 
 Where the project stands is in the [roadmap](ROADMAP.md), the [changelog](CHANGELOG.md) and [what is built and verified](docs/BUILD-STATUS.md). The rest of this page is how to run it.
@@ -60,14 +60,14 @@ Afterwards `vtt-admin` works from any directory: `vtt-admin status`, `vtt-admin 
 The usual way a group plays online: everyone joins one Discord channel and leaves their mics open. That works. What it doesn't give you is a record of what happened. VTT Chat App keeps the same open-mic experience and adds that record.
 
 - **Open-mic voice that stays out of the way.** A system-tray app, hidden ~90% of the time, with near-zero idle CPU, auto-rejoin, autostart and a tray icon that always shows whether you're live, muted or being recorded.
-- **Session records are core.** The server records each speaker separately, transcribes with Whisper, and then two AI roles write it up: a _scribe_ notes what happened, big and small, and a _bard_ retells it as a short heroic tale with dry wit (the fumbles told as proudly as the feats) for the session, each chapter and each hero. Every recording starts with a visible, audible consent cue.
+- **Session records are core.** The server records each speaker separately, transcribes with Whisper, and then the AI roles write it up: a _scribe_ notes what happened, big and small, a _Chronicler_ prepares the Game Master's brief, a campaign memory remembers who and where, and a _bard_ retells it as a short heroic tale with dry wit (the fumbles told as proudly as the feats) for the session, each chapter and each hero. Every recording starts with a visible, audible consent cue.
 - **The tale is what the table reads.** Players get the tales. The DM also gets a private brief (key points, open threads, what to prepare next) and can open the scribe's full notes. The word-for-word transcript is a diagnostic view for the DM, not something players see.
 - **Runs on modest hardware.** No GPU needed: on a 2010 Xeon without AVX, transcription takes about 1.7 times the length of the audio, and summaries come from a 4 GB local model. A GPU, yours or one on your LAN, makes it much faster.
 - **Self-host first.** One VM or server, **Docker Compose** (or a native install for advanced users), **no cloud account**. LiveKit, recording, Whisper and an LLM run on your box — or Whisper/the LLM can point at a GPU machine you own. Anyone can deploy their own instance.
-- **Cloud is optional.** Cloudflare (TURN, SFU, Workers AI, Pages) and cloud LLM/transcription are _advanced-user adapters_, off by default and never required.
+- **Cloud is optional.** Cloudflare (TURN, SFU, Workers AI, Pages), Claude or OpenAI for the summaries, and cloud transcription are _advanced-user adapters_, off by default and never required.
 - **Minimal table tools.** DM/player whispers, handouts and images, loot drops, a DM soundboard, party splits, and session reminders with RSVP.
 - **Campaigns are private.** A designated DM and access control per campaign, plus a General channel.
-- **Not tied to a VTT.** It works alongside whatever you play on — D&D Beyond, Foundry, Roll20, or paper. (Optional D&D Beyond character import is planned for later.)
+- **Not tied to a VTT.** It works alongside whatever you play on — D&D Beyond, Foundry, Roll20, or paper. (Optional D&D Beyond character import is built: paste a public character link.)
 
 ## How Light Is It?
 
@@ -141,6 +141,7 @@ Each module has its own `README.md` describing its purpose and current status.
 - [docs/architecture/RECORDING-AND-SUMMARIES.md](docs/architecture/RECORDING-AND-SUMMARIES.md) — recording, consent cue, transcription, summaries
 - [docs/architecture/DEPLOYMENT-AND-TRANSPORT.md](docs/architecture/DEPLOYMENT-AND-TRANSPORT.md) — self-host topology, ports, TURN, optional cloud adapters
 - [docs/architecture/STATE-AND-RESILIENCE.md](docs/architecture/STATE-AND-RESILIENCE.md) — state boundaries and recovery rules for long sessions
+- [docs/architecture/QUALITY-VALIDATION.md](docs/architecture/QUALITY-VALIDATION.md) — how the whole system is tested end to end with a long synthetic session (Stage 13)
 - [docs/CONVENTIONS.md](docs/CONVENTIONS.md) — folder/style conventions in detail
 - [docs/archive/](docs/archive/README.md) — the previous (DDB-overlay) design, kept for reference
 

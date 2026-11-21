@@ -149,7 +149,7 @@ You do not need a registered domain. A **free DDNS name** (DuckDNS, No-IP and th
 Both are remembered: a later plain run of the installer (or `vtt-admin update`) keeps the scheme and port. They are written to `.env` as
 `PUBLIC_ORIGIN`, `LIVEKIT_PUBLIC_URL`, `CADDY_SITE`, `CADDY_HTTP_PORTS` and `CADDY_HTTPS_PORTS` (Caddy listens on the port in its site address,
 so that is the port published; its other port is kept on this machine's loopback). A self-signed certificate with the app pinning it is a
-possible later mode ([ROADMAP Stage 14](../../ROADMAP.md)).
+possible later mode ([ROADMAP Stage 16](../../ROADMAP.md)).
 
 ### Behind a Cloudflare Tunnel (a line that blocks 80/443)
 
