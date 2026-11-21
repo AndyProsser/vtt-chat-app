@@ -1,7 +1,6 @@
 import {
   DEFAULT_AI_SETTINGS,
   DEFAULT_BARD,
-  isBardId,
   type AiSettings,
   type BardId,
 } from '@vtt-chat-app/shared';

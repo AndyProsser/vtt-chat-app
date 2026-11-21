@@ -87,7 +87,7 @@ const bulletText = (line: string): string =>
 
 /** "None", "N/A", "(nothing)" under a heading: the model saying the section is empty. */
 const isEmptyMarker = (text: string): boolean =>
-  /^[(\[]?\s*(none|n\/a|nothing|no [a-z ]+|not applicable|-)\.?\s*[)\]]?$/i.test(text);
+  /^[([]?\s*(none|n\/a|nothing|no [a-z ]+|not applicable|-)\.?\s*[)\]]?$/i.test(text);
 
 /**
  * Reads notes a model wrote. Lines under a heading we know go to that section; lines under a heading we do not
