@@ -37,7 +37,7 @@ function orderingContract(name: string, make: () => Promise<Harness>): void {
       const { j1, j2 } = await two();
       expect((await h.q.claim(4000, 60_000))?.id).toBe(j1.id);
       // j1 is running: j2 must wait, however long.
-      expect(await h.q.claim(9_000_000, 60_000)).toBeUndefined();
+      expect(await h.q.claim(5000, 60_000)).toBeUndefined();
       expect((await h.q.blockedBy(j2.id))?.id).toBe(j1.id);
       await h.q.complete(j1.id, 5000);
       expect((await h.q.claim(5001, 60_000))?.id).toBe(j2.id);

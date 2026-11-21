@@ -15,7 +15,7 @@ const heldBack = (jq: string, kind: string): string => `(${jq}.kind = ${kind} AN
       AND (r0.started_at < r.started_at OR (r0.started_at = r.started_at AND r0.id < r.id))
     JOIN jobs j0 ON j0.recording_id = r0.id AND j0.kind = ${kind}
       AND j0.state IN ('queued', 'running', 'failed') AND NOT j0.order_released
-    WHERE r.id = ${jq}.recording_id))
+    WHERE r.id = ${jq}.recording_id))`;
 
 type Row = Record<string, unknown>;
 
