@@ -32,7 +32,8 @@
     "srd:build": "node scripts/srd/build.ts",
     "sounds:import": "node scripts/sounds/import.ts",
     "campaign:check": "node infra/records-smoke/campaign-fixture.ts check",
-    "campaign:test": "node --test infra/records-smoke/campaign-fixture.test.ts"
+    "campaign:test": "node --test infra/records-smoke/",
+    "campaign:dry": "node infra/records-smoke/campaign-run.ts dry"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
