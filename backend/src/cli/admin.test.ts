@@ -120,7 +120,8 @@ describe('settings', () => {
     expect((await store.getSettings()).maxRecordingTables).toBe(3);
     expect(await run('settings set recording.max-tables 0')).toBe(0);
     expect((await store.getSettings()).maxRecordingTables).toBe(0);
-    for (const bad of ['-1', 'two', '1.5', '101', '']) {
+    expect(await run('settings set recording.max-tables')).toBe(2); // no value: a usage error
+    for (const bad of ['-1', 'two', '1.5', '101']) {
       expect(await run(`settings set recording.max-tables ${bad}`)).toBe(1);
     }
     expect((await store.getSettings()).maxRecordingTables).toBe(0);
