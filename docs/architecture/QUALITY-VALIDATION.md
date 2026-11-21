@@ -1,6 +1,6 @@
 # Quality validation: testing the whole system with a long synthetic session
 
-**Roadmap:** [Stage 13](../../ROADMAP.md). **Status:** planned 2026-11-21 with Andy; the approach is decided, the details are not (see [Open questions](#open-questions)). Nothing here is built yet.
+**Roadmap:** [Stage 13](../../ROADMAP.md). **Status:** planned 2026-11-21 with Andy; the approach is decided, the details are not (see [Open questions](#decisions-and-open-questions)). Nothing here is built yet.
 
 ## Why this exists
 
