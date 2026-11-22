@@ -470,18 +470,23 @@ What it showed, and what changed:
   **Retry ladder (decision 7):** unreadable → the scribe is asked to lay its own notes out again (cheap) → still unreadable →
   it reads that piece of transcript again → after `NOTES_READ_ATTEMPTS` (3) readings the job **fails and is retried by the
   queue**; there is no weaker fallback. The pieces of a long transcript are merged section by section (an overlap's repeat kept
-  once) into one set of notes, and a set over `NOTES_MAX_WORDS` (3,000) is shortened by the scribe, up to four rounds, stopping when
-  a round does not make it shorter. Secrets here are what came out **during play**; Game Master-only material never reaches the
+  once) into one set of notes, and a set over `NOTES_MAX_WORDS` (2,000, retuned down from 3,000 on 2026-11-22 after a real
+  session's notes read as a retelling rather than a summary) is shortened by the scribe, up to four rounds, stopping when
+  a round does not make it shorter. A chaptered session shares that budget across its chapters instead of letting each one
+  reach it on its own (`NotesOptions.maxWords`, `processRecording.ts`) — the gap the first live run found (see
+  QUALITY-VALIDATION.md). Secrets here are what came out **during play**; Game Master-only material never reaches the
   scribe. Cost: a model that obeys the layout costs nothing extra; one that does not costs up to two more calls a reading.
 - **The Chronicler and the storytellers (Stage 12 E and G, built 2026-11-20, not yet read on a real session).** The `dm-only`
-  summary (labelled "DM brief" in the apps, unchanged on the wire) is now the **Chronicler's**: 200 to 300 words under
+  summary (labelled "DM brief" in the apps, unchanged on the wire) is now the **Chronicler's**: 150 to 250 words
+  (retuned down from 200 to 300 on 2026-11-22) under
   Non-player characters, Open threads, Items, Locations, Hooks and Continuity warnings, from the scribe's notes and the start of
   the Game Master's own notes (`GM_NOTES_PROMPT_CHARS`, 6,000), with the exact loot record kept. The tales are told by the campaign's
   storyteller, `effectiveBard(campaign.bard, ai.tale.storytellersOff)`, read once per job; a voice is a `STYLES` entry in
   `ai/src/lib/prompts.ts`, never different facts. **Who may read the Game Master's notes:** the Chronicler and the Tipsy
   Minstrel only. The job fetches them only for those two, and the prompt builder ignores `gmNotes` for every other
   storyteller and for the scribe, so a mistake in one place does not leak (tests in `pipeline.test.ts` and
-  `processRecording.test.ts`). `ai.tale.length` sets the ceiling (400, 800, 1,200 words; a chapter or a character gets half), the
+  `processRecording.test.ts`). `ai.tale.length` sets the ceiling (250, 350, 500 words, retuned down from 400, 800, 1,200
+  on 2026-11-22; a chapter or a character gets half), the
   notes' own length still pulls it down, and `ai.tale.content` adds a clean or graphic rule. Not done: the Chronicler and the bards
   read the notes as plain text (not section by section), and campaign memory (F) is not used yet.
 - **Campaign memory (Stage 12 F, built 2026-11-20, not yet run on two real sessions).** Decided with Andy: **a step of its own**
@@ -524,7 +529,7 @@ transcript is searchable, but the story is what will be remembered."_ So a summa
 flowchart LR
     T["Transcript\n(one stretch of recording)"] --> S["Scribe\nnotes: every event, big or small"]
     S --> N[("Notes\n(stored for the Game Master)")]
-    N --> B1["Bard: the session's tale (300–800 words, more if the story needs it)"]
+    N --> B1["Bard: the session's tale (250–500 words, more if the story needs it)"]
     N --> B2["Bard: each part's tale (≤200)"]
     N --> B3["Bard: each hero's tale (≤200)"]
     N --> G["Scribe: the Game Master's brief (plain)"]
@@ -551,7 +556,7 @@ flowchart LR
 - **The tale is about the people who mattered.** The bard is told that not everyone in the notes belongs in the tale:
   a player or creature who did little may be left out or pass in a clause, and nobody is given a moment just to be
   included. Each hero still gets their own tale.
-- **Decided 2026-11-20 (Andy): tales run 300 to 800 words for every storyteller, longer if the story needs it, and inventing a little is fine** (the Tipsy Minstrel may stretch the truth freely, staying close to what happened). The prompts still say 350 words until the persona work (0.6.4); the rule below stays so a very short session keeps a short tale.
+- **Decided 2026-11-20 (Andy): tales run 300 to 800 words for every storyteller, longer if the story needs it, and inventing a little is fine** (the Tipsy Minstrel may stretch the truth freely, staying close to what happened). **Retuned 2026-11-22 (Andy, after reading session 1's tale and notes back) to 250 to 500: a tale is a one-to-three-minute read, and 500 is for a long or eventful session, not the default.** The rule below stays so a very short session keeps a short tale.
 - **A tale is never longer than its notes.** The word limit in the bard's prompt is the kind's cap or 0.8 × the notes'
   word count, whichever is less (floor 30). Given six lines of notes and "at most 350 words", a bard fills the space
   with invention: the end-to-end test's four-line recap came back as a dungeon crawl. The scribe is likewise told that
@@ -710,9 +715,9 @@ flowchart LR
     A["4–6 h of audio,<br/>chat and cues"] --> W["Whisper<br/>(local)"]
     W --> T["Transcript<br/>~40–60k tokens"]
     T --> S["Scribe<br/>key events, quotes"]
-    S --> N["Notes<br/>≤ ~3,000 words"]
-    N --> B["Bard<br/>one tale, 300–800 words (longer if the story needs it)"]
-    N --> C["Chronicler<br/>GM brief, 200–300 words,<br/>under headings"]
+    S --> N["Notes<br/>≤ ~2,000 words"]
+    N --> B["Bard<br/>one tale, 250–500 words (longer if the story needs it)"]
+    N --> C["Chronicler<br/>GM brief, 150–250 words,<br/>under headings"]
 ```
 
 A session is mostly talk, thinking and waiting for dice, with one or two fights: the scribe's job is to find the

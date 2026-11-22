@@ -85,10 +85,10 @@ export function buildNotesPrompt(
     [
       LAYOUT_RULES,
       'Under each heading write one bullet per thing, in the order things happened. For each: who did what, to whom or what, and how it turned out.',
-      'Be thorough: almost every exchange in the transcript should leave a line in the notes.',
-      'Never go beyond the transcript. The notes have about as many lines as the transcript has exchanges, never more: four lines of transcript make about four lines of notes. Do not continue the story, and do not describe anything that no line of the transcript says.',
-      'Write whole sentences, not shorthand: no arrows, no abbreviations, no "X: roll, result" fragments. Say what a success or a failure looked like as the Game Master described it.',
-      'Keep the small things as well as the big ones: a failed roll, a bad idea, a plan that went wrong, a joke or a boast made in character, a lucky escape.',
+      'Write a summary of events and actions, not a line-by-line retelling: these notes must end up noticeably shorter than the transcript above. Merge a back-and-forth about one small thing into a single line, and leave out table talk that is not part of the game. Never drop a distinct event, decision, roll that mattered, or quote to save space; shorten the telling of it instead.',
+      'Never go beyond the transcript: do not continue the story, and do not describe anything that no line of the transcript says.',
+      'Write whole sentences, not shorthand: no arrows, no abbreviations, no "X: roll, result" fragments. Keep each one short, a single clause of who did what and how it turned out, not a paragraph.',
+      'Keep the small things as well as the big ones: a failed roll, a bad idea, a plan that went wrong, a joke or a boast made in character, a lucky escape. A line is still worth keeping even when it is brief.',
       'Note dice results when they are mentioned, above all critical hits, natural ones and other fumbles, and what they led to.',
       'Keep names of characters, places, creatures and items as the speakers said them, and quote the memorable lines word for word, saying who said them.',
       'Note what was found, taken, lost, promised or left unanswered.',
@@ -148,8 +148,9 @@ export function formatNotes(
 /** Shortens notes that have outgrown one model call, keeping the events (map-reduce's middle step). */
 export function buildCondensePrompt(notes: readonly string[], context: SummaryContext): string {
   return [
-    `These are a scribe's notes of a tabletop role-playing session${campaignOf(context)}, in order. Rewrite them as shorter notes, one event per line, in the same order.`,
+    `These are a scribe's notes of a tabletop role-playing session${campaignOf(context)}, in order. Rewrite them as noticeably shorter notes, one event per line, in the same order.`,
     'Keep the headings, in the same order, and the bullets under them. Keep every event that matters to the story: the victories, the failures and fumbles, the discoveries, the promises, the memorable lines, and every name. Drop repetition and routine detail. Add nothing.',
+    'Cut the length by at least a third, and more where you can: merge lines about the same small thing, and say each one in fewer words. A pass that barely shortens the notes has not done its job.',
     'Notes, in order:',
     joinNotes(notes),
     'Shorter notes:',
@@ -169,8 +170,12 @@ export function taleWords(cap: number, notes: readonly string[]): number {
   return Math.min(cap, Math.max(30, Math.round((words * 0.8) / 10) * 10));
 }
 
-/** The most a session's tale may run, by the operator's `ai.tale.length` (decided 2026-11-20: 300 to 800 words is usual). */
-export const TALE_CAP_WORDS: Record<TaleLength, number> = { short: 400, default: 800, long: 1200 };
+/**
+ * The most a session's tale may run, by the operator's `ai.tale.length` (retuned 2026-11-22, Andy, after reading
+ * a real session's tale and notes back: 250 to 500 words, a one‑to‑three‑minute read, not the 300 to 800 first
+ * tried on 2026-11-20. 500 is for a long or eventful session, not the default).
+ */
+export const TALE_CAP_WORDS: Record<TaleLength, number> = { short: 250, default: 350, long: 500 };
 
 /** A chapter's or a character's tale runs to half a session's. */
 const capFor = (kind: Exclude<SummaryKind, 'dm-only'>, context: SummaryContext): number => {
@@ -343,15 +348,15 @@ export const CHRONICLER_HEADINGS = [
 
 /**
  * The Chronicler's brief (Stage 12 E; it replaces the Game Master brief's content): what the Game Master needs to run the
- * next session, 200 to 300 words under fixed headings, from the scribe's notes and the Game Master's own notes. A role of
- * its own, not a bard: plain and useful, no story.
+ * next session, 150 to 250 words under fixed headings (retuned 2026-11-22, down from 200 to 300), from the
+ * scribe's notes and the Game Master's own notes. A role of its own, not a bard: plain and useful, no story.
  */
 export function buildChroniclerPrompt(notes: readonly string[], context: SummaryContext): string {
   const planned = gmNotesBlock(context.gmNotes);
   return [
     `You are the Chronicler of a tabletop role-playing group. From the scribe's notes below, write a private brief of this session${campaignOf(context)}, for the Game Master only: what they need to run the next session.`,
     [
-      `Plain and short: 200 to 300 words in all (at most ${taleWords(300, notes)}), as brief bullet points under these headings, in this order, each as a Markdown "##" heading line. Leave out a heading that has nothing under it, and never say that one is empty.`,
+      `Plain and short: 150 to 250 words in all (at most ${taleWords(250, notes)}), as brief bullet points under these headings, in this order, each as a Markdown "##" heading line. Leave out a heading that has nothing under it, and never say that one is empty.`,
       ...CHRONICLER_HEADINGS.map((h) => `## ${h}`),
       "Non-player characters: who the party met or heard of, and what each wants, promised or was promised. Open threads: questions with no answer yet, secrets still hidden, tasks taken up and not finished. Items: what was obtained, lost or promised (the app's loot record is exact). Locations: where the party went, and where they said they would go. Hooks: what the players are likely to do next, and what the Game Master will need ready for it. Continuity warnings: promises with a deadline, a debt, a wounded or angry non-player character, and anything this session said that contradicts what the Game Master planned or wrote.",
       planned

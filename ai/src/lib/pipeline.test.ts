@@ -231,7 +231,7 @@ describe('prompts', () => {
     expect(taleWords(350, notes(2000))).toBe(350);
     expect(taleWords(200, notes(2000))).toBe(200);
     expect(taleWords(350, notes(3))).toBe(30);
-    expect(buildStoryPrompt('session', notes(2000), {})).toMatch(/at most 800 words/i); // the default ceiling
+    expect(buildStoryPrompt('session', notes(2000), {})).toMatch(/at most 350 words/i); // the default ceiling
   });
 
   it('tells the bard that not everyone belongs in the tale', () => {
@@ -262,7 +262,7 @@ describe('prompts', () => {
     const brief = buildChroniclerPrompt(['Aria opened the door.'], {});
     expect(brief).toMatch(/You are the Chronicler/);
     expect(brief).toMatch(/for the Game Master only/);
-    expect(brief).toMatch(/200 to 300 words/);
+    expect(brief).toMatch(/150 to 250 words/);
     expect(brief).toMatch(/No story-telling/);
     expect(brief).not.toMatch(/bard/);
     for (const heading of CHRONICLER_HEADINGS) expect(brief).toContain(`## ${heading}`);
@@ -485,13 +485,13 @@ describe('the storytellers (Stage 12 G)', () => {
   it('lets the operator set the ceiling on length and how graphic the telling is', () => {
     const words = Array.from({ length: 4000 }, () => 'word').join(' ');
     expect(buildStoryPrompt('session', [words], { taleLength: 'short' })).toMatch(
-      /at most 400 words/i,
+      /at most 250 words/i,
     );
     expect(buildStoryPrompt('session', [words], { taleLength: 'long' })).toMatch(
-      /at most 1200 words/i,
+      /at most 500 words/i,
     );
     expect(buildStoryPrompt('character', [words], { characterName: 'Aria' })).toMatch(
-      /at most 400 words/i,
+      /at most 175 words/i,
     );
     expect(buildStoryPrompt('session', notes, { taleContent: 'clean' })).toMatch(/language clean/);
     expect(buildStoryPrompt('session', notes, { taleContent: 'graphic' })).toMatch(/told plainly/);

@@ -90,6 +90,13 @@ Update this file as threads open, progress, or close — stale entries here are 
   import, DDB backstories) is the only designed item. Polyglot, web push and the Admin quick-access screen are **Future ideas**
   (Andy, 2026-11-21). The roadmap was slimmed the same day: detail moved to `docs/tracker/`, the legacy record to `docs/archive/`. The old Stages 13 and 14 (Linux package repositories,
   self-signed certificate) are now **15 and 16**. Order: Stage 13 first, on protocol 4, so fixes ship as 0.6.x patches; then 14.
+  - **2026-11-22: tale/notes/brief prompts retuned after Andy read session 1's output back.** All three were "not wrong, just
+    too much detail" (Andy's words): the tale and the Chronicler's brief should be a 1–3 minute read, and the scribe's notes
+    should summarise events and actions, not retell the transcript line by line. Done: `TALE_CAP_WORDS` 250/350/500 (was
+    400/800/1200), the Chronicler's brief 150–250 words (was 200–300), `NOTES_MAX_WORDS` 2,000 (was 3,000) now shared across
+    a chaptered session's chapters instead of each reaching it alone (the gap QUALITY-VALIDATION.md's first live run found).
+    Not done: re-running session 1 (or another) against the retuned prompts to see how it actually reads — do that before
+    trusting the numbers.
 
 ## Design topics (1–4 are decided; 5–9 still open — ask Andy, don't resolve by writing code)
 

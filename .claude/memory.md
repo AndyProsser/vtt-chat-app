@@ -42,8 +42,13 @@ pattern and its reconciliation conventions.
   is storytelling, not a failure.
   **How to apply:** measure enough to choose and to catch something broken (a scribe that loses the
   session, say), then stop. Don't run long scientific comparisons or tune for small fact-score gains.
-  Prefer shrinking each pipeline stage's job (transcript → scribe notes ≤ ~3,000 words → a 300–500
-  word tale and a 200–300 word structured GM brief) over a bigger model.
+  Prefer shrinking each pipeline stage's job over a bigger model: **retuned 2026-11-22** after Andy
+  read session 1's real output back (too long and too detailed across all three stages, not wrong) —
+  scribe notes ≤ ~2,000 words (down from 3,000; a whole-session cap, now shared across a chaptered
+  session's chapters instead of each one reaching it alone), a 250–500 word tale (500 only for a long
+  or eventful session — a 1–3 minute read, not the 300–800 first tried), and a 150–250 word structured
+  GM/Chronicler brief (down from 200–300). Notes stay the most detailed of the three and should read
+  as a summary of events and actions, never a line-by-line retelling.
 
 - **Ask before designing identity, sync, or records details.** (CLAUDE.md §14, restated 2026-11-05
   when the design was left deliberately open.) The open topics are listed in

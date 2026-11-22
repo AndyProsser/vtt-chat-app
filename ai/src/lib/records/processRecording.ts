@@ -27,6 +27,7 @@ import {
   relevantMemory,
 } from '../memory.js';
 import { buildJobProviders } from '../providers/fromSettings.js';
+import { NOTES_MAX_WORDS } from '../notes.js';
 import { formatNotes } from '../prompts.js';
 import { stripThinking, takeNotes, writeFromNotes, type SummaryModels } from '../summarise.js';
 import { planSummaries } from '../summaryPlan.js';
@@ -218,11 +219,12 @@ export function createProcessRecordingHandler(deps: ProcessRecordingDeps): JobHa
       key: string,
       lines: Utterance[],
       context: SummaryContext,
+      maxWords?: number,
     ): Promise<string[]> => {
       let notes = taken.get(key);
       if (!notes) {
         log(`${recording.id}: taking notes${key ? ` (part ${key})` : ''}`);
-        notes = takeNotes(models.scribe, lines, { context }).then((result) => {
+        notes = takeNotes(models.scribe, lines, { context, maxWords }).then((result) => {
           uncounted += result.modelCalls;
           return result.notes;
         });
@@ -245,11 +247,16 @@ export function createProcessRecordingHandler(deps: ProcessRecordingDeps): JobHa
       utterances.length > 0 &&
       !(await deps.records.getSummary(recording.id, 'notes', ''))
     ) {
+      // Each chapter is its own stretch, capped on its own (`takeNotes`); concatenated, several chapters can
+      // each reach that cap and together run well past it. Share the whole session's word budget across them
+      // instead, so the stored notes stay near one cap rather than `chapters.length` of them.
+      const chapterMaxWords =
+        chapters.length > 0 ? Math.max(300, Math.round(NOTES_MAX_WORDS / chapters.length)) : undefined;
       const parts = byChapter
         ? await Promise.all(
             chapters.map(async (c) => ({
               title: `Part ${c.subject}${c.context.chapter?.title ? `: ${c.context.chapter.title}` : ''}`,
-              notes: await notesOf(c.subject, c.utterances, c.context),
+              notes: await notesOf(c.subject, c.utterances, c.context, chapterMaxWords),
             })),
           )
         : [{ notes: await sessionNotes(session.context) }];

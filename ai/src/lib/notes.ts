@@ -37,8 +37,13 @@ export const NOTE_SECTIONS = [
 export type NoteSectionKey = (typeof NOTE_SECTIONS)[number]['key'];
 export type StructuredNotes = Record<NoteSectionKey, string[]>;
 
-/** About the most the notes of a whole session may run (Stage 12 D: "at most about 3,000 words"). */
-export const NOTES_MAX_WORDS = 3000;
+/**
+ * About the most the notes of a whole session may run (Stage 12 D: "at most about 3,000 words";
+ * retuned to 2,000 on 2026-11-22, Andy, after a real session's notes ran past this on their own and read as a
+ * retelling rather than a summary — see `maxWords` on `NotesOptions` for how a chaptered session stays near
+ * this total instead of each chapter reaching it on its own).
+ */
+export const NOTES_MAX_WORDS = 2000;
 
 export const emptyNotes = (): StructuredNotes => ({
   events: [],

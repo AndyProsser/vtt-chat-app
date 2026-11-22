@@ -69,6 +69,13 @@ export interface NotesOptions {
   context?: SummaryContext;
   chunkChars?: number;
   overlapLines?: number;
+  /**
+   * The word count this stretch's notes are condensed toward (default `NOTES_MAX_WORDS`). A chaptered
+   * session takes its notes one chapter at a time and simply concatenates them (`processRecording.ts`),
+   * so the caller lowers this per chapter (roughly `NOTES_MAX_WORDS / chapter count`) to keep the whole
+   * session's stored notes near the cap instead of every chapter reaching it on its own.
+   */
+  maxWords?: number;
 }
 
 export interface Notes {
@@ -142,13 +149,10 @@ export async function takeNotes(
     pieces.push(parsed);
   }
 
-  // One set of notes for the stretch (a repeat from the overlap once), kept to about NOTES_MAX_WORDS.
+  // One set of notes for the stretch (a repeat from the overlap once), kept to about the cap.
+  const cap = options.maxWords ?? NOTES_MAX_WORDS;
   let merged = mergeNotes(pieces);
-  for (
-    let round = 0;
-    round < MAX_REDUCE_DEPTH && notesWords(merged) > NOTES_MAX_WORDS;
-    round += 1
-  ) {
+  for (let round = 0; round < MAX_REDUCE_DEPTH && notesWords(merged) > cap; round += 1) {
     const shorter = await read(buildCondensePrompt([renderNotes(merged)], context));
     if (!shorter || notesWords(shorter) >= notesWords(merged)) break;
     merged = shorter;
