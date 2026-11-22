@@ -278,26 +278,30 @@ line as a failed check instead of stopping the whole run). The retry completed c
 or Game Master secret leaked, the start cue and the late joiner's unacknowledged state both checked out, and
 the retuned tale/brief/notes lengths (RECORDING-AND-SUMMARIES.md) measured right where they were meant to:
 a 206-word tale, a ~222-word Chronicler's brief, ~2,300 words of notes (down from session 1's 748, 236 and
-4,388 respectively).
+4,388 respectively) — though, as the next finding explains, this was from about 39 minutes of actually
+recorded content, not the full 75-minute script, so it is not yet a length check against a complete session.
 
-**A real transcription problem, not the one this session was built to find.** Word accuracy came back low for
-every speaker (0.43 to 0.61, against 0.80 to 0.97 on the first full run) and glossary accuracy at 36 %. The
-first guess — a slow remote Whisper track — was wrong: `docker compose logs worker` shows the apparent
-27-minute "stall" was the Game Master's own track (`transcribing Rowan` to the next `transcribing …` line),
-and a track simply takes time in proportion to how much that person talked; the dev-PC run's own log shows
-the same speaker-proportional pattern. The real finding, from comparing the transcript's word count per
-speaker against the script: **every speaker's track is missing roughly a third to half its words** (Rowan
-4,031 of 6,448; the four players similarly down from 743–866 each), spread fairly evenly rather than
-concentrated at one point — so this is not (only) the long-session threading problem the session was built
-to test. The leading suspect is `large-v3-turbo`'s documented tendency to repeat itself rather than keep
-decoding a long window (`openaiCompat.ts`, found 2026-11-16 for a different reason: a shortened `audio_ctx`
-made it loop). `fitAudioContext` is never set for the remote connector (`providers/fromSettings.ts`), so that
-exact cause is ruled out, but `DEFAULT_MAX_WINDOW_MS` (60 s, `ai/src/consts/index.ts`) lets a speaker's
-nearby lines merge into windows that long, and a narrating Game Master produces many of them. **Not yet
-confirmed**: whether shortening the window, trying a non-`turbo` model, or a whisper.cpp setting on the
-remote server (temperature fallback, a repetition guard) fixes it. A small script transcribing one known
-60-second clip of continuous narration, against `large-v3-turbo` and another model, would confirm or rule
-this out quickly.
+**Not a transcription problem: the recording stopped about halfway through.** Word accuracy came back low for
+every speaker (0.43 to 0.61, against 0.80 to 0.97 on the first full run) and glossary accuracy at 36 %. Two
+wrong guesses on the way to the real cause, both worth recording so they aren't retried: first, a slow remote
+Whisper track — wrong, `docker compose logs worker` shows the apparent 27-minute "stall" was just the Game
+Master's own track taking time in proportion to how much they talked (the dev-PC run's own log shows the
+same pattern). Second, `large-v3-turbo` repeating itself on a long window (it has done this before,
+`openaiCompat.ts`, 2026-11-16) — ruled out by downloading the actual recorded tracks from
+`vtt_recordings` and re-running them through `transcribeTrackFile` directly against the remote server
+outside the live run entirely: the reproduction matched the job's word count almost exactly (4,032 vs 4,031
+for the Game Master), and the transcribed text itself was clean and coherent, not repetitive — it just
+stopped. **The actual cause, found in the egress log:** every track's audio file ends at the same wall-clock
+moment (`egress_ending`, `"End reason: StopEgress API"`, 2026-11-22T09:22:43Z, each track's own `lastPTS`
+converging on 38m47s from its own start) — a `StopEgress` call partway through the planned 75-minute
+session, matching almost exactly when Andy joined the campaign as the real player ("player 5") after the
+observer wait. The scripted players don't call `/recording` `stop` until the very end, so something else
+issued it; a player can stop a recording once the Game Master has been "away" past the grace period
+(`recordingGraceMs`, 30 s by default), which the scripted Game Master's own account may trip during a
+stretch where it isn't making API calls. **Not yet confirmed**: whether Andy's client stopped it directly, or
+it happened some other way after he joined. Either way, the live runner has no check that the recording it
+thinks is still running actually still is — add one (compare `vtt-admin recording list` or the campaign's
+own recording state against the harness's own belief, partway through a long session, not just at the end).
 
 ## Fitting a long session in the model's window
 
