@@ -104,11 +104,14 @@ export class TableClient {
   private onFrame(frame: Frame): void {
     this.frames.push(frame);
     if (frame.t === 'error') this.log(`${this.name}: server error ${JSON.stringify(frame.d)}`);
-    // The consent loop as the apps run it: a start (or a snapshot saying "not yet acknowledged") plays
-    // the cue, then acknowledges.
+    // The consent loop as the apps run it: a start or a resume (or a snapshot saying "not yet
+    // acknowledged") plays its own cue, then acknowledges — the real client's cue policy
+    // (rust-livekit/src/cue/policy.rs) treats a live `Resumed` the same way as `Started`, and this
+    // client must too, or a session that pauses mid-way stops being captured after it resumes.
     const d = frame.d ?? {};
     let pending: string | undefined;
-    if (frame.t === 'recording.status' && d.status === 'STARTED') pending = String(d.recordingId);
+    if (frame.t === 'recording.status' && (d.status === 'STARTED' || d.status === 'RESUMED'))
+      pending = String(d.recordingId);
     if (frame.t === 'recording.state') {
       const r = d.recording as { recordingId?: string; acknowledged?: boolean } | null;
       if (r && r.acknowledged === false && r.recordingId) pending = r.recordingId;

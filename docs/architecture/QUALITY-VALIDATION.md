@@ -293,15 +293,19 @@ outside the live run entirely: the reproduction matched the job's word count alm
 for the Game Master), and the transcribed text itself was clean and coherent, not repetitive — it just
 stopped. **The actual cause, found in the egress log:** every track's audio file ends at the same wall-clock
 moment (`egress_ending`, `"End reason: StopEgress API"`, 2026-11-22T09:22:43Z, each track's own `lastPTS`
-converging on 38m47s from its own start) — a `StopEgress` call partway through the planned 75-minute
-session, matching almost exactly when Andy joined the campaign as the real player ("player 5") after the
-observer wait. The scripted players don't call `/recording` `stop` until the very end, so something else
-issued it; a player can stop a recording once the Game Master has been "away" past the grace period
-(`recordingGraceMs`, 30 s by default), which the scripted Game Master's own account may trip during a
-stretch where it isn't making API calls. **Not yet confirmed**: whether Andy's client stopped it directly, or
-it happened some other way after he joined. Either way, the live runner has no check that the recording it
-thinks is still running actually still is — add one (compare `vtt-admin recording list` or the campaign's
-own recording state against the harness's own belief, partway through a long session, not just at the end).
+converging on 38m47s from its own start). That is not a crash: session 4 has a scripted mid-session pause
+(`[pause]` at fixture line 302, Rowan's line announcing it — "it has been nearly forty minutes" — matches the
+timing exactly), and `[pause]` correctly calls `/recording pause`, which stops every track's egress by design
+(`capture.ts`'s `paused()`). The bug is in what happens next: on `[resume]`, the harness's synthetic
+`TableClient` (`e2e/client.ts`) never re-acknowledges the recording, because its consent listener only
+treated a live `recording.status` of `STARTED` as "a cue is pending" — never `RESUMED`. The real app does not
+have this gap: its cue policy (`rust-livekit/src/cue/policy.rs`) treats a live `Resumed` the same as `Started`
+(its own test suite covers this), so a real table pausing and resuming should be fine. Without a fresh ack,
+the backend correctly refuses to resume capturing that speaker (consent-first, working as designed) — which
+is why only Priya's track got a second file after resume (most likely an unrelated reconnect that happened to
+request a fresh state snapshot) and the rest went uncaptured for the back half of the session. **Fixed**:
+`e2e/client.ts` now also treats `RESUMED` as a pending cue. Worth adding separately: the live runner has no
+check that the recording it thinks is running still is, partway through a long session, not just at the end.
 
 ## Fitting a long session in the model's window
 
