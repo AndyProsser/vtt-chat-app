@@ -1,0 +1,509 @@
+# Lanterns of Saltmarrow, session 4: "The Bell Under the Waves". An EXTENDED session (about 80 minutes) written to stress the records
+# pipeline: far more text than a small model's window holds, so the notes, the tale, the brief and the memory step must be split and
+# joined without losing the thread. See README.md for the line format.
+# It is self-contained (Rowan recaps the first campaign), so it can run alone (--sessions 4) or after sessions 1 to 3.
+# Callbacks to the first campaign: Mabel Thrupp (now acting Harbourmaster), the Gullbone Whistle, the Weeping Anchor and Hollin Marsh,
+# Ghorrim's Brackenford temple and Mother Tidewarden, Greywick Light, Granny Brinewhistle, the two Tobiases, Odalys Venn's ledger.
+# New in this session: Sister Ismay Tallowick, the brass compass (introduced early, paid off late), the Skelling Bell, Osric Fennwater,
+# the Pale Tide, Wrackwater Reach, the Marigold. Facts are tagged by where they fall: e- (first third), m- (middle), l- (last third).
+# Churn: a late joiner who speaks before the cue (pistachio), a dropped connection and rejoin (Priya), a mid-session pause with a
+# canary spoken during it (marzipan), four handouts, five loot drops, and bursts of typed chat including /ooc, /dm and /tell canaries.
+
+[start]
+Rowan: Okay, we are recording. Welcome, everyone. This is a longer night than usual, so there is tea on the sideboard and I have promised nobody a break before the second hour, except by popular demand.
+Priya: Popular demand is already forming. I would like that on the record.
+Rowan: Noted. Before we begin, a recap, for the benefit of the one person who was not paying attention last time. I am not naming him.
+Marcus: It was me. I was cooking.
+Rowan: It was Marcus. Eight days ago you finished the matter of the Tidecaller's Lens. You freed the lighthouse keeper, Tobias Quillfeather, from a cell under Saint Ostren's. You followed a bone whistle through the Greywater Fens. You went down into the Old Cistern under the Chandlers' Guildhall, and you broke the Drowned Choir's song, and Valmeric Dusk, who led it, died in the dark.
+Elise: And Aelwen has not forgiven herself for being right about the Harbourmaster.
+Rowan: Odalys Venn paid you the full three hundred gold, confessed that she gave the lighthouse key to the Archdeacon because her brother Corin drowned on the Marigold, and resigned her post. Tobias relit Greywick Light at dawn. Hollin Marsh carved a new tear under the anchor on the sign of the Weeping Anchor. And Fennimore got his voice back.
+Rowan: Fennimore is on his way, and has promised he will arrive after the start, which I will allow. It is a week later. The festival lamps are down, the harbour smells of wet rope again, and you are all in the Weeping Anchor, because it is raining and nobody has a better idea.
+[scene: Tavern]
+Rowan: Hollin Marsh puts down a tray with five mugs of cider and one of hot water, because Varek has declared that he does not trust cider before noon, and Varek is, as ever, silent by the fire, and nobody has ever asked why.
+Priya: Kestrel takes a mug and puts her boots on the next chair. She says, a whole week and nobody has tried to hire us. I am almost insulted.
+Rowan: Hollin says, give it a minute. He nods at the door.
+Marcus: Ghorrim puts down his mug. What is it?
+Rowan: The door opens and the rain comes in sideways, and with it a young woman in a grey travelling cloak with a hood that has seen better weeks. She has a satchel held across her body in both arms like a child. She stops in the doorway, looks at the five of you, and says, I am looking for a dwarf with a hammer and a holy symbol. Hill dwarf. Not young. Probably frowning.
+Marcus: I am frowning because it is a Tuesday. But yes. Ghorrim stands up. I am Ghorrim Duskhammer.
+Rowan: She lets out a breath like she has been holding it since the coast road. She says, my name is Sister Ismay Tallowick. I am a lamp-warden of the temple at Brackenford, in the service of Orsolin the Lampbearer. Mother Tidewarden sent me. She said you would not remember her kindly, but that you would remember her.
+Marcus: Ghorrim sits down again, very slowly. Mother Tidewarden. She taught me to pour oil without spilling a drop. She also hit me with a wooden spoon for six years.
+Elise: Aelwen leans in and whispers, you have a teacher who hits people with a spoon, and you did not tell us?
+Marcus: It was a very good spoon.
+Rowan: Sister Ismay takes a sealed letter out of the satchel, wrapped in oilcloth, and puts it in his hand. She says, she asked me to say that the bell under the waves is ringing again.
+Elise: Verse nine.
+Rowan: The whole table goes quiet, because you all know that line. The hymnal page from the keeper's journal. The bell under the waves. Hollin, who was walking away, stops with his back to you.
+[handout: Letter from Mother Tidewarden | To Ghorrim Duskhammer, once my least tidy novice. The bell of Skelling is ringing under the water at the low spring tides, and the fishermen of Wrackwater Reach have lost two boats in as many weeks. I think it is the same hand that kept the Drowned Choir singing. Valmeric Dusk was one of mine, Ghorrim. I taught him to pour oil as I taught you. I need to know what he left behind, and I do not trust a letter to carry the rest. Come to Skelling with whatever friends you have kept. Sister Ismay will guide you as far as the Reach. Bring lamp oil. Do not bring the Whistle near the bell. I will explain when I can. M.T.]
+Marcus: Ghorrim reads it twice. His jaw is working. He passes it to Elise.
+Elise: Aelwen reads it aloud, softly, for the others, and then says, the Whistle. She means the Gullbone Whistle.
+Priya: Which hums when it is near the Choir. And she says do not bring it near the bell. So the bell is not the Choir. It is something else.
+Rowan: Or something close to it. Sister Ismay says, I cannot tell you more than I know. I know the bell rings only at the lowest tide, and I know the boats that hear it turn and sail toward it, and they do not come back.
+Marcus (typed): /do Ghorrim folds the letter carefully and puts it inside his tabard, over his heart
+Priya (typed): /say Right. How much does Mother Tidewarden pay? Asking for the group.
+Elise (typed): /ooc is Mother Tidewarden the Tidewarden from the glossary?
+Rowan: The rest of the room has gone quiet. Hollin Marsh turns round, wiping his hands on his apron, and says, Skelling. That is the rock off Wrackwater Reach, a day and a half by boat. My father fished there. He used to say you could hear the sea breathing on the far side, and that you should never answer when it called your name.
+[late-join: Tomasz]
+Tomasz: Okay, I am here. I am so sorry. The bus did a thing. Fennimore throws open the door, drops his lute, and says, what did I miss? Pistachio, that is what I had for lunch, I am starving.
+Rowan: Fennimore arrives soaked, with a lute held over his head like an umbrella, to a room that has gone completely silent. Everyone turns and looks at him. Hollin says, you are late.
+Tomasz: I have a reason. It involves a dog.
+[ack: Tomasz]
+Rowan: Everyone is looking at the halfling. You can see him decide not to tell the story about the dog. Please take a seat, Fennimore, and Priya, give him your mug, he is shaking.
+Priya: Kestrel hands him the mug without looking. I am not sharing a bench with a wet halfling. I am sharing a mug. Different thing.
+Tomasz: Fennimore drinks half of it and says, so what is going on, and why does everybody look like someone has died?
+Marcus: Ghorrim says, no one has died. Not yet. Ghorrim tells him the whole letter, slowly, in the order he read it.
+Tomasz: Fennimore listens, and his face goes through about four expressions. The bell, he says. The bell under the waves. That is a real thing? I wrote that verse. I invented it. I was drunk in a tower at three in the morning.
+Elise: That is a lot of things coming true that you invented.
+Tomasz: I know. I am considering stopping.
+Rowan: Sister Ismay says, there is more. She opens the satchel again and takes out a small object wrapped in a handkerchief, and puts it on the table. It is a brass compass the size of a hen's egg, green with age at the hinge, with a needle that does not point north.
+Priya: Kestrel picks it up before anyone else can. What does it point at?
+Rowan: Make an Investigation check.
+Priya: Seventeen.
+Rowan: It points at the sea, toward the south west. The needle trembles very slightly with each swell, and when you turn it, it turns back. Sister Ismay says, Mother Tidewarden called it a bell-finder. It points at the Skelling Bell and it will be quiet when you are standing in front of it. She asked that it be carried by someone with quick hands.
+Priya: Kestrel puts it in her inner pocket. I will carry it. I will not lose it. I never lose things. I find things and sometimes I forget to say where.
+Marcus (typed): /do Ghorrim gives Kestrel a very long look
+Rowan: Sister Ismay says, we sail with the morning tide. I have a place on a boat to the Reach, but it is a fishing boat and it is not safe. Mother Tidewarden said you might know someone with a better one.
+Priya: Oh, I know exactly someone with a better boat. And she owes us.
+Elise: She does not owe us. We owe her. She poled us through the Old Cistern.
+Priya: Then she owes us a favour and we owe her an apology for dragging her into a crypt. It balances.
+Rowan: Hollin Marsh laughs, for the first time in a week. He says, you will find her on the quay. And you will not call her what she was. She has been the Harbourmaster for six days.
+Marcus: Mabel Thrupp is the Harbourmaster?
+Rowan: Acting Harbourmaster. After Odalys Venn resigned, the council met for three nights and could not agree on anyone, and in the end somebody said, Mabel Thrupp knows every inch of the harbour and has never taken a bribe, because nobody has ever offered her one that was not a jar of onions. The vote was seven to four.
+Tomasz: She will be unbearable. Fennimore says, I am delighted. I will write a song. It will rhyme with onions.
+Elise: Nothing rhymes with onions.
+Tomasz: Bunions. Dominions. Minions.
+Priya: Please stop.
+Marcus (typed): /ooc can we do a quick rules check before the boat? is Ghorrim's Channel Divinity one use per short rest or per long?
+Rowan (typed): /ooc one use, comes back on a short rest at level three
+Marcus (typed): /ooc thanks, noted, one use
+Elise (typed): /ooc pomegranate, which is what I would like for dinner. sorry, wrong channel
+Rowan: Let us finish the scene. You have a letter, a brass compass, a friend on the quay, and about eight hours of rain between you and the morning tide. Who wants to do something with the evening?
+Elise: Aelwen wants to go to the library. Not the cathedral one, the little reading room at the back of the Chandlers' Guildhall. The rain does not matter. She would like to look up the bell.
+Rowan: Roll Investigation, with advantage, because the Guildhall clerk likes you.
+Elise: Fourteen and nineteen. Nineteen, plus five. Twenty four.
+Rowan: She finds an old ledger of wrecks. The bell of Skelling was a chapel bell, cast in Brackenford more than two hundred years ago and carried to Skelling by the first lamp-wardens, to ring the fishing fleet home through fog. It was rung by a single bellringer, a man named Osric Fennwater, who rang it every night for forty years. The ledger ends with the words, the bell was rung during the great tide, and not a boat returned.
+Elise: Osric Fennwater. Aelwen writes that down twice.
+Marcus: Ghorrim goes to the temple of Orsolin in town, the little one on the Salt Gate, and asks the lamp-warden to bless the oil. Six flasks. Hollin has already given us six, but I want twelve, because the last time was the closest thing I have had to a good idea.
+Rowan: The lamp-warden blesses the oil. It costs you twenty gold, which you can take from the pot.
+[loot: 20 gp | party]
+Priya: I am going to go and look at the boats. Kestrel loves boats. She wants to see which ones have been left out in the rain and which have been left out for other reasons.
+Rowan: Roll Perception.
+Priya: Fifteen.
+Rowan: Three boats on the north quay are tied with new rope, and the rope is the wrong colour for the harbour, which is tarred black. These are blue. Someone has been bringing boats in at night.
+Priya: Interesting. Kestrel tells nobody. She makes a note. I always make a note.
+Rowan: Fennimore?
+Tomasz: Fennimore wants to write a verse. A tide song. He has the last verse of the old one, and it is the best thing he has ever done, and now he wants a second.
+Rowan: Make a Performance check, and I will give you inspiration if you use the word brine.
+Tomasz: Brine, brine, a salt and a sign. Sixteen.
+Rowan: It is a good verse. Nothing else happens. But Hollin hums it all evening, and the whole bar learns it by midnight. It is, you suspect, going to cause trouble.
+Priya: Everything he writes causes trouble. He should be licensed.
+[scene: Harbour]
+Rowan: The morning comes up grey and cold with a thin mist lying along the quay, and the Damp Duchess is tied at the end of the south pier with a new coat of paint on her bow, a little blue anchor, and next to the anchor, in white letters, the words Harbourmaster's Launch. Mabel Thrupp sits on the cabin roof with a jar of pickled onions on her knee and a clipboard under her arm.
+Priya: She has a clipboard?
+Rowan: She has a clipboard. She looks at the five of you and the Sister and says, I heard. Hollin sent a boy. It is a day and a half to the Reach with a good wind, and I do not have a good wind, I have this wind. I am coming. Do not argue.
+Marcus: Ghorrim does not argue.
+Tomasz: Fennimore argues. You are the Harbourmaster. You cannot leave the harbour. Who signs the forms?
+Rowan: She says, I have deputised the cat.
+Tomasz: The cat.
+Rowan: She says, the cat is very reliable. She has not missed a day.
+[handout: The Harbourmaster's notice | By order of the acting Harbourmaster, Mabel Thrupp. Until further notice the harbour is in the care of the deputy, a grey cat named Admiral. All complaints to be addressed to the cat. All bribes to be made in pickled onions. The Harbourmaster is away on the business of the temple at Brackenford and will return in no fewer than five days, and no more than ten. Signed, M. Thrupp. Countersigned, a paw print.]
+Elise: I like her so much.
+Priya: This is the best government we have ever had.
+Rowan: The Duchess casts off. The mist closes behind you and the town is gone, and the water begins to move beneath the hull with a slow oily swell that is not the weather.
+[scene: Storm]
+Rowan: Within the hour the sky has turned the colour of old pewter. The wind comes round to the north west, the Duchess begins to roll, and Mabel Thrupp says, there is weather coming that I did not order. Everyone below deck, except whoever is on watch.
+Marcus: Ghorrim takes the watch. He grips the mast and does not look down. Ghorrim is a dwarf, he does not like water, and he has no intention of saying so.
+Priya: Kestrel takes the bow with the compass in her hand. What is the needle doing?
+Rowan: Quivering, and pointing south west, steadily, a little to port of the wind. Make a Wisdom check, Marcus, you are the one watching the sky.
+Marcus: Eleven.
+Rowan: It is only weather. A hard squall. But in the dark between two swells you see something pale roll beside the hull, long and white, and then it is gone.
+Marcus (typed): /do Ghorrim points: something in the water, port side, twenty feet out
+Marcus: Something in the water! Port side, twenty feet.
+[stinger: Mood > Thunder]
+Rowan: The squall hits properly, and rain comes across the deck in sheets. Everyone, roll initiative. You are being boarded.
+Priya: Twenty one.
+Elise: Eight, and I hate it.
+Marcus: Fourteen.
+Tomasz: Seventeen.
+Rowan: The sahuagin go first, four of them, coming up over the gunwale in the lightning with their spears already out. Greenish skin, black eyes, fins down the arms, and they are shouting in a dialect nobody on the boat knows. One is bigger than the others and wears a necklace of shells.
+Priya: Sneak attack on the nearest, from the shadows by the mast. Kestrel stabs it in the back of the knee. Natural twenty, I think. Is that a critical?
+Rowan: That is a critical.
+[stinger: Combat > Critical hit]
+Priya: Eight dice of sneak attack and a short sword. Twenty eight damage.
+Rowan: It drops without a sound. The others turn. The big one hisses, and its necklace of shells rattles in time with the thunder, and something in the water around the boat answers.
+Elise: Aelwen casts Scorching Ray at the big one. Three rays. I roll to hit. Eighteen, twelve, and a natural one.
+Rowan: Two hit.
+Elise: Fire damage. Seven and eleven.
+[stinger: Spells > Fire spell]
+Rowan: The necklace sizzles, and the big sahuagin shrieks. It is a priestess, you realise, and the shells are a focus. She raises her arms, the sea comes up over the side of the Duchess in one long grey tongue, and everyone is knocked prone and soaked.
+Tomasz: Fennimore is on his back in two inches of sea water, holding the lute over his head, and he says, I cast Vicious Mockery at the priestess, and I say, you have a face like a boiled haddock.
+Rowan: Roll it.
+Tomasz: Fourteen on the save. It fails.
+Rowan: She takes three points of psychic damage and has disadvantage on her next attack, and the shouting she has been doing in her dialect stops for a second, because she knows exactly what you said.
+Marcus: Ghorrim gets up, grips the mast, and brings the hammer down on the nearest spear. Attack roll, sixteen.
+Rowan: Hit.
+Marcus: And Spiritual Weapon, bonus action, behind the first one. A spectral hammer. I want it to go for the priestess.
+[stinger: Combat > Sword clash]
+Rowan: The Spiritual Weapon flickers into existence at the stern, glowing gold, and rings off the priestess's spear. She spins and screams something at the water, and from the sea three more heads break the surface, with eyes that do not reflect any light.
+Priya: Oh, wonderful. More. Kestrel uses Cunning Action to disengage and slides back down the deck. I am going to move away from the three new ones and put the cabin between us.
+Rowan: Mabel Thrupp is at the tiller, and she does not move from it. She says, I am not letting go of this boat for anyone, but if anyone wants to throw a jar of pickled onions at the things, there are eleven in the hold.
+Elise: Does a jar of pickled onions do damage?
+Rowan: It does one point of acid damage, and the smell has a certain effect.
+Elise: I accept this and I would like six.
+Priya (typed): /do Kestrel hurls a jar of pickled onions at the nearest sahuagin
+Tomasz (typed): /do Fennimore, on his back, throws another
+Elise (typed): /do Aelwen throws one too, and it explodes with a loud wet pop
+Marcus (typed): /do Ghorrim says a short, quiet prayer for the onions
+Priya (typed): /say ONIONS!
+Priya (typed): /do Kestrel is laughing too hard to aim
+Tomasz (typed): /say that is for Mabel's honour
+Rowan: Three jars hit. The sahuagin recoil, because it turns out the brine and vinegar and something in the onions is deeply offensive to creatures of the deep. The priestess has stopped chanting. She stares at the broken jar at her feet and says something that translates, roughly, as, what is this evil?
+[leave: Priya]
+Rowan: And at that moment the Duchess lurches on a rising wave, Priya's headset gives a squeal of static, and she drops off the call.
+Marcus: Ghorrim keeps fighting. I charge the priestess with the hammer. If I hit her, I use Channel Divinity, Turn Undead, no, that is wrong, that is for undead. Never mind. I just hit her.
+Rowan: Roll to hit.
+Marcus: Nineteen.
+Rowan: You hit. Roll damage.
+Marcus: Nine, plus three. Twelve.
+Rowan: She goes over the side with a splash, and the three new ones follow, dragging the fallen one with them. The squall passes as quickly as it came. The sea lies flat and oily and quiet again, and the shell necklace is lying on the deck.
+[rejoin: Priya]
+Priya: Sorry, sorry, my router decided it was bedtime. What happened? Did I miss the fight?
+Rowan: You missed the fight, but not the loot. Kestrel was, you will remember, hiding behind the cabin with a jar of onions. Here is what the sahuagin left on the deck.
+[loot: Sahuagin priestess's shell necklace | Elise]
+[loot: Potion of water breathing | Marcus]
+[loot: 85 gp | party]
+Priya: Kestrel looks at the pile. She says, I did not throw anything. I would like it noted that I am willing to throw things.
+Elise: She threw onions.
+Priya: Then I would like it noted that I was very brave.
+[scene: Harbour]
+Rowan: The rest of the voyage is quiet, in the unpleasant way that a sea can be quiet when it has already tried to kill you once. The sky clears at dusk. The first stars come out. And on the second morning the Duchess raises a long, low coast of black rock, and a huddle of grey cottages with turf roofs, and a single lantern burning on a pole at the end of a stone quay. This is Wrackwater Reach. Mabel puts the Duchess against the quay with a single touch of the tiller, because she is the best boatwoman on the whole coast and she does not need anyone to say so.
+Tomasz: I would like it noted that Mabel Thrupp is the best boatwoman on the whole coast.
+Rowan: Noted. Sister Ismay says, this is as far as I was told to bring you. And then, after a moment, she says, but I would like to come further. If you will have me.
+Marcus: Ghorrim looks at the Sister. You are a lamp-warden. You are not a fighter. You are, I think, about nineteen.
+Rowan: She says, twenty. And I carry a lantern. It is not a weapon, but it has never failed me.
+Priya: Kestrel says, you can come. But you walk behind the dwarf.
+Rowan: The fishermen of the Reach are waiting on the quay. A dozen of them, in oilskins, with their hats pulled down and their hands in their pockets. They do not look pleased to see a boat full of strangers. The oldest of them, a bent woman with a face like a chestnut and one eye that has gone milky white, says, you are the ones from the temple.
+Elise: Aelwen says, we are friends of the temple. She means that to be a gentle thing.
+Rowan: The old woman says, there is nothing gentle about the bell. It was ringing before dawn. Three tolls, a pause, and three more. My grandson went out in his boat to look, and I have not seen him since.
+Marcus: Ghorrim says, we will find him.
+Rowan: She says, you will not find him. You will find the bell. And I will pay you to ring it once and silence it, because my daughter is going out in her boat tomorrow, and I cannot stop her.
+Priya: What is her name? Kestrel asks, and writes it down.
+Rowan: She says, Marta Winch. And my grandson is Daniel.
+Priya (typed): /dm Rowan, quick one: does Kestrel notice anything off about the old woman? radish.
+Rowan (typed): /dm you notice she is lying about something small, probably her grandson's age. keep it to yourself
+Priya (typed): /dm noted, I say nothing
+Rowan: Before she gives you the map she says, you will eat. Nobody goes out to Skelling on an empty stomach, and nobody comes back from it with a full one. The fishermen lead you to the only shop at the Reach, a lean-to against the harbour wall with a tarpaulin roof, a barrel of salt herring, a rack of tarred rope, and a stall-holder called Pell who sells everything and apologises for all of it.
+[scene: Market]
+Marcus: Ghorrim buys a rope. Fifty feet. How much?
+Rowan: Pell says, a silver piece, and I am so sorry about the price. It is a terrible rope.
+Priya: It is a fine rope, Kestrel checks it. Is it a fine rope?
+Rowan: Roll Investigation.
+Priya: Sixteen.
+Rowan: It is a fine rope. It is, in fact, a very fine rope, better than a silver piece, and Pell knows it, and Pell has been apologising for it since the day he bought it, in case anyone noticed.
+Tomasz: Fennimore says, I like him. I would like to adopt him.
+Elise: Aelwen buys a candle-lantern with a horn shutter, so that she can cast a light without the whole world seeing it. Two silver.
+Rowan: And while you shop, the fishermen tell you what they know, in the order they know it, which is not the order that matters. The first, a young man with a scar across his chin, says the bell has rung every night since the new moon, three tolls and a pause and three more, and that on the first night it was so quiet they thought they had dreamed it, and by the fourth night it shook the plates off the shelves.
+Tomasz: Fennimore asks, and the boats? Which boats?
+Rowan: A middle-aged woman in a red scarf says, the Gannet, the Little Hope and the Sandpiper. Eleven men, all told. And a boy. The Sandpiper was a skiff and the boy was on it, the youngest of the Winch family, and it went out the day before the third night, and nobody has seen it since. She says it quickly, as if the words were hot.
+Priya: Kestrel asks, what did the men on the Gannet say, before they left? Did they say anything about the bell?
+Rowan: The red scarf thinks for a long moment. She says, they said they could hear their names in it. Each of them heard a different name. Her husband heard his mother's.
+Elise: Aelwen says, that fits with the line, do not answer when it calls your name.
+Rowan: A third fisherman, an old man with a pipe, says, my father told me that when the bell rang during the great tide, every man on the Reach went down to the shore and every one of them went into the water, as if they had been called. Seventeen men. Forty years of nets and not one of them said why.
+Marcus: Ghorrim lowers his voice. How long ago?
+Rowan: He says, the great tide was two hundred years back. But the Reach has remembered. Some of the families still put a lamp in the window on the night of the new moon, in case it is true.
+Priya (typed): /do Kestrel quietly lifts a coin purse from Pell's counter, then puts it back, because she wanted to see if she could
+Rowan: Roll Sleight of Hand, Priya. And I want you to roll twice.
+Priya: Twenty two. Twenty.
+Rowan: You do both of them cleanly, and Pell does not notice either. But the old woman with the milky eye does, from the doorway, and she lifts one eyebrow, and says nothing, and you realise she has been watching you the whole time.
+Priya: Kestrel says, I was testing the rope.
+Rowan: The old woman says, of course you were. And she smiles with half of her mouth. She says, my grandson used to do that. Pick pockets. Only he never put them back.
+Marcus (typed): /ooc is it all right if we spend a few minutes here? i like this bit
+Rowan (typed): /ooc yes, absolutely, this is the part where the world gets a face
+Tomasz: Fennimore says, can I buy a drink for everyone? Is there a tavern?
+Rowan: There is a back room of the shop with a barrel of cloudy cider, and for a copper piece each, the fishermen will drink with you and tell you anything. It is a very small, very warm room, and for about an hour you sit and listen to the stories of the Reach, the drownings and the lucky catches and the ghosts on the headland, and the whole place has the feeling of a family that has been waiting a very long time.
+Elise: I would like to log that as a scene. Aelwen writes everything in her notebook.
+Rowan: She writes eleven names, the eleven men of the three boats. She writes the date of the great tide, which the old man gives her. She writes that the bell was cast in Brackenford, and that it has never been tuned.
+Elise: Never tuned. That is interesting. A bell that was never tuned would ring any note it liked.
+Rowan: Or any note it was asked for.
+Rowan: When you have finished, the old woman gives you a map, hand drawn on a scrap of sailcloth, showing the channel to Skelling and the safe landing on its east side. The rock lies two miles out in open water, a black tooth in the sea with a ruined chapel on its crown, and when the tide is out you can walk to its foot across a causeway of wet stones and weed. The tide is turning. The causeway will be open for about four hours.
+[handout: The Skelling map | Drawn on sailcloth. A black rock two miles off Wrackwater Reach. A causeway of stones marked in red, open four hours either side of the lowest tide. A ruined chapel on the crown, with a cross. Under the chapel, in a different hand, a bell drawn in blue ink and the words: do not answer when it calls your name. At the bottom, in the old woman's writing: the east landing is safe. The west is not.]
+Elise: We go now. Aelwen says, can we make the causeway in time?
+Rowan: If you leave within the hour. The Duchess can take you to the east landing.
+Rowan: Mabel Thrupp says, I will wait here with the boat and the Sister's bags. If you are not back by the next low tide, I am coming in after you, and I am bringing every fisherman on this quay.
+Tomasz: Fennimore says, and onions.
+Rowan: And onions. She hands the jar to Priya without ceremony.
+[scene: Cave]
+Rowan: The Skelling causeway is a mile and a half of black stones laid by hands that were not human, each one the size of a cartwheel, with the sea hissing at the edges. The tide is far out, and the weed is green and slick, and everywhere there are small crabs, thousands of them, that turn as you pass and watch you with their stalk eyes.
+Priya: Kestrel keeps her eye on the compass. What is the needle doing?
+Rowan: It is no longer quivering. It points straight ahead, and it points down, as if the bell were beneath the rock and not on it.
+Marcus (typed): /do Ghorrim walks slowly, one hand on the Sister's shoulder
+Tomasz (typed): /do Fennimore hums verse nine under his breath
+Elise (typed): /say Fennimore, please do not hum that
+Tomasz (typed): /say sorry, it is a catchy verse
+Rowan: By the time you reach the foot of Skelling the sea is a long way behind you, and the rock rises out of the weed like a ruined tower. There are steps cut into it, three hundred of them, uneven and wet, going up to the chapel. Halfway up, the steps pass a ledge, and on the ledge there are boats.
+Priya: Boats?
+Rowan: Seven small boats, pulled up and tied to rings in the rock, in a neat line, as if someone had put them away at the end of a long day. They are all dry. They have not been in the water for a long time.
+Elise: Aelwen casts Detect Magic. I have it prepared. I will take a ritual casting, no slot.
+Rowan: The boats glow faintly, a pale blue, and so does everything on the ledge. A very faint blue haze like a breath on cold glass. It is necromantic magic of a kind you have not seen, and it is old. There is no trace of the fishermen, and no sign of the grandson.
+Marcus: Ghorrim touches the nearest boat. Is there anything inside?
+Rowan: A coat. A small boy's coat, folded, with a wooden whistle in the pocket.
+Marcus: Ghorrim picks up the whistle. He looks at it for a long time, and puts it back.
+Priya: Kestrel quietly says, Daniel's.
+Rowan: You cannot be sure. But the old woman said grandson, and the coat is a boy's. You leave it where it is.
+[stinger: Unease > Water drip]
+Rowan: The steps are not what they seem. About a third of the way up the rock, the stone changes under your feet: the weed is thicker here and the steps are glazed with a skin of slick green, and the sea, far below, has begun to speak in a low voice that is not a voice, only the sound a voice makes when it is nearly there. This is a challenge, and I want everyone to take part. Each of you needs to find a way to get up the next hundred steps without falling, answering, or looking back.
+Priya: Kestrel goes first. She does what she always does: she finds the dry stone. Acrobatics, with advantage for the good boots. Eighteen.
+Rowan: Success. She finds that every fifth step is dry, and that the dry ones are marked with a tiny notch, put there by someone who knew the way.
+Marcus: Ghorrim follows her feet exactly, putting his own feet where hers have been. Athletics. Fourteen.
+Rowan: Success. Two. Sister Ismay keeps her hand on the back of his belt.
+Elise: Aelwen casts Feather Fall on herself, which is not what the spell is for, but it takes the fear out of falling. She says, I am going to go very slowly. Arcana, eleven plus five. Sixteen.
+Rowan: Success. Three. You have made it.
+Tomasz: Fennimore does not want to. I mean, he does, but the voice. The voice from the sea, it is saying his name, and it is saying it in his own voice. I make a Wisdom save, advantage because of the lute. Seven.
+Rowan: Failure. The voice says, Fennimore, and you stop on the step. Fennimore, why did you leave it so long? And you turn, and look back.
+Tomasz: Oh no. I look back.
+Rowan: Below you the sea is flat and silver, and on the surface of it, a hundred feet down, there is a boat, a small one, rocking, and a figure in it with a lute. A halfling. It is you. And it is singing a song that you have not yet written.
+Tomasz: That is terrifying. Fennimore turns away, very fast, and carries on, and he does not say a word for the next fifty steps.
+Rowan: That is one failure. You have made three successes, so you get up, but you have a point of exhaustion, Tomasz, from the effort of not answering. It will wear off after a rest.
+Tomasz: I accept this. It was a very good lute.
+Priya (typed): /do Kestrel waits at the top, and gives Fennimore a hand over the last step
+Tomasz (typed): /do Fennimore takes it, and does not let go for a while
+Elise (typed): /say no one looks back. that is the rule
+Marcus (typed): /say agreed
+Marcus (typed): /say agreed. no one looks back
+Elise (typed): /do Aelwen adds it to her notebook: rule one of Skelling, no one looks back
+Rowan: You climb. The three hundred steps take most of an hour, and the wind grows colder with every ledge. When you reach the top, the chapel stands in front of you: a low stone building with a broken roof, a bell tower, and a door that has been smashed from the outside, or from the inside, it is hard to tell. The tower is empty. There is no bell in it. A rope hangs down from the ceiling, swaying, though there is no wind, and the end of it is wet.
+Tomasz: The bell is not here.
+Rowan: The bell is not in the tower. The compass is pointing at the floor.
+Priya: So the bell is under the chapel.
+Rowan: Under the floor, yes. There is a stair at the back, a spiral, wet, leading down into black water that is not rising and not falling. It simply sits there, a dark pool at the foot of the stairs, with a faint blue light moving under it.
+Elise: Aelwen asks, is the water the sea, or is it something else?
+Rowan: Roll an Arcana.
+Elise: Thirteen.
+Rowan: It is the sea, but it is held there. Something is holding it. It does not move with the tide, and it does not run out. It is a pool that has been kept, like a breath.
+Marcus: Ghorrim opens his bag. We have the lamp oil. Twelve flasks. Does it matter?
+Rowan: Roll Religion.
+Marcus: Twenty.
+Rowan: It matters. Whatever kept this pool is bound to the lamp. The oldest teaching of the Lampbearer is that no darkness holds against a flame that is willingly lit. You think of Mother Tidewarden and her wooden spoon and the day she taught you that lesson. It is the only way down.
+Marcus: Ghorrim opens a flask and pours a thin line of oil across the water, from the edge, in a straight line toward the middle. Then he lights it with the end of a match.
+Rowan: The oil burns on the water in a long ribbon of orange and the pool shudders. The blue light under it recoils. Then, in the middle of the pool, something rises: a ring of pale hands, a dozen of them, reaching up out of the water as if to pull the flame down, and they sing.
+[stinger: Undead and horrors > Ghost voices]
+Rowan: It is not a song you know. It is the tune of verse nine, but sung in a low dead tone with no words, a tune that has been under the sea for two hundred years. The flame dips. The hands sink back. The ribbon of fire holds, and a thin path of dry stone appears beneath it, running down into the pool.
+Tomasz: Fennimore says, do I want to sing it with them? I do not want to sing it with them.
+Rowan: You do not have to. But you are the only one who knows the words.
+Tomasz: Ah.
+Rowan: And at the edge of the pool, on a stone shelf, someone has left a flat piece of slate, scratched with letters. It is a page from the hymnal, the same hymnal as before, verse nine, and the verse has been written out in full, with a second hand crossing out the last two lines.
+[handout: Verse nine, as written on the slate | Where the lamps go out, the tide comes in. / Where the tide comes in, the bell is rung. / Where the bell is rung, the lost come home. / The lost come home. / (crossed out in another hand:) And where the lost come home, the lamps must burn. / (crossed out:) Let none who answer be forgotten.]
+Elise: Why would someone cross out the last two lines?
+Rowan: That is an excellent question, Elise.
+Elise: Aelwen says it aloud. She says, the lamps must burn, and the lost come home. But it was crossed out, so someone did not want the bell to be answered with a lamp. Or someone wanted it answered without one.
+Priya: Or someone wanted the bell to ring and the lamps to stay dark.
+Rowan: You are all very close to something. And at this moment, I would like to call a break. It has been nearly forty minutes and the tea is cold.
+Marcus: Seconded.
+Elise: Thirded. I need the loo.
+Rowan: We are on a pause. Everything between now and when I say resume is not recorded. Say what you like.
+[pause]
+Tomasz: Okay, people, marzipan. I would like some marzipan. Does anyone have marzipan? I have been thinking about it for twenty minutes.
+Priya: I have a bar of it in my bag, but you have to say please.
+Tomasz: Please. Please, Priya, please.
+Priya: No.
+Elise: How long is Rowan going to be? Is he making tea?
+Marcus: He is checking the next chapter. He says the bell room has a trap and he wants to make sure it is fair.
+Tomasz: In my experience it is never fair.
+Priya: That is the whole point of it.
+Elise: Do you think Mother Tidewarden is okay? I have a bad feeling about her.
+Marcus: I do too. She would not ask for me if it were easy.
+Rowan: Right, I am back. Is everyone back? We are about to be recorded again.
+[resume]
+Rowan: Welcome back. The recording is running again. You are standing at the edge of the burning pool in the chapel on Skelling, with a ribbon of fire holding a path of dry stone, a slate with the ninth verse, and a ring of hands under the water that have started, very softly, to hum.
+Elise: Before we go down, can I do a recap, out of character, for the notes? Aelwen would. It has been a very long evening.
+Rowan: Please do. I will not stop you.
+Elise: So. We came from Saltmarrow on the Damp Duchess with Mabel Thrupp, who is acting Harbourmaster and has left a cat in charge. We were boarded by sahuagin in a storm, with a priestess in a shell necklace, and we beat them with a sneak attack, a Spiritual Weapon, Vicious Mockery and jars of pickled onions. At Wrackwater Reach we met Marta Winch, whose grandson Daniel and the boat called the Sandpiper are missing. We bought rope from Pell, who apologises for everything. We climbed three hundred steps to Skelling and saw seven dry boats on a ledge, with a boy's coat in one of them. In the chapel we found a pool held in place, burned a path across it with lamp oil, and found verse nine on a slate with the last two lines crossed out. Sister Ismay is with us. Kestrel has the brass compass, which the Pale Tide, no, which we do not know yet is called the Pale Tide.
+Marcus: You are ahead of the story.
+Elise: I am ahead of the story. I will pretend I did not say that last bit.
+Rowan: It is out of character. It is a very good recap. And yes, you have a bell below you, a ring of hands, and a path of fire.
+Tomasz: Can we take a minute to plan? Fennimore does not like going into water with a plan that is just, walk in and see what happens.
+Priya: Kestrel is in favour of that plan. It has worked every time.
+Marcus: It has not worked every time. It worked in the cistern because Varek hit the lens with an axe.
+Rowan: Varek is by the fire, asleep, in this scene. It is the first time he has been asleep in the whole campaign, and he is snoring.
+Priya: Kestrel puts a blanket over him. I do. I like him.
+Marcus: Ghorrim suggests we go down in order. Ghorrim first, with the lantern, and the hammer. Then the Sister, in the middle, with the second lantern. Then Aelwen, with her light, so that she is not in the dark. Then Fennimore with the lute. And Kestrel last, with the compass, because she is the fastest if we need to run.
+Priya: I do not love being last. Kestrel is the one who sees the trap. But I will do it.
+Elise: Can I cast Mage Armor first? It lasts eight hours.
+Rowan: You can. Fennimore, what are you doing with your actions?
+Tomasz: Fennimore tunes the lute. If it is a bell that was never tuned, I want to know what note it hates.
+Rowan: Roll Performance.
+Tomasz: Eighteen.
+Rowan: It is a very odd thing. The lute is a little flat against the hum of the hands in the water. And when you play a clear A, the hands stop humming, and the water goes still. And when you play it again, the water goes still for a little longer.
+Tomasz: A. The bell was cast in A. Fennimore says, it is an A. I do not know why, but it is an A.
+Rowan: You have discovered that the Pale Tide hates an A. Or something near it. Write that down.
+Elise (typed): /do Aelwen writes: the bell is in A, and the water is soothed by it
+Marcus (typed): /do Ghorrim nods, and says a quiet prayer to Orsolin
+Priya (typed): /do Kestrel checks the compass, which is quivering gently
+Tomasz (typed): /do Fennimore plays a long, clear A, and the hands go still
+Elise (typed): /ooc that is a very satisfying bit of detail, Rowan
+Rowan (typed): /ooc thank you, it was meant to be a reward for the person who asked about tuning, and it was you, Elise, so well spotted
+Marcus (typed): /ooc and Tomasz for actually trying
+Priya: Kestrel has the compass in her fist. Is it pointing down the path?
+Rowan: Straight down, and it is shaking now, as if it were frightened. Sister Ismay says, I am not sure I want to go any further. And then she says, but I will.
+Marcus: Ghorrim takes the first step onto the dry path, with the lantern in his left hand and the hammer in his right.
+[scene: Dungeon halls]
+Rowan: The path goes down thirty feet through the water, and on both sides the sea stands up like glass walls, dark green and shot with threads of silver. In the walls you can see things: the hulls of boats, nets, a hundred lost things hanging in the water, and, here and there, pale faces turned toward you, with their mouths open, as if they were all singing at once and the sound could not reach you.
+Elise: Aelwen takes a very slow breath. Do not look left. Do not look right.
+Tomasz: Fennimore looks left.
+Elise: Fennimore!
+Tomasz: I have a rule. I look at everything. It makes better songs.
+Rowan: The path ends at a round door of black iron, cold and wet, covered in barnacles, with a lock in the shape of a bell. And it is open. Just a hand's breadth. Beyond it there is a round chamber, lit with the same faint blue light, and in the middle of the chamber, hanging from a great beam of black wood, is the bell.
+[stinger: Mood > Ship's bell]
+Rowan: It is enormous. Eight feet across at the lip, green bronze, covered in weed and shells and strings of small pearls, and the weight of it is audible. You can feel it in your teeth. There is writing around its rim in an old script that none of you can read, and underneath it, kneeling on the stone floor, with his back to you, is a man in a patched oilskin coat with a hood.
+Priya: Kestrel puts her hand up. Stop. Everyone stop. She whispers, do not make a sound.
+Rowan: The man does not turn. He is holding a rope in both hands, and the rope runs up to the bell's clapper, and he is not pulling it. He is holding it. He is holding it very, very still.
+Marcus (typed): /do Ghorrim lowers the hammer and takes one step into the room
+Rowan: Ghorrim steps forward. The man says, in a voice like wet gravel, do not come in. Do not come any nearer. If I let go it will ring.
+Elise: Aelwen says, who are you?
+Rowan: He says, I am the ringer. I am Osric Fennwater. And then he turns his head, and you see that he is a ghost. There is no face under the hood, only the glimmer of water running down, and in the water there are two eyes like wet coins. He says, I have held this rope for two hundred years. And I am very tired.
+Tomasz: Fennimore says, Osric Fennwater, the bellringer. I read about you in the Guildhall ledger. You rang the bell every night for forty years.
+Rowan: He says, I did. I rang it for the boats. For the lost. For my wife, and my son. And on the night of the great tide it rang itself, and the Pale Tide came in with it, and it has been trying to ring it ever since.
+Marcus: Ghorrim asks, what is the Pale Tide?
+Rowan: Osric says, it is what the sea becomes when it is promised something. It was promised the lost, and it was never paid. It wants the bell to ring so that it can have them. Every ship that hears the bell turns toward it. And every ship that turns, it keeps.
+Priya: Kestrel says, and Valmeric Dusk. Did he come here?
+Rowan: A long silence. And then Osric says, a man in a grey coat came, twenty years ago, with a lantern and a hymnal. He said he would make the bell ring, and that it would bring his sister home. I said no. He did not listen. He took a piece of the bell, a chip of bronze the size of a fingernail, and he went away. Later, I heard the Drowned Choir singing in the cistern. I think that is what he made of it.
+Elise: The Lens. It was the Lens that carried the bell's song, but the song was the bell's. The chip of bronze.
+Marcus: Ghorrim says quietly, he was my fellow novice. He was my friend.
+Rowan: Osric says, then you know why he did it. And you know what the bell is. It is not a weapon. It is a door. A door for the drowned to come home. But it can only open if someone answers with a name, and the name must be true. Mine is Osric. I have never answered it. If I let go of the rope, the bell will ring, and the sea will take whatever it can reach.
+Tomasz: So you just hold it.
+Rowan: He says, so I hold it.
+Priya (typed): /tell Elise lychee. do not let the ghost see the compass, I do not trust it
+Elise (typed): /tell Priya lychee received. why not?
+Priya (typed): /tell Elise it points at the bell and the bell is next to him. he could be anything
+Rowan: Roll initiative, all of you. Something has heard the conversation.
+[stinger: Undead and horrors > Dark sting]
+Priya: Nineteen.
+Elise: Twelve.
+Marcus: Seventeen.
+Tomasz: Twenty two. Fennimore is the first to move, and he says, hello, Pale Tide.
+Rowan: The water in the chamber has risen to the ankles without you noticing, and now it is at your knees, and it is rising. In the water, something pale and tall is standing, shaped like a woman made of sea foam, with long arms that end in fingers like threads, and it is looking at the compass in Priya's hand. It speaks in a voice like waves on shingle. It says, give me the finder.
+Priya: Kestrel says, no.
+Rowan: It says, give me the finder, and I will let your friends go.
+Priya: Kestrel says, I do not trade with things made of water. Kestrel closes her fist on the compass and takes a step back. I would like to hide behind Ghorrim.
+Marcus: Ghorrim steps in front of her. I hold up the holy symbol and I use Channel Divinity, Turn Undead. Is the Pale Tide an undead creature?
+Rowan: It is an elemental, and a ghost, and a promise. It is not undead as the rules mean it. But the ghost holding the rope is. Make a Wisdom save, Osric, I will roll for him.
+Marcus: What?
+Rowan: Osric is undead, Ghorrim. If you Turn him, he lets go of the rope.
+Marcus: No! No no no. I do not use it. Ghorrim lowers the holy symbol. I shout, Osric, hold the rope, whatever happens.
+Rowan: Osric says, I am holding. Roll to hit, someone, anything.
+Tomasz: Fennimore casts Vicious Mockery at the Pale Tide.
+Rowan: It is a water elemental. It has no ears, and the spell does not work. But the insult does, in a sense. It turns and looks at you.
+Tomasz: Oh no.
+Rowan: It comes for the halfling.
+Tomasz: I do not like this plan. Cunning Action does not work for bards. I try to dodge, I use the Dodge action.
+Rowan: It attacks with both slams, with advantage because the halfling is in water. Fourteen, and eighteen.
+Tomasz: I have an armour class of fifteen. One hit.
+Rowan: Eleven points of bludgeoning damage, and the water around his legs closes like a fist.
+Tomasz: I am grappled. I am grappled by water. Is that a thing?
+Rowan: It is now.
+Elise: Aelwen casts Burning Hands at it, wait, no, fire on water, it will be resisted. She tries Magic Missile instead. Three darts, automatic hits. Force damage. Thirteen.
+[stinger: Spells > Magic missile]
+Rowan: The elemental shudders. A chunk of it falls away and rejoins the sea, and the voice says, you are all very small.
+Priya: Kestrel climbs on the beam. I run along the beam and drop on its back. Sneak attack with advantage, because it is distracted by the halfling.
+Rowan: Roll to hit.
+Priya: Seventeen.
+Rowan: It hits. Damage?
+Priya: Sneak attack, four dice. Eighteen plus four. Twenty two.
+[stinger: Combat > Stab]
+Rowan: It howls, and the whole room shakes. Osric cries out, because the rope in his hands has jerked, and the bell is swinging, just slightly, a hand's width, and a note comes out of it. A low note, long, like a held breath. And the water in the chamber surges up to your waists.
+Marcus: Ghorrim uses Healing Word on Fennimore, bonus action, from a distance, and Spiritual Weapon is still up, and it keeps hitting. I want to break the grapple.
+Rowan: Roll Athletics, Fennimore.
+Tomasz: Eleven. No.
+Rowan: Ghorrim, you can use your action to help.
+Marcus: I do. Hammer on the water. I give him advantage.
+Tomasz: Seventeen. I am free!
+Rowan: You pull your leg out of the fist, and the elemental turns on Priya. She is on its back, holding on to a mane of foam, and it twists, and she is thrown across the room and lands against the wall with a crack.
+Priya: How much damage?
+Rowan: Twelve, and you are at three hit points.
+Priya: Kestrel says a word I will not record here.
+Marcus (typed): /do Ghorrim casts Healing Word on Kestrel, as far as the room allows
+Marcus: Healing Word on Kestrel. Second level slot, to be safe. Four plus three, and two for the upcast. Nine.
+Rowan: She is up to twelve, and just in time. The elemental is hurt. It has lost half its body into the sea. And then, quite suddenly, it stops. It says, you carry a lamp.
+Marcus: We carry twelve.
+Rowan: It says, then you know what to do with it.
+Elise: Aelwen says, wait. It wants us to light the lamps. It does not want to fight us. It wants the bell to be answered with a lamp. Oh, she says, the last two lines of the verse. Where the lost come home, the lamps must burn.
+Tomasz: Let none who answer be forgotten.
+Elise: That is why they were crossed out. Valmeric did not want the lamps to burn. He wanted the bell to ring in the dark, so that it would take whatever it could reach.
+Rowan: The elemental says, yes. Say the name. Say the name, and light the lamp. Then I will be paid.
+Priya: Kestrel says, whose name?
+Rowan: A silence, and then Osric Fennwater says, mine. Not the boat's, not the boy's. The ringer's. If a living person says my name, and means it, the debt is paid, and I can let go.
+Marcus: Ghorrim steps forward. Osric Fennwater. He sets the lantern on the stone. Osric Fennwater, we have your name and we will keep it. You rang for the lost for forty years. Let go.
+Rowan: It is not enough. The bell trembles. Osric says, a lamp. You must light a lamp for each of them.
+Elise: For each of what?
+Rowan: He says, for each of the boats on the ledge.
+Priya: Seven boats.
+Rowan: Seven boats, and the boy's coat, and the whistle, and the fishermen who are not in the boats.
+Tomasz: Fennimore sits down in the water. He opens his lute and he begins, very softly, to sing. Not verse nine. A new verse. The verse for the lost, for the boats, for the boy, and I add the line, let none who answer be forgotten.
+Rowan: Make a Performance check, and this is the one that matters.
+Tomasz: Twenty. A twenty. A natural twenty, I think.
+[stinger: Combat > Critical hit]
+Rowan: The song goes through the chamber like warm water. The walls of the sea stand still. The faces in the water turn, one after another, toward the halfling, and their mouths close. The ring of hands that was humming beneath the pool comes up through the floor, and each hand is holding something small and bright: a candle, a stub of tallow, a pinch of oil in a shell.
+Elise: Lamps.
+Rowan: They are lamps. They have been waiting for two hundred years for someone to light them. Osric says, now. Now, if you have the oil.
+Marcus: Ghorrim takes out a flask. We have twelve. He starts lighting them, one at a time, from the lantern, and he says the name of each person on the ledge as he does it, the seven fishermen, one boat at a time, and the boy.
+Rowan: Roll Religion, or Persuasion, whichever you prefer, because you are asking the sea to accept a promise.
+Marcus: Persuasion, with Fennimore's Bardic Inspiration, which I have, because he gave it to me when he started to sing. Twelve plus four. Sixteen.
+[stinger: Spells > Healing]
+Rowan: Good. The first lamp lights. The Pale Tide screams, a long, rising shriek that is half joy and half pain, and a sheet of white water comes up across the floor. Osric Fennwater says, do not stop. And the second lamp lights, and the third. And in the walls of water, one by one, the pale faces stop singing and begin to smile.
+Priya (typed): /do Kestrel is crying and pretending that she is not
+Elise (typed): /do Aelwen takes her hand
+Marcus (typed): /say ghorrim says nothing. he lights the fourth lamp
+Tomasz (typed): /say Fennimore sings the verse again, softer
+Marcus (typed): /do the fifth lamp
+Marcus (typed): /do the sixth
+Marcus (typed): /do the seventh
+Priya (typed): /do Kestrel unclenches her fist, and holds out the compass
+Rowan: Seven lamps, and the pale tide is quiet. It looks at the compass, still in Priya's palm, and looks at Kestrel. It does not reach for it. It says, you did not trade it.
+Priya: I will not trade it. But I will give it. Kestrel kneels in the water and sets the compass on the stone in front of the elemental. She says, I find things. I find them and I forget to say where. Take it. It points to the bell, and I have found the bell. I do not need it any more.
+Rowan: The Pale Tide stoops, and picks up the compass in two fingers of foam. It is the first time anyone has given it anything. It holds it for a long time against what would be a chest. And it says, thank you, in a voice that is not a wave on shingle any more, but a woman's. Soft. Almost young. It says, my name was Maren Dusk. I was Valmeric's sister. I went down on the Marigold.
+Elise: The Marigold. That is the ship Odalys's brother Corin was on.
+Rowan: It is. You find out now that Valmeric Dusk and Odalys Venn were both grieving the same wreck. Corin Venn and Maren Dusk are written on the rim of the bell, among the lost, with seventeen others.
+Marcus: Ghorrim stands very still. Valmeric thought the bell would bring her home. And it would have, in the end, but not the way he wanted.
+Rowan: She says, tell him I forgive him. And tell the one he left behind, Odalys, that Corin sends the same.
+Priya: He is dead. Valmeric. Priya says, he died in the cistern.
+Rowan: She says, I know. We met on the way. And then she turns, and walks into the wall of the sea, and the water closes behind her, and the faces in the water go out like candles in a draught.
+[stinger: Undead and horrors > Ghost whispers]
+Rowan: And now, finally, Osric Fennwater lets go of the rope. The bell swings. It rings once, a single clean bronze note, a note that rolls out through the chamber and up through the water and along the causeway and across the whole sea, and you feel it in the bones of your face. When it has finished the rope falls slack. Osric is smiling. He says, I am the ringer. I rang it for the right reason, at last. And he puts a hand on the stone, and he is not there.
+Tomasz: Fennimore wipes his face with his sleeve. He says, that was the best verse I have ever sung, and nobody wrote it down.
+Elise: I did. Aelwen has it in her notebook. She wrote it as it happened.
+Tomasz: Elise. I love you.
+Elise: Do not be weird.
+Rowan: As the last of the water drains out of the chamber, you notice something behind the beam. A small round space, a niche in the wall, with an air bubble in it and a pale, shivering, half-drowned boy of about eleven, wrapped in a fisherman's coat, with a wooden whistle round his neck. He has been there for three days. Osric kept the air.
+Priya: Daniel!
+[handout: A page from Osric Fennwater's logbook | The bell was rung every night, and I wrote the boats in. Let it be known that I kept the air, and I kept the boy, and I kept his whistle, so that when someone came, he would be the first thing they saw. I was not a good man. I was a patient one. Let the next ringer be better. O.F.]
+Rowan: Daniel Winch, grandson of Marta, has been kept alive by a ghost with a rope. He is shaking, and cold, and he says, is the bell done? Is it over? And Sister Ismay is already kneeling in front of him with her lantern, and she says, yes. It is done.
+[scene: Campfire]
+Rowan: It takes a long time to climb the three hundred steps. The boy rides on Ghorrim's back, and Fennimore carries the lantern. At the top, in the ruined chapel, the sun is going down, and the wind has dropped, and standing in the broken door, leaning on a stick, is an old woman in the grey of the Brackenford temple, with a face like a shut book.
+Marcus: Mother Tidewarden.
+Rowan: She says, you are late. She is smiling. She says, you were always late. You have grown a beard and a bad habit of looking at the floor. Come here.
+Marcus: Ghorrim puts down the boy, very carefully, and goes to her. And Ghorrim hugs her, which he has never done, in front of everyone.
+Priya (typed): /do Kestrel looks away politely
+Tomasz (typed): /do Fennimore does not look away at all
+Rowan: She says, I did not know what I would find. I sent for you because I did not want to be the one to find it. She looks at the bell tower, at the swaying rope. And she says, the bell is silent now. But there are more, Ghorrim. There were seven bells cast in Brackenford, the year before the great tide. This was the first. And I do not know where the others are.
+Elise: Seven.
+Rowan: Seven bells, seven tides. Four are accounted for, in the archives. Two are lost. And one, she says, is in the cathedral tower at Saltmarrow. The Cathedral of Tides. It is cracked. Nobody has rung it in forty years.
+Priya: Oh, that is a hook. Kestrel puts her hand up. That is a hook and I am not taking it tonight.
+Rowan: Mother Tidewarden says, and not tonight. But soon.
+[loot: Chip of bell bronze | Marcus]
+[loot: Mother Tidewarden's wooden spoon | Marcus]
+[loot: 150 gp | party]
+Rowan: Marta Winch is waiting on the quay at the Reach, with the whole fleet behind her, and when the boy steps off the Damp Duchess she cannot speak. She presses the gold into your hands, one hundred and fifty pieces, and walks away with her arm around him. She does not look back. She does not need to.
+Tomasz: I did not know I could cry that much about a boy I did not meet.
+Rowan: Mabel Thrupp says, right. I am the Harbourmaster. I have been away from the harbour for nine days. I have a cat. I am going home. And I am bringing the onions.
+Priya: Kestrel hands her the jar. Mabel eats one, and offers it round. Nobody takes it. She shrugs, and eats another.
+Marcus: And Ghorrim stays on the quay a while, looking at the sea. Then he turns, and he says, I am going to Brackenford. For a little while. To help.
+Rowan: Mother Tidewarden says, I had hoped you would say that. And the Sister will take you. She will take any of you who want to go.
+Elise: Aelwen would like to see the library.
+Tomasz: Fennimore would like to see the temple, and then to be thrown out of it.
+Priya: Kestrel would like to see what is in the cellars. Priya says, I will go. But I want to know what is in the other six bells. I am curious. I am always curious.
+Rowan: The sun goes down on Wrackwater Reach. The fishing fleet comes in, one boat after another, with every lamp lit, and you stand on the quay and watch the lights go out across the water like a string of beads. Up on the rock, the broken chapel is dark. The tower is empty. But somewhere under the sea, a very long way down, a single note is still ringing, and it is the sound of a door that has been opened, and has not yet been closed.
+Priya: That is a good ending.
+Rowan: Thank you. That is the end of the fourth session of Lanterns of Saltmarrow, and it is also the longest session we have ever played, in real time. Thank you all very much. Please say good night.
+Marcus: Good night, everyone. That was wonderful.
+Elise: Good night. I am going to bed.
+Tomasz: Good night. Thank you for the tea, and for the boy.
+Priya: Good night, Rowan. Thanks for the tea.
+[stop]

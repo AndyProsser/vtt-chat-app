@@ -1,6 +1,6 @@
 # Demo campaign: Lanterns of Saltmarrow
 
-The reusable test campaign behind the long-session test ([QUALITY-VALIDATION.md](../../../../docs/architecture/QUALITY-VALIDATION.md), Stage 13). Three connected sessions of about 25 minutes each (about 80 minutes in all), written to be **replayed through the whole system any number of times**: on the dev PC, on the VM, after any change to the records pipeline, and before any release that touches it.
+The reusable test campaign behind the long-session test ([QUALITY-VALIDATION.md](../../../../docs/architecture/QUALITY-VALIDATION.md), Stage 13). Three connected sessions of about 25 minutes each (about 80 minutes in all), and a fourth, **extended** one of about 75 minutes (below), written to be **replayed through the whole system any number of times**: on the dev PC, on the VM, after any change to the records pipeline, and before any release that touches it.
 
 **What it is for.** Three things at once:
 
@@ -12,13 +12,13 @@ The reusable test campaign behind the long-session test ([QUALITY-VALIDATION.md]
 
 ## What is in this folder
 
-| File                        | What                                                                                                                                               |
-| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `campaign.json`             | The cast, accounts and voices; the glossary (53 terms, with the aliases Whisper is likely to produce); the canaries; the session list              |
-| `session-1.txt`, `-2`, `-3` | The scripts, in the line format below                                                                                                              |
-| `gm-notes.md`               | The Game Master's private notes, uploaded to the campaign's GM Notes. Holds the **GM canaries** (words that are never said at the table)           |
-| `facts.json`                | 54 facts, 18 a session, that a good set of notes must keep, each with a pattern for the output and a `source` proving it is in the script          |
-| `callbacks.json`            | 12 links between sessions, each with what campaign memory should hold after which session, and what the later tale or brief should connect back to |
+| File                    | What                                                                                                                                               |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `campaign.json`         | The cast, accounts and voices; the glossary (53 terms, with the aliases Whisper is likely to produce); the canaries; the session list              |
+| `session-1.txt` to `-4` | The scripts, in the line format below                                                                                                              |
+| `gm-notes.md`           | The Game Master's private notes, uploaded to the campaign's GM Notes. Holds the **GM canaries** (words that are never said at the table)           |
+| `facts.json`            | 54 facts, 18 a session, that a good set of notes must keep, each with a pattern for the output and a `source` proving it is in the script          |
+| `callbacks.json`        | 12 links between sessions, each with what campaign memory should hold after which session, and what the later tale or brief should connect back to |
 
 ## The cast
 
@@ -46,6 +46,7 @@ Marcus (over): No wait, I wanted to say something.          spoken starting befo
 [scene: Harbour]                                            the Game Master starts a soundboard scene (a name from the shipped catalogue)
 [stinger: Combat > Critical hit]                            the Game Master fires a button (Board > Button, from the shipped catalogue)
 [loot: Potion of healing x2 | party]                        a loot drop to the party stash, or to one player by name
+[handout: Title | text]                                     a text handout shown to everyone ([handout: Title | text | to Priya, Elise] to those players only)
 [late-join: Marcus]  [ack: Marcus]                          a player joins after the recording started; they are not recorded until they acknowledge the cue
 [leave: Elise]  [rejoin: Elise]                             a dropped connection and the reconnect
 ```
@@ -64,11 +65,19 @@ Marcus (over): No wait, I wanted to say something.          spoken starting befo
 | Long monologues      | Several 100 to 200 word descriptions by the Game Master, for Whisper's long-clip handling                                 |
 | Rules talk           | Initiative, grapples, sneak attack, saving throws, spell slots and an elf's immunity: the language of a real table        |
 
+## Session 4: the extended session
+
+**"The Bell Under the Waves"**, about **75 minutes** and 8,000 spoken words (the first three sessions together are about 10,500). It exists to **overflow a small model's window**: a session this long gives scribe notes and a tale prompt that do not fit in 8,192 tokens, so the run shows whether the pipeline splits and joins the work, or silently cuts it (the report's "summary model: how full its window got" reads Ollama's own log for the fill and every cut). It is self-contained (Rowan recaps), so it can run **alone on the CPU-only VM** (`--sessions 4`) or after sessions 1 to 3.
+
+It also stresses what a long session stresses: **five handouts**, **seven loot drops**, **54 typed lines** in bursts (in-character, `/do`, `/say`, `/ooc`, `/dm`, `/tell`), **a mid-session pause** with a canary spoken in it, a late joiner who speaks before the cue, a dropped connection and rejoin, long monologues, a skill challenge, a combat with grapple and healing, and a Q&A recap by a player halfway through.
+
+Its **facts are tagged by where they fall**: `e-` (first third), `m-` (middle), `l-` (last third), so a run that loses the thread shows _where_. Two **long-range callbacks** test the same thing: the brass compass is given in the first minutes and offered up in the last; Osric Fennwater is a name in a ledger at the start and the ghost holding the rope at the end.
+
 ## Canaries
 
 A **canary** is a word that appears nowhere else, placed in a line that must never reach a shared artifact. If it shows up in a transcript, note, brief, memory entry, tale, search result or export, something leaked.
 
-- **Table canaries** (`campaign.json`): `quince` (a late joiner before the cue), `cantaloupe`, `artichoke` (`/ooc`), `tangerine`, `turnip` (`/dm`), `walnut` (`/tell`), `gingham`, `rhubarb` (said while paused).
+- **Table canaries** (`campaign.json`): `quince` (a late joiner before the cue), `cantaloupe`, `artichoke` (`/ooc`), `tangerine`, `turnip` (`/dm`), `walnut` (`/tell`), `gingham`, `rhubarb` (said while paused); session 4 adds `pistachio` (late joiner), `pomegranate` (`/ooc`), `radish` (`/dm`), `lychee` (`/tell`), `marzipan` (paused).
 - **GM canaries** (`gm-notes.md` only): `moonlily` and `gallowglass`. Never said at the table, so they must not reach any tale except the Tipsy Minstrel's, which may slip what the Game Master wrote.
 
 ## Using it

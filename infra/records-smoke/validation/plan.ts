@@ -38,6 +38,7 @@ const ACTION_SEC: Record<string, number> = {
   scene: 1.5,
   stinger: 0.7,
   loot: 1,
+  handout: 1.5,
   'late-join': 6,
   ack: 0,
   leave: 2,

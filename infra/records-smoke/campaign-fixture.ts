@@ -50,7 +50,7 @@ export interface Campaign {
   name: string;
   cast: { dm: Person; players: Person[]; observer: Person };
   storyteller: string;
-  sessions: { n: number; title: string; file: string }[];
+  sessions: { n: number; title: string; file: string; extended?: boolean }[];
   gmNotes: string;
   glossary: { term: string; kind: string; aliases: string[] }[];
   canaries: { word: string; session: number; how: string }[];
@@ -98,6 +98,7 @@ const DIRECTIVES = new Set([
   'scene',
   'stinger',
   'loot',
+  'handout',
   'late-join',
   'ack',
   'leave',
@@ -167,6 +168,21 @@ export function parseSession(
           if (!item || !who) err(n, 'loot is [loot: item | recipient]');
           else if (who.toLowerCase() !== 'party' && !joinable.has(who))
             err(n, `loot goes to party or a player, not "${who}"`);
+          break;
+        }
+        case 'handout': {
+          // [handout: Title | text] shows to everyone; [handout: Title | text | to Priya, Elise] to those players only.
+          const [title, body, to] = arg.split('|').map((x) => x.trim());
+          if (!title || !body)
+            err(n, 'handout is [handout: Title | text] or [handout: Title | text | to Name, Name]');
+          else if (to !== undefined) {
+            const names = to
+              .replace(/^to\s+/i, '')
+              .split(',')
+              .map((x) => x.trim());
+            for (const who of names)
+              if (!joinable.has(who)) err(n, `handout goes to players, not "${who}"`);
+          }
           break;
         }
         case 'late-join':
@@ -393,6 +409,7 @@ export interface SessionStats {
   scenes: number;
   stingers: number;
   loot: number;
+  handouts: number;
   facts: number;
 }
 
@@ -416,6 +433,7 @@ export function stats(l: Loaded, report: Report): SessionStats[] {
       scenes: dir('scene'),
       stingers: dir('stinger'),
       loot: dir('loot'),
+      handouts: dir('handout'),
       facts: (l.facts[String(s.n)] ?? []).length,
     };
   });
@@ -431,10 +449,12 @@ async function main(argv: string[]) {
   const r = validate(l);
   if (cmd === 'stats') {
     const rows = stats(l, r);
-    console.log('session  minutes  words  spoken  typed  absent  scenes  stingers  loot  facts');
+    console.log(
+      'session  minutes  words  spoken  typed  absent  scenes  stingers  loot  handouts  facts',
+    );
     for (const s of rows)
       console.log(
-        `${String(s.n).padEnd(8)} ${String(s.minutes).padEnd(8)} ${String(s.words).padEnd(6)} ${String(s.spokenLines).padEnd(7)} ${String(s.typedLines).padEnd(6)} ${String(s.absentLines).padEnd(7)} ${String(s.scenes).padEnd(7)} ${String(s.stingers).padEnd(9)} ${String(s.loot).padEnd(5)} ${s.facts}`,
+        `${String(s.n).padEnd(8)} ${String(s.minutes).padEnd(8)} ${String(s.words).padEnd(6)} ${String(s.spokenLines).padEnd(7)} ${String(s.typedLines).padEnd(6)} ${String(s.absentLines).padEnd(7)} ${String(s.scenes).padEnd(7)} ${String(s.stingers).padEnd(9)} ${String(s.loot).padEnd(5)} ${String(s.handouts).padEnd(8)} ${s.facts}`,
       );
     console.log(
       `total    ${Math.round(rows.reduce((a, s) => a + s.minutes, 0) * 10) / 10} minutes, ${rows.reduce((a, s) => a + s.words, 0)} spoken words`,

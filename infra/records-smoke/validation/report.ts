@@ -287,8 +287,8 @@ export function renderReport(s: RunSummary): string {
     L.push(
       '## What was played',
       '',
-      '| Session | Title | Planned length | Spoken | Typed | Scenes | Stingers | Loot | Recording actions |',
-      '| --- | --- | --- | --- | --- | --- | --- | --- | --- |',
+      '| Session | Title | Planned length | Spoken | Typed | Scenes | Stingers | Loot | Handouts | Recording actions |',
+      '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |',
     );
     for (const p of m.plan) {
       const c = p.counts;
@@ -297,7 +297,7 @@ export function renderReport(s: RunSummary): string {
         0,
       );
       L.push(
-        `| ${p.n} | ${p.title} | ${fmtDuration(p.estimatedSec)} | ${c.say ?? 0} | ${c.type ?? 0} | ${c.scene ?? 0} | ${c.stinger ?? 0} | ${c.loot ?? 0} | ${rec} |`,
+        `| ${p.n} | ${p.title} | ${fmtDuration(p.estimatedSec)} | ${c.say ?? 0} | ${c.type ?? 0} | ${c.scene ?? 0} | ${c.stinger ?? 0} | ${c.loot ?? 0} | ${c.handout ?? 0} | ${rec} |`,
       );
     }
     L.push('');

@@ -383,5 +383,217 @@
       "source": "get your voice back",
       "importance": "core"
     }
+  ],
+  "4": [
+    {
+      "id": "e-sister",
+      "what": "Sister Ismay Tallowick of the Brackenford temple brought Ghorrim a letter from Mother Tidewarden",
+      "all": ["ismay|tallowick"],
+      "source": "Ismay Tallowick",
+      "importance": "core"
+    },
+    {
+      "id": "e-letter",
+      "what": "The letter says the Skelling bell is ringing and boats were lost at Wrackwater Reach",
+      "all": ["bell", "skelling|wrackwater"],
+      "source": "bell under the waves",
+      "importance": "core"
+    },
+    {
+      "id": "e-compass",
+      "what": "Sister Ismay gave a brass compass, a bell-finder, and Kestrel keeps it",
+      "all": ["compass"],
+      "source": "brass compass",
+      "importance": "core"
+    },
+    {
+      "id": "e-whistle",
+      "what": "The Gullbone Whistle must not be taken near the bell",
+      "all": ["whistle"],
+      "source": "Gullbone Whistle",
+      "importance": "subtle"
+    },
+    {
+      "id": "e-harbourmaster",
+      "what": "Mabel Thrupp is now the acting Harbourmaster",
+      "all": ["mabel", "harbourmaster"],
+      "source": "acting Harbourmaster",
+      "importance": "core"
+    },
+    {
+      "id": "e-cat",
+      "what": "Mabel deputised a cat to run the harbour while she is away",
+      "all": ["cat"],
+      "source": "deputised the cat",
+      "importance": "subtle"
+    },
+    {
+      "id": "e-osric-ledger",
+      "what": "The Guildhall ledger says Osric Fennwater rang the Skelling bell every night for forty years",
+      "all": ["osric|fennwater"],
+      "source": "Osric Fennwater",
+      "importance": "core"
+    },
+    {
+      "id": "e-blue-rope",
+      "what": "Three boats on the north quay were tied with new rope of the wrong colour",
+      "all": ["rope|boats"],
+      "source": "new rope",
+      "importance": "subtle"
+    },
+    {
+      "id": "e-oil",
+      "what": "Ghorrim had twelve flasks of lamp oil, blessed at the temple for twenty gold",
+      "all": ["oil", "bless"],
+      "source": "blesses the oil",
+      "importance": "subtle"
+    },
+    {
+      "id": "m-sahuagin",
+      "what": "The boat was boarded by sahuagin in a storm on the way to the Reach",
+      "all": ["sahuagin"],
+      "source": "sahuagin go first",
+      "importance": "core"
+    },
+    {
+      "id": "m-priestess",
+      "what": "The sahuagin priestess wore a shell necklace as her focus",
+      "all": ["priestess|necklace"],
+      "source": "shell necklace",
+      "importance": "core"
+    },
+    {
+      "id": "m-onions",
+      "what": "They threw jars of pickled onions at the sahuagin, which recoiled",
+      "all": ["onion"],
+      "source": "jar of pickled onions",
+      "importance": "core"
+    },
+    {
+      "id": "m-marta",
+      "what": "Marta Winch's grandson Daniel was missing and she asked them to silence the bell",
+      "all": ["marta|winch|daniel"],
+      "source": "Marta Winch",
+      "importance": "core"
+    },
+    {
+      "id": "m-coat",
+      "what": "A boy's coat and wooden whistle were found in a boat on the ledge",
+      "all": ["coat|whistle"],
+      "source": "boy's coat",
+      "importance": "subtle"
+    },
+    {
+      "id": "m-seven-boats",
+      "what": "Seven dry boats were tied on the ledge of Skelling",
+      "all": ["seven.{0,40}boats|boats.{0,40}seven"],
+      "source": "Seven small boats",
+      "importance": "subtle"
+    },
+    {
+      "id": "m-burning-path",
+      "what": "Burning lamp oil on the pool made a dry path down to the bell",
+      "all": ["oil", "path|stone"],
+      "source": "burns on the water",
+      "importance": "core"
+    },
+    {
+      "id": "m-crossed-out",
+      "what": "The last two lines of verse nine were crossed out on the slate",
+      "all": ["crossed|struck"],
+      "source": "crossed out",
+      "importance": "core"
+    },
+    {
+      "id": "l-osric-rope",
+      "what": "The ghost of Osric Fennwater held the bell's rope for two hundred years to keep it from ringing",
+      "all": ["osric", "rope"],
+      "source": "held this rope",
+      "importance": "core"
+    },
+    {
+      "id": "l-valmeric-chip",
+      "what": "Valmeric Dusk took a chip of the bell's bronze and made the Drowned Choir from it",
+      "all": ["valmeric", "chip|bronze"],
+      "source": "chip of bronze",
+      "importance": "core"
+    },
+    {
+      "id": "l-pale-tide",
+      "what": "The Pale Tide is what the sea becomes when it is promised the lost and not paid",
+      "all": ["pale tide"],
+      "source": "Pale Tide",
+      "importance": "core"
+    },
+    {
+      "id": "l-compass-wanted",
+      "what": "The Pale Tide demanded the compass, the finder",
+      "all": ["compass|finder"],
+      "source": "give me the finder",
+      "importance": "core"
+    },
+    {
+      "id": "l-seven-lamps",
+      "what": "Seven lamps were lit, one for each boat, saying the names of the lost",
+      "all": ["lamp", "seven"],
+      "source": "Seven lamps",
+      "importance": "core"
+    },
+    {
+      "id": "l-compass-given",
+      "what": "Kestrel gave the compass freely to the Pale Tide instead of trading it",
+      "all": ["compass", "gave|give|set|offer"],
+      "source": "sets the compass",
+      "importance": "core"
+    },
+    {
+      "id": "l-maren",
+      "what": "The Pale Tide was Maren Dusk, Valmeric's sister, lost on the Marigold",
+      "all": ["maren"],
+      "source": "Maren Dusk",
+      "importance": "core"
+    },
+    {
+      "id": "l-marigold",
+      "what": "The Marigold also carried Odalys Venn's brother Corin",
+      "all": ["marigold", "corin|odalys"],
+      "source": "Corin Venn",
+      "importance": "core"
+    },
+    {
+      "id": "l-daniel",
+      "what": "Daniel Winch was found alive in an air pocket that Osric kept for him",
+      "all": ["daniel", "alive|air|pocket|niche"],
+      "source": "air bubble",
+      "importance": "core"
+    },
+    {
+      "id": "l-seven-bells",
+      "what": "Seven bells were cast at Brackenford and one, cracked, hangs in the Cathedral of Tides",
+      "all": ["seven bells|cathedral of tides"],
+      "source": "seven bells",
+      "importance": "core"
+    },
+    {
+      "id": "l-reward",
+      "what": "Marta Winch paid one hundred and fifty gold",
+      "all": ["150|hundred and fifty"],
+      "source": "hundred and fifty",
+      "importance": "core"
+    },
+    {
+      "id": "l-no-turn",
+      "what": "Ghorrim did not Turn Undead on Osric because he would let go of the rope",
+      "all": ["turn"],
+      "source": "Turn him",
+      "importance": "subtle"
+    },
+    {
+      "id": "l-brackenford",
+      "what": "Ghorrim is going to Brackenford to help Mother Tidewarden",
+      "all": ["brackenford"],
+      "source": "going to Brackenford",
+      "importance": "subtle"
+    }
   ]
 }

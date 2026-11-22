@@ -5,7 +5,7 @@
       "id": "mabel",
       "what": "Mabel Thrupp, the throwaway ferrywoman paid in pickled onions (the 'find Gary' test)",
       "introduced": 1,
-      "recurs": [2, 3],
+      "recurs": [2, 3, 4],
       "source": "Mabel Thrupp",
       "memory": {
         "after": 1,
@@ -37,7 +37,7 @@
       "id": "odalys",
       "what": "Odalys Venn: hires the party, is the traitor, is redeemed",
       "introduced": 1,
-      "recurs": [2, 3],
+      "recurs": [2, 3, 4],
       "source": "Odalys",
       "memory": {
         "after": 1,
@@ -134,7 +134,7 @@
       "id": "whistle",
       "what": "The Gullbone Whistle: found in 1, humming in 2, guides them in 3",
       "introduced": 1,
-      "recurs": [2, 3],
+      "recurs": [2, 3, 4],
       "source": "Gullbone Whistle|whistle",
       "memory": {
         "after": 1,
@@ -150,7 +150,7 @@
       "id": "weeping-anchor",
       "what": "The Weeping Anchor and Hollin Marsh: where the job is given, and where it is settled",
       "introduced": 1,
-      "recurs": [2, 3],
+      "recurs": [2, 3, 4],
       "source": "Weeping Anchor",
       "memory": {
         "after": 1,
@@ -166,7 +166,7 @@
       "id": "valmeric-ghorrim",
       "what": "Valmeric Dusk named in 2; claims in 3 that Ghorrim was a novice of his own order (subtle)",
       "introduced": 2,
-      "recurs": [3],
+      "recurs": [3, 4],
       "source": "Valmeric",
       "memory": {
         "after": 2,
@@ -182,7 +182,7 @@
       "id": "greywick",
       "what": "Greywick Light: visited in 1, its keeper freed in 2, relit in 3",
       "introduced": 1,
-      "recurs": [2, 3],
+      "recurs": [2, 3, 4],
       "source": "Greywick",
       "memory": {
         "after": 1,
@@ -192,6 +192,70 @@
         "session": 3,
         "outputs": ["tale"],
         "pattern": "greywick|lighthouse"
+      }
+    },
+    {
+      "id": "marigold-link",
+      "what": "The Marigold: Odalys's brother Corin drowned on it (session 3), and Valmeric's sister Maren was lost on it too (session 4)",
+      "introduced": 3,
+      "recurs": [4],
+      "source": "Marigold",
+      "memory": {
+        "after": 4,
+        "pattern": "marigold|maren"
+      },
+      "weave": {
+        "session": 4,
+        "outputs": ["tale", "brief"],
+        "pattern": "marigold.{0,300}(maren|valmeric)|(maren|valmeric).{0,300}marigold"
+      }
+    },
+    {
+      "id": "compass-payoff",
+      "what": "The brass compass: given to Kestrel at the start, offered to the Pale Tide at the end",
+      "introduced": 4,
+      "recurs": [],
+      "source": "brass compass",
+      "memory": {
+        "after": 4,
+        "pattern": "compass"
+      },
+      "weave": {
+        "session": 4,
+        "outputs": ["tale"],
+        "pattern": "compass.{0,400}(pale tide|maren|gave|give|offer|set)|(pale tide|maren|gave|give|offer).{0,400}compass"
+      }
+    },
+    {
+      "id": "osric-long-range",
+      "what": "Osric Fennwater: a name in a ledger in the first hour, the ghost holding the rope in the last",
+      "introduced": 4,
+      "recurs": [],
+      "source": "Osric Fennwater",
+      "memory": {
+        "after": 4,
+        "pattern": "osric"
+      },
+      "weave": {
+        "session": 4,
+        "outputs": ["tale", "brief"],
+        "pattern": "osric.{0,400}(ledger|forty years|rang|rope)|(ledger|forty years|rope).{0,400}osric"
+      }
+    },
+    {
+      "id": "daniel-long-range",
+      "what": "Daniel Winch: missing at the Reach in the middle, found alive in the bell chamber at the end",
+      "introduced": 4,
+      "recurs": [],
+      "source": "Marta Winch",
+      "memory": {
+        "after": 4,
+        "pattern": "daniel|winch"
+      },
+      "weave": {
+        "session": 4,
+        "outputs": ["tale"],
+        "pattern": "daniel"
       }
     }
   ]

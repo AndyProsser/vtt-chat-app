@@ -32,13 +32,17 @@ test('the shipped campaign fixtures are valid', async () => {
   assert.deepEqual(r.errors, []);
 });
 
-test('each shipped session is a believable length, and the whole is about an hour and a half', async () => {
+test('each shipped session is a believable length, and the whole is two and a half hours', async () => {
   const l = await load();
   const rows = stats(l, validate(l));
-  for (const s of rows)
-    assert.ok(s.minutes >= 20 && s.minutes <= 70, `session ${s.n} is ${s.minutes} minutes`);
+  for (const s of rows) {
+    // The ordinary sessions are about 25 minutes; the extended one (session 4) is 60 to 90, to overflow a small model's window.
+    const extended = l.campaign.sessions.find((x) => x.n === s.n)?.extended === true;
+    const [min, max] = extended ? [60, 90] : [20, 40];
+    assert.ok(s.minutes >= min && s.minutes <= max, `session ${s.n} is ${s.minutes} minutes`);
+  }
   const total = rows.reduce((a, s) => a + s.minutes, 0);
-  assert.ok(total >= 60 && total <= 150, `${total} minutes in all`);
+  assert.ok(total >= 120 && total <= 200, `${total} minutes in all`);
 });
 
 test('the silent observer is on the cast and never speaks in the shipped scripts', async () => {
@@ -136,10 +140,10 @@ test('a fact or a callback that is not in the script fails the check', async () 
   const l = await load();
   const bad = structuredClone(l);
   (bad.facts['1'] ?? [])[0]!.source = 'a phrase nobody says';
-  bad.callbacks.callbacks[0]!.recurs = [2, 3, 4];
+  bad.callbacks.callbacks[0]!.recurs = [2, 3, 5];
   const errors = validate(bad).errors.join('\n');
   assert.match(errors, /fact 1\/hire: source/);
-  assert.match(errors, /callback mabel: no session 4/);
+  assert.match(errors, /callback mabel: no session 5/);
 });
 
 test('an unused glossary term fails, a bad kind fails', async () => {

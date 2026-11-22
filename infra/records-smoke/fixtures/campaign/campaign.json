@@ -89,6 +89,12 @@
       "n": 3,
       "title": "The Night of Lamps",
       "file": "session-3.txt"
+    },
+    {
+      "n": 4,
+      "title": "The Bell Under the Waves",
+      "file": "session-4.txt",
+      "extended": true
     }
   ],
   "gmNotes": "gm-notes.md",
@@ -357,6 +363,46 @@
       "term": "Turn Undead",
       "kind": "other",
       "aliases": []
+    },
+    {
+      "term": "Sister Ismay Tallowick",
+      "kind": "person",
+      "aliases": ["Sister Isme Tallowick", "Sister Ismay Tallow Wick"]
+    },
+    {
+      "term": "Osric Fennwater",
+      "kind": "person",
+      "aliases": ["Oswick Fenwater", "Osric Fenwater"]
+    },
+    {
+      "term": "Maren Dusk",
+      "kind": "person",
+      "aliases": ["Marin Dusk"]
+    },
+    {
+      "term": "Marta Winch",
+      "kind": "person",
+      "aliases": ["Marta Wynch"]
+    },
+    {
+      "term": "Wrackwater Reach",
+      "kind": "place",
+      "aliases": ["Rackwater Reach", "Wreckwater Reach"]
+    },
+    {
+      "term": "Marigold",
+      "kind": "other",
+      "aliases": []
+    },
+    {
+      "term": "Pale Tide",
+      "kind": "other",
+      "aliases": ["Pale Tied"]
+    },
+    {
+      "term": "Skelling Bell",
+      "kind": "item",
+      "aliases": ["Skeling Bell"]
     }
   ],
   "canaries": [
@@ -398,6 +444,31 @@
     {
       "word": "rhubarb",
       "session": 3,
+      "how": "spoken while the recording was paused"
+    },
+    {
+      "word": "pistachio",
+      "session": 4,
+      "how": "spoken by a late joiner before they acknowledged the recording cue"
+    },
+    {
+      "word": "pomegranate",
+      "session": 4,
+      "how": "typed with /ooc"
+    },
+    {
+      "word": "radish",
+      "session": 4,
+      "how": "typed with /dm (a whisper to the Game Master)"
+    },
+    {
+      "word": "lychee",
+      "session": 4,
+      "how": "typed with /tell (a whisper to one player)"
+    },
+    {
+      "word": "marzipan",
+      "session": 4,
       "how": "spoken while the recording was paused"
     }
   ],

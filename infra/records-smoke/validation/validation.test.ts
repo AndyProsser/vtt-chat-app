@@ -110,11 +110,12 @@ test("the plan matches the fixtures and the validator's estimate", async () => {
   const l = await load();
   const r = validate(l);
   const plan = planCampaign(l, r);
-  assert.equal(plan.length, 3);
+  assert.equal(plan.length, 4);
   const rows = stats(l, r);
   for (const p of plan) {
+    const [min, max] = l.campaign.sessions.find((x) => x.n === p.n)?.extended ? [60, 95] : [20, 40];
     assert.ok(
-      p.estimatedSec > 20 * 60 && p.estimatedSec < 40 * 60,
+      p.estimatedSec > min * 60 && p.estimatedSec < max * 60,
       `session ${p.n}: ${p.estimatedSec} s`,
     );
     // Steps are in time order and add up to the session's length.

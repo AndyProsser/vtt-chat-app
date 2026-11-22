@@ -35,6 +35,7 @@ import {
   type ArtifactKind,
 } from './score.ts';
 import type { Target } from './target.ts';
+import { describeModelWindow, parseModelWindow } from './window.ts';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- loosely typed JSON from our own API
 type Json = any;
@@ -92,6 +93,7 @@ interface Seat {
 export async function runLive(o: LiveOptions): Promise<LiveResult> {
   const { target, monitor, loaded: l, log } = o;
   const API = target.apiBase;
+  const runStartedIso = new Date().toISOString();
   const checks: Check[] = [];
   const scores: Score[] = [];
   const notes: string[] = [];
@@ -434,6 +436,28 @@ export async function runLive(o: LiveOptions): Promise<LiveResult> {
               await sleep(1000);
               break;
             }
+            case 'handout': {
+              // [handout: Title | text] to everyone, or [handout: Title | text | to Name, Name]
+              const [title, text, to] = arg.split('|').map((x) => x.trim()) as [
+                string,
+                string,
+                string | undefined,
+              ];
+              const made = await ok('POST', `/api/campaigns/${campaignId}/handouts`, dm.token, {
+                title,
+                text,
+              });
+              const id = (made.handout as Json).id as string;
+              const names = to
+                ?.replace(/^to\s+/i, '')
+                .split(',')
+                .map((x) => x.trim());
+              await ok('POST', `/api/campaigns/${campaignId}/handouts/${id}/show`, dm.token, {
+                to: names ? names.map((x) => seats.get(x)!.userId) : 'all',
+              });
+              await sleep(1000);
+              break;
+            }
             case 'late-join': {
               const c = await connect(arg, false);
               const state = c.frames.find((f) => f.t === 'recording.state')?.d.recording as Json;
@@ -751,8 +775,28 @@ export async function runLive(o: LiveOptions): Promise<LiveResult> {
       gmLeaks.map((x) => `${x.word} in ${x.where}`).join('; '),
     );
 
+    // How full the summary model's window got, and whether anything was cut (the chunking test): from Ollama's own log.
+    const ollamaLog = await target
+      .run(
+        `c=$(docker ps --format '{{.Names}}' | grep -i ollama | head -1); [ -n "$c" ] && docker logs --since '${runStartedIso}' "$c" 2>&1 | grep -aE 'n_ctx_slot|stop processing' || true`,
+        120_000,
+      )
+      .catch(() => '');
+    const windowUse = describeModelWindow(parseModelWindow(ollamaLog));
+    scores.push({
+      name: 'summary model: how full its window got',
+      value: windowUse.text,
+      detail: windowUse.notable
+        ? 'A cut prompt loses text without an error: the notes, tale or brief were written from less than the session. Chunking (QUALITY-VALIDATION.md) is what prevents it.'
+        : '',
+    });
+
     const last = Math.max(...o.sessions);
-    const cbScores = scoreCallbacks(l.callbacks.callbacks, memoryAfter, artifacts);
+    // Only the links that can be judged from the sessions that were played (a run of session 4 alone has no memory of 1 to 3).
+    const playedCallbacks = l.callbacks.callbacks.filter((cb) =>
+      o.sessions.includes(cb.memory.after),
+    );
+    const cbScores = scoreCallbacks(playedCallbacks, memoryAfter, artifacts);
     const memOk = cbScores.filter((c) => c.memory).length;
     const weaveKnown = cbScores.filter((c) => c.weave !== undefined);
     scores.push({
