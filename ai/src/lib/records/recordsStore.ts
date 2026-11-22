@@ -123,4 +123,9 @@ export interface RecordsStore {
   /** Account ids of the campaign's players (every member but the DM): who gets a character summary. */
   playerIds(campaignId: string): Promise<string[]>;
   getAiSettings(): Promise<AiSettings>;
+  /**
+   * Whether any table is recording right now (started, not stopped, and started within the last 12 hours, so a
+   * recording left open by a crash cannot hold processing back for ever).
+   */
+  anyRecordingLive(now: number): Promise<boolean>;
 }

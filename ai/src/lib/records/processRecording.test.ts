@@ -82,6 +82,17 @@ beforeEach(async () => {
 });
 
 describe('process-recording handler', () => {
+  it('asks the gate before every model call, so a recording can hold processing back', async () => {
+    let asked = 0;
+    await handler({
+      gate: async () => {
+        asked++;
+      },
+    }).run(job());
+    expect(prompts.length).toBeGreaterThan(0);
+    expect(asked).toBe(prompts.length);
+  });
+
   it('adds up what Claude was asked and records it on the job, even when the job then fails', async () => {
     const claudeCall = { model: 'claude-sonnet-5-5', inputTokens: 1000, outputTokens: 200 };
     const withUsage = (fail: boolean) =>

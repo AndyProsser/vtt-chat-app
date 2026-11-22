@@ -16,6 +16,7 @@ export const DEFAULT_AI_SETTINGS: AiSettings = {
   fallback: { enabled: true, afterSeconds: 600, retrySeconds: 30 },
   tale: { length: 'default', content: 'default', storytellersOff: [] },
   memory: { enabled: true },
+  processing: { pauseWhileRecording: false },
 };
 
 /** The settable keys, in the dotted form the Admin CLI uses, with what each accepts. */
@@ -36,6 +37,8 @@ export const AI_SETTING_KEYS = {
   'ai.fallback.after-seconds': 'whole number of seconds, 0 = immediately',
   'ai.fallback.retry-seconds': 'whole number of seconds, at least 1',
   'ai.memory.enabled': 'true | false (campaign memory: one more model call per session)',
+  'ai.pause-while-recording':
+    'true | false (local AI waits while any table is recording; delays tales, protects the recording on a busy machine)',
   'ai.tale.length': 'short (CPU-only) | default | long (GPU or cloud)',
   'ai.tale.content': 'clean | default | graphic',
   'ai.storyteller.tavern': 'on (the Tavern Bard cannot be turned off)',
@@ -155,6 +158,9 @@ export function setAiSetting(settings: AiSettings, key: AiSettingKey, value: str
     case 'ai.memory.enabled':
       next.memory.enabled = parseBool(value);
       break;
+    case 'ai.pause-while-recording':
+      next.processing.pauseWhileRecording = parseBool(value);
+      break;
     case 'ai.fallback.after-seconds':
       next.fallback.afterSeconds = parseSeconds(value, 0);
       break;
@@ -235,6 +241,7 @@ export function normaliseAiSettings(raw: unknown): AiSettings {
   const f = o.fallback ?? {};
   const ta = o.tale ?? {};
   const m = o.memory ?? {};
+  const pr = o.processing ?? {};
   const oneOf = <T extends string>(v: unknown, list: readonly T[], fallback: T): T =>
     typeof v === 'string' && (list as readonly string[]).includes(v) ? (v as T) : fallback;
   return {
@@ -258,6 +265,12 @@ export function normaliseAiSettings(raw: unknown): AiSettings {
       retrySeconds: int(f.retrySeconds, d.fallback.retrySeconds, 1),
     },
     memory: { enabled: typeof m.enabled === 'boolean' ? m.enabled : d.memory.enabled },
+    processing: {
+      pauseWhileRecording:
+        typeof pr.pauseWhileRecording === 'boolean'
+          ? pr.pauseWhileRecording
+          : d.processing.pauseWhileRecording,
+    },
     tale: {
       length: oneOf(ta.length, TALE_LENGTHS, d.tale.length),
       content: oneOf(ta.content, TALE_CONTENTS, d.tale.content),

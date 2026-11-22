@@ -67,6 +67,7 @@ import {
   PURGE_RECORDING_JOB,
   scheduleRetentionPurges,
 } from '../lib/records/purgeRecording.js';
+import { createQuietGate } from '../lib/records/quietGate.js';
 import { freePercentOf, sweepDiskPurges } from '../lib/records/diskPurge.js';
 import { transcribeTrackFile } from '../lib/records/transcribeTrack.js';
 import { createOpenAiTranscribe, fitsAudioContext } from '../lib/providers/openaiCompat.js';
@@ -133,8 +134,11 @@ async function main(): Promise<void> {
     : undefined;
   const hold = { signal: abort.signal };
 
+  const records = new PostgresRecordsStore(pool);
   const handler = createProcessRecordingHandler({
-    records: new PostgresRecordsStore(pool),
+    records,
+    // Local AI waits while a table records, when ai.pause-while-recording is on.
+    gate: createQuietGate({ records, log }),
     localTranscribe: (language, prompt) =>
       localUrl && whisperReady
         ? holdForWhisper(
@@ -166,7 +170,6 @@ async function main(): Promise<void> {
     log,
   });
 
-  const records = new PostgresRecordsStore(pool);
   const queue = new PostgresJobQueue(pool);
   const recordingsDir = process.env.RECORDINGS_DIR;
   const deleteFile = async (file: string): Promise<boolean> => {

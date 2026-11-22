@@ -254,4 +254,8 @@ export class MemoryRecordsStore implements RecordsStore {
   players = new Map<string, string[]>();
   playerIds = async (campaignId: string) => [...(this.players.get(campaignId) ?? [])];
   getAiSettings = async () => this.aiSettings;
+  anyRecordingLive = async (now: number) =>
+    [...this.recordings.values()].some(
+      (r) => r.status === 'recording' && r.stoppedAt === null && r.startedAt > now - 12 * 3_600_000,
+    );
 }

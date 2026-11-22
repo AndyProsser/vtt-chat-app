@@ -31,7 +31,7 @@ export const DEFAULT_ERROR_PATTERN =
   '\\b(error|warn|warning|panic|fatal|oom|unhandled|exception|econnrefused|enotfound|timed? ?out|failed)\\b';
 /** Lines that look like errors and are not: health probes, info-level logs that mention a word, "0 errors". */
 export const DEFAULT_IGNORE_PATTERN =
-  'level=info|"level":"info"|\\sINFO\\s|\\sDEBUG\\s|Discard success message|healthcheck|/api/health|0 errors|no errors|error_log off';
+  'level=info|"level":"info"|\\sINFO\\s|\\sDEBUG\\s|Discard success message|Failed to ping without candidate pairs|could not match local candidate|error reading data channel.*User Initiated Abort|healthcheck|/api/health|0 errors|no errors|error_log off';
 
 export interface Sample {
   t: string;

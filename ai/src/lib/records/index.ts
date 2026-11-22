@@ -5,3 +5,4 @@ export * from './purgeRecording.js';
 export * from './diskPurge.js';
 export * from './recordsStore.js';
 export * from './transcribeTrack.js';
+export * from './quietGate.js';

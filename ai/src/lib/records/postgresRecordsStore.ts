@@ -60,6 +60,9 @@ const toTrack = (r: Row): RecordingTrack => ({
 });
 
 /** The records tables of `backend/migrations/0003_records.sql`. */
+/** A recording still open after this long is taken as abandoned, not live. */
+const LIVE_RECORDING_MAX_MS = 12 * 3_600_000;
+
 export class PostgresRecordsStore implements RecordsStore {
   constructor(private readonly pool: pg.Pool) {}
 
@@ -577,5 +580,13 @@ export class PostgresRecordsStore implements RecordsStore {
   async getAiSettings(): Promise<AiSettings> {
     const { rows } = await this.pool.query<Row>('SELECT ai FROM instance_settings WHERE id = 1');
     return normaliseAiSettings(rows[0]?.ai);
+  }
+
+  async anyRecordingLive(now: number): Promise<boolean> {
+    const { rows } = await this.pool.query(
+      `SELECT 1 FROM recordings WHERE status = 'recording' AND stopped_at IS NULL AND started_at > $1 LIMIT 1`,
+      [now - LIVE_RECORDING_MAX_MS],
+    );
+    return rows.length > 0;
   }
 }

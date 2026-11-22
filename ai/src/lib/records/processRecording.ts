@@ -50,6 +50,8 @@ export interface ProcessRecordingDeps {
   };
   now?: () => number;
   log?: (line: string) => void;
+  /** Asked before each Whisper window and model call (`createQuietGate`); absent means never wait. */
+  gate?: () => Promise<void>;
   /** Overridable for tests that inject `fetch`. */
   buildProviders?: typeof buildJobProviders;
 }
@@ -100,6 +102,16 @@ export function createProcessRecordingHandler(deps: ProcessRecordingDeps): JobHa
       onFallback: (what, reason) => log(`${recording.id}: ${what} fell back to local — ${reason}`),
     });
 
+    // Local AI waits here while a table is recording, when the operator has asked for that (quietGate.ts).
+    const gate = deps.gate;
+    const gated = <A extends unknown[], R>(call: (...args: A) => Promise<R>) =>
+      gate
+        ? async (...args: A): Promise<R> => {
+            await gate();
+            return call(...args);
+          }
+        : call;
+
     // 1. Transcribe each track that has not been done yet.
     for (const track of await deps.records.listTracks(recording.id)) {
       if (track.private) {
@@ -108,7 +120,10 @@ export function createProcessRecordingHandler(deps: ProcessRecordingDeps): JobHa
       }
       if (track.transcribedAt !== null) continue;
       log(`${recording.id}: transcribing ${track.speakerName}`);
-      const heard = await deps.transcribeAudioFile(track.filePath, providers.transcribe.call);
+      const heard = await deps.transcribeAudioFile(
+        track.filePath,
+        gated(providers.transcribe.call),
+      );
       const segments =
         mode === 'corrections' || mode === 'both' ? correctSegments(heard, vocabulary) : heard;
       await deps.records.saveTrackTranscript(track.id, segments, now());
@@ -189,7 +204,10 @@ export function createProcessRecordingHandler(deps: ProcessRecordingDeps): JobHa
     // session is one stretch. Taken only when a summary still needs them, so a finished job re-run costs nothing.
     // The notes of the whole session are also stored, for the Game Master to read (below). A job that died
     // mid-way still takes them again: the stored copy is for reading, the transcripts (the slow part) are kept.
-    const models: SummaryModels = { scribe: providers.generate.call, bard: providers.story.call };
+    const models: SummaryModels = {
+      scribe: gated(providers.generate.call),
+      bard: gated(providers.story.call),
+    };
     const chapters = plan.filter((p) => p.kind === 'chapter');
     const byChapter =
       chapters.length > 0 &&

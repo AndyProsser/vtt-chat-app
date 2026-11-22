@@ -212,10 +212,11 @@ export function findings(s: RunSummary): string[] {
       `${s.sampling.failed} of ${s.sampling.samples} samples failed (the monitor could not reach the target); gaps are not filled in.`,
     );
   const swap = Math.max(0, ...s.phases.map((p) => p.swapUsedBytes?.max ?? 0));
+  const start = s.phases[0]?.swapUsedBytes?.max ?? 0;
   // A few hundred KiB is the kernel parking idle pages, not pressure; a lot of swap is.
   if (swap > 64 * 1024 * 1024)
     f.push(
-      `Swap was in use (up to ${fmtBytes(swap)}): the machine ran short of memory at some point.`,
+      `Swap was in use (up to ${fmtBytes(swap)}${start > 0 ? `, from ${fmtBytes(start)} at the start` : ''}): the machine ran short of memory at some point. Check \`swapon --show\`: swap held in compressed RAM (zram) costs CPU, not disk speed.`,
     );
   for (const c of s.containers) {
     if (c.oomKilled) f.push(`${c.name} was killed for running out of memory.`);

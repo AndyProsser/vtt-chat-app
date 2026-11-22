@@ -163,4 +163,16 @@ describe('the tale settings', () => {
     });
     expect(out.tale).toEqual({ length: 'default', content: 'graphic', storytellersOff: ['bored'] });
   });
+
+  it('pause local processing while a table records: off by default, settable, repaired when junk', () => {
+    expect(DEFAULT_AI_SETTINGS.processing.pauseWhileRecording).toBe(false);
+    const on = setAiSetting(DEFAULT_AI_SETTINGS, 'ai.pause-while-recording', 'true');
+    expect(on.processing.pauseWhileRecording).toBe(true);
+    expect(() => setAiSetting(on, 'ai.pause-while-recording', 'sometimes')).toThrow(SettingError);
+    expect(normaliseAiSettings({}).processing.pauseWhileRecording).toBe(false);
+    expect(
+      normaliseAiSettings({ processing: { pauseWhileRecording: 'yes' } }).processing
+        .pauseWhileRecording,
+    ).toBe(false);
+  });
 });

@@ -66,4 +66,10 @@ export interface AiSettings {
    * slow CPU-only server may turn it off to save that call.
    */
   memory: { enabled: boolean };
+  /**
+   * Local AI work (transcribing, the model's calls) waits while any table is recording, so a recording's own services
+   * (LiveKit, Egress) never compete with it for the CPU. Off by default: it delays the tales, and a server with a
+   * strong GPU or a cloud backend does not need it. The call in progress finishes first (minutes, not the whole job).
+   */
+  processing: { pauseWhileRecording: boolean };
 }

@@ -63,6 +63,8 @@ flowchart LR
 
 What it stresses, and what is scored, is in [QUALITY-VALIDATION.md](docs/architecture/QUALITY-VALIDATION.md): word accuracy and speaker attribution against the script, whether planted facts and names survive Whisper, the scribe, the Chronicler and memory, whether anything private leaks, and the cost (time, CPU, memory, cloud tokens) of a real-length session on the VM's CPU defaults, on the GPU PC and on Claude.
 
+**First full run (2026-11-21 to 22): a success, with leads.** Everything passed (recording, privacy, ordering, no restarts), processing took 2.6 to 4.4 hours a session, and the leads are: names (70 to 77 % heard right), a model window that is 98.6 % full at 25 minutes (chunking is a must), hero summaries that are slow and written for a silent observer, a hot microphone producing invented lines, and the load of recording while processing. Two safeguards for the last were built straight away (CPU priority in Compose, and `ai.pause-while-recording`); the rest is read in [QUALITY-VALIDATION.md](docs/architecture/QUALITY-VALIDATION.md#results-of-the-first-full-run-2026-11-21-to-22-local-7-h-37-min) and [READINESS.md](docs/READINESS.md).
+
 ### B. Everything else that moves here
 
 Besides the demo campaign, Stage 13 holds every check that Stages 9 to 12 built and never ran for real, **split by who can validate it**: the harness (automated), the harness plus a person's judgement, and manual or external. The full tables are in [QUALITY-VALIDATION.md](docs/architecture/QUALITY-VALIDATION.md#the-other-checks-that-moved-into-stage-13). In groups:
