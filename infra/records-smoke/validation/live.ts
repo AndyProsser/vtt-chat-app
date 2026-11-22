@@ -508,7 +508,11 @@ export async function runLive(o: LiveOptions): Promise<LiveResult> {
           else
             // A scripting mistake in the fixture (the wrong command, a bad name) must not take the whole
             // run down: log it as a failed check and play on, the way a real table would shrug it off.
-            check(`session ${n}: line ${i} ("${e.text}") was accepted by the composer`, false, parsed.message);
+            check(
+              `session ${n}: line ${i} ("${e.text}") was accepted by the composer`,
+              false,
+              parsed.message,
+            );
           await sleep(1200);
         }
       }

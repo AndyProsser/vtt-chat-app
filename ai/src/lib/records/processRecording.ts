@@ -251,7 +251,9 @@ export function createProcessRecordingHandler(deps: ProcessRecordingDeps): JobHa
       // each reach that cap and together run well past it. Share the whole session's word budget across them
       // instead, so the stored notes stay near one cap rather than `chapters.length` of them.
       const chapterMaxWords =
-        chapters.length > 0 ? Math.max(300, Math.round(NOTES_MAX_WORDS / chapters.length)) : undefined;
+        chapters.length > 0
+          ? Math.max(300, Math.round(NOTES_MAX_WORDS / chapters.length))
+          : undefined;
       const parts = byChapter
         ? await Promise.all(
             chapters.map(async (c) => ({
