@@ -134,6 +134,7 @@ export function buildJobProviders(settings: AiSettings, deps: ProviderDeps): Job
           baseUrl: settings.llm.url,
           model: settings.llm.model ?? 'default',
           sampling,
+          noThinking: true,
           ...(deps.env?.LLM_API_KEY ? { apiKey: deps.env.LLM_API_KEY } : {}),
           ...common,
         })

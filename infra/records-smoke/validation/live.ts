@@ -34,6 +34,7 @@ import {
   type Artifact,
   type ArtifactKind,
 } from './score.ts';
+import { execFile } from 'node:child_process';
 import type { Target } from './target.ts';
 import { describeModelWindow, parseModelWindow } from './window.ts';
 
@@ -776,12 +777,30 @@ export async function runLive(o: LiveOptions): Promise<LiveResult> {
     );
 
     // How full the summary model's window got, and whether anything was cut (the chunking test): from Ollama's own log.
-    const ollamaLog = await target
-      .run(
-        `c=$(docker ps --format '{{.Names}}' | grep -i ollama | head -1); [ -n "$c" ] && docker logs --since '${runStartedIso}' "$c" 2>&1 | grep -aE 'n_ctx_slot|stop processing' || true`,
-        120_000,
-      )
-      .catch(() => '');
+    // With the AI offloaded the model runs on another machine: VTT_AI_LOG_CMD is a command that prints that machine's Ollama
+    // log since $SINCE (for example `journalctl -u ollama --since "$SINCE" --no-pager` on the machine running this tool).
+    const aiLogCmd = process.env.VTT_AI_LOG_CMD;
+    const ollamaLog = await (aiLogCmd
+      ? new Promise<string>((resolve) =>
+          execFile(
+            'bash',
+            ['-c', `${aiLogCmd} | grep -aE 'n_ctx_slot|stop processing' || true`],
+            {
+              env: {
+                ...process.env,
+                SINCE: runStartedIso.replace('T', ' ').replace(/\.\d+Z$/, ' UTC'),
+              },
+              maxBuffer: 64 * 1024 * 1024,
+            },
+            (_error, stdout) => resolve(String(stdout ?? '')),
+          ),
+        )
+      : target
+          .run(
+            `c=$(docker ps --format '{{.Names}}' | grep -i ollama | head -1); [ -n "$c" ] && docker logs --since '${runStartedIso}' "$c" 2>&1 | grep -aE 'n_ctx_slot|stop processing' || true`,
+            120_000,
+          )
+          .catch(() => ''));
     const windowUse = describeModelWindow(parseModelWindow(ollamaLog));
     scores.push({
       name: 'summary model: how full its window got',

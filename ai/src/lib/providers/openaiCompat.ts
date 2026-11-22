@@ -180,6 +180,13 @@ export interface OpenAiGenerateOptions extends OpenAiCompatOptions {
   sampling?: Sampling;
   /** Send no `temperature` or `presence_penalty`: OpenAI's own current models reject them. */
   noSampling?: boolean;
+  /**
+   * Ask a reasoning model not to think aloud first (`reasoning_effort: "none"`, which Ollama, vLLM and others accept). A
+   * summary is not hard reasoning: on Qwen3 the thinking was 15 times the answer (297 tokens for a 30-token reply), and
+   * those tokens eat the same window as the prompt, so on a nearly full prompt they cut it. A server that does not know
+   * the field ignores it.
+   */
+  noThinking?: boolean;
   /** Called after each successful call with the tokens it used (`usage` in the reply), when the server reports them. */
   onUsage?: (usage: { model: string; inputTokens: number; outputTokens: number }) => void;
 }
@@ -195,6 +202,7 @@ export function createOpenAiGenerate(options: OpenAiGenerateOptions): GenerateTe
         model: options.model,
         messages: [{ role: 'user', content: prompt }],
         stream: false,
+        ...(options.noThinking ? { reasoning_effort: 'none' } : {}),
         ...(options.noSampling
           ? {}
           : { temperature: sampling.temperature, presence_penalty: sampling.presencePenalty }),

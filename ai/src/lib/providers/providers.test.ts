@@ -242,6 +242,23 @@ describe('createOpenAiGenerate', () => {
     });
   });
 
+  it('asks a reasoning model not to think aloud only when told to', async () => {
+    const fetchImpl = vi.fn(async () => json({ choices: [{ message: { content: 'ok' } }] }));
+    const body = (i: number) =>
+      JSON.parse((fetchImpl.mock.calls[i] as unknown as [string, RequestInit])[1].body as string);
+    await createOpenAiGenerate({ baseUrl: 'http://x', model: 'm', fetchImpl: asFetch(fetchImpl) })(
+      'p',
+    );
+    await createOpenAiGenerate({
+      baseUrl: 'http://x',
+      model: 'm',
+      noThinking: true,
+      fetchImpl: asFetch(fetchImpl),
+    })('p');
+    expect(body(0)).not.toHaveProperty('reasoning_effort');
+    expect(body(1)).toMatchObject({ reasoning_effort: 'none' });
+  });
+
   it('errors on a reply with no content', async () => {
     const generate = createOpenAiGenerate({
       baseUrl: 'http://x',
