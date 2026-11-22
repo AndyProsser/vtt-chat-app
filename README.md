@@ -16,7 +16,7 @@ The part nothing else gives a table: **it remembers the session for you.** The s
 - **Pick your storyteller.** Each campaign chooses its bard: the grandiose Tavern Bard, the exact Dry Historian, the unreliable Tipsy Minstrel, the Wry Jester or the Bored Court Scribe. Each has its own voice. This is built and unit-tested; it has not yet been read on real sessions (see [Stage 13](ROADMAP.md)).
 - **Recording is never a secret.** Every recording starts with a visible and audible cue, and private talk is never recorded.
 
-Where the project stands is in the [roadmap](ROADMAP.md), the [changelog](CHANGELOG.md) and [what is built and verified](docs/BUILD-STATUS.md). The rest of this page is how to run it.
+Where the project stands is in the [roadmap](ROADMAP.md) (Stage 13, end-to-end validation with a reusable demo campaign, is under way: the first full run passed, and the readiness list shows what is still unproven), the [changelog](CHANGELOG.md) and [what is built and verified](docs/BUILD-STATUS.md). The rest of this page is how to run it.
 
 <p align="center">
   <img src="docs/images/screens/desktop-table-gm.png" alt="The desktop app during a session: the table down the left, chat with in-character lines, a whisper and a loot drop, and a recording running" width="310">
@@ -141,7 +141,9 @@ Each module has its own `README.md` describing its purpose and current status.
 - [docs/architecture/RECORDING-AND-SUMMARIES.md](docs/architecture/RECORDING-AND-SUMMARIES.md) — recording, consent cue, transcription, summaries
 - [docs/architecture/DEPLOYMENT-AND-TRANSPORT.md](docs/architecture/DEPLOYMENT-AND-TRANSPORT.md) — self-host topology, ports, TURN, optional cloud adapters
 - [docs/architecture/STATE-AND-RESILIENCE.md](docs/architecture/STATE-AND-RESILIENCE.md) — state boundaries and recovery rules for long sessions
-- [docs/architecture/QUALITY-VALIDATION.md](docs/architecture/QUALITY-VALIDATION.md) — how the whole system is tested end to end with a long synthetic session (Stage 13)
+- [docs/architecture/QUALITY-VALIDATION.md](docs/architecture/QUALITY-VALIDATION.md) — how the whole system is tested end to end with a long synthetic session (Stage 13; the first full run and its results are in it)
+- [docs/READINESS.md](docs/READINESS.md) — the go / no-go list for switching a real group over, with the evidence for each bar
+- [infra/compose/remote-ai/](infra/compose/remote-ai/README.md) — run Whisper (and Ollama) on a GPU machine for a server that has none
 - [docs/CONVENTIONS.md](docs/CONVENTIONS.md) — folder/style conventions in detail
 - [docs/archive/](docs/archive/README.md) — the previous (DDB-overlay) design, kept for reference
 

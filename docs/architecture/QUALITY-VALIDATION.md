@@ -142,6 +142,27 @@ Runs 4 and 5 spend real money and send the (synthetic) session off the server; e
 6. **The soak** (run 6), and the human-only checks from the roadmap table (the real desktop client in the room, the phone, the Intel Mac, the Windows microphone).
 7. **Close**: results in [BUILD-STATUS.md](../BUILD-STATUS.md), the screenshots redone, the throwaway audio and text deleted.
 
+## Where it stands (2026-11-22)
+
+| Step in the order of work              | State | Notes                                                                                                                                                                                                                         |
+| -------------------------------------- | ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. A real Postgres                     | ✅    | The job-queue ordering and all database-only tests pass against a real Postgres 17 (the backend's 855 and the worker's 320 tests).                                                                                            |
+| 2. The demo campaign and its validator | ✅    | Four sessions, 61 glossary terms, 16 callbacks, 13 canaries, 84 facts; session 4 is the extended one. The audio degradations (a fifth voice, noise) are still to do.                                                          |
+| 3. The runner and the monitor          | ✅    | Plus `[handout: …]`, the pack, the model-window reading and callbacks scored only for the sessions played.                                                                                                                    |
+| 4. Run 1, then read everything         | 🟡    | The first full run was on the dev PC (GPU, local AI), not the VM; the tales and the DM-only brief are in the reading pack for Andy to read. The CPU-only baseline is replaced by the offloaded run below.                     |
+| 5. Runs 2 to 5, one change at a time   | 🟡    | Run 2 (dev PC, local AI): done. Run 3 (the GPU PC as the remote backend for both Whisper and the model, with the VM doing recording only): set up 2026-11-22, session 4 is its test. Runs 4 and 5 (cloud) need Andy's say-so. |
+| 6. The soak, and the human-only checks | ⚪    | Not started.                                                                                                                                                                                                                  |
+| 7. Close                               | ⚪    | After the above.                                                                                                                                                                                                              |
+
+### What the runs found beyond the scores
+
+- **Egress's log noise** is harmless (IPv6 link-local candidates and track-close aborts); the monitor ignores it.
+- **Recording while processing** did no measurable harm on the dev PC, but the CPU reached 98 %: CPU priority in the Compose file and `ai.pause-while-recording` were built as safeguards. Offloading the AI is the other answer, and run 3 measures it: with Whisper and the model on another machine, does the VM's load during recording differ?
+- **Swap** looked alarming (15.9 GiB) and was mostly zram (compressed RAM), 5 GiB of it already in use before the run.
+- **A remote reasoning model thinks aloud** unless told not to (297 tokens for a 30-token reply on Qwen3 over the OpenAI-compatible API), and those tokens share the window with the prompt. Fixed in the worker (`reasoning_effort: "none"` for `remote` models).
+- **The remote path works**: the VM's worker reached the dev PC's Ollama and Whisper over the LAN (checked 2026-11-22). A ready-made Compose file for the GPU machine is in `infra/compose/remote-ai/`.
+- **Updating Ollama to 0.40.17** moves it to a new runner (`llama-server`); the first load of a model after the update is slow (see the next section for the measurement).
+
 ## What it cannot show
 
 - **Voices are not tested by the track layout.** The server records one track per speaker, so "who spoke" comes from which track a sound is on, not from recognising a voice. That is the design, and it means the attribution score checks the mapping, not any acoustic skill. Crosstalk and bleed between microphones are the realistic risk and only the degraded runs approximate them.
