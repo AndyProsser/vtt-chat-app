@@ -76,7 +76,7 @@ no protocol change, so 0.6.1 apps and servers work together. **Operators:** upda
 ### Known limits
 
 - **A very long session (past about an hour) can still overflow the summary model's context window.** The scribe already works a stretch at a time, but the tale, the Chronicler's brief and campaign memory each still read the whole set of notes in one prompt. A token-aware, chunked version of these is designed but not yet built; see [QUALITY-VALIDATION.md](docs/architecture/QUALITY-VALIDATION.md#fitting-a-long-session-in-the-models-window).
-- **Transcription accuracy varies with the Whisper backend and the network to it.** A remote Whisper having a slow moment can drag down word and glossary accuracy for that session; not yet root-caused.
+- **A long, continuous speaker (the Game Master narrating for a while) can lose some of what they said.** Measured on session 4: every speaker's track was missing roughly a third to half its words, worst for the Game Master. The leading suspect is `large-v3-turbo`'s known tendency to repeat itself rather than keep decoding a long window (seen and noted in this codebase on 2026-11-16, for a different reason); `DEFAULT_MAX_WINDOW_MS` lets merged speech run to 60 s, long enough to risk it. Not yet confirmed or fixed; see the investigation note this release adds to [QUALITY-VALIDATION.md](docs/architecture/QUALITY-VALIDATION.md).
 
 ## [0.6.1] - 2026-11-20
 

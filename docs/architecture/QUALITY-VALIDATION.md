@@ -270,6 +270,35 @@ Three sessions played on the dev PC (Core i7-4790K, 32 GiB, GTX 1080, `qwen3:8b`
 
 **How to run it.** `node infra/records-smoke/campaign-run.ts live --target vm --sessions 4` (alone, a clean campaign), or `--sessions 1,2,3,4` (the threading across all four). Dry check: `campaign-run.ts dry --sessions 4`.
 
+### First run of session 4 (2026-11-22, remote Whisper/Ollama on a GPU PC, `v0.6.2-dev.6`)
+
+Played twice: the first attempt crashed 28 minutes in on a fixture bug (the Game Master's `/dm` line should
+have been `/tell`, since `/dm` is player-to-DM only; fixed, and the live runner now logs a refused composer
+line as a failed check instead of stopping the whole run). The retry completed cleanly end to end: no canary
+or Game Master secret leaked, the start cue and the late joiner's unacknowledged state both checked out, and
+the retuned tale/brief/notes lengths (RECORDING-AND-SUMMARIES.md) measured right where they were meant to:
+a 206-word tale, a ~222-word Chronicler's brief, ~2,300 words of notes (down from session 1's 748, 236 and
+4,388 respectively).
+
+**A real transcription problem, not the one this session was built to find.** Word accuracy came back low for
+every speaker (0.43 to 0.61, against 0.80 to 0.97 on the first full run) and glossary accuracy at 36 %. The
+first guess — a slow remote Whisper track — was wrong: `docker compose logs worker` shows the apparent
+27-minute "stall" was the Game Master's own track (`transcribing Rowan` to the next `transcribing …` line),
+and a track simply takes time in proportion to how much that person talked; the dev-PC run's own log shows
+the same speaker-proportional pattern. The real finding, from comparing the transcript's word count per
+speaker against the script: **every speaker's track is missing roughly a third to half its words** (Rowan
+4,031 of 6,448; the four players similarly down from 743–866 each), spread fairly evenly rather than
+concentrated at one point — so this is not (only) the long-session threading problem the session was built
+to test. The leading suspect is `large-v3-turbo`'s documented tendency to repeat itself rather than keep
+decoding a long window (`openaiCompat.ts`, found 2026-11-16 for a different reason: a shortened `audio_ctx`
+made it loop). `fitAudioContext` is never set for the remote connector (`providers/fromSettings.ts`), so that
+exact cause is ruled out, but `DEFAULT_MAX_WINDOW_MS` (60 s, `ai/src/consts/index.ts`) lets a speaker's
+nearby lines merge into windows that long, and a narrating Game Master produces many of them. **Not yet
+confirmed**: whether shortening the window, trying a non-`turbo` model, or a whisper.cpp setting on the
+remote server (temperature fallback, a repetition guard) fixes it. A small script transcribing one known
+60-second clip of continuous narration, against `large-v3-turbo` and another model, would confirm or rule
+this out quickly.
+
 ## Fitting a long session in the model's window
 
 **The problem (Andy, 2026-11-21).** A model reads a fixed number of tokens at once. The scribe already works in pieces (the transcript is split by chapter and by length, notes are merged and condensed within a stretch), but the later steps are not: the **tale**, the **Chronicler's brief** and the **memory** update each read the **whole** set of notes in one prompt, plus instructions, the glossary and the memory. At 25 minutes that is 5,092 of 8,192 tokens. At 60 minutes it would not fit, and the failure is silent: the server drops the oldest tokens, which are the instructions.
