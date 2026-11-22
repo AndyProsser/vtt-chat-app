@@ -448,9 +448,10 @@ whole system, but its AI is slow: Whisper `small` takes about 0.3x the length of
 transcribes in roughly 80 minutes, and a summary on the CPU takes minutes and, with the small model, can invent
 details. A GPU PC does the same work in minutes with the better models. So:
 
-1. On the gaming PC run Ollama and a Whisper server that speaks the OpenAI-compatible API (the repo's
-   `infra/compose/whisper-cuda.Dockerfile` builds one for GTX 10-series and newer cards), pull `qwen3:8b`, and let
-   them listen on the LAN (for Ollama set `OLLAMA_HOST=0.0.0.0`; allow the ports only from the VM, never the internet).
+1. On the gaming PC run Ollama and a Whisper server that speak the OpenAI-compatible API. The repo has a ready-made Compose
+   file for the Whisper half (and Ollama, if it is not already installed there): [`infra/compose/remote-ai/`](../../infra/compose/remote-ai/README.md)
+   (its CUDA image covers GTX 10-series and newer cards). Pull `qwen3:8b`, and let them listen on the LAN address only (a host-installed
+   Ollama needs `OLLAMA_HOST` set and `OLLAMA_CONTEXT_LENGTH=8192`; allow the ports only from the VM, never the internet).
 2. On the VM, point the worker at it, with the VM's own CPU as the fallback:
 
    ```bash

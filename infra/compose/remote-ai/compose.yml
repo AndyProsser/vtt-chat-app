@@ -1,0 +1,90 @@
+# The AI on another machine: Whisper (and, if you want it, Ollama) for a VTT Chat server that has no GPU.
+#
+# Run this on the machine with the GPU (a gaming PC on the LAN), NOT on the server. It needs the NVIDIA driver and the
+# NVIDIA Container Toolkit with CDI (`nvidia-ctk cdi list` shows nvidia.com/gpu=all). Then, on the server:
+#
+#   vtt-admin settings set ai.transcription.kind remote
+#   vtt-admin settings set ai.transcription.url  http://<this-machine>:8080
+#   vtt-admin settings set ai.transcription.model large-v3-turbo
+#   # and, if Ollama runs here too (profile "ollama"):
+#   vtt-admin settings set ai.llm.kind  remote
+#   vtt-admin settings set ai.llm.url   http://<this-machine>:11434
+#   vtt-admin settings set ai.llm.model qwen3:8b
+#
+# Setup:   cp .env.example .env   (set AI_BIND to this machine's LAN address), then
+#          docker compose up -d --build              Whisper only (the first build takes about 30 minutes, ~5.8 GB)
+#          docker compose --profile ollama up -d     Whisper and Ollama (skip the profile if Ollama already runs on this machine)
+#
+# Why AI_BIND is not 0.0.0.0 by default: neither service has a password. Bind them to the LAN address only, allow the ports
+# from the server only (a firewall rule), and never forward them from the router. A remote that is off, asleep or
+# unreachable makes the server's jobs wait, and after `ai.fallback.after-seconds` finish on the server's own CPU: nothing is lost.
+#
+# This is the same Whisper image and settings as the GPU override of the main stack (../compose.gpu.yml); it is a separate
+# file so it can run on a different machine from the server.
+name: vtt-remote-ai
+
+x-hardened: &hardened
+  security_opt: ['no-new-privileges:true']
+  cap_drop: [ALL]
+
+services:
+  whisper:
+    <<: *hardened
+    cap_add: [DAC_READ_SEARCH]
+    image: ${WHISPER_GPU_IMAGE:-vtt-whisper-cuda}
+    build:
+      context: ..
+      dockerfile: whisper-cuda.Dockerfile
+      args:
+        CUDA_ARCHS: ${CUDA_ARCHS:-61;75;86;89}
+    restart: unless-stopped
+    devices: ['nvidia.com/gpu=all']
+    # whisper-idle.py listens on 8080 and runs whisper-server only while there is work, so the GPU is free between sessions.
+    entrypoint:
+      [
+        'sh',
+        '/whisper-start.sh',
+        'run',
+        'python3',
+        '/app/whisper-idle.py',
+        '/app/build/bin/whisper-server',
+      ]
+    command:
+      - -m
+      - /models/${WHISPER_MODEL_FILE:-ggml-large-v3-turbo-q5_0.bin}
+      - --inference-path
+      - /v1/audio/transcriptions
+      - -l
+      - ${WHISPER_LANGUAGE:-en}
+    environment:
+      WHISPER_MODEL_FILE: ${WHISPER_MODEL_FILE:-ggml-large-v3-turbo-q5_0.bin}
+      WHISPER_IDLE_SECONDS: ${WHISPER_IDLE_SECONDS:-60}
+    ports: ['${AI_BIND:-127.0.0.1}:${WHISPER_PORT:-8080}:8080']
+    volumes:
+      - whisper-models:/models
+      - ../whisper-start.sh:/whisper-start.sh:ro
+    healthcheck:
+      test: ['CMD', 'sh', '/whisper-start.sh', 'health']
+      interval: 60s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+
+  # Only when Ollama does not already run on this machine (a host install on 11434 is fine and is the usual case).
+  ollama:
+    <<: *hardened
+    profiles: [ollama]
+    image: ollama/ollama:${OLLAMA_VERSION:-0.40.17}
+    restart: unless-stopped
+    devices: ['nvidia.com/gpu=all']
+    environment:
+      # The server's worker talks to Ollama's OpenAI-compatible API, which takes its window from here, not from the request:
+      # the records pipeline is written for 8,192 tokens.
+      OLLAMA_CONTEXT_LENGTH: ${OLLAMA_CONTEXT_LENGTH:-8192}
+      OLLAMA_KEEP_ALIVE: ${OLLAMA_KEEP_ALIVE:-2m}
+    ports: ['${AI_BIND:-127.0.0.1}:${OLLAMA_PORT:-11434}:11434']
+    volumes: [ollama-data:/root/.ollama]
+
+volumes:
+  whisper-models:
+  ollama-data:
