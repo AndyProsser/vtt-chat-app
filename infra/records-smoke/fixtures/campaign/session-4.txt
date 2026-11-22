@@ -188,7 +188,7 @@ Rowan: She says, you will not find him. You will find the bell. And I will pay y
 Priya: What is her name? Kestrel asks, and writes it down.
 Rowan: She says, Marta Winch. And my grandson is Daniel.
 Priya (typed): /dm Rowan, quick one: does Kestrel notice anything off about the old woman? radish.
-Rowan (typed): /dm you notice she is lying about something small, probably her grandson's age. keep it to yourself
+Rowan (typed): /tell Priya you notice she is lying about something small, probably her grandson's age. keep it to yourself
 Priya (typed): /dm noted, I say nothing
 Rowan: Before she gives you the map she says, you will eat. Nobody goes out to Skelling on an empty stomach, and nobody comes back from it with a full one. The fishermen lead you to the only shop at the Reach, a lean-to against the harbour wall with a tarpaulin roof, a barrel of salt herring, a rack of tarred rope, and a stall-holder called Pell who sells everything and apologises for all of it.
 [scene: Market]

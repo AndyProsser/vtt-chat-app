@@ -10,6 +10,16 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ## [Unreleased]
 
+## [0.6.2] - 2026-11-22
+
+The storyteller comes alive: five voices that actually use their length and content settings, the
+Chronicler's brief in place of the old GM summary, and campaign memory that lets a tale say "once again
+the party crossed paths with Gary". Misheard names are corrected in transcripts, Claude and OpenAI are
+optional cloud summary backends, and Whisper and Ollama can run on another machine such as a GPU gaming
+PC. History opens on the tale first, and `vtt-admin`'s own output is easier to read. A **PATCH** release:
+no protocol change, so 0.6.1 apps and servers work together. **Operators:** update the server
+(`vtt-admin update`), then `vtt-admin updates sync`. **Players:** update the app.
+
 ### Added
 
 - **Whisper (and Ollama) on another machine, ready-made.** `infra/compose/remote-ai/` is a Compose file for a gaming PC: the CUDA Whisper server (idle-stopping, so the GPU is free between sessions) and, optionally, Ollama, bound to the LAN address you choose. Point the server at it with `vtt-admin settings set ai.transcription.kind remote` and `ai.transcription.url`. A remote that is off or unreachable still falls back to the server's own CPU.
@@ -56,6 +66,17 @@ the GitHub release notes and refuses to build a release without one. How to writ
 ### Fixed
 
 - **Storyteller dropdown:** the chosen bard is now shown by highlighting its row (gold tint and edge, filled badge) instead of a tick that sat on top of its badge.
+
+### Changed
+
+- **Each handout opens in its own window.** Click a second handout and it opens alongside the first instead of replacing it, so a Game Master can keep a few open next to notes or an edit view. Its window is titled with the handout's own name, and a short text handout opens in a small window instead of the size a map, image or PDF needs.
+- **An action line (`/do`) no longer says the character's name twice.** The avatar already shows who; the line's own text usually names them too ("Aelwen writes: …"), so the system no longer repeats it.
+- **Per-player volume is set in Settings → Players only.** It no longer also appears in each person's hover card on the rail; nothing about the control itself changed.
+
+### Known limits
+
+- **A very long session (past about an hour) can still overflow the summary model's context window.** The scribe already works a stretch at a time, but the tale, the Chronicler's brief and campaign memory each still read the whole set of notes in one prompt. A token-aware, chunked version of these is designed but not yet built; see [QUALITY-VALIDATION.md](docs/architecture/QUALITY-VALIDATION.md#fitting-a-long-session-in-the-models-window).
+- **Transcription accuracy varies with the Whisper backend and the network to it.** A remote Whisper having a slow moment can drag down word and glossary accuracy for that session; not yet root-caused.
 
 ## [0.6.1] - 2026-11-20
 

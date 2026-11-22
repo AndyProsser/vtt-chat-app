@@ -17,6 +17,7 @@ commands.allow = [
   "chat_send",
   "panel_open",
   "handout_view_open",
+  "handout_configure",
   "window_ready",
   "take_pending_connect",
   "account_open_connect",

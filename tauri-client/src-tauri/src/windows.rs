@@ -355,23 +355,18 @@ pub fn is_plain_id(id: &str) -> bool {
             .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
 }
 
-/// The handout viewer's event: a new id to show in the window that is already open.
-pub const HANDOUT_VIEW_EVENT: &str = "handout:view";
-
-/// A window for one handout: the main window's handout cards open it. There is one viewer window; a second
-/// card clicked shows its handout in the same window rather than piling up windows.
+/// A window for one handout: the main window's handout cards open it. Each handout gets its own
+/// window, labelled by its id, so a second card clicked opens (or focuses) alongside the first
+/// rather than replacing it — a DM can keep several handouts open next to notes or the edit view.
+/// It opens at this default size; `handout_configure` (called once the page has read the handout)
+/// shrinks it for a short text handout and sets the title.
 pub fn open_handout(app: &AppHandle, id: &str) -> Result<(), String> {
-    use tauri::Emitter;
     if !is_plain_id(id) {
         return Err("not a handout id".into());
     }
-    let label = label("handout");
-    if let Some(window) = app.get_webview_window(&label) {
-        let _ = window.emit(HANDOUT_VIEW_EVENT, id);
-    }
     open_page(
         app,
-        &label,
+        &label(&format!("handout-{id}")),
         &format!("handout/{id}"),
         "Handout",
         (560.0, 720.0),
@@ -382,6 +377,26 @@ pub fn open_handout(app: &AppHandle, id: &str) -> Result<(), String> {
 #[tauri::command]
 pub async fn handout_view_open(app: AppHandle, id: String) -> Result<(), String> {
     open_handout(&app, &id)
+}
+
+/// Called by the handout window once it has read the handout: sets the title to the handout's own
+/// name, and for a short text handout (`compact`) shrinks the window to fit instead of the default
+/// size for a map, image or PDF.
+#[tauri::command]
+pub fn handout_configure(
+    window: tauri::WebviewWindow,
+    title: String,
+    compact: bool,
+) -> Result<(), String> {
+    window
+        .set_title(&format!("Handout — {title}"))
+        .map_err(|e| e.to_string())?;
+    if compact {
+        window
+            .set_size(tauri::LogicalSize::new(420.0, 340.0))
+            .map_err(|e| e.to_string())?;
+    }
+    Ok(())
 }
 
 fn open_page(

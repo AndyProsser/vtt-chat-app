@@ -129,6 +129,7 @@ pub fn run() {
             commands::chat_send,
             windows::panel_open,
             windows::handout_view_open,
+            windows::handout_configure,
             windows::window_ready,
             deeplink::take_pending_connect,
             updater::update_check,

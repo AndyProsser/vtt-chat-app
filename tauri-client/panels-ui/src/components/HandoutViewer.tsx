@@ -14,7 +14,7 @@ import {
   campaignApi,
   campaignFile,
   handoutAddImage,
-  onHandoutView,
+  handoutConfigureWindow,
 } from '../lib/tauriBridge.js';
 import type { Handout } from '../types/index.js';
 import { FlipPanel } from './FlipPanel.js';
@@ -180,7 +180,7 @@ export function HandoutViewer() {
   const { status } = useAccount();
   const members = useTableStore((s) => s.members);
   const dm = isDm(members, status?.userId ?? null);
-  const [id, setId] = useState(() => handoutIdFromHash(window.location.hash));
+  const [id] = useState(() => handoutIdFromHash(window.location.hash));
   const [handout, setHandout] = useState<Handout>();
   const [pdf, setPdf] = useState<string>();
   const [index, setIndex] = useState(0);
@@ -189,15 +189,6 @@ export function HandoutViewer() {
   const [title, setTitle] = useState('');
   const [text, setText] = useState('');
   const [saving, setSaving] = useState(false);
-
-  // Another card was clicked while this window is open.
-  useEffect(() => {
-    const unlisten = onHandoutView((next) => {
-      setId(next);
-      setEditing(false);
-    });
-    return () => void unlisten.then((fn) => fn());
-  }, []);
 
   useEffect(() => {
     if (!id) return;
@@ -210,6 +201,7 @@ export function HandoutViewer() {
       .then(async ({ handout: h }) => {
         if (cancelled) return;
         setHandout(h);
+        void handoutConfigureWindow(h.title, h.kind === 'text');
         if (h.kind === 'pdf' && h.hasFile) {
           const data = await campaignFile(`handouts/${id}/file`);
           if (!cancelled) setPdf(data);
@@ -238,6 +230,8 @@ export function HandoutViewer() {
         { title, text },
       );
       setHandout(next);
+      // Title only: a rename should not undo a resize the player made while this window was open.
+      void handoutConfigureWindow(next.title, false);
       setEditing(false);
       setError(undefined);
     } catch (e) {

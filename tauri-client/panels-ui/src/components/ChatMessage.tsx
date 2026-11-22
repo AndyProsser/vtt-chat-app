@@ -46,9 +46,9 @@ export const ChatMessage = memo(function ChatMessage({ line, members, selfId }: 
         className={`vtt-bubble vtt-bubble-${kind}${style === 'chat' ? '' : ` vtt-kind-${style}`}${fromDm && kind === 'public' ? ' vtt-bubble-from-dm' : ''}${mine ? ' vtt-bubble-mine' : ''}`}
       >
         {style === 'do' ? (
-          <div className="vtt-do-text">
-            * {line.from.name} {line.text}
-          </div>
+          // No name here: the avatar already shows who, and an action line conventionally names
+          // the character in its own text ("Aelwen writes: ...") — this used to say it twice.
+          <div className="vtt-do-text">* {line.text}</div>
         ) : (
           <>
             <div className="vtt-msg-meta">

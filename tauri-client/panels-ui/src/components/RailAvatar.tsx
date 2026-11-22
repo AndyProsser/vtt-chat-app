@@ -1,10 +1,7 @@
-import { Flex, HoverCard, Slider, Text } from '@radix-ui/themes';
+import { HoverCard, Text } from '@radix-ui/themes';
 import { Lock, MicOff } from 'lucide-react';
 import { memo, useState } from 'react';
 
-import { PLAYER_VOLUME_MAX } from '../consts/volume.js';
-import { useAudioEngine } from '../hooks/useAudioEngine.js';
-import { playerVolumeSet } from '../lib/tauriBridge.js';
 import { useIsSpeaking } from '../hooks/useIsSpeaking.js';
 import { avatarColor } from '../lib/avatarColor.js';
 import {
@@ -28,12 +25,9 @@ export const RailAvatar = memo(function RailAvatar({
   member,
   partyId,
   groupName,
-  selfId,
   aside,
 }: {
   member: Member;
-  /** The signed-in player, whose own volume is not adjustable. */
-  selfId?: string | null;
   partyId: string | undefined;
   groupName: string | undefined;
   /** In the DM's private talk right now (the DM or the player). */
@@ -118,7 +112,6 @@ export const RailAvatar = memo(function RailAvatar({
             </>
           )}
           <StatusDot member={member} />
-          <PlayerVolume userId={member.userId} selfId={selfId ?? null} />
         </HoverCard.Content>
       </HoverCard.Root>
       {sheet && (
@@ -145,31 +138,5 @@ function StatusDot({ member }: { member: Member }) {
       aria-label={label}
       title={label}
     />
-  );
-}
-
-/**
- * This person's volume for you (new audio engine only; hidden otherwise, and for yourself). It is saved
- * by account, so it follows them across sessions.
- */
-function PlayerVolume({ userId, selfId }: { userId: string; selfId: string | null }) {
-  const engine = useAudioEngine();
-  const [value, setValue] = useState<number>();
-  if (engine?.active !== 'mixer' || userId === selfId) return null;
-  const shown = value ?? engine.volumes[userId] ?? 1;
-  return (
-    <Flex direction="column" gap="1" mt="2" onClick={(e) => e.stopPropagation()}>
-      <Text size="1">Volume {Math.round(shown * 100)}%</Text>
-      <Slider
-        aria-label="This person's volume"
-        size="1"
-        min={0}
-        max={PLAYER_VOLUME_MAX}
-        step={0.05}
-        value={[shown]}
-        onValueChange={([v]) => setValue(v ?? 1)}
-        onValueCommit={([v]) => void playerVolumeSet(userId, v ?? 1).catch(console.error)}
-      />
-    </Flex>
   );
 }

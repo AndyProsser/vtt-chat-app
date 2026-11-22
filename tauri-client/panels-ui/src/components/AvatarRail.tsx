@@ -18,7 +18,7 @@ import { ToolButton } from './ToolButton.js';
  * them. The DM drags a player onto another group, or onto the new-group target at the foot, and one
  * button there brings everyone back together. Players just see who is with whom.
  */
-export function AvatarRail({ dm, selfId }: { dm: boolean; selfId: string | null }) {
+export function AvatarRail({ dm }: { dm: boolean }) {
   const members = useTableStore((s) => s.members);
   const view = useTableStore((s) => s.parties);
   const sections = useMemo(() => railSections(members, view), [members, view]);
@@ -34,7 +34,6 @@ export function AvatarRail({ dm, selfId }: { dm: boolean; selfId: string | null 
             member={host}
             partyId={undefined}
             groupName={undefined}
-            selfId={selfId}
             aside={view.aside?.dmId === host.userId}
           />
         </div>
@@ -81,7 +80,6 @@ export function AvatarRail({ dm, selfId }: { dm: boolean; selfId: string | null 
                   member={m}
                   partyId={section.id === 'main' ? undefined : section.id}
                   groupName={groupNameOf(view, m.userId)}
-                  selfId={selfId}
                   aside={view.aside?.playerId === m.userId}
                 />
                 {dm && (

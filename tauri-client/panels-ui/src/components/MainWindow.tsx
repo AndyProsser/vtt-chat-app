@@ -50,7 +50,7 @@ function Table({ selfId }: { selfId: string | null }) {
       <JoinNotice />
       <AsideBanner selfId={selfId} />
       <div className="vtt-body">
-        <AvatarRail dm={dm} selfId={selfId} />
+        <AvatarRail dm={dm} />
         <div className="vtt-chat-col">
           {dm && drawer && (
             <aside className="vtt-drawer" aria-label="Sound effects">
