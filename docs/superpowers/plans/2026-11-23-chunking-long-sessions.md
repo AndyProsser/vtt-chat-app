@@ -7,7 +7,7 @@ memory inside the summary model's real context window, with the risk made visibl
 losing the end of a long session — closing Stage 13's one remaining MUST bar (READINESS.md C5).
 
 **Architecture:** Replace the character-length proxy the pipeline already uses to decide "does this fit?"
-with a token estimate compared against the backend's *real* window (an operator setting for a local/remote
+with a token estimate compared against the backend's _real_ window (an operator setting for a local/remote
 server, a safe built-in default for Claude/OpenAI). Reuse the condense loop and the per-chapter structure
 that already exist (`buildCondensePrompt`, chapter notes) rather than building a new map-reduce mechanism —
 today's session 4 run showed that machinery working once the recording bug was fixed. Add what's genuinely
@@ -81,6 +81,7 @@ achieves the spec's "no single prompt holds the whole session" goal by shortenin
 ### Task 1: Token budget primitives and the `ai.llm.context` setting
 
 **Files:**
+
 - Create: `ai/src/lib/tokenBudget.ts`
 - Test: `ai/src/lib/tokenBudget.test.ts`
 - Modify: `ai/src/consts/index.ts`
@@ -92,6 +93,7 @@ achieves the spec's "no single prompt holds the whole session" goal by shortenin
 - Test: `backend/src/cli/admin.test.ts`
 
 **Interfaces:**
+
 - Produces: `estimateTokens(text: string): number` (chars/3.5, rounded up) and
   `contextWindowTokens(llm: AiSettings['llm']): number` — both exported from `ai/src/lib/tokenBudget.ts`,
   used by Task 2 and Task 3.
@@ -130,13 +132,13 @@ describe('contextWindowTokens', () => {
 - [ ] **Step 2: Run and verify both fail** (`npx vitest run ai/src/lib/tokenBudget.test.ts` — module not found)
 
 - [ ] **Step 3: Add `DEFAULT_LOCAL_CONTEXT_TOKENS`, `DEFAULT_CLOUD_CONTEXT_TOKENS`, `CONDENSE_THRESHOLD` to `ai/src/consts/index.ts`**,
-  next to the other `DEFAULT_*` constants, each with a one-line comment giving its source (8,192: Ollama's
-  measured default, QUALITY-VALIDATION.md 2026-11-21; 100,000: conservative against Claude/OpenAI's real,
-  much larger windows; 0.7: the spec's own "over about 70% takes the chunked path").
+      next to the other `DEFAULT_*` constants, each with a one-line comment giving its source (8,192: Ollama's
+      measured default, QUALITY-VALIDATION.md 2026-11-21; 100,000: conservative against Claude/OpenAI's real,
+      much larger windows; 0.7: the spec's own "over about 70% takes the chunked path").
 
 - [ ] **Step 4: Implement `estimateTokens` and `contextWindowTokens` in `ai/src/lib/tokenBudget.ts`**,
-  importing the three constants from Task 3's step. `contextWindowTokens` takes the whole `llm` settings
-  object (not separate args) so later callers don't have to destructure it themselves.
+      importing the three constants from Task 3's step. `contextWindowTokens` takes the whole `llm` settings
+      object (not separate args) so later callers don't have to destructure it themselves.
 
 - [ ] **Step 5: Run and verify both pass**
 
@@ -159,19 +161,19 @@ it('rejects a non-numeric or negative ai.llm.context', () => {
 - [ ] **Step 7: Run and verify both fail**
 
 - [ ] **Step 8: Add the setting.** In `shared/src/types/aiSettings.ts`, add `context: number | null` to the
-  `llm` field (alongside `priceIn`/`priceOut`), with a doc comment: tokens the local or remote server
-  actually exposes (`OLLAMA_CONTEXT_LENGTH` or equivalent); ignored for `claude`/`openai`. In
-  `shared/src/lib/aiSettings.ts`: add `context: null` to `DEFAULT_AI_SETTINGS.llm`; add
-  `'ai.llm.context': 'tokens the local or remote server exposes (e.g. 40960), or "none" for the 8,192 default; ignored for claude/openai'`
-  to `AI_SETTING_KEYS`; add a `case 'ai.llm.context':` using the same `parsePrice`-style pattern but allowing
-  only non-negative integers (write a small `parseContext` alongside `parsePrice`, since a token count is a
-  whole number and a price is not).
+      `llm` field (alongside `priceIn`/`priceOut`), with a doc comment: tokens the local or remote server
+      actually exposes (`OLLAMA_CONTEXT_LENGTH` or equivalent); ignored for `claude`/`openai`. In
+      `shared/src/lib/aiSettings.ts`: add `context: null` to `DEFAULT_AI_SETTINGS.llm`; add
+      `'ai.llm.context': 'tokens the local or remote server exposes (e.g. 40960), or "none" for the 8,192 default; ignored for claude/openai'`
+      to `AI_SETTING_KEYS`; add a `case 'ai.llm.context':` using the same `parsePrice`-style pattern but allowing
+      only non-negative integers (write a small `parseContext` alongside `parsePrice`, since a token count is a
+      whole number and a price is not).
 
 - [ ] **Step 9: Run and verify both pass**
 
 - [ ] **Step 10: Add `ai.llm.context` to the CLI's settings display**, in `backend/src/cli/admin.ts`, in the
-  same block that already prints `ai.llm.price-in`/`price-out`. One line, same format as those two. Add a
-  test in `backend/src/cli/admin.test.ts` mirroring the existing price-in/out assertions.
+      same block that already prints `ai.llm.price-in`/`price-out`. One line, same format as those two. Add a
+      test in `backend/src/cli/admin.test.ts` mirroring the existing price-in/out assertions.
 
 - [ ] **Step 11: Run `npx vitest run ai/src/lib/tokenBudget.test.ts shared/src/lib/aiSettings.test.ts backend/src/cli/admin.test.ts` and verify all pass**
 
@@ -189,16 +191,18 @@ git commit -m "feat(ai): token budget estimate and the ai.llm.context setting"
 ### Task 2: A token-aware condense trigger in `summarise.ts`
 
 **Files:**
+
 - Modify: `ai/src/lib/summarise.ts` (`takeNotes`'s per-stretch cap loop, `writeFromNotes`'s condense loop)
 - Test: `ai/src/lib/summarise.test.ts` (or `pipeline.test.ts`, wherever the existing condense-loop tests live)
 
 **Interfaces:**
+
 - Consumes: `estimateTokens`, `contextWindowTokens` (Task 1); `CONDENSE_THRESHOLD` (Task 1).
 - Consumes: `NotesOptions.maxWords` (today's per-chapter cap sharing, unchanged) and adds
   `NotesOptions.llm?: AiSettings['llm']` and `SummariseOptions.llm?: AiSettings['llm']` — when given, the
   token check runs; when omitted, behaviour is unchanged (existing callers/tests that don't pass it keep
-  working, satisfying the Review Focus item on a server with nothing configured — note the *fallback inside
-  `contextWindowTokens`* already covers "configured but not overridden"; this optional field covers "caller
+  working, satisfying the Review Focus item on a server with nothing configured — note the _fallback inside
+  `contextWindowTokens`_ already covers "configured but not overridden"; this optional field covers "caller
   didn't wire it at all yet", which stays true until Task 3 updates the one real caller).
 - Produces: the condense loop in `writeFromNotes` now keeps shortening until
   `estimateTokens(notes.join('\n\n')) <= contextWindowTokens(llm) * CONDENSE_THRESHOLD`, instead of
@@ -213,11 +217,11 @@ git commit -m "feat(ai): token budget estimate and the ai.llm.context setting"
 it('condenses even a single oversized note, not only many joined notes', async () => {
   const bigNote = 'word '.repeat(2000); // comfortably over 70% of an 8,192-token window estimate
   const condense = vi.fn(async () => 'word '.repeat(100));
-  const result = await writeFromNotes(
-    { scribe: condense, bard: condense },
-    [bigNote],
-    { kind: 'dm-only', context: {}, llm: { kind: 'local', context: null } as never },
-  );
+  const result = await writeFromNotes({ scribe: condense, bard: condense }, [bigNote], {
+    kind: 'dm-only',
+    context: {},
+    llm: { kind: 'local', context: null } as never,
+  });
   expect(condense).toHaveBeenCalled();
 });
 
@@ -232,24 +236,24 @@ it('does not condense when nothing is configured and the notes are small', async
 ```
 
 - [ ] **Step 2: Run and verify the first fails** (today's char-based `chunkChars` default, 12,000, would not
-  trigger on this note; the token estimate should)
+      trigger on this note; the token estimate should)
 
 - [ ] **Step 3: Implement the change in `writeFromNotes`** (`ai/src/lib/summarise.ts`): replace
-  `if (notes.join('\n\n').length <= chunkChars) break;` with a token check using `options.llm` (default to
-  `{ kind: 'local', context: null }` when `options.llm` is undefined, so the fallback window, 8,192, still
-  applies — this is what keeps the second test passing: a short note's estimate stays comfortably under
-  70% of 8,192). Keep `groupByBudget(notes, chunkChars)` as the packing step inside the loop, unchanged.
+      `if (notes.join('\n\n').length <= chunkChars) break;` with a token check using `options.llm` (default to
+      `{ kind: 'local', context: null }` when `options.llm` is undefined, so the fallback window, 8,192, still
+      applies — this is what keeps the second test passing: a short note's estimate stays comfortably under
+      70% of 8,192). Keep `groupByBudget(notes, chunkChars)` as the packing step inside the loop, unchanged.
 
 - [ ] **Step 4: Apply the same change to `takeNotes`'s per-stretch loop** (the one that already compares
-  `notesWords(merged) > cap`): this one is word-based today (yesterday's per-chapter cap sharing) and stays
-  word-based — it is not part of this task. Only `writeFromNotes`'s loop changes in this task; note in a
-  comment why the two use different units (word cap: a stable, cheap length target set once per chapter;
-  token check: the real fit-in-window decision before a single model call).
+      `notesWords(merged) > cap`): this one is word-based today (yesterday's per-chapter cap sharing) and stays
+      word-based — it is not part of this task. Only `writeFromNotes`'s loop changes in this task; note in a
+      comment why the two use different units (word cap: a stable, cheap length target set once per chapter;
+      token check: the real fit-in-window decision before a single model call).
 
 - [ ] **Step 5: Run and verify both new tests pass, then run the full existing suite for this file**
-  (`npx vitest run ai/src/lib/summarise.test.ts ai/src/lib/pipeline.test.ts`) to confirm nothing that relied
-  on the old `chunkChars` default broke — if an existing test asserted condensing at a specific character
-  count, update it to assert on the token estimate instead (same behaviour, same test intent).
+      (`npx vitest run ai/src/lib/summarise.test.ts ai/src/lib/pipeline.test.ts`) to confirm nothing that relied
+      on the old `chunkChars` default broke — if an existing test asserted condensing at a specific character
+      count, update it to assert on the token estimate instead (same behaviour, same test intent).
 
 - [ ] **Step 6: Commit**
 
@@ -263,10 +267,12 @@ git commit -m "feat(ai): writeFromNotes condenses by a real token estimate, not 
 ### Task 3: Wire the real context window through `processRecording.ts`
 
 **Files:**
+
 - Modify: `ai/src/lib/records/processRecording.ts`
 - Modify: `ai/src/lib/records/processRecording.test.ts`
 
 **Interfaces:**
+
 - Consumes: `options.llm` on `NotesOptions`/`SummariseOptions` (Task 2); `settings.llm` is already in scope
   in this file (used today for `settings.transcription.glossary`, `settings.tale.*`).
 - Produces: every `takeNotes`/`writeFromNotes` call in this file now passes `{ ..., llm: settings.llm }`,
@@ -274,19 +280,19 @@ git commit -m "feat(ai): writeFromNotes condenses by a real token estimate, not 
   by hand.
 
 - [ ] **Step 1: Write the failing test**: a fake scribe that returns oversized notes, with
-  `settings.llm.context` set small, should trigger a condense call that a larger configured context would
-  not. Add to `processRecording.test.ts` near the existing notes-taking tests, reusing that file's existing
-  fake-job-deps pattern.
+      `settings.llm.context` set small, should trigger a condense call that a larger configured context would
+      not. Add to `processRecording.test.ts` near the existing notes-taking tests, reusing that file's existing
+      fake-job-deps pattern.
 
 - [ ] **Step 2: Run and verify it fails** (the call site doesn't pass `llm` yet, so the old default window
-  applies regardless of the test's small `settings.llm.context`)
+      applies regardless of the test's small `settings.llm.context`)
 
 - [ ] **Step 3: Pass `llm: settings.llm` at every `takeNotes`/`writeFromNotes` call site in this file.**
-  There are two: inside `notesOf` (wraps `takeNotes`) and inside the per-kind loop (`writeFromNotes`). Both
-  already have `settings` in closure scope.
+      There are two: inside `notesOf` (wraps `takeNotes`) and inside the per-kind loop (`writeFromNotes`). Both
+      already have `settings` in closure scope.
 
 - [ ] **Step 4: Run and verify the new test passes, then run the whole file's suite**
-  (`npx vitest run ai/src/lib/records/processRecording.test.ts`)
+      (`npx vitest run ai/src/lib/records/processRecording.test.ts`)
 
 - [ ] **Step 5: Commit**
 
@@ -300,6 +306,7 @@ git commit -m "feat(ai): processRecording passes the operator's real context win
 ### Task 4: Log when a call runs close to the window
 
 **Files:**
+
 - Modify: `ai/src/lib/summarise.ts` (wherever `onUsage`-style reporting already threads through, or add a
   lightweight `onNearFullWindow` option alongside it — check `ai/src/lib/providers/fromSettings.ts`'s
   existing `onUsage` plumbing first and reuse that path rather than inventing a parallel one)
@@ -307,6 +314,7 @@ git commit -m "feat(ai): processRecording passes the operator's real context win
 - Test: `ai/src/lib/records/processRecording.test.ts`
 
 **Interfaces:**
+
 - Consumes: the existing `onUsage: (usage: { model; inputTokens; outputTokens }) => void` callback
   (`ai/src/lib/providers/openaiCompat.ts:191`, already wired end to end for Claude/OpenAI cost tracking) and
   `contextWindowTokens` (Task 1).
@@ -318,14 +326,14 @@ git commit -m "feat(ai): processRecording passes the operator's real context win
   not required to close READINESS.md C5).
 
 - [ ] **Step 1: Write the failing test**: an `onUsage` call with `inputTokens` at 95% of a small configured
-  window produces exactly one matching log line; one at 50% produces none; one with no `usage` reported at
-  all (the callback never fires) produces none and does not throw — covers the Review Focus item on a
-  provider that sends no usage data.
+      window produces exactly one matching log line; one at 50% produces none; one with no `usage` reported at
+      all (the callback never fires) produces none and does not throw — covers the Review Focus item on a
+      provider that sends no usage data.
 
 - [ ] **Step 2: Run and verify it fails**
 
 - [ ] **Step 3: Implement the check** where the existing `onUsage` callback is defined in
-  `processRecording.ts`, next to (not replacing) its existing cost-tracking body.
+      `processRecording.ts`, next to (not replacing) its existing cost-tracking body.
 
 - [ ] **Step 4: Run and verify it passes**
 
@@ -341,11 +349,13 @@ git commit -m "feat(ai): log when a summary call runs close to the context windo
 ### Task 5: Pace the chapter-notes concurrency and log its progress
 
 **Files:**
+
 - Modify: `ai/src/lib/records/processRecording.ts` (the chapter notes `Promise.all`, found today:
   `chapters.map(async (c) => ({ title, notes: await notesOf(c.subject, c.utterances, c.context, chapterMaxWords) }))`)
 - Test: `ai/src/lib/records/processRecording.test.ts`
 
 **Interfaces:**
+
 - Produces: no new exported name — a small inline concurrency limiter is enough (this codebase has no
   `p-limit` dependency and none is needed for a fixed, small cap). A `const CHAPTER_CONCURRENCY = 2;`
   constant in this file, with a one-line comment: found 2026-11-22, 10 chapters fired at once queued for 13
@@ -354,17 +364,17 @@ git commit -m "feat(ai): log when a summary call runs close to the context windo
   `log(...)` call per completed chapter.
 
 - [ ] **Step 1: Write the failing test**: with `CHAPTER_CONCURRENCY` effectively 2 (either exported for the
-  test or verified indirectly), a fake scribe that resolves in call order proves no more than 2 are ever
-  in flight at once for, say, 5 chapters (a counter incremented on call-start and decremented on
-  call-finish, asserted to never exceed 2). Also assert a log line appears after each chapter completes
-  (`"recording X: chapter N notes ready"` or similar, matching this file's existing log-string style).
+      test or verified indirectly), a fake scribe that resolves in call order proves no more than 2 are ever
+      in flight at once for, say, 5 chapters (a counter incremented on call-start and decremented on
+      call-finish, asserted to never exceed 2). Also assert a log line appears after each chapter completes
+      (`"recording X: chapter N notes ready"` or similar, matching this file's existing log-string style).
 
 - [ ] **Step 2: Run and verify it fails** (today's `Promise.all` runs all of them at once)
 
 - [ ] **Step 3: Replace the `Promise.all(chapters.map(...))` with a small batching loop** (process
-  `CHAPTER_CONCURRENCY` chapters at a time via `Promise.all` on each batch, in a `for` loop over chunks of
-  `chapters`), logging one line per completed chapter as each batch settles. Keep the result shape (an array
-  of `{ title, notes }` in the original chapter order) identical — this is purely a scheduling change.
+      `CHAPTER_CONCURRENCY` chapters at a time via `Promise.all` on each batch, in a `for` loop over chunks of
+      `chapters`), logging one line per completed chapter as each batch settles. Keep the result shape (an array
+      of `{ title, notes }` in the original chapter order) identical — this is purely a scheduling change.
 
 - [ ] **Step 4: Run and verify the test passes, then run the whole file's suite**
 
@@ -380,6 +390,7 @@ git commit -m "fix(ai): pace chapter notes-taking instead of firing them all at 
 ### Task 6: The operator's lever — `OLLAMA_CONTEXT_LENGTH` and docs
 
 **Files:**
+
 - Modify: `infra/compose/compose.yml` (the `ollama` service's `environment:`)
 - Modify: `infra/compose/remote-ai/compose.yml` (the same, for the remote-GPU variant)
 - Modify: `docs/guides/OPERATOR-GUIDE.md` (the settings table, near `ai.llm.length` per the existing entry)
@@ -387,14 +398,14 @@ git commit -m "fix(ai): pace chapter notes-taking instead of firing them all at 
 **Interfaces:** none (Compose and documentation only; no code).
 
 - [ ] **Step 1: Add `OLLAMA_CONTEXT_LENGTH: ${OLLAMA_CONTEXT_LENGTH:-}` to both compose files' `ollama`
-  service**, matching the existing style for other optional passthrough env vars in those files (e.g.
-  `RECORD_SOUNDBOARD`), so it is unset (Ollama's own default) unless the operator puts it in `.env`.
+      service**, matching the existing style for other optional passthrough env vars in those files (e.g.
+      `RECORD_SOUNDBOARD`), so it is unset (Ollama's own default) unless the operator puts it in `.env`.
 
 - [ ] **Step 2: Document it in OPERATOR-GUIDE.md**, next to `ai.llm.length`: two steps to raise the window —
-  `OLLAMA_CONTEXT_LENGTH` in `.env` (raises what Ollama actually serves, at a VRAM/speed cost) **and**
-  `vtt-admin settings set ai.llm.context <same number>` (tells the app what that real window is, since the
-  OpenAI-compatible API cannot ask Ollama for it) — both are needed, and a mismatch between them is safe
-  (whichever is smaller just limits conservatively) but wastes either VRAM or headroom.
+      `OLLAMA_CONTEXT_LENGTH` in `.env` (raises what Ollama actually serves, at a VRAM/speed cost) **and**
+      `vtt-admin settings set ai.llm.context <same number>` (tells the app what that real window is, since the
+      OpenAI-compatible API cannot ask Ollama for it) — both are needed, and a mismatch between them is safe
+      (whichever is smaller just limits conservatively) but wastes either VRAM or headroom.
 
 - [ ] **Step 3: Commit**
 
