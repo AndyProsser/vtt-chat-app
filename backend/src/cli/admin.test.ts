@@ -140,6 +140,18 @@ describe('settings', () => {
     expect(ai.fallback.enabled).toBe(true);
   });
 
+  it('sets and shows ai.llm.context, or "none" by default', async () => {
+    out.length = 0;
+    await run('settings show');
+    expect(out.join('\n')).toMatch(/ai\.llm\.context\s+none/);
+    expect(await run('settings set ai.llm.context 40960')).toBe(0);
+    expect((await store.getSettings()).ai.llm.context).toBe(40960);
+    out.length = 0;
+    await run('settings show');
+    expect(out.join('\n')).toMatch(/ai\.llm\.context\s+40960/);
+    expect(await run('settings set ai.llm.context -1')).not.toBe(0);
+  });
+
   it('sets the tale length and content, and turns storytellers off but never the Tavern Bard', async () => {
     expect(await run('settings set ai.tale.length short')).toBe(0);
     expect(await run('settings set ai.tale.content clean')).toBe(0);

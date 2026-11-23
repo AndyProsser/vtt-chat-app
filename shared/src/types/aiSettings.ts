@@ -57,6 +57,12 @@ export interface AiSettings {
     kind: AiLlmKind;
     priceIn: number | null;
     priceOut: number | null;
+    /**
+     * Tokens the local or remote server actually exposes (e.g. Ollama's `OLLAMA_CONTEXT_LENGTH`), since the
+     * OpenAI-compatible API cannot ask it directly; `null` uses the measured 8,192 default. Ignored for
+     * `claude` and `openai`, which use their own, much larger built-in default instead.
+     */
+    context: number | null;
   };
   fallback: AiFallbackSetting;
   tale: AiTaleSettings;

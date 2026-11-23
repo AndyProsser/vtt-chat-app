@@ -11,7 +11,7 @@ export const TRANSCRIPTION_GLOSSARY_MODES = ['off', 'corrections', 'prompt', 'bo
 
 export const DEFAULT_AI_SETTINGS: AiSettings = {
   transcription: { kind: 'local', url: null, model: null, language: 'en', glossary: 'corrections' },
-  llm: { kind: 'local', url: null, model: null, priceIn: null, priceOut: null },
+  llm: { kind: 'local', url: null, model: null, priceIn: null, priceOut: null, context: null },
   // 10 minutes unreachable before giving up on the remote; retry every 30 s meanwhile.
   fallback: { enabled: true, afterSeconds: 600, retrySeconds: 30 },
   tale: { length: 'default', content: 'default', storytellersOff: [] },
@@ -33,6 +33,8 @@ export const AI_SETTING_KEYS = {
   'ai.llm.model': 'model name, or "none"',
   'ai.llm.price-in': 'US dollars per million input tokens, for the cost in jobs list, or "none"',
   'ai.llm.price-out': 'US dollars per million output tokens, or "none"',
+  'ai.llm.context':
+    'tokens the local or remote server exposes (e.g. 40960), or "none" for the 8,192 default; ignored for claude/openai',
   'ai.fallback.enabled': 'true | false',
   'ai.fallback.after-seconds': 'whole number of seconds, 0 = immediately',
   'ai.fallback.retry-seconds': 'whole number of seconds, at least 1',
@@ -86,6 +88,15 @@ function parsePrice(value: string): number | null {
   const n = Number(value);
   if (!Number.isFinite(n) || n < 0) {
     throw new SettingError('must be a price in dollars per million tokens, such as 0.4, or "none"');
+  }
+  return n;
+}
+
+function parseContext(value: string): number | null {
+  if (NONE.has(value.trim().toLowerCase())) return null;
+  const n = Number(value);
+  if (!Number.isInteger(n) || n < 0) {
+    throw new SettingError('must be a whole number of tokens, such as 40960, or "none"');
   }
   return n;
 }
@@ -151,6 +162,9 @@ export function setAiSetting(settings: AiSettings, key: AiSettingKey, value: str
       break;
     case 'ai.llm.price-out':
       next.llm.priceOut = parsePrice(value);
+      break;
+    case 'ai.llm.context':
+      next.llm.context = parseContext(value);
       break;
     case 'ai.fallback.enabled':
       next.fallback.enabled = parseBool(value);
@@ -258,6 +272,7 @@ export function normaliseAiSettings(raw: unknown): AiSettings {
       model: str(l.model, d.llm.model),
       priceIn: price(l.priceIn),
       priceOut: price(l.priceOut),
+      context: price(l.context),
     },
     fallback: {
       enabled: typeof f.enabled === 'boolean' ? f.enabled : d.fallback.enabled,

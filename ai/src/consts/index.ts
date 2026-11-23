@@ -31,6 +31,13 @@ export const MAX_REDUCE_DEPTH = 4;
 /** How many times the scribe may read one piece of transcript before the job gives up (Stage 12 D, decision 7). */
 export const NOTES_READ_ATTEMPTS = 3;
 
+/** Ollama's own measured default window when the operator has not raised it (QUALITY-VALIDATION.md, 2026-11-21). */
+export const DEFAULT_LOCAL_CONTEXT_TOKENS = 8192;
+/** Conservative against Claude's and OpenAI's real, much larger windows; never configured by the operator. */
+export const DEFAULT_CLOUD_CONTEXT_TOKENS = 100_000;
+/** A prompt over about this share of the window takes the chunked (condense) path (the spec's own figure). */
+export const CONDENSE_THRESHOLD = 0.7;
+
 // --- Speech-window segmentation (lib/speechWindows.ts) -----------------------------------------
 // Chosen from the 2026-11-07 spike (AUDIO-SPIKE-RESULTS.md, Finding 4); accuracy over speed.
 
