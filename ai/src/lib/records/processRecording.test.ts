@@ -457,6 +457,26 @@ describe('the storyteller and the Game Master’s notes (Stage 12 E and G)', () 
   });
 });
 
+describe("the operator's context window (chunking)", () => {
+  // A tiny configured window makes even these short canned notes look oversized, so the condense
+  // prompt ("Rewrite them as noticeably shorter notes") must appear; a larger (or default) window
+  // must not trigger it on the same notes.
+  const condensed = () =>
+    prompts.some((p) => p.includes('Rewrite them as noticeably shorter notes'));
+
+  it('condenses the notes when the configured context window is small', async () => {
+    records.aiSettings = setAiSetting(DEFAULT_AI_SETTINGS, 'ai.llm.context', '5');
+    await handler().run(job());
+    expect(condensed()).toBe(true);
+  });
+
+  it('does not condense when the configured context window is large', async () => {
+    records.aiSettings = setAiSetting(DEFAULT_AI_SETTINGS, 'ai.llm.context', '8192');
+    await handler().run(job());
+    expect(condensed()).toBe(false);
+  });
+});
+
 describe('campaign memory (Stage 12 F)', () => {
   const gary = {
     id: 'm-gary',

@@ -224,10 +224,12 @@ export function createProcessRecordingHandler(deps: ProcessRecordingDeps): JobHa
       let notes = taken.get(key);
       if (!notes) {
         log(`${recording.id}: taking notes${key ? ` (part ${key})` : ''}`);
-        notes = takeNotes(models.scribe, lines, { context, maxWords }).then((result) => {
-          uncounted += result.modelCalls;
-          return result.notes;
-        });
+        notes = takeNotes(models.scribe, lines, { context, maxWords, llm: settings.llm }).then(
+          (result) => {
+            uncounted += result.modelCalls;
+            return result.notes;
+          },
+        );
         taken.set(key, notes);
       }
       return notes;
@@ -297,6 +299,7 @@ export function createProcessRecordingHandler(deps: ProcessRecordingDeps): JobHa
       const result = await writeFromNotes(models, notes, {
         kind,
         context: { ...context, ...(await telling(kind, notes)) },
+        llm: settings.llm,
       });
       const modelCalls = result.modelCalls + uncounted;
       uncounted = 0;
