@@ -152,9 +152,31 @@ pub fn start(app: &AppHandle) {
         .ok();
 }
 
+/// A short record of what the watcher saw and did, kept in the app's data folder
+/// (`away-watch.log`), temporary: for chasing a report that an automatic Away did not clear
+/// itself (2026-11-23). Remove once that is understood.
+fn away_log(app: &AppHandle, line: &str) {
+    use std::io::Write;
+    if let Some(dir) = crate::account::data_dir(app) {
+        let _ = std::fs::create_dir_all(&dir);
+        if let Ok(mut f) = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(dir.join("away-watch.log"))
+        {
+            let now = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_secs())
+                .unwrap_or(0);
+            let _ = writeln!(f, "{now} {line}");
+        }
+    }
+}
+
 fn poll(app: &AppHandle) {
     let mut probe = IdleProbe::new();
     let mut was_locked = false;
+    let mut idle_was_none = false;
     loop {
         std::thread::sleep(POLL);
         let status = crate::status_commands::current(app);
@@ -165,20 +187,40 @@ fn poll(app: &AppHandle) {
         let step = lock_step(was_locked, locked);
         was_locked = locked;
         match step {
-            LockStep::Locked => go_away(app),
-            LockStep::Unlocked => back(app),
+            LockStep::Locked => {
+                away_log(app, "lock: Locked -> go_away");
+                go_away(app);
+            }
+            LockStep::Unlocked => {
+                away_log(app, "lock: Unlocked -> back");
+                back(app);
+            }
             LockStep::Nothing => {}
         }
         if locked {
             continue;
         }
-        let Some(idle) = probe.idle_secs() else {
+        let idle = probe.idle_secs();
+        if idle.is_none() && !idle_was_none {
+            away_log(app, &format!("idle_secs: None (status {status:?}); the idle probe stopped answering — this is the lead if Away never clears"));
+        }
+        idle_was_none = idle.is_none();
+        let Some(idle) = idle else {
             continue;
         };
         let minutes = crate::account::data_dir(app)
             .map(|dir| AwayPrefs::load(&dir).away_minutes)
             .unwrap_or(DEFAULT_AWAY_MINUTES);
-        match idle_step(status, idle, minutes) {
+        let result = idle_step(status, idle, minutes);
+        if result != IdleStep::Nothing {
+            away_log(
+                app,
+                &format!(
+                    "idle: status {status:?} idle_secs {idle} away_minutes {minutes} -> {result:?}"
+                ),
+            );
+        }
+        match result {
             IdleStep::GoAway => go_away(app),
             IdleStep::Back => back(app),
             IdleStep::Nothing => {}
