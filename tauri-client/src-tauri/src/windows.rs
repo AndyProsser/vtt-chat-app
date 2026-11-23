@@ -392,8 +392,11 @@ pub fn handout_configure(
         .set_title(&format!("Handout — {title}"))
         .map_err(|e| e.to_string())?;
     if compact {
+        // Wide enough that "Handout — <title>" rarely needs the title bar to truncate it, short
+        // enough that a few lines of text don't leave the empty space a map or PDF needs (still
+        // never under open_page's own floor, min_inner_size(260, 200)).
         window
-            .set_size(tauri::LogicalSize::new(420.0, 340.0))
+            .set_size(tauri::LogicalSize::new(480.0, 260.0))
             .map_err(|e| e.to_string())?;
     }
     Ok(())
