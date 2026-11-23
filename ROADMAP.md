@@ -12,11 +12,11 @@
 
 ---
 
-## Where we are (2026-11-21)
+## Where we are (2026-11-23)
 
-**Stages 0 to 12 are built and closed for building.** From here, a problem found in any of them is a **bug** (fixed in a patch release), and new work belongs to a later stage. The latest release is **0.6.1** (2026-11-20, protocol 4); the latest dev build is `0.6.2-dev.3`, which carries the Claude and OpenAI connectors, campaign memory in the export and the Stage 12 AI work. The releases and what each changed are in [CHANGELOG.md](CHANGELOG.md).
+**Stages 0 to 12 are built and closed for building.** From here, a problem found in any of them is a **bug** (fixed in a patch release), and new work belongs to a later stage. The latest release is **0.6.2** (2026-11-22, protocol 4, published). The releases and what each changed are in [CHANGELOG.md](CHANGELOG.md).
 
-**What is not yet proven** is the point of the next stage: almost everything built since 0.6.0 has met unit tests and fakes, not a real session, a real cloud API or real hardware. The one-page list is the stocktake in [BUILD-STATUS.md](docs/BUILD-STATUS.md#stocktake-2026-11-21-what-is-built-and-what-is-not-yet-proven). Stage 13 closes it.
+**Stage 13 is nearly closed.** Session 4 (2026-11-22 to 23) validated the records pipeline end to end on a real, full-length session, and Andy's own manual sweep accepted the cloud connectors, OIDC and the cross-platform clients. **Chunking for a long session is the one thing left** — see Stage 13 below and the [stocktake](docs/BUILD-STATUS.md#stocktake-2026-11-21-what-is-built-and-what-is-not-yet-proven) for what else is still a loose end, none of it blocking.
 
 | Stage                          | State | What was delivered                                                                                                                                                                                           | Detail                                                                                                                                         |
 | ------------------------------ | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -51,7 +51,7 @@ flowchart LR
 
 ## Stage 13 — Quality Validation: end-to-end testing (planned 2026-11-21)
 
-**Status:** 🟡 In progress (planned 2026-11-21; first full run 2026-11-22; see "Where it stands" below). **Depends on:** Stages 11 and 12 closed for building, and a dev build of everything built so far running on the test VM. Design and reasoning: [QUALITY-VALIDATION.md](docs/architecture/QUALITY-VALIDATION.md).
+**Status:** 🟡 Nearly done (planned 2026-11-21; first full run 2026-11-22; session 4 and Andy's manual sweep 2026-11-23; see "Where it stands" below). **Only chunking for a long session remains** before this stage closes. **Depends on:** Stages 11 and 12 closed for building, and a dev build of everything built so far running on the test VM. Design and reasoning: [QUALITY-VALIDATION.md](docs/architecture/QUALITY-VALIDATION.md).
 
 **Why.** Stages 9 to 12 built a lot that has only met unit tests, fakes and a few short recordings. The records pipeline in particular (Whisper, the scribe, the Chronicler, memory, five storytellers, two cloud connectors) has been exercised by a 12-minute written fixture and a 2-minute spoken scene. This stage is where the whole system is tested for real, as far as it can be tested without a table of people, so that what Stage 14's protocol bump carries is built on behaviour that has been seen.
 
@@ -65,24 +65,25 @@ What it stresses, and what is scored, is in [QUALITY-VALIDATION.md](docs/archite
 
 **First full run (2026-11-21 to 22): a success, with leads.** Everything passed (recording, privacy, ordering, no restarts), processing took 2.6 to 4.4 hours a session, and the leads are: names (70 to 77 % heard right), a model window that is 98.6 % full at 25 minutes (chunking is a must), hero summaries that are slow and written for a silent observer, a hot microphone producing invented lines, and the load of recording while processing. Two safeguards for the last were built straight away (CPU priority in Compose, and `ai.pause-while-recording`); the rest is read in [QUALITY-VALIDATION.md](docs/architecture/QUALITY-VALIDATION.md#results-of-the-first-full-run-2026-11-21-to-22-local-7-h-37-min) and [READINESS.md](docs/READINESS.md).
 
-**Where it stands (2026-11-22).**
+**Where it stands (2026-11-23).**
 
 - ✅ **Built:** the demo campaign (four sessions: three of about 25 minutes and an extended one of about 75), the runner and monitor, the report, the reading pack and the [readiness list](docs/READINESS.md).
 - ✅ **Run:** the first full run on the dev PC (three sessions, 7 h 37 min, GPU, local AI): nothing lost, nothing leaked, 2.6 to 4.4 hours of processing a session.
 - ✅ **Real Postgres:** the job-queue ordering and every database-only test now run against a real database (all pass).
 - ✅ **Fixed from the runs:** backup and restore, the order rule and `jobs release`, one worker at a time, a cap on tables recording at once, CPU priority for voice and recording, `ai.pause-while-recording`, remote summary models no longer think aloud.
-- 🟡 **In progress:** the extended session (session 4) on the CPU-only VM with the AI offloaded to the dev PC (Whisper and the model both remote), which also measures what offloading does to the VM's load.
-- ⚪ **Next:** chunking for long sessions (designed, not built; the window was 98.6 % full at 25 minutes), glossary and name accuracy, the silent-microphone lines, the Game Master trial, the soak, the cloud runs (Andy's say-so first).
+- ✅ **Run and closed (2026-11-22 to 23):** the extended session (session 4, 75 minutes, 8–10 chapters) on the CPU-only VM with Whisper and the summary model both offloaded to the dev PC. Found and fixed a real bug on the way: the test harness's synthetic client never re-acknowledged the recording after the session's scripted mid-session pause, so the retry under-captured every speaker (not a product bug — the real app's cue handling already covers a live resume). Re-run with the fix: word accuracy 0.88–0.98, glossary 78%, 29 of 30 planted facts, tale/brief/notes lengths holding at full scale. `v0.6.2` released and published; the VM runs it.
+- ✅ **Andy's manual sweep, 2026-11-23:** cloud AI (Claude, OpenAI), OIDC, iOS Safari/Firefox, Windows Edge/Firefox/Chrome, the Linux AppImage, the macOS Intel build, and Linux/Windows audio all accepted — untested-here items are expected to work and will be treated as bugs if not; see [BUILD-STATUS.md](docs/BUILD-STATUS.md#stage-13-close-out-2026-11-22-to-23-session-4-validated-end-to-end-andy-accepts-the-rest).
+- ⚪ **The one thing left:** chunking for long sessions (designed, not built; a 25-minute session already used 98.6% of the model's window). A lead from session 4: a chaptered session's notes-taking calls fire concurrently and queue on a single GPU with no progress visibility — worth pacing once this work starts.
 
 ### B. Everything else that moves here
 
 Besides the demo campaign, Stage 13 holds every check that Stages 9 to 12 built and never ran for real, **split by who can validate it**: the harness (automated), the harness plus a person's judgement, and manual or external. The full tables are in [QUALITY-VALIDATION.md](docs/architecture/QUALITY-VALIDATION.md#the-other-checks-that-moved-into-stage-13). In groups:
 
 - **The AI workflow on real sessions:** Whisper name accuracy (glossary prompt against corrections), the scribe and the Chronicler on a long session, campaign memory across two sessions, each storyteller, cost on the default CPU install, and tuning the prompts from reading real output.
-- **The cloud connectors and the database:** Claude and OpenAI against the real APIs, and the Postgres side of Stage 12 (migrations 0042 and 0043, the memory queries, the export round trip).
-- **Built in 0.6.x and never seen in a real window or on a phone:** GM Notes attachments and the PDF preview, the 400 % volume, the sound deck and its new sounds, the storyteller dropdown, the off-site notice, loot To confirm, the phone's table page, Invite and QR, the old-browser notice, the macOS Intel app, and redoing the user guide's screenshots.
-- **Measuring on real machines:** the Windows microphone clipping retest, latency, CPU and drift, Bluetooth and USB headsets, Linux and macOS parity, the 8+ hour soak with churn, and a `kill -9` of the packaged backend.
-- **Sign-in, devices and reachability:** OIDC against a real provider, Android and iOS Safari, deep links, the AppImage, and a pass over every earlier stage for features built but with no way in.
+- **The cloud connectors and the database:** Claude and OpenAI against the real APIs, and the Postgres side of Stage 12 (migrations 0042 and 0043, the memory queries, the export round trip). **Accepted by Andy, 2026-11-23: untested against the real APIs here, but not a roadblock; issues are bugs, not a gate.**
+- **Built in 0.6.x and never seen in a real window or on a phone:** GM Notes attachments and the PDF preview, the 400 % volume, the sound deck and its new sounds, the storyteller dropdown, the off-site notice, loot To confirm, the phone's table page, Invite and QR, the old-browser notice, the macOS Intel app, and redoing the user guide's screenshots. **macOS Intel confirmed working, Andy, 2026-11-23.**
+- **Measuring on real machines:** the Windows microphone clipping retest, latency, CPU and drift, Bluetooth and USB headsets, Linux and macOS parity, the 8+ hour soak with churn, and a `kill -9` of the packaged backend. **Linux and Windows audio confirmed working, Andy, 2026-11-23**; the clipping retest, headsets and the churn soak are still open.
+- **Sign-in, devices and reachability:** OIDC against a real provider, Android and iOS Safari, deep links, the AppImage, and a pass over every earlier stage for features built but with no way in. **Accepted by Andy, 2026-11-23:** OIDC untested here but built and proven with other apps before, expected to work; iOS Safari and Firefox tested and work; the Linux AppImage works; Windows Edge, Firefox and Chrome all tested and work. Android still untested.
 
 ### Done when
 
@@ -123,6 +124,10 @@ Both ride this bump, so the upgrade and the protocol change are tested together.
 ### The History list shows the session's title (Andy, 2026-11-21; built as far as it can go without the wire)
 
 The storyteller now opens each tale with a short title, and the History screens show it as the tale's heading. Showing it **in the list** (the in-world title with the date beneath, in both apps) needs the recordings list to carry that title, a new field on a response, so it is part of this bump. Until then the list title stays the date. See [QUALITY-VALIDATION.md](docs/architecture/QUALITY-VALIDATION.md#decisions-on-what-players-see-andy-2026-11-21).
+
+### A tabbed session-history view, with a popout (Andy, 2026-11-23; wanted, not designed)
+
+After reading real session-4 output, Andy wants the History detail reworked: instead of the tale with chapters and heroes folding open together under "More detail", a **tab row** — `The Tale | The Heroes | The Story | The Notes` — one section visible at a time (`The Notes` shown only to the Game Master), with a **popout button** at the end of the row to open the same tabbed view in its own window (reusing the per-window mechanism built for handouts, 2026-11-22). **Search needs the same treatment:** a result should say which session it is from, and clicking it should open straight to that snippet, in the tab it belongs to. Likely needs a wire change (which session a search hit belongs to is not in today's response), so it rides this bump rather than landing as a 0.6.x patch; parked here, not designed yet.
 
 ### Anything else
 

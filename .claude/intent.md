@@ -97,6 +97,23 @@ Update this file as threads open, progress, or close — stale entries here are 
     a chaptered session's chapters instead of each reaching it alone (the gap QUALITY-VALIDATION.md's first live run found).
     Not done: re-running session 1 (or another) against the retuned prompts to see how it actually reads — do that before
     trusting the numbers.
+  - **2026-11-22 to 23: session 4 run twice, a real bug found and fixed, Stage 13 nearly closed.** First attempt crashed on
+    a fixture bug (`/dm` vs `/tell`; the live runner now logs a refused composer line instead of stopping). Retry completed
+    but every speaker's word accuracy was low — not Whisper (ruled out by replaying the real recorded tracks directly
+    against the remote server outside the live run), but the test harness's synthetic client never re-acknowledging the
+    recording after the session's scripted mid-session pause, so the backend correctly refused to keep capturing anyone
+    (fixed: `infra/records-smoke/e2e/client.ts`; **not a product bug** — the real app's cue policy already handles a live
+    resume). Re-run clean: word accuracy 0.88–0.98, glossary 78%, 29 of 30 facts, tale/brief/notes lengths holding at full
+    scale (254/235/3,174 words). `v0.6.2` released and published 2026-11-22, VM updated. Five small UI fixes shipped from
+    Andy using the app live (handout multi-window + sizing + title, `/do` no longer repeats the name, per-player volume
+    out of the hover card). Found, not fixed: the desktop app's automatic Away not clearing on its own (GNOME, Wayland);
+    temporary diagnostic logging added (`away-watch.log`), needs a new dev build to catch it in the act.
+    **Andy's manual sweep, 2026-11-23: accepts cloud AI, OIDC, iOS Safari/Firefox, Windows Edge/Firefox/Chrome, the Linux
+    AppImage, the macOS Intel build, and Linux/Windows audio** — untested-here items expected to work, issues to be
+    treated as bugs rather than blockers. **Stage 13's one remaining gate is chunking** (designed, not built); full detail
+    in [BUILD-STATUS.md](../docs/BUILD-STATUS.md#stage-13-close-out-2026-11-22-to-23-session-4-validated-end-to-end-andy-accepts-the-rest)
+    and [READINESS.md](../docs/READINESS.md). Also parked for Stage 14 (likely needs a wire change): a tabbed session-history
+    view (Tale/Heroes/Story/Notes, a popout) and search results naming their session and opening straight to the match.
 
 ## Design topics (1–4 are decided; 5–9 still open — ask Andy, don't resolve by writing code)
 

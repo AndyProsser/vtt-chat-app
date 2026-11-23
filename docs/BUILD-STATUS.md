@@ -2,7 +2,7 @@
 
 Where the build actually stands, so the next session (or the next machine) can pick up without re-deriving it. Kept deliberately honest: **"built" is not "verified".** Update this file in the same change as the work it describes; the plan itself is in [ROADMAP.md](../ROADMAP.md) and the live threads in [.claude/intent.md](../.claude/intent.md).
 
-- **As of:** 2026-11-21 · **Latest release:** 0.6.1 (protocol 4) · **Latest dev build:** `0.6.2-dev.2` · **Branch:** `main`, with the Claude and OpenAI connectors committed after it
+- **As of:** 2026-11-23 · **Latest release:** 0.6.2 (protocol 4, published) · **Branch:** `main`
 - **The sections below are a dated log, newest first.** Each says what was built and what has really run. The one-page summary is the [stocktake](#stocktake-2026-11-21-what-is-built-and-what-is-not-yet-proven) straight after this section; the work that closes its gaps is [Stage 13](../ROADMAP.md#stage-13--quality-validation-end-to-end-testing-planned-2026-11-21). Older sections still describe 2026-11-10 and earlier, when the build was on a Windows machine away from the dev box and much was marked **UNVERIFIED**; where a later section says it was verified, that wins.
 
 ## How to check the repo is healthy
@@ -16,6 +16,62 @@ cd tauri-client && cargo fmt --check && cargo clippy --workspace --all-targets -
 Last full TypeScript run (2026-11-21, after the OpenAI connector): backend 825 passed (27 skipped: they need Postgres), ai 276 (13 skipped), shared 125, panels-ui 385, web 216, plus the smaller suites; typecheck clean for ai, backend and shared. **Not re-run in that session:** the Rust suites and `clippy` (last run with the 0.6.1 release), the Postgres-only tests, and the Compose end-to-end tests. CI builds the release and the images from a tag (0.5.4 and 0.6.1 were built that way).
 
 **Observed by Andy 2026-11-20:** with the microphone and speakers side by side, a scene's sound is briefly picked up by the DM's microphone, and the echo canceller learns to remove it after a short time. Worth watching in the audio measurements (Stage 12): feeding the soundboard to the canceller as a reference from the first sample would shorten it.
+
+## Stage 13 close-out, 2026-11-22 to 23: session 4 validated end to end; Andy accepts the rest
+
+**v0.6.2 released and published 2026-11-22; the VM runs it.** Protocol unchanged at 4.
+
+**Session 4 found and fixed a real bug, twice over.** The first live run of the extended (75-minute, 8-chapter) demo
+session crashed on a fixture bug (`/dm` used where `/tell` was meant; fixed, and the live runner now logs a refused
+composer line as a failed check instead of stopping the whole run). The retry completed, but every speaker's word
+accuracy came back low (0.43–0.61) and glossary accuracy at 36%, which first looked like a Whisper problem and
+wasn't: the session has a scripted mid-session pause, which correctly stopped every track's recording, but the test
+harness's synthetic client never re-acknowledged the recording on resume (it only recognised a live `STARTED`
+status as needing a fresh consent cue, never `RESUMED`), so the backend correctly refused to keep capturing anyone
+— consent-first, working as designed. **Not a product bug**: the real app's cue-handling logic already treats a
+live `Resumed` the same as `Started`, with its own test coverage. Fixed in the test harness
+(`infra/records-smoke/e2e/client.ts`). Full story: [QUALITY-VALIDATION.md](architecture/QUALITY-VALIDATION.md#first-run-of-session-4-2026-11-22-remote-whisperollama-on-a-gpu-pc-v062-dev6).
+
+**Re-run 2026-11-23 with the fix, full 75-minute session captured properly:** word accuracy 0.88–0.98, glossary
+accuracy 78%, **29 of 30 planted facts** found in the scribe's notes (the one miss needs session 3's context, which
+this standalone session-4 run never had). The retuned tale/brief/notes lengths ([RECORDING-AND-SUMMARIES.md](architecture/RECORDING-AND-SUMMARIES.md),
+retuned 2026-11-22 after Andy read session 1 back) held up at full scale: a 254-word tale, a 235-word Chronicler's
+brief, 3,174 words of notes for a real, full 10-chapter session. Andy, after reading the output: happy with the
+tale and each hero's mini-story; the scribe's notes are "quite extensive" for this session specifically, but that's
+chapter-count-driven (the per-chapter cap divides a fixed total budget by how many chapters there are; this
+stress-test session has 8–10, a real session typically 3–4) and should come down on its own for real play.
+
+**A real lead for the chunking work:** the 10 chapters' notes-taking calls fire concurrently (`Promise.all`,
+`processRecording.ts`), and on a single-GPU remote Ollama this queues up and took about 13 minutes with *no
+progress logging at all* in between — long enough that the test harness's own 90-minute patience threshold gave
+up and wrote its report mid-flight (an empty summaries file, "0 of 30 facts", a false alarm; re-collected once the
+job actually finished). Not a hang, but worth pacing and giving visible progress once the chunking work starts.
+
+**Five small UI fixes shipped** (from Andy using the app live during the validation run): a handout now opens in
+its own titled window instead of replacing whatever was open (each handout gets its own window, sized small for
+text and the old fixed size for a map, image or PDF — then retuned again, 480×260, after a second look); an action
+line (`/do`) no longer repeats the character's name (the system doubled it, on top of the fixture's own convention
+of naming them in the text); and per-player volume moved out of the rail's hover card into Settings → Players
+only, where it already lived.
+
+**A real, unconfirmed bug found live:** the desktop app's automatic Away (idle timer or screen lock) did not clear
+itself when Andy came back (GNOME, Wayland). The logic in `away_watch.rs` reads correctly on its own and is
+well-tested; the leading suspect is the idle probe's one long-lived D-Bus connection going stale (lock/unlock,
+suspend/resume) and silently answering nothing forever after. Temporary diagnostic logging added
+(`away-watch.log` in the app's data folder, commit `3fcd4d7`) to catch it in the act next time; needs a new dev
+build on Andy's machine to take effect, and is not yet fixed.
+
+**Andy's manual sweep, 2026-11-23 — accepted, issues to be treated as bugs if they arise rather than blocking:**
+Cloud AI (Claude, OpenAI) untested against the real APIs but not a roadblock; OIDC untested here but built and
+proven together with other apps before, expected to work; iOS Safari and Firefox work as expected; Windows Edge,
+Firefox and Chrome all tested and work; the Linux AppImage works; the macOS Intel build works; Linux and Windows
+audio both work; the Linux WebKitGTK "white box" render glitch (logged 2026-11-19) has not reoccurred. The app
+itself: no performance or memory-leak issues over days of real use, and the soundboard works well.
+
+**Where this leaves Stage 13:** everything in [READINESS.md](READINESS.md) and the [Stage 13 checklist](../ROADMAP.md#stage-13--quality-validation-end-to-end-testing-planned-2026-11-21)
+is closed or accepted except **chunking for a long session** (the design is written, not built — see
+[QUALITY-VALIDATION.md](architecture/QUALITY-VALIDATION.md#fitting-a-long-session-in-the-models-window)), which
+Andy confirms is the one remaining gate.
 
 ## Stocktake 2026-11-21: what is built, and what is not yet proven
 
