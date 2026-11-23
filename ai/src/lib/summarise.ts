@@ -1,14 +1,17 @@
 import {
+  CONDENSE_THRESHOLD,
   DEFAULT_CHUNK_CHARS,
   DEFAULT_CHUNK_OVERLAP_LINES,
   MAX_REDUCE_DEPTH,
   NOTES_READ_ATTEMPTS,
 } from '../consts/index.js';
+import type { AiSettings } from '@vtt-chat-app/shared';
 import type { GenerateText, SummaryContext, SummaryKind, Utterance } from '../types/index.js';
 import { chunkLines } from './chunk.js';
 import type { StructuredNotes } from './notes.js';
 import { formatTimeline } from './format.js';
 import { mergeNotes, NOTES_MAX_WORDS, notesWords, parseNotes, renderNotes } from './notes.js';
+import { contextWindowTokens, estimateTokens } from './tokenBudget.js';
 import {
   buildChroniclerPrompt,
   buildCondensePrompt,
@@ -76,6 +79,13 @@ export interface NotesOptions {
    * session's stored notes near the cap instead of every chapter reaching it on its own.
    */
   maxWords?: number;
+  /**
+   * The backend `writeFromNotes`'s condense loop checks its token estimate against (`contextWindowTokens`).
+   * Omitted only by callers that have not been updated to pass it yet; `contextWindowTokens` itself already
+   * falls back to the measured local default when a caller passes `{ kind: 'local', context: null }` or
+   * equivalent, so this field's own absence is a second, separate fallback for an even older caller.
+   */
+  llm?: AiSettings['llm'];
 }
 
 export interface Notes {
@@ -150,6 +160,10 @@ export async function takeNotes(
   }
 
   // One set of notes for the stretch (a repeat from the overlap once), kept to about the cap.
+  // Word-based, not token-based like writeFromNotes's condense loop below: this is a stable, cheap length
+  // target set once per chapter (today's per-chapter cap sharing), not the real fit-in-window decision
+  // taken right before a single model call — that one has to compare against the real window, this one
+  // doesn't.
   const cap = options.maxWords ?? NOTES_MAX_WORDS;
   let merged = mergeNotes(pieces);
   for (let round = 0; round < MAX_REDUCE_DEPTH && notesWords(merged) > cap; round += 1) {
@@ -172,6 +186,9 @@ export async function writeFromNotes(
   const { scribe, bard } = asModels(models);
   const context = options.context ?? {};
   const chunkChars = options.chunkChars ?? DEFAULT_CHUNK_CHARS;
+  const window = contextWindowTokens(
+    options.llm ?? { kind: 'local', url: null, model: null, priceIn: null, priceOut: null, context: null },
+  );
   let modelCalls = 0;
   const call = async (model: GenerateText, prompt: string): Promise<string> => {
     modelCalls += 1;
@@ -180,7 +197,7 @@ export async function writeFromNotes(
 
   let notes = [...taken];
   for (let depth = 0; depth < MAX_REDUCE_DEPTH; depth += 1) {
-    if (notes.join('\n\n').length <= chunkChars) break;
+    if (estimateTokens(notes.join('\n\n')) <= window * CONDENSE_THRESHOLD) break;
     // Shorten groups of notes that each fit, then go round again on the shorter result.
     const shorter: string[] = [];
     for (const group of groupByBudget(notes, chunkChars)) {
