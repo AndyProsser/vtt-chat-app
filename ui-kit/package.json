@@ -1,0 +1,39 @@
+{
+  "name": "@vtt-chat-app/ui-kit",
+  "version": "0.6.2",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./fonts/core": {
+      "types": "./dist/fonts/core.d.ts",
+      "default": "./dist/fonts/core.js"
+    },
+    "./fonts/languages": {
+      "types": "./dist/fonts/languages.d.ts",
+      "default": "./dist/fonts/languages.js"
+    },
+    "./tokens.css": "./src/styles/tokens.css"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@vtt-chat-app/shared": "*",
+    "lucide-react": "^1.70.0",
+    "react": "^19.0.0",
+    "zustand": "^5.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.0"
+  }
+}

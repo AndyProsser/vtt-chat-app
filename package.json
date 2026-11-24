@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "license": "AGPL-3.0-only",
-  "description": "Self-hosted voice, chat and session records with AI summaries for tabletop groups \u2014 Tauri tray client, Rust audio + LiveKit, native Ubuntu backend.",
+  "description": "Self-hosted voice, chat and session records with AI summaries for tabletop groups — Tauri tray client, Rust audio + LiveKit, native Ubuntu backend.",
   "engines": {
     "node": ">=26.0.0"
   },
@@ -15,6 +15,7 @@
     "status",
     "web",
     "shared",
+    "ui-kit",
     "tauri-client/panels-ui"
   ],
   "scripts": {

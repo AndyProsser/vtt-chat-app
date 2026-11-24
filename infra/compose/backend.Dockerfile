@@ -10,6 +10,7 @@ FROM node:26-alpine AS manifests
 WORKDIR /app
 COPY package.json package-lock.json tsconfig.base.json ./
 COPY shared/package.json shared/
+COPY ui-kit/package.json ui-kit/
 COPY backend/package.json backend/
 COPY ai/package.json ai/
 COPY ddb/package.json ddb/
@@ -26,10 +27,12 @@ COPY backend backend
 RUN npm run build -w shared -w ai -w ddb -w backend
 
 FROM manifests AS web
-# The web pages share the chat command parser with the apps, so build `shared` first.
-RUN npm ci -w web -w shared
+# The web pages share the chat command parser with the apps (`shared`) and their fonts and icon
+# choices (`ui-kit`), so build both first.
+RUN npm ci -w web -w shared -w ui-kit
 COPY shared shared
-RUN npm run build -w shared
+COPY ui-kit ui-kit
+RUN npm run build -w shared -w ui-kit
 COPY web web
 RUN npm run build -w web
 

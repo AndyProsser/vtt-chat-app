@@ -2,6 +2,7 @@
   "files": [],
   "references": [
     { "path": "shared" },
+    { "path": "ui-kit" },
     { "path": "backend" },
     { "path": "ddb" },
     { "path": "ai" },
