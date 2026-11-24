@@ -12,16 +12,19 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ### Added
 
-- **`ai.llm.context`, an operator setting for a remote summary model's real window.** Set alongside `OLLAMA_CONTEXT_LENGTH` (`vtt-admin settings set ai.llm.context <same number>`) when `ai.llm.kind` is `remote`, so the app condenses a long session's notes before they overflow the window Ollama actually serves, instead of risking silent truncation. See OPERATOR-GUIDE.md. On `local` this setting has no effect — the worker's own fixed window already covers it.
+- **`ai.llm.context`, an operator setting for a summary model's real window.** Set alongside `OLLAMA_CONTEXT_LENGTH` (`vtt-admin settings set ai.llm.context <same number>`, or let `vtt-admin status --tune` do it for you) so the app condenses a long session's notes before they overflow the window Ollama actually serves, instead of risking silent truncation. Applies to `local` and `remote` alike — the worker sends it as `num_ctx` on every native Ollama call. See OPERATOR-GUIDE.md.
 - **A log line when a summary call runs close to its configured window**, visible via `docker compose logs worker` (`vtt-admin jobs list` is a follow-up).
+- **`vtt-admin status` has a new AI section** checking whether the configured context window matches reality: live-queried against Ollama for `local`/`remote`, a built-in table of real values for known Claude models. Assuming _more_ than the backend can actually serve fails the check (a real truncation risk); assuming _less_ (unused headroom) is a warning with a hint. `vtt-admin status --tune` applies whatever it finds.
 
 ### Changed
 
 - **Chapter notes are taken two chapters at a time instead of all at once**, with a log line as each finishes — a single-GPU remote Ollama no longer has ten chapters queued on it simultaneously with no progress shown.
+- **Claude's real per-model context window** (not one flat conservative number) now drives the condense decision directly, for every model the app recognises.
 
 ### Known limits
 
-- The near-full-window warning does not yet fire for the local backend (Ollama's native API does not report token usage back to the app); it does fire for Claude, OpenAI, and a remote OpenAI-compatible server.
+- The near-full-window warning does not fire for the local backend (Ollama's native API does not report token usage back to the app); it does fire for Claude, OpenAI, and a remote OpenAI-compatible server.
+- `vtt-admin status`'s AI check reads what the worker last found, not a live, on-demand query — it can be a few minutes stale, and shows nothing at all until the worker has checked at least once.
 - The condensing decision sizes against the notes alone, not the full assembled prompt (instructions, campaign memory, cues); on a small configured window this leaves less headroom than the margin suggests.
 - Campaign memory still reads a session's full, uncondensed notes rather than the condensed version other summaries use.
 

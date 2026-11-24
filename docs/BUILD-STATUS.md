@@ -17,15 +17,33 @@ Last full TypeScript run (2026-11-21, after the OpenAI connector): backend 825 p
 
 **Observed by Andy 2026-11-20:** with the microphone and speakers side by side, a scene's sound is briefly picked up by the DM's microphone, and the echo canceller learns to remove it after a short time. Worth watching in the audio measurements (Stage 12): feeding the soundboard to the canceller as a reference from the first sample would shorten it.
 
+## AI context-window tuning via `vtt-admin status`, 2026-11-24
+
+**Built, on branch `worktree-ai-context-tuning`, following
+[docs/superpowers/plans/2026-11-24-ai-context-tuning.md](../docs/superpowers/plans/2026-11-24-ai-context-tuning.md):**
+closes two of the chunking work's own gaps (below) and gives the operator a way to check and fix a
+context-window mismatch instead of guessing. `vtt-admin status` gains an AI section: for `local`/`remote` it
+grades what the worker finds asking Ollama directly (`/api/ps` for what's actually being served,
+`/api/show` for the model's trained maximum) against what the app assumes; for Claude, a built-in per-model
+table (`ai/consts/claude.ts`) now drives the real window directly, no setting involved. Assuming _more_ than
+the backend can serve fails the check — a real truncation risk, not a formality; assuming _less_ (unused
+headroom) is a warning with a hint. `vtt-admin status --tune` applies whatever was found. Along the way,
+`local`'s own fixed `num_ctx` (hardcoded 8,192 in the worker) was replaced with the configured
+`ai.llm.context`, read fresh on every call — `local` had never actually been tunable before this.
+
+**Known limits:** the worker checks periodically, independent of job processing (never on the job's own hot
+path), so `status` can be a few minutes stale after a config change; `--tune` acts on that last-checked
+value, not a fresh on-demand query. The bigger `vtt-admin test ai|voice|full` idea and external
+connectivity checking were both parked (ROADMAP.md, Future ideas) rather than built now.
+
 ## Chunking for a long session (C5), 2026-11-24: built, not yet re-validated on a real session
 
 **Built, on branch `worktree-chunking-long-sessions`, following the plan at
 [docs/superpowers/plans/2026-11-23-chunking-long-sessions.md](../docs/superpowers/plans/2026-11-23-chunking-long-sessions.md):**
 a real token estimate (`ai/src/lib/tokenBudget.ts`) drives the condense loop instead of the old fixed
 12,000-character cap; a new `ai.llm.context` operator setting tells the app a **remote** Ollama's real window
-(it has no effect on `local`, which the worker already pins at a fixed window — see below); a prompt that runs
-close to the configured window is logged; chapter notes are now paced two at a time with progress logging,
-closing the lead found 2026-11-22 above.
+(2026-11-24: now `local` too, see below); a prompt that runs close to the configured window is logged;
+chapter notes are now paced two at a time with progress logging, closing the lead found 2026-11-22 above.
 
 **Not yet true: "exactly as it behaved before" on an unconfigured server.** The condense trigger is now a
 token estimate of the notes alone (not the full assembled prompt — instructions, campaign memory, cues,
