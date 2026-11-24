@@ -298,7 +298,7 @@ body,
 }
 /* Kinds (CHAT-COMMANDS.md): told apart by shape and type, not colour alone; colours are theme variables. */
 .vtt-bubble.vtt-kind-say .vtt-say-text {
-  font-family: Georgia, 'Times New Roman', serif;
+  font-family: var(--vtt-font-narrative);
   font-size: 1.08em;
 }
 .vtt-lang-caption {

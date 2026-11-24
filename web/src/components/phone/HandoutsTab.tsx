@@ -247,7 +247,11 @@ function HandoutView({
           {error}
         </Text>
       )}
-      {item.kind === 'text' && item.body && <LazyMarkdown text={item.body} />}
+      {item.kind === 'text' && item.body && (
+        <div className="vtt-narrative">
+          <LazyMarkdown text={item.body} />
+        </div>
+      )}
       {(item.kind === 'image' || item.kind === 'map') && (
         <Pictures item={item} campaignId={campaignId} />
       )}

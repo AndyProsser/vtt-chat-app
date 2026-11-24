@@ -188,7 +188,11 @@ function Item({
           </span>
         </div>
       )}
-      {h.kind === 'text' && h.body && <MarkdownView text={h.body} />}
+      {h.kind === 'text' && h.body && (
+        <div className="vtt-narrative">
+          <MarkdownView text={h.body} />
+        </div>
+      )}
       {h.body && h.kind !== 'text' && <p className="vtt-viewer-caption">{h.body}</p>}
       {(h.kind === 'image' || h.kind === 'map') && h.hasFile && (
         <Picture id={h.id} title={h.title} count={h.fileCount} />

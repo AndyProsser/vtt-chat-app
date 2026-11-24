@@ -4,7 +4,6 @@
   --vtt-radius-bubble: 12px;
   --vtt-radius-pill-square: 2px;
   --vtt-avatar-radius: 50%;
-  --vtt-font-head: 'Cinzel', Georgia, serif;
 }
 
 /* Before a theme is applied (and behind everything): neutral, following the OS, so nothing flashes. */

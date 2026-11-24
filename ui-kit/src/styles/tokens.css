@@ -1,0 +1,19 @@
+/*
+ * Typography tokens, shared by the desktop app and the phone web app (docs/architecture/ICONOLOGY.md).
+ * Every stack ends in a generic family, so text still reads if a font file fails to load.
+ */
+:root {
+  --vtt-font-body: 'Inter Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --vtt-font-head: 'Cinzel', Georgia, 'Times New Roman', serif;
+  --vtt-font-narrative: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+}
+
+.radix-themes.radix-themes {
+  --default-font-family: var(--vtt-font-body);
+  --heading-font-family: var(--vtt-font-head);
+}
+
+/* Letters, journals and read-aloud text (handouts). Tales and notes stay in the body font: they are read at length. */
+.vtt-narrative {
+  font-family: var(--vtt-font-narrative);
+}

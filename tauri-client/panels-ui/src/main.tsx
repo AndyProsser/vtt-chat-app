@@ -1,5 +1,6 @@
 import '@radix-ui/themes/styles.css';
-import '@fontsource/cinzel/600.css';
+import '@vtt-chat-app/ui-kit/fonts/core';
+import '@vtt-chat-app/ui-kit/tokens.css';
 import './styles/tokens.css';
 import './styles/theme.css';
 import './styles/main.css';

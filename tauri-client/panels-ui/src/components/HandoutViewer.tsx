@@ -291,7 +291,9 @@ export function HandoutViewer() {
             (editing ? (
               <MarkdownEditor value={text} onChange={setText} />
             ) : (
-              <MarkdownView text={handout.body ?? ''} />
+              <div className="vtt-narrative">
+                <MarkdownView text={handout.body ?? ''} />
+              </div>
             ))}
           {!note &&
             (editing ? (

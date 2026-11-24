@@ -13,9 +13,9 @@
     "ddb",
     "ai",
     "status",
-    "web",
     "shared",
     "ui-kit",
+    "web",
     "tauri-client/panels-ui"
   ],
   "scripts": {

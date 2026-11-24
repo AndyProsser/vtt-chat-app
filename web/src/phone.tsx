@@ -1,4 +1,6 @@
 import '@radix-ui/themes/styles.css';
+import '@vtt-chat-app/ui-kit/fonts/core';
+import '@vtt-chat-app/ui-kit/tokens.css';
 import './styles/palette.css';
 import './styles/theme.css';
 import './styles/markdown.css';

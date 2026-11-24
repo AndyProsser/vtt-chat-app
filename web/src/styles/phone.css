@@ -386,7 +386,7 @@ body,
 }
 /* Kinds: told apart by shape and type, never by colour alone. */
 .phone-line-say .phone-bubble {
-  font-family: Georgia, 'Times New Roman', serif;
+  font-family: var(--vtt-font-narrative);
   font-size: 1.08em;
 }
 .phone-line-do .phone-bubble,
