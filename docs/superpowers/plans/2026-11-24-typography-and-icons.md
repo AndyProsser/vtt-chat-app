@@ -244,7 +244,7 @@
 **Files:**
 
 - Create: `ui-kit/src/lib/langSpan.ts`, `ui-kit/src/lib/langSpan.test.ts`, `ui-kit/src/components/LangSpan.tsx`
-- Modify: `tauri-client/panels-ui/src/components/MarkdownView.tsx`, `web/src/components/phone/MarkdownView.tsx`, `ai/src/lib/prompts.ts` (the storyteller prompt), `docs/architecture/proposals/RPG-MARKDOWN-EXTENSION.md` (status to built)
+- Modify: `tauri-client/panels-ui/src/components/MarkdownView.tsx`, `web/src/components/phone/MarkdownView.tsx`, `ai/src/lib/prompts.ts` (the storyteller prompt), `docs/architecture/RPG-MARKDOWN-EXTENSION.md` (status to built)
 
 **Interfaces:**
 

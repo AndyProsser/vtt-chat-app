@@ -1,8 +1,8 @@
 # Language Spans in Markdown
 
-**Status:** Proposed (2026-11-24, cut down from the first "RPG Markdown" draft). **Not built.** Comes **after the font work** ([ICONOLOGY.md](../ICONOLOGY.md), Stage 14), because it only draws what that work provides.
+**Status:** Designed and accepted (Andy, 2026-11-24; cut down from the first "RPG Markdown" draft). **Not built** (Stage 14, 0.6.4). It draws on the font work that shipped in 0.6.3 ([ICONOLOGY.md](ICONOLOGY.md)).
 **Wire change:** none. The span is ordinary Markdown text stored as today.
-**Plan:** Task 11 of [2026-11-24-typography-and-icons.md](../../superpowers/plans/2026-11-24-typography-and-icons.md).
+**Plan:** Task 11 of [2026-11-24-typography-and-icons.md](../superpowers/plans/2026-11-24-typography-and-icons.md).
 
 ## What this is for
 
@@ -56,22 +56,22 @@ It is the same `languageTextStyle` chat uses, so a language looks the same in a 
 
 One line is added to the storyteller prompt: _the foreign speech of a language may be written as
 `[text](lang:<language>)`; use it sparingly, only when the notes or chat name the language_. The tale keeps its
-creative licence ([bard creative licence](../RECORDING-AND-SUMMARIES.md)); the span adds no facts. Spoken audio does not
+creative licence ([bard creative licence](RECORDING-AND-SUMMARIES.md)); the span adds no facts. Spoken audio does not
 carry a language tag, so the storyteller only knows a language where a chat line (`/say-elvish`) or the DM's notes say so.
 
 ## What was in the first draft and is not here
 
 Cut on purpose, because each is either already handled elsewhere or not needed to put the story first:
 
-| Dropped from the draft                                          | Why                                                                                                 |
-| --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| Directives for speech, action, whisper, OOC, thought, narration | Chat carries these as data (`kind`, `lang`); in prose, narration is just paragraphs                 |
-| Letter, journal, book, scroll, quest directives                 | Presentation templates. Add one when a real handout needs it                                        |
-| Dice `[[1d20]]`                                                 | Dice are a project non-goal ([CLAUDE.md §13](../../../.claude/CLAUDE.md)); the game log is separate |
-| Inline references (`@`, `$item:`, `$spell:`)                    | Need a data source that does not exist yet                                                          |
-| Reserved directives (`map`, `combat`, `cinematic` …)            | VTT features, out of scope                                                                          |
-| YAML frontmatter, "MUST" renderer compliance                    | Ceremony nothing needs                                                                              |
-| Typography and polyglot tables                                  | Already in [ICONOLOGY.md](../ICONOLOGY.md); two copies is how drift starts                          |
+| Dropped from the draft                                          | Why                                                                                              |
+| --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| Directives for speech, action, whisper, OOC, thought, narration | Chat carries these as data (`kind`, `lang`); in prose, narration is just paragraphs              |
+| Letter, journal, book, scroll, quest directives                 | Presentation templates. Add one when a real handout needs it                                     |
+| Dice `[[1d20]]`                                                 | Dice are a project non-goal ([CLAUDE.md §13](../../.claude/CLAUDE.md)); the game log is separate |
+| Inline references (`@`, `$item:`, `$spell:`)                    | Need a data source that does not exist yet                                                       |
+| Reserved directives (`map`, `combat`, `cinematic` …)            | VTT features, out of scope                                                                       |
+| YAML frontmatter, "MUST" renderer compliance                    | Ceremony nothing needs                                                                           |
+| Typography and polyglot tables                                  | Already in [ICONOLOGY.md](ICONOLOGY.md); two copies is how drift starts                          |
 
 **Polyglot** is unchanged and still future: it would be a server-side mask over the text a reader may not understand
 (masking in the client would leak it), and the span format leaves room for it because the language is kept as data

@@ -262,7 +262,7 @@ either is tuned or swapped, not shipped.
 The DM and the AI storyteller can write a snippet in a language inside Markdown, drawn in that language's font by the
 same function chat uses: `[Khazad ul barak](lang:dwarvish)` inline, or a fenced block whose info string is the
 language. It is plain Markdown that reads fine anywhere else, needs no wire change, and is designed in
-[RPG-MARKDOWN-EXTENSION.md](proposals/RPG-MARKDOWN-EXTENSION.md). It is the last task of the Stage 14 plan.
+[RPG-MARKDOWN-EXTENSION.md](RPG-MARKDOWN-EXTENSION.md). It is the last task of the Stage 14 plan.
 
 ---
 
@@ -317,4 +317,4 @@ Share Tech Mono. The unused `@radix-ui/react-icons` dependency in `panels-ui` is
 - [CONVENTIONS.md](../CONVENTIONS.md): the per-module folder layout `ui-kit/` follows.
 - [OVERVIEW.md](OVERVIEW.md): module responsibilities.
 - [Plan](../superpowers/plans/2026-11-24-typography-and-icons.md).
-- [RPG-MARKDOWN-EXTENSION.md](proposals/RPG-MARKDOWN-EXTENSION.md): language spans in handouts and tales.
+- [RPG-MARKDOWN-EXTENSION.md](RPG-MARKDOWN-EXTENSION.md): language spans in handouts and tales.
