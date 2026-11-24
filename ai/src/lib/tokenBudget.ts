@@ -17,9 +17,16 @@ export function estimateTokens(text: string): number {
  * could never actually raise what gets served — trusting it anyway would be the silent-truncation bug
  * this budget exists to prevent, not a smaller version of it.
  *
- * `fallbackEnabled` (the operator's `ai.fallback.enabled`) clamps every other kind to that same fixed
- * local number too: a job configured for claude/openai/remote can fail over mid-job to the local model,
- * which still only honours its own fixed window regardless of what the call was sized for.
+ * `local` honours `ai.llm.context` too (the worker sends it as `num_ctx` on every native Ollama call, not
+ * a fixed 8,192 — see `ai/src/cli/worker.ts`), so this is the one real, operator-set number for `local`,
+ * same as `remote`. There is nothing further for `local` to "fail over" to, so `fallbackEnabled` never
+ * clamps it: the clamp below only ever narrows a call that might land on `local` through failover, never
+ * `local` itself.
+ *
+ * `fallbackEnabled` (the operator's `ai.fallback.enabled`) clamps every other kind to that same local
+ * number: a job configured for claude/openai/remote can fail over mid-job to the local model, which still
+ * only honours its own real window (`ai.llm.context`, or the measured default when unset) regardless of
+ * what the call was sized for.
  *
  * `claude`'s cloud default is itself per-model where known (`CLAUDE_CONTEXT_WINDOWS`, ai/consts/claude.ts) —
  * a fact about the model, not a setting, so there is nothing for the operator to configure or get wrong.
@@ -27,7 +34,7 @@ export function estimateTokens(text: string): number {
  * cloud default, same as `openai` always does (no table there by design: see the design doc's Non-goals).
  */
 export function contextWindowTokens(llm: AiSettings['llm'], fallbackEnabled = false): number {
-  if (llm.kind === 'local') return DEFAULT_LOCAL_CONTEXT_TOKENS;
+  if (llm.kind === 'local') return llm.context ?? DEFAULT_LOCAL_CONTEXT_TOKENS;
   const resolved =
     llm.kind === 'claude'
       ? (CLAUDE_CONTEXT_WINDOWS[llm.model ?? ''] ?? DEFAULT_CLOUD_CONTEXT_TOKENS)

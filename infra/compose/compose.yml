@@ -242,11 +242,10 @@ services:
       # Unload the model this long after the last request, so an idle server holds no (V)RAM for it.
       # A job's summaries run back to back, so the model stays loaded for the whole job.
       OLLAMA_KEEP_ALIVE: ${OLLAMA_KEEP_ALIVE:-2m}
-      # On the *local* kind the worker pins its own num_ctx (8,192) on every call, which overrides whatever
-      # this is set to — so it does not currently raise the local records pipeline's real window. Kept here,
-      # off by default, in case another local Ollama use ever needs it; `ai.llm.context` always ignores it
-      # for `local` too, for the same reason (ai/src/lib/tokenBudget.ts). Operators who need a bigger window
-      # today should point ai.llm.kind at `remote`, where this variable's remote-ai counterpart is honoured.
+      # Raises the window this Ollama serves (VRAM/speed cost); blank keeps Ollama's own default. The worker
+      # now sends `ai.llm.context` as `num_ctx` on every local call too, so set that setting to the same
+      # number (`vtt-admin settings set ai.llm.context`, or just `vtt-admin status --tune`) — never higher
+      # than this, or the app trusts a window Ollama doesn't actually have (silent truncation, not safe).
       OLLAMA_CONTEXT_LENGTH: ${OLLAMA_CONTEXT_LENGTH:-}
     healthcheck:
       <<: *healthcheck

@@ -453,15 +453,23 @@ details. A GPU PC does the same work in minutes with the better models. So:
    (its CUDA image covers GTX 10-series and newer cards). Pull `qwen3:8b`, and let them listen on the LAN address only (a host-installed
    Ollama needs `OLLAMA_HOST` set and `OLLAMA_CONTEXT_LENGTH=8192`; allow the ports only from the VM, never the internet).
 
-   **Raising that window takes two steps, both needed, and only for `ai.llm.kind remote`** (set below) — on
-   `local` the worker pins its own fixed window on every call, so this pair of settings has no effect there.
-   `OLLAMA_CONTEXT_LENGTH` (in `.env` for the Compose service, or the host-installed Ollama's own environment)
-   is what Ollama actually serves — bigger costs VRAM and speed. The app has no way to ask Ollama's
-   OpenAI-compatible API what that number is, so it also has to be told the same number, with
-   `./vtt-admin settings set ai.llm.context`. **Never set that number higher than `OLLAMA_CONTEXT_LENGTH`**:
-   the app would then trust a window Ollama doesn't actually have, and condense too late, which is silent
-   truncation, not a safe mistake. Lower is the safe direction: the app just condenses earlier than it needs
-   to and some VRAM goes unused.
+   **Raising that window takes two steps, both needed.** `OLLAMA_CONTEXT_LENGTH` (in `.env` for the Compose
+   service, or the host-installed Ollama's own environment) is what Ollama actually serves — bigger costs
+   VRAM and speed. The app has no way to ask Ollama's API what that number is, so it also has to be told the
+   same number, with `./vtt-admin settings set ai.llm.context`. **Never set that number higher than
+   `OLLAMA_CONTEXT_LENGTH`**: the app would then trust a window Ollama doesn't actually have, and condense
+   too late, which is silent truncation, not a safe mistake. Lower is the safe direction: the app just
+   condenses earlier than it needs to and some VRAM goes unused.
+
+   **Easier: let the app check and set it for you.** `./vtt-admin status` has an **AI** section that
+   compares the configured number against what Ollama is actually serving (checked by the worker
+   periodically, for `local` and `remote` alike) and against the model's own maximum — a mismatch that risks
+   truncation shows as a failure, not just a warning; unused headroom (the model could serve more than is
+   configured) shows as a warning with both numbers. `./vtt-admin status --tune` applies whatever it found,
+   writing `ai.llm.context` for you — no need to copy `OLLAMA_CONTEXT_LENGTH`'s number by hand. It has
+   nothing to apply (and says so) until the worker has checked at least once, and Claude/OpenAI are never
+   affected — Claude's real window comes from a built-in table, OpenAI has no table and always shows as
+   unknown.
 
 2. On the VM, point the worker at it, with the VM's own CPU as the fallback:
 

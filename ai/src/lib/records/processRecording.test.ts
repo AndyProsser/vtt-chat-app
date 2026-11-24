@@ -589,10 +589,10 @@ describe("the operator's context window (chunking)", () => {
     expect(condensed()).toBe(false);
   });
 
-  it("ignores a configured context for local: the worker's fixed window can't reach it", async () => {
+  it('honours a configured context for local too, now that the worker sends it as num_ctx', async () => {
     records.aiSettings = setAiSetting(DEFAULT_AI_SETTINGS, 'ai.llm.context', '5'); // kind stays the default, local
     await handler().run(job());
-    expect(condensed()).toBe(false);
+    expect(condensed()).toBe(true);
   });
 
   it('logs once when a prompt runs close to the configured window', async () => {
