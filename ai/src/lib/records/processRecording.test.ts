@@ -172,6 +172,50 @@ describe('process-recording handler', () => {
     expect(prompts[0]).toContain('"ALICE" is the Game Master');
   });
 
+  it('paces chapter note-taking instead of firing every chapter at once, and logs each as it finishes', async () => {
+    for (const [at, event] of [
+      [0, 'started'],
+      [5000, 'paused'],
+      [5500, 'resumed'],
+      [15000, 'paused'],
+      [15500, 'resumed'],
+      [25000, 'paused'],
+      [25500, 'resumed'],
+      [35000, 'paused'],
+      [35500, 'resumed'],
+      [45000, 'stopped'],
+    ] as const) {
+      await records.addRecordingEvent({ recordingId: REC, at, event });
+    }
+    let inFlight = 0;
+    const observedConcurrency: number[] = [];
+    const log: string[] = [];
+    await handler({
+      log: (l) => log.push(l),
+      // alice speaks once in each of the 5 chapter windows; bob never speaks, so every utterance is alice's.
+      transcribeAudioFile: async (file) => {
+        if (!file.includes('t-alice')) return [];
+        return [0, 10000, 20000, 30000, 40000].map((startMs) => ({
+          startMs,
+          endMs: startMs + 1000,
+          text: `said at ${startMs}`,
+        }));
+      },
+      localGenerate: async (prompt) => {
+        prompts.push(prompt);
+        if (!prompt.startsWith('You are the scribe')) return `summary #${prompts.length}`;
+        inFlight += 1;
+        observedConcurrency.push(inFlight);
+        await new Promise((resolve) => setTimeout(resolve, 5));
+        inFlight -= 1;
+        return `## Events\n- summary #${prompts.length}`;
+      },
+    }).run(job());
+    expect(Math.max(...observedConcurrency)).toBeLessThanOrEqual(2);
+    const chapterNotesReady = log.filter((l) => /chapter \d+ notes ready/.test(l));
+    expect(chapterNotesReady).toHaveLength(5);
+  });
+
   it('weaves scene, effect, voice and group cues into what the model reads, and titles the scene chapter', async () => {
     await records.putTrack(
       track('t-long', 'carol', {

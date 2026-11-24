@@ -37,6 +37,10 @@ import type { RecordsStore } from './recordsStore.js';
 
 export const PROCESS_RECORDING_JOB = 'process-recording';
 
+// Found 2026-11-22: 10 chapters fired at once queued for 13 minutes with no progress output on a
+// single-GPU remote Ollama. Pacing a few at a time keeps a GPU-bound backend busy without starving it.
+const CHAPTER_CONCURRENCY = 2;
+
 export interface ProcessRecordingDeps {
   records: RecordsStore;
   /** The always-configured local backends: the default, and the fallback for a remote one. */
@@ -269,14 +273,25 @@ export function createProcessRecordingHandler(deps: ProcessRecordingDeps): JobHa
         chapters.length > 0
           ? Math.max(300, Math.round(NOTES_MAX_WORDS / chapters.length))
           : undefined;
-      const parts = byChapter
-        ? await Promise.all(
-            chapters.map(async (c) => ({
-              title: `Part ${c.subject}${c.context.chapter?.title ? `: ${c.context.chapter.title}` : ''}`,
-              notes: await notesOf(c.subject, c.utterances, c.context, chapterMaxWords),
-            })),
-          )
-        : [{ notes: await sessionNotes(session.context) }];
+      const parts: { title?: string; notes: string[] }[] = [];
+      if (byChapter) {
+        for (let i = 0; i < chapters.length; i += CHAPTER_CONCURRENCY) {
+          const batch = chapters.slice(i, i + CHAPTER_CONCURRENCY);
+          const batchParts = await Promise.all(
+            batch.map(async (c) => {
+              const notes = await notesOf(c.subject, c.utterances, c.context, chapterMaxWords);
+              log(`${recording.id}: chapter ${c.subject} notes ready`);
+              return {
+                title: `Part ${c.subject}${c.context.chapter?.title ? `: ${c.context.chapter.title}` : ''}`,
+                notes,
+              };
+            }),
+          );
+          parts.push(...batchParts);
+        }
+      } else {
+        parts.push({ notes: await sessionNotes(session.context) });
+      }
       await deps.records.putSummary({
         recordingId: recording.id,
         kind: 'notes',
