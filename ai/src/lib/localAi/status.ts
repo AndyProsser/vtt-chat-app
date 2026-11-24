@@ -1,6 +1,11 @@
 import type { Pool } from 'pg';
 
-import type { LocalAiStatus, LocalModelState, LocalModelStatus } from '../../types/localAi.js';
+import type {
+  LocalAiStatus,
+  LocalModelState,
+  LocalModelStatus,
+  OllamaContextStatus,
+} from '../../types/localAi.js';
 
 /** A download whose status has not been refreshed for this long has stalled (the worker refreshes it every 15 s). */
 export const DOWNLOAD_STALLED_MS = 5 * 60_000;
@@ -24,6 +29,8 @@ export async function readLocalAiStatus(pool: Pool): Promise<LocalAiStatus | nul
 export interface LocalAiReporter {
   llm(status: LocalModelStatus): void;
   whisper(status: LocalModelStatus): void;
+  /** The configured LLM backend's real context window, as last checked (local or remote Ollama only). */
+  context(status: OllamaContextStatus): void;
 }
 
 export interface ReporterOptions {
@@ -70,7 +77,17 @@ export function createLocalAiReporter(options: ReporterOptions): LocalAiReporter
     if (writing) dirty = true;
     else flush();
   };
-  return { llm: (status) => set('llm', status), whisper: (status) => set('whisper', status) };
+  const setContext = (status: OllamaContextStatus): void => {
+    current.llmContext = status;
+    current.at = now();
+    if (writing) dirty = true;
+    else flush();
+  };
+  return {
+    llm: (status) => set('llm', status),
+    whisper: (status) => set('whisper', status),
+    context: setContext,
+  };
 }
 
 /** A model's state as shown to people: the stored state, or `stalled` for a download that stopped reporting. */

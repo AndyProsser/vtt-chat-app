@@ -412,6 +412,31 @@ describe('the local AI status', () => {
     });
   });
 
+  it('reports the context check alongside llm/whisper, as a third field', async () => {
+    const written: LocalAiStatus[] = [];
+    const reporter = createLocalAiReporter({ now: () => 7, write: async (s) => written.push(s) });
+    reporter.context({
+      kind: 'local',
+      model: 'qwen3',
+      live: 8192,
+      modelMax: 32768,
+      unreachable: false,
+    });
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(written.at(-1)).toEqual({
+      at: 7,
+      llm: null,
+      whisper: null,
+      llmContext: {
+        kind: 'local',
+        model: 'qwen3',
+        live: 8192,
+        modelMax: 32768,
+        unreachable: false,
+      },
+    });
+  });
+
   it('calls a download that stopped reporting stalled, and flags it with a failed one', () => {
     const downloading: LocalModelStatus = { state: 'downloading', percent: 40 };
     expect(shownState(downloading, 0, 60_000)).toBe('downloading');
