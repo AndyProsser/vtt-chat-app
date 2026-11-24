@@ -51,6 +51,7 @@ import {
   OllamaModelKeeper,
   WhisperReadiness,
 } from '../lib/localAi/keepers.js';
+import { createOllamaContextChecker } from '../lib/localAi/contextChecker.js';
 import { createLocalAiReporter, reportWorst, writeLocalAiStatus } from '../lib/localAi/status.js';
 import type { GenerateText } from '../types/index.js';
 import { createOllamaGenerate } from '../lib/ollama.js';
@@ -85,6 +86,9 @@ function fitAudioContext(env: NodeJS.ProcessEnv): boolean {
   if (env.WHISPER_FIT_AUDIO_CTX === '0') return false;
   return fitsAudioContext(env.WHISPER_MODEL_FILE);
 }
+
+/** How often the worker re-checks Ollama's real context window: cheap, read-only, no job dependency. */
+const CONTEXT_CHECK_INTERVAL_MS = 15 * 60_000;
 
 async function main(): Promise<void> {
   const pool = createPool(required('DATABASE_URL'));
@@ -234,8 +238,44 @@ async function main(): Promise<void> {
     }
   };
 
+  /**
+   * How full `ai.llm.context`'s assumption really is, for `vtt-admin status` to grade. Local is always
+   * Ollama, checked against the scribe's own model (`ollamaModel`) — a second, separately-configured bard
+   * model (`OLLAMA_STORY_MODEL`) is not checked too; most installs use one model for both roles, and
+   * combining two checks (as `reportWorst` already does for readiness) is a reasonable follow-up, not done
+   * here. `remote` is only opportunistic: it may not be Ollama at all, and a check against it then simply
+   * resolves `unreachable: true`, never affecting job processing either way.
+   */
+  const checkOllamaContext = async (): Promise<void> => {
+    try {
+      const ai = await records.getAiSettings();
+      if (ai.llm.kind === 'local') {
+        reporter.context(
+          await createOllamaContextChecker({
+            kind: 'local',
+            baseUrl: ollamaUrl,
+            model: ollamaModel,
+          }),
+        );
+      } else if (ai.llm.kind === 'remote' && ai.llm.url !== null && ai.llm.model !== null) {
+        reporter.context(
+          await createOllamaContextChecker({
+            kind: 'remote',
+            baseUrl: ai.llm.url,
+            model: ai.llm.model,
+          }),
+        );
+      }
+      // claude/openai, or remote with no url/model yet: nothing to check; vtt-admin status handles those
+      // kinds from the table/flat default instead.
+    } catch (error) {
+      log(`checking Ollama's real context window failed: ${String(error)}`);
+    }
+  };
+
   try {
     if (once) {
+      await checkOllamaContext();
       while (await processNext(options)) {
         /* drain */
       }
@@ -250,6 +290,8 @@ async function main(): Promise<void> {
         sweep();
         setInterval(sweep, 3_600_000).unref();
       }
+      void checkOllamaContext();
+      setInterval(checkOllamaContext, CONTEXT_CHECK_INTERVAL_MS).unref();
       if (whisperReady) void keepTrying(whisperReady, { signal: abort.signal });
       void usesLocalLlm().then((wanted) => {
         if (!wanted) {
