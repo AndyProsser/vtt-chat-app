@@ -8,7 +8,12 @@ import {
   OllamaModelKeeper,
   WhisperReadiness,
 } from './keepers.js';
-import { ollamaHasModel, pullOllamaModel } from './ollamaModel.js';
+import {
+  getOllamaModelMaxContext,
+  getOllamaRunningContext,
+  ollamaHasModel,
+  pullOllamaModel,
+} from './ollamaModel.js';
 import { createLocalAiReporter, describeLocalAi, needsAttention, shownState } from './status.js';
 
 const json = (body: unknown, status = 200): Response =>
@@ -46,6 +51,77 @@ describe('ollamaHasModel', () => {
   it('throws when Ollama answers with an error', async () => {
     const fetchImpl = (async () => json({}, 500)) as typeof fetch;
     await expect(ollamaHasModel('http://ollama', 'm', fetchImpl)).rejects.toThrow('500');
+  });
+});
+
+describe('getOllamaRunningContext', () => {
+  const fakePs = (models: { name: string; context_length: number }[]) =>
+    (async (input: string | URL | Request) => {
+      const url = String(input);
+      if (url.endsWith('/api/ps')) return json({ models });
+      return json({}, 404);
+    }) as typeof fetch;
+
+  it("returns the matching model's context_length, matching an untagged name as :latest", async () => {
+    const fetchImpl = fakePs([
+      { name: 'llama3.2:3b', context_length: 4096 },
+      { name: 'qwen3:latest', context_length: 32768 },
+    ]);
+    expect(await getOllamaRunningContext('http://ollama', 'llama3.2:3b', fetchImpl)).toBe(4096);
+    expect(await getOllamaRunningContext('http://ollama', 'qwen3', fetchImpl)).toBe(32768);
+  });
+
+  it('returns undefined when the model is not currently loaded', async () => {
+    const fetchImpl = fakePs([{ name: 'qwen3:latest', context_length: 32768 }]);
+    expect(
+      await getOllamaRunningContext('http://ollama', 'llama3.2:3b', fetchImpl),
+    ).toBeUndefined();
+  });
+
+  it('throws when Ollama answers with an error', async () => {
+    const fetchImpl = (async () => json({}, 500)) as typeof fetch;
+    await expect(getOllamaRunningContext('http://ollama', 'm', fetchImpl)).rejects.toThrow('500');
+  });
+});
+
+describe('getOllamaModelMaxContext', () => {
+  const fakeShow = (modelInfo: Record<string, unknown>) =>
+    (async (input: string | URL | Request) => {
+      const url = String(input);
+      if (url.endsWith('/api/show')) return json({ model_info: modelInfo });
+      return json({}, 404);
+    }) as typeof fetch;
+
+  it('reads whichever model_info key ends in .context_length, any family', async () => {
+    expect(
+      await getOllamaModelMaxContext(
+        'http://ollama',
+        'gemma4',
+        fakeShow({ 'general.architecture': 'gemma4', 'gemma4.context_length': 131072 }),
+      ),
+    ).toBe(131072);
+    expect(
+      await getOllamaModelMaxContext(
+        'http://ollama',
+        'qwen3',
+        fakeShow({ 'general.architecture': 'qwen3', 'qwen3.context_length': 32768 }),
+      ),
+    ).toBe(32768);
+  });
+
+  it('returns undefined when model_info has no such key', async () => {
+    expect(
+      await getOllamaModelMaxContext(
+        'http://ollama',
+        'm',
+        fakeShow({ 'general.architecture': 'm' }),
+      ),
+    ).toBeUndefined();
+  });
+
+  it('throws when Ollama answers with an error', async () => {
+    const fetchImpl = (async () => json({}, 500)) as typeof fetch;
+    await expect(getOllamaModelMaxContext('http://ollama', 'm', fetchImpl)).rejects.toThrow('500');
   });
 });
 

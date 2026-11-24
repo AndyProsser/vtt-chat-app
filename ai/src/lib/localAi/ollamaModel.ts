@@ -20,6 +20,51 @@ export async function ollamaHasModel(
   return (body.models ?? []).some((m) => m.name === wanted || m.model === wanted);
 }
 
+/**
+ * What `model` is actually being served right now, from `GET /api/ps` (models currently loaded). `undefined`
+ * when the model isn't in the list — not loaded, not an error. Throws only when the request itself fails.
+ */
+export async function getOllamaRunningContext(
+  baseUrl: string,
+  model: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<number | undefined> {
+  const response = await fetchImpl(`${trim(baseUrl)}/api/ps`, {
+    signal: AbortSignal.timeout(CHECK_TIMEOUT_MS),
+  });
+  if (!response.ok) throw new Error(`ollama answered ${response.status}`);
+  const body = (await response.json()) as {
+    models?: { name?: unknown; model?: unknown; context_length?: unknown }[];
+  };
+  const wanted = model.includes(':') ? model : `${model}:latest`;
+  const found = (body.models ?? []).find((m) => m.name === wanted || m.model === wanted);
+  return typeof found?.context_length === 'number' ? found.context_length : undefined;
+}
+
+/**
+ * `model`'s own trained maximum context, from `POST /api/show` — static model metadata, answerable without
+ * loading or generating anything, so safe to call routinely. `undefined` when `model_info` has no
+ * `<family>.context_length` key (the family prefix varies per model, so this matches by suffix). Throws
+ * only when the request itself fails.
+ */
+export async function getOllamaModelMaxContext(
+  baseUrl: string,
+  model: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<number | undefined> {
+  const response = await fetchImpl(`${trim(baseUrl)}/api/show`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model }),
+    signal: AbortSignal.timeout(CHECK_TIMEOUT_MS),
+  });
+  if (!response.ok) throw new Error(`ollama answered ${response.status}`);
+  const body = (await response.json()) as { model_info?: Record<string, unknown> };
+  const key = Object.keys(body.model_info ?? {}).find((k) => k.endsWith('.context_length'));
+  const value = key ? body.model_info?.[key] : undefined;
+  return typeof value === 'number' ? value : undefined;
+}
+
 export interface PullOptions {
   /** Called with 0 to 100 as the download advances (many times a second; throttle in the caller). */
   onProgress?: (percent: number) => void;

@@ -21,6 +21,24 @@ export interface LocalModelStatus {
   detail?: string;
 }
 
+/**
+ * What the worker last found out, by asking Ollama directly, about the configured LLM backend's real
+ * context window — for `vtt-admin status` to grade against what the app assumes (`contextWindowTokens`).
+ * `local`/`remote` only: `claude`/`openai` are graded from a built-in table instead (ai/consts/claude.ts),
+ * so no check is ever stored for them.
+ */
+export interface OllamaContextStatus {
+  kind: 'local' | 'remote';
+  /** The model this was checked against; absent for `remote` with no model configured. */
+  model: string | null;
+  /** From `/api/ps`: what the currently-loaded instance is actually being served. Absent if not loaded. */
+  live?: number;
+  /** From `/api/show`: the model's own trained maximum. Absent if the model is unknown to Ollama. */
+  modelMax?: number;
+  /** True when neither endpoint could be reached at all (not just "model not loaded"). */
+  unreachable: boolean;
+}
+
 export interface LocalAiStatus {
   /** When the worker last wrote this. A "downloading" that stops being refreshed has stalled. */
   at: number;
@@ -28,4 +46,6 @@ export interface LocalAiStatus {
   llm: LocalModelStatus | null;
   /** The local Whisper server; null when the worker runs a whisper.cpp binary itself (native install). */
   whisper: LocalModelStatus | null;
+  /** The configured LLM backend's real context window, as last determined. */
+  llmContext?: OllamaContextStatus | null;
 }
