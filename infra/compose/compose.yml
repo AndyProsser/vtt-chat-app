@@ -242,6 +242,9 @@ services:
       # Unload the model this long after the last request, so an idle server holds no (V)RAM for it.
       # A job's summaries run back to back, so the model stays loaded for the whole job.
       OLLAMA_KEEP_ALIVE: ${OLLAMA_KEEP_ALIVE:-2m}
+      # Raises the context window Ollama actually serves (VRAM/speed cost); blank keeps Ollama's own default.
+      # Also set `vtt-admin settings set ai.llm.context <same number>`, so the app knows the real window too.
+      OLLAMA_CONTEXT_LENGTH: ${OLLAMA_CONTEXT_LENGTH:-}
     healthcheck:
       <<: *healthcheck
       # A plain HTTP GET from bash. `ollama list` works too, but starting that large binary for every check cost more
