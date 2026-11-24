@@ -4,6 +4,7 @@ import type { LanguageFont } from '../types/languageFont.js';
 
 const SERIF = 'Georgia, "Times New Roman", serif';
 const SANS = 'system-ui, "Segoe UI", sans-serif';
+const MONO = '"Courier New", "SF Mono", monospace';
 
 /**
  * A font for every language, chosen by the language's `key` (docs/architecture/ICONOLOGY.md, "Language fonts").
@@ -27,11 +28,17 @@ export const LANGUAGE_FONTS: Readonly<Record<string, LanguageFont>> = {
     tracking: '.03em',
     fallback: SERIF,
   },
-  gnomish: { family: 'Marcellus', weight: 400, size: '1.05em', tracking: '.03em', fallback: SERIF },
+  gnomish: { family: 'Special Elite', weight: 400, size: '.95em', fallback: MONO },
   goblin: { family: 'IM Fell English', weight: 400, size: '1.1em', fallback: SERIF },
-  halfling: { family: 'Quattrocento', weight: 400, size: '1.1em', fallback: SERIF },
+  halfling: { family: 'Patrick Hand', weight: 400, size: '1.15em', fallback: SANS },
   orc: { family: 'Alegreya Sans SC', weight: 700, tracking: '.04em', fallback: SANS },
-  draconic: { family: 'Forum', weight: 400, size: '1.12em', tracking: '.04em', fallback: SERIF },
+  draconic: {
+    family: 'Pirata One',
+    weight: 400,
+    size: '1.12em',
+    tracking: '.04em',
+    fallback: SERIF,
+  },
   celestial: {
     family: 'Cinzel Decorative',
     weight: 700,
@@ -62,8 +69,14 @@ export const LANGUAGE_FONTS: Readonly<Record<string, LanguageFont>> = {
     fallback: SANS,
   },
   sylvan: { family: 'Philosopher', weight: 400, size: '1.05em', fallback: SANS },
-  undercommon: { family: 'Rosarivo', weight: 400, fallback: SERIF },
-  druidic: { family: 'Caudex', weight: 400, size: '1.05em', fallback: SERIF },
+  undercommon: {
+    family: 'Spirax',
+    weight: 400,
+    size: '1.05em',
+    tracking: '.02em',
+    fallback: SERIF,
+  },
+  druidic: { family: 'Merienda', weight: 400, size: '.95em', fallback: SERIF },
   // Hidden meaning, not foreign speech: it must look like everyday text, only leaning and spaced.
   'thieves-cant': {
     family: 'Inter Variable',

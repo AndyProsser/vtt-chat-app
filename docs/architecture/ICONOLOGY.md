@@ -71,32 +71,34 @@ Every language has its own font. Not every language optimises for readability eq
 atmosphere on purpose, and that is the point, because real languages carry visual identity independent of whether you
 understand them.
 
-| Language      | Key            | Font               | Weights bundled | Theme                                     |
-| ------------- | -------------- | ------------------ | --------------- | ----------------------------------------- |
-| Common        | `common`       | Inter              | (body font)     | Neutral and readable                      |
-| Dwarvish      | `dwarvish`     | Alegreya SC        | 500             | Stonework, clans, craftsmanship           |
-| Elvish        | `elvish`       | Cormorant Garamond | 500 italic      | Graceful, poetic, ancient                 |
-| Giant         | `giant`        | Uncial Antiqua     | 400             | Monumental and ancient                    |
-| Gnomish       | `gnomish`      | Marcellus          | 400             | Inventive and scholarly                   |
-| Goblin        | `goblin`       | IM Fell English    | 400             | Chaotic and improvised                    |
-| Halfling      | `halfling`     | Quattrocento       | 400             | Friendly and welcoming                    |
-| Orc           | `orc`          | Alegreya Sans SC   | 700             | Harsh, direct, tribal                     |
-| Draconic      | `draconic`     | Forum              | 400             | Ancient empire and mastery                |
-| Celestial     | `celestial`    | Cinzel Decorative  | 700             | Divine scripture                          |
-| Infernal      | `infernal`     | IM Fell DW Pica    | 400             | Contracts and infernal law                |
-| Abyssal       | `abyssal`      | Black Ops One      | 400             | Corruption and chaos                      |
-| Deep Speech   | `deep-speech`  | Metamorphous       | 400             | Alien and unknowable                      |
-| Primordial    | `primordial`   | Julius Sans One    | 400             | Elemental power                           |
-| Sylvan        | `sylvan`       | Philosopher        | 400             | Fey and natural beauty                    |
-| Undercommon   | `undercommon`  | Rosarivo           | 400             | Sophisticated subterranean culture        |
-| Druidic       | `druidic`      | Caudex             | 400             | Ancient natural traditions                |
-| Thieves' Cant | `thieves-cant` | Inter, styled      | (body font)     | Hidden meaning rather than foreign speech |
+| Language      | Key            | Font               | Weights bundled | Theme                                                                  |
+| ------------- | -------------- | ------------------ | --------------- | ---------------------------------------------------------------------- |
+| Common        | `common`       | Inter              | (body font)     | Neutral and readable                                                   |
+| Dwarvish      | `dwarvish`     | Alegreya SC        | 500             | Stonework, clans, craftsmanship                                        |
+| Elvish        | `elvish`       | Cormorant Garamond | 500 italic      | Graceful, poetic, ancient                                              |
+| Giant         | `giant`        | Uncial Antiqua     | 400             | Monumental and ancient                                                 |
+| Gnomish       | `gnomish`      | Special Elite      | 400             | An engineer or mad scientist: worn typewriter notes (Andy, 2026-11-24) |
+| Goblin        | `goblin`       | IM Fell English    | 400             | Chaotic and improvised                                                 |
+| Halfling      | `halfling`     | Patrick Hand       | 400             | Small yet full of life and curiosity (Andy, 2026-11-24)                |
+| Orc           | `orc`          | Alegreya Sans SC   | 700             | Harsh, direct, tribal                                                  |
+| Draconic      | `draconic`     | Pirata One         | 400             | Menace and raw power, not evil (Andy, 2026-11-24)                      |
+| Celestial     | `celestial`    | Cinzel Decorative  | 700             | Divine scripture                                                       |
+| Infernal      | `infernal`     | IM Fell DW Pica    | 400             | Contracts and infernal law                                             |
+| Abyssal       | `abyssal`      | Black Ops One      | 400             | Corruption and chaos                                                   |
+| Deep Speech   | `deep-speech`  | Metamorphous       | 400             | Alien and unknowable                                                   |
+| Primordial    | `primordial`   | Julius Sans One    | 400             | Elemental power                                                        |
+| Sylvan        | `sylvan`       | Philosopher        | 400             | Fey and natural beauty                                                 |
+| Undercommon   | `undercommon`  | Spirax             | 400             | Otherworldly and strange, still readable (Andy, 2026-11-24)            |
+| Druidic       | `druidic`      | Merienda           | 400             | The forest: free, flowing, effortless (Andy, 2026-11-24)               |
+| Thieves' Cant | `thieves-cant` | Inter, styled      | (body font)     | Hidden meaning rather than foreign speech                              |
 
 Google Fonts pages are `https://fonts.google.com/specimen/<Family+Name>`. Every font is SIL Open Font Licence 1.1 and
 comes from the Fontsource npm packages, which carry the licence text into the build.
 
 **Thieves' Cant** deliberately looks like everyday text: Inter in italics with a little letter-spacing. Its identity is
 "familiar appearance, meaning concealed", so it must not look foreign.
+
+**Chosen with Andy (2026-11-24).** Gnomish, Halfling, Draconic, Undercommon and Druidic were first set in quiet serifs that sat too close to each other, so each was re-picked from a rendered comparison of five Google Fonts candidates to carry its feeling: an engineer's typewriter for Gnomish, a small lively hand for Halfling, an angular blackletter for Draconic's power, a quirky calligraphic face for Undercommon's strangeness, and a flowing organic one for Druidic.
 
 **Per-language tuning.** Each entry in the table also carries a size nudge and letter-spacing, because these faces have
 very different x-heights (Alfa Slab One needed `.92em`, Caveat `1.2em`). The first values are a starting point and are
@@ -298,13 +300,13 @@ vocabulary.
 
 ```text
 Inter (variable)            Cinzel                  Cinzel Decorative       Cormorant Garamond
-Alegreya SC                 Alegreya Sans SC        Uncial Antiqua          Marcellus
-IM Fell English             IM Fell DW Pica         Quattrocento            Forum
+Alegreya SC                 Alegreya Sans SC        Uncial Antiqua          Special Elite
+IM Fell English             IM Fell DW Pica         Patrick Hand            Pirata One
 Metamorphous                Black Ops One           Julius Sans One         Philosopher
-Rosarivo                    Caudex
+Spirax                      Merienda
 ```
 
-**Removed** (used today only for the old seven-font language set): Alfa Slab One, Pirata One, Fredoka, Caveat and
+**Removed** (used today only for the old seven-font language set): Alfa Slab One, Fredoka, Caveat and
 Share Tech Mono. The unused `@radix-ui/react-icons` dependency in `panels-ui` is removed too.
 
 ---

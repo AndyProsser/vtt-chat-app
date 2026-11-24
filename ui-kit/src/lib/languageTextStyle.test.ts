@@ -55,6 +55,16 @@ describe('languageTextStyle', () => {
     expect(s?.fontStyle).toBe('italic');
   });
 
+  it.each([
+    ['draconic', 'Pirata One', 'menace and power'],
+    ['undercommon', 'Spirax', 'otherworldly and strange, still readable'],
+    ['druidic', 'Merienda', 'free, flowing, forest'],
+    ['gnomish', 'Special Elite', 'an engineer or mad scientist'],
+    ['halfling', 'Patrick Hand', 'small, lively and curious'],
+  ])('sets %s in %s (Andy, 2026-11-24: %s)', (key, family) => {
+    expect(languageTextStyle(key)?.fontFamily).toMatch(new RegExp(`^"${family}"`));
+  });
+
   it('returns undefined for no key or an unknown one', () => {
     expect(languageTextStyle(undefined)).toBeUndefined();
     expect(languageTextStyle('klingon')).toBeUndefined();
