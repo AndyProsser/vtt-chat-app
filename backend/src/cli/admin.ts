@@ -391,8 +391,39 @@ function aiContextRows(settings: AiSettings, localAi: LocalAiStatus | null | und
   return row('ok', `context window: ${configured} tokens`);
 }
 
-async function status(deps: Ctx, _args: string[] = []): Promise<number> {
+/**
+ * Applies the determined context window for `local`/`remote` (the live-served number when known, else the
+ * model's own maximum): writes `ai.llm.context`, the same path `settings set` uses, only when it would
+ * actually change something. `claude`/`openai` have nothing to tune — their window comes from the built-in
+ * table or the flat default, never a setting.
+ */
+async function tuneAiContext(deps: Ctx, current: InstanceSettings): Promise<void> {
+  const { llm } = current.ai;
+  if (llm.kind !== 'local' && llm.kind !== 'remote') {
+    deps.out(deps.ui.dim('nothing to tune for this backend (claude/openai use a built-in table)'));
+    return;
+  }
+  const checked = deps.localAi?.llmContext;
+  const value =
+    checked && checked.kind === llm.kind ? (checked.live ?? checked.modelMax) : undefined;
+  if (value === undefined) {
+    deps.out(deps.ui.warn('could not tune: nothing has been determined yet'));
+    return;
+  }
+  if (llm.context === value) {
+    deps.out(deps.ui.dim(`already matches: ai.llm.context is already ${value}`));
+    return;
+  }
+  const next = applySetting(current, 'ai.llm.context', String(value));
+  await deps.store.putSettings(next);
+  deps.out(deps.ui.done(`tuned: set ai.llm.context = ${value}`));
+}
+
+async function status(deps: Ctx, args: string[] = []): Promise<number> {
   const { ui } = deps;
+  if (args.includes('--tune')) {
+    await tuneAiContext(deps, await deps.store.getSettings());
+  }
   const now = (deps.now ?? Date.now)();
   const machine = deps.machine ? await deps.machine().catch(() => undefined) : undefined;
   const detail = [

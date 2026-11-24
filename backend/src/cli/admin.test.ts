@@ -419,6 +419,57 @@ describe('status: the AI context check', () => {
     expect(await run('status', [], { localAi: null })).toBe(0);
     expect(out.join('\n')).toMatch(/warn\s+AI\s+.*unknown/i);
   });
+
+  it('--tune applies the live value when known', async () => {
+    await run('settings set ai.llm.kind remote');
+    await run('settings set ai.llm.url http://gpu:11434');
+    expect(
+      await run('status --tune', [], {
+        localAi: localAi({ kind: 'remote', model: 'qwen3', live: 32_768, unreachable: false }),
+      }),
+    ).toBe(0);
+    expect((await store.getSettings()).ai.llm.context).toBe(32_768);
+    expect(out.join('\n')).toContain('32768');
+  });
+
+  it('--tune applies modelMax when live is not known (model not currently loaded)', async () => {
+    await run('settings set ai.llm.kind remote');
+    await run('settings set ai.llm.url http://gpu:11434');
+    expect(
+      await run('status --tune', [], {
+        localAi: localAi({ kind: 'remote', model: 'qwen3', modelMax: 65_536, unreachable: false }),
+      }),
+    ).toBe(0);
+    expect((await store.getSettings()).ai.llm.context).toBe(65_536);
+  });
+
+  it('--tune run again with nothing changed reports "already matches" and does not write again', async () => {
+    await run('settings set ai.llm.kind remote');
+    await run('settings set ai.llm.url http://gpu:11434');
+    const deps = {
+      localAi: localAi({ kind: 'remote', model: 'qwen3', live: 32_768, unreachable: false }),
+    };
+    await run('status --tune', [], deps);
+    const after = await store.getSettings();
+    out.length = 0;
+    expect(await run('status --tune', [], deps)).toBe(0);
+    expect(await store.getSettings()).toEqual(after);
+    expect(out.join('\n')).toMatch(/already matches/i);
+  });
+
+  it('--tune on claude is always a no-op, settings untouched', async () => {
+    await run('settings set ai.llm.kind claude');
+    await run('settings set ai.llm.model claude-opus-5-5');
+    const before = await store.getSettings();
+    expect(await run('status --tune', [], { localAi: null })).toBe(0);
+    expect(await store.getSettings()).toEqual(before);
+    expect(out.join('\n')).toMatch(/nothing to tune/i);
+  });
+
+  it('--tune with nothing determined reports it and does not fail the command', async () => {
+    expect(await run('status --tune', [], { localAi: null })).toBe(0);
+    expect(out.join('\n')).toMatch(/could not tune/i);
+  });
 });
 
 describe('status: the instance and the machine', () => {
