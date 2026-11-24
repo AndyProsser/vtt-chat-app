@@ -328,7 +328,7 @@ Open: where the window setting lives for each backend (Ollama, a remote OpenAI-c
 ## Decisions on what players see (Andy, 2026-11-21)
 
 - **Tale first, the rest folded.** A past session opens on the tale. The chapter and hero summaries sit under "More detail"; nothing is removed. (Built in both apps, 0.6.x, no wire change.)
-- **The storyteller names the session.** The tale's first line is a short title in the storyteller's voice (`# The Weeping Anchor`), shown as the tale's heading. The History list shows it only when the server sends it with the list, a new field and so a wire change: **0.7.0** (Stage 14). Until then the list title stays the date.
+- **The storyteller names the session.** The tale's first line is a short title in the storyteller's voice (`# The Weeping Anchor`), shown as the tale's heading. The History list shows it only when the server sends it with the list, a new field and so a wire change: **0.7.0** (Stage 15). Until then the list title stays the date.
 - **A tidier subtitle:** "27 min · Tale ready · 6 chapters · 4 heroes" in place of a list of kinds, with "processing" shown only while there is no tale yet.
 
 ## Decisions and open questions

@@ -2,7 +2,7 @@
 // sessions in order (queue.ts), but the model servers are tuned for one job at a time and nothing has been measured with
 // more, so a second worker would only compete for them. The worker therefore takes a Postgres advisory lock for as long as
 // it runs; a second one stands by until the first stops (a rolling restart, a crash) instead of working alongside it.
-// `ALLOW_MULTIPLE_WORKERS=1` skips the check, for an operator who has the hardware and has read ROADMAP Stage 17.
+// `ALLOW_MULTIPLE_WORKERS=1` skips the check, for an operator who has the hardware and has read ROADMAP Stage 18.
 
 import type pg from 'pg';
 
@@ -73,7 +73,7 @@ export async function waitToBeOnlyWorker(
     }
     if (!announced) {
       options.log(
-        'another worker is already running on this database. This version runs one worker at a time, so this one stands by and takes over if the other stops (set ALLOW_MULTIPLE_WORKERS=1 to run several at your own risk; see ROADMAP Stage 17)',
+        'another worker is already running on this database. This version runs one worker at a time, so this one stands by and takes over if the other stops (set ALLOW_MULTIPLE_WORKERS=1 to run several at your own risk; see ROADMAP Stage 18)',
       );
       announced = true;
     }

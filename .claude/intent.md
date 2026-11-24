@@ -115,6 +115,16 @@ Update this file as threads open, progress, or close — stale entries here are 
     and [READINESS.md](../docs/READINESS.md). Also parked for Stage 14 (likely needs a wire change): a tabbed session-history
     view (Tale/Heroes/Story/Notes, a popout) and search results naming their session and opening straight to the match.
 
+- **Re-plan, 2026-11-24 (Andy): a no-wire polish stage goes ahead of the protocol bump, and the stages after it moved down one.** New **Stage 14**
+  (0.6.3 small, 0.6.4 larger, all on protocol 4): fonts and icons first (a font for every chat language, one icon set for both apps,
+  design in `docs/architecture/ICONOLOGY.md`, plan in `docs/superpowers/plans/2026-11-24-typography-and-icons.md`), then language spans in
+  handouts and tales, the tabbed History view, the phone app's storyteller picker and GM Notes, and ops tooling. The protocol bump is now
+  **Stage 15 (0.7.0)**, led by campaign memory (Step H and the knowledge-graph proposal, to be designed together) plus `/npc` and the other
+  wire loose ends; the three idea stages are **16, 17, 18** (Linux repositories, pinned self-signed certificate, several workers). Any
+  earlier note in this file that says "Stage 14" for the protocol bump means today's Stage 15. Chunking is built and merged (in
+  `0.6.3-dev.1`); the real-session re-run is Stage 13's last gate. The DDB game log (session metadata, never chat) needs a decision on
+  logging in to D&D Beyond before it can be designed.
+
 ## Design topics (1–4 are decided; 5–9 still open — ask Andy, don't resolve by writing code)
 
 1. **Identity & access model** — _decided 2026-11-05:_ local accounts (email/password, magic

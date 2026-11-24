@@ -16,7 +16,7 @@
  *   OLLAMA_STORY_MODEL  the model that tells the tale from the notes (the bard). Unset: OLLAMA_MODEL does both.
  *   OLLAMA_KEEP_ALIVE   how long Ollama keeps the model loaded after a request (e.g. 2m; unset: the
  *                       Ollama server's own setting)
- *   ALLOW_MULTIPLE_WORKERS  1 skips the one-worker-per-database check (unsupported: ROADMAP Stage 17)
+ *   ALLOW_MULTIPLE_WORKERS  1 skips the one-worker-per-database check (unsupported: ROADMAP Stage 18)
  *   WORKER_ID           this worker's stable name (default: the hostname). A restarted worker with the
  *                       same id takes back its own interrupted job at once instead of waiting out the
  *                       5-minute lease; never give two running workers the same id
