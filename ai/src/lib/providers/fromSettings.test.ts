@@ -52,6 +52,29 @@ describe('buildJobProviders', () => {
     expect(p.generate.backend()).toBe('primary');
   });
 
+  it('reports tokens for a remote call too, so the near-full-window warning can fire there', async () => {
+    const onUsage = vi.fn();
+    const fetchImpl = vi.fn(async (url: string) =>
+      url.endsWith('/v1/chat/completions')
+        ? json({
+            choices: [{ message: { content: 'remote summary' } }],
+            usage: { prompt_tokens: 7000, completion_tokens: 120 },
+          })
+        : json({ segments: [] }),
+    );
+    const p = buildJobProviders(remote(), {
+      ...base,
+      onUsage,
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+    });
+    await p.generate.call('prompt');
+    expect(onUsage).toHaveBeenCalledWith({
+      model: 'llama3.1:8b',
+      inputTokens: 7000,
+      outputTokens: 120,
+    });
+  });
+
   it('has the one remote model sample as each role does: the scribe low, the bard freer', async () => {
     const bodies: { temperature: number }[] = [];
     const fetchImpl = vi.fn(async (_url: string, init: RequestInit) => {

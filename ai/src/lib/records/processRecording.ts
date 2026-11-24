@@ -102,7 +102,7 @@ export function createProcessRecordingHandler(deps: ProcessRecordingDeps): JobHa
     // Alongside the cost tracking `onUsage` already does (outer closure, below): flag a call that ran
     // close to the configured context window, visible today via `docker compose logs worker` (a
     // `vtt-admin jobs list` column is a natural follow-up, not built here).
-    const window = contextWindowTokens(settings.llm);
+    const window = contextWindowTokens(settings.llm, settings.fallback.enabled);
     const checkedOnUsage: typeof onUsage = (u) => {
       if (u.inputTokens >= window * CONDENSE_THRESHOLD) {
         const pct = Math.round((u.inputTokens / window) * 100);
@@ -328,6 +328,7 @@ export function createProcessRecordingHandler(deps: ProcessRecordingDeps): JobHa
         kind,
         context: { ...context, ...(await telling(kind, notes)) },
         llm: settings.llm,
+        fallbackEnabled: settings.fallback.enabled,
       });
       const modelCalls = result.modelCalls + uncounted;
       uncounted = 0;

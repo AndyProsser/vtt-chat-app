@@ -543,48 +543,91 @@ describe('the storyteller and the Game Master’s notes (Stage 12 E and G)', () 
 describe("the operator's context window (chunking)", () => {
   // A tiny configured window makes even these short canned notes look oversized, so the condense
   // prompt ("Rewrite them as noticeably shorter notes") must appear; a larger (or default) window
-  // must not trigger it on the same notes.
+  // must not trigger it on the same notes. `ai.llm.context` only takes effect for `remote` — `local`'s
+  // worker pins a fixed `num_ctx` the setting can't reach (ai/src/lib/tokenBudget.ts), so these use
+  // `kind: remote` with a never-reachable URL (the same "powered-off gaming PC" shape as the backend
+  // test above) so every call falls back to the handler's own local mock instead of hitting the network.
   const condensed = () =>
     prompts.some((p) => p.includes('Rewrite them as noticeably shorter notes'));
+  const remoteWith = (context: string) =>
+    setAiSetting(
+      setAiSetting(
+        setAiSetting(
+          setAiSetting(DEFAULT_AI_SETTINGS, 'ai.llm.kind', 'remote'),
+          'ai.llm.url',
+          'http://gpu:11434',
+        ),
+        'ai.llm.context',
+        context,
+      ),
+      'ai.fallback.after-seconds', // fall back to the local mock at once; no real 10-minute wait in a test
+      '0',
+    );
+  const unreachableRemote = (overrides: Partial<Parameters<typeof handler>[0]> = {}) =>
+    handler({
+      ...overrides,
+      buildProviders: (settings, d) => {
+        overrides.buildProviders?.(settings, d); // let a caller also observe the call (e.g. onUsage)
+        return buildJobProviders(settings, {
+          ...d,
+          fetchImpl: (async () => {
+            throw new TypeError('fetch failed');
+          }) as unknown as typeof fetch,
+        });
+      },
+    });
 
   it('condenses the notes when the configured context window is small', async () => {
-    records.aiSettings = setAiSetting(DEFAULT_AI_SETTINGS, 'ai.llm.context', '5');
-    await handler().run(job());
+    records.aiSettings = remoteWith('5');
+    await unreachableRemote().run(job());
     expect(condensed()).toBe(true);
   });
 
   it('does not condense when the configured context window is large', async () => {
-    records.aiSettings = setAiSetting(DEFAULT_AI_SETTINGS, 'ai.llm.context', '8192');
+    records.aiSettings = remoteWith('8192');
+    await unreachableRemote().run(job());
+    expect(condensed()).toBe(false);
+  });
+
+  it("ignores a configured context for local: the worker's fixed window can't reach it", async () => {
+    records.aiSettings = setAiSetting(DEFAULT_AI_SETTINGS, 'ai.llm.context', '5'); // kind stays the default, local
     await handler().run(job());
     expect(condensed()).toBe(false);
   });
 
   it('logs once when a prompt runs close to the configured window', async () => {
-    records.aiSettings = setAiSetting(DEFAULT_AI_SETTINGS, 'ai.llm.context', '100');
+    records.aiSettings = remoteWith('100');
     const log: string[] = [];
     const call = { model: 'm', inputTokens: 95, outputTokens: 1 };
-    const h = handler({
+    const h = unreachableRemote({
       log: (l) => log.push(l),
-      buildProviders: (settings, d) => {
-        d.onUsage?.(call);
-        return buildJobProviders(settings, d);
-      },
+      buildProviders: (_settings, d) => d.onUsage?.(call),
     });
     await h.run(job());
     const matches = log.filter((l) => l.includes('used') && l.includes('window'));
     expect(matches).toHaveLength(1);
   });
 
+  it('clamps to the local fallback window when fallback is enabled, even for a bigger configured one', async () => {
+    records.aiSettings = setAiSetting(remoteWith('40960'), 'ai.fallback.enabled', 'true');
+    const log: string[] = [];
+    // 10,000 inputTokens is under 70% of 40,960 (28,672) but over 70% of the 8,192 local fallback cap (5,734).
+    const call = { model: 'm', inputTokens: 10_000, outputTokens: 1 };
+    const h = unreachableRemote({
+      log: (l) => log.push(l),
+      buildProviders: (_settings, d) => d.onUsage?.(call),
+    });
+    await h.run(job());
+    expect(log.some((l) => l.includes('used') && l.includes('8192-token window'))).toBe(true);
+  });
+
   it('does not log when a prompt is well under the configured window', async () => {
-    records.aiSettings = setAiSetting(DEFAULT_AI_SETTINGS, 'ai.llm.context', '100');
+    records.aiSettings = remoteWith('100');
     const log: string[] = [];
     const call = { model: 'm', inputTokens: 50, outputTokens: 1 };
-    const h = handler({
+    const h = unreachableRemote({
       log: (l) => log.push(l),
-      buildProviders: (settings, d) => {
-        d.onUsage?.(call);
-        return buildJobProviders(settings, d);
-      },
+      buildProviders: (_settings, d) => d.onUsage?.(call),
     });
     await h.run(job());
     expect(log.some((l) => l.includes('used') && l.includes('window'))).toBe(false);

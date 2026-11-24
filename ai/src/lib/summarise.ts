@@ -86,6 +86,13 @@ export interface NotesOptions {
    * equivalent, so this field's own absence is a second, separate fallback for an even older caller.
    */
   llm?: AiSettings['llm'];
+  /**
+   * The operator's `ai.fallback.enabled`: whether this call could fail over to the local model mid-job.
+   * Passed to `contextWindowTokens` so the condense loop sizes for whichever window is smaller — the
+   * configured backend's or the local fallback's fixed one — rather than trusting a window a failed-over
+   * call can't actually be served at.
+   */
+  fallbackEnabled?: boolean;
 }
 
 export interface Notes {
@@ -195,6 +202,7 @@ export async function writeFromNotes(
       priceOut: null,
       context: null,
     },
+    options.fallbackEnabled ?? false,
   );
   let modelCalls = 0;
   const call = async (model: GenerateText, prompt: string): Promise<string> => {
