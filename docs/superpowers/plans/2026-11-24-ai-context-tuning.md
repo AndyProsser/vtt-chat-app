@@ -43,7 +43,7 @@ itself — no setting to tune, just a fact about the model.
   fail — it must say "not checked yet" (or equivalent), distinctly from a real mismatch. Covered in Task 5's
   tests.
 - **An operator switches `ai.llm.kind` (e.g. `local` → `remote`) without restarting the worker.** The stored
-  `OllamaContextStatus` is from the *previous* kind until the worker checks again; grading must recognise a
+  `OllamaContextStatus` is from the _previous_ kind until the worker checks again; grading must recognise a
   kind mismatch as "not current," not silently compare against stale data from a different backend. Covered
   in Task 5's tests.
 - **`/api/show` succeeds (model known) but `/api/ps` says the model isn't currently loaded.** Grading must
@@ -84,14 +84,12 @@ itself — no setting to tune, just a fact about the model.
 - Consumes: nothing new.
 
 - [ ] **Step 1: Write the failing tests** for both functions in `ai/src/lib/localAi/ollamaModel.test.ts`,
-      following `ollamaHasModel`'s existing test style (a fake `fetchImpl`, inline JSON responses):
-      - `getOllamaRunningContext`: returns the matching model's `context_length` when present in `/api/ps`'s
-        `models` list; returns `undefined` when the model is absent from the list; matches a bare model name
-        against a `:latest`-suffixed entry, same as `ollamaHasModel`; throws when the server answers non-2xx.
-      - `getOllamaModelMaxContext`: returns the number under whatever `model_info` key ends in
-        `.context_length` (test with at least two different family prefixes, e.g. `gemma4.context_length` and
-        `qwen3.context_length`, to prove it isn't hardcoded to one family); returns `undefined` when
-        `model_info` has no such key; throws when the server answers non-2xx.
+      following `ollamaHasModel`'s existing test style (a fake `fetchImpl`, inline JSON responses): - `getOllamaRunningContext`: returns the matching model's `context_length` when present in `/api/ps`'s
+      `models` list; returns `undefined` when the model is absent from the list; matches a bare model name
+      against a `:latest`-suffixed entry, same as `ollamaHasModel`; throws when the server answers non-2xx. - `getOllamaModelMaxContext`: returns the number under whatever `model_info` key ends in
+      `.context_length` (test with at least two different family prefixes, e.g. `gemma4.context_length` and
+      `qwen3.context_length`, to prove it isn't hardcoded to one family); returns `undefined` when
+      `model_info` has no such key; throws when the server answers non-2xx.
 
 - [ ] **Step 2: Run and verify both sets fail**
 
@@ -214,7 +212,7 @@ git commit -m "feat(ai): the worker periodically checks Ollama's real context wi
 - [ ] **Step 1: Write the failing test** in `ai/src/lib/ollama.test.ts`: a `GenerateText` built with
       `numCtx: async () => 32_000` sends `num_ctx: 32000` in the request body; a second call after the getter
       is changed to return a different number (reassign a variable the getter closes over) sends the new
-      number on the *next* call, without rebuilding the `GenerateText` — proving it is read per call, not
+      number on the _next_ call, without rebuilding the `GenerateText` — proving it is read per call, not
       once at construction. A plain numeric `numCtx` (today's existing usage) still works unchanged (no
       regression on the existing synchronous case).
 
@@ -385,9 +383,9 @@ git commit -m "feat(backend): vtt-admin status reports the AI context-window che
   already used elsewhere in this file). Behaviour per the design's `--tune` section: for `local`/`remote`,
   applies `llmContext.live` when known, else `llmContext.modelMax` when known, else does nothing and reports
   "nothing determined, could not tune"; writes `ai.llm.context` via `applySetting(current, 'ai.llm.context', String(value))`
-  + `deps.store.putSettings(next)` only when the value to apply differs from the current setting (the
-  Review Focus "run twice" case — second run reports "already matches," does not write again). For `claude`/
-  `openai`, `--tune` is always a no-op, reported as such ("nothing to tune for this backend").
+  - `deps.store.putSettings(next)` only when the value to apply differs from the current setting (the
+    Review Focus "run twice" case — second run reports "already matches," does not write again). For `claude`/
+    `openai`, `--tune` is always a no-op, reported as such ("nothing to tune for this backend").
 
 - [ ] **Step 1: Write the failing tests**: `--tune` with `local` and a known `live` value writes
       `ai.llm.context` to that value (assert via `deps.store.getSettings()` after the call, same pattern

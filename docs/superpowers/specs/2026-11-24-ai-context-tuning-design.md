@@ -12,7 +12,7 @@ against what the backend actually has.
 The chunking plan gave the AI records pipeline a real token budget (`ai/src/lib/tokenBudget.ts`) instead of a
 fixed character cap, and a `ai.llm.context` setting so an operator running a remote Ollama with a bigger
 window could tell the app about it. Its own final review found a real gap: that setting is trusted or
-ignored by *guesswork* (a fixed default for `local`, whatever the operator typed for `remote`), never checked
+ignored by _guesswork_ (a fixed default for `local`, whatever the operator typed for `remote`), never checked
 against the backend's actual configuration. Andy's framing: an operator who tunes their own Ollama instance's
 VRAM/context allocation has no way to know whether the app's assumption now undershoots it (wasted capacity,
 weaker summaries) or overshoots it (silent truncation — the exact failure the whole chunking plan exists to
@@ -23,7 +23,7 @@ This plan gives the operator a way to **check** that, and, on request, **fix** i
 `vtt-admin status`, which already has the right shape for this (a probe that reports ok/warn/fail per
 subsystem) rather than a new command.
 
-**Settled:** a live `/api/ps` query alone can only catch the app asking for *more* than Ollama actually
+**Settled:** a live `/api/ps` query alone can only catch the app asking for _more_ than Ollama actually
 served (it echoes back whatever was last requested, never more) — it cannot discover unused headroom on its
 own, since nothing ever asks for more than the app's own assumption to find out. Andy's call: add a second,
 purely informational signal — `/api/show`'s **static** model metadata (the model's trained maximum context,
@@ -35,9 +35,9 @@ signals combine and what severity each disagreement gets.
 
 - `vtt-admin status` reports, for the configured LLM backend, whether the app's assumed context window
   matches what can actually be determined about the real one.
-- **The severity is asymmetric, by Andy's explicit call:** the app assuming *more* than reality can deliver
+- **The severity is asymmetric, by Andy's explicit call:** the app assuming _more_ than reality can deliver
   is a real, active risk (silent truncation) and fails the check (`fail`, non-zero exit). The app assuming
-  *less* than reality allows (unused headroom — weaker summaries than the hardware/model could support) is
+  _less_ than reality allows (unused headroom — weaker summaries than the hardware/model could support) is
   a `warn`, not a `fail`: nothing is broken, but it's worth fixing. Can't determine anything at all → `warn`
   ("unknown," never silently trusted as fine, never treated as broken either). See "Determining the real
   window and grading it" for exactly how the two signals (live-served, static model max) combine.
@@ -109,7 +109,7 @@ signals combine and what severity each disagreement gets.
   env vars onto `backend` too would mean keeping two services' config in sync by hand. The project already
   has the right-shaped precedent for this: the worker reports its own local-AI state into
   `instance_settings.local_ai` (`ai/src/lib/localAi/status.ts`'s `writeLocalAiStatus`/`createLocalAiReporter`,
-  read back by `vtt-admin status` via `readLocalAiStatus`) specifically *because* the backend has no direct
+  read back by `vtt-admin status` via `readLocalAiStatus`) specifically _because_ the backend has no direct
   line to the worker's own backends. This plan extends that existing channel rather than opening a new one:
   the **worker** (which already has `OLLAMA_URL`/model and already talks to Ollama every job) is what queries
   `/api/ps`, writing the live `context_length` into that same status record; `vtt-admin status` only ever
@@ -127,8 +127,8 @@ signals combine and what severity each disagreement gets.
   flagged as a real limitation rather than buried.
 - **The comparison ignores the fallback-enabled clamp.** `contextWindowTokens(llm, fallbackEnabled)` clamps
   `claude`/`openai`/`remote` down to the local fixed cap whenever `ai.fallback.enabled` is true — which is
-  the *default* (`DEFAULT_AI_SETTINGS`). That clamp answers "what should a call be sized for, given it might
-  fail over," a different question from "does our assumption about the *configured* backend match reality."
+  the _default_ (`DEFAULT_AI_SETTINGS`). That clamp answers "what should a call be sized for, given it might
+  fail over," a different question from "does our assumption about the _configured_ backend match reality."
   Comparing against the clamped number would make a default, untouched `claude` install warn immediately
   (clamped to 8,192 vs. Claude's real ~100k+), contradicting the "still correct on a fresh install" goal.
   This check always compares against `contextWindowTokens(llm, false)` — my call, since using the clamped
@@ -164,7 +164,7 @@ signals combine and what severity each disagreement gets.
 For `local`/`remote` (Ollama-backed), two independent signals, both reported by the worker (see
 Constraints) into the same status record:
 
-- **Live-served** (`/api/ps` → `context_length`): what the running model instance is *actually* being
+- **Live-served** (`/api/ps` → `context_length`): what the running model instance is _actually_ being
   served right now. Only present once the model has been loaded at least once; "not loaded yet" is a
   legitimate, distinct outcome, not an error.
 - **Model max** (`/api/show` → `model_info["<family>.context_length"]`): the model's own trained ceiling —
