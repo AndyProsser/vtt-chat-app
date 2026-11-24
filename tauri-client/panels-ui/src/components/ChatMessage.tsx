@@ -1,5 +1,7 @@
 import { memo } from 'react';
 
+import { useLanguageSwitches } from '@vtt-chat-app/ui-kit';
+
 import { languageOf, languageStyle } from '../lib/chatStyle.js';
 import { lineKind } from '../lib/commands.js';
 import { Portrait } from './Portrait.js';
@@ -14,6 +16,7 @@ interface Props {
 
 /** One chat line: avatar, name, text. Whispers and DM-private lines are coloured and also labelled. */
 export const ChatMessage = memo(function ChatMessage({ line, members, selfId }: Props) {
+  const switches = useLanguageSwitches();
   const kind = lineKind(line, members);
   const sender = members.find((m) => m.userId === line.from.userId);
   const mine = line.from.userId === selfId;
@@ -62,7 +65,7 @@ export const ChatMessage = memo(function ChatMessage({ line, members, selfId }: 
               )}
             </div>
             {style === 'say' ? (
-              <div className="vtt-say-text" style={languageStyle(line.lang)}>
+              <div className="vtt-say-text" style={languageStyle(line.lang, switches)}>
                 {'\u201c'}
                 {line.text}
                 {'\u201d'}

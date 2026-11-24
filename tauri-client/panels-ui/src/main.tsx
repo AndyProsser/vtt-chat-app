@@ -6,6 +6,7 @@ import './styles/theme.css';
 import './styles/main.css';
 import '@vtt-chat-app/ui-kit/fonts/languages';
 
+import { applyStoredReadingPrefs, followReadingPrefsFromOtherWindows } from '@vtt-chat-app/ui-kit';
 import { createRoot } from 'react-dom/client';
 
 import { AppRoot } from './components/AppRoot.js';
@@ -16,6 +17,8 @@ const container = document.getElementById('root');
 if (!container) throw new Error('panels-ui: #root element missing from index.html');
 
 applyStoredTheme();
+applyStoredReadingPrefs();
+followReadingPrefsFromOtherWindows();
 followThemeChangesFromOtherWindows();
 
 createRoot(container).render(<AppRoot />);

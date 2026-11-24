@@ -16,3 +16,13 @@ export interface LanguageSwitches {
   languageFonts: boolean;
   forceReadable: boolean;
 }
+
+/** The three reading switches (Appearance on the desktop, the account page on the phone), kept per device. */
+export interface ReadingPrefs {
+  /** Draw each language in its own font. Off: every language reads in the body font. */
+  languageFonts: boolean;
+  /** Draw handouts in the narrative face. Off: handouts read in the body font. */
+  documentFonts: boolean;
+  /** Everything in the body font, whatever the two above say. The language and its caption stay. */
+  forceReadable: boolean;
+}

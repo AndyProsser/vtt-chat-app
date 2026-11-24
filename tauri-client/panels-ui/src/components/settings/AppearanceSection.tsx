@@ -4,6 +4,7 @@ import { Check, ChevronDown } from 'lucide-react';
 import { useThemeStore } from '../../lib/themeStore.js';
 import { THEMES } from '../../lib/themes.js';
 import { SectionHeading } from './SectionHeading.js';
+import { ReadingSwitches } from './ReadingSwitches.js';
 import { SettingRow } from './SettingRow.js';
 
 /** Theme picker, a dropdown with a colour preview per theme. Light/dark is the OS's call; applies at once. */
@@ -47,6 +48,7 @@ export function AppearanceSection() {
             </DropdownMenu.Content>
           </DropdownMenu.Root>
         </SettingRow>
+        <ReadingSwitches />
       </div>
     </Flex>
   );

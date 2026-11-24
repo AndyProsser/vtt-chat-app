@@ -18,6 +18,7 @@ describe('line style', () => {
     expect(languageCaption('klingon')).toBeUndefined();
     expect(languageStyle('elvish')?.fontStyle).toBe('italic');
     expect(languageStyle('dwarvish')?.fontFamily).toMatch(/^"Alegreya SC"/);
+    expect(languageStyle('elvish', { languageFonts: true, forceReadable: true })).toEqual({});
     expect(languageStyle('common')).toEqual({});
     expect(languageStyle(undefined)).toBeUndefined();
   });

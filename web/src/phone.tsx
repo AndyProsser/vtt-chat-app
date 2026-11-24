@@ -8,6 +8,7 @@ import './styles/phone.css';
 import '@vtt-chat-app/ui-kit/fonts/languages';
 
 import { Theme } from '@radix-ui/themes';
+import { applyStoredReadingPrefs, followReadingPrefsFromOtherWindows } from '@vtt-chat-app/ui-kit';
 import { createRoot } from 'react-dom/client';
 
 import { useSystemAppearance } from './hooks/useSystemAppearance.js';
@@ -28,5 +29,8 @@ function Root() {
 }
 
 // An old browser was shown a notice by /old-browser.js (before this ran): do not start the app behind it.
-if (!(window as { __vttOldBrowser?: boolean }).__vttOldBrowser)
+if (!(window as { __vttOldBrowser?: boolean }).__vttOldBrowser) {
+  applyStoredReadingPrefs();
+  followReadingPrefsFromOtherWindows();
   createRoot(container).render(<Root />);
+}

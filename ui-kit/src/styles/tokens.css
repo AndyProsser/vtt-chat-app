@@ -8,6 +8,12 @@
   --vtt-font-narrative: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
 }
 
+/* Force readable, or document fonts off (the reading switches): handouts and quoted speech use the body face. */
+:root[data-readable='on'],
+:root[data-doc-fonts='off'] {
+  --vtt-font-narrative: var(--vtt-font-body);
+}
+
 .radix-themes.radix-themes {
   --default-font-family: var(--vtt-font-body);
   --heading-font-family: var(--vtt-font-head);

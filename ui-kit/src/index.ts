@@ -5,3 +5,15 @@ export { languageTextStyle, styleFor } from './lib/languageTextStyle.js';
 export type { LanguageFont, LanguageSwitches } from './types/languageFont.js';
 export { Icon, SenseIcon, VitalIcon } from './components/Icon.js';
 export { ICON, SENSE_ICON, VITAL_ICON, type IconName } from './consts/icons.js';
+export { useReadingPrefs } from './hooks/useReadingPrefs.js';
+export {
+  DEFAULT_READING_PREFS,
+  applyReadingPrefs,
+  applyStoredReadingPrefs,
+  followReadingPrefsFromOtherWindows,
+  parseReadingPrefs,
+  useReadingPrefsStore,
+} from './lib/readingPrefs.js';
+export type { ReadingPrefs } from './types/languageFont.js';
+export { useLanguageSwitches } from './hooks/useLanguageSwitches.js';
+export { READING_SWITCHES } from './consts/readingSwitches.js';

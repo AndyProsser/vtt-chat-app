@@ -23,4 +23,11 @@ describe('typography tokens', () => {
       expect(value(name)).toMatch(/(sans-serif|serif)$/);
     }
   });
+
+  it('reads handouts in the body face when force readable or document fonts off is set', () => {
+    const rule = /:root\[data-readable='on'\],\s*:root\[data-doc-fonts='off'\]\s*\{([^}]*)\}/.exec(
+      css,
+    );
+    expect(rule?.[1]).toMatch(/--vtt-font-narrative:\s*var\(--vtt-font-body\)/);
+  });
 });

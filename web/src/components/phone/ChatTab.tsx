@@ -1,4 +1,5 @@
 import { Button, Flex, Text, VisuallyHidden } from '@radix-ui/themes';
+import { useLanguageSwitches } from '@vtt-chat-app/ui-kit';
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useIsDm } from '../../hooks/useIsDm.js';
@@ -185,6 +186,7 @@ function Line({
   const mine = line.fromId === userId;
   const peer = whisperPeer(line, userId);
   const whisper = line.toId !== null;
+  const switches = useLanguageSwitches();
   const kind = lineKind(line);
   const caption = languageCaption(line.lang);
   return (
@@ -210,7 +212,10 @@ function Line({
           {lineTime(line.at, now)}
         </Text>
       </Flex>
-      <div className="phone-bubble" style={kind === 'say' ? languageStyle(line.lang) : undefined}>
+      <div
+        className="phone-bubble"
+        style={kind === 'say' ? languageStyle(line.lang, switches) : undefined}
+      >
         {lineText(line)}
       </div>
       {caption && (

@@ -1,5 +1,5 @@
 import { CHAT_LANGUAGES, type ChatKind } from '@vtt-chat-app/shared';
-import { languageTextStyle } from '@vtt-chat-app/ui-kit';
+import { languageTextStyle, type LanguageSwitches } from '@vtt-chat-app/ui-kit';
 import type { CSSProperties } from 'react';
 
 import type { ChatLine } from '../../types/phone.js';
@@ -19,8 +19,10 @@ export const KIND_CLASS: Record<ChatKind | 'whisper', string> = {
 const language = (key: string | undefined) => CHAT_LANGUAGES.find((l) => l.key === key);
 
 /** The inline style for a say line's language (the same table as the desktop app, from ui-kit); none for no or an unknown language. */
-export const languageStyle = (key: string | undefined): CSSProperties | undefined =>
-  languageTextStyle(key);
+export const languageStyle = (
+  key: string | undefined,
+  switches?: LanguageSwitches,
+): CSSProperties | undefined => languageTextStyle(key, switches);
 
 /** "in Elvish": the caption under a language line (real text, so assistive tech reads it). */
 export const languageCaption = (key: string | undefined): string | undefined => {

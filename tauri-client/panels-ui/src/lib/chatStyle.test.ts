@@ -12,6 +12,8 @@ describe('chat style', () => {
   it('maps a language to its preset', () => {
     expect(languageStyle('elvish')?.fontStyle).toBe('italic');
     expect(languageStyle('dwarvish')?.fontFamily).toMatch(/^"Alegreya SC"/);
+    expect(languageStyle('elvish', { languageFonts: true, forceReadable: true })).toEqual({});
+    expect(languageStyle('elvish', { languageFonts: false, forceReadable: false })).toEqual({});
     expect(languageStyle('common')).toEqual({});
     expect(languageStyle('klingon')).toBeUndefined();
     expect(languageOf('deep-speech')?.name).toBe('Deep Speech');

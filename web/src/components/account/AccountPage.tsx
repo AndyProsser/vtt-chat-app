@@ -9,6 +9,7 @@ import { LoginForm } from '../LoginForm.js';
 import { DevicesCard } from './DevicesCard.js';
 import { NoticeCard } from './NoticeCard.js';
 import { ProfileCard } from './ProfileCard.js';
+import { ReadingCard } from './ReadingCard.js';
 import { SecurityCard } from './SecurityCard.js';
 
 function AccountContent() {
@@ -35,6 +36,7 @@ function AccountContent() {
         Your account
       </Heading>
       <ProfileCard key={user.id} user={user} onChanged={setEdited} />
+      <ReadingCard />
       <NoticeCard user={user} />
       <SecurityCard
         hasPassword={user.hasPassword === true}
