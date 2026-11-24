@@ -455,8 +455,10 @@ details. A GPU PC does the same work in minutes with the better models. So:
 
    **Raising that window takes two steps, both needed.** `OLLAMA_CONTEXT_LENGTH` (in `.env` for the Compose
    service, or the host-installed Ollama's own environment) is what Ollama actually serves — bigger costs
-   VRAM and speed. The app has no way to ask Ollama's API what that number is, so it also has to be told the
-   same number, with `./vtt-admin settings set ai.llm.context`. **Never set that number higher than
+   VRAM and speed. The OpenAI-compatible API the app actually talks to when generating has no way to ask
+   Ollama what that number is (the worker's own separate check below can, through Ollama's native API —
+   that is how `--tune`, next, learns it), so it also has to be told directly, with
+   `./vtt-admin settings set ai.llm.context`. **Never set that number higher than
    `OLLAMA_CONTEXT_LENGTH`**: the app would then trust a window Ollama doesn't actually have, and condense
    too late, which is silent truncation, not a safe mistake. Lower is the safe direction: the app just
    condenses earlier than it needs to and some VRAM goes unused.
@@ -465,9 +467,12 @@ details. A GPU PC does the same work in minutes with the better models. So:
    compares the configured number against what Ollama is actually serving (checked by the worker
    periodically, for `local` and `remote` alike) and against the model's own maximum — a mismatch that risks
    truncation shows as a failure, not just a warning; unused headroom (the model could serve more than is
-   configured) shows as a warning with both numbers. `./vtt-admin status --tune` applies whatever it found,
-   writing `ai.llm.context` for you — no need to copy `OLLAMA_CONTEXT_LENGTH`'s number by hand. It has
-   nothing to apply (and says so) until the worker has checked at least once, and Claude/OpenAI are never
+   configured) shows as a warning with both numbers. `./vtt-admin status --tune` writes `ai.llm.context`
+   for you, from what Ollama is actually serving right now — no need to copy `OLLAMA_CONTEXT_LENGTH`'s
+   number by hand. For `remote` this needs the model to be loaded at the time you run it (it never guesses
+   from the model's maximum there, since nothing confirms the remote server would actually serve that much);
+   if nothing is loaded, run a job first, or wait for the worker's own periodic check, then try again. It
+   has nothing to apply (and says so) until the worker has checked at least once, and Claude/OpenAI are never
    affected — Claude's real window comes from a built-in table, OpenAI has no table and always shows as
    unknown.
 

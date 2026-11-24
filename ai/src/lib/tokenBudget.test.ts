@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { contextWindowTokens, estimateTokens } from './tokenBudget.js';
+import { contextWindowTokens, estimateTokens, ollamaNumCtx } from './tokenBudget.js';
 
 describe('estimateTokens', () => {
   it('is about one token per 3.5 characters, rounded up', () => {
@@ -45,5 +45,21 @@ describe('contextWindowTokens', () => {
       100_000,
     );
     expect(contextWindowTokens({ kind: 'claude', model: null } as never)).toBe(100_000);
+  });
+});
+
+describe('ollamaNumCtx', () => {
+  it("uses the operator's configured value for local, or the measured default when unset", () => {
+    expect(ollamaNumCtx({ kind: 'local', context: null } as never)).toBe(8192);
+    expect(ollamaNumCtx({ kind: 'local', context: 40_960 } as never)).toBe(40_960);
+  });
+  it('always uses the measured default for a call that lands on local by failover, whatever the configured kind is', () => {
+    // A job configured for remote/claude/openai can fail over to the local Ollama mid-job; that call must
+    // still carry a sane num_ctx (never `undefined` — Ollama's own default is uncontrolled and may be
+    // smaller than what the job was sized for) and never the *configured* kind's own `context`, which
+    // means nothing once the call has actually landed on local.
+    expect(ollamaNumCtx({ kind: 'remote', context: 40_960 } as never)).toBe(8192);
+    expect(ollamaNumCtx({ kind: 'claude', context: null } as never)).toBe(8192);
+    expect(ollamaNumCtx({ kind: 'openai', context: null } as never)).toBe(8192);
   });
 });

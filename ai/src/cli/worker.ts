@@ -33,7 +33,6 @@
  */
 import {
   BARD_SAMPLING,
-  DEFAULT_LOCAL_CONTEXT_TOKENS,
   DEFAULT_OLLAMA_URL,
   SCRIBE_SAMPLING,
   type Sampling,
@@ -56,6 +55,7 @@ import { createOllamaContextChecker } from '../lib/localAi/contextChecker.js';
 import { createLocalAiReporter, reportWorst, writeLocalAiStatus } from '../lib/localAi/status.js';
 import type { GenerateText } from '../types/index.js';
 import { createOllamaGenerate } from '../lib/ollama.js';
+import { ollamaNumCtx } from '../lib/tokenBudget.js';
 import { PostgresRecordsStore, createPool } from '../lib/records/postgresRecordsStore.js';
 import {
   createProcessRecordingHandler,
@@ -131,13 +131,10 @@ async function main(): Promise<void> {
       model,
       baseUrl: ollamaUrl,
       // Read fresh per call, not fixed at start-up: a tuned `ai.llm.context` (`vtt-admin status --tune`)
-      // takes effect on the very next request, no restart needed. Same default (8192) as before when unset.
-      numCtx: async () => {
-        const ai = await records.getAiSettings();
-        return ai.llm.kind === 'local'
-          ? (ai.llm.context ?? DEFAULT_LOCAL_CONTEXT_TOKENS)
-          : undefined;
-      },
+      // takes effect on the very next request, no restart needed. `ollamaNumCtx` also covers a call that
+      // lands here by failover while configured for remote/claude/openai — that always gets the measured
+      // default (never `undefined`, which would leave Ollama's own uncontrolled default in charge).
+      numCtx: async () => ollamaNumCtx((await records.getAiSettings()).llm),
       sampling,
       ...(process.env.OLLAMA_KEEP_ALIVE ? { keepAlive: process.env.OLLAMA_KEEP_ALIVE } : {}),
     });

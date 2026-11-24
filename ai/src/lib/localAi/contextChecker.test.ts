@@ -27,6 +27,7 @@ describe('createOllamaContextChecker', () => {
       baseUrl: 'http://ollama',
       model: 'qwen3',
       fetchImpl,
+      now: () => 42,
     });
     expect(result).toEqual({
       kind: 'local',
@@ -34,6 +35,7 @@ describe('createOllamaContextChecker', () => {
       live: 8192,
       modelMax: 32768,
       unreachable: false,
+      checkedAt: 42,
     });
   });
 
@@ -44,12 +46,14 @@ describe('createOllamaContextChecker', () => {
       baseUrl: 'http://ollama',
       model: 'qwen3',
       fetchImpl,
+      now: () => 42,
     });
     expect(result).toEqual({
       kind: 'local',
       model: 'qwen3',
       modelMax: 32768,
       unreachable: false,
+      checkedAt: 42,
     });
   });
 
@@ -60,8 +64,9 @@ describe('createOllamaContextChecker', () => {
       baseUrl: 'http://gpu:11434',
       model: 'qwen3',
       fetchImpl,
+      now: () => 42,
     });
-    expect(result).toEqual({ kind: 'remote', model: 'qwen3', unreachable: true });
+    expect(result).toEqual({ kind: 'remote', model: 'qwen3', unreachable: true, checkedAt: 42 });
   });
 
   it('resolves unreachable: true when the server is not Ollama at all (404 on both)', async () => {
@@ -71,7 +76,13 @@ describe('createOllamaContextChecker', () => {
       baseUrl: 'http://vllm:8000',
       model: 'some-model',
       fetchImpl,
+      now: () => 42,
     });
-    expect(result).toEqual({ kind: 'remote', model: 'some-model', unreachable: true });
+    expect(result).toEqual({
+      kind: 'remote',
+      model: 'some-model',
+      unreachable: true,
+      checkedAt: 42,
+    });
   });
 });

@@ -3,6 +3,7 @@ import {
   MemoryRecordsStore,
   PROCESS_RECORDING_JOB,
   type LocalAiStatus,
+  type OllamaContextStatus,
 } from '@vtt-chat-app/ai';
 import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -341,11 +342,11 @@ describe('status', () => {
 });
 
 describe('status: the AI context check', () => {
-  const localAi = (llmContext: LocalAiStatus['llmContext']): LocalAiStatus => ({
+  const localAi = (llmContext: Omit<OllamaContextStatus, 'checkedAt'> | null): LocalAiStatus => ({
     at: 1,
     llm: null,
     whisper: null,
-    llmContext,
+    llmContext: llmContext ? { ...llmContext, checkedAt: 1 } : llmContext,
   });
 
   it('reports "not checked" on a fresh install, nothing configured, no check reported yet', async () => {
@@ -353,9 +354,22 @@ describe('status: the AI context check', () => {
     expect(out.join('\n')).toMatch(/warn\s+AI\s+.*not checked/i);
   });
 
+  it('warns "unknown", never ok, when a check found neither signal (one endpoint answered, the other did not)', async () => {
+    // Promise.allSettled means `unreachable` is only true when *both* requests fail; a model not yet
+    // loaded (/api/ps has nothing to match) plus a failed /api/show (e.g. still downloading) is a real,
+    // reachable-but-uninformative result that must never be mistaken for "matches, ok".
+    expect(
+      await run('status', [], {
+        localAi: localAi({ kind: 'local', model: 'qwen3', unreachable: false }),
+      }),
+    ).toBe(0);
+    expect(out.join('\n')).toMatch(/warn\s+AI\s+.*unknown/i);
+  });
+
   it('fails when Ollama is actually serving less than the app assumes (live undershoot)', async () => {
     await run('settings set ai.llm.kind remote');
     await run('settings set ai.llm.url http://gpu:11434');
+    await run('settings set ai.llm.model qwen3');
     await run('settings set ai.llm.context 40960');
     expect(
       await run('status', [], {
@@ -368,6 +382,7 @@ describe('status: the AI context check', () => {
   it('fails when the model cannot serve what is configured, even with no live reading', async () => {
     await run('settings set ai.llm.kind remote');
     await run('settings set ai.llm.url http://gpu:11434');
+    await run('settings set ai.llm.model qwen3');
     await run('settings set ai.llm.context 40960');
     expect(
       await run('status', [], {
@@ -375,6 +390,27 @@ describe('status: the AI context check', () => {
       }),
     ).toBe(1);
     expect(out.join('\n')).toMatch(/FAIL\s+AI/);
+  });
+
+  it("shows how old the worker's check is", async () => {
+    expect(
+      await run('status', [], {
+        now: () => 1_000 + 7 * 60_000, // 7 minutes after the fixed `checkedAt` below
+        localAi: {
+          at: 1,
+          llm: null,
+          whisper: null,
+          llmContext: {
+            kind: 'local',
+            model: 'qwen3',
+            live: 8192,
+            unreachable: false,
+            checkedAt: 1_000,
+          },
+        },
+      }),
+    ).toBe(0);
+    expect(out.join('\n')).toMatch(/AI\s+.*7m/);
   });
 
   it('warns with both numbers when the model supports more than is configured (the hint)', async () => {
@@ -423,6 +459,7 @@ describe('status: the AI context check', () => {
   it('--tune applies the live value when known', async () => {
     await run('settings set ai.llm.kind remote');
     await run('settings set ai.llm.url http://gpu:11434');
+    await run('settings set ai.llm.model qwen3');
     expect(
       await run('status --tune', [], {
         localAi: localAi({ kind: 'remote', model: 'qwen3', live: 32_768, unreachable: false }),
@@ -432,20 +469,39 @@ describe('status: the AI context check', () => {
     expect(out.join('\n')).toContain('32768');
   });
 
-  it('--tune applies modelMax when live is not known (model not currently loaded)', async () => {
-    await run('settings set ai.llm.kind remote');
-    await run('settings set ai.llm.url http://gpu:11434');
+  it('--tune applies modelMax for local when live is not known (model not currently loaded)', async () => {
+    // local is safe to tune from modelMax: the worker genuinely sends whatever is configured as num_ctx,
+    // so the app's belief and what Ollama is asked for stay in sync (a VRAM/speed question for the
+    // operator to judge, not a truncation risk).
     expect(
       await run('status --tune', [], {
-        localAi: localAi({ kind: 'remote', model: 'qwen3', modelMax: 65_536, unreachable: false }),
+        localAi: localAi({ kind: 'local', model: 'qwen3', modelMax: 65_536, unreachable: false }),
       }),
     ).toBe(0);
     expect((await store.getSettings()).ai.llm.context).toBe(65_536);
   });
 
+  it("--tune on remote never applies modelMax: the remote server's own window is what it decides, not the model", async () => {
+    // Unlike local, a remote server's real window comes entirely from its own OLLAMA_CONTEXT_LENGTH — the
+    // app has no way to make it actually serve the model's trained maximum. Applying modelMax there would
+    // trust a number nothing validates, risking the exact silent truncation this feature exists to prevent.
+    await run('settings set ai.llm.kind remote');
+    await run('settings set ai.llm.url http://gpu:11434');
+    await run('settings set ai.llm.model qwen3');
+    const before = await store.getSettings();
+    expect(
+      await run('status --tune', [], {
+        localAi: localAi({ kind: 'remote', model: 'qwen3', modelMax: 65_536, unreachable: false }),
+      }),
+    ).toBe(0);
+    expect(await store.getSettings()).toEqual(before);
+    expect(out.join('\n')).toMatch(/could not tune/i);
+  });
+
   it('--tune run again with nothing changed reports "already matches" and does not write again', async () => {
     await run('settings set ai.llm.kind remote');
     await run('settings set ai.llm.url http://gpu:11434');
+    await run('settings set ai.llm.model qwen3');
     const deps = {
       localAi: localAi({ kind: 'remote', model: 'qwen3', live: 32_768, unreachable: false }),
     };

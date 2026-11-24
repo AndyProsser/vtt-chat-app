@@ -78,8 +78,10 @@ export function createLocalAiReporter(options: ReporterOptions): LocalAiReporter
     else flush();
   };
   const setContext = (status: OllamaContextStatus): void => {
+    // Deliberately does not touch `current.at`: that field is what `shownState`/`describeLocalAi` time a
+    // stalled llm/whisper download against, and a context check runs on its own, unrelated cadence. The
+    // check's own freshness lives in `status.checkedAt` instead.
     current.llmContext = status;
-    current.at = now();
     if (writing) dirty = true;
     else flush();
   };

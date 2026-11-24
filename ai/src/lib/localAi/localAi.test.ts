@@ -412,17 +412,27 @@ describe('the local AI status', () => {
     });
   });
 
-  it('reports the context check alongside llm/whisper, as a third field', async () => {
+  it('reports the context check alongside llm/whisper, as a third field, without disturbing `at`', async () => {
+    // `at` is what the existing llm/whisper "stalled download" check (shownState) times against; a
+    // context report running on its own 15-minute cadence must never refresh it, or a genuinely stalled
+    // download would read as fresh again purely because an unrelated context check happened to run.
+    let clock = 7;
     const written: LocalAiStatus[] = [];
-    const reporter = createLocalAiReporter({ now: () => 7, write: async (s) => written.push(s) });
+    const reporter = createLocalAiReporter({
+      now: () => clock,
+      write: async (s) => written.push(s),
+    });
+    clock = 100;
     reporter.context({
       kind: 'local',
       model: 'qwen3',
       live: 8192,
       modelMax: 32768,
       unreachable: false,
+      checkedAt: 100,
     });
     await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(written.at(-1)?.at).toBe(7); // unchanged by the context-only report
     expect(written.at(-1)).toEqual({
       at: 7,
       llm: null,
@@ -433,6 +443,7 @@ describe('the local AI status', () => {
         live: 8192,
         modelMax: 32768,
         unreachable: false,
+        checkedAt: 100,
       },
     });
   });

@@ -18,6 +18,7 @@ import {
   type Job,
   type LocalAiStatus,
   MEMORY_KIND_LABELS,
+  type OllamaContextStatus,
   type RecordsStore,
 } from '@vtt-chat-app/ai';
 import type { AiSettings } from '@vtt-chat-app/shared';
@@ -348,9 +349,29 @@ type Row = [BadgeKind, string, string];
  * `openai` has none by design; `local`/`remote` are graded from what the worker last found checking Ollama
  * directly (`localAi.llmContext`), never a live call from here (`vtt-admin` has no path to Ollama).
  */
-function aiContextRows(settings: AiSettings, localAi: LocalAiStatus | null | undefined): Row[] {
+/**
+ * Whether a stored check is still current for `llm`: same kind, and — for `remote`, where the operator
+ * names a real model — the same model too, so switching models doesn't read as "still fine" from the
+ * previous one's numbers. `local`'s model comes from `OLLAMA_MODEL` (an env var, not this setting, which
+ * stays `null` for `local`), so there is nothing meaningful to compare there; kind alone is enough.
+ */
+function freshContextCheck(
+  checked: OllamaContextStatus | null | undefined,
+  llm: AiSettings['llm'],
+): OllamaContextStatus | undefined {
+  if (!checked || checked.kind !== llm.kind) return undefined;
+  return llm.kind === 'local' || checked.model === llm.model ? checked : undefined;
+}
+
+function aiContextRows(
+  settings: AiSettings,
+  localAi: LocalAiStatus | null | undefined,
+  now: number,
+): Row[] {
   const { llm } = settings;
-  const row = (badge: BadgeKind, text: string): Row[] => [[badge, 'AI', text]];
+  const row = (badge: BadgeKind, text: string, age?: number): Row[] => [
+    [badge, 'AI', age !== undefined ? `${text} (checked ${duration(age / 1000)} ago)` : text],
+  ];
 
   if (llm.kind === 'claude') {
     return llm.model !== null && llm.model in CLAUDE_CONTEXT_WINDOWS
@@ -362,40 +383,53 @@ function aiContextRows(settings: AiSettings, localAi: LocalAiStatus | null | und
   }
 
   // local/remote: graded from what the worker last found checking Ollama directly.
-  const checked = localAi?.llmContext;
-  if (!checked || checked.kind !== llm.kind) {
+  const checked = freshContextCheck(localAi?.llmContext, llm);
+  if (!checked) {
     return row('warn', 'context window: not checked yet');
   }
+  const age = Math.max(0, now - checked.checkedAt);
   const configured = contextWindowTokens(llm, false);
   if (checked.live !== undefined && checked.live < configured) {
     return row(
       'fail',
       `context window: Ollama is only serving ${checked.live} tokens, but ${configured} is configured`,
+      age,
     );
   }
   if (checked.modelMax !== undefined && checked.modelMax < configured) {
     return row(
       'fail',
       `context window: the model's own maximum is ${checked.modelMax} tokens, but ${configured} is configured`,
+      age,
     );
   }
   if (checked.modelMax !== undefined && checked.modelMax > configured) {
     return row(
       'warn',
       `context window: configured for ${configured} tokens, but the model supports up to ${checked.modelMax} — vtt-admin status --tune to use more`,
+      age,
     );
   }
-  if (checked.unreachable) {
-    return row('warn', 'context window: unknown (could not reach Ollama to check)');
+  // Nothing was actually determined (both signals absent) — whether or not either request itself
+  // technically failed — is "unknown", never a silent `ok`.
+  if (checked.live === undefined && checked.modelMax === undefined) {
+    return row('warn', 'context window: unknown (could not reach Ollama to check)', age);
   }
-  return row('ok', `context window: ${configured} tokens`);
+  return row('ok', `context window: ${configured} tokens`, age);
 }
 
 /**
- * Applies the determined context window for `local`/`remote` (the live-served number when known, else the
- * model's own maximum): writes `ai.llm.context`, the same path `settings set` uses, only when it would
- * actually change something. `claude`/`openai` have nothing to tune — their window comes from the built-in
- * table or the flat default, never a setting.
+ * Applies the determined context window for `local`/`remote`: writes `ai.llm.context`, the same path
+ * `settings set` uses, only when it would actually change something. `claude`/`openai` have nothing to
+ * tune — their window comes from the built-in table or the flat default, never a setting.
+ *
+ * The live-served number is used for both kinds when known. The model's own trained maximum is only ever
+ * applied for `local`: the worker genuinely sends whatever `ai.llm.context` holds as `num_ctx`
+ * (`ollamaNumCtx`, tokenBudget.ts), so the app's belief and what Ollama is asked for stay in sync — a
+ * VRAM/speed question for the operator, not a truncation risk. For `remote`, nothing the app does can make
+ * the remote server actually serve the model's maximum (that is the remote host's own
+ * `OLLAMA_CONTEXT_LENGTH`, outside this app's control) — applying it there would trust a number nothing
+ * validates, which is the exact silent-truncation risk this feature exists to prevent.
  */
 async function tuneAiContext(deps: Ctx, current: InstanceSettings): Promise<void> {
   const { llm } = current.ai;
@@ -403,9 +437,9 @@ async function tuneAiContext(deps: Ctx, current: InstanceSettings): Promise<void
     deps.out(deps.ui.dim('nothing to tune for this backend (claude/openai use a built-in table)'));
     return;
   }
-  const checked = deps.localAi?.llmContext;
-  const value =
-    checked && checked.kind === llm.kind ? (checked.live ?? checked.modelMax) : undefined;
+  const fresh = freshContextCheck(deps.localAi?.llmContext, llm);
+  const live = fresh?.live;
+  const value = live ?? (llm.kind === 'local' ? fresh?.modelMax : undefined);
   if (value === undefined) {
     deps.out(deps.ui.warn('could not tune: nothing has been determined yet'));
     return;
@@ -416,7 +450,13 @@ async function tuneAiContext(deps: Ctx, current: InstanceSettings): Promise<void
   }
   const next = applySetting(current, 'ai.llm.context', String(value));
   await deps.store.putSettings(next);
-  deps.out(deps.ui.done(`tuned: set ai.llm.context = ${value}`));
+  deps.out(
+    live !== undefined
+      ? deps.ui.done(`tuned: set ai.llm.context = ${value}`)
+      : deps.ui.done(
+          `tuned: set ai.llm.context = ${value} (the model's own maximum — make sure this machine has enough VRAM/RAM, and watch speed)`,
+        ),
+  );
 }
 
 async function status(deps: Ctx, args: string[] = []): Promise<number> {
@@ -447,7 +487,7 @@ async function status(deps: Ctx, args: string[] = []): Promise<number> {
     }
   }
   const { ai } = await deps.store.getSettings();
-  const aiRows = aiContextRows(ai, deps.localAi);
+  const aiRows = aiContextRows(ai, deps.localAi, now);
   if (aiRows.some(([badge]) => badge === 'fail')) healthy = false;
   const sections: [string, Row[]][] = [
     ['Services', services],

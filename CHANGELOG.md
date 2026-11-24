@@ -19,12 +19,13 @@ the GitHub release notes and refuses to build a release without one. How to writ
 ### Changed
 
 - **Chapter notes are taken two chapters at a time instead of all at once**, with a log line as each finishes — a single-GPU remote Ollama no longer has ten chapters queued on it simultaneously with no progress shown.
-- **Claude's real per-model context window** (not one flat conservative number) now drives the condense decision directly, for every model the app recognises.
+- **Claude's real per-model context window** (not one flat conservative number) now drives the condense decision directly, for every model the app recognises — with `ai.fallback.enabled` turned off (its default is on). With fallback on, a job might still land on the local model mid-way, so the real per-model number is clamped to the same local cap as before; turn fallback off to use it.
 
 ### Known limits
 
 - The near-full-window warning does not fire for the local backend (Ollama's native API does not report token usage back to the app); it does fire for Claude, OpenAI, and a remote OpenAI-compatible server.
 - `vtt-admin status`'s AI check reads what the worker last found, not a live, on-demand query — it can be a few minutes stale, and shows nothing at all until the worker has checked at least once.
+- `vtt-admin status --tune` only ever applies the _live-served_ number for `remote` (never the model's bare maximum — nothing confirms the remote server would actually serve that much); for `local` it may apply the model's maximum, which is a real VRAM/RAM and speed question for the operator to judge, not a truncation risk.
 - The condensing decision sizes against the notes alone, not the full assembled prompt (instructions, campaign memory, cues); on a small configured window this leaves less headroom than the margin suggests.
 - Campaign memory still reads a session's full, uncondensed notes rather than the condensed version other summaries use.
 

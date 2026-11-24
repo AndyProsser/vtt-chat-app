@@ -6,6 +6,8 @@ export interface ContextCheckOptions {
   baseUrl: string;
   model: string;
   fetchImpl?: typeof fetch;
+  /** Injected for tests. */
+  now?: () => number;
 }
 
 /**
@@ -19,6 +21,7 @@ export async function createOllamaContextChecker(
   options: ContextCheckOptions,
 ): Promise<OllamaContextStatus> {
   const { kind, baseUrl, model, fetchImpl } = options;
+  const now = options.now ?? Date.now;
   const [live, modelMax] = await Promise.allSettled([
     getOllamaRunningContext(baseUrl, model, fetchImpl),
     getOllamaModelMaxContext(baseUrl, model, fetchImpl),
@@ -26,12 +29,13 @@ export async function createOllamaContextChecker(
   // Unreachable only when *neither* call got through at all; one endpoint failing while the other answers
   // (e.g. a server that implements /api/show but not /api/ps) still yields a real, partial result.
   if (live.status === 'rejected' && modelMax.status === 'rejected') {
-    return { kind, model, unreachable: true };
+    return { kind, model, unreachable: true, checkedAt: now() };
   }
   return {
     kind,
     model,
     unreachable: false,
+    checkedAt: now(),
     ...(live.status === 'fulfilled' && live.value !== undefined ? { live: live.value } : {}),
     ...(modelMax.status === 'fulfilled' && modelMax.value !== undefined
       ? { modelMax: modelMax.value }

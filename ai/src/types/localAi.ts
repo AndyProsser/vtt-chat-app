@@ -37,6 +37,8 @@ export interface OllamaContextStatus {
   modelMax?: number;
   /** True when neither endpoint could be reached at all (not just "model not loaded"). */
   unreachable: boolean;
+  /** When this check ran, set by the caller (the worker) — its own timestamp, never `LocalAiStatus.at`. */
+  checkedAt: number;
 }
 
 export interface LocalAiStatus {
