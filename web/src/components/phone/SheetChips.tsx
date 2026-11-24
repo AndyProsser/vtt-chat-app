@@ -1,14 +1,6 @@
-import { senseLabel, type CharacterSheet, type SenseKind } from '@vtt-chat-app/shared';
+import { senseLabel, type CharacterSheet } from '@vtt-chat-app/shared';
 
-import { Icon } from '../icons/index.js';
-import type { IconName } from '../icons/paths.js';
-
-export const SENSE_ICON: Record<SenseKind, IconName> = {
-  darkvision: 'moon',
-  blindsight: 'radar',
-  tremorsense: 'waves',
-  truesight: 'scanEye',
-};
+import { Icon, SenseIcon } from '@vtt-chat-app/ui-kit';
 
 /**
  * The quick numbers on a character as icon chips: armour class, hit points and each special sense with its range.
@@ -35,7 +27,7 @@ export function SheetChips({ sheet }: { sheet: CharacterSheet | null | undefined
       </span>
       {(sheet.senses ?? []).map((s) => (
         <span key={s.kind} className="phone-chip" title={senseLabel(s)}>
-          <Icon name={SENSE_ICON[s.kind]} size={12} />
+          <SenseIcon kind={s.kind} size={12} />
           <b>{s.range}</b>
           <span className="phone-sr">{senseLabel(s)}</span>
         </span>

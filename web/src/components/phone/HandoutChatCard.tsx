@@ -3,7 +3,7 @@ import { Badge, Card, Flex, Text } from '@radix-ui/themes';
 import { plainPreview } from '@vtt-chat-app/shared';
 import { usePhoneStore } from '../../lib/phone/phoneStore.js';
 import type { HandoutItem } from '../../types/phone.js';
-import { Icon } from '../icons/index.js';
+import { Icon } from '@vtt-chat-app/ui-kit';
 
 const KIND_LABEL = { text: 'Note', image: 'Pictures', map: 'Map', pdf: 'PDF' } as const;
 

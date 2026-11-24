@@ -1,7 +1,7 @@
 import { Code, Flex, Text, Tooltip, VisuallyHidden } from '@radix-ui/themes';
 import { useEffect, useRef, useState } from 'react';
 
-import { Icon } from './icons/index.js';
+import { Icon } from '@vtt-chat-app/ui-kit';
 import { copyText } from '../lib/clipboard.js';
 import type { InstallGuide } from '../types/index.js';
 

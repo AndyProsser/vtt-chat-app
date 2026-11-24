@@ -3,7 +3,7 @@ import type { CharacterRecord } from '@vtt-chat-app/shared';
 
 import { avatarSrc } from '../../lib/account.js';
 import { initials } from '../../lib/phone/rail.js';
-import { Icon } from '../icons/index.js';
+import { Icon } from '@vtt-chat-app/ui-kit';
 
 /** A row of portraits, one per character, with a plus to add another: tap one to switch to it. */
 export function CharacterSwitcher({

@@ -1,8 +1,7 @@
 import { Tooltip } from '@radix-ui/themes';
 import { type ButtonHTMLAttributes, forwardRef } from 'react';
 
-import { Icon } from '../icons/index.js';
-import type { IconName } from '../icons/paths.js';
+import { Icon, type IconName } from '@vtt-chat-app/ui-kit';
 
 interface Props extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'children' | 'type'> {
   /** What it does: the tooltip and the accessible name. */

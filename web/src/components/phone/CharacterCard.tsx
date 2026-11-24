@@ -17,7 +17,7 @@ import {
   saveCharacter,
 } from '../../lib/phone/phoneApi.js';
 import { initials } from '../../lib/phone/rail.js';
-import { Icon } from '../icons/index.js';
+import { Icon } from '@vtt-chat-app/ui-kit';
 import { CharacterStats } from './CharacterStats.js';
 import { DdbLinkField } from './DdbLinkField.js';
 import { IconTool } from './IconTool.js';

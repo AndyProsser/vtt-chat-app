@@ -1,6 +1,6 @@
 import { LOOT_ACTION_LABEL, type LootAction } from '@vtt-chat-app/shared';
 
-import type { IconName } from '../icons/paths.js';
+import { type IconName } from '@vtt-chat-app/ui-kit';
 import { IconTool } from './IconTool.js';
 
 /** One icon per loot action: the Loot tab and the chat cards share them, and the tooltip says what each does. */

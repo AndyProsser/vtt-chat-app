@@ -1,7 +1,6 @@
 import type { BardId } from '@vtt-chat-app/shared';
 
-import { Icon } from '../icons/index.js';
-import type { IconName } from '../icons/paths.js';
+import { Icon, type IconName } from '@vtt-chat-app/ui-kit';
 
 /** A round emblem for each storyteller (stand-ins until there is portrait art; the desktop app uses the same icons). */
 const EMBLEM: Record<BardId, IconName> = {

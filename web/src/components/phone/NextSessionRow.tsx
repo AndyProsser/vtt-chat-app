@@ -4,8 +4,7 @@ import { useEffect, useState } from 'react';
 
 import { answerRsvp, sessions } from '../../lib/phone/phoneApi.js';
 import type { SessionItem } from '../../types/phone.js';
-import { Icon } from '../icons/index.js';
-import type { IconName } from '../icons/paths.js';
+import { Icon, type IconName } from '@vtt-chat-app/ui-kit';
 
 const ICON: Record<RsvpChoice, IconName> = { yes: 'check', late: 'clock', no: 'x' };
 

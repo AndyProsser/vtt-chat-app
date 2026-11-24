@@ -1,13 +1,6 @@
-import { senseLabel, type CharacterSheet, type SenseKind } from '@vtt-chat-app/shared';
-import { Eye, Heart, Moon, Radar, ScanEye, Shield, Waves, type LucideIcon } from 'lucide-react';
-
-/** An icon for each special sense, so a hover card can show "Darkvision 60" as a moon and a small number. */
-export const SENSE_ICON: Record<SenseKind, LucideIcon> = {
-  darkvision: Moon,
-  blindsight: Radar,
-  tremorsense: Waves,
-  truesight: ScanEye,
-};
+import { senseLabel, type CharacterSheet } from '@vtt-chat-app/shared';
+import { SenseIcon } from '@vtt-chat-app/ui-kit';
+import { Eye, Heart, Shield } from 'lucide-react';
 
 /**
  * The quick numbers on a character, as icon chips (armour class, hit points, passive perception, special senses with their range), for the
@@ -33,10 +26,9 @@ export function SheetChips({ sheet }: { sheet: CharacterSheet | null | undefined
         <span className="vtt-visually-hidden">Passive Perception</span>
       </span>
       {(sheet.senses ?? []).map((s) => {
-        const Icon = SENSE_ICON[s.kind];
         return (
           <span key={s.kind} className="vtt-sheet-stat" title={senseLabel(s)}>
-            <Icon size={12} aria-hidden />
+            <SenseIcon kind={s.kind} size={12} />
             <b>{s.range}</b>
             <span className="vtt-visually-hidden">{senseLabel(s)}</span>
           </span>

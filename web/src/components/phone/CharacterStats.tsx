@@ -6,11 +6,7 @@ import {
   type CharacterSheet,
 } from '@vtt-chat-app/shared';
 
-import { Icon } from '../icons/index.js';
-import type { IconName } from '../icons/paths.js';
-import { SENSE_ICON } from './SheetChips.js';
-
-const VITAL_ICON: Record<string, IconName> = { ac: 'shield', hp: 'heart', pp: 'eye' };
+import { SenseIcon, VitalIcon } from '@vtt-chat-app/ui-kit';
 
 /**
  * A linked character's numbers as tiles, in the spirit of the D&D Beyond sheet: armour class, hit points and
@@ -26,7 +22,7 @@ export function CharacterStats({ sheet }: { sheet: CharacterSheet }) {
       <div className="phone-vitals">
         {vitalTiles(sheet).map((t) => (
           <div key={t.key} className="phone-vital" data-vital={t.key}>
-            <Icon name={VITAL_ICON[t.key] ?? 'shield'} size={16} />
+            <VitalIcon vital={t.key} size={16} />
             <b>{t.value}</b>
             <span>{t.label}</span>
           </div>
@@ -36,7 +32,7 @@ export function CharacterStats({ sheet }: { sheet: CharacterSheet }) {
         <ul className="phone-senses" aria-label="Senses">
           {(sheet.senses ?? []).map((s) => (
             <li key={s.kind}>
-              <Icon name={SENSE_ICON[s.kind]} size={14} /> {senseLabel(s)}
+              <SenseIcon kind={s.kind} size={14} /> {senseLabel(s)}
             </li>
           ))}
         </ul>

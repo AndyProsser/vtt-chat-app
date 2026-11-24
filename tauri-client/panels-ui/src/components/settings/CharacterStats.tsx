@@ -5,11 +5,7 @@ import {
   vitalTiles,
   type CharacterSheet,
 } from '@vtt-chat-app/shared';
-import { Eye, Heart, Shield, type LucideIcon } from 'lucide-react';
-
-import { SENSE_ICON } from '../SheetChips.js';
-
-const VITAL_ICON: Record<string, LucideIcon> = { ac: Shield, hp: Heart, pp: Eye };
+import { SenseIcon, VitalIcon } from '@vtt-chat-app/ui-kit';
 
 /**
  * A linked character's numbers as tiles, in the spirit of the D&D Beyond sheet: armour class, hit points and
@@ -24,10 +20,9 @@ export function CharacterStats({ sheet }: { sheet: CharacterSheet }) {
       {classesLine(sheet) && <div className="vtt-classes">{classesLine(sheet)}</div>}
       <div className="vtt-vitals">
         {vitalTiles(sheet).map((t) => {
-          const Icon = VITAL_ICON[t.key] ?? Shield;
           return (
             <div key={t.key} className="vtt-vital" data-vital={t.key}>
-              <Icon size={14} aria-hidden />
+              <VitalIcon vital={t.key} size={14} />
               <b>{t.value}</b>
               <span>{t.label}</span>
             </div>
@@ -37,10 +32,9 @@ export function CharacterStats({ sheet }: { sheet: CharacterSheet }) {
       {(sheet.senses ?? []).length > 0 && (
         <ul className="vtt-senses" aria-label="Senses">
           {(sheet.senses ?? []).map((s) => {
-            const Icon = SENSE_ICON[s.kind];
             return (
               <li key={s.kind}>
-                <Icon size={14} aria-hidden /> {senseLabel(s)}
+                <SenseIcon kind={s.kind} size={14} /> {senseLabel(s)}
               </li>
             );
           })}

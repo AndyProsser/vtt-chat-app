@@ -1,7 +1,7 @@
 import { Card, Flex, Heading, Text } from '@radix-ui/themes';
 
 import type { CampaignItem } from '../../types/phone.js';
-import { Icon } from '../icons/index.js';
+import { Icon } from '@vtt-chat-app/ui-kit';
 import { DecisionBanner } from './DecisionBanner.js';
 import { NextSessionRow } from './NextSessionRow.js';
 import { OpenTables } from './OpenTables.js';

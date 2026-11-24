@@ -1,6 +1,6 @@
 import { Tooltip } from '@radix-ui/themes';
 
-import { Icon } from '../icons/index.js';
+import { Icon } from '@vtt-chat-app/ui-kit';
 
 /**
  * "On my sheet": the player's own tick that an item is on their real game sheet (a reminder, nothing more), a small

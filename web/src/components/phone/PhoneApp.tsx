@@ -1,7 +1,7 @@
 import { Badge, Button, DropdownMenu, Flex, Heading, Spinner, Text } from '@radix-ui/themes';
 import { type ReactNode, useCallback, useEffect, useState } from 'react';
 
-import { Icon } from '../icons/index.js';
+import { Icon } from '@vtt-chat-app/ui-kit';
 import { TABS } from '../../consts/phone.js';
 import { useLiveChat } from '../../hooks/useLiveChat.js';
 import { useTypingOnTouch } from '../../hooks/useTypingOnTouch.js';
