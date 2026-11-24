@@ -85,6 +85,8 @@ Druidic. The `lang` sent over the wire is a key from this table; the server reje
 
 ### Fonts
 
+> **Planned change (Stage 14, designed 2026-11-24):** every language gets its own font, chosen by the client from the language's `key`, and the table moves from `shared/` to `ui-kit/`. The wire is unchanged. See [ICONOLOGY.md](ICONOLOGY.md#language-fonts). The text below describes what is built today.
+
 Each style has its own typeface: Cormorant Garamond (flowing: Elvish, Sylvan, Celestial), Alfa Slab One (blocky: Dwarvish,
 Giant), Pirata One (angular: Infernal, Abyssal and similar), Fredoka (rounded: Halfling, Gnomish), Caveat (scratchy: Goblin,
 Orc), Cinzel Decorative (arcane) and Share Tech Mono (mono). They are **bundled with each client, never loaded from the
@@ -103,6 +105,23 @@ each recipient either the text or a masked version, so the original never reache
 (masking in the client would leak it). The wire model keeps that open: the language travels as its own `lang` field
 and the **text is never altered by the speaker's client**. Open questions for then: what the recording keeps (the
 original, or only what an average listener would understand) and how a DM sees everything.
+
+### Planned: `/npc` (the DM speaks as a character; Stage 15, designed 2026-11-24, not built)
+
+`/npc <Name> "words"` is the DM's version of `/say`, and **only the DM has it**. It posts a `say` line spoken by the
+named non-player character, in the same quoted, serif style, with the NPC's name where a player's character name would
+be: `/npc Mother Tidewarden "The bell rings once more."`
+
+- **Syntax:** the name is everything before the first double quote, so names with spaces need no extra syntax; the
+  words go in quotes. A line without quotes is not sent: the composer says "put the words in quotes".
+- **Languages:** `/npc-<language> <Name> "words"` follows `/say-<language>`, so an NPC can speak Elvish in Elvish type.
+- **Only the DM.** The command is not listed in anyone else's autocomplete, and the **server rejects** it from anyone
+  who is not the campaign's DM (the server is the truth, as for every other DM-only action).
+- **In the record.** It is in-character speech, so it is transcribed with the rest and the summaries see the NPC as the
+  speaker, not the DM's own character. It is not OOC and not a whisper.
+- **Wire:** this needs a new optional `speaker` on the `send` message and on `ChatMessage` (valid only with `say`),
+  so it is a **wire change** and rides Stage 15's protocol 5. Until then the DM can use `/do` or plain chat.
+- **Not included:** remembering or autocompleting NPC names, NPC portraits. Add them if the plain form proves tedious.
 
 ## Wire and storage
 

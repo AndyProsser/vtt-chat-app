@@ -47,6 +47,7 @@ Rules:
 
 - Types and contracts used by more than one module (campaign/channel/message shapes, recording state, Tauri IPC event payloads, REST/WS contracts) live in `shared/`, imported by consumers — never copy-pasted or redefined per-module.
 - `shared/` has no dependency on any other workspace package. Everything else may depend on it.
+- Presentation shared by both clients (fonts, typography tokens, which icon means what) lives in `ui-kit/`, not `shared/`: `shared/` is React-free because the backend imports it. `ui-kit/` is consumed as source and depends on `shared/`; the backend never imports it. See [ICONOLOGY.md](architecture/ICONOLOGY.md).
 
 ## Monorepo Tooling
 

@@ -93,6 +93,7 @@ vtt-chat-app/
 ├── ddb/                   # OPTIONAL D&D Beyond character import (public pages)
 ├── status/                # Public status page (React + Radix)
 ├── shared/                # Cross-module TS types, event contracts, validators
+├── ui-kit/                # Planned (Stage 14): fonts, typography tokens, shared icon meanings; React, used by panels-ui and web
 ├── infra/                 # Ubuntu deployment scripts + systemd units
 └── docs/                  # Architecture, setup, CLI usage (docs/archive/ = old design)
 ```
