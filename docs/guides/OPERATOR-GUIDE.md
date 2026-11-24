@@ -453,11 +453,15 @@ details. A GPU PC does the same work in minutes with the better models. So:
    (its CUDA image covers GTX 10-series and newer cards). Pull `qwen3:8b`, and let them listen on the LAN address only (a host-installed
    Ollama needs `OLLAMA_HOST` set and `OLLAMA_CONTEXT_LENGTH=8192`; allow the ports only from the VM, never the internet).
 
-   **Raising that window takes two steps, both needed.** `OLLAMA_CONTEXT_LENGTH` (in `.env` for the Compose service, or
-   the host-installed Ollama's own environment) is what Ollama actually serves — bigger costs VRAM and speed. The app
-   has no way to ask Ollama's OpenAI-compatible API what that number is, so it also has to be told:
-   `./vtt-admin settings set ai.llm.context <same number>`. A mismatch is safe — whichever is smaller just limits
-   conservatively — but wastes either VRAM (set too high in Ollama) or headroom (set too low for the app).
+   **Raising that window takes two steps, both needed, and only for `ai.llm.kind remote`** (set below) — on
+   `local` the worker pins its own fixed window on every call, so this pair of settings has no effect there.
+   `OLLAMA_CONTEXT_LENGTH` (in `.env` for the Compose service, or the host-installed Ollama's own environment)
+   is what Ollama actually serves — bigger costs VRAM and speed. The app has no way to ask Ollama's
+   OpenAI-compatible API what that number is, so it also has to be told the same number, with
+   `./vtt-admin settings set ai.llm.context`. **Never set that number higher than `OLLAMA_CONTEXT_LENGTH`**:
+   the app would then trust a window Ollama doesn't actually have, and condense too late, which is silent
+   truncation, not a safe mistake. Lower is the safe direction: the app just condenses earlier than it needs
+   to and some VRAM goes unused.
 
 2. On the VM, point the worker at it, with the VM's own CPU as the fallback:
 

@@ -17,6 +17,36 @@ Last full TypeScript run (2026-11-21, after the OpenAI connector): backend 825 p
 
 **Observed by Andy 2026-11-20:** with the microphone and speakers side by side, a scene's sound is briefly picked up by the DM's microphone, and the echo canceller learns to remove it after a short time. Worth watching in the audio measurements (Stage 12): feeding the soundboard to the canceller as a reference from the first sample would shorten it.
 
+## Chunking for a long session (C5), 2026-11-24: built, not yet re-validated on a real session
+
+**Built, on branch `worktree-chunking-long-sessions`, following the plan at
+[docs/superpowers/plans/2026-11-23-chunking-long-sessions.md](../docs/superpowers/plans/2026-11-23-chunking-long-sessions.md):**
+a real token estimate (`ai/src/lib/tokenBudget.ts`) drives the condense loop instead of the old fixed
+12,000-character cap; a new `ai.llm.context` operator setting tells the app a **remote** Ollama's real window
+(it has no effect on `local`, which the worker already pins at a fixed window — see below); a prompt that runs
+close to the configured window is logged; chapter notes are now paced two at a time with progress logging,
+closing the lead found 2026-11-22 above.
+
+**Not yet true: "exactly as it behaved before" on an unconfigured server.** The condense trigger is now a
+token estimate of the notes alone (not the full assembled prompt — instructions, campaign memory, cues,
+output), so on the unchanged 8,192-token default it condenses somewhat later than the old 12,000-character
+cap did. The one real measurement so far (2026-11-22, below) already reached 98.6% of that window under the
+_old_, tighter trigger — reason to treat this as a live risk, not a formality, before trusting a real session
+against it.
+
+**Known gaps, left open on purpose rather than guess-fixed in one pass** (full reasoning in the branch's own
+review and ledger):
+
+- The near-full-window warning does not fire for `local` (Ollama's native API reports no token usage back to
+  the app) — only for Claude, OpenAI, and a remote OpenAI-compatible server.
+- Campaign memory (`learn()` in `processRecording.ts`) still reads a session's full, uncondensed notes.
+- The condense trigger measures the notes alone, not the assembled prompt with its instruction/memory/output
+  overhead (the item above).
+
+**Still to do before C5 can be marked met:** re-run session 4 (or an even longer one) against both a local and
+a remote setup, and confirm the Ollama worker's own "truncated" indicator stays at 0 under the new trigger —
+that run, not this code change by itself, is the real acceptance test.
+
 ## Stage 13 close-out, 2026-11-22 to 23: session 4 validated end to end; Andy accepts the rest
 
 **v0.6.2 released and published 2026-11-22; the VM runs it.** Protocol unchanged at 4.
@@ -42,8 +72,8 @@ chapter-count-driven (the per-chapter cap divides a fixed total budget by how ma
 stress-test session has 8–10, a real session typically 3–4) and should come down on its own for real play.
 
 **A real lead for the chunking work:** the 10 chapters' notes-taking calls fire concurrently (`Promise.all`,
-`processRecording.ts`), and on a single-GPU remote Ollama this queues up and took about 13 minutes with *no
-progress logging at all* in between — long enough that the test harness's own 90-minute patience threshold gave
+`processRecording.ts`), and on a single-GPU remote Ollama this queues up and took about 13 minutes with _no
+progress logging at all_ in between — long enough that the test harness's own 90-minute patience threshold gave
 up and wrote its report mid-flight (an empty summaries file, "0 of 30 facts", a false alarm; re-collected once the
 job actually finished). Not a hang, but worth pacing and giving visible progress once the chunking work starts.
 

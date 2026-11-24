@@ -10,6 +10,21 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ## [Unreleased]
 
+### Added
+
+- **`ai.llm.context`, an operator setting for a remote summary model's real window.** Set alongside `OLLAMA_CONTEXT_LENGTH` (`vtt-admin settings set ai.llm.context <same number>`) when `ai.llm.kind` is `remote`, so the app condenses a long session's notes before they overflow the window Ollama actually serves, instead of risking silent truncation. See OPERATOR-GUIDE.md. On `local` this setting has no effect — the worker's own fixed window already covers it.
+- **A log line when a summary call runs close to its configured window**, visible via `docker compose logs worker` (`vtt-admin jobs list` is a follow-up).
+
+### Changed
+
+- **Chapter notes are taken two chapters at a time instead of all at once**, with a log line as each finishes — a single-GPU remote Ollama no longer has ten chapters queued on it simultaneously with no progress shown.
+
+### Known limits
+
+- The near-full-window warning does not yet fire for the local backend (Ollama's native API does not report token usage back to the app); it does fire for Claude, OpenAI, and a remote OpenAI-compatible server.
+- The condensing decision sizes against the notes alone, not the full assembled prompt (instructions, campaign memory, cues); on a small configured window this leaves less headroom than the margin suggests.
+- Campaign memory still reads a session's full, uncondensed notes rather than the condensed version other summaries use.
+
 ## [0.6.2] - 2026-11-22
 
 The storyteller comes alive: five voices that actually use their length and content settings, the

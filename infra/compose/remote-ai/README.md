@@ -26,9 +26,10 @@ Each half is independent: offload Whisper, the LLM, or both. The server's own CP
 ## Things that matter
 
 - **Bind to the LAN address, allow the server only.** Neither service has a password. `AI_BIND` in `.env` is the address they listen on.
-- **Ollama's window.** The server reaches Ollama through its OpenAI-compatible API, which uses the **server's** `OLLAMA_CONTEXT_LENGTH`
-  (the records pipeline is written for 8,192 tokens), not a per-request setting. The compose file sets it; a host-installed Ollama needs
-  it set in its service environment.
+- **Ollama's window.** The server reaches Ollama through its OpenAI-compatible API, which uses the **server's** `OLLAMA_CONTEXT_LENGTH`,
+  not a per-request setting — raise it here for a bigger window (VRAM/speed cost). The compose file defaults it to 8,192; a
+  host-installed Ollama needs it set in its service environment. Either way, also tell the app the real number:
+  `vtt-admin settings set ai.llm.context <same number>` (it has no way to ask Ollama's API for it) — see OPERATOR-GUIDE.md.
 - **Ollama may already be installed on the machine** (it often is). Then run only Whisper and point `ai.llm.url` at the host install.
 - **The GPU is shared with whatever else the machine does.** Whisper stops its server after a minute idle, and Ollama unloads its model
   after `OLLAMA_KEEP_ALIVE`, so the card is free between sessions; during processing it is not.
