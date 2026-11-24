@@ -5,8 +5,12 @@ import { longFetch } from './longFetch.js';
 export interface OllamaOptions {
   model: string;
   baseUrl?: string;
-  /** Context window to request. Ollama's default is small; a long chunk silently truncates without this. */
-  numCtx?: number;
+  /**
+   * Context window to request. Ollama's default is small; a long chunk silently truncates without this. A
+   * function is resolved fresh on every call, not once here — so a setting change (`ai.llm.context`) takes
+   * effect on the very next request, no restart needed.
+   */
+  numCtx?: number | (() => Promise<number | undefined>);
   /**
    * How long Ollama keeps the model loaded after this request (e.g. "2m", "0"). Unset: the server's
    * OLLAMA_KEEP_ALIVE. Short keeps an idle server from holding (V)RAM between jobs.
@@ -28,6 +32,7 @@ export function createOllamaGenerate(options: OllamaOptions): GenerateText {
   const sampling = options.sampling ?? SCRIBE_SAMPLING;
 
   return async (prompt) => {
+    const numCtx = typeof options.numCtx === 'function' ? await options.numCtx() : options.numCtx;
     const response = await doFetch(`${baseUrl}/api/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -42,7 +47,7 @@ export function createOllamaGenerate(options: OllamaOptions): GenerateText {
         options: {
           temperature: sampling.temperature,
           presence_penalty: sampling.presencePenalty,
-          ...(options.numCtx ? { num_ctx: options.numCtx } : {}),
+          ...(numCtx ? { num_ctx: numCtx } : {}),
         },
       }),
     });

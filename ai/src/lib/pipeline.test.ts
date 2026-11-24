@@ -453,6 +453,25 @@ describe('createOllamaGenerate', () => {
     expect(JSON.parse(String(init.body))).toMatchObject({ keep_alive: '2m' });
   });
 
+  it('resolves a function numCtx fresh on every call, not once at construction', async () => {
+    const fetchImpl = vi.fn(
+      async () => new Response(JSON.stringify({ response: 'ok' }), { status: 200 }),
+    ) as unknown as typeof fetch;
+    let current = 32_000;
+    const generate = createOllamaGenerate({
+      model: 'm',
+      numCtx: async () => current,
+      fetchImpl,
+    });
+    await generate('p');
+    current = 4096;
+    await generate('p');
+    const bodies = (fetchImpl as unknown as ReturnType<typeof vi.fn>).mock.calls.map(
+      ([, init]: [string, RequestInit]) => JSON.parse(String(init.body)).options.num_ctx,
+    );
+    expect(bodies).toEqual([32_000, 4096]);
+  });
+
   it('fails clearly on HTTP errors and malformed bodies', async () => {
     const bad = (async () => new Response('nope', { status: 500 })) as unknown as typeof fetch;
     await expect(createOllamaGenerate({ model: 'm', fetchImpl: bad })('p')).rejects.toThrow(/500/);

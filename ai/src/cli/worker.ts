@@ -33,6 +33,7 @@
  */
 import {
   BARD_SAMPLING,
+  DEFAULT_LOCAL_CONTEXT_TOKENS,
   DEFAULT_OLLAMA_URL,
   SCRIBE_SAMPLING,
   type Sampling,
@@ -129,7 +130,14 @@ async function main(): Promise<void> {
     createOllamaGenerate({
       model,
       baseUrl: ollamaUrl,
-      numCtx: 8192,
+      // Read fresh per call, not fixed at start-up: a tuned `ai.llm.context` (`vtt-admin status --tune`)
+      // takes effect on the very next request, no restart needed. Same default (8192) as before when unset.
+      numCtx: async () => {
+        const ai = await records.getAiSettings();
+        return ai.llm.kind === 'local'
+          ? (ai.llm.context ?? DEFAULT_LOCAL_CONTEXT_TOKENS)
+          : undefined;
+      },
       sampling,
       ...(process.env.OLLAMA_KEEP_ALIVE ? { keepAlive: process.env.OLLAMA_KEEP_ALIVE } : {}),
     });
