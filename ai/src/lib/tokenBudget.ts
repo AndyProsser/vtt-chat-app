@@ -1,4 +1,5 @@
 import { DEFAULT_CLOUD_CONTEXT_TOKENS, DEFAULT_LOCAL_CONTEXT_TOKENS } from '../consts/index.js';
+import { CLAUDE_CONTEXT_WINDOWS } from '../consts/claude.js';
 import type { AiSettings } from '@vtt-chat-app/shared';
 
 /** A rough token count for a prompt before sending it: characters divided by about 3.5, rounded up. */
@@ -19,12 +20,19 @@ export function estimateTokens(text: string): number {
  * `fallbackEnabled` (the operator's `ai.fallback.enabled`) clamps every other kind to that same fixed
  * local number too: a job configured for claude/openai/remote can fail over mid-job to the local model,
  * which still only honours its own fixed window regardless of what the call was sized for.
+ *
+ * `claude`'s cloud default is itself per-model where known (`CLAUDE_CONTEXT_WINDOWS`, ai/consts/claude.ts) —
+ * a fact about the model, not a setting, so there is nothing for the operator to configure or get wrong.
+ * A model this table doesn't know (new, renamed, or no model named) falls back to the flat, conservative
+ * cloud default, same as `openai` always does (no table there by design: see the design doc's Non-goals).
  */
 export function contextWindowTokens(llm: AiSettings['llm'], fallbackEnabled = false): number {
   if (llm.kind === 'local') return DEFAULT_LOCAL_CONTEXT_TOKENS;
   const resolved =
-    llm.kind === 'claude' || llm.kind === 'openai'
-      ? DEFAULT_CLOUD_CONTEXT_TOKENS
-      : (llm.context ?? DEFAULT_LOCAL_CONTEXT_TOKENS);
+    llm.kind === 'claude'
+      ? (CLAUDE_CONTEXT_WINDOWS[llm.model ?? ''] ?? DEFAULT_CLOUD_CONTEXT_TOKENS)
+      : llm.kind === 'openai'
+        ? DEFAULT_CLOUD_CONTEXT_TOKENS
+        : (llm.context ?? DEFAULT_LOCAL_CONTEXT_TOKENS);
   return fallbackEnabled ? Math.min(resolved, DEFAULT_LOCAL_CONTEXT_TOKENS) : resolved;
 }

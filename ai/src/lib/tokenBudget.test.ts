@@ -33,4 +33,15 @@ describe('contextWindowTokens', () => {
   it('does not clamp when fallback is not enabled', () => {
     expect(contextWindowTokens({ kind: 'claude', context: null } as never, false)).toBe(100_000);
   });
+  it("uses a known Claude model's real context window instead of the flat cloud default", () => {
+    expect(contextWindowTokens({ kind: 'claude', model: 'claude-opus-5-5' } as never)).toBe(
+      1_000_000,
+    );
+  });
+  it('falls back to the flat cloud default for a Claude model not in the table, or none named', () => {
+    expect(contextWindowTokens({ kind: 'claude', model: 'claude-not-a-real-model' } as never)).toBe(
+      100_000,
+    );
+    expect(contextWindowTokens({ kind: 'claude', model: null } as never)).toBe(100_000);
+  });
 });
