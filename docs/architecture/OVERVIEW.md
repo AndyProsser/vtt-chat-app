@@ -96,7 +96,7 @@ operator can switch on; the system must work with all of them off.
   DM soundboard and party controls. Pure UI; talks to the Rust core over Tauri IPC and to the
   backend through the core's connection.
 - **`web/`** — mobile-first pages: the invite page (`/join`) and the **phone app** (`/app`: chat, whispers, sessions and RSVP, handouts, history; no voice) — see [MOBILE-WEB-APP.md](MOBILE-WEB-APP.md).
-- **`ui-kit/`** — _planned (Stage 14)_: the fonts, typography tokens, per-language font table and shared icon meanings that `panels-ui/` and `web/` both use, so the two clients cannot drift. React, presentation only; the wire contract stays in `shared/`. See [ICONOLOGY.md](ICONOLOGY.md).
+- **`ui-kit/`** — the fonts, typography tokens, per-language font table, shared icon meanings and reading switches that `panels-ui/` and `web/` both use, so the two clients cannot drift. React, presentation only; the wire contract stays in `shared/`. See [ICONOLOGY.md](ICONOLOGY.md).
 - **`backend/`** — Express API and WebSocket layer: identity and campaign access, LiveKit tokens,
   channels, chat, handouts, loot, scheduling, recording control and state, the records API, the
   status endpoints and client downloads. Also hosts the Admin CLI.

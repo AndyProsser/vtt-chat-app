@@ -12,12 +12,16 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ### Added
 
+- **Every chat language has its own font.** `/say-dwarvish`, `/say-elvish`, `/say-orc` and the rest are now set in a typeface chosen to feel like the language (Elvish flowing and italic, Dwarvish in small capitals, Draconic angular and imposing, Undercommon strange but readable, Druidic flowing like the forest, Gnomish like an engineer's notes, Halfling small and lively), the same on the desktop and the phone. A language this app does not know (a newer server's) still shows, in a plain face. The fonts ship inside the app and the web page, nothing is fetched from the internet, and a file loads only the first time a line in that language is shown.
+- **Reading switches** on each device: _Language-specific fonts_, _Decorative document fonts_ and _Force readable mode_ (everything in the normal font, the language name stays under each line). Desktop: Settings, Appearance. Phone: the Account page, under Reading. They apply at once and in every open window.
 - **`ai.llm.context`, an operator setting for a summary model's real window.** Set alongside `OLLAMA_CONTEXT_LENGTH` (`vtt-admin settings set ai.llm.context <same number>`, or let `vtt-admin status --tune` do it for you) so the app condenses a long session's notes before they overflow the window Ollama actually serves, instead of risking silent truncation. Applies to `local` and `remote` alike — the worker sends it as `num_ctx` on every native Ollama call. See OPERATOR-GUIDE.md.
 - **A log line when a summary call runs close to its configured window**, visible via `docker compose logs worker` (`vtt-admin jobs list` is a follow-up).
 - **`vtt-admin status` has a new AI section** checking whether the configured context window matches reality: live-queried against Ollama for `local`/`remote`, a built-in table of real values for known Claude models. Assuming _more_ than the backend can actually serve fails the check (a real truncation risk); assuming _less_ (unused headroom) is a warning with a hint. `vtt-admin status --tune` applies whatever it finds.
 
 ### Changed
 
+- **The body font is Inter and headings are Cinzel in both apps** (the phone web app had no heading font before); handouts are set in Cormorant Garamond. Tales and notes stay in the body font, since they are read at length.
+- **One set of icons in both apps.** The phone web app now draws the same lucide icons as the desktop app, defined once (stat, sense and action icons look the same on both), instead of its own hand-copied set.
 - **Chapter notes are taken two chapters at a time instead of all at once**, with a log line as each finishes — a single-GPU remote Ollama no longer has ten chapters queued on it simultaneously with no progress shown.
 - **Claude's real per-model context window** (not one flat conservative number) now drives the condense decision directly, for every model the app recognises — with `ai.fallback.enabled` turned off (its default is on). With fallback on, a job might still land on the local model mid-way, so the real per-model number is clamped to the same local cap as before; turn fallback off to use it.
 

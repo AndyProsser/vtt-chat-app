@@ -265,6 +265,8 @@
 
 ## Task 12: Documentation and close-out
 
+**Stage 14 close (Andy, 2026-11-24):** after the 0.6.4 work, take new documentation screenshots of every changed screen (`scripts/screenshots/`) **and run the full session 4 test** to prove the system is stable and usable, before the stage is called closed. The 0.6.3 half of this task (done 2026-11-24) is the CHANGELOG entries and the status words; the final BUILD-STATUS numbers, the screenshots and the session 4 result are recorded when Stage 14 closes.
+
 **Files:** Modify `docs/architecture/ICONOLOGY.md` (status → built; final font values), `docs/BUILD-STATUS.md` (built vs verified; measured sizes), `ROADMAP.md` (Stage 15 row 🟢), `.claude/CLAUDE.md` §3 (drop "Planned"), `docs/architecture/OVERVIEW.md` (drop "planned"), `docs/CONVENTIONS.md`, `docs/architecture/CHAT-COMMANDS.md`, `CHANGELOG.md`, `docs/tracker/README.md` (move this plan and the spec row in when the stage closes)
 
 - [ ] **Step 1: Update each doc** in the same change as the code it describes (CLAUDE.md §17): status words, the measured size figures from Tasks 4 and 7, the audit verdict, any font swapped in Task 6.
