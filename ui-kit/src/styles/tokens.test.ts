@@ -30,4 +30,11 @@ describe('typography tokens', () => {
     );
     expect(rule?.[1]).toMatch(/--vtt-font-narrative:\s*var\(--vtt-font-body\)/);
   });
+
+  it('scales quoted speech up in the narrative face and back down when it is the body face', () => {
+    expect(value('--vtt-narrative-size')).toBe('1.2em');
+    const readable =
+      /:root\[data-readable='on'\],\s*:root\[data-doc-fonts='off'\]\s*\{([^}]*)\}/.exec(css);
+    expect(readable?.[1]).toMatch(/--vtt-narrative-size:\s*1\.08em/);
+  });
 });

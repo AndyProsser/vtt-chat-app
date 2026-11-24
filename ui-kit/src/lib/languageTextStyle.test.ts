@@ -95,3 +95,14 @@ describe('styleFor', () => {
     expect(styleFor(odd, {})).toEqual({});
   });
 });
+
+describe('when a font file fails to load', () => {
+  it('leaves every language a generic family to fall back to, so the text still reads', () => {
+    for (const [key, f] of Object.entries(LANGUAGE_FONTS)) {
+      expect(f.fallback, key).toMatch(/(serif|sans-serif|monospace|cursive)$/);
+      expect(languageTextStyle(key)?.fontFamily, key).toMatch(
+        /(serif|sans-serif|monospace|cursive)$/,
+      );
+    }
+  });
+});

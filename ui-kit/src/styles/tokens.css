@@ -6,12 +6,15 @@
   --vtt-font-body: 'Inter Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --vtt-font-head: 'Cinzel', Georgia, 'Times New Roman', serif;
   --vtt-font-narrative: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+  /* Cormorant has a small x-height, so quoted speech is set larger in it than in the body face. */
+  --vtt-narrative-size: 1.2em;
 }
 
 /* Force readable, or document fonts off (the reading switches): handouts and quoted speech use the body face. */
 :root[data-readable='on'],
 :root[data-doc-fonts='off'] {
   --vtt-font-narrative: var(--vtt-font-body);
+  --vtt-narrative-size: 1.08em;
 }
 
 .radix-themes.radix-themes {

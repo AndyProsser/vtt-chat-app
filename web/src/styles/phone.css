@@ -387,7 +387,7 @@ body,
 /* Kinds: told apart by shape and type, never by colour alone. */
 .phone-line-say .phone-bubble {
   font-family: var(--vtt-font-narrative);
-  font-size: 1.08em;
+  font-size: var(--vtt-narrative-size);
 }
 .phone-line-do .phone-bubble,
 .phone-line-mine.phone-line-do .phone-bubble {
