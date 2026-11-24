@@ -187,7 +187,14 @@ export async function writeFromNotes(
   const context = options.context ?? {};
   const chunkChars = options.chunkChars ?? DEFAULT_CHUNK_CHARS;
   const window = contextWindowTokens(
-    options.llm ?? { kind: 'local', url: null, model: null, priceIn: null, priceOut: null, context: null },
+    options.llm ?? {
+      kind: 'local',
+      url: null,
+      model: null,
+      priceIn: null,
+      priceOut: null,
+      context: null,
+    },
   );
   let modelCalls = 0;
   const call = async (model: GenerateText, prompt: string): Promise<string> => {
