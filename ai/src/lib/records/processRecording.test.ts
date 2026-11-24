@@ -172,6 +172,89 @@ describe('process-recording handler', () => {
     expect(prompts[0]).toContain('"ALICE" is the Game Master');
   });
 
+  it('paces chapter note-taking instead of firing every chapter at once, and logs each as it finishes', async () => {
+    for (const [at, event] of [
+      [0, 'started'],
+      [5000, 'paused'],
+      [5500, 'resumed'],
+      [15000, 'paused'],
+      [15500, 'resumed'],
+      [25000, 'paused'],
+      [25500, 'resumed'],
+      [35000, 'paused'],
+      [35500, 'resumed'],
+      [45000, 'stopped'],
+    ] as const) {
+      await records.addRecordingEvent({ recordingId: REC, at, event });
+    }
+    let inFlight = 0;
+    const observedConcurrency: number[] = [];
+    const log: string[] = [];
+    await handler({
+      log: (l) => log.push(l),
+      // alice speaks once in each of the 5 chapter windows; bob never speaks, so every utterance is alice's.
+      transcribeAudioFile: async (file) => {
+        if (!file.includes('t-alice')) return [];
+        return [0, 10000, 20000, 30000, 40000].map((startMs) => ({
+          startMs,
+          endMs: startMs + 1000,
+          text: `said at ${startMs}`,
+        }));
+      },
+      localGenerate: async (prompt) => {
+        prompts.push(prompt);
+        if (!prompt.startsWith('You are the scribe')) return `summary #${prompts.length}`;
+        inFlight += 1;
+        observedConcurrency.push(inFlight);
+        await new Promise((resolve) => setTimeout(resolve, 5));
+        inFlight -= 1;
+        return `## Events\n- summary #${prompts.length}`;
+      },
+    }).run(job());
+    expect(Math.max(...observedConcurrency)).toBeLessThanOrEqual(2);
+    const chapterNotesReady = log.filter((l) => /chapter \d+ notes ready/.test(l));
+    expect(chapterNotesReady).toHaveLength(5);
+  });
+
+  it('still fails the job (and stores no notes) when one chapter in a batch fails, without starting the next batch', async () => {
+    for (const [at, event] of [
+      [0, 'started'],
+      [5000, 'paused'],
+      [5500, 'resumed'],
+      [15000, 'paused'],
+      [15500, 'resumed'],
+      [25000, 'paused'],
+      [25500, 'resumed'],
+      [35000, 'paused'],
+      [35500, 'resumed'],
+      [45000, 'stopped'],
+    ] as const) {
+      await records.addRecordingEvent({ recordingId: REC, at, event });
+    }
+    let scribeCalls = 0;
+    const flaky = handler({
+      transcribeAudioFile: async (file) => {
+        if (!file.includes('t-alice')) return [];
+        return [0, 10000, 20000, 30000, 40000].map((startMs) => ({
+          startMs,
+          endMs: startMs + 1000,
+          text: `said at ${startMs}`,
+        }));
+      },
+      localGenerate: async (prompt) => {
+        prompts.push(prompt);
+        if (!prompt.startsWith('You are the scribe')) return `summary #${prompts.length}`;
+        scribeCalls += 1;
+        if (scribeCalls === 2) throw new Error('remote GPU unreachable'); // chapter 2, still in batch 1
+        return `## Events\n- summary #${prompts.length}`;
+      },
+    });
+    await expect(flaky.run(job())).rejects.toThrow('remote GPU unreachable');
+    // Batch 1 (chapters 1 and 2) started; batch 2 (chapters 3 and 4) must never have been reached.
+    expect(scribeCalls).toBe(2);
+    expect(await records.getSummary(REC, 'notes', '')).toBeUndefined();
+  });
+
   it('weaves scene, effect, voice and group cues into what the model reads, and titles the scene chapter', async () => {
     await records.putTrack(
       track('t-long', 'carol', {
@@ -454,6 +537,106 @@ describe('the storyteller and the Game Master’s notes (Stage 12 E and G)', () 
     expect(prompts.filter((p) => p.includes('You are the bard')).join('\n')).toMatch(
       /language clean/,
     );
+  });
+});
+
+describe("the operator's context window (chunking)", () => {
+  // A tiny configured window makes even these short canned notes look oversized, so the condense
+  // prompt ("Rewrite them as noticeably shorter notes") must appear; a larger (or default) window
+  // must not trigger it on the same notes. `ai.llm.context` only takes effect for `remote` — `local`'s
+  // worker pins a fixed `num_ctx` the setting can't reach (ai/src/lib/tokenBudget.ts), so these use
+  // `kind: remote` with a never-reachable URL (the same "powered-off gaming PC" shape as the backend
+  // test above) so every call falls back to the handler's own local mock instead of hitting the network.
+  const condensed = () =>
+    prompts.some((p) => p.includes('Rewrite them as noticeably shorter notes'));
+  const remoteWith = (context: string) =>
+    setAiSetting(
+      setAiSetting(
+        setAiSetting(
+          setAiSetting(DEFAULT_AI_SETTINGS, 'ai.llm.kind', 'remote'),
+          'ai.llm.url',
+          'http://gpu:11434',
+        ),
+        'ai.llm.context',
+        context,
+      ),
+      'ai.fallback.after-seconds', // fall back to the local mock at once; no real 10-minute wait in a test
+      '0',
+    );
+  const unreachableRemote = (overrides: Partial<Parameters<typeof handler>[0]> = {}) =>
+    handler({
+      ...overrides,
+      buildProviders: (settings, d) => {
+        overrides.buildProviders?.(settings, d); // let a caller also observe the call (e.g. onUsage)
+        return buildJobProviders(settings, {
+          ...d,
+          fetchImpl: (async () => {
+            throw new TypeError('fetch failed');
+          }) as unknown as typeof fetch,
+        });
+      },
+    });
+
+  it('condenses the notes when the configured context window is small', async () => {
+    records.aiSettings = remoteWith('5');
+    await unreachableRemote().run(job());
+    expect(condensed()).toBe(true);
+  });
+
+  it('does not condense when the configured context window is large', async () => {
+    records.aiSettings = remoteWith('8192');
+    await unreachableRemote().run(job());
+    expect(condensed()).toBe(false);
+  });
+
+  it("ignores a configured context for local: the worker's fixed window can't reach it", async () => {
+    records.aiSettings = setAiSetting(DEFAULT_AI_SETTINGS, 'ai.llm.context', '5'); // kind stays the default, local
+    await handler().run(job());
+    expect(condensed()).toBe(false);
+  });
+
+  it('logs once when a prompt runs close to the configured window', async () => {
+    records.aiSettings = remoteWith('100');
+    const log: string[] = [];
+    const call = { model: 'm', inputTokens: 95, outputTokens: 1 };
+    const h = unreachableRemote({
+      log: (l) => log.push(l),
+      buildProviders: (_settings, d) => d.onUsage?.(call),
+    });
+    await h.run(job());
+    const matches = log.filter((l) => l.includes('used') && l.includes('window'));
+    expect(matches).toHaveLength(1);
+  });
+
+  it('clamps to the local fallback window when fallback is enabled, even for a bigger configured one', async () => {
+    records.aiSettings = setAiSetting(remoteWith('40960'), 'ai.fallback.enabled', 'true');
+    const log: string[] = [];
+    // 10,000 inputTokens is under 70% of 40,960 (28,672) but over 70% of the 8,192 local fallback cap (5,734).
+    const call = { model: 'm', inputTokens: 10_000, outputTokens: 1 };
+    const h = unreachableRemote({
+      log: (l) => log.push(l),
+      buildProviders: (_settings, d) => d.onUsage?.(call),
+    });
+    await h.run(job());
+    expect(log.some((l) => l.includes('used') && l.includes('8192-token window'))).toBe(true);
+  });
+
+  it('does not log when a prompt is well under the configured window', async () => {
+    records.aiSettings = remoteWith('100');
+    const log: string[] = [];
+    const call = { model: 'm', inputTokens: 50, outputTokens: 1 };
+    const h = unreachableRemote({
+      log: (l) => log.push(l),
+      buildProviders: (_settings, d) => d.onUsage?.(call),
+    });
+    await h.run(job());
+    expect(log.some((l) => l.includes('used') && l.includes('window'))).toBe(false);
+  });
+
+  it('never logs or throws when nothing reports usage at all', async () => {
+    const log: string[] = [];
+    await handler({ log: (l) => log.push(l) }).run(job());
+    expect(log.some((l) => l.includes('used') && l.includes('window'))).toBe(false);
   });
 });
 

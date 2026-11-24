@@ -185,6 +185,7 @@ function settingValues(s: InstanceSettings): [string, string | null][] {
     ['ai.llm.kind', s.ai.llm.kind],
     ['ai.llm.url', s.ai.llm.url],
     ['ai.llm.model', s.ai.llm.model],
+    ['ai.llm.context', s.ai.llm.context === null ? 'none' : String(s.ai.llm.context)],
     ['ai.fallback.enabled', String(s.ai.fallback.enabled)],
     ['ai.fallback.after-seconds', String(s.ai.fallback.afterSeconds)],
     ['ai.fallback.retry-seconds', String(s.ai.fallback.retrySeconds)],

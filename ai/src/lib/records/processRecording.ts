@@ -28,12 +28,18 @@ import {
 } from '../memory.js';
 import { buildJobProviders } from '../providers/fromSettings.js';
 import { NOTES_MAX_WORDS } from '../notes.js';
+import { CONDENSE_THRESHOLD } from '../../consts/index.js';
+import { contextWindowTokens } from '../tokenBudget.js';
 import { formatNotes } from '../prompts.js';
 import { stripThinking, takeNotes, writeFromNotes, type SummaryModels } from '../summarise.js';
 import { planSummaries } from '../summaryPlan.js';
 import type { RecordsStore } from './recordsStore.js';
 
 export const PROCESS_RECORDING_JOB = 'process-recording';
+
+// Found 2026-11-22: 10 chapters fired at once queued for 13 minutes with no progress output on a
+// single-GPU remote Ollama. Pacing a few at a time keeps a GPU-bound backend busy without starving it.
+const CHAPTER_CONCURRENCY = 2;
 
 export interface ProcessRecordingDeps {
   records: RecordsStore;
@@ -93,13 +99,24 @@ export function createProcessRecordingHandler(deps: ProcessRecordingDeps): JobHa
       mode === 'off' ? [] : await deps.records.campaignVocabulary(recording.campaignId);
     const prompt =
       mode === 'prompt' || mode === 'both' ? buildWhisperPrompt(vocabulary) : undefined;
+    // Alongside the cost tracking `onUsage` already does (outer closure, below): flag a call that ran
+    // close to the configured context window, visible today via `docker compose logs worker` (a
+    // `vtt-admin jobs list` column is a natural follow-up, not built here).
+    const window = contextWindowTokens(settings.llm, settings.fallback.enabled);
+    const checkedOnUsage: typeof onUsage = (u) => {
+      if (u.inputTokens >= window * CONDENSE_THRESHOLD) {
+        const pct = Math.round((u.inputTokens / window) * 100);
+        log(`${recording.id}: a prompt used ${pct}% of the ${window}-token window`);
+      }
+      onUsage(u);
+    };
     const providers = build(settings, {
       transcriptionPrompt: prompt,
       ...(deps.env ? { env: deps.env } : {}),
       localTranscribe: deps.localTranscribe,
       localGenerate: deps.localGenerate,
       ...(deps.localStory ? { localStory: deps.localStory } : {}),
-      onUsage,
+      onUsage: checkedOnUsage,
       onFallback: (what, reason) => log(`${recording.id}: ${what} fell back to local — ${reason}`),
     });
 
@@ -224,10 +241,12 @@ export function createProcessRecordingHandler(deps: ProcessRecordingDeps): JobHa
       let notes = taken.get(key);
       if (!notes) {
         log(`${recording.id}: taking notes${key ? ` (part ${key})` : ''}`);
-        notes = takeNotes(models.scribe, lines, { context, maxWords }).then((result) => {
-          uncounted += result.modelCalls;
-          return result.notes;
-        });
+        notes = takeNotes(models.scribe, lines, { context, maxWords, llm: settings.llm }).then(
+          (result) => {
+            uncounted += result.modelCalls;
+            return result.notes;
+          },
+        );
         taken.set(key, notes);
       }
       return notes;
@@ -254,14 +273,25 @@ export function createProcessRecordingHandler(deps: ProcessRecordingDeps): JobHa
         chapters.length > 0
           ? Math.max(300, Math.round(NOTES_MAX_WORDS / chapters.length))
           : undefined;
-      const parts = byChapter
-        ? await Promise.all(
-            chapters.map(async (c) => ({
-              title: `Part ${c.subject}${c.context.chapter?.title ? `: ${c.context.chapter.title}` : ''}`,
-              notes: await notesOf(c.subject, c.utterances, c.context, chapterMaxWords),
-            })),
-          )
-        : [{ notes: await sessionNotes(session.context) }];
+      const parts: { title?: string; notes: string[] }[] = [];
+      if (byChapter) {
+        for (let i = 0; i < chapters.length; i += CHAPTER_CONCURRENCY) {
+          const batch = chapters.slice(i, i + CHAPTER_CONCURRENCY);
+          const batchParts = await Promise.all(
+            batch.map(async (c) => {
+              const notes = await notesOf(c.subject, c.utterances, c.context, chapterMaxWords);
+              log(`${recording.id}: chapter ${c.subject} notes ready`);
+              return {
+                title: `Part ${c.subject}${c.context.chapter?.title ? `: ${c.context.chapter.title}` : ''}`,
+                notes,
+              };
+            }),
+          );
+          parts.push(...batchParts);
+        }
+      } else {
+        parts.push({ notes: await sessionNotes(session.context) });
+      }
       await deps.records.putSummary({
         recordingId: recording.id,
         kind: 'notes',
@@ -297,6 +327,8 @@ export function createProcessRecordingHandler(deps: ProcessRecordingDeps): JobHa
       const result = await writeFromNotes(models, notes, {
         kind,
         context: { ...context, ...(await telling(kind, notes)) },
+        llm: settings.llm,
+        fallbackEnabled: settings.fallback.enabled,
       });
       const modelCalls = result.modelCalls + uncounted;
       uncounted = 0;

@@ -137,6 +137,9 @@ export function buildJobProviders(settings: AiSettings, deps: ProviderDeps): Job
           noThinking: true,
           ...(deps.env?.LLM_API_KEY ? { apiKey: deps.env.LLM_API_KEY } : {}),
           ...common,
+          // Priced only when the operator has given prices for this backend too; otherwise tokens alone,
+          // same as openai/claude above — and the same reply this near-full-window check needs (Task 4).
+          ...(deps.onUsage ? { onUsage: (u) => deps.onUsage?.(priced(u)) } : {}),
         })
       : undefined;
   };

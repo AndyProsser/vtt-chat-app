@@ -78,8 +78,9 @@ services:
     restart: unless-stopped
     devices: ['nvidia.com/gpu=all']
     environment:
-      # The server's worker talks to Ollama's OpenAI-compatible API, which takes its window from here, not from the request:
-      # the records pipeline is written for 8,192 tokens.
+      # The server's worker talks to Ollama's OpenAI-compatible API, which takes its window from here, not from
+      # the request. Raising this (VRAM/speed cost) only helps once `vtt-admin settings set ai.llm.context
+      # <same number>` tells the app the real window too — the OpenAI-compatible API can't ask Ollama for it.
       OLLAMA_CONTEXT_LENGTH: ${OLLAMA_CONTEXT_LENGTH:-8192}
       OLLAMA_KEEP_ALIVE: ${OLLAMA_KEEP_ALIVE:-2m}
     ports: ['${AI_BIND:-127.0.0.1}:${OLLAMA_PORT:-11434}:11434']

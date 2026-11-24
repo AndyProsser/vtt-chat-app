@@ -60,6 +60,18 @@ describe('setAiSetting', () => {
     expect(() => setAiSetting(s, 'ai.llm.price-in', 'cheap')).toThrow(SettingError);
   });
 
+  it('sets and clears ai.llm.context', () => {
+    let s = setAiSetting(DEFAULT_AI_SETTINGS, 'ai.llm.context', '40960');
+    expect(s.llm.context).toBe(40960);
+    s = setAiSetting(s, 'ai.llm.context', 'none');
+    expect(s.llm.context).toBeNull();
+  });
+
+  it('rejects a non-numeric or negative ai.llm.context', () => {
+    expect(() => setAiSetting(DEFAULT_AI_SETTINGS, 'ai.llm.context', '-1')).toThrow(SettingError);
+    expect(() => setAiSetting(DEFAULT_AI_SETTINGS, 'ai.llm.context', 'lots')).toThrow(SettingError);
+  });
+
   it.each([
     ['ai.transcription.url', 'not a url'],
     ['ai.transcription.url', 'ftp://host/'],

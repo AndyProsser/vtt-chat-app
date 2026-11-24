@@ -329,6 +329,31 @@ describe('summarise', () => {
     expect(bard).toHaveBeenCalledTimes(2);
   });
 
+  it('condenses even a single oversized note, not only many joined notes', async () => {
+    // 25,000 characters ≈ 7,143 estimated tokens, comfortably over 70% of the 8,192-token default
+    // window (5,734). A dm-only write always makes one final scribe call for the brief itself, so
+    // condensing shows up as *more than one* call, not merely "called" (the brief call alone would
+    // already satisfy a plain "was it called" check).
+    const bigNote = 'word '.repeat(5000);
+    const condense = vi.fn(async () => 'word '.repeat(100));
+    await writeFromNotes({ scribe: condense, bard: condense }, [bigNote], {
+      kind: 'dm-only',
+      context: {},
+      llm: { kind: 'local', context: null } as never,
+    });
+    expect(condense.mock.calls.length).toBeGreaterThan(1);
+  });
+
+  it('does not condense when nothing is configured and the notes are small', async () => {
+    const condense = vi.fn(async () => 'a short reply');
+    await writeFromNotes({ scribe: condense, bard: condense }, ['a short note'], {
+      kind: 'dm-only',
+      context: {},
+    });
+    // Exactly the one required call to write the brief itself; no extra condense round.
+    expect(condense.mock.calls.length).toBe(1);
+  });
+
   it('map-reduces a long transcript: one call per chunk plus a final combine', async () => {
     const prompts: string[] = [];
     const generate = async (prompt: string): Promise<string> => {
