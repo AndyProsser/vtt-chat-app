@@ -1,12 +1,13 @@
 import { resolve } from 'node:path';
 
 import react from '@vitejs/plugin-react';
+import { woff2Only } from '@vtt-chat-app/ui-kit/vite';
 import { defineConfig } from 'vite';
 
 // Served by the backend at /join/* (WEB_DIR=web/dist); assets under /assets. In dev, API calls go to
 // the local backend.
 export default defineConfig({
-  plugins: [react()],
+  plugins: [woff2Only(), react()],
   base: '/',
   build: {
     outDir: 'dist',

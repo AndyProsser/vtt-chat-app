@@ -76,7 +76,7 @@ export const LANGUAGE_FONTS: Readonly<Record<string, LanguageFont>> = {
     tracking: '.02em',
     fallback: SERIF,
   },
-  druidic: { family: 'Merienda', weight: 400, size: '.95em', fallback: SERIF },
+  druidic: { family: 'Dancing Script', weight: 600, size: '1.15em', fallback: SERIF },
   // Hidden meaning, not foreign speech: it must look like everyday text, only leaning and spaced.
   'thieves-cant': {
     family: 'Inter Variable',

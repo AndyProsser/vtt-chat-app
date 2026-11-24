@@ -58,7 +58,7 @@ describe('languageTextStyle', () => {
   it.each([
     ['draconic', 'Pirata One', 'menace and power'],
     ['undercommon', 'Spirax', 'otherworldly and strange, still readable'],
-    ['druidic', 'Merienda', 'free, flowing, forest'],
+    ['druidic', 'Dancing Script', 'free, flowing, forest'],
     ['gnomish', 'Special Elite', 'an engineer or mad scientist'],
     ['halfling', 'Patrick Hand', 'small, lively and curious'],
   ])('sets %s in %s (Andy, 2026-11-24: %s)', (key, family) => {

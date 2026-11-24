@@ -16,4 +16,4 @@ import '@fontsource/special-elite/latin-400.css';
 import '@fontsource/patrick-hand/latin-400.css';
 import '@fontsource/pirata-one/latin-400.css';
 import '@fontsource/spirax/latin-400.css';
-import '@fontsource/merienda/latin-400.css';
+import '@fontsource/dancing-script/latin-600.css';

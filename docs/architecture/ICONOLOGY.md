@@ -89,7 +89,7 @@ understand them.
 | Primordial    | `primordial`   | Julius Sans One    | 400             | Elemental power                                                        |
 | Sylvan        | `sylvan`       | Philosopher        | 400             | Fey and natural beauty                                                 |
 | Undercommon   | `undercommon`  | Spirax             | 400             | Otherworldly and strange, still readable (Andy, 2026-11-24)            |
-| Druidic       | `druidic`      | Merienda           | 400             | The forest: free, flowing, effortless (Andy, 2026-11-24)               |
+| Druidic       | `druidic`      | Dancing Script     | 600             | The forest: free, flowing, effortless (Andy, 2026-11-24)               |
 | Thieves' Cant | `thieves-cant` | Inter, styled      | (body font)     | Hidden meaning rather than foreign speech                              |
 
 Google Fonts pages are `https://fonts.google.com/specimen/<Family+Name>`. Every font is SIL Open Font Licence 1.1 and
@@ -303,7 +303,7 @@ Inter (variable)            Cinzel                  Cinzel Decorative       Corm
 Alegreya SC                 Alegreya Sans SC        Uncial Antiqua          Special Elite
 IM Fell English             IM Fell DW Pica         Patrick Hand            Pirata One
 Metamorphous                Black Ops One           Julius Sans One         Philosopher
-Spirax                      Merienda
+Spirax                      Dancing Script
 ```
 
 **Removed** (used today only for the old seven-font language set): Alfa Slab One, Fredoka, Caveat and

@@ -18,7 +18,11 @@
       "types": "./dist/fonts/languages.d.ts",
       "default": "./dist/fonts/languages.js"
     },
-    "./tokens.css": "./src/styles/tokens.css"
+    "./tokens.css": "./src/styles/tokens.css",
+    "./vite": {
+      "types": "./dist/vite/woff2Only.d.ts",
+      "default": "./dist/vite/woff2Only.js"
+    }
   },
   "scripts": {
     "build": "tsc -b",
@@ -33,10 +37,10 @@
     "@fontsource/cinzel": "^5.3.0",
     "@fontsource/cinzel-decorative": "^5.3.0",
     "@fontsource/cormorant-garamond": "^5.3.0",
+    "@fontsource/dancing-script": "^5.3.0",
     "@fontsource/im-fell-dw-pica": "^5.3.0",
     "@fontsource/im-fell-english": "^5.3.0",
     "@fontsource/julius-sans-one": "^5.3.0",
-    "@fontsource/merienda": "^5.3.0",
     "@fontsource/metamorphous": "^5.3.0",
     "@fontsource/patrick-hand": "^5.3.0",
     "@fontsource/philosopher": "^5.3.0",

@@ -1,4 +1,5 @@
 import react from '@vitejs/plugin-react';
+import { woff2Only } from '@vtt-chat-app/ui-kit/vite';
 import type { Plugin } from 'vite';
 import { defineConfig } from 'vite';
 
@@ -24,7 +25,7 @@ function themeStylesheet(): Plugin {
 // An ordinary multi-file app build: `src-tauri` serves it as the app's own local pages
 // (no injection, no remote content). Relative `base` so it loads from Tauri's asset protocol.
 export default defineConfig({
-  plugins: [react(), themeStylesheet()],
+  plugins: [woff2Only(), react(), themeStylesheet()],
   base: './',
   build: {
     outDir: 'dist',
