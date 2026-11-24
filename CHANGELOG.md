@@ -10,6 +10,10 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ## [Unreleased]
 
+### Fixed
+
+- **`vtt-admin status` showed "context window: not checked yet" for ever, and `--tune` had nothing to apply.** The worker was checking and saving the model's real context window, but the status command dropped it when reading it back. Both now see the check (it still appears a minute or two after the worker starts, then every 15 minutes). Found on the 0.6.3 test server.
+
 ## [0.6.3] - 2026-11-24
 
 The apps look and read the same. Every chat language has its own typeface (a different feeling for each, from

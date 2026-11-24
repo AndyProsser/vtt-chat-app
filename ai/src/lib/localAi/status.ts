@@ -23,7 +23,14 @@ export async function readLocalAiStatus(pool: Pool): Promise<LocalAiStatus | nul
   );
   const value = rows[0]?.local_ai as Partial<LocalAiStatus> | null | undefined;
   if (!value || typeof value.at !== 'number') return null;
-  return { at: value.at, llm: value.llm ?? null, whisper: value.whisper ?? null };
+  return {
+    at: value.at,
+    llm: value.llm ?? null,
+    whisper: value.whisper ?? null,
+    // The worker's context-window check lives in the same record; dropping it here left `vtt-admin status`
+    // showing "not checked yet" for ever, and `--tune` with nothing to apply.
+    ...(value.llmContext ? { llmContext: value.llmContext } : {}),
+  };
 }
 
 export interface LocalAiReporter {

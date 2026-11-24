@@ -1,3 +1,4 @@
+import type { Pool } from 'pg';
 import { describe, expect, it } from 'vitest';
 
 import type { LocalAiStatus, LocalModelStatus } from '../../types/localAi.js';
@@ -14,7 +15,13 @@ import {
   ollamaHasModel,
   pullOllamaModel,
 } from './ollamaModel.js';
-import { createLocalAiReporter, describeLocalAi, needsAttention, shownState } from './status.js';
+import {
+  createLocalAiReporter,
+  describeLocalAi,
+  needsAttention,
+  readLocalAiStatus,
+  shownState,
+} from './status.js';
 
 const json = (body: unknown, status = 200): Response =>
   new Response(JSON.stringify(body), { status });
@@ -474,5 +481,33 @@ describe('the local AI status', () => {
       ),
     ).toBe('summary model download failed: no space left');
     expect(describeLocalAi({ at: 0, llm: null, whisper: null }, 0)).toBe('nothing reported');
+  });
+});
+
+describe('readLocalAiStatus', () => {
+  const poolReturning = (local_ai: unknown) =>
+    ({ query: async () => ({ rows: [{ local_ai }] }) }) as unknown as Pool;
+
+  it('hands back the context check the worker stored, so vtt-admin status can grade it', async () => {
+    const llmContext = {
+      kind: 'remote',
+      model: 'qwen3:8b',
+      modelMax: 40960,
+      checkedAt: 1795558298673,
+      unreachable: false,
+    };
+    const read = await readLocalAiStatus(
+      poolReturning({ at: 1, llm: null, whisper: null, llmContext }),
+    );
+    expect(read?.llmContext).toEqual(llmContext);
+  });
+
+  it('has no context check for a status stored before the worker made one', async () => {
+    const read = await readLocalAiStatus(poolReturning({ at: 1, llm: null, whisper: null }));
+    expect(read).toEqual({ at: 1, llm: null, whisper: null });
+  });
+
+  it('is null when nothing has been stored', async () => {
+    expect(await readLocalAiStatus(poolReturning(null))).toBeNull();
   });
 });
