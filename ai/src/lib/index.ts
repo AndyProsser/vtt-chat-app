@@ -15,5 +15,6 @@ export * from './providers/index.js';
 export * from './speechWindows.js';
 export * from './summarise.js';
 export * from './summaryPlan.js';
+export * from './tokenBudget.js';
 export * from './whisperCli.js';
 export * from './whisperJson.js';

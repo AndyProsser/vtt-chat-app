@@ -1,4 +1,9 @@
-import { MemoryJobQueue, MemoryRecordsStore, PROCESS_RECORDING_JOB } from '@vtt-chat-app/ai';
+import {
+  MemoryJobQueue,
+  MemoryRecordsStore,
+  PROCESS_RECORDING_JOB,
+  type LocalAiStatus,
+} from '@vtt-chat-app/ai';
 import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -332,6 +337,87 @@ describe('status', () => {
     expect(text).toMatch(/FAIL\s+valkey/);
     expect(text).toContain('connection refused');
     expect(text).toMatch(/ok\s+livekit/);
+  });
+});
+
+describe('status: the AI context check', () => {
+  const localAi = (llmContext: LocalAiStatus['llmContext']): LocalAiStatus => ({
+    at: 1,
+    llm: null,
+    whisper: null,
+    llmContext,
+  });
+
+  it('reports "not checked" on a fresh install, nothing configured, no check reported yet', async () => {
+    expect(await run('status', [], { localAi: null })).toBe(0);
+    expect(out.join('\n')).toMatch(/warn\s+AI\s+.*not checked/i);
+  });
+
+  it('fails when Ollama is actually serving less than the app assumes (live undershoot)', async () => {
+    await run('settings set ai.llm.kind remote');
+    await run('settings set ai.llm.url http://gpu:11434');
+    await run('settings set ai.llm.context 40960');
+    expect(
+      await run('status', [], {
+        localAi: localAi({ kind: 'remote', model: 'qwen3', live: 8192, unreachable: false }),
+      }),
+    ).toBe(1);
+    expect(out.join('\n')).toMatch(/FAIL\s+AI/);
+  });
+
+  it('fails when the model cannot serve what is configured, even with no live reading', async () => {
+    await run('settings set ai.llm.kind remote');
+    await run('settings set ai.llm.url http://gpu:11434');
+    await run('settings set ai.llm.context 40960');
+    expect(
+      await run('status', [], {
+        localAi: localAi({ kind: 'remote', model: 'qwen3', modelMax: 8192, unreachable: false }),
+      }),
+    ).toBe(1);
+    expect(out.join('\n')).toMatch(/FAIL\s+AI/);
+  });
+
+  it('warns with both numbers when the model supports more than is configured (the hint)', async () => {
+    expect(
+      await run('status', [], {
+        localAi: localAi({ kind: 'local', model: 'qwen3', modelMax: 131_072, unreachable: false }),
+      }),
+    ).toBe(0);
+    const text = out.join('\n');
+    expect(text).toMatch(/warn\s+AI/i);
+    expect(text).toContain('131072');
+    expect(text).toContain('8192');
+  });
+
+  it('warns "not checked" on a kind mismatch instead of comparing against stale data', async () => {
+    await run('settings set ai.llm.kind local');
+    expect(
+      await run('status', [], {
+        localAi: localAi({ kind: 'remote', model: 'qwen3', live: 1, unreachable: false }),
+      }),
+    ).toBe(0);
+    expect(out.join('\n')).toMatch(/warn\s+AI\s+.*not checked/i);
+  });
+
+  it('is ok for a Claude model in the table', async () => {
+    await run('settings set ai.llm.kind claude');
+    await run('settings set ai.llm.model claude-opus-5-5');
+    expect(await run('status', [], { localAi: null })).toBe(0);
+    expect(out.join('\n')).toMatch(/ok\s+AI/);
+  });
+
+  it('warns "unknown" for a Claude model not in the table', async () => {
+    await run('settings set ai.llm.kind claude');
+    await run('settings set ai.llm.model some-future-model');
+    expect(await run('status', [], { localAi: null })).toBe(0);
+    expect(out.join('\n')).toMatch(/warn\s+AI\s+.*unknown/i);
+  });
+
+  it('never fails for openai, only warns "unknown"', async () => {
+    await run('settings set ai.llm.kind openai');
+    await run('settings set ai.llm.model gpt-5');
+    expect(await run('status', [], { localAi: null })).toBe(0);
+    expect(out.join('\n')).toMatch(/warn\s+AI\s+.*unknown/i);
   });
 });
 

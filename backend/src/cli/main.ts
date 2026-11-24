@@ -174,6 +174,7 @@ async function main(): Promise<number> {
         return Number(rows[0]?.size ?? 0);
       },
       probes,
+      localAi,
       ui: createUi({
         isTTY: process.stdout.isTTY,
         env: process.env,

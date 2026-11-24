@@ -8,15 +8,19 @@ import {
 } from '@vtt-chat-app/shared';
 
 import {
+  CLAUDE_CONTEXT_WINDOWS,
+  contextWindowTokens,
   DELETE_RECORDING_JOB,
   PROCESS_RECORDING_JOB,
   PURGE_RECORDING_JOB,
   type JobQueue,
   estimateClaudeCost,
   type Job,
+  type LocalAiStatus,
   MEMORY_KIND_LABELS,
   type RecordsStore,
 } from '@vtt-chat-app/ai';
+import type { AiSettings } from '@vtt-chat-app/shared';
 
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -71,6 +75,8 @@ export interface AdminDeps {
   updatesSource?: string;
   /** Health checks for `status`. Injected so tests need no live services. */
   probes?: Probe[];
+  /** What the worker last found checking Ollama's real context window, for `status`'s AI section. */
+  localAi?: LocalAiStatus | null;
   /** Removes pictures and PDFs no handout uses (after a campaign is deleted); returns how many. Needs MEDIA_DIR. */
   sweepMedia?: () => Promise<number>;
   /** One campaign's export and import (`campaign export` / `import`). Needs Postgres; absent in memory tests. */
@@ -294,7 +300,7 @@ export async function runAdmin(args: string[], options: AdminDeps): Promise<numb
   try {
     switch (group) {
       case 'status':
-        return await status(deps);
+        return await status(deps, argv.slice(1));
       case 'storage':
         return await storage(deps);
       case 'settings':
@@ -336,7 +342,56 @@ export async function runAdmin(args: string[], options: AdminDeps): Promise<numb
 
 type Row = [BadgeKind, string, string];
 
-async function status(deps: Ctx): Promise<number> {
+/**
+ * Grades what is known about the configured LLM backend's real context window against what the app
+ * assumes (`contextWindowTokens`). `claude` is graded from the built-in table (ai/consts/claude.ts);
+ * `openai` has none by design; `local`/`remote` are graded from what the worker last found checking Ollama
+ * directly (`localAi.llmContext`), never a live call from here (`vtt-admin` has no path to Ollama).
+ */
+function aiContextRows(settings: AiSettings, localAi: LocalAiStatus | null | undefined): Row[] {
+  const { llm } = settings;
+  const row = (badge: BadgeKind, text: string): Row[] => [[badge, 'AI', text]];
+
+  if (llm.kind === 'claude') {
+    return llm.model !== null && llm.model in CLAUDE_CONTEXT_WINDOWS
+      ? row('ok', `context window: ${CLAUDE_CONTEXT_WINDOWS[llm.model]} tokens (${llm.model})`)
+      : row('warn', 'context window: unknown model, using the conservative default');
+  }
+  if (llm.kind === 'openai') {
+    return row('warn', 'context window: unknown (no built-in table for OpenAI models)');
+  }
+
+  // local/remote: graded from what the worker last found checking Ollama directly.
+  const checked = localAi?.llmContext;
+  if (!checked || checked.kind !== llm.kind) {
+    return row('warn', 'context window: not checked yet');
+  }
+  const configured = contextWindowTokens(llm, false);
+  if (checked.live !== undefined && checked.live < configured) {
+    return row(
+      'fail',
+      `context window: Ollama is only serving ${checked.live} tokens, but ${configured} is configured`,
+    );
+  }
+  if (checked.modelMax !== undefined && checked.modelMax < configured) {
+    return row(
+      'fail',
+      `context window: the model's own maximum is ${checked.modelMax} tokens, but ${configured} is configured`,
+    );
+  }
+  if (checked.modelMax !== undefined && checked.modelMax > configured) {
+    return row(
+      'warn',
+      `context window: configured for ${configured} tokens, but the model supports up to ${checked.modelMax} — vtt-admin status --tune to use more`,
+    );
+  }
+  if (checked.unreachable) {
+    return row('warn', 'context window: unknown (could not reach Ollama to check)');
+  }
+  return row('ok', `context window: ${configured} tokens`);
+}
+
+async function status(deps: Ctx, _args: string[] = []): Promise<number> {
   const { ui } = deps;
   const now = (deps.now ?? Date.now)();
   const machine = deps.machine ? await deps.machine().catch(() => undefined) : undefined;
@@ -360,8 +415,12 @@ async function status(deps: Ctx): Promise<number> {
       services.push(['fail', probe.name, error instanceof Error ? error.message : String(error)]);
     }
   }
+  const { ai } = await deps.store.getSettings();
+  const aiRows = aiContextRows(ai, deps.localAi);
+  if (aiRows.some(([badge]) => badge === 'fail')) healthy = false;
   const sections: [string, Row[]][] = [
     ['Services', services],
+    ['AI', aiRows],
     ['This instance', await instanceRows(deps, now)],
     ['This machine', machine ? machineRows(ui, machine) : []],
   ];
