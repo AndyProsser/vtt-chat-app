@@ -1,7 +1,7 @@
 # Typography & Iconography
 
 **Version:** 1.1 (2026-11-24: decisions recorded, aligned with the code as it is)
-**Status:** fonts, tokens, icons and the reading switches are **built on branch `stage-14-typography` (0.6.3), unit-tested and not yet seen in a real window**; the icon audit, Game Icons and language spans are 0.6.4 and **not built**. Plan: [2026-11-24-typography-and-icons.md](../superpowers/plans/2026-11-24-typography-and-icons.md). Roadmap: [Stage 14](../../ROADMAP.md).
+**Status:** fonts, tokens, icons and the reading switches are **built and released in 0.6.3** (Andy has seen the fonts and the phone web app in the real apps); the icon audit, Game Icons and language spans are 0.6.4 and **not built**. Plan: [2026-11-24-typography-and-icons.md](../superpowers/plans/2026-11-24-typography-and-icons.md). Roadmap: [Stage 14](../../ROADMAP.md).
 **Applies to:** the desktop app (`tauri-client/panels-ui/`) and the phone web app (`web/`), which must look and read the same.
 **Audience:** UI/UX design, front-end development.
 

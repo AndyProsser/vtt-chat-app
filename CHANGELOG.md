@@ -10,6 +10,15 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ## [Unreleased]
 
+## [0.6.3] - 2026-11-24
+
+The apps look and read the same. Every chat language has its own typeface (a different feeling for each, from
+Dwarvish's small capitals to Draconic's menace to Druidic's flow), Inter and Cinzel are the body and heading
+fonts in both apps, and the desktop and phone now draw the same icons. Three reading switches turn the fancy
+fonts down or off. Underneath, a long session's notes are condensed to fit the model's real window. A **PATCH**
+release: no protocol change, so 0.6.2 apps and servers work together. **Operators:** update the server
+(`vtt-admin update`), then `vtt-admin updates sync`. **Players:** update the app.
+
 ### Added
 
 - **Every chat language has its own font.** `/say-dwarvish`, `/say-elvish`, `/say-orc` and the rest are now set in a typeface chosen to feel like the language (Elvish flowing and italic, Dwarvish in small capitals, Draconic angular and imposing, Undercommon strange but readable, Druidic flowing like the forest, Gnomish like an engineer's notes, Halfling small and lively), the same on the desktop and the phone. A language this app does not know (a newer server's) still shows, in a plain face. The fonts ship inside the app and the web page, nothing is fetched from the internet, and a file loads only the first time a line in that language is shown.
@@ -17,6 +26,7 @@ the GitHub release notes and refuses to build a release without one. How to writ
 - **`ai.llm.context`, an operator setting for a summary model's real window.** Set alongside `OLLAMA_CONTEXT_LENGTH` (`vtt-admin settings set ai.llm.context <same number>`, or let `vtt-admin status --tune` do it for you) so the app condenses a long session's notes before they overflow the window Ollama actually serves, instead of risking silent truncation. Applies to `local` and `remote` alike — the worker sends it as `num_ctx` on every native Ollama call. See OPERATOR-GUIDE.md.
 - **A log line when a summary call runs close to its configured window**, visible via `docker compose logs worker` (`vtt-admin jobs list` is a follow-up).
 - **`vtt-admin status` has a new AI section** checking whether the configured context window matches reality: live-queried against Ollama for `local`/`remote`, a built-in table of real values for known Claude models. Assuming _more_ than the backend can actually serve fails the check (a real truncation risk); assuming _less_ (unused headroom) is a warning with a hint. `vtt-admin status --tune` applies whatever it finds.
+- **A long session is condensed to fit the model's window.** The scribe's notes are shortened by a real token estimate (not a character count) against the window the model is actually served with, so a long session no longer risks silently overflowing it; for a remote model a configured window is honoured, and the local and fallback paths never trust a window they cannot really get. Chapter notes are also taken two at a time, with progress in the worker log (below).
 
 ### Changed
 
@@ -24,6 +34,11 @@ the GitHub release notes and refuses to build a release without one. How to writ
 - **One set of icons in both apps.** The phone web app now draws the same lucide icons as the desktop app, defined once (stat, sense and action icons look the same on both), instead of its own hand-copied set.
 - **Chapter notes are taken two chapters at a time instead of all at once**, with a log line as each finishes — a single-GPU remote Ollama no longer has ten chapters queued on it simultaneously with no progress shown.
 - **Claude's real per-model context window** (not one flat conservative number) now drives the condense decision directly, for every model the app recognises — with `ai.fallback.enabled` turned off (its default is on). With fallback on, a job might still land on the local model mid-way, so the real per-model number is clamped to the same local cap as before; turn fallback off to use it.
+- **The apps carry only WOFF2 fonts.** Every browser and webview the app runs in reads WOFF2, so the redundant older copies are no longer shipped: the desktop app and the phone web page are about half a megabyte smaller each, and players download the same as before.
+
+### Fixed
+
+- **The compact handout window is wider and shorter** (480 by 260 instead of 420 by 340), so its title rarely truncates and a short text handout leaves less empty space below it.
 
 ### Known limits
 
@@ -32,6 +47,9 @@ the GitHub release notes and refuses to build a release without one. How to writ
 - `vtt-admin status --tune` only ever applies the _live-served_ number for `remote` (never the model's bare maximum — nothing confirms the remote server would actually serve that much); for `local` it may apply the model's maximum, which is a real VRAM/RAM and speed question for the operator to judge, not a truncation risk.
 - The condensing decision sizes against the notes alone, not the full assembled prompt (instructions, campaign memory, cues); on a small configured window this leaves less headroom than the margin suggests.
 - Campaign memory still reads a session's full, uncondensed notes rather than the condensed version other summaries use.
+- **A long session has not been re-run end to end since the condensing change.** It is built and unit-tested, and the 2026-11-22 run (a 75-minute session) passed before it; if a long session still overflows a small window, that is a bug: set `ai.llm.context` to the model's real window (`vtt-admin status --tune`) and report it.
+- **A small diagnostic file, `away-watch.log`,** is written in the desktop app's data folder (only when the screen locks or unlocks, or the idle check stops answering) while we chase a report that an automatic Away did not clear on one Linux desktop. It holds timestamps and a short reason, nothing else, and grows by a line per event.
+- **A language this app does not know** (one a newer server adds) is shown in the normal font, with its name under the line.
 
 ## [0.6.2] - 2026-11-22
 

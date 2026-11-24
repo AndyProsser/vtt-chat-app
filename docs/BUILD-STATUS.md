@@ -2,7 +2,7 @@
 
 Where the build actually stands, so the next session (or the next machine) can pick up without re-deriving it. Kept deliberately honest: **"built" is not "verified".** Update this file in the same change as the work it describes; the plan itself is in [ROADMAP.md](../ROADMAP.md) and the live threads in [.claude/intent.md](../.claude/intent.md).
 
-- **As of:** 2026-11-24 · **Latest release:** 0.6.2 (protocol 4, published); 0.6.3-dev.1 on the dev channel · **Branch:** `main` (Stage 14 work on `stage-14-typography`)
+- **As of:** 2026-11-24 · **Latest release:** 0.6.2 (protocol 4, published); 0.6.3 tagged 2026-11-24 (draft until published) · **Branch:** `main` (Stage 14 work on `stage-14-typography`)
 - **The sections below are a dated log, newest first.** Each says what was built and what has really run. The one-page summary is the [stocktake](#stocktake-2026-11-21-what-is-built-and-what-is-not-yet-proven) straight after this section; the work that closes its gaps is [Stage 13](../ROADMAP.md#stage-13--quality-validation-closed-2026-11-24). Older sections still describe 2026-11-10 and earlier, when the build was on a Windows machine away from the dev box and much was marked **UNVERIFIED**; where a later section says it was verified, that wins.
 
 ## How to check the repo is healthy
@@ -36,9 +36,9 @@ path), so `status` can be a few minutes stale after a config change; `--tune` ac
 value, not a fresh on-demand query. The bigger `vtt-admin test ai|voice|full` idea and external
 connectivity checking were both parked (ROADMAP.md, Future ideas) rather than built now.
 
-## Typography and icons, Stage 14 (0.6.3), 2026-11-24: in progress, not yet seen in a real window
+## Typography and icons, Stage 14 (0.6.3), 2026-11-24: built, seen in the real apps by Andy (fonts and the phone web app), released as 0.6.3
 
-Branch `stage-14-typography`; plan [2026-11-24-typography-and-icons.md](superpowers/plans/2026-11-24-typography-and-icons.md), design [ICONOLOGY.md](architecture/ICONOLOGY.md). **Built and unit-tested, not looked at in a real window yet** (the visual pass is Task 6, and the Stage 14 close runs new screenshots and the full session 4 test).
+Merged to `main` and released as 0.6.3; plan [2026-11-24-typography-and-icons.md](superpowers/plans/2026-11-24-typography-and-icons.md), design [ICONOLOGY.md](architecture/ICONOLOGY.md). **Built and unit-tested; Andy looked at the fonts and the phone web app in the real apps on 2026-11-24 ("the fonts look great, and the web app finally feels right").** The Stage 14 close still runs new screenshots and the full session 4 test.
 
 - **`ui-kit/`** (`@vtt-chat-app/ui-kit`), a new workspace built like `shared/`. It holds the typography tokens, the Inter, Cinzel and Cormorant Garamond core fonts, and the per-language font table. The root workspace order now builds it before `web` (npm builds in listed order; the Docker web stage builds it too).
 - **A font for every language:** 17 languages each have their own face (Common stays Inter); the client picks it from the language `key`, the wire `style` is only the fallback for a key a newer server adds. **No wire change.** A test ties every table entry to a real Fontsource file and an import, so a language added without a font fails the suite.
