@@ -216,6 +216,45 @@ describe('process-recording handler', () => {
     expect(chapterNotesReady).toHaveLength(5);
   });
 
+  it('still fails the job (and stores no notes) when one chapter in a batch fails, without starting the next batch', async () => {
+    for (const [at, event] of [
+      [0, 'started'],
+      [5000, 'paused'],
+      [5500, 'resumed'],
+      [15000, 'paused'],
+      [15500, 'resumed'],
+      [25000, 'paused'],
+      [25500, 'resumed'],
+      [35000, 'paused'],
+      [35500, 'resumed'],
+      [45000, 'stopped'],
+    ] as const) {
+      await records.addRecordingEvent({ recordingId: REC, at, event });
+    }
+    let scribeCalls = 0;
+    const flaky = handler({
+      transcribeAudioFile: async (file) => {
+        if (!file.includes('t-alice')) return [];
+        return [0, 10000, 20000, 30000, 40000].map((startMs) => ({
+          startMs,
+          endMs: startMs + 1000,
+          text: `said at ${startMs}`,
+        }));
+      },
+      localGenerate: async (prompt) => {
+        prompts.push(prompt);
+        if (!prompt.startsWith('You are the scribe')) return `summary #${prompts.length}`;
+        scribeCalls += 1;
+        if (scribeCalls === 2) throw new Error('remote GPU unreachable'); // chapter 2, still in batch 1
+        return `## Events\n- summary #${prompts.length}`;
+      },
+    });
+    await expect(flaky.run(job())).rejects.toThrow('remote GPU unreachable');
+    // Batch 1 (chapters 1 and 2) started; batch 2 (chapters 3 and 4) must never have been reached.
+    expect(scribeCalls).toBe(2);
+    expect(await records.getSummary(REC, 'notes', '')).toBeUndefined();
+  });
+
   it('weaves scene, effect, voice and group cues into what the model reads, and titles the scene chapter', async () => {
     await records.putTrack(
       track('t-long', 'carol', {
