@@ -85,18 +85,18 @@ Druidic. The `lang` sent over the wire is a key from this table; the server reje
 
 ### Fonts
 
-> **Planned change (Stage 14, designed 2026-11-24):** every language gets its own font, chosen by the client from the language's `key`, and the table moves from `shared/` to `ui-kit/`. The wire is unchanged. See [ICONOLOGY.md](ICONOLOGY.md#language-fonts). The text below describes what is built today.
+Every language has **its own typeface**, chosen by the client from the language's `key` (Dwarvish in Alegreya SC, Elvish in
+Cormorant Garamond italic, Giant in Uncial Antiqua, Celestial in Cinzel Decorative, Abyssal in Black Ops One, and so on; the
+full table, with the reasoning, is in [ICONOLOGY.md](ICONOLOGY.md#language-fonts)). The table lives once in `ui-kit/`
+(`LANGUAGE_FONTS`) and both clients use it, so a line looks the same on the desktop and the phone. The server never sees any of
+it: the wire carries only `key` and the coarse `style`, and the client falls back to that `style`'s system stack for a key it has
+no font for (a language a newer server adds).
 
-Each style has its own typeface: Cormorant Garamond (flowing: Elvish, Sylvan, Celestial), Alfa Slab One (blocky: Dwarvish,
-Giant), Pirata One (angular: Infernal, Abyssal and similar), Fredoka (rounded: Halfling, Gnomish), Caveat (scratchy: Goblin,
-Orc), Cinzel Decorative (arcane) and Share Tech Mono (mono). They are **bundled with each client, never loaded from the
-internet**, and an `@font-face` file is downloaded by the browser only the first time a line in that style is shown, so a
-table that never speaks Goblin never fetches the Goblin font. All seven add up to about 150 KB in the build (the largest is
-51 KB), and nothing loads at startup. The table lives once in `shared/` (`LANGUAGE_STYLE_CSS`) and both clients import the
-font files from `languageFonts.ts`. The fonts are SIL Open Font Licence 1.1 and come from the Fontsource npm packages, which
-carry their licence files into the build. A font that cannot load falls back to a system stack, and the "in {language}"
-caption keeps the meaning either way. The first use of a style can flash the fallback face for an instant (`font-display:
-swap`).
+The fonts are **bundled with each client, never loaded from the internet**, and an `@font-face` file is downloaded by the
+browser only the first time a line in that language is shown, so a table that never speaks Goblin never fetches the Goblin
+font. Nothing loads at startup. They are SIL Open Font Licence 1.1 and come from the Fontsource npm packages, which carry their
+licence files into the build. A font that cannot load falls back to a system stack, and the "in {language}" caption keeps the
+meaning either way. The first use of a language can flash the fallback face for an instant (`font-display: swap`).
 
 ### Future: polyglots (not designed in detail, not built)
 

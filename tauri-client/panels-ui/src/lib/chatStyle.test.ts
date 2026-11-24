@@ -1,8 +1,7 @@
-import { CHAT_LANGUAGES } from '@vtt-chat-app/shared';
 import { describe, expect, it } from 'vitest';
 
 import { applyEvent, emptyTable } from './tableModel.js';
-import { LANGUAGE_STYLES, kindOf, languageOf, languageStyle } from './chatStyle.js';
+import { kindOf, languageOf, languageStyle } from './chatStyle.js';
 
 describe('chat style', () => {
   it('defaults a missing or unknown kind to chat', () => {
@@ -10,12 +9,9 @@ describe('chat style', () => {
     expect(kindOf('shout')).toBe('chat');
     expect(kindOf('ooc')).toBe('ooc');
   });
-  it('has a preset for every style a language uses', () => {
-    for (const l of CHAT_LANGUAGES) expect(LANGUAGE_STYLES[l.style]).toBeDefined();
-  });
   it('maps a language to its preset', () => {
     expect(languageStyle('elvish')?.fontStyle).toBe('italic');
-    expect(languageStyle('dwarvish')?.fontFamily).toMatch(/^"Alfa Slab One"/);
+    expect(languageStyle('dwarvish')?.fontFamily).toMatch(/^"Alegreya SC"/);
     expect(languageStyle('common')).toEqual({});
     expect(languageStyle('klingon')).toBeUndefined();
     expect(languageOf('deep-speech')?.name).toBe('Deep Speech');

@@ -2,7 +2,7 @@
 
 Where the build actually stands, so the next session (or the next machine) can pick up without re-deriving it. Kept deliberately honest: **"built" is not "verified".** Update this file in the same change as the work it describes; the plan itself is in [ROADMAP.md](../ROADMAP.md) and the live threads in [.claude/intent.md](../.claude/intent.md).
 
-- **As of:** 2026-11-23 · **Latest release:** 0.6.2 (protocol 4, published) · **Branch:** `main`
+- **As of:** 2026-11-24 · **Latest release:** 0.6.2 (protocol 4, published); 0.6.3-dev.1 on the dev channel · **Branch:** `main` (Stage 14 work on `stage-14-typography`)
 - **The sections below are a dated log, newest first.** Each says what was built and what has really run. The one-page summary is the [stocktake](#stocktake-2026-11-21-what-is-built-and-what-is-not-yet-proven) straight after this section; the work that closes its gaps is [Stage 13](../ROADMAP.md#stage-13--quality-validation-closed-2026-11-24). Older sections still describe 2026-11-10 and earlier, when the build was on a Windows machine away from the dev box and much was marked **UNVERIFIED**; where a later section says it was verified, that wins.
 
 ## How to check the repo is healthy
@@ -35,6 +35,16 @@ headroom) is a warning with a hint. `vtt-admin status --tune` applies whatever w
 path), so `status` can be a few minutes stale after a config change; `--tune` acts on that last-checked
 value, not a fresh on-demand query. The bigger `vtt-admin test ai|voice|full` idea and external
 connectivity checking were both parked (ROADMAP.md, Future ideas) rather than built now.
+
+## Typography and icons, Stage 14 (0.6.3), 2026-11-24: in progress, not yet seen in a real window
+
+Branch `stage-14-typography`; plan [2026-11-24-typography-and-icons.md](superpowers/plans/2026-11-24-typography-and-icons.md), design [ICONOLOGY.md](architecture/ICONOLOGY.md). **Built and unit-tested, not looked at in a real window yet** (the visual pass is Task 6, and the Stage 14 close runs new screenshots and the full session 4 test).
+
+- **`ui-kit/`** (`@vtt-chat-app/ui-kit`), a new workspace built like `shared/`. It holds the typography tokens, the Inter, Cinzel and Cormorant Garamond core fonts, and the per-language font table. The root workspace order now builds it before `web` (npm builds in listed order; the Docker web stage builds it too).
+- **A font for every language:** 17 languages each have their own face (Common stays Inter); the client picks it from the language `key`, the wire `style` is only the fallback for a key a newer server adds. **No wire change.** A test ties every table entry to a real Fontsource file and an import, so a language added without a font fails the suite.
+- **Both clients** use `languageTextStyle()` from ui-kit; the two copies of `languageFonts.ts`, the five old language fonts and the unused `@radix-ui/react-icons` are gone, and `LANGUAGE_STYLE_CSS` left `shared/`.
+- **Size (measured after Task 5):** `web/dist` 5.1 MB to **6.1 MB** (5.4 MB with the core fonts alone); `panels-ui/dist` **5.1 MB**. Fontsource ships each face as both `.woff2` and `.woff`, and both land in `dist/`, so the folder is roughly twice what a browser downloads (one file per face, only when first shown); the largest file is Inter's latin-ext subset at 85 KB. Dropping the `.woff` copies is a possible later saving, not done.
+- **Not done yet:** the reading switches (Task 10), the web app on `lucide-react` (Task 7), the visual tuning (Task 6).
 
 ## Chunking for a long session (C5), 2026-11-24: built, not yet re-validated on a real session
 

@@ -1,14 +1,6 @@
-import { CHAT_LANGUAGES } from '@vtt-chat-app/shared';
 import { describe, expect, it } from 'vitest';
 
-import {
-  KIND_CLASS,
-  LANGUAGE_STYLES,
-  languageCaption,
-  languageStyle,
-  lineKind,
-  lineText,
-} from './lineStyle.js';
+import { KIND_CLASS, languageCaption, languageStyle, lineKind, lineText } from './lineStyle.js';
 
 describe('line style', () => {
   it('styles a whisper as itself and defaults the kind', () => {
@@ -21,11 +13,11 @@ describe('line style', () => {
     expect(lineText({ kind: 'do', text: 'waves', fromName: 'Thorin' })).toBe('* Thorin waves');
     expect(lineText({ kind: 'ooc', text: 'brb', fromName: 'A' })).toBe('brb');
   });
-  it('has a preset for every language style and a caption in real text', () => {
-    for (const l of CHAT_LANGUAGES) expect(LANGUAGE_STYLES[l.style]).toBeDefined();
+  it('has a caption in real text and a font for a language', () => {
     expect(languageCaption('elvish')).toBe('in Elvish');
     expect(languageCaption('klingon')).toBeUndefined();
     expect(languageStyle('elvish')?.fontStyle).toBe('italic');
+    expect(languageStyle('dwarvish')?.fontFamily).toMatch(/^"Alegreya SC"/);
     expect(languageStyle('common')).toEqual({});
     expect(languageStyle(undefined)).toBeUndefined();
   });

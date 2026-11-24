@@ -1,9 +1,5 @@
-import {
-  CHAT_LANGUAGES,
-  LANGUAGE_STYLE_CSS,
-  type ChatKind,
-  type ChatLanguageStyle,
-} from '@vtt-chat-app/shared';
+import { CHAT_LANGUAGES, type ChatKind } from '@vtt-chat-app/shared';
+import { languageTextStyle } from '@vtt-chat-app/ui-kit';
 import type { CSSProperties } from 'react';
 
 import type { ChatLine } from '../../types/phone.js';
@@ -20,16 +16,11 @@ export const KIND_CLASS: Record<ChatKind | 'whisper', string> = {
   whisper: 'phone-line-whisper',
 };
 
-/** The same table as the desktop app (it lives in `shared/`); the font files load only when a line first uses them. */
-export const LANGUAGE_STYLES = LANGUAGE_STYLE_CSS as Record<ChatLanguageStyle, CSSProperties>;
-
 const language = (key: string | undefined) => CHAT_LANGUAGES.find((l) => l.key === key);
 
-/** The inline style for a say line's language; none for no or an unknown language. */
-export const languageStyle = (key: string | undefined): CSSProperties | undefined => {
-  const l = language(key);
-  return l ? LANGUAGE_STYLES[l.style] : undefined;
-};
+/** The inline style for a say line's language (the same table as the desktop app, from ui-kit); none for no or an unknown language. */
+export const languageStyle = (key: string | undefined): CSSProperties | undefined =>
+  languageTextStyle(key);
 
 /** "in Elvish": the caption under a language line (real text, so assistive tech reads it). */
 export const languageCaption = (key: string | undefined): string | undefined => {

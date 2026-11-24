@@ -5,7 +5,7 @@ import './styles/palette.css';
 import './styles/theme.css';
 import './styles/markdown.css';
 import './styles/phone.css';
-import './lib/languageFonts.js';
+import '@vtt-chat-app/ui-kit/fonts/languages';
 
 import { Theme } from '@radix-ui/themes';
 import { createRoot } from 'react-dom/client';

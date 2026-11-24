@@ -4,7 +4,7 @@ import '@vtt-chat-app/ui-kit/tokens.css';
 import './styles/tokens.css';
 import './styles/theme.css';
 import './styles/main.css';
-import './lib/languageFonts.js';
+import '@vtt-chat-app/ui-kit/fonts/languages';
 
 import { createRoot } from 'react-dom/client';
 
