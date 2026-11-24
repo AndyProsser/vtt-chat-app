@@ -28,6 +28,8 @@ import {
 } from '../memory.js';
 import { buildJobProviders } from '../providers/fromSettings.js';
 import { NOTES_MAX_WORDS } from '../notes.js';
+import { CONDENSE_THRESHOLD } from '../../consts/index.js';
+import { contextWindowTokens } from '../tokenBudget.js';
 import { formatNotes } from '../prompts.js';
 import { stripThinking, takeNotes, writeFromNotes, type SummaryModels } from '../summarise.js';
 import { planSummaries } from '../summaryPlan.js';
@@ -93,13 +95,24 @@ export function createProcessRecordingHandler(deps: ProcessRecordingDeps): JobHa
       mode === 'off' ? [] : await deps.records.campaignVocabulary(recording.campaignId);
     const prompt =
       mode === 'prompt' || mode === 'both' ? buildWhisperPrompt(vocabulary) : undefined;
+    // Alongside the cost tracking `onUsage` already does (outer closure, below): flag a call that ran
+    // close to the configured context window, visible today via `docker compose logs worker` (a
+    // `vtt-admin jobs list` column is a natural follow-up, not built here).
+    const window = contextWindowTokens(settings.llm);
+    const checkedOnUsage: typeof onUsage = (u) => {
+      if (u.inputTokens >= window * CONDENSE_THRESHOLD) {
+        const pct = Math.round((u.inputTokens / window) * 100);
+        log(`${recording.id}: a prompt used ${pct}% of the ${window}-token window`);
+      }
+      onUsage(u);
+    };
     const providers = build(settings, {
       transcriptionPrompt: prompt,
       ...(deps.env ? { env: deps.env } : {}),
       localTranscribe: deps.localTranscribe,
       localGenerate: deps.localGenerate,
       ...(deps.localStory ? { localStory: deps.localStory } : {}),
-      onUsage,
+      onUsage: checkedOnUsage,
       onFallback: (what, reason) => log(`${recording.id}: ${what} fell back to local — ${reason}`),
     });
 

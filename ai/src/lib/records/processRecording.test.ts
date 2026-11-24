@@ -475,6 +475,43 @@ describe("the operator's context window (chunking)", () => {
     await handler().run(job());
     expect(condensed()).toBe(false);
   });
+
+  it('logs once when a prompt runs close to the configured window', async () => {
+    records.aiSettings = setAiSetting(DEFAULT_AI_SETTINGS, 'ai.llm.context', '100');
+    const log: string[] = [];
+    const call = { model: 'm', inputTokens: 95, outputTokens: 1 };
+    const h = handler({
+      log: (l) => log.push(l),
+      buildProviders: (settings, d) => {
+        d.onUsage?.(call);
+        return buildJobProviders(settings, d);
+      },
+    });
+    await h.run(job());
+    const matches = log.filter((l) => l.includes('used') && l.includes('window'));
+    expect(matches).toHaveLength(1);
+  });
+
+  it('does not log when a prompt is well under the configured window', async () => {
+    records.aiSettings = setAiSetting(DEFAULT_AI_SETTINGS, 'ai.llm.context', '100');
+    const log: string[] = [];
+    const call = { model: 'm', inputTokens: 50, outputTokens: 1 };
+    const h = handler({
+      log: (l) => log.push(l),
+      buildProviders: (settings, d) => {
+        d.onUsage?.(call);
+        return buildJobProviders(settings, d);
+      },
+    });
+    await h.run(job());
+    expect(log.some((l) => l.includes('used') && l.includes('window'))).toBe(false);
+  });
+
+  it('never logs or throws when nothing reports usage at all', async () => {
+    const log: string[] = [];
+    await handler({ log: (l) => log.push(l) }).run(job());
+    expect(log.some((l) => l.includes('used') && l.includes('window'))).toBe(false);
+  });
 });
 
 describe('campaign memory (Stage 12 F)', () => {
