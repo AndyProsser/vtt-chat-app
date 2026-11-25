@@ -124,22 +124,32 @@ case ${1:-} in
     # Voice's UDP is proved by a listener on a free port of the media range, which also has to sit on the host's network: started
     # here for the 90 s the check takes, its port handed to the test.
     udp_echo_start() {
-      local image cid
+      local image name
       image=$(dc images -q backend 2>/dev/null | head -n 1)
       [ -n "$image" ] || return 0
+      name="vtt-udp-echo-$$"
+      echo "$name" >"$udp_cid_file"
       if can_run; then
-        cid=$(docker run -d --rm --network host --entrypoint node "$image" backend/dist/cli/main.js udp-echo 2>/dev/null) || return 0
-        sleep 1
-        docker logs "$cid" 2>/dev/null | head -n 1
+        docker run --rm --name "$name" --network host --entrypoint node "$image" backend/dist/cli/main.js udp-echo >"$udp_port_file" 2>/dev/null &
       else
-        cid=$(sudo -- docker run -d --rm --network host --entrypoint node "$image" backend/dist/cli/main.js udp-echo 2>/dev/null) || return 0
-        sleep 1
-        sudo -- docker logs "$cid" 2>/dev/null | head -n 1
+        # shellcheck disable=SC2024  # the file is this user's own temp file: the redirect is meant to run as them
+        sudo -- docker run --rm --name "$name" --network host --entrypoint node "$image" backend/dist/cli/main.js udp-echo >"$udp_port_file" 2>/dev/null &
       fi
-      echo "$cid" >"$udp_cid_file"
+      # The listener prints its port when it is ready (a second or two for the container to start).
+      for _ in $(seq 1 24); do
+        [ -s "$udp_port_file" ] && { head -n 1 "$udp_port_file"; return 0; }
+        sleep 0.5
+      done
     }
     udp_cid_file=$(mktemp)
-    trap 'cid=$(cat "$udp_cid_file" 2>/dev/null); [ -n "$cid" ] && { docker rm -f "$cid" || sudo -- docker rm -f "$cid"; } >/dev/null 2>&1; rm -f "$udp_cid_file"' EXIT
+    udp_port_file=$(mktemp)
+    cleanup_udp() {
+      local cid
+      cid=$(cat "$udp_cid_file" 2>/dev/null)
+      [ -n "$cid" ] && { docker rm -f "$cid" || sudo -- docker rm -f "$cid"; } >/dev/null 2>&1
+      rm -f "$udp_cid_file" "$udp_port_file"
+    }
+    trap cleanup_udp EXIT
     backend_test() {
       local wan="" port=""
       case ${1:-} in reach)
@@ -158,8 +168,15 @@ case ${1:-} in
         shift 2
         external=0
         ai_args=()
-        for a in "$@"; do
-          if [ "$a" = --external ]; then external=1; else ai_args+=("$a"); fi
+        reach_args=()
+        while (($#)); do
+          case $1 in
+            --external) external=1 ;;
+            --from) reach_args+=("$1"); shift; reach_args+=("${1:-}") ;;
+            --from=*) reach_args+=("$1") ;;
+            *) ai_args+=("$1") ;;
+          esac
+          shift
         done
         rc=0
         ai_test "${ai_args[@]}" || rc=1
@@ -167,7 +184,7 @@ case ${1:-} in
         backend_test voice || rc=1
         echo
         if ((external)); then
-          backend_test reach || rc=1
+          backend_test reach "${reach_args[@]}" || rc=1
         else
           echo "  Outside check skipped: add --external (it asks check-host.net, a free third-party service) or run: vtt-admin test reach"
         fi

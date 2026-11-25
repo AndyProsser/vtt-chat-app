@@ -36,7 +36,7 @@ full --external`. **Players:** update the app.
 ### Changed
 
 - **A handout reads larger.** The letter and journal face (Cormorant) is set bigger with more line spacing, in both apps; the reading switches still turn it off.
-- **The history window opens larger, and the transcript is a tab.** The Game Master's transcript (with "Include dev builds" on) is a **Transcript** tab beside The Notes instead of a button below. The pop-out button is now the same expand icon as the handouts, and both lose their border.
+- **The history window opens larger, and the transcript is a tab.** The Game Master's transcript (with "Include dev builds" on) is a **Transcript** tab beside The Notes instead of a button below. The pop-out button is now the same expand icon as the handouts, and the history one loses its border.
 - **No "post it again" on a loot card in chat** (desktop and phone): it lives on the inventory screen, where the Game Master manages loot.
 - **`vtt-admin test reach --from gb,us`** asks from those countries first (a site that blocks the rest of the world; check-host.net has no places in Australia or New Zealand).
 - **A player on dev builds is offered the dev installers.** The app opens the download page with `?dev=1` when "Include dev builds" is on, so a Linux `.deb` or `.rpm` (which cannot update itself) gets the dev version; the server keeps `dev/downloads.json` for it, and drops it once a release outranks the dev build. `vtt-admin updates sync` writes it.
