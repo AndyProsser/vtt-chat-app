@@ -9,12 +9,16 @@ import {
   PostgresJobQueue,
   PostgresRecordsStore,
   readLocalAiStatus,
+  runAiTest,
   shownState,
 } from '@vtt-chat-app/ai';
+import { EgressClient, RoomServiceClient } from 'livekit-server-sdk';
 
 import { AccountService } from '../lib/auth/accountService.js';
 import { SignupService } from '../lib/auth/signupService.js';
 import { loadConfig } from '../lib/config.js';
+import { checkReach } from '../lib/selftest/reach.js';
+import { checkVoice } from '../lib/selftest/voice.js';
 import {
   ArchiveError,
   exportCampaign,
@@ -112,12 +116,45 @@ async function main(): Promise<number> {
     }
 
     const accounts = new AccountService({ store });
+    // `vtt-admin test`. On a Compose install AI is tested inside the worker's container (the wrapper runs it there), because
+    // that is where Whisper's and Ollama's addresses and the API keys are; a native install has them in this process.
+    const records = new PostgresRecordsStore(pool);
+    const liveKitApi = config.liveKitApiUrl;
+    const selfTest = {
+      publicUrl: process.env.PUBLIC_URL ?? '',
+      voice: () =>
+        checkVoice({
+          healthUrl: process.env.LIVEKIT_HEALTH_URL ?? liveKitApi,
+          publicUrl: config.liveKitUrl,
+          listRooms: () =>
+            new RoomServiceClient(
+              liveKitApi,
+              config.liveKitApiKey,
+              config.liveKitApiSecret,
+            ).listRooms(),
+          listEgress: () =>
+            new EgressClient(
+              liveKitApi,
+              config.liveKitApiKey,
+              config.liveKitApiSecret,
+            ).listEgress(),
+          recordingConfigured: Boolean(config.recordingsDir),
+        }),
+      reach: (host: string) => checkReach({ host }),
+      ...(process.env.VTT_ADMIN_HOST === 'compose'
+        ? {}
+        : {
+            ai: async (flags: { local: boolean; remote: boolean; cloud: boolean }) =>
+              runAiTest(flags, { settings: await records.getAiSettings(), env: process.env }),
+          }),
+    };
     return await runAdmin(process.argv.slice(2), {
+      selfTest,
       store,
       accounts,
       signups: new SignupService({ store, accounts }),
       jobs: new PostgresJobQueue(pool),
-      records: new PostgresRecordsStore(pool),
+      records,
       ...(config.updatesDir ? { updatesDir: config.updatesDir } : {}),
       ...(config.updatesSync
         ? {

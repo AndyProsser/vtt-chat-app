@@ -21,11 +21,18 @@ import {
   type OllamaContextStatus,
   type RecordsStore,
 } from '@vtt-chat-app/ai';
-import type { AiSettings } from '@vtt-chat-app/shared';
+import {
+  formatTestRows,
+  testExitCode,
+  testVerdict,
+  type AiSettings,
+  type TestRow,
+} from '@vtt-chat-app/shared';
 
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
+import { reachHost } from '../lib/selftest/reach.js';
 import { formatBytes, freePercent, isLow, measureDisk } from '../lib/status/storage.js';
 import {
   ArchiveError,
@@ -76,6 +83,17 @@ export interface AdminDeps {
   updatesSource?: string;
   /** Health checks for `status`. Injected so tests need no live services. */
   probes?: Probe[];
+  /**
+   * `vtt-admin test`: the checks, injected because they need live services. A missing one is not available in this
+   * process (AI is tested inside the worker's container on a Compose install).
+   */
+  selfTest?: {
+    voice?: () => Promise<TestRow[]>;
+    reach?: (host: string) => Promise<TestRow[]>;
+    ai?: (flags: { local: boolean; remote: boolean; cloud: boolean }) => Promise<TestRow[]>;
+    /** The server's public address (`PUBLIC_URL`), whose host name `test reach` asks about. */
+    publicUrl?: string;
+  };
   /** What the worker last found checking Ollama's real context window, for `status`'s AI section. */
   localAi?: LocalAiStatus | null;
   /** Removes pictures and PDFs no handout uses (after a campaign is deleted); returns how many. Needs MEDIA_DIR. */
@@ -312,6 +330,8 @@ export async function runAdmin(args: string[], options: AdminDeps): Promise<numb
         return await signupRequests(deps, command, rest);
       case 'jobs':
         return await jobs(deps, command, rest);
+      case 'test':
+        return await selfTests(deps, command, rest);
       case 'recording':
         return await recordings(deps, command, rest);
       case 'campaign':
@@ -949,6 +969,91 @@ function modelsLine(models: Job['models']): string {
     ? ` — fell back to local for ${models.fellBack.map((w) => (w === 'llm' ? 'the model' : 'transcription')).join(' and ')}`
     : '';
   return `${models.transcription}, ${writer}${fell}`;
+}
+
+const TEST_USAGE =
+  'usage: test ai [--local] [--remote] [--cloud] | test voice | test reach | test full [--external]';
+
+/** `vtt-admin test`: prove that the AI, the voice server and (on request) the outside route to this server all work. */
+async function selfTests(deps: Ctx, sub: string | undefined, rest: string[]): Promise<number> {
+  const { ui } = deps;
+  const checks = deps.selfTest ?? {};
+  const known = sub === 'ai' || sub === 'voice' || sub === 'reach' || sub === 'full';
+  const allowed =
+    sub === 'ai' ? ['--local', '--remote', '--cloud'] : sub === 'full' ? ['--external'] : [];
+  const unknown = rest.find((a) => !allowed.includes(a));
+  if (!known || unknown !== undefined) {
+    deps.err(unknown && known ? `unknown option ${unknown}. ${TEST_USAGE}` : TEST_USAGE);
+    return 2;
+  }
+  const flags = {
+    local: rest.includes('--local'),
+    remote: rest.includes('--remote'),
+    cloud: rest.includes('--cloud'),
+  };
+  const all: TestRow[] = [];
+  const show = (heading: string, rows: TestRow[]): void => {
+    deps.out('');
+    deps.out(`  ${ui.dim(heading)}`);
+    for (const line of formatTestRows(rows, (kind) => ui.badge(kind))) deps.out(`  ${line}`);
+    all.push(...rows);
+  };
+
+  deps.out(ui.title(`test ${sub}`, deps.version ? `v${deps.version}` : undefined));
+  if (sub === 'ai' || sub === 'full') {
+    show(
+      'AI: can the worker reach Whisper and the summary model?',
+      checks.ai
+        ? await checks.ai(flags)
+        : [
+            {
+              badge: 'off',
+              name: 'AI',
+              detail:
+                'tested inside the worker, not here: run vtt-admin test ai (on its own) to try Whisper and the summary model',
+            },
+          ],
+    );
+  }
+  if (sub === 'voice' || sub === 'full') {
+    show(
+      'Voice: is LiveKit up, and can it record?',
+      checks.voice
+        ? await checks.voice()
+        : [{ badge: 'off', name: 'Voice', detail: 'not available in this process' }],
+    );
+  }
+  if (sub === 'reach' || (sub === 'full' && rest.includes('--external'))) {
+    const host = reachHost(checks.publicUrl);
+    if (!host || !checks.reach) {
+      show('From outside: can people on the internet reach this server?', [
+        {
+          badge: 'warn',
+          name: 'Reach from outside',
+          detail:
+            'this server has no public address set (PUBLIC_URL), so there is nothing to check from outside. Set it with vtt-admin config set SITE_ADDRESS <host>.',
+        },
+      ]);
+    } else {
+      deps.out('');
+      deps.out(
+        `  ${ui.dim(`Asking check-host.net, a free public service, to connect to ${host} from several countries. It is told this host name and nothing else.`)}`,
+      );
+      show('From outside: can people on the internet reach this server?', await checks.reach(host));
+    }
+  } else if (sub === 'full') {
+    show('From outside', [
+      {
+        badge: 'off',
+        name: 'Reach from outside',
+        detail:
+          'not asked: it uses check-host.net, a free third-party service. Add --external to include it, or run vtt-admin test reach.',
+      },
+    ]);
+  }
+  deps.out('');
+  deps.out(`  ${testVerdict(all)}`);
+  return testExitCode(all);
 }
 
 async function jobs(deps: Ctx, command: string | undefined, rest: string[]): Promise<number> {

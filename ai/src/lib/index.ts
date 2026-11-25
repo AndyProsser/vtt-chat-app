@@ -11,6 +11,7 @@ export * from './merge.js';
 export * from './ollama.js';
 export * from './prompts.js';
 export * from './records/index.js';
+export * from './selftest/index.js';
 export * from './providers/index.js';
 export * from './speechWindows.js';
 export * from './summarise.js';

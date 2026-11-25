@@ -16,6 +16,8 @@ import { AccountService } from '../lib/auth/accountService.js';
 import { hashSecret, normaliseShortCode } from '../lib/auth/crypto.js';
 import { SignupService } from '../lib/auth/signupService.js';
 import { MemoryStore } from '../lib/store/memoryStore.js';
+import type { TestRow } from '@vtt-chat-app/shared';
+
 import { runAdmin, type Probe } from './admin.js';
 import { createUi } from './ui.js';
 import type { MachineInfo } from '../lib/status/machine.js';
@@ -1308,5 +1310,101 @@ describe('recording delete', () => {
     expect((await jobs.list())[0]).toMatchObject({ kind: 'delete-recording', recordingId: 'r1' });
     expect(await run('recording delete r2')).toBe(1);
     expect(await run('recording delete nope')).toBe(1);
+  });
+});
+
+describe('test: is everything working?', () => {
+  const ok = (name: string): TestRow => ({ badge: 'ok', name, detail: 'fine' });
+  const bad = (name: string): TestRow => ({ badge: 'fail', name, detail: 'broken' });
+
+  it('test voice prints what it found and says everything looks good', async () => {
+    expect(
+      await run('test voice', [], { selfTest: { voice: async () => [ok('LiveKit server')] } }),
+    ).toBe(0);
+    const text = out.join('\n');
+    expect(text).toContain('LiveKit server');
+    expect(text).toContain('Everything looks good.');
+  });
+
+  it('exits 1 and counts the problems when a check failed', async () => {
+    expect(
+      await run('test voice', [], {
+        selfTest: { voice: async () => [ok('a'), bad('LiveKit keys')] },
+      }),
+    ).toBe(1);
+    expect(out.join('\n')).toContain('1 problem found');
+  });
+
+  it('test reach says it is asking a third party, and for which host, before it asks', async () => {
+    const asked: string[] = [];
+    expect(
+      await run('test reach', [], {
+        selfTest: {
+          publicUrl: 'https://play.example.com',
+          reach: async (host) => {
+            asked.push(host);
+            return [ok('HTTPS (443)')];
+          },
+        },
+      }),
+    ).toBe(0);
+    expect(asked).toEqual(['play.example.com']);
+    const text = out.join('\n');
+    expect(text).toMatch(/check-host\.net/);
+    expect(text).toContain('play.example.com');
+    expect(text.indexOf('check-host.net')).toBeLessThan(text.indexOf('HTTPS (443)'));
+  });
+
+  it('test reach has nothing to check without a public address, and says how to set one', async () => {
+    expect(await run('test reach', [], { selfTest: { reach: async () => [ok('x')] } })).toBe(0);
+    expect(out.join('\n')).toMatch(/PUBLIC_URL|public address/i);
+  });
+
+  it('test ai passes the flags on, and refuses one it does not know', async () => {
+    let seen: unknown;
+    const ai = async (flags: unknown) => {
+      seen = flags;
+      return [ok('Whisper (local)')];
+    };
+    expect(await run('test ai --local --cloud', [], { selfTest: { ai } })).toBe(0);
+    expect(seen).toEqual({ local: true, remote: false, cloud: true });
+    expect(await run('test ai --everything', [], { selfTest: { ai } })).toBe(2);
+  });
+
+  it('test full runs the AI and voice checks, and only asks the outside world when told to', async () => {
+    const calls: string[] = [];
+    const selfTest = {
+      publicUrl: 'https://play.example.com',
+      ai: async () => (calls.push('ai'), [ok('Whisper (local)')]),
+      voice: async () => (calls.push('voice'), [ok('LiveKit server')]),
+      reach: async () => (calls.push('reach'), [ok('HTTPS (443)')]),
+    };
+    expect(await run('test full', [], { selfTest })).toBe(0);
+    expect(calls).toEqual(['ai', 'voice']);
+    expect(out.join('\n')).toMatch(/--external/);
+    out.length = 0;
+    calls.length = 0;
+    expect(await run('test full --external', [], { selfTest })).toBe(0);
+    expect(calls).toEqual(['ai', 'voice', 'reach']);
+  });
+
+  it('test full says AI is tested by the worker when this process cannot test it', async () => {
+    expect(
+      await run('test full', [], { selfTest: { voice: async () => [ok('LiveKit server')] } }),
+    ).toBe(0);
+    expect(out.join('\n')).toMatch(/vtt-admin test ai/);
+  });
+
+  it('test on its own, or with something else, shows how to use it', async () => {
+    expect(await run('test', [], { selfTest: {} })).toBe(2);
+    expect(out.join('\n') + err.join('\n')).toMatch(
+      /usage: test ai .*test voice.*test reach.*test full/,
+    );
+    expect(await run('test sideways', [], { selfTest: {} })).toBe(2);
+  });
+
+  it('is in the help', async () => {
+    await run('help');
+    expect(out.join('\n')).toMatch(/test voice/);
   });
 });
