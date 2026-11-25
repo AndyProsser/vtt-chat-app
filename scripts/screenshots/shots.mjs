@@ -52,6 +52,12 @@ async function history(c, { who, scheme, size, scrollTo }) {
   return view;
 }
 
+/** Opens one of a session's tabs (The Tale, The Heroes, The Story, The Notes). */
+async function openTab(page, c, name) {
+  await clickText(page, '[role="tab"]', name);
+  await c.sleep(500);
+}
+
 /** Settings, opened from the cog in the main window, on one of its tabs. */
 async function settings(c, { who, scheme, theme, tab, size }) {
   const view = await table(c, { who, scheme, theme, size, recording: false, speaking: null });
@@ -152,28 +158,17 @@ export const SHOTS = {
     return c.frameWindow(page, { scheme: 'dark' });
   },
   'desktop-history': async (c) => {
-    const { page } = await history(c, {
-      who: 'cass',
-      scheme: 'light',
-      size: [460, 700],
-      scrollTo: 'The tale',
-    });
+    const { page } = await history(c, { who: 'cass', scheme: 'light', size: [640, 780] });
     return c.frameWindow(page, { title: 'Session history — VTT Chat', scheme: 'light' });
   },
   'desktop-history-gm': async (c) => {
-    const { page } = await history(c, {
-      who: 'gm',
-      scheme: 'dark',
-      size: [460, 900],
-      scrollTo: 'DM brief',
-    });
+    const { page } = await history(c, { who: 'gm', scheme: 'dark', size: [640, 780] });
+    await openTab(page, c, 'The Heroes');
     return c.frameWindow(page, { title: 'Session history — VTT Chat', scheme: 'dark' });
   },
   'desktop-history-notes': async (c) => {
-    const { page } = await history(c, { who: 'gm', scheme: 'dark', size: [460, 780] });
-    await page.click('button[aria-label="Show the scribe’s notes"]');
-    await c.sleep(400);
-    await scrollToText(page, 'Scribe’s notes');
+    const { page } = await history(c, { who: 'gm', scheme: 'dark', size: [640, 780] });
+    await openTab(page, c, 'The Notes');
     return c.frameWindow(page, { title: 'Session history — VTT Chat', scheme: 'dark' });
   },
   'desktop-loot': async (c) => {

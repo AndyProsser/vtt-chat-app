@@ -778,7 +778,7 @@ download from with `UPDATES_SOURCE` in `.env`:
 - `off`: only what you publish by hand (below).
 
 `UPDATES_INCLUDE_DEV=1` (or `true`) also offers dev builds of your line to players who opted in. `vtt-admin updates sync` runs
-a sync now; `vtt-admin updates status` shows the source, what players are offered and what the mirror holds. It syncs
+a sync now; `vtt-admin updates status` shows the source, what players are offered and what the mirror holds. With dev builds on, the sync also keeps the dev build's installers for the download page, which the app opens with `?dev=1` for players who opted in (a `.deb` or `.rpm` cannot update itself, so this is how it gets a dev build). It syncs
 shortly after the server starts and every 6 hours.
 
 **Updating players' apps (by hand, for air-gapped servers or your own build):** build signed installers, then `vtt-admin updates publish <folder> --version

@@ -171,6 +171,10 @@ a **PDF**. Each can have a short caption.
 - **Click a card** to open it big, in its own window you can place beside the game. Pictures have **zoom**
   buttons (also Ctrl + the mouse wheel; drag to move around), which is useful for a large map. A PDF is
   read page by page inside the window.
+- A note can set a few words, or a whole inscription, in an **in-world language's own typeface**: write
+  `[Khazad ul barak](lang:dwarvish)`, or put a longer passage in a fenced block named for the language. Anywhere else it
+  reads as plain text. **Settings, Profile, Appearance** has switches to turn the language fonts, or the decorative document fonts,
+  down or off if they are hard to read.
 - Only the DM can edit a handout (open it and press the pencil). For a set of pictures the pencil also shows a
   strip to move a picture earlier or later, remove one (never the last), or add another. The handouts button in the bar lists
   everything shared with you.
@@ -207,7 +211,7 @@ you hear it first.
 - **Never recorded or transcribed:** whispers, sound effects from the DM's soundboard, and anything private.
 - **Who tells the tale** (Game Master): **Settings, Campaign, Storyteller** picks one of the storytellers the server offers (on the phone: tap the table's name, then pick one under **Storyteller**) (the Tavern Bard by default). Everyone can see who it is. Your server's operator decides which storytellers, how long the tales may be and how strong the language may be.
 - **Read them later** with the **session history** button: the tale of the session, its heroes and its chapters as tabs (**The Tale, The Heroes, The Story**, and for the Game Master **The Notes**), and a search across them. On the desktop the pop-out button beside the tabs opens a session in a window of its own.
-  The DM also sees a private brief, and can open the scribe's notes (the plain list of what happened that the tales were told from) with a button. The word-for-word transcript is not shown to players; a DM can read it in the desktop app after turning on **Settings → App → Include dev builds**.
+  The DM also sees a private brief and the scribe's notes (the plain list of what happened that the tales were told from) on **The Notes** tab. The word-for-word transcript is not shown to players; a DM can read it in the desktop app, as a **Transcript** tab, after turning on **Settings → App → Include dev builds**.
 - **If the DM drops** (their computer crashes or their network goes), the recording carries on for a short
   grace period (30 seconds by default). After that **any player** can pause, resume or stop it from the top
   bar. If everyone disconnects, it stops by itself.
@@ -280,11 +284,11 @@ different versions, update the app, or ask your DM to update the server if the a
 
 <img src="../images/screens/desktop-soundboard.png" alt="The sound drawer: character voices, stingers and scenes" width="380"> <img src="../images/screens/desktop-groups.png" alt="Voice groups: the Main Party and a place to start a new group" width="380">
 
-<img src="../images/screens/desktop-history-gm.png" alt="Session history as the DM sees it: the DM brief and the button for the scribe’s notes" width="300"> <img src="../images/screens/desktop-loot.png" alt="The party inventory as the DM sees it, with the tools to drop items and coin" width="300"> <img src="../images/screens/desktop-quality.png" alt="Settings, Players: each player’s latency over the last two minutes" width="300">
+<img src="../images/screens/desktop-history-gm.png" alt="Session history as the DM sees it: the tale split into tabs (The Tale, The Heroes, The Story, The Notes), here on The Heroes" width="300"> <img src="../images/screens/desktop-loot.png" alt="The party inventory as the DM sees it, with the tools to drop items and coin" width="300"> <img src="../images/screens/desktop-quality.png" alt="Settings, Players: each player’s latency over the last two minutes" width="300">
 
-_Top: the sound drawer (voices, stingers, scenes) and voice groups. Bottom: the DM brief with the scribe's notes folded behind their button, the inventory with the DM's drop tools, and each player's connection quality (Elowen's link is the slow one). The campaign's own settings (invites, handing over the DM role, join requests) are in Settings → Campaign:_
+_Top: the sound drawer (voices, stingers, scenes) and voice groups. Bottom: a session's heroes on their own tab (the DM also has The Notes), the inventory with the DM's drop tools, and each player's connection quality (Elowen's link is the slow one). The campaign's own settings (invites, handing over the DM role, join requests) are in Settings → Campaign:_
 
-<img src="../images/screens/desktop-settings-campaign.png" alt="Settings, Campaign: the description, invite links, handing over the DM role, and join requests" width="380"> <img src="../images/screens/desktop-history-notes.png" alt="The scribe’s notes, opened" width="380">
+<img src="../images/screens/desktop-settings-campaign.png" alt="Settings, Campaign: the description, invite links, handing over the DM role, and join requests" width="380"> <img src="../images/screens/desktop-history-notes.png" alt="The Notes tab, with the DM brief and the scribe’s notes" width="380">
 
 **GM notes and the glossary**
 

@@ -10,6 +10,15 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ## [Unreleased]
 
+## [0.6.4] - 2026-11-25
+
+A session's history reads as tabs, handouts and tales can set a line in an in-world language's own typeface, the phone
+app can choose the storyteller and keep the Game Master's notes, and the operator gets `vtt-admin test`: one command
+that proves the AI, voice and the way in from the internet all work, and says what to fix when they do not. A
+**PATCH** release: no protocol change, so 0.6.3 apps and servers work together. **Operators:** update the server
+(`vtt-admin update`; it adds one column to the jobs table), then `vtt-admin updates sync`, then try `vtt-admin test
+full --external`. **Players:** update the app.
+
 ### Added
 
 - **A past session reads as tabs: The Tale, The Heroes, The Story and The Notes.** One part at a time instead of the tale with everything folded under "More detail", in both apps. The Notes tab is the Game Master's alone (their brief, then the scribe's notes). The desktop app has a pop-out button beside the tabs that opens the session in a window of its own, on the tab you were reading, so a tale or the notes can sit beside the chat; opening the same session again brings that window forward.
@@ -33,6 +42,13 @@ the GitHub release notes and refuses to build a release without one. How to writ
 ### Fixed
 
 - **`vtt-admin status` showed "context window: not checked yet" for ever, and `--tune` had nothing to apply.** The worker was checking and saving the model's real context window, but the status command dropped it when reading it back. Both now see the check (it still appears a minute or two after the worker starts, then every 15 minutes). Found on the 0.6.3 test server.
+
+### Known limits
+
+- `vtt-admin test reach` cannot prove anything about a server behind a Cloudflare Tunnel's web side beyond "Cloudflare answers"; voice always needs its own forwarded ports. The router lookup (UPnP and NAT-PMP) only helps when the router answers and, under Docker, when the server's gateway is the router.
+- check-host.net has no places in Australia or New Zealand, so those servers are checked from Singapore or Indonesia, and `--from` can only name countries it covers.
+- A search result's snippet shows a language span's Markdown as written.
+- Read and unread marks on the session history, with a counter, are planned for 0.7.0 (they need the server).
 
 ## [0.6.3] - 2026-11-24
 

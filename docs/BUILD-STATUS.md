@@ -36,14 +36,18 @@ path), so `status` can be a few minutes stale after a config change; `--tune` ac
 value, not a fresh on-demand query. The bigger `vtt-admin test ai|voice|full` idea and external
 connectivity checking were both parked (ROADMAP.md, Future ideas) rather than built now.
 
-## Stage 14, 0.6.4 so far (2026-11-25): built and unit-tested, not yet seen in a real window
+## Stage 14, 0.6.4 (2026-11-25): built and unit-tested; the desktop screens seen by Andy on dev.2, the rest not yet run for real
 
-Dev builds `0.6.4-dev.N`. **None of this has been looked at in the real apps yet.**
+Dev builds `0.6.4-dev.1` and `dev.2` were deployed to the VM. **Andy looked at dev.2 in the real desktop app** and liked the campaign chooser; what he asked for after that (below, marked _after dev.2_) is built but has only been unit-tested. The full session 4 test, run by Andy on the released 0.6.4, closes the stage.
 
-- **Icon audit and the lucide fixes** (dev.1): Coins no longer shows a door, the 11 starter boards and 4 scenes have icons, the ability tiles carry watermarks, the campaign chooser is cards with a dry quip, and Game Icons is parked in Future ideas. The context-window status fix is in dev.1 too.
-- **Language spans** (after dev.1): `[words](lang:dwarvish)` and a fenced block named for a language, in handouts, notes and tales, in both apps (`makeLangComponents` in `ui-kit`), and the bard may write them. Known limit: a search snippet shows the markup as written.
-- **History as tabs** (after dev.1): `historyTabs()` in `shared/` (pure, no wire change), a `SessionTabs` component in each app, and on the desktop a pop-out window (`session_view_open` and `session_configure` in `windows.rs`, route `#session/<id>/<tab>`). The old "More detail" fold and `partitionSummaries` are gone.
-- **Signing:** the commits on the local branches from the language-spans work onward are **unsigned** (the 1Password agent was unreachable); they are re-signed before they are pushed.
+- **Icon audit and the lucide fixes** (dev.1): Coins no longer shows a door, the 11 starter boards and 4 scenes have icons, the ability tiles carry watermarks, the campaign chooser is cards with a dry quip (seen: "looks great"), and Game Icons is parked in Future ideas. The context-window status fix is in dev.1 too.
+- **Language spans:** `[words](lang:dwarvish)` and a fenced block named for a language, in handouts, notes and tales, in both apps (`makeLangComponents` in `ui-kit`), and the bard may write them. Known limit: a search snippet shows the markup as written.
+- **History as tabs** (seen on dev.2): `historyTabs()` in `shared/` (pure, no wire change), a `SessionTabs` component in each app, and on the desktop a pop-out window (`session_view_open` and `session_configure` in `windows.rs`, route `#session/<id>/<tab>`). _After dev.2:_ the window opens 640x780, the pop-out is the handouts' expand icon, and the DM's transcript is a **Transcript** tab instead of a button.
+- **Phone storyteller picker and GM notes:** built and unit-tested; **not yet tried on a phone**.
+- **`vtt-admin test ai|voice|reach|full`:** `ai` and `voice` were run on the VM (dev.2) and passed. `reach` found two faults in itself on its first real run (Cloudflare's 403 counted as a failure; the VM's split-horizon DNS answered with a private address); both are fixed _after dev.2_ along with the UDP echo proof, a node near the server, `--from`, CGNAT and router (UPnP/NAT-PMP) checks. **Those need one run on the VM on 0.6.4.** The UDP echo and the router lookup under Docker go through the `vtt-admin` wrapper and a host-network container; that path has been syntax-checked but not run.
+- **Models named in `jobs`/`status`** (migration 0046): applied on the VM with dev.2.
+- _After dev.2:_ handouts read larger; no "post it again" on a loot card in chat; and the download page takes `?dev=1` (the app opens it that way for a player on dev builds), served from `dev/downloads.json` written by `updates sync`. **Not yet seen on a real Linux `.deb`.**
+- **Signing:** the local commits were re-signed before they were pushed.
 
 ## Typography and icons, Stage 14 (0.6.3), 2026-11-24: built, seen in the real apps by Andy (fonts and the phone web app), released as 0.6.3
 
