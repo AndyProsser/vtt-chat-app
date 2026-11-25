@@ -1,5 +1,5 @@
 import { Button, Flex, Text, VisuallyHidden } from '@radix-ui/themes';
-import { Icon, useLanguageSwitches } from '@vtt-chat-app/ui-kit';
+import { actionIconName, Icon, useLanguageSwitches } from '@vtt-chat-app/ui-kit';
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useIsDm } from '../../hooks/useIsDm.js';
@@ -216,7 +216,7 @@ function Line({
         className="phone-bubble"
         style={kind === 'say' ? languageStyle(line.lang, switches) : undefined}
       >
-        {kind === 'do' && <Icon name="action" size={14} />} {lineText(line)}
+        {kind === 'do' && <Icon name={actionIconName(line.text)} size={14} />} {lineText(line)}
       </div>
       {caption && (
         <Text size="1" color="gray" className="phone-line-caption">

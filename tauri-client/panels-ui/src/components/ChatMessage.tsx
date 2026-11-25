@@ -1,6 +1,6 @@
 import { memo } from 'react';
 
-import { Icon, useLanguageSwitches } from '@vtt-chat-app/ui-kit';
+import { actionIconName, Icon, useLanguageSwitches } from '@vtt-chat-app/ui-kit';
 
 import { languageOf, languageStyle } from '../lib/chatStyle.js';
 import { lineKind } from '../lib/commands.js';
@@ -52,7 +52,7 @@ export const ChatMessage = memo(function ChatMessage({ line, members, selfId }: 
           // No name here: the avatar already shows who, and an action line conventionally names
           // the character in its own text ("Aelwen writes: ...") — this used to say it twice.
           <div className="vtt-do-text">
-            <Icon name="action" size={13} /> {line.text}
+            <Icon name={actionIconName(line.text)} size={13} /> {line.text}
           </div>
         ) : (
           <>
