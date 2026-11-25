@@ -10,8 +10,14 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ## [Unreleased]
 
+### Added
+
+- **Split coin from the chat card** (desktop). An unclaimed pile of coin in chat has the same "split the coin equally" button as the inventory, with the same list of players to share it among.
+
 ### Changed
 
+- **The inventory opens where there is something to do.** A player's list opens on what still needs adding to their sheet; if nothing does, on what is left to take; if nothing is, on what they own. The Game Master still opens on what is left to give out. (Desktop and phone; it is chosen once and does not jump while you tick items off.)
+- **Panels are tidier.** Handouts, Party inventory and Session history each have the same compact heading, with less space around it. The history search looks like the handouts search and searches as you type. Buttons inside a handout or a session are icons without a border; filters, toggles and the sound drawer keep theirs.
 - **Handouts are the same size in both apps.** After 0.6.4 the desktop's handout text was a little small and the phone's a little big; both now read at about 18px.
 
 ### Fixed

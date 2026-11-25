@@ -4,7 +4,6 @@ import {
   List,
   ListChecks,
   ListTodo,
-  Split,
   Trash2,
   User,
   UserCheck,
@@ -17,13 +16,19 @@ import {
   isConfirmed,
   needsConfirming,
 } from '@vtt-chat-app/shared';
-import { Fragment, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 
 import { useAccount } from '../hooks/useAccount.js';
 import { useCampaignQuery } from '../hooks/useCampaignQuery.js';
 import { useTableFeed } from '../hooks/useTableFeed.js';
 import { useLeaving } from '../hooks/useLeaving.js';
-import { defaultFilter, filterLoot, filtersFor, type LootFilter } from '../lib/lootFilter.js';
+import {
+  defaultFilter,
+  filterLoot,
+  filtersFor,
+  smartLootFilter,
+  type LootFilter,
+} from '../lib/lootFilter.js';
 import { isDm } from '../lib/tableModel.js';
 import { useTableStore } from '../lib/tableStore.js';
 import { itemLabel } from '../lib/timeline.js';
@@ -31,7 +36,7 @@ import { accountErrorMessage, campaignApi } from '../lib/tauriBridge.js';
 import type { LootItem } from '../types/index.js';
 import { ItemIcon } from './ItemIcon.js';
 import { LootActions } from './LootActions.js';
-import { PlayerList } from './PlayerList.js';
+import { SplitButton, SplitFieldset, useCoinSplit } from './CoinSplit.js';
 import { LootWorkbench } from './LootWorkbench.js';
 import { RoundCheck } from './RoundCheck.js';
 import { ToolButton } from './ToolButton.js';
@@ -67,9 +72,15 @@ export function LootPanel() {
   const dm = isDm(members, status?.userId ?? null);
   const players = useMemo(() => members.filter((m) => m.role === 'player'), [members]);
   const { data, error, reload } = useCampaignQuery<{ loot: LootItem[] }>('loot', ['loot.']);
-  const [filter, setFilter] = useState<LootFilter>(() => defaultFilter(dm));
-  const [splitting, setSplitting] = useState<string>();
-  const [chosen, setChosen] = useState<string[]>([]);
+  // Opens where there is something to do (to confirm, else available, else mine), decided once the list and who you are are known,
+  // and then left alone: it must not jump while you tick items off.
+  const [pickedFilter, setPickedFilter] = useState<LootFilter>();
+  const [auto, setAuto] = useState<LootFilter>();
+  const ready = data !== undefined && status?.userId != null && members.length > 0;
+  useEffect(() => {
+    if (auto === undefined && ready) setAuto(smartLootFilter(data.loot, status.userId, dm));
+  }, [auto, ready, data, status?.userId, dm]);
+  const filter = pickedFilter ?? auto ?? defaultFilter(dm);
   const [actionError, setActionError] = useState<string>();
 
   async function run(call: () => Promise<unknown>) {
@@ -81,10 +92,7 @@ export function LootPanel() {
       setActionError(accountErrorMessage(e));
     }
   }
-  const startSplit = (id: string) => {
-    setSplitting(id);
-    setChosen(players.map((p) => p.userId)); // default: every player, offline included
-  };
+  const split = useCoinSplit(players, reload);
   const problem = error ?? actionError;
   const view = filtersFor(dm).includes(filter) ? filter : defaultFilter(dm);
   const loot = data?.loot;
@@ -100,7 +108,7 @@ export function LootPanel() {
 
   return (
     <div className="vtt-inventory">
-      <h2 className="vtt-head">
+      <h2 className="vtt-head vtt-panel-title">
         <Backpack size={18} style={{ verticalAlign: '-3px' }} /> Party inventory
       </h2>
       {problem && (
@@ -117,7 +125,7 @@ export function LootPanel() {
               key={f}
               label={FILTER_LABEL[f]}
               pressed={view === f}
-              onClick={() => setFilter(f)}
+              onClick={() => setPickedFilter(f)}
             >
               <Icon size={14} />
             </ToolButton>
@@ -190,9 +198,7 @@ export function LootPanel() {
                     disabled={isConfirmed(item, status?.userId ?? null)}
                   />
                   {open && item.kind === 'coin' && (
-                    <ToolButton label="Split the coin equally…" onClick={() => startSplit(item.id)}>
-                      <Split size={14} />
-                    </ToolButton>
+                    <SplitButton onClick={() => split.start(item.id)} />
                   )}
                   {dm && (
                     <ToolButton
@@ -215,37 +221,8 @@ export function LootPanel() {
                   )}
                 </div>
               </div>
-              {splitting === item.id && (
-                <fieldset className="vtt-split">
-                  <legend>
-                    Split {item.quantity} {item.name} equally among
-                  </legend>
-                  <PlayerList
-                    mode="multi"
-                    label="Split among"
-                    players={players}
-                    selected={chosen}
-                    onChange={setChosen}
-                    hint={(p) => (p.online ? undefined : 'offline')}
-                  />
-                  <div className="vtt-drawer-row">
-                    <ToolButton
-                      label={`Split among ${chosen.length}`}
-                      disabled={chosen.length === 0}
-                      text={`Split among ${chosen.length}`}
-                      onClick={() =>
-                        void run(() =>
-                          campaignApi('POST', `loot/${item.id}/split`, { userIds: chosen }),
-                        ).then(() => setSplitting(undefined))
-                      }
-                    >
-                      <Split size={14} />
-                    </ToolButton>
-                    <ToolButton label="Cancel" onClick={() => setSplitting(undefined)}>
-                      ×
-                    </ToolButton>
-                  </div>
-                </fieldset>
+              {split.itemId === item.id && (
+                <SplitFieldset split={split} players={players} item={item} />
               )}
             </div>
           </Fragment>

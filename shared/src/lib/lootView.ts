@@ -86,6 +86,21 @@ export function needsConfirming(item: Filterable, selfId: string | null): boolea
   return item.claimedBy === selfId && item.confirmed !== true;
 }
 
+/**
+ * The filter a player's list opens on, once the items are known: what still needs adding to their sheet, else what is left
+ * to take, else what they own (fewest clicks to something useful). The Game Master opens on what is left to give out.
+ */
+export function smartLootFilter(
+  items: readonly Filterable[],
+  selfId: string | null,
+  dm: boolean,
+): LootFilter {
+  if (dm) return 'available';
+  if (items.some((i) => needsConfirming(i, selfId))) return 'unconfirmed';
+  if (items.some((i) => !i.claimedBy)) return 'available';
+  return 'own';
+}
+
 /** The two groups in the "to confirm" list, in the order they are shown. */
 export type ConfirmGroup = 'mine' | 'party';
 

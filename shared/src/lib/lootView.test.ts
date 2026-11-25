@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   groupForConfirming,
   defaultLootFilter,
+  smartLootFilter,
   filterLootItems,
   lootActions,
   lootFiltersFor,
@@ -86,6 +87,25 @@ describe('filterLootItems', () => {
   it('opens on Available for everyone', () => {
     expect(defaultLootFilter(true)).toBe('available');
     expect(defaultLootFilter(false)).toBe('unconfirmed');
+  });
+});
+
+describe('smartLootFilter: open where there is something to do', () => {
+  const open = { claimedBy: null };
+  const mine = { claimedBy: 'p1', claimedFor: 'self' as const, confirmed: true };
+  const unticked = { claimedBy: 'p1', claimedFor: 'self' as const };
+  it('opens a player on what still needs adding to their sheet', () => {
+    expect(smartLootFilter([unticked, open], 'p1', false)).toBe('unconfirmed');
+  });
+  it('then on what is left to take', () => {
+    expect(smartLootFilter([mine, open], 'p1', false)).toBe('available');
+  });
+  it('then on what they own', () => {
+    expect(smartLootFilter([mine], 'p1', false)).toBe('own');
+    expect(smartLootFilter([], 'p1', false)).toBe('own');
+  });
+  it('opens the Game Master on what is left to give out', () => {
+    expect(smartLootFilter([unticked, mine], 'dm', true)).toBe('available');
   });
 });
 

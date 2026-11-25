@@ -4,6 +4,7 @@ import {
   groupForConfirming,
   canConfirm,
   defaultLootFilter,
+  smartLootFilter,
   isConfirmed,
   filterLootItems,
   lootActions,
@@ -13,7 +14,7 @@ import {
   type LootAction,
   type LootFilter,
 } from '@vtt-chat-app/shared';
-import { Fragment, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 
 import { holder } from '../../lib/phone/lootCards.js';
 import { GiveSelect } from './GiveSelect.js';
@@ -55,7 +56,13 @@ export function InventoryTab({ campaignId }: { campaignId: string }) {
     () => lootItems(campaignId),
     `${campaignId}:${rev}`,
   );
-  const [filter, setFilter] = useState<LootFilter>(() => defaultLootFilter(dm));
+  // Opens where there is something to do (to confirm, else available, else mine), once the list is known, then left alone.
+  const [chosen, setChosen] = useState<LootFilter>();
+  const [auto, setAuto] = useState<LootFilter>();
+  useEffect(() => {
+    if (auto === undefined && data && selfId !== null) setAuto(smartLootFilter(data, selfId, dm));
+  }, [auto, data, selfId, dm]);
+  const filter = chosen ?? auto ?? defaultLootFilter(dm);
   const [problem, setProblem] = useState<string>();
   const filters = lootFiltersFor(dm);
   const view = filters.includes(filter) ? filter : defaultLootFilter(dm);
@@ -105,7 +112,7 @@ export function InventoryTab({ campaignId }: { campaignId: string }) {
         <SegmentedControl.Root
           size="1"
           value={view}
-          onValueChange={(v) => setFilter(v as LootFilter)}
+          onValueChange={(v) => setChosen(v as LootFilter)}
         >
           {filters.map((f) => (
             <SegmentedControl.Item key={f} value={f}>

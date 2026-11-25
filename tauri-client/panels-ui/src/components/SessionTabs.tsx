@@ -53,12 +53,7 @@ export function SessionTabs({
           {transcript && <Tabs.Trigger value={TRANSCRIPT}>Transcript</Tabs.Trigger>}
         </Tabs.List>
         {onPopout && (
-          <ToolButton
-            label="Open in its own window"
-            square
-            className="vtt-tool-bare"
-            onClick={onPopout}
-          >
+          <ToolButton label="Open in its own window" square onClick={onPopout}>
             <Maximize2 size={14} />
           </ToolButton>
         )}

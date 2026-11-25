@@ -1,6 +1,6 @@
 import { TextField } from '@radix-ui/themes';
 import { summaryBlurb, type HistoryTabId } from '@vtt-chat-app/shared';
-import { ChevronDown, ChevronRight, Search, X } from 'lucide-react';
+import { ChevronDown, ChevronRight, Search } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { useAccount } from '../hooks/useAccount.js';
@@ -34,7 +34,6 @@ import {
 } from '../lib/tauriBridge.js';
 import { SessionTabs } from './SessionTabs.js';
 import { SessionDelete } from './SessionDelete.js';
-import { ToolButton } from './ToolButton.js';
 import { EmptyState } from './EmptyState.js';
 
 const statusWord = (status: string): string =>
@@ -85,6 +84,7 @@ export function HistoryPanel() {
 
   return (
     <div className="vtt-sessions">
+      <h2 className="vtt-head vtt-panel-title">Session history</h2>
       <SearchBox onOpen={setOpenId} transcript={transcript} />
       {error && (
         <div className="vtt-composer-error" role="alert" style={{ position: 'static' }}>
@@ -118,15 +118,21 @@ function SearchBox({ onOpen, transcript }: { onOpen: (id: string) => void; trans
   const [hits, setHits] = useState<SearchHit[]>();
   const [error, setError] = useState<string>();
 
-  async function run() {
-    if (text.trim().length < 2) return;
+  // Searches as you type (after a short pause), and on Enter; an empty box clears the results.
+  async function run(query: string) {
+    if (query.trim().length < 2) return;
     try {
       setError(undefined);
-      setHits(shownHits((await recordsSearch(text)).hits, transcript));
+      setHits(shownHits((await recordsSearch(query)).hits, transcript));
     } catch (e) {
       setError(accountErrorMessage(e));
     }
   }
+  useEffect(() => {
+    if (text.trim().length < 2) return;
+    const t = setTimeout(() => void run(text), 400);
+    return () => clearTimeout(t);
+  }, [text]);
 
   return (
     <div className="vtt-sessions">
@@ -134,34 +140,21 @@ function SearchBox({ onOpen, transcript }: { onOpen: (id: string) => void; trans
         className="vtt-form-row"
         onSubmit={(e) => {
           e.preventDefault();
-          void run();
+          void run(text);
         }}
       >
+        <Search size={14} aria-hidden />
         <TextField.Root
           size="1"
           style={{ flex: 1, minWidth: 140 }}
           aria-label="Search the history"
-          placeholder={transcript ? 'Search the tales and what was said' : 'Search the tales'}
+          placeholder={transcript ? 'Search the tales and what was said…' : 'Search the tales…'}
           value={text}
           onChange={(e) => {
             setText(e.target.value);
             if (e.target.value === '') setHits(undefined);
           }}
         />
-        <ToolButton label="Search" disabled={text.trim().length < 2} onClick={() => void run()}>
-          <Search size={14} />
-        </ToolButton>
-        {hits && (
-          <ToolButton
-            label="Clear the search"
-            onClick={() => {
-              setText('');
-              setHits(undefined);
-            }}
-          >
-            <X size={14} />
-          </ToolButton>
-        )}
       </form>
       {error && (
         <div className="vtt-composer-error" role="alert" style={{ position: 'static' }}>

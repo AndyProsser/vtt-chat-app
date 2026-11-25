@@ -850,7 +850,13 @@ body,
   /* Handouts are read at length, and Cormorant's x-height is small: about 18px from the panels' small (about 11px) base. */
   font-size: calc(var(--vtt-narrative-size) * 1.36);
 }
-.vtt-tool-bare {
+.vtt-panel-title {
+  /* The panels' own heading: the window's title bar already names it, so keep it close to what follows. */
+  margin: 0;
+  line-height: 1.2;
+}
+/* Buttons inside a card (a handout, a session) read as icons; toggles, filters and anything outside a card keep their border. */
+.vtt-session .vtt-tool:not(.vtt-tool-on) {
   border-color: transparent;
 }
 .vtt-tool-square {

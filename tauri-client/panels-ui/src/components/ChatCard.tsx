@@ -3,6 +3,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 
 import { FlipPanel } from './FlipPanel.js';
 import { ItemIcon } from './ItemIcon.js';
+import { SplitButton, SplitFieldset, useCoinSplit } from './CoinSplit.js';
 import { LootActions } from './LootActions.js';
 import { handoutPicture } from '../lib/handoutPicture.js';
 import { plainPreview } from '../lib/handoutTools.js';
@@ -111,6 +112,7 @@ function LootCard({
   const [open, setOpen] = useState(false);
   const dm = isDm(members, selfId);
   const players = members.filter((m) => m.role === 'player');
+  const split = useCoinSplit(players);
   const expandable = Boolean(card.description);
   const label = (
     <>
@@ -148,6 +150,9 @@ function LootCard({
           players={players}
           inChat
         />
+        {card.coin && !card.claimedBy && (
+          <SplitButton onClick={() => split.start(card.id.replace(/^loot:/, ''))} />
+        )}
         {expandable && (
           <button
             type="button"
@@ -164,6 +169,13 @@ function LootCard({
           </button>
         )}
       </div>
+      {split.itemId && (
+        <SplitFieldset
+          split={split}
+          players={players}
+          item={{ name: card.title, quantity: card.quantity ?? 0 }}
+        />
+      )}
       {open && card.description && (
         <div className="vtt-card-loot-more">
           <p className="vtt-viewer-caption">{card.description}</p>

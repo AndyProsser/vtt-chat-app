@@ -514,7 +514,7 @@ export function HandoutsPanel() {
   const problem = error ?? actionError;
   return (
     <div className="vtt-sessions">
-      <h2 className="vtt-head">Handouts</h2>
+      <h2 className="vtt-head vtt-panel-title">Handouts</h2>
       {problem && (
         <div className="vtt-composer-error" role="alert" style={{ position: 'static' }}>
           {problem}
