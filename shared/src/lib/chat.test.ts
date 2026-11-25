@@ -221,6 +221,18 @@ describe('/say with a language picker', () => {
   });
 });
 
+describe('the /say-<language> shorthand stays out of the way', () => {
+  it('is not offered in the command list, even while /say is being typed', () => {
+    for (const typed of ['/', '/s', '/sa', '/say']) {
+      expect(suggest(typed, ctx).items.some((i) => i.insert.startsWith('/say-'))).toBe(false);
+    }
+  });
+  it('is listed only once the dash has been typed', () => {
+    expect(suggest('/say-', ctx).items.every((i) => i.insert.startsWith('/say-'))).toBe(true);
+    expect(suggest('/say-o', ctx).items.map((i) => i.insert)).toEqual(['/say-orc ']);
+  });
+});
+
 describe('/take and /stash', () => {
   const lootCtx: ChatContext = {
     ...ctx,

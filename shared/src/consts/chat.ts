@@ -42,7 +42,7 @@ export const BASE_CHAT_COMMANDS: readonly ChatCommand[] = [
     name: 'do',
     aliases: ['me'],
     usage: '/do <text>',
-    description: 'An action: Thorin raises his axe',
+    description: 'A small action, maybe a skill check: nods to the trader, jumps the puddle',
     kind: 'do',
   },
   {

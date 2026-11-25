@@ -34,7 +34,7 @@ summaries and search. _(my call: "stay out" read as out of the **record**, not h
 | `/say [language] <text>`        | The character speaks, in Common unless a language is **picked**: right after `/say` a list of languages opens and Tab or Enter confirms one (it becomes `/say-<language>`); a language word typed by hand is never guessed (2026-11-25). |
 | `/take [item]`, `/stash [item]` | Take an available item for yourself or the party stash; the list of available items autocompletes; with no item, open the inventory on Available (2026-11-25).                                                                           |
 | `/say-<language> <text>`        | Speaks in a language, for example `/say-elvish Hi`, `/say-dwarvish Drinks on me!`.                                                                                                                                                       |
-| `/do <text>`, `/me <text>`      | An action: _Thorin raises his axe._                                                                                                                                                                                                      |
+| `/do <text>`, `/me <text>`      | A small action, often one a skill check might follow, mostly outside combat (in a fight players say what they do aloud): _Thorin nods to the trader._ Shown with an action icon, not a `*`.                                              |
 | `/ooc <text>`                   | Out of character.                                                                                                                                                                                                                        |
 | `/tell <name> <text>`, `/w …`   | Whisper to one person at the table. **The name autocompletes** (members only).                                                                                                                                                           |
 | `/dm <text>`                    | Whisper to the DM, no name needed. If you are the DM, it says so instead.                                                                                                                                                                |
@@ -49,6 +49,8 @@ scheduled session they post the chat line only. RSVP values are the existing `ye
 `/say-dwarven` is accepted as well as `/say-dwarvish` (a short alias table), because people type what they say.
 
 ## Autocomplete
+
+- The `/say-<language>` shorthand is never listed with the commands: it appears only once the dash is typed (`/say-`), and the same will hold for `/npc-<language>` (Andy, 2026-11-25). The everyday route is `/say` and the language list.
 
 - Typing `/` at the start of the composer opens a list, filtered as you type: the command, a one-line description
   and its usage. **Up/Down** move, **Tab or Enter** complete, **Escape** closes. Typing `/say-` lists the languages.
