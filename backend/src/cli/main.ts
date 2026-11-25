@@ -17,7 +17,7 @@ import { EgressClient, RoomServiceClient } from 'livekit-server-sdk';
 import { AccountService } from '../lib/auth/accountService.js';
 import { SignupService } from '../lib/auth/signupService.js';
 import { loadConfig } from '../lib/config.js';
-import { checkReach } from '../lib/selftest/reach.js';
+import { checkReach, type VoiceTarget, type WebTarget } from '../lib/selftest/reach.js';
 import { checkVoice } from '../lib/selftest/voice.js';
 import {
   ArchiveError,
@@ -140,7 +140,9 @@ async function main(): Promise<number> {
             ).listEgress(),
           recordingConfigured: Boolean(config.recordingsDir),
         }),
-      reach: (host: string) => checkReach({ host }),
+      voiceAddress: process.env.VOICE_ADDRESS ?? '',
+      voiceTcpPort: Number(process.env.VOICE_TCP_PORT) || 7881,
+      reach: (targets: { web: WebTarget; voice: VoiceTarget }) => checkReach(targets),
       ...(process.env.VTT_ADMIN_HOST === 'compose'
         ? {}
         : {

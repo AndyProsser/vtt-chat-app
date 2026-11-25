@@ -15,9 +15,21 @@ const USER_AGENT = 'vtt-chat-app vtt-admin (self-hosted server reachability chec
 const ICE_TCP_PORT = 7881;
 const POLL_EVERY_MS = 2_000;
 
-export interface ReachOptions {
-  /** The server's public host name (see {@link reachHost}). */
+/** Where the web side of this server answers. */
+export interface WebTarget {
   host: string;
+  scheme: 'http' | 'https';
+  port: number;
+}
+/** Where voice's ICE-over-TCP fallback answers: the voice address, which need not be the web host (web behind Cloudflare, voice direct). */
+export interface VoiceTarget {
+  host: string;
+  port: number;
+}
+
+export interface ReachOptions {
+  web: WebTarget;
+  voice: VoiceTarget;
   fetchImpl?: typeof fetch;
   /** Injected for tests; the real one waits. */
   sleep?: (ms: number) => Promise<void>;
@@ -28,14 +40,32 @@ export interface ReachOptions {
   maxNodes?: number;
 }
 
-/** The host name of the server's public address (`PUBLIC_URL`), or nothing when it is not set or not a web address. */
-export function reachHost(publicUrl: string | undefined): string | undefined {
+/**
+ * What to check, from the server's public address (`PUBLIC_URL`) and its voice address (`VOICE_ADDRESS`, set by `vtt-admin
+ * voice-address`): the scheme and port the site is really served on (a `--port` install is not on 443), and the voice host,
+ * which is the web host unless the operator pointed voice somewhere else. Nothing when there is no web address to check.
+ */
+export function reachTargets(
+  publicUrl: string | undefined,
+  voiceAddress: string | undefined,
+  voiceTcpPort = 7881,
+): { web: WebTarget; voice: VoiceTarget } | undefined {
   if (!publicUrl) return undefined;
+  let url: URL;
   try {
-    return new URL(publicUrl).hostname || undefined;
+    url = new URL(publicUrl);
   } catch {
     return undefined;
   }
+  if ((url.protocol !== 'https:' && url.protocol !== 'http:') || !url.hostname) return undefined;
+  const scheme = url.protocol === 'https:' ? 'https' : 'http';
+  const port = url.port ? Number(url.port) : scheme === 'https' ? 443 : 80;
+  const address = voiceAddress?.trim();
+  const voiceHost = address && address.toLowerCase() !== 'auto' ? address : url.hostname;
+  return {
+    web: { host: url.hostname, scheme, port },
+    voice: { host: voiceHost, port: voiceTcpPort },
+  };
 }
 
 /** Whether a host name or address could be reached from the internet at all (a private or local one cannot). */
@@ -105,15 +135,27 @@ function detail(t: { ok: string[]; failed: string[]; pending: string[] }): strin
 
 const warn = (name: string, text: string): TestRow => ({ badge: 'warn', name, detail: text });
 
+interface Spec {
+  label: string;
+  kind: 'http' | 'tcp';
+  target: string;
+  works: (answer: unknown) => boolean;
+  onNone: 'fail' | 'warn';
+  none: string;
+}
+
+const CLOUDFLARE_HINT =
+  " If your web address is proxied by Cloudflare, port 7881 never passes through it: point voice at your server's own address with vtt-admin voice-address <ip>, and this test will check that one.";
+
 /** Asks check-host.net to open the connections, waits for the answers, and says what it found. */
 export async function checkReach(options: ReachOptions): Promise<TestRow[]> {
-  const { host } = options;
+  const { web, voice } = options;
   const name = 'Reach from outside';
-  if (!isPublicHost(host)) {
+  if (!isPublicHost(web.host)) {
     return [
       warn(
         name,
-        `${host} is not a public address (it is private or local), so nothing outside your network can reach it. Set the server's public host name.`,
+        `${web.host} is not a public address (it is private or local), so nothing outside your network can reach it. Set the server's public host name.`,
       ),
     ];
   }
@@ -124,26 +166,80 @@ export async function checkReach(options: ReachOptions): Promise<TestRow[]> {
   const maxNodes = options.maxNodes ?? 3;
   const headers = { Accept: 'application/json', 'User-Agent': USER_AGENT };
 
+  const defaultPort = web.scheme === 'https' ? 443 : 80;
+  const hostPort = `${web.host}${web.port === defaultPort ? '' : `:${web.port}`}`;
+  const specs: Spec[] = [];
+  const preRows: TestRow[] = [];
+  if (web.scheme === 'https' && web.port === 443) {
+    specs.push(
+      {
+        label: 'HTTP (80)',
+        kind: 'http',
+        target: `http://${web.host}/`,
+        works: httpWorks,
+        onNone: 'fail',
+        none: 'Port 80 is not reaching the server; check the router forwards it (HTTPS certificates need it too, unless you use the DNS challenge).',
+      },
+      {
+        label: 'HTTPS (443)',
+        kind: 'http',
+        target: `https://${web.host}/api/health`,
+        works: httpWorks,
+        onNone: 'fail',
+        none: 'Port 443 is not reaching the server, or the backend is down; players cannot sign in.',
+      },
+    );
+  } else {
+    specs.push({
+      label: `Web (${web.scheme}://${hostPort})`,
+      kind: 'http',
+      target: `${web.scheme}://${hostPort}/api/health`,
+      works: httpWorks,
+      onNone: 'fail',
+      none: `Port ${web.port} is not reaching the server, or the backend is down; players cannot sign in.`,
+    });
+  }
+  const sameHost = voice.host.toLowerCase() === web.host.toLowerCase();
+  const voiceLabel =
+    sameHost && voice.port === 7881
+      ? 'Voice TCP (7881)'
+      : `Voice TCP (${voice.host}:${voice.port})`;
+  if (!isPublicHost(voice.host)) {
+    preRows.push(
+      warn(
+        voiceLabel,
+        `${voice.host} is not a public address (it is private or local), so nothing outside can reach voice there. Set the voice address to your public address (vtt-admin voice-address).`,
+      ),
+    );
+  } else {
+    specs.push({
+      label: voiceLabel,
+      kind: 'tcp',
+      target: `${voice.host}:${voice.port}`,
+      works: tcpWorks,
+      onNone: 'warn',
+      none:
+        'The ICE-over-TCP fallback is closed, so players on networks that block UDP cannot join voice. Forward ' +
+        `${voice.port}/tcp.${sameHost ? CLOUDFLARE_HINT : ''}`,
+    });
+  }
+
   const get = async (path: string): Promise<unknown> => {
     const res = await doFetch(`${API}${path}`, { headers, signal: AbortSignal.timeout(15_000) });
     if (!res.ok) throw new Error(`check-host.net answered ${res.status}`);
     return res.json();
   };
-  const start = async (kind: 'http' | 'tcp', target: string): Promise<Started> => {
+  const start = async (spec: Spec): Promise<Started> => {
     const r = (await get(
-      `/check-${kind}?host=${encodeURIComponent(target)}&max_nodes=${maxNodes}`,
+      `/check-${spec.kind}?host=${encodeURIComponent(spec.target)}&max_nodes=${maxNodes}`,
     )) as { ok?: number; request_id?: string; nodes?: Record<string, Place> };
     if (r.ok !== 1 || !r.request_id || !r.nodes) throw new Error('refused');
     return { id: r.request_id, places: r.nodes };
   };
 
-  let http: Started, https: Started, tcp: Started;
+  let started: Started[];
   try {
-    [http, https, tcp] = await Promise.all([
-      start('http', `http://${host}/`),
-      start('http', `https://${host}/api/health`),
-      start('tcp', `${host}:${ICE_TCP_PORT}`),
-    ]);
+    started = await Promise.all(specs.map(start));
   } catch (e) {
     return [
       warn(
@@ -155,15 +251,14 @@ export async function checkReach(options: ReachOptions): Promise<TestRow[]> {
     ];
   }
 
-  const checks = [http, https, tcp];
   const answers = new Map<string, Answers>();
   const done = (s: Started): boolean => {
     const a = answers.get(s.id);
     return !!a && Object.keys(s.places).every((n) => a[n] !== null && a[n] !== undefined);
   };
-  while (!checks.every(done) && now() < deadline) {
+  while (!started.every(done) && now() < deadline) {
     await sleep(POLL_EVERY_MS);
-    for (const s of checks.filter((c) => !done(c))) {
+    for (const s of started.filter((c) => !done(c))) {
       try {
         answers.set(s.id, (await get(`/check-result/${s.id}`)) as Answers);
       } catch {
@@ -172,43 +267,20 @@ export async function checkReach(options: ReachOptions): Promise<TestRow[]> {
     }
   }
 
-  const rowFor = (
-    label: string,
-    s: Started,
-    works: (a: unknown) => boolean,
-    onNone: 'fail' | 'warn',
-    none: string,
-  ): TestRow => {
-    const t = tally(s, answers.get(s.id), works);
+  const rows = specs.map((spec, i): TestRow => {
+    const t = tally(started[i]!, answers.get(started[i]!.id), spec.works);
     const everyone = t.failed.length === 0 && t.pending.length === 0;
-    if (t.ok.length > 0 && everyone) return { badge: 'ok', name: label, detail: detail(t) };
+    if (t.ok.length > 0 && everyone) return { badge: 'ok', name: spec.label, detail: detail(t) };
     if (t.ok.length === 0 && t.failed.length > 0) {
-      return { badge: onNone, name: label, detail: `${detail(t)}. ${none}` };
+      return { badge: spec.onNone, name: spec.label, detail: `${detail(t)}. ${spec.none}` };
     }
-    return warn(label, detail(t));
-  };
+    return warn(spec.label, detail(t));
+  });
+  // The voice row goes after the web rows, then UDP, in the order people read them.
   return [
-    rowFor(
-      'HTTP (80)',
-      http,
-      httpWorks,
-      'fail',
-      'Port 80 is not reaching the server; check the router forwards it.',
-    ),
-    rowFor(
-      'HTTPS (443)',
-      https,
-      httpWorks,
-      'fail',
-      'Port 443 is not reaching the server, or the backend is down; players cannot sign in.',
-    ),
-    rowFor(
-      'Voice TCP (7881)',
-      tcp,
-      tcpWorks,
-      'warn',
-      'The ICE-over-TCP fallback is closed, so players on networks that block UDP cannot join voice. Forward 7881/tcp.',
-    ),
+    ...rows.filter((r) => !r.name.startsWith('Voice')),
+    ...rows.filter((r) => r.name.startsWith('Voice')),
+    ...preRows,
     {
       badge: 'off',
       name: 'Voice UDP',

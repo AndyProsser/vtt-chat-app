@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { checkReach, reachHost } from './reach.js';
+import { checkReach, reachTargets, type ReachOptions } from './reach.js';
 
 type Node = [string, string, string, string, string];
 const NODES: Record<string, Node> = {
@@ -58,22 +58,134 @@ function fakeCheckHost(
   return { fetchImpl, requests };
 }
 const sleep = async () => undefined;
-const run = (host: string, f = fakeCheckHost(), extra: object = {}) =>
-  checkReach({ host, fetchImpl: f.fetchImpl, sleep, now: () => 0, ...extra });
+/** A standard install (https on 443) on `host`, with voice on the same host, unless a test says otherwise. */
+const std = (host: string, extra: Partial<ReachOptions> = {}): Omit<ReachOptions, 'fetchImpl'> => ({
+  web: { host, scheme: 'https', port: 443 },
+  voice: { host, port: 7881 },
+  sleep,
+  now: () => 0,
+  ...extra,
+});
+const run = (host: string, f = fakeCheckHost(), extra: Partial<ReachOptions> = {}) =>
+  checkReach({ ...std(host, extra), fetchImpl: f.fetchImpl });
 const row = (rows: Awaited<ReturnType<typeof run>>, name: RegExp) =>
   rows.find((r) => name.test(r.name))!;
 
-describe('reachHost', () => {
-  it('takes the host name out of the server’s public address', () => {
-    expect(reachHost('https://play.example.com')).toBe('play.example.com');
-    expect(reachHost('https://play.example.com/path?x=1')).toBe('play.example.com');
-    expect(reachHost('http://play.example.com:8443')).toBe('play.example.com');
+describe('reachTargets', () => {
+  it('reads a standard https address: host, https, port 443, and voice on the same host', () => {
+    expect(reachTargets('https://play.example.com', undefined)).toEqual({
+      web: { host: 'play.example.com', scheme: 'https', port: 443 },
+      voice: { host: 'play.example.com', port: 7881 },
+    });
+  });
+
+  it('keeps a custom port, and the scheme of a plain-HTTP install', () => {
+    expect(reachTargets('https://play.example.com:8443/x', undefined)?.web).toEqual({
+      host: 'play.example.com',
+      scheme: 'https',
+      port: 8443,
+    });
+    expect(reachTargets('http://192.0.2.7', undefined)?.web).toEqual({
+      host: '192.0.2.7',
+      scheme: 'http',
+      port: 80,
+    });
+    expect(reachTargets('http://play.example.com:8080', undefined)?.web.port).toBe(8080);
+  });
+
+  it('checks voice at its own address when the operator gave one (web behind Cloudflare, voice direct)', () => {
+    expect(reachTargets('https://play.example.com', '203.0.113.9')?.voice).toEqual({
+      host: '203.0.113.9',
+      port: 7881,
+    });
+    expect(reachTargets('https://play.example.com', 'voice.example.com')?.voice.host).toBe(
+      'voice.example.com',
+    );
+  });
+
+  it('checks voice at the web host when the voice address is blank or auto', () => {
+    expect(reachTargets('https://play.example.com', 'auto')?.voice.host).toBe('play.example.com');
+    expect(reachTargets('https://play.example.com', '  ')?.voice.host).toBe('play.example.com');
+  });
+
+  it('takes the voice TCP port from the operator when they changed it', () => {
+    expect(reachTargets('https://play.example.com', undefined, 7900)?.voice.port).toBe(7900);
   });
 
   it('has nothing for an address that is not set or not a web address', () => {
-    expect(reachHost(undefined)).toBeUndefined();
-    expect(reachHost('')).toBeUndefined();
-    expect(reachHost('not a url')).toBeUndefined();
+    expect(reachTargets(undefined, undefined)).toBeUndefined();
+    expect(reachTargets('', undefined)).toBeUndefined();
+    expect(reachTargets('not a url', undefined)).toBeUndefined();
+    expect(reachTargets('ftp://x.example.com', undefined)).toBeUndefined();
+  });
+});
+
+describe('checkReach: installs that are not the standard one', () => {
+  const startedUrls = (f: ReturnType<typeof fakeCheckHost>) =>
+    f.requests
+      .filter((r) => /check-(http|tcp)\?/.test(r.url))
+      .map((r) => decodeURIComponent(r.url));
+
+  it('checks a custom port where it is, and does not check port 80 it never opened', async () => {
+    const f = fakeCheckHost();
+    const rows = await checkReach({
+      ...std('play.example.com', {
+        web: { host: 'play.example.com', scheme: 'https', port: 8443 },
+      }),
+      fetchImpl: f.fetchImpl,
+    });
+    const urls = startedUrls(f);
+    expect(urls.some((u) => u.includes('https://play.example.com:8443/api/health'))).toBe(true);
+    expect(urls.some((u) => u.includes('check-http?host=http://'))).toBe(false);
+    expect(rows.find((r) => /8443/.test(r.name))?.badge).toBe('ok');
+    expect(rows.find((r) => /HTTP \(80\)/.test(r.name))).toBeUndefined();
+  });
+
+  it('checks a plain-HTTP install on its own port', async () => {
+    const f = fakeCheckHost();
+    const rows = await checkReach({
+      ...std('192.0.2.7', { web: { host: '192.0.2.7', scheme: 'http', port: 80 } }),
+      fetchImpl: f.fetchImpl,
+    });
+    const urls = startedUrls(f);
+    expect(urls.some((u) => u.includes('check-http?host=http://192.0.2.7/api/health'))).toBe(true);
+    expect(rows.some((r) => /Web/.test(r.name) && r.badge === 'ok')).toBe(true);
+  });
+
+  it('checks the voice TCP port at the voice address, not the proxied web host', async () => {
+    const f = fakeCheckHost();
+    const rows = await checkReach({
+      ...std('play.example.com', { voice: { host: '203.0.113.9', port: 7881 } }),
+      fetchImpl: f.fetchImpl,
+    });
+    const urls = startedUrls(f);
+    expect(urls.some((u) => u.includes('check-tcp?host=203.0.113.9:7881'))).toBe(true);
+    expect(urls.some((u) => u.includes('check-tcp?host=play.example.com'))).toBe(false);
+    expect(rows.find((r) => /7881/.test(r.name))?.name).toMatch(/203\.0\.113\.9/);
+  });
+
+  it('does not check voice on a private voice address, but still checks the web side', async () => {
+    const f = fakeCheckHost();
+    const rows = await checkReach({
+      ...std('play.example.com', { voice: { host: '192.168.1.20', port: 7881 } }),
+      fetchImpl: f.fetchImpl,
+    });
+    const voice = rows.find((r) => /Voice TCP/.test(r.name))!;
+    expect(voice.badge).toBe('warn');
+    expect(voice.detail).toMatch(/private|not a public/i);
+    expect(rows.find((r) => /HTTPS/.test(r.name))?.badge).toBe('ok');
+    expect(startedUrls(f).some((u) => u.includes('check-tcp'))).toBe(false);
+  });
+
+  it('tells a failed voice port that Cloudflare does not carry it, when voice shares the web host', async () => {
+    const tcpFail = Object.fromEntries(
+      Object.keys(NODES).map((n) => [n, [{ error: 'Connection timed out' }]]),
+    );
+    const r = (await run('play.example.com', fakeCheckHost({ tcp: tcpFail }))).find((x) =>
+      /7881/.test(x.name),
+    )!;
+    expect(r.detail).toMatch(/Cloudflare/);
+    expect(r.detail).toMatch(/voice-address/);
   });
 });
 
@@ -171,14 +283,14 @@ describe('checkReach: when something is wrong', () => {
   it('says a check never answered, when it did not in time', async () => {
     const f = fakeCheckHost({ pendingPolls: 1000 });
     const rows = await checkReach({
-      host: 'play.example.com',
+      ...std('play.example.com', {
+        now: (
+          (t) => () =>
+            (t += 5000)
+        )(0),
+        timeoutMs: 20_000,
+      }),
       fetchImpl: f.fetchImpl,
-      sleep,
-      now: (
-        (t) => () =>
-          (t += 5000)
-      )(0),
-      timeoutMs: 20_000,
     });
     expect(row(rows, /HTTPS/).detail).toMatch(/did not answer in time/i);
   });

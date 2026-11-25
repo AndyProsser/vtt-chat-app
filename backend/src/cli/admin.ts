@@ -32,7 +32,7 @@ import {
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
-import { reachHost } from '../lib/selftest/reach.js';
+import { reachTargets, type VoiceTarget, type WebTarget } from '../lib/selftest/reach.js';
 import { formatBytes, freePercent, isLow, measureDisk } from '../lib/status/storage.js';
 import {
   ArchiveError,
@@ -89,10 +89,13 @@ export interface AdminDeps {
    */
   selfTest?: {
     voice?: () => Promise<TestRow[]>;
-    reach?: (host: string) => Promise<TestRow[]>;
+    reach?: (targets: { web: WebTarget; voice: VoiceTarget }) => Promise<TestRow[]>;
     ai?: (flags: { local: boolean; remote: boolean; cloud: boolean }) => Promise<TestRow[]>;
-    /** The server's public address (`PUBLIC_URL`), whose host name `test reach` asks about. */
+    /** The server's public address (`PUBLIC_URL`) and voice address (`VOICE_ADDRESS`), which `test reach` asks about. */
     publicUrl?: string;
+    voiceAddress?: string;
+    /** The ICE-over-TCP port, when the operator changed it from LiveKit's 7881 (`VOICE_TCP_PORT`). */
+    voiceTcpPort?: number;
   };
   /** What the worker last found checking Ollama's real context window, for `status`'s AI section. */
   localAi?: LocalAiStatus | null;
@@ -1024,8 +1027,8 @@ async function selfTests(deps: Ctx, sub: string | undefined, rest: string[]): Pr
     );
   }
   if (sub === 'reach' || (sub === 'full' && rest.includes('--external'))) {
-    const host = reachHost(checks.publicUrl);
-    if (!host || !checks.reach) {
+    const targets = reachTargets(checks.publicUrl, checks.voiceAddress, checks.voiceTcpPort);
+    if (!targets || !checks.reach) {
       show('From outside: can people on the internet reach this server?', [
         {
           badge: 'warn',
@@ -1036,10 +1039,14 @@ async function selfTests(deps: Ctx, sub: string | undefined, rest: string[]): Pr
       ]);
     } else {
       deps.out('');
+      const hosts = [...new Set([targets.web.host, targets.voice.host])].join(' and ');
       deps.out(
-        `  ${ui.dim(`Asking check-host.net, a free public service, to connect to ${host} from several countries. It is told this host name and nothing else.`)}`,
+        `  ${ui.dim(`Asking check-host.net, a free public service, to connect to ${hosts} from several countries. It is told ${hosts.includes(' and ') ? 'these addresses' : 'this address'} and nothing else.`)}`,
       );
-      show('From outside: can people on the internet reach this server?', await checks.reach(host));
+      show(
+        'From outside: can people on the internet reach this server?',
+        await checks.reach(targets),
+      );
     }
   } else if (sub === 'full') {
     show('From outside', [

@@ -1341,8 +1341,8 @@ describe('test: is everything working?', () => {
       await run('test reach', [], {
         selfTest: {
           publicUrl: 'https://play.example.com',
-          reach: async (host) => {
-            asked.push(host);
+          reach: async (targets) => {
+            asked.push(targets.web.host);
             return [ok('HTTPS (443)')];
           },
         },
@@ -1353,6 +1353,24 @@ describe('test: is everything working?', () => {
     expect(text).toMatch(/check-host\.net/);
     expect(text).toContain('play.example.com');
     expect(text.indexOf('check-host.net')).toBeLessThan(text.indexOf('HTTPS (443)'));
+  });
+
+  it('test reach says which hosts it asks about when voice is on a different address from the web side', async () => {
+    const seen: unknown[] = [];
+    await run('test reach', [], {
+      selfTest: {
+        publicUrl: 'https://play.example.com:8443',
+        voiceAddress: '203.0.113.9',
+        reach: async (t) => (seen.push(t), [ok('x')]),
+      },
+    });
+    expect(seen).toEqual([
+      {
+        web: { host: 'play.example.com', scheme: 'https', port: 8443 },
+        voice: { host: '203.0.113.9', port: 7881 },
+      },
+    ]);
+    expect(out.join('\n')).toMatch(/play\.example\.com and 203\.0\.113\.9/);
   });
 
   it('test reach has nothing to check without a public address, and says how to set one', async () => {

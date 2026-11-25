@@ -432,6 +432,13 @@ configured and you run `test ai` with no flag, the local model is tested instead
 "this is connected and answers", not that a tale will be any good (that is the end-to-end test below). On a Compose install `test ai` runs
 inside the worker's container, where the AI addresses and keys are, so the records worker has to be running.
 
+**`test reach` follows how your server is really set up.** It reads the site's address and port from `PUBLIC_URL` (so a `--port 8443` or
+`--http` install is checked on its own port, not on 443 and 80), and checks voice's TCP port at the **voice address** (`vtt-admin voice-address`),
+which can be a different machine or name from the website: with the web address behind Cloudflare and voice pointed directly at your
+server, the web rows prove Cloudflare answers, and the voice row checks your own address. If your voice TCP port is not 7881 (you changed
+`tcp_port` in `livekit.yaml`), set `VOICE_TCP_PORT` with `vtt-admin config set VOICE_TCP_PORT <port>`. Behind a Cloudflare Tunnel there is
+no inbound 80 or 443 at all, so the web rows prove the tunnel, not your router; voice still needs its own direct address and forwarded ports.
+
 **`test reach` uses check-host.net**, a free public service that opens the connections from several countries, because nothing inside your
 network can see how it looks from outside. It is only ever run when you ask for it by name (or `--external`); it is told your server's host
 name (public anyway) and nothing else, and nothing depends on it. It is a free service with its own fair-use limits: if it refuses or is down,
