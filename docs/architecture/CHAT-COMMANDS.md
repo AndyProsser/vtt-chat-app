@@ -29,18 +29,19 @@ summaries and search. _(my call: "stay out" read as out of the **record**, not h
 
 ## Commands
 
-| Command                       | Does                                                                                              |
-| ----------------------------- | ------------------------------------------------------------------------------------------------- |
-| `/say <text>`                 | The character speaks. Quoted, with its own style (below).                                         |
-| `/say-<language> <text>`      | Speaks in a language, for example `/say-elvish Hi`, `/say-dwarvish Drinks on me!`.                |
-| `/do <text>`, `/me <text>`    | An action: _Thorin raises his axe._                                                               |
-| `/ooc <text>`                 | Out of character.                                                                                 |
-| `/tell <name> <text>`, `/w …` | Whisper to one person at the table. **The name autocompletes** (members only).                    |
-| `/dm <text>`                  | Whisper to the DM, no name needed. If you are the DM, it says so instead.                         |
-| `/late [note]`                | OOC "running late" (with the note, e.g. `/late 20 min`) **and** RSVP "late" for the next session. |
-| `/cant [note]`                | OOC "can't make it" **and** RSVP "no" for the next session.                                       |
-| `/work`                       | OOC "still at work" and RSVP "late".                                                              |
-| `/brb`, `/afk`, `/back`       | OOC presence notes. No RSVP change.                                                               |
+| Command                         | Does                                                                                                                                                                                                                                     |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/say [language] <text>`        | The character speaks, in Common unless a language is **picked**: right after `/say` a list of languages opens and Tab or Enter confirms one (it becomes `/say-<language>`); a language word typed by hand is never guessed (2026-11-25). |
+| `/take [item]`, `/stash [item]` | Take an available item for yourself or the party stash; the list of available items autocompletes; with no item, open the inventory on Available (2026-11-25).                                                                           |
+| `/say-<language> <text>`        | Speaks in a language, for example `/say-elvish Hi`, `/say-dwarvish Drinks on me!`.                                                                                                                                                       |
+| `/do <text>`, `/me <text>`      | An action: _Thorin raises his axe._                                                                                                                                                                                                      |
+| `/ooc <text>`                   | Out of character.                                                                                                                                                                                                                        |
+| `/tell <name> <text>`, `/w …`   | Whisper to one person at the table. **The name autocompletes** (members only).                                                                                                                                                           |
+| `/dm <text>`                    | Whisper to the DM, no name needed. If you are the DM, it says so instead.                                                                                                                                                                |
+| `/late [note]`                  | OOC "running late" (with the note, e.g. `/late 20 min`) **and** RSVP "late" for the next session.                                                                                                                                        |
+| `/cant [note]`                  | OOC "can't make it" **and** RSVP "no" for the next session.                                                                                                                                                                              |
+| `/work`                         | OOC "still at work" and RSVP "late".                                                                                                                                                                                                     |
+| `/brb`, `/afk`, `/back`         | OOC presence notes. No RSVP change.                                                                                                                                                                                                      |
 
 The quick commands post a ready-made line ("Sam is running late: 20 min") so nobody has to type it. With no upcoming
 scheduled session they post the chat line only. RSVP values are the existing `yes | late | no`.

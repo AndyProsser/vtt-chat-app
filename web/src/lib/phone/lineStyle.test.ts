@@ -10,7 +10,7 @@ describe('line style', () => {
   });
   it('quotes say lines, writes do lines as stage directions, leaves the rest', () => {
     expect(lineText({ kind: 'say', text: 'Hi', fromName: 'A' })).toBe('“Hi”');
-    expect(lineText({ kind: 'do', text: 'waves', fromName: 'Thorin' })).toBe('* Thorin waves');
+    expect(lineText({ kind: 'do', text: 'waves', fromName: 'Thorin' })).toBe('Thorin waves');
     expect(lineText({ kind: 'ooc', text: 'brb', fromName: 'A' })).toBe('brb');
   });
   it('has a caption in real text and a font for a language', () => {

@@ -31,6 +31,7 @@ import {
   smartLootFilter,
   type LootFilter,
 } from '../lib/lootFilter.js';
+import { watchInventoryTabRequests } from '../lib/inventoryRequest.js';
 import { isDm } from '../lib/tableModel.js';
 import { useTableStore } from '../lib/tableStore.js';
 import { itemLabel } from '../lib/timeline.js';
@@ -70,6 +71,8 @@ export function LootPanel() {
   // and then left alone: it must not jump while you tick items off.
   const [pickedFilter, setPickedFilter] = useState<LootFilter>();
   const [auto, setAuto] = useState<LootFilter>();
+  // /take and /stash ask for a tab (see inventoryRequest).
+  useEffect(() => watchInventoryTabRequests(setPickedFilter), []);
   const ready = data !== undefined && status?.userId != null && members.length > 0;
   useEffect(() => {
     if (auto === undefined && ready) setAuto(smartLootFilter(data.loot, status.userId, dm));

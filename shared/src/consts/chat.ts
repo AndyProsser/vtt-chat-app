@@ -34,8 +34,8 @@ export const BASE_CHAT_COMMANDS: readonly ChatCommand[] = [
   {
     name: 'say',
     aliases: [],
-    usage: '/say <text>',
-    description: 'The character speaks, in quotation marks',
+    usage: '/say [language] <text>',
+    description: 'The character speaks, in quotation marks; Tab picks a language, else Common',
     kind: 'say',
   },
   {
@@ -44,6 +44,20 @@ export const BASE_CHAT_COMMANDS: readonly ChatCommand[] = [
     usage: '/do <text>',
     description: 'An action: Thorin raises his axe',
     kind: 'do',
+  },
+  {
+    name: 'take',
+    aliases: [],
+    usage: '/take [item]',
+    description: 'Take an item that is available, for yourself',
+    kind: 'loot',
+  },
+  {
+    name: 'stash',
+    aliases: [],
+    usage: '/stash [item]',
+    description: 'Take an item that is available, for the party stash',
+    kind: 'loot',
   },
   {
     name: 'ooc',

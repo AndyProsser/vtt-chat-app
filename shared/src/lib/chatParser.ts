@@ -1,5 +1,11 @@
 import { CHAT_TEXT_MAX } from '../consts/index.js';
-import type { ChatContext, ChatMember, ChatRsvp, ParsedComposerInput } from '../types/chat.js';
+import type {
+  ChatContext,
+  ChatLootItem,
+  ChatMember,
+  ChatRsvp,
+  ParsedComposerInput,
+} from '../types/chat.js';
 import { chatCommands, findBaseCommand, findChatLanguage } from './chatCommands.js';
 
 const SLASH = /^\/(\S+)(?:\s+([\s\S]*))?$/;
@@ -46,6 +52,14 @@ const matchMember = (
   return best && { member: best.member, text: rest.slice(best.length).trim() };
 };
 
+/** The available item named by `rest` (exact name, case-insensitive; the longest name wins). */
+const matchLoot = (rest: string, loot: readonly ChatLootItem[]): ChatLootItem | undefined => {
+  const wanted = rest.trim().toLowerCase();
+  return [...loot]
+    .sort((a, b) => b.name.length - a.name.length)
+    .find((i) => i.name.toLowerCase() === wanted);
+};
+
 const QUICK: Record<string, { line: (who: string) => string; rsvp?: ChatRsvp }> = {
   late: { line: (w) => `${w} is running late`, rsvp: 'late' },
   cant: { line: (w) => `${w} can't make it`, rsvp: 'no' },
@@ -83,6 +97,15 @@ export const parseComposerInput = (input: string, ctx: ChatContext): ParsedCompo
       return send('do', rest);
     case 'ooc':
       return send('ooc', rest);
+    case 'take':
+    case 'stash': {
+      const action = command.name;
+      if (rest === '') return { type: 'loot', action };
+      const item = matchLoot(rest, ctx.loot ?? []);
+      return item
+        ? { type: 'loot', action, itemId: item.id }
+        : error(`Nothing available is called that. Use /${action} to see what is.`);
+    }
     case 'dm': {
       const self = ctx.members.find((x) => x.id === ctx.selfId);
       if (self?.role === 'dm')

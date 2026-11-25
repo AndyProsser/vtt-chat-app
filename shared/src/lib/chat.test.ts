@@ -154,7 +154,7 @@ describe('suggest', () => {
     expect(all.items.map((i) => i.insert)).toContain('/tell ');
     expect(all.items.some((i) => i.insert.startsWith('/say-'))).toBe(false);
     const s = suggest('/s', ctx);
-    expect(s.items.map((i) => i.insert)).toEqual(['/say ']);
+    expect(s.items.map((i) => i.insert)).toEqual(['/say ', '/stash ']);
     expect(s.items[0]?.description).toBeTruthy();
   });
   it('matches aliases and inserts the alias typed', () => {
@@ -188,5 +188,83 @@ describe('suggest', () => {
     expect(suggest('/say hello', ctx).kind).toBe('none');
     expect(suggest('/zzz', ctx).kind).toBe('none');
     expect(suggest('', ctx).items).toEqual([]);
+  });
+});
+
+describe('/say with a language picker', () => {
+  it('opens the language list straight after /say, and filters it by what is typed', () => {
+    const all = suggest('/say ', ctx);
+    expect(all.kind).toBe('languages');
+    expect(all.items).toHaveLength(CHAT_LANGUAGES.length);
+    expect(all.items[0]?.insert).toBe('/say-common ');
+    expect(suggest('/say or', ctx).items.map((i) => i.insert)).toEqual(['/say-orc ']);
+    expect(suggest('/say dwarven', ctx).items.map((i) => i.insert)).toEqual(['/say-dwarvish ']);
+  });
+  it('is quiet once a word is finished or when nothing matches, so plain speech is just Common', () => {
+    expect(suggest('/say Go away', ctx).kind).toBe('none');
+    expect(suggest('/say zzz', ctx).kind).toBe('none');
+    expect(p('/say Go away')).toEqual({ type: 'send', kind: 'say', text: 'Go away' });
+  });
+  it('never guesses: a language name typed after /say is text until it is picked from the list', () => {
+    expect(p('/say orc ahead!')).toEqual({ type: 'send', kind: 'say', text: 'orc ahead!' });
+    expect(suggest('/say orc ', ctx).kind).toBe('none'); // past the first word, the list is gone
+    expect(suggest('/say orc', ctx).items.map((i) => i.insert)).toEqual(['/say-orc ']); // Tab or Enter picks it
+  });
+  it('still sends a pasted "/say orc ..." as Common: the parser never guesses', () => {
+    expect(p('/say orc Get lost!')).toEqual({ type: 'send', kind: 'say', text: 'orc Get lost!' });
+    expect(p('/say-orc Get lost!')).toEqual({
+      type: 'send',
+      kind: 'say',
+      lang: 'orc',
+      text: 'Get lost!',
+    });
+  });
+});
+
+describe('/take and /stash', () => {
+  const lootCtx: ChatContext = {
+    ...ctx,
+    loot: [
+      { id: 'l1', name: 'Rope of Climbing', quantity: 1 },
+      { id: 'l2', name: 'gp', quantity: 40 },
+      { id: 'l3', name: 'Rope', quantity: 2 },
+    ],
+  };
+  it('with nothing after it, asks the app to open the inventory on what is available', () => {
+    expect(p('/take', lootCtx)).toEqual({ type: 'loot', action: 'take' });
+    expect(p('/stash', lootCtx)).toEqual({ type: 'loot', action: 'stash' });
+  });
+  it('takes the item named, the longest name first', () => {
+    expect(p('/take Rope of Climbing', lootCtx)).toEqual({
+      type: 'loot',
+      action: 'take',
+      itemId: 'l1',
+    });
+    expect(p('/take rope', lootCtx)).toEqual({ type: 'loot', action: 'take', itemId: 'l3' });
+    expect(p('/stash gp', lootCtx)).toEqual({ type: 'loot', action: 'stash', itemId: 'l2' });
+  });
+  it('says so when nothing available has that name', () => {
+    expect(p('/take sword', lootCtx)).toMatchObject({ type: 'error' });
+    expect(p('/take sword')).toMatchObject({ type: 'error' });
+  });
+  it('lists what is available after /take and /stash, filtered by what is typed', () => {
+    const r = suggest('/take ', lootCtx);
+    expect(r.kind).toBe('loot');
+    expect(r.items.map((i) => i.insert)).toEqual([
+      '/take Rope of Climbing ',
+      '/take gp ',
+      '/take Rope ',
+    ]);
+    expect(suggest('/stash ro', lootCtx).items.map((i) => i.insert)).toEqual([
+      '/stash Rope of Climbing ',
+      '/stash Rope ',
+    ]);
+    expect(suggest('/take Rope of Climbing ', lootCtx).kind).toBe('none'); // chosen
+    expect(suggest('/take ', ctx).kind).toBe('none'); // nothing available
+  });
+  it('is in the command list', () => {
+    const r = suggest('/ta', ctx);
+    expect(r.items.map((i) => i.insert)).toContain('/take ');
+    expect(suggest('/st', ctx).items.map((i) => i.insert)).toContain('/stash ');
   });
 });

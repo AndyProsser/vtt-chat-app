@@ -26,9 +26,18 @@ export interface ChatMember {
   role: 'dm' | 'player';
 }
 
+/** An item still on the table (not taken), for `/take` and `/stash`. */
+export interface ChatLootItem {
+  id: string;
+  name: string;
+  quantity?: number;
+}
+
 export interface ChatContext {
   selfId: string;
   members: readonly ChatMember[];
+  /** What is still available to take; the composer fills it from the party inventory. */
+  loot?: readonly ChatLootItem[];
 }
 
 export type ChatRsvp = 'late' | 'no';
@@ -38,6 +47,8 @@ export type ParsedComposerInput =
   | { type: 'send'; kind: ChatKind; lang?: string; text: string }
   | { type: 'whisper'; recipientId: string; text: string }
   | { type: 'quick'; kind: 'ooc'; text: string; rsvp?: ChatRsvp }
+  /** `/take` (for yourself) or `/stash` (for the party); with no `itemId`, open the inventory on what is available. */
+  | { type: 'loot'; action: 'take' | 'stash'; itemId?: string }
   | { type: 'error'; message: string };
 
 export interface ChatCommand {
@@ -47,7 +58,7 @@ export interface ChatCommand {
   usage: string;
   description: string;
   /** `whisper` commands become private lines; the rest set the kind of a public line. */
-  kind: ChatKind | 'whisper';
+  kind: ChatKind | 'whisper' | 'loot';
 }
 
 export interface ChatSuggestion {
@@ -59,6 +70,6 @@ export interface ChatSuggestion {
 }
 
 export interface ChatSuggestions {
-  kind: 'commands' | 'members' | 'languages' | 'none';
+  kind: 'commands' | 'members' | 'languages' | 'loot' | 'none';
   items: ChatSuggestion[];
 }

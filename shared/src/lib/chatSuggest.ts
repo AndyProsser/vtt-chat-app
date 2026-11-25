@@ -29,6 +29,44 @@ export const suggest = (input: string, ctx: ChatContext): ChatSuggestions => {
     return items.length ? { kind: 'languages', items } : NONE;
   }
 
+  // "/say " and the first word: the languages, picked with Tab or Enter. Nothing is guessed: once a space follows the word,
+  // or when nothing matches, the line is plain speech in Common.
+  const sayWord = /^\/say\s+(\S*)$/i.exec(input);
+  if (sayWord) {
+    const prefix = (sayWord[1] ?? '').toLowerCase();
+    const items: ChatSuggestion[] = CHAT_LANGUAGES.filter(
+      (l) =>
+        prefix === '' ||
+        l.key.startsWith(prefix) ||
+        l.name.toLowerCase().startsWith(prefix) ||
+        l.aliases.some((a) => a.startsWith(prefix)),
+    ).map((l) => ({
+      label: l.name,
+      insert: `/say-${l.key} `,
+      description: l.key === 'common' ? 'The default: just keep typing' : `Tab to speak ${l.name}`,
+    }));
+    return items.length ? { kind: 'languages', items } : NONE;
+  }
+
+  // "/take " or "/stash ": what is still available.
+  const loot = /^\/(take|stash)\s+([\s\S]*)$/i.exec(input);
+  if (loot) {
+    const word = (loot[1] ?? '').toLowerCase();
+    const typed = loot[2] ?? '';
+    const prefix = typed.toLowerCase().trimStart();
+    const available = ctx.loot ?? [];
+    if (available.some((i) => i.name.toLowerCase() === prefix.trimEnd() && /\s$/.test(typed)))
+      return NONE;
+    const items: ChatSuggestion[] = available
+      .filter((i) => i.name.toLowerCase().startsWith(prefix))
+      .map((i) => ({
+        label: i.name,
+        insert: `/${word} ${i.name} `,
+        description: i.quantity && i.quantity > 1 ? `×${i.quantity}` : 'Available',
+      }));
+    return items.length ? { kind: 'loot', items } : NONE;
+  }
+
   // "/tell " or "/w ": the members.
   const tell = /^\/(tell|w)\s+([\s\S]*)$/i.exec(input);
   if (tell) {

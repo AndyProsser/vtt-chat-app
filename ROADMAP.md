@@ -145,7 +145,7 @@ After reading real session-4 output, Andy wants the History detail reworked: ins
 
 ### `/npc`: the DM speaks as a character (Andy, 2026-11-24; designed, not built)
 
-`/npc <Name> "words"` is the DM's `/say`, DM only, with `/npc-<language>` alongside `/say-<language>`. It needs an optional `speaker` on the chat `send` message and on `ChatMessage`, which the server accepts only from the campaign's DM, so it is a **wire change** and rides this bump. Design: [CHAT-COMMANDS.md](docs/architecture/CHAT-COMMANDS.md#planned-npc-the-dm-speaks-as-a-character-stage-15-designed-2026-11-24-not-built). Both clients' composers and renderers learn it; the storyteller sees the NPC as the speaker.
+**Revised by Andy, 2026-11-25** (to match the simpler `/say`, which has one command and a language picker): `/npc <language> <name> "message"` with **the same language picker** (Tab confirms it; no language means Common), and **names of more than one word in quotes**, `"Mother Tidewarden"`. A second form, **`/npc do <name> "action"`**, is the NPC's `/do`. When the **campaign knowledge graph** exists, the name step **picks from the NPCs met so far** (the same list as the `/take` item list), so the Game Master can use the graph during a session. DM only. It needs an optional `speaker` on the chat `send` message and on `ChatMessage`, which the server accepts only from the campaign's DM, so it is a **wire change** and rides this bump. Design: [CHAT-COMMANDS.md](docs/architecture/CHAT-COMMANDS.md#planned-npc-the-dm-speaks-as-a-character-stage-15-designed-2026-11-24-not-built) (written for the earlier `/npc-<language>` form; to be updated with the build). Both clients' composers and renderers learn it; the storyteller sees the NPC as the speaker.
 
 ### Anything else
 

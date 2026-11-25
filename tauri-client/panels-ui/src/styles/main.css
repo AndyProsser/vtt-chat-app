@@ -312,6 +312,10 @@ body,
 .vtt-do-text {
   font-style: italic;
 }
+.vtt-do-text svg {
+  vertical-align: -2px;
+  opacity: 0.75;
+}
 .vtt-bubble.vtt-kind-ooc {
   background: transparent;
   border: 1px dashed var(--vtt-edge);

@@ -9,9 +9,10 @@ import {
   type ChatContext,
   type ChatSuggestion,
 } from '@vtt-chat-app/shared';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { nextUpcoming, planSend } from '../lib/chatSend.js';
+import { requestInventoryTab } from '../lib/inventoryRequest.js';
 import { commandPalette, parseCommand, type Role } from '../lib/commands.js';
 import {
   accountErrorMessage,
@@ -24,7 +25,7 @@ import { useTableStore } from '../lib/tableStore.js';
 import type { RsvpStatus, SessionView } from '../types/index.js';
 
 /** Commands the shared table does not know: they act on this app, not on chat. */
-const LOCAL = ['/voice', '/loot', '/take'];
+const LOCAL = ['/voice', '/loot'];
 const isLocal = (text: string) => LOCAL.includes(text.trim().split(/\s+/)[0]!.toLowerCase());
 
 /** The message box: `/` autocomplete, kinds (say, do, ooc), whispers and quick messages. Errors show here. */
@@ -36,6 +37,22 @@ export function Composer({ selfId, role }: { selfId: string | null; role: Role }
   const [armed, setArmed] = useState<string>();
   const [pick, setPick] = useState(0);
   const [dismissed, setDismissed] = useState<string>();
+  // What is still on the table, for /take and /stash: read when one of them is being typed.
+  const [available, setAvailable] = useState<{ id: string; name: string; quantity?: number }[]>([]);
+  const wantsLoot = /^\/(take|stash)(\s|$)/i.test(text);
+  useEffect(() => {
+    if (!wantsLoot) return;
+    let cancelled = false;
+    campaignApi<{
+      loot: { id: string; name: string; quantity?: number; claimedBy?: string | null }[];
+    }>('GET', 'loot').then(
+      (d) => !cancelled && setAvailable(d.loot.filter((i) => !i.claimedBy)),
+      () => undefined,
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [wantsLoot]);
 
   const ctx = useMemo<ChatContext>(
     () => ({
@@ -46,8 +63,9 @@ export function Composer({ selfId, role }: { selfId: string | null; role: Role }
         characterName: m.character?.name ?? null,
         role: m.role,
       })),
+      loot: available,
     }),
-    [members, selfId],
+    [members, selfId, available],
   );
   const items = useMemo<ChatSuggestion[]>(() => {
     const found = suggest(text, ctx);
@@ -88,6 +106,18 @@ export function Composer({ selfId, role }: { selfId: string | null; role: Role }
       }
       const parsed = parseComposerInput(text, ctx);
       if (parsed.type === 'error') return setError(parsed.message);
+      if (parsed.type === 'loot') {
+        if (parsed.itemId) {
+          await campaignApi('POST', `loot/${parsed.itemId}/claim`, {
+            for: parsed.action === 'take' ? 'self' : 'party',
+          });
+        } else {
+          requestInventoryTab('available');
+          await panelOpen('inventory');
+        }
+        setText('');
+        return;
+      }
       if (parsed.type === 'send' && looksLikeTypo(text) && armed !== text) {
         setArmed(text);
         return setError('No such command — press send again to post it as text');

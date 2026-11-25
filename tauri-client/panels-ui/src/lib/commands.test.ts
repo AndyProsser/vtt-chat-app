@@ -62,9 +62,8 @@ describe('parseCommand', () => {
     expect(parseCommand('/me', player)).toMatchObject({ kind: 'error' });
   });
 
-  it('opens the inventory for /loot and /take', () => {
+  it('opens the inventory for /loot', () => {
     expect(parseCommand('/loot', dm)).toEqual({ kind: 'open', target: 'inventory' });
-    expect(parseCommand('/take', player)).toEqual({ kind: 'open', target: 'inventory' });
   });
 
   it('lets the DM pick a voice by name, refuses players and unknown voices, and lists the choices', () => {

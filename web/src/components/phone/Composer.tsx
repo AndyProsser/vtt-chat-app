@@ -7,7 +7,7 @@ import {
   parseComposerInput,
   suggest,
 } from '@vtt-chat-app/shared';
-import { useId, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 
 import {
   chatContext,
@@ -19,7 +19,7 @@ import {
   visibleSuggestions,
 } from '../../lib/phone/compose.js';
 import { useNarrow } from '../../hooks/useNarrow.js';
-import { answerRsvp, sessions } from '../../lib/phone/phoneApi.js';
+import { answerRsvp, lootDo, lootItems, sessions } from '../../lib/phone/phoneApi.js';
 import { usePhoneStore } from '../../lib/phone/phoneStore.js';
 import type { SayOptions } from '../../lib/phone/socket.js';
 import type { Member } from '../../types/phone.js';
@@ -52,7 +52,21 @@ export function Composer({
   const listId = useId();
   const serverError = usePhoneStore((s) => s.chatError);
 
-  const ctx = useMemo(() => chatContext(selfId, members), [selfId, members]);
+  // What is still on the table, for /take and /stash: read when one of them is being typed.
+  const [available, setAvailable] = useState<{ id: string; name: string; quantity: number }[]>([]);
+  const wantsLoot = /^\/(take|stash)(\s|$)/i.test(text);
+  useEffect(() => {
+    if (!wantsLoot) return;
+    let cancelled = false;
+    lootItems(campaignId).then(
+      (all) => !cancelled && setAvailable(all.filter((i) => !i.claimedBy)),
+      () => undefined,
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [wantsLoot, campaignId]);
+  const ctx = useMemo(() => chatContext(selfId, members, available), [selfId, members, available]);
   const items = useMemo(() => visibleSuggestions(suggest(text, ctx), text), [text, ctx]);
   const open = items.length > 0 && closedFor !== text;
   const optionId = (i: number) => `${listId}-${i}`;
@@ -91,6 +105,21 @@ export function Composer({
     const parsed = parseComposerInput(body, ctx);
     if (parsed.type === 'error') {
       setProblem(parsed.message);
+      return;
+    }
+    if (parsed.type === 'loot') {
+      if (!parsed.itemId) {
+        usePhoneStore.getState().setTab('inventory');
+        edit('');
+        return;
+      }
+      lootDo(campaignId, parsed.itemId, {
+        path: 'claim',
+        body: { for: parsed.action === 'take' ? 'self' : 'party' },
+      }).then(
+        () => edit(''),
+        () => setProblem('That did not work. Try again.'),
+      );
       return;
     }
     // A slash that is probably a slip: warn once, and post it as text on the second send.

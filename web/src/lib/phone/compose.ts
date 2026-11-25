@@ -54,8 +54,13 @@ export function nextUpcomingSession(
 }
 
 /** The composer's view of the table: everyone, you included (the parser needs you for /dm and quick lines). */
-export const chatContext = (selfId: string, members: readonly Member[]): ChatContext => ({
+export const chatContext = (
+  selfId: string,
+  members: readonly Member[],
+  loot: ChatContext['loot'] = [],
+): ChatContext => ({
   selfId,
+  loot,
   members: members.map((m) => ({
     id: m.userId,
     name: m.displayName,

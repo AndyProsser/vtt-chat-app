@@ -19,6 +19,7 @@ import {
   Eye,
   EyeOff,
   Feather,
+  Footprints,
   FileText,
   Gift,
   Guitar,
@@ -99,6 +100,8 @@ export const ICON = {
   feather: Feather,
   wine: Wine,
   drama: Drama,
+  /** An action line in chat (/do): someone doing something. */
+  action: Footprints,
   landmark: Landmark,
   qrCode: QrCode,
   userPlus: UserPlus,

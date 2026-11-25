@@ -53,12 +53,6 @@ export const COMMANDS: readonly CommandInfo[] = [
     roles: ['dm'],
   },
   { name: '/loot', usage: '/loot', help: 'Open the party inventory', roles: ['dm', 'player'] },
-  {
-    name: '/take',
-    usage: '/take',
-    help: 'Open the party inventory to grab an item',
-    roles: ['dm', 'player'],
-  },
 ];
 
 const err = (message: string): Parsed => ({ kind: 'error', message });
@@ -107,7 +101,6 @@ export function parseCommand(input: string, ctx: CommandContext): Parsed {
         ? { kind: 'say', text: `* ${ctx.selfName} ${body}` }
         : err('Do what? Try /me waves');
     case '/loot':
-    case '/take':
       return { kind: 'open', target: 'inventory' };
     case '/voice': {
       if (ctx.role !== 'dm') return err('Only the DM can change voices.');

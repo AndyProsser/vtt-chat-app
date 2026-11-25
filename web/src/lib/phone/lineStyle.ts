@@ -32,7 +32,7 @@ export const languageCaption = (key: string | undefined): string | undefined => 
 
 /** What a line shows as its text: a `do` line reads as a stage direction, a `say` line is quoted. */
 export function lineText(line: Pick<ChatLine, 'kind' | 'text' | 'fromName'>): string {
-  if (line.kind === 'do') return `* ${line.fromName} ${line.text}`;
+  if (line.kind === 'do') return `${line.fromName} ${line.text}`; // the bubble draws the action icon before it
   if (line.kind === 'say') return `“${line.text}”`;
   return line.text;
 }
