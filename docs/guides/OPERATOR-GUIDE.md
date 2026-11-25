@@ -343,7 +343,10 @@ version runs **one worker** (a second worker stands by until the first stops; ru
 tables recording at once therefore queue their processing one after the other. Within one table the queue keeps the
 sessions **in the order they were recorded**: if a session's job fails, the table's later sessions wait for it (so the
 campaign memory and tales stay in order) until you `jobs retry` it, or `jobs release <id>` it to let the later ones go
-ahead without it. `jobs list` says what a waiting job is waiting for.
+ahead without it. `jobs list` says what a waiting job is waiting for, and in its **models** column which models did the work (the
+transcriber, then the scribe and the storyteller, such as `large-v3-turbo (remote), qwen3:8b (remote)`), with a note when a remote one was
+unreachable and the local one finished the job; `status` shows the same for the **last tale**, so a tale's quality can be traced to the
+model that wrote it. A job that ran before this was added shows none.
 
 **What the summaries are.** A recording is summarised in two passes. A _scribe_ reads the transcript once and writes
 down what happened, big and small. A _bard_ then tells it, from the scribe's notes, as a short heroic tale with dry
@@ -409,7 +412,47 @@ language model one after the other, never together.
 above, and audio at about 12–30 MB per player-hour (deleted by the
 retention rules in section 8, or by you with `vtt-admin recording purge`).
 
-### Check it works: the end-to-end smoke test
+### Check it works: `vtt-admin test`
+
+A quick way to see that everything is connected, in 10 to 30 seconds. Each line says `ok`, `WARN` (works, with something to look at) or
+`FAIL`, and the last line says whether everything looks good. It exits with 1 only when something failed, so a script can use it.
+
+| Command                            | What it proves                                                                                                                                                                    |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `vtt-admin test ai`                | The speech-to-text and the summary model each answer, and how long they took. It tests **what is configured**; for a remote model it also reads the window the server is serving. |
+| `vtt-admin test ai --local`        | The local Whisper and Ollama, whatever is configured. `--remote` tests the configured remote ones. `--cloud` tests the configured Claude or OpenAI model. Flags combine.          |
+| `vtt-admin test voice`             | LiveKit is up, accepts this server's keys, the recorder (Egress) answers so a session can be recorded, and the address players are given is a public one.                         |
+| `vtt-admin test reach`             | From **outside** your network (see below): that plain HTTP, HTTPS and the voice TCP port 7881 are reachable.                                                                      |
+| `vtt-admin test full [--external]` | `ai` and `voice` together; `--external` adds `reach`.                                                                                                                             |
+
+**Cloud AI is never called unless you ask.** A test of Claude or OpenAI is a real, billable call (a fraction of a cent). If a cloud model is
+configured and you run `test ai` with no flag, the local model is tested instead and the output says so; add `--cloud` to test the cloud one.
+
+**What these tests are, and are not.** They are connection tests: Whisper is given a short test tone and the model one word. They prove
+"this is connected and answers", not that a tale will be any good (that is the end-to-end test below). On a Compose install `test ai` runs
+inside the worker's container, where the AI addresses and keys are, so the records worker has to be running.
+
+**`test reach` follows how your server is really set up.** It reads the site's address and port from `PUBLIC_URL` (so a `--port 8443` or
+`--http` install is checked on its own port, not on 443 and 80), and checks voice's TCP port at the **voice address** (`vtt-admin voice-address`),
+which can be a different machine or name from the website: with the web address behind Cloudflare and voice pointed directly at your
+server, the web rows prove Cloudflare answers, and the voice row checks your own address. If your voice TCP port is not 7881 (you changed
+`tcp_port` in `livekit.yaml`), set `VOICE_TCP_PORT` with `vtt-admin config set VOICE_TCP_PORT <port>`. Behind a Cloudflare Tunnel there is
+no inbound 80 or 443 at all, so the web rows prove the tunnel, not your router; voice still needs its own direct address and forwarded ports.
+
+**`test reach` also looks for CGNAT.** Many home ISPs share one public IPv4 address between customers (carrier-grade NAT), and then nothing
+outside can reach the server however you forward ports. The test asks a STUN server (Google's, which LiveKit already uses) what address the
+server appears as, checks that your DNS names point at it, and when nothing outside can get in it says CGNAT is likely. The test also **asks your router** for its own internet address over UPnP or NAT-PMP (from the host's network, even in Docker): if the router reports a shared address, or one different from what the internet sees, that **proves** CGNAT. Many routers have both switched off, and then the test says it could not ask. To confirm by hand, compare the
+WAN IP on your router's admin page with the address the test shows: if they differ, or the router shows `100.64.x.x` to `100.127.x.x`, you are
+behind CGNAT. **The best fix is to ask your ISP to take you off CGNAT**; if they will not, the server needs to run somewhere with a public address. This project only detects and warns. See [Behind CGNAT?](../architecture/DEPLOYMENT-AND-TRANSPORT.md#behind-cgnat-the-servers-side).
+
+**`test reach` uses check-host.net**, a free public service that opens the connections from several countries, because nothing inside your
+network can see how it looks from outside. It is only ever run when you ask for it by name (or `--external`); it is told your server's host
+name (public anyway) and nothing else, and nothing depends on it. It is a free service with its own fair-use limits: if it refuses or is down,
+the test says so and you try again later. What it **cannot** prove is voice's UDP: LiveKit opens a UDP port only for a call in progress, so a
+probe of an idle server learns nothing. The proof is a player joining voice from a phone off your Wi-Fi; `test voice` checks your server's side
+and `test reach` checks the TCP fallback port.
+
+### Check it works end to end: the smoke test
 
 From a checkout of the repository on the server (Node and `npm install` needed), with the records profile
 up, `node infra/records-smoke/compose-e2e.ts` plays a four-minute scripted scene with four synthetic
@@ -469,11 +512,14 @@ details. A GPU PC does the same work in minutes with the better models. So:
    truncation shows as a failure, not just a warning; unused headroom (the model could serve more than is
    configured) shows as a warning with both numbers. `./vtt-admin status --tune` writes `ai.llm.context`
    for you, from what Ollama is actually serving right now — no need to copy `OLLAMA_CONTEXT_LENGTH`'s
-   number by hand. For `remote` this needs the model to be loaded at the time you run it (it never guesses
-   from the model's maximum there, since nothing confirms the remote server would actually serve that much);
-   if nothing is loaded, run a job first, or wait for the worker's own periodic check, then try again. It
-   has nothing to apply (and says so) until the worker has checked at least once, and Claude/OpenAI are never
-   affected — Claude's real window comes from a built-in table, OpenAI has no table and always shows as
+   number by hand. For `remote` it never guesses from the model's maximum (nothing confirms the remote
+   server would actually serve that much); it uses what the server reports for the loaded model. **Ollama only
+   reports a window for a loaded model, so when the remote model is idle the worker loads it once** (an empty
+   request that generates nothing, kept in memory for 30 seconds, so a gaming PC's GPU is not held), reads the
+   window, and **keeps that reading for a day** (the status line says how old it is), reading it afresh whenever
+   a job has the model loaded anyway. Right after the worker starts, or after you change the remote model or
+   address, give it up to 15 minutes, then run `--tune`. Until a window has been read, `--tune` has nothing
+   to apply (and says so), and Claude/OpenAI are never affected — Claude's real window comes from a built-in table, OpenAI has no table and always shows as
    unknown.
 
 2. On the VM, point the worker at it, with the VM's own CPU as the fallback:
@@ -588,6 +634,7 @@ _The operator's console: real `vtt-admin` output from a test server (listings cu
 | `user code <email> [signin\|reset]`                                                | One-time code for someone locked out                                                                                                                                                                                                                                                                                                                 |
 | `signup list [state]`, `signup approve <id\|email>`, `signup reject <id\|email>`   | Handle visitor account requests (needs `signup.requests on`); approve prints a code to hand over                                                                                                                                                                                                                                                     |
 | `user revoke-sessions <email>`                                                     | Sign a person out everywhere (lost laptop)                                                                                                                                                                                                                                                                                                           |
+| `test ai\|voice\|reach\|full`                                                      | Prove the AI, the voice server and the outside route work (see _Check it works_)                                                                                                                                                                                                                                                                     |
 | `jobs list [state]`, `jobs retry <id>`, `jobs release <id>`                        | Look at the summary queue; retry a failed job; let a table's later sessions go ahead without a failed one                                                                                                                                                                                                                                            |
 | `settings set recording.max-tables <n>`                                            | How many tables may record at once (default 2; 0 = no limit). Only the start of a recording is refused past it                                                                                                                                                                                                                                       |
 | `recording list`, `recording reprocess <id> [--retranscribe]`                      | Redo a recording's summaries (or transcript) from the kept audio                                                                                                                                                                                                                                                                                     |

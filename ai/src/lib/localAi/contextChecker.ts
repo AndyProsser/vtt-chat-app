@@ -8,6 +8,35 @@ export interface ContextCheckOptions {
   fetchImpl?: typeof fetch;
   /** Injected for tests. */
   now?: () => number;
+  /**
+   * For `remote` only: when the model is not loaded, load it (an empty request that generates nothing, kept for
+   * `PROBE_KEEP_ALIVE`) so its real window can be read, because Ollama only reports a window for a loaded model and
+   * a remote server's window is its own `OLLAMA_CONTEXT_LENGTH`, which nothing else can tell us. Never for `local`:
+   * the app sets that window itself on every call.
+   */
+  probeIfIdle?: boolean;
+  /** The last check, so an idle `remote` model's reading is reused (for `LIVE_REUSE_MS`) instead of loading it again. */
+  previous?: OllamaContextStatus | null;
+}
+
+/** Long enough to read the window straight after loading, short enough not to hold someone's GPU. */
+export const PROBE_KEEP_ALIVE = '30s';
+/** How long a reading of a remote model's window stays good while the model sits idle: the window only changes when the operator changes it. */
+export const LIVE_REUSE_MS = 24 * 3_600_000;
+/** Loading a large model from disk can take a while. */
+const PROBE_TIMEOUT_MS = 180_000;
+
+async function loadModel(baseUrl: string, model: string, fetchImpl: typeof fetch): Promise<void> {
+  try {
+    await fetchImpl(`${baseUrl.replace(/\/+$/, '')}/api/generate`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ model, keep_alive: PROBE_KEEP_ALIVE }),
+      signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
+    });
+  } catch {
+    /* a failed load only means no live reading; the caller carries on with what it has */
+  }
 }
 
 /**
@@ -22,6 +51,7 @@ export async function createOllamaContextChecker(
 ): Promise<OllamaContextStatus> {
   const { kind, baseUrl, model, fetchImpl } = options;
   const now = options.now ?? Date.now;
+  const doFetch = fetchImpl ?? fetch;
   const [live, modelMax] = await Promise.allSettled([
     getOllamaRunningContext(baseUrl, model, fetchImpl),
     getOllamaModelMaxContext(baseUrl, model, fetchImpl),
@@ -31,12 +61,31 @@ export async function createOllamaContextChecker(
   if (live.status === 'rejected' && modelMax.status === 'rejected') {
     return { kind, model, unreachable: true, checkedAt: now() };
   }
+  let liveValue = live.status === 'fulfilled' ? live.value : undefined;
+  let liveAt: number | undefined;
+  if (options.probeIfIdle && kind === 'remote' && liveValue === undefined) {
+    const prev = options.previous;
+    const prevAt = prev ? (prev.liveAt ?? prev.checkedAt) : 0;
+    if (
+      prev?.kind === 'remote' &&
+      prev.model === model &&
+      prev.live !== undefined &&
+      now() - prevAt < LIVE_REUSE_MS
+    ) {
+      liveValue = prev.live;
+      liveAt = prevAt;
+    } else {
+      await loadModel(baseUrl, model, doFetch);
+      liveValue = await getOllamaRunningContext(baseUrl, model, fetchImpl).catch(() => undefined);
+    }
+  }
   return {
     kind,
     model,
     unreachable: false,
     checkedAt: now(),
-    ...(live.status === 'fulfilled' && live.value !== undefined ? { live: live.value } : {}),
+    ...(liveValue !== undefined ? { live: liveValue } : {}),
+    ...(liveAt !== undefined ? { liveAt } : {}),
     ...(modelMax.status === 'fulfilled' && modelMax.value !== undefined
       ? { modelMax: modelMax.value }
       : {}),

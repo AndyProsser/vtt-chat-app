@@ -98,6 +98,64 @@ case ${1:-} in
     echo "Restarting LiveKit (anyone on a call reconnects in a few seconds)..."
     dc restart livekit
     ;;
+  test)
+    # Is everything working? AI is tested in the worker's container, where Whisper's and Ollama's addresses and the API keys
+    # are; voice and reach run in the backend. `test full` runs them one after another and fails if any of them does.
+    mapfile -t envs < <(term_env)
+    ai_test() {
+      if ! dc ps --services --status running 2>/dev/null | grep -qx worker; then
+        echo "the records worker is not running, so there is no AI to test (installed without --with-records? see: vtt-admin ps)" >&2
+        return 1
+      fi
+      dc exec "${envs[@]}" worker node ai/dist/cli/selftest.js "$@"
+    }
+    # The router can only be asked from the host's own network (UPnP and NAT-PMP do not cross Docker's bridge), so a throwaway
+    # container with the host network asks, and the answer goes to the test as VTT_ROUTER_WAN. No answer is fine: it stays unknown.
+    router_wan() {
+      local image
+      image=$(dc images -q backend 2>/dev/null | head -n 1)
+      [ -n "$image" ] || return 0
+      if can_run; then
+        docker run --rm --network host --entrypoint node "$image" backend/dist/cli/main.js router-address 2>/dev/null || true
+      else
+        sudo -- docker run --rm --network host --entrypoint node "$image" backend/dist/cli/main.js router-address 2>/dev/null || true
+      fi
+    }
+    backend_test() {
+      local wan=""
+      case ${1:-} in reach) wan=$(router_wan | head -n 1) ;; esac
+      dc exec "${envs[@]}" -e "VTT_ROUTER_WAN=$wan" backend node backend/dist/cli/main.js test "$@"
+    }
+    case ${2:-} in
+      ai)
+        shift 2
+        ai_test "$@"
+        ;;
+      full)
+        shift 2
+        external=0
+        ai_args=()
+        for a in "$@"; do
+          if [ "$a" = --external ]; then external=1; else ai_args+=("$a"); fi
+        done
+        rc=0
+        ai_test "${ai_args[@]}" || rc=1
+        echo
+        backend_test voice || rc=1
+        echo
+        if ((external)); then
+          backend_test reach || rc=1
+        else
+          echo "  Outside check skipped: add --external (it asks check-host.net, a free third-party service) or run: vtt-admin test reach"
+        fi
+        exit "$rc"
+        ;;
+      *)
+        shift
+        backend_test "$@"
+        ;;
+    esac
+    ;;
   help | --help | -h)
     # One help for both kinds of command: the CLI also prints this wrapper's commands (VTT_ADMIN_HOST).
     mapfile -t envs < <(term_env)

@@ -94,7 +94,18 @@ export interface SearchHit {
 
 export type JobState = 'queued' | 'running' | 'done' | 'failed';
 
+/** Which models a job used, as people read them ("qwen3:8b (remote)"): see `describeJobModels`. */
+export interface JobModels {
+  transcription: string;
+  scribe: string;
+  bard: string;
+  /** What moved to the local backend because the remote one could not be reached. */
+  fellBack?: ('transcription' | 'llm')[];
+}
+
 export interface Job {
+  /** Which models the job used, once it has run; absent for a job that has not, or a kind that uses none. */
+  models?: JobModels | null;
   /** What the job used of Claude, summed over its attempts; absent when it ran locally. */
   usage?: import('../consts/claude.js').LlmUsage | null;
   id: string;

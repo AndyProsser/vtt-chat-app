@@ -70,6 +70,22 @@ Some networks block UDP and every port except 443. Options, in the order we reco
    open a UDP range at all, or wants relays near players. It is configured as an extra ICE server
    in LiveKit/client config. It is a convenience, not a dependency; nothing may require it.
 
+### Behind CGNAT? (the server's side)
+
+Players behind CGNAT are fine (see above). The **server** is the problem: many home ISPs put customers behind
+carrier-grade NAT, so the whole street shares one public IPv4 address and nothing from outside can reach your server,
+whatever you forward on your router. `vtt-admin test reach` diagnoses it: it asks a STUN server (Google's, the same one LiveKit
+already uses) what address the server appears as, and says so if that is in the shared `100.64.0.0/10` range; and when
+nothing outside can reach a server that looks public, it says CGNAT is likely and how to confirm it (the router's WAN IP
+differs from that address, or is itself `100.64.x.x`-`100.127.x.x`). It also asks the router for that WAN IP itself, over NAT-PMP
+and UPnP, which turns the guess into proof when the router answers. Multicast does not cross Docker's bridge, so under Compose the
+`vtt-admin` wrapper asks from a throwaway container on the host network and hands the answer to the test.
+
+**This project does not work around it; it detects and warns, so a less technical operator does not lose hours to
+port forwarding that can never work.** The best fix is to **ask the ISP to take the line off CGNAT** (some do for free, some
+charge, some only for business plans). If they will not, the server has to run somewhere that has a public address, so
+someone else may need to host it. Finding another route (IPv6, relays, tunnels) is left to the operator.
+
 ### What does _not_ work
 
 **Cloudflare Tunnel cannot carry WebRTC media** (UDP) or the TCP ICE fallback. It can front the

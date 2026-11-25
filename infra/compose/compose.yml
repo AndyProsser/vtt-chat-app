@@ -120,6 +120,10 @@ services:
       # Where `vtt-admin status` checks LiveKit from inside this container (the public URL above
       # points at Caddy, which a container cannot always reach through its own address).
       LIVEKIT_HEALTH_URL: http://host.docker.internal:7880
+      # Where voice is reached (`vtt-admin voice-address`), for `vtt-admin test reach`; blank: the web address.
+      VOICE_ADDRESS: ${VOICE_ADDRESS:-}
+      # Only if you changed tcp_port in livekit.yaml from 7881.
+      VOICE_TCP_PORT: ${VOICE_TCP_PORT:-}
       # Audio capture: Egress (records profile) writes per-speaker files here; the worker reads them.
       RECORDINGS_DIR: /out
       # Seconds the DM may be disconnected before players can pause/resume/stop a recording, and before a

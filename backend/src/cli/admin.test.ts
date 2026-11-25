@@ -16,6 +16,8 @@ import { AccountService } from '../lib/auth/accountService.js';
 import { hashSecret, normaliseShortCode } from '../lib/auth/crypto.js';
 import { SignupService } from '../lib/auth/signupService.js';
 import { MemoryStore } from '../lib/store/memoryStore.js';
+import type { TestRow } from '@vtt-chat-app/shared';
+
 import { runAdmin, type Probe } from './admin.js';
 import { createUi } from './ui.js';
 import type { MachineInfo } from '../lib/status/machine.js';
@@ -425,6 +427,86 @@ describe('status: the AI context check', () => {
     expect(text).toContain('8192');
   });
 
+  const remote = async (context?: string) => {
+    await run('settings set ai.llm.kind remote');
+    await run('settings set ai.llm.url http://gpu:11434');
+    await run('settings set ai.llm.model qwen3');
+    if (context) await run(`settings set ai.llm.context ${context}`);
+  };
+
+  it('is ok when a remote server is serving exactly what is configured, though the model could do more', async () => {
+    await remote('12288');
+    expect(
+      await run('status', [], {
+        localAi: localAi({
+          kind: 'remote',
+          model: 'qwen3',
+          live: 12288,
+          modelMax: 40960,
+          unreachable: false,
+        }),
+      }),
+    ).toBe(0);
+    const text = out.join('\n');
+    expect(text).toMatch(/ok\s+AI\s+context window: 12288 tokens/i);
+    expect(text).not.toMatch(/warn\s+AI/i);
+  });
+
+  it('says what the server is serving, not what the model could do, when the server offers more than is configured', async () => {
+    await remote('8192');
+    expect(
+      await run('status', [], {
+        localAi: localAi({
+          kind: 'remote',
+          model: 'qwen3',
+          live: 12288,
+          modelMax: 40960,
+          unreachable: false,
+        }),
+      }),
+    ).toBe(0);
+    const text = out.join('\n');
+    expect(text).toMatch(/warn\s+AI/i);
+    expect(text).toMatch(/serving 12288/);
+    expect(text).toMatch(/--tune/);
+  });
+
+  it('does not offer --tune for a remote model whose window nobody has read, and says what to do instead', async () => {
+    await remote('8192');
+    expect(
+      await run('status', [], {
+        localAi: localAi({ kind: 'remote', model: 'qwen3', modelMax: 40960, unreachable: false }),
+      }),
+    ).toBe(0);
+    const text = out.join('\n');
+    expect(text).toMatch(/warn\s+AI/i);
+    expect(text).not.toMatch(/--tune/);
+    expect(text).toMatch(/OLLAMA_CONTEXT_LENGTH/);
+  });
+
+  it('says how old a carried-forward reading of the window is', async () => {
+    await remote('12288');
+    expect(
+      await run('status', [], {
+        now: () => 1_000 + 3 * 3_600_000,
+        localAi: {
+          at: 1,
+          llm: null,
+          whisper: null,
+          llmContext: {
+            kind: 'remote',
+            model: 'qwen3',
+            live: 12288,
+            liveAt: 1_000,
+            unreachable: false,
+            checkedAt: 1_000 + 3 * 3_600_000 - 60_000,
+          },
+        },
+      }),
+    ).toBe(0);
+    expect(out.join('\n')).toMatch(/window read 3h/);
+  });
+
   it('warns "not checked" on a kind mismatch instead of comparing against stale data', async () => {
     await run('settings set ai.llm.kind local');
     expect(
@@ -496,6 +578,8 @@ describe('status: the AI context check', () => {
     ).toBe(0);
     expect(await store.getSettings()).toEqual(before);
     expect(out.join('\n')).toMatch(/could not tune/i);
+    expect(out.join('\n')).toMatch(/15 minutes/);
+    expect(out.join('\n')).toMatch(/ai\.llm\.context/);
   });
 
   it('--tune run again with nothing changed reports "already matches" and does not write again', async () => {
@@ -609,6 +693,52 @@ describe('jobs and recordings', () => {
     };
     await run('jobs list');
     expect(out.join('\n')).toContain('claude-sonnet-5-5 110k in / 10k out, about $0.32');
+  });
+
+  it('names the models a job used, so a tale can be traced to the model that wrote it', async () => {
+    const job = await jobs.enqueue({ kind: PROCESS_RECORDING_JOB, recordingId: 'r1' }, 1);
+    jobs.jobs.get(job.id)!.models = {
+      transcription: 'large-v3-turbo (remote)',
+      scribe: 'qwen3:8b (remote)',
+      bard: 'qwen3:8b (remote)',
+    };
+    await run('jobs list');
+    const text = out.join('\n');
+    expect(text).toContain('qwen3:8b (remote)');
+    expect(text).toContain('large-v3-turbo (remote)');
+  });
+
+  it('says in jobs list when the local model did the work because the remote could not be reached', async () => {
+    const job = await jobs.enqueue({ kind: PROCESS_RECORDING_JOB, recordingId: 'r1' }, 1);
+    jobs.jobs.get(job.id)!.models = {
+      transcription: 'Whisper (local)',
+      scribe: 'qwen3:4b (local)',
+      bard: 'qwen3:4b (local)',
+      fellBack: ['llm'],
+    };
+    await run('jobs list');
+    expect(out.join('\n')).toMatch(/fell back/i);
+  });
+
+  it('says in status which models wrote the last tale', async () => {
+    const job = await jobs.enqueue({ kind: PROCESS_RECORDING_JOB, recordingId: 'r1' }, 1);
+    await jobs.claim(2, 1000);
+    await jobs.complete(job.id, 3);
+    jobs.jobs.get(job.id)!.models = {
+      transcription: 'large-v3-turbo (remote)',
+      scribe: 'qwen3:8b (remote)',
+      bard: 'gemma3:12b (remote)',
+    };
+    expect(await run('status')).toBe(0);
+    const text = out.join('\n');
+    expect(text).toMatch(/last tale/i);
+    expect(text).toContain('qwen3:8b (remote)');
+    expect(text).toContain('gemma3:12b (remote)');
+  });
+
+  it('says nothing about models in status when no job has recorded any', async () => {
+    expect(await run('status')).toBe(0);
+    expect(out.join('\n')).not.toMatch(/last tale/i);
   });
 
   it('puts a failed job back in the queue and the recording back to stopped', async () => {
@@ -1180,5 +1310,119 @@ describe('recording delete', () => {
     expect((await jobs.list())[0]).toMatchObject({ kind: 'delete-recording', recordingId: 'r1' });
     expect(await run('recording delete r2')).toBe(1);
     expect(await run('recording delete nope')).toBe(1);
+  });
+});
+
+describe('test: is everything working?', () => {
+  const ok = (name: string): TestRow => ({ badge: 'ok', name, detail: 'fine' });
+  const bad = (name: string): TestRow => ({ badge: 'fail', name, detail: 'broken' });
+
+  it('test voice prints what it found and says everything looks good', async () => {
+    expect(
+      await run('test voice', [], { selfTest: { voice: async () => [ok('LiveKit server')] } }),
+    ).toBe(0);
+    const text = out.join('\n');
+    expect(text).toContain('LiveKit server');
+    expect(text).toContain('Everything looks good.');
+  });
+
+  it('exits 1 and counts the problems when a check failed', async () => {
+    expect(
+      await run('test voice', [], {
+        selfTest: { voice: async () => [ok('a'), bad('LiveKit keys')] },
+      }),
+    ).toBe(1);
+    expect(out.join('\n')).toContain('1 problem found');
+  });
+
+  it('test reach says it is asking a third party, and for which host, before it asks', async () => {
+    const asked: string[] = [];
+    expect(
+      await run('test reach', [], {
+        selfTest: {
+          publicUrl: 'https://play.example.com',
+          reach: async (targets) => {
+            asked.push(targets.web.host);
+            return [ok('HTTPS (443)')];
+          },
+        },
+      }),
+    ).toBe(0);
+    expect(asked).toEqual(['play.example.com']);
+    const text = out.join('\n');
+    expect(text).toMatch(/check-host\.net/);
+    expect(text).toContain('play.example.com');
+    expect(text.indexOf('check-host.net')).toBeLessThan(text.indexOf('HTTPS (443)'));
+  });
+
+  it('test reach says which hosts it asks about when voice is on a different address from the web side', async () => {
+    const seen: unknown[] = [];
+    await run('test reach', [], {
+      selfTest: {
+        publicUrl: 'https://play.example.com:8443',
+        voiceAddress: '203.0.113.9',
+        reach: async (t) => (seen.push(t), [ok('x')]),
+      },
+    });
+    expect(seen).toEqual([
+      {
+        web: { host: 'play.example.com', scheme: 'https', port: 8443 },
+        voice: { host: '203.0.113.9', port: 7881 },
+      },
+    ]);
+    expect(out.join('\n')).toMatch(/play\.example\.com and 203\.0\.113\.9/);
+  });
+
+  it('test reach has nothing to check without a public address, and says how to set one', async () => {
+    expect(await run('test reach', [], { selfTest: { reach: async () => [ok('x')] } })).toBe(0);
+    expect(out.join('\n')).toMatch(/PUBLIC_URL|public address/i);
+  });
+
+  it('test ai passes the flags on, and refuses one it does not know', async () => {
+    let seen: unknown;
+    const ai = async (flags: unknown) => {
+      seen = flags;
+      return [ok('Whisper (local)')];
+    };
+    expect(await run('test ai --local --cloud', [], { selfTest: { ai } })).toBe(0);
+    expect(seen).toEqual({ local: true, remote: false, cloud: true });
+    expect(await run('test ai --everything', [], { selfTest: { ai } })).toBe(2);
+  });
+
+  it('test full runs the AI and voice checks, and only asks the outside world when told to', async () => {
+    const calls: string[] = [];
+    const selfTest = {
+      publicUrl: 'https://play.example.com',
+      ai: async () => (calls.push('ai'), [ok('Whisper (local)')]),
+      voice: async () => (calls.push('voice'), [ok('LiveKit server')]),
+      reach: async () => (calls.push('reach'), [ok('HTTPS (443)')]),
+    };
+    expect(await run('test full', [], { selfTest })).toBe(0);
+    expect(calls).toEqual(['ai', 'voice']);
+    expect(out.join('\n')).toMatch(/--external/);
+    out.length = 0;
+    calls.length = 0;
+    expect(await run('test full --external', [], { selfTest })).toBe(0);
+    expect(calls).toEqual(['ai', 'voice', 'reach']);
+  });
+
+  it('test full says AI is tested by the worker when this process cannot test it', async () => {
+    expect(
+      await run('test full', [], { selfTest: { voice: async () => [ok('LiveKit server')] } }),
+    ).toBe(0);
+    expect(out.join('\n')).toMatch(/vtt-admin test ai/);
+  });
+
+  it('test on its own, or with something else, shows how to use it', async () => {
+    expect(await run('test', [], { selfTest: {} })).toBe(2);
+    expect(out.join('\n') + err.join('\n')).toMatch(
+      /usage: test ai .*test voice.*test reach.*test full/,
+    );
+    expect(await run('test sideways', [], { selfTest: {} })).toBe(2);
+  });
+
+  it('is in the help', async () => {
+    await run('help');
+    expect(out.join('\n')).toMatch(/test voice/);
   });
 });

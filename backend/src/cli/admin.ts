@@ -21,11 +21,18 @@ import {
   type OllamaContextStatus,
   type RecordsStore,
 } from '@vtt-chat-app/ai';
-import type { AiSettings } from '@vtt-chat-app/shared';
+import {
+  formatTestRows,
+  testExitCode,
+  testVerdict,
+  type AiSettings,
+  type TestRow,
+} from '@vtt-chat-app/shared';
 
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
+import { reachTargets, type VoiceTarget, type WebTarget } from '../lib/selftest/reach.js';
 import { formatBytes, freePercent, isLow, measureDisk } from '../lib/status/storage.js';
 import {
   ArchiveError,
@@ -76,6 +83,20 @@ export interface AdminDeps {
   updatesSource?: string;
   /** Health checks for `status`. Injected so tests need no live services. */
   probes?: Probe[];
+  /**
+   * `vtt-admin test`: the checks, injected because they need live services. A missing one is not available in this
+   * process (AI is tested inside the worker's container on a Compose install).
+   */
+  selfTest?: {
+    voice?: () => Promise<TestRow[]>;
+    reach?: (targets: { web: WebTarget; voice: VoiceTarget }) => Promise<TestRow[]>;
+    ai?: (flags: { local: boolean; remote: boolean; cloud: boolean }) => Promise<TestRow[]>;
+    /** The server's public address (`PUBLIC_URL`) and voice address (`VOICE_ADDRESS`), which `test reach` asks about. */
+    publicUrl?: string;
+    voiceAddress?: string;
+    /** The ICE-over-TCP port, when the operator changed it from LiveKit's 7881 (`VOICE_TCP_PORT`). */
+    voiceTcpPort?: number;
+  };
   /** What the worker last found checking Ollama's real context window, for `status`'s AI section. */
   localAi?: LocalAiStatus | null;
   /** Removes pictures and PDFs no handout uses (after a campaign is deleted); returns how many. Needs MEDIA_DIR. */
@@ -312,6 +333,8 @@ export async function runAdmin(args: string[], options: AdminDeps): Promise<numb
         return await signupRequests(deps, command, rest);
       case 'jobs':
         return await jobs(deps, command, rest);
+      case 'test':
+        return await selfTests(deps, command, rest);
       case 'recording':
         return await recordings(deps, command, rest);
       case 'campaign':
@@ -369,8 +392,14 @@ function aiContextRows(
   now: number,
 ): Row[] {
   const { llm } = settings;
-  const row = (badge: BadgeKind, text: string, age?: number): Row[] => [
-    [badge, 'AI', age !== undefined ? `${text} (checked ${duration(age / 1000)} ago)` : text],
+  const row = (badge: BadgeKind, text: string, age?: number, liveAge?: number): Row[] => [
+    [
+      badge,
+      'AI',
+      age === undefined
+        ? text
+        : `${text} (checked ${duration(age / 1000)} ago${liveAge !== undefined ? `; window read ${duration(liveAge / 1000)} ago` : ''})`,
+    ],
   ];
 
   if (llm.kind === 'claude') {
@@ -388,12 +417,15 @@ function aiContextRows(
     return row('warn', 'context window: not checked yet');
   }
   const age = Math.max(0, now - checked.checkedAt);
+  // A remote model that sits idle keeps its last reading for a day (the worker loads it once to read it): say so.
+  const liveAge = checked.liveAt !== undefined ? Math.max(0, now - checked.liveAt) : undefined;
   const configured = contextWindowTokens(llm, false);
   if (checked.live !== undefined && checked.live < configured) {
     return row(
       'fail',
       `context window: Ollama is only serving ${checked.live} tokens, but ${configured} is configured`,
       age,
+      liveAge,
     );
   }
   if (checked.modelMax !== undefined && checked.modelMax < configured) {
@@ -401,21 +433,41 @@ function aiContextRows(
       'fail',
       `context window: the model's own maximum is ${checked.modelMax} tokens, but ${configured} is configured`,
       age,
+      liveAge,
     );
   }
-  if (checked.modelMax !== undefined && checked.modelMax > configured) {
+  if (checked.live !== undefined && checked.live > configured) {
     return row(
       'warn',
-      `context window: configured for ${configured} tokens, but the model supports up to ${checked.modelMax} — vtt-admin status --tune to use more`,
+      `context window: configured for ${configured} tokens, but Ollama is serving ${checked.live} — vtt-admin status --tune to use them`,
       age,
+      liveAge,
     );
   }
-  // Nothing was actually determined (both signals absent) — whether or not either request itself
-  // technically failed — is "unknown", never a silent `ok`.
+  if (
+    checked.live === undefined &&
+    checked.modelMax !== undefined &&
+    checked.modelMax > configured
+  ) {
+    // A remote server's window is its own OLLAMA_CONTEXT_LENGTH, which only a loaded model reveals; `local`'s is
+    // whatever the app asks for, so the model's maximum is a real option there.
+    return row(
+      'warn',
+      llm.kind === 'local'
+        ? `context window: configured for ${configured} tokens, but the model supports up to ${checked.modelMax} — vtt-admin status --tune to use more`
+        : `context window: configured for ${configured} tokens; the model supports up to ${checked.modelMax}, but the server's own window is not known yet (the worker reads it on its next check): set ai.llm.context to the server's OLLAMA_CONTEXT_LENGTH`,
+      age,
+      liveAge,
+    );
+  }
   if (checked.live === undefined && checked.modelMax === undefined) {
     return row('warn', 'context window: unknown (could not reach Ollama to check)', age);
   }
-  return row('ok', `context window: ${configured} tokens`, age);
+  const spare =
+    checked.live !== undefined && checked.modelMax !== undefined && checked.modelMax > checked.live
+      ? ` (the server is set to ${checked.live}; the model could do ${checked.modelMax})`
+      : '';
+  return row('ok', `context window: ${configured} tokens${spare}`, age, liveAge);
 }
 
 /**
@@ -441,7 +493,13 @@ async function tuneAiContext(deps: Ctx, current: InstanceSettings): Promise<void
   const live = fresh?.live;
   const value = live ?? (llm.kind === 'local' ? fresh?.modelMax : undefined);
   if (value === undefined) {
-    deps.out(deps.ui.warn('could not tune: nothing has been determined yet'));
+    deps.out(
+      deps.ui.warn(
+        llm.kind === 'remote'
+          ? "could not tune: the remote model's real window is not known yet. The worker loads an idle model and reads it on its next check (within 15 minutes): run this again then, or set ai.llm.context by hand to the server's OLLAMA_CONTEXT_LENGTH"
+          : 'could not tune: nothing has been determined yet',
+      ),
+    );
     return;
   }
   if (llm.context === value) {
@@ -555,6 +613,17 @@ async function instanceRows(deps: Ctx, now: number): Promise<Row[]> {
       ? ['warn', 'AI jobs', `${queue}  ${ui.hint('vtt-admin jobs list failed')}`]
       : ['ok', 'AI jobs', queue],
   );
+  // Which models wrote the last tale, so its quality can be traced to them.
+  const last = (await deps.jobs.list(['done']))
+    .filter((j) => j.models)
+    .sort((a, b) => b.updatedAt - a.updatedAt)[0];
+  if (last?.models) {
+    rows.push([
+      'off',
+      'last tale',
+      `${modelsLine(last.models)} ${ui.dim(`(${duration((now - last.updatedAt) / 1000)} ago)`)}`,
+    ]);
+  }
 
   if (deps.updatesDir) {
     const feeds = await readFeeds(deps.updatesDir);
@@ -892,6 +961,108 @@ function cloudUsage(usage: Job['usage']): string {
   }`;
 }
 
+/** "large-v3-turbo (remote), qwen3:8b (remote)": who heard the audio and who wrote, and a note when a remote one could not be reached. */
+function modelsLine(models: Job['models']): string {
+  if (!models) return '';
+  const writer =
+    models.scribe === models.bard
+      ? models.scribe
+      : `${models.scribe} (notes), ${models.bard} (tale)`;
+  const fell = models.fellBack?.length
+    ? ` — fell back to local for ${models.fellBack.map((w) => (w === 'llm' ? 'the model' : 'transcription')).join(' and ')}`
+    : '';
+  return `${models.transcription}, ${writer}${fell}`;
+}
+
+const TEST_USAGE =
+  'usage: test ai [--local] [--remote] [--cloud] | test voice | test reach | test full [--external]';
+
+/** `vtt-admin test`: prove that the AI, the voice server and (on request) the outside route to this server all work. */
+async function selfTests(deps: Ctx, sub: string | undefined, rest: string[]): Promise<number> {
+  const { ui } = deps;
+  const checks = deps.selfTest ?? {};
+  const known = sub === 'ai' || sub === 'voice' || sub === 'reach' || sub === 'full';
+  const allowed =
+    sub === 'ai' ? ['--local', '--remote', '--cloud'] : sub === 'full' ? ['--external'] : [];
+  const unknown = rest.find((a) => !allowed.includes(a));
+  if (!known || unknown !== undefined) {
+    deps.err(unknown && known ? `unknown option ${unknown}. ${TEST_USAGE}` : TEST_USAGE);
+    return 2;
+  }
+  const flags = {
+    local: rest.includes('--local'),
+    remote: rest.includes('--remote'),
+    cloud: rest.includes('--cloud'),
+  };
+  const all: TestRow[] = [];
+  const show = (heading: string, rows: TestRow[]): void => {
+    deps.out('');
+    deps.out(`  ${ui.dim(heading)}`);
+    for (const line of formatTestRows(rows, (kind) => ui.badge(kind))) deps.out(`  ${line}`);
+    all.push(...rows);
+  };
+
+  deps.out(ui.title(`test ${sub}`, deps.version ? `v${deps.version}` : undefined));
+  if (sub === 'ai' || sub === 'full') {
+    show(
+      'AI: can the worker reach Whisper and the summary model?',
+      checks.ai
+        ? await checks.ai(flags)
+        : [
+            {
+              badge: 'off',
+              name: 'AI',
+              detail:
+                'tested inside the worker, not here: run vtt-admin test ai (on its own) to try Whisper and the summary model',
+            },
+          ],
+    );
+  }
+  if (sub === 'voice' || sub === 'full') {
+    show(
+      'Voice: is LiveKit up, and can it record?',
+      checks.voice
+        ? await checks.voice()
+        : [{ badge: 'off', name: 'Voice', detail: 'not available in this process' }],
+    );
+  }
+  if (sub === 'reach' || (sub === 'full' && rest.includes('--external'))) {
+    const targets = reachTargets(checks.publicUrl, checks.voiceAddress, checks.voiceTcpPort);
+    if (!targets || !checks.reach) {
+      show('From outside: can people on the internet reach this server?', [
+        {
+          badge: 'warn',
+          name: 'Reach from outside',
+          detail:
+            'this server has no public address set (PUBLIC_URL), so there is nothing to check from outside. Set it with vtt-admin config set SITE_ADDRESS <host>.',
+        },
+      ]);
+    } else {
+      deps.out('');
+      const hosts = [...new Set([targets.web.host, targets.voice.host])].join(' and ');
+      deps.out(
+        `  ${ui.dim(`Asking check-host.net, a free public service, to connect to ${hosts} from several countries. It is told ${hosts.includes(' and ') ? 'these addresses' : 'this address'} and nothing else.`)}`,
+      );
+      show(
+        'From outside: can people on the internet reach this server?',
+        await checks.reach(targets),
+      );
+    }
+  } else if (sub === 'full') {
+    show('From outside', [
+      {
+        badge: 'off',
+        name: 'Reach from outside',
+        detail:
+          'not asked: it uses check-host.net, a free third-party service. Add --external to include it, or run vtt-admin test reach.',
+      },
+    ]);
+  }
+  deps.out('');
+  deps.out(`  ${testVerdict(all)}`);
+  return testExitCode(all);
+}
+
 async function jobs(deps: Ctx, command: string | undefined, rest: string[]): Promise<number> {
   const now = deps.now ?? Date.now;
   switch (command) {
@@ -926,6 +1097,7 @@ async function jobs(deps: Ctx, command: string | undefined, rest: string[]): Pro
           j.kind,
           `${j.attempts}/${j.maxAttempts}`,
           cloudUsage(j.usage),
+          modelsLine(j.models),
           holders.has(j.id)
             ? ui.dim(holders.get(j.id) as string)
             : j.lastError
@@ -934,7 +1106,7 @@ async function jobs(deps: Ctx, command: string | undefined, rest: string[]): Pro
                 ? ui.dim('released from the order rule')
                 : '',
         ]),
-        { header: ['id', 'state', 'kind', 'tries', 'cloud AI', 'last error / waiting'] },
+        { header: ['id', 'state', 'kind', 'tries', 'cloud AI', 'models', 'last error / waiting'] },
       ).forEach(deps.out);
       if (list.some((j) => j.state === 'failed')) {
         deps.out('');

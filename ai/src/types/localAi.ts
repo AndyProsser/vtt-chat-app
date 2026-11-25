@@ -33,6 +33,11 @@ export interface OllamaContextStatus {
   model: string | null;
   /** From `/api/ps`: what the currently-loaded instance is actually being served. Absent if not loaded. */
   live?: number;
+  /**
+   * When `live` was really read, if that was before this check: a `remote` model that is idle keeps its last
+   * reading for a day rather than being loaded again (see `createOllamaContextChecker`). Absent means `checkedAt`.
+   */
+  liveAt?: number;
   /** From `/api/show`: the model's own trained maximum. Absent if the model is unknown to Ollama. */
   modelMax?: number;
   /** True when neither endpoint could be reached at all (not just "model not loaded"). */

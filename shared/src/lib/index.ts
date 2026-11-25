@@ -14,3 +14,4 @@ export * from './campaignDetails.js';
 export * from './nextSession.js';
 export * from './historyView.js';
 export * from './gmNotes.js';
+export * from './selfTest.js';

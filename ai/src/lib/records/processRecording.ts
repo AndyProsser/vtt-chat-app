@@ -12,6 +12,7 @@ import type {
   Utterance,
 } from '../../types/index.js';
 import type { LlmUsage } from '../../consts/claude.js';
+import { describeJobModels, type LocalModelNames } from '../jobModels.js';
 import { chatUtterances, mergeTimeline } from '../chat.js';
 import { formatTranscript } from '../format.js';
 import type { JobHandler } from '../jobs/worker.js';
@@ -59,6 +60,8 @@ export interface ProcessRecordingDeps {
   log?: (line: string) => void;
   /** Asked before each Whisper window and model call (`createQuietGate`); absent means never wait. */
   gate?: () => Promise<void>;
+  /** The local models' names (the worker's `OLLAMA_MODEL` and `OLLAMA_STORY_MODEL`), so a job can say which it used. */
+  localModelNames?: LocalModelNames;
   /** Overridable for tests that inject `fetch`. */
   buildProviders?: typeof buildJobProviders;
 }
@@ -79,6 +82,7 @@ export function createProcessRecordingHandler(deps: ProcessRecordingDeps): JobHa
 
   const runJob = async (
     job: Job,
+    seen: { settings?: AiSettings; fellBack: Set<'transcription' | 'llm'> },
     onUsage: (u: {
       model: string;
       inputTokens: number;
@@ -92,6 +96,7 @@ export function createProcessRecordingHandler(deps: ProcessRecordingDeps): JobHa
     await deps.records.setRecordingStatus(recording.id, 'processing');
 
     const settings: AiSettings = await deps.records.getAiSettings();
+    seen.settings = settings;
     // The campaign's names (Stage 12): Whisper's starting prompt when the operator has it on, and the corrections
     // after. Gathered once per job; none of it for a recording whose campaign is gone.
     const mode = settings.transcription.glossary;
@@ -117,7 +122,10 @@ export function createProcessRecordingHandler(deps: ProcessRecordingDeps): JobHa
       localGenerate: deps.localGenerate,
       ...(deps.localStory ? { localStory: deps.localStory } : {}),
       onUsage: checkedOnUsage,
-      onFallback: (what, reason) => log(`${recording.id}: ${what} fell back to local — ${reason}`),
+      onFallback: (what, reason) => {
+        seen.fellBack.add(what);
+        log(`${recording.id}: ${what} fell back to local — ${reason}`);
+      },
     });
 
     // Local AI waits here while a table is recording, when the operator has asked for that (quietGate.ts).
@@ -384,9 +392,25 @@ export function createProcessRecordingHandler(deps: ProcessRecordingDeps): JobHa
             : {}),
         };
       };
+      // Which models did the work, recorded even when the job fails: the settings and any fallback are known by then.
+      const seen: { settings?: AiSettings; fellBack: Set<'transcription' | 'llm'> } = {
+        fellBack: new Set(),
+      };
       try {
-        await runJob(job, onUsage);
+        await runJob(job, seen, onUsage);
       } finally {
+        if (seen.settings) {
+          await deps.records
+            .setJobModels(
+              job.id,
+              describeJobModels(seen.settings, deps.localModelNames ?? { llm: 'the local model' }, [
+                ...seen.fellBack,
+              ]),
+            )
+            .catch((error: unknown) => {
+              log(`${job.recordingId}: could not record which models were used: ${String(error)}`);
+            });
+        }
         if (used) {
           await deps.records.addJobUsage(job.id, used).catch((error: unknown) => {
             log(`${job.recordingId}: could not record Claude usage: ${String(error)}`);

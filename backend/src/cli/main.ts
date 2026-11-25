@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { createWriteStream } from 'node:fs';
+import { lookup } from 'node:dns/promises';
 import { readFile, rename, rm, stat } from 'node:fs/promises';
 import { Valkey } from 'iovalkey';
 
@@ -9,12 +10,18 @@ import {
   PostgresJobQueue,
   PostgresRecordsStore,
   readLocalAiStatus,
+  runAiTest,
   shownState,
 } from '@vtt-chat-app/ai';
+import { EgressClient, RoomServiceClient } from 'livekit-server-sdk';
 
 import { AccountService } from '../lib/auth/accountService.js';
 import { SignupService } from '../lib/auth/signupService.js';
 import { loadConfig } from '../lib/config.js';
+import { checkReach, type VoiceTarget, type WebTarget } from '../lib/selftest/reach.js';
+import { routerWanAddress, type RouterAddress } from '../lib/selftest/router.js';
+import { stunPublicAddress } from '../lib/selftest/stun.js';
+import { checkVoice } from '../lib/selftest/voice.js';
 import {
   ArchiveError,
   exportCampaign,
@@ -41,7 +48,23 @@ import { syncFromConfig } from '../lib/updates/runSync.js';
  *
  *   docker compose exec backend node backend/dist/cli/main.js status
  */
+const lookupAll = async (host: string): Promise<string[]> =>
+  (await lookup(host, { all: true })).map((a) => a.address);
+
+/** In a container the router cannot be asked (multicast stays on the bridge), so the wrapper script asks from the host's network and passes the answer in. */
+const routerFromHost = async (): Promise<RouterAddress | undefined> => {
+  if (process.env.VTT_ADMIN_HOST !== 'compose') return routerWanAddress();
+  const [address, via] = (process.env.VTT_ROUTER_WAN ?? '').split(' ');
+  return address && (via === 'UPnP' || via === 'NAT-PMP') ? { address, via } : undefined;
+};
+
 async function main(): Promise<number> {
+  if (process.argv[2] === 'router-address') {
+    // Internal: used by the vtt-admin wrapper, run with the host's network. Prints "<address> <UPnP|NAT-PMP>", or nothing.
+    const r = await routerWanAddress();
+    if (r) console.log(`${r.address} ${r.via}`);
+    return 0;
+  }
   const config = loadConfig();
   if (config.databaseUrl === undefined) {
     console.error(
@@ -112,12 +135,55 @@ async function main(): Promise<number> {
     }
 
     const accounts = new AccountService({ store });
+    // `vtt-admin test`. On a Compose install AI is tested inside the worker's container (the wrapper runs it there), because
+    // that is where Whisper's and Ollama's addresses and the API keys are; a native install has them in this process.
+    const records = new PostgresRecordsStore(pool);
+    const liveKitApi = config.liveKitApiUrl;
+    const selfTest = {
+      publicUrl: process.env.PUBLIC_URL ?? '',
+      voice: () =>
+        checkVoice({
+          healthUrl: process.env.LIVEKIT_HEALTH_URL ?? liveKitApi,
+          publicUrl: config.liveKitUrl,
+          listRooms: () =>
+            new RoomServiceClient(
+              liveKitApi,
+              config.liveKitApiKey,
+              config.liveKitApiSecret,
+            ).listRooms(),
+          listEgress: () =>
+            new EgressClient(
+              liveKitApi,
+              config.liveKitApiKey,
+              config.liveKitApiSecret,
+            ).listEgress(),
+          recordingConfigured: Boolean(config.recordingsDir),
+        }),
+      voiceAddress: process.env.VOICE_ADDRESS ?? '',
+      voiceTcpPort: Number(process.env.VOICE_TCP_PORT) || 7881,
+      reach: (targets: { web: WebTarget; voice: VoiceTarget }) =>
+        checkReach({
+          ...targets,
+          network: {
+            resolve: lookupAll,
+            publicAddress: () => stunPublicAddress(),
+            routerAddress: routerFromHost,
+          },
+        }),
+      ...(process.env.VTT_ADMIN_HOST === 'compose'
+        ? {}
+        : {
+            ai: async (flags: { local: boolean; remote: boolean; cloud: boolean }) =>
+              runAiTest(flags, { settings: await records.getAiSettings(), env: process.env }),
+          }),
+    };
     return await runAdmin(process.argv.slice(2), {
+      selfTest,
       store,
       accounts,
       signups: new SignupService({ store, accounts }),
       jobs: new PostgresJobQueue(pool),
-      records: new PostgresRecordsStore(pool),
+      records,
       ...(config.updatesDir ? { updatesDir: config.updatesDir } : {}),
       ...(config.updatesSync
         ? {

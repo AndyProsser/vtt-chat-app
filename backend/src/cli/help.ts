@@ -169,6 +169,30 @@ export const SERVER_SECTIONS: HelpSection[] = [
     ],
   },
   {
+    group: 'test',
+    title: 'Is everything working?',
+    commands: [
+      {
+        usage: 'test ai [--local] [--remote] [--cloud]',
+        summary:
+          'prove Whisper and the summary model answer. By default only what is configured, never cloud AI (a real, billable call) unless you add --cloud',
+      },
+      {
+        usage: 'test voice',
+        summary: 'prove LiveKit is up, accepts our keys, and that a session can be recorded',
+      },
+      {
+        usage: 'test reach',
+        summary:
+          'ask check-host.net (a free public service) whether the internet can reach this server on HTTP, HTTPS and the voice TCP port',
+      },
+      {
+        usage: 'test full [--external]',
+        summary: 'ai and voice together; --external adds the reach check',
+      },
+    ],
+  },
+  {
     group: 'updates',
     title: 'Desktop app updates',
     commands: [

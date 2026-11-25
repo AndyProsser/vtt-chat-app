@@ -9,6 +9,7 @@ import type {
   Segment,
   StoredSummary,
   TrackTranscript,
+  JobModels,
 } from '../../types/index.js';
 import type { LlmUsage } from '../../consts/claude.js';
 import type { MemoryEntry } from '../memory.js';
@@ -119,6 +120,8 @@ export interface RecordsStore {
   ): Promise<boolean>;
   /** Adds what a job used of Claude to the job's total (`vtt-admin jobs list` shows it). */
   addJobUsage(jobId: string, usage: LlmUsage): Promise<void>;
+  /** Notes which models a job used (`vtt-admin jobs list` and `status` show them); the latest attempt's answer replaces the last. */
+  setJobModels(jobId: string, models: JobModels): Promise<void>;
   campaignName(campaignId: string): Promise<string | undefined>;
   /** Account ids of the campaign's players (every member but the DM): who gets a character summary. */
   playerIds(campaignId: string): Promise<string[]>;

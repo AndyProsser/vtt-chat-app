@@ -18,6 +18,7 @@ import type {
   Segment,
   StoredSummary,
   TrackTranscript,
+  JobModels,
 } from '../../types/index.js';
 import type { RecordsStore } from './recordsStore.js';
 
@@ -232,6 +233,11 @@ export class MemoryRecordsStore implements RecordsStore {
     this.memory.set(campaignId, [...all.values()]);
     this.appliedMemory.add(recordingId);
     return true;
+  };
+  /** Which models each job used (test-facing). */
+  jobModels = new Map<string, JobModels>();
+  setJobModels = async (jobId: string, models: JobModels): Promise<void> => {
+    this.jobModels.set(jobId, models);
   };
   /** What each job used of Claude (test-facing). */
   jobUsage = new Map<string, LlmUsage>();
