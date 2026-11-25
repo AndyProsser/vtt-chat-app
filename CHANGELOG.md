@@ -12,6 +12,7 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ### Added
 
+- **The phone app can pick the storyteller and keep the Game Master's notes.** For the Game Master: tap the table's name to choose who tells the tales (the storytellers your server offers, changed at once), and open **Game Master notes** from the menu to read the page with a list of its headings, edit it, and attach or open pictures and PDFs. The same one page and the same attachments as the desktop app's notes window; no player ever sees them. Nothing changes on the server: both use endpoints the desktop app already did.
 - **A livelier campaign chooser** (desktop). Each campaign is a card with its storyteller's badge, its name, a line from its description and a crown if you run it, instead of a plain button; and each visit shows a dry one-liner from a character who never existed (never the same one twice running).
 - **A faint picture behind each ability score** in the character screens of both apps (a dumbbell for Strength, wind for Dexterity, a pulse for Constitution, a brain for Intelligence, a compass for Wisdom, a sparkle for Charisma).
 

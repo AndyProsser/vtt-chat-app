@@ -22,11 +22,12 @@ import { BardBadge } from './BardBadge.js';
 import { IconTool } from './IconTool.js';
 import { LazyMarkdown } from './LazyMarkdown.js';
 import { MarkdownField } from './MarkdownField.js';
+import { StorytellerPicker } from './StorytellerPicker.js';
 
 /**
  * The table's own page, opened by tapping its name: the name, the description, who tells the tales, and what you
- * can do about it. Everyone reads it. The Game Master edits the name and description; a player can leave. Changing
- * the storyteller, handing over the DM role and the rest stay in the desktop app.
+ * can do about it. Everyone reads it. The Game Master edits the name and description and picks the storyteller; a
+ * player can leave. Handing over the DM role and the rest stay in the desktop app.
  */
 export function CampaignInfoScreen({
   campaignId,
@@ -66,6 +67,20 @@ export function CampaignInfoScreen({
       setEditing(false);
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Could not save that. Try again.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function pickBard(id: BardId) {
+    setBusy(true);
+    setError(undefined);
+    try {
+      await updateCampaign(campaignId, { bard: id });
+      await refresh();
+      teller.reload();
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : 'Could not change the storyteller. Try again.');
     } finally {
       setBusy(false);
     }
@@ -167,23 +182,27 @@ export function CampaignInfoScreen({
         <Text size="1" weight="bold" color="gray" className="phone-info-label">
           Storyteller
         </Text>
-        <Flex align="center" gap="3">
-          <BardBadge id={effectiveId} size={44} />
-          <Flex direction="column">
-            <Text weight="medium">{persona.name}</Text>
-            <Text size="2" color="gray">
-              {persona.blurb}
-            </Text>
+        {dm && teller.data ? (
+          <StorytellerPicker
+            offered={teller.data.offered}
+            chosen={chosenId}
+            busy={busy}
+            onPick={(id) => void pickBard(id)}
+          />
+        ) : (
+          <Flex align="center" gap="3">
+            <BardBadge id={effectiveId} size={44} />
+            <Flex direction="column">
+              <Text weight="medium">{persona.name}</Text>
+              <Text size="2" color="gray">
+                {persona.blurb}
+              </Text>
+            </Flex>
           </Flex>
-        </Flex>
+        )}
         {turnedOff && (
           <Text size="1" color="amber">
             {chosenName} is turned off on this server, so {persona.name} tells the tales.
-          </Text>
-        )}
-        {dm && (
-          <Text size="1" color="gray">
-            Change the storyteller in the desktop app (Settings, Campaign).
           </Text>
         )}
       </section>
