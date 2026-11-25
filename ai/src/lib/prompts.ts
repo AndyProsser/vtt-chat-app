@@ -145,12 +145,47 @@ export function formatNotes(
     .join('\n\n');
 }
 
+/**
+ * The stored notes of a chaptered session read back into one block of notes per chapter, keyed by the chapter's number: the
+ * inverse of `formatNotes` for parts titled "Part N" or "Part N: title". A job that failed after the notes were stored
+ * (an hour of work) then starts from them instead of taking them again. Anything that does not read as that layout gives an
+ * empty map, and the caller takes the notes afresh.
+ */
+export function parseStoredNotes(text: string): Map<string, string[]> {
+  const parts = new Map<string, string[]>();
+  const pieces = text.split(/^### Part (?=\S)/m).slice(1);
+  for (const piece of pieces) {
+    const head = /^(\S+?)(?::[^\n]*)?\n/.exec(piece);
+    if (!head?.[1]) return new Map();
+    const body = piece
+      .slice(head[0].length)
+      .split('\n')
+      .map((line) => line.replace(/^####\s+/, '## '))
+      .join('\n')
+      .trim();
+    if (body === '') return new Map();
+    parts.set(head[1], [body]);
+  }
+  return parts;
+}
+
 /** Shortens notes that have outgrown one model call, keeping the events (map-reduce's middle step). */
-export function buildCondensePrompt(notes: readonly string[], context: SummaryContext): string {
+export function buildCondensePrompt(
+  notes: readonly string[],
+  context: SummaryContext,
+  targetWords?: number,
+  lastAttemptWords?: number,
+): string {
   return [
-    `These are a scribe's notes of a tabletop role-playing session${campaignOf(context)}, in order. Rewrite them as noticeably shorter notes, one event per line, in the same order.`,
-    'Keep the headings, in the same order, and the bullets under them. Keep every event that matters to the story: the victories, the failures and fumbles, the discoveries, the promises, the memorable lines, and every name. Drop repetition and routine detail. Add nothing.',
-    'Cut the length by at least a third, and more where you can: merge lines about the same small thing, and say each one in fewer words. A pass that barely shortens the notes has not done its job.',
+    `These are a scribe's notes of a tabletop role-playing session${campaignOf(context)}, in order. Rewrite them as a short recap, one event per line, in the same order: only the bits a table would want to remember at the next session.`,
+    'Keep the headings, in the same order, and the bullets under them. Keep the key events and turning points, the victories and the fumbles, the discoveries and reveals, the decisions that had consequences, the promises, the memorable or funny moments and lines, and every name that matters. Drop play-by-play, routine detail, repetition and filler: merge lines about the same small thing and say each one in fewer words. Add nothing.',
+    targetWords === undefined
+      ? 'Cut the length by at least a third, and more where you can. A pass that barely shortens the notes has not done its job.'
+      : `Write at most ${targetWords} words in total. This is a hard limit: a recap over it is cut off without being read.${
+          lastAttemptWords === undefined
+            ? ''
+            : ` Your last attempt was ${lastAttemptWords} words, too long: cut it down to the limit by dropping the least important lines.`
+        }`,
     'Notes, in order:',
     joinNotes(notes),
     'Shorter notes:',

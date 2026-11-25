@@ -217,6 +217,28 @@ describe('process-recording handler', () => {
     expect(prompts[0]).toContain('"ALICE" is the Game Master');
   });
 
+  it('a retry after the notes were stored does not take them again', async () => {
+    records.players.set('camp-1', ['bob']);
+    for (const [at, event] of [
+      [0, 'started'],
+      [1000, 'paused'],
+      [1500, 'resumed'],
+      [9000, 'stopped'],
+    ] as const) {
+      await records.addRecordingEvent({ recordingId: REC, at, event });
+    }
+    await handler().run(job());
+    // The job died after the notes were stored (the tales were not written): a retry has only the stored notes.
+    for (const [key, s] of records.summaries) if (s.kind !== 'notes') records.summaries.delete(key);
+    prompts.length = 0;
+    await handler().run(job());
+    expect(prompts.filter((p) => p.startsWith('You are the scribe'))).toHaveLength(0);
+    // ...and the tales are still told from those notes.
+    const chapter2 = prompts.find((p) => p.includes('part 2 of 2 of this session'));
+    expect(chapter2).toContain('summary #2');
+    expect(await records.getSummary(REC, 'session', '')).toBeDefined();
+  });
+
   it('paces chapter note-taking instead of firing every chapter at once, and logs each as it finishes', async () => {
     for (const [at, event] of [
       [0, 'started'],
@@ -592,8 +614,7 @@ describe("the operator's context window (chunking)", () => {
   // worker pins a fixed `num_ctx` the setting can't reach (ai/src/lib/tokenBudget.ts), so these use
   // `kind: remote` with a never-reachable URL (the same "powered-off gaming PC" shape as the backend
   // test above) so every call falls back to the handler's own local mock instead of hitting the network.
-  const condensed = () =>
-    prompts.some((p) => p.includes('Rewrite them as noticeably shorter notes'));
+  const condensed = () => prompts.some((p) => p.includes('Rewrite them as a short recap'));
   const remoteWith = (context: string) =>
     setAiSetting(
       setAiSetting(

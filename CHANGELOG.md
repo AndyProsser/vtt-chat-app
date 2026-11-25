@@ -26,6 +26,7 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ### Fixed
 
+- **A long session's summary no longer wastes hours.** On a real 66-minute session the step that writes the session tale failed three times with "the prompt is longer than the context length", an hour each, and the whole job spent 800,000 tokens. The notes are now cut to a **recap** that fits the window: the model is asked for only what a table would remember (key events and turning points, big wins and fumbles, reveals, consequential decisions, the memorable and funny moments, the names that matter) with a **hard word limit**; a model that writes too much is told once, and if it still does the text is clipped by code, so the call can no longer overflow. A model that aborts on a passage ("token repeat limit") is tried once more and then that passage is clipped. The shortened notes are made **once and shared** by the session tale, every character's tale and the brief (each used to shorten the same notes again: 23 to 36 model calls each), and a **retry reuses the stored notes** instead of taking them again. On the same real notes the replay took 11 model calls where 0.6.4 took about 40 for one summary.
 - **The desktop campaign chooser now follows the server.** A campaign that was deleted or renamed elsewhere used to stay on the list (or keep its old name) until the app was restarted; the list is now re-read when the chooser appears and each time the window is used again.
 
 ## [0.6.4] - 2026-11-25

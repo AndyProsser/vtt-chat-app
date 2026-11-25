@@ -723,3 +723,11 @@ flowchart LR
 A session is mostly talk, thinking and waiting for dice, with one or two fights: the scribe's job is to find the
 few things that happened, plus the lines worth quoting. After the notes, the transcript is not read again; it is
 kept (it is small text) so a summary can be re-run and for search. Steps D and E in the ROADMAP build to these sizes.
+
+## Long sessions: the recap fit (0.6.5, 2026-11-26)
+
+A summary is the bits a table would remember at the next session, not a record of everything: a 20-minute, 1,000-word stretch becomes a line or two. The first real run of session 4 on 0.6.4 (a 66-minute recording on a 12,288-token window, `qwen3.5:9b`) showed the old shortening loop failing at this: asked to "cut by a third", the model returned about what it was given, four rounds later the notes were still over the window, and the call was sent anyway and refused (`prompt longer than the context length`), once an hour, three times.
+
+`fitNotes` (`ai/src/lib/fitNotes.ts`) replaces it. The notes are cut down to about 45% of the window (`FIT_TARGET_SHARE`) as a recap, each shortening call carries a hard **"at most N words"** (`buildCondensePrompt`), a model that overruns is told once with its own word count, and if it still does, `clipToWords` thins the lines evenly start to end (headings kept). A model that aborts with Ollama's "token repeat limit" is retried once, then that group is clipped; any other failure (an unreachable server) still fails the job so failover can act. So the call that follows always fits.
+
+The shortened notes are made once per recording and shared by every summary (`fit` in `processRecording.ts`), and a retry rebuilds the per-chapter notes from the stored copy (`parseStoredNotes`) instead of taking them again. Measured on the real notes of session 4 (10 parts, 44,685 characters): 11 model calls in all, against about 40 for one summary on 0.6.4.

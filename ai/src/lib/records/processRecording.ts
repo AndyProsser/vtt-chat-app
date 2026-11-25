@@ -31,7 +31,8 @@ import { buildJobProviders } from '../providers/fromSettings.js';
 import { NOTES_MAX_WORDS } from '../notes.js';
 import { CONDENSE_THRESHOLD } from '../../consts/index.js';
 import { contextWindowTokens } from '../tokenBudget.js';
-import { formatNotes } from '../prompts.js';
+import { fitNotes, type FitResult } from '../fitNotes.js';
+import { formatNotes, parseStoredNotes } from '../prompts.js';
 import { stripThinking, takeNotes, writeFromNotes, type SummaryModels } from '../summarise.js';
 import { planSummaries } from '../summaryPlan.js';
 import type { RecordsStore } from './recordsStore.js';
@@ -234,6 +235,25 @@ export function createProcessRecordingHandler(deps: ProcessRecordingDeps): JobHa
       scribe: gated(providers.generate.call),
       bard: gated(providers.story.call),
     };
+    // The notes cut down to fit the window are made once and shared by every summary of the recording (the tale, each
+    // character's, the brief): the same notes, so the same shorter notes. The model calls go to the first summary.
+    const fitted = new Map<string, Promise<FitResult>>();
+    const credited = new Set<string>();
+    const fit = async (notes: string[]): Promise<FitResult> => {
+      const key = notes.join('\u0000');
+      let result = fitted.get(key);
+      if (!result) {
+        result = fitNotes(async (prompt) => stripThinking(await models.scribe(prompt)), notes, {
+          context: plan.find((p) => p.kind === 'session')?.context ?? {},
+          window,
+        });
+        fitted.set(key, result);
+      }
+      const done = await result;
+      if (credited.has(key)) return { notes: done.notes, modelCalls: 0 };
+      credited.add(key);
+      return done;
+    };
     const chapters = plan.filter((p) => p.kind === 'chapter');
     const byChapter =
       chapters.length > 0 &&
@@ -259,6 +279,15 @@ export function createProcessRecordingHandler(deps: ProcessRecordingDeps): JobHa
       }
       return notes;
     };
+    // A retry after the notes were stored starts from them: taking them again is most of the hour (0.6.4 did, three times).
+    if (byChapter) {
+      const stored = await deps.records.getSummary(recording.id, 'notes', '');
+      if (stored) {
+        for (const [key, notes] of parseStoredNotes(stored.text)) {
+          if (chapters.some((c) => c.subject === key)) taken.set(key, Promise.resolve(notes));
+        }
+      }
+    }
     const sessionNotes = async (context: SummaryContext): Promise<string[]> => {
       if (!byChapter) return notesOf('', utterances, context);
       const parts: string[] = [];
@@ -337,6 +366,7 @@ export function createProcessRecordingHandler(deps: ProcessRecordingDeps): JobHa
         context: { ...context, ...(await telling(kind, notes)) },
         llm: settings.llm,
         fallbackEnabled: settings.fallback.enabled,
+        fit,
       });
       const modelCalls = result.modelCalls + uncounted;
       uncounted = 0;

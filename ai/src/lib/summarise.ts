@@ -1,5 +1,4 @@
 import {
-  CONDENSE_THRESHOLD,
   DEFAULT_CHUNK_CHARS,
   DEFAULT_CHUNK_OVERLAP_LINES,
   MAX_REDUCE_DEPTH,
@@ -11,7 +10,8 @@ import { chunkLines } from './chunk.js';
 import type { StructuredNotes } from './notes.js';
 import { formatTimeline } from './format.js';
 import { mergeNotes, NOTES_MAX_WORDS, notesWords, parseNotes, renderNotes } from './notes.js';
-import { contextWindowTokens, estimateTokens } from './tokenBudget.js';
+import { contextWindowTokens } from './tokenBudget.js';
+import { fitNotes, type FitResult } from './fitNotes.js';
 import {
   buildChroniclerPrompt,
   buildCondensePrompt,
@@ -103,6 +103,12 @@ export interface Notes {
 
 export interface SummariseOptions extends NotesOptions {
   kind: SummaryKind;
+  /**
+   * Cuts the notes down to fit the window. The records job passes one shared by every summary of a recording, so the notes
+   * are shortened once, not again for the session tale, each character's tale and the brief (0.6.4 did, and spent
+   * 800,000 tokens on one session). Omitted: `fitNotes` runs for this summary alone.
+   */
+  fit?: (notes: string[]) => Promise<FitResult>;
 }
 
 export interface SummaryResult {
@@ -210,16 +216,16 @@ export async function writeFromNotes(
     return stripThinking(await model(prompt));
   };
 
-  let notes = [...taken];
-  for (let depth = 0; depth < MAX_REDUCE_DEPTH; depth += 1) {
-    if (estimateTokens(notes.join('\n\n')) <= window * CONDENSE_THRESHOLD) break;
-    // Shorten groups of notes that each fit, then go round again on the shorter result.
-    const shorter: string[] = [];
-    for (const group of groupByBudget(notes, chunkChars)) {
-      shorter.push(await call(scribe, buildCondensePrompt(group, context)));
-    }
-    notes = shorter;
-  }
+  // Too long for one call: a recap that fits (see fitNotes), shared with the other summaries of the recording when the job says so.
+  const fitted = options.fit
+    ? await options.fit([...taken])
+    : await fitNotes(async (prompt) => stripThinking(await scribe(prompt)), taken, {
+        context,
+        window,
+        chunkChars,
+      });
+  modelCalls += fitted.modelCalls;
+  const notes = fitted.notes;
 
   const text =
     options.kind === 'dm-only'

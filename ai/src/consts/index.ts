@@ -35,6 +35,8 @@ export const NOTES_READ_ATTEMPTS = 3;
 export const DEFAULT_LOCAL_CONTEXT_TOKENS = 8192;
 /** Conservative against Claude's and OpenAI's real, much larger windows; never configured by the operator. */
 export const DEFAULT_CLOUD_CONTEXT_TOKENS = 100_000;
+/** What the notes are cut down to when they are too long for the tale, as a share of the window: a recap, with room left for the prompt and the answer (`fitNotes`). */
+export const FIT_TARGET_SHARE = 0.45;
 /** A prompt over about this share of the window takes the chunked (condense) path (the spec's own figure). */
 export const CONDENSE_THRESHOLD = 0.7;
 

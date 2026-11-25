@@ -14,6 +14,7 @@ import {
   buildNotesPrompt,
   buildStoryPrompt,
   formatNotes,
+  parseStoredNotes,
   taleWords,
 } from './prompts.js';
 import {
@@ -360,6 +361,22 @@ describe('summarise', () => {
     expect(condense.mock.calls.length).toBeGreaterThan(1);
   });
 
+  it('uses a shared fitter when the job gives one, so the notes are not shortened again for each summary', async () => {
+    const scribe = vi.fn(async () => 'brief');
+    const bard = vi.fn(async (p: string) => p);
+    const fit = vi.fn(async (notes: string[]) => ({
+      notes: ['SHARED SHORT NOTES'],
+      modelCalls: 3 + notes.length * 0,
+    }));
+    const big = ['word '.repeat(9000)];
+    const a = await writeFromNotes({ scribe, bard }, big, { kind: 'session', context: {}, fit });
+    const b = await writeFromNotes({ scribe, bard }, big, { kind: 'dm-only', context: {}, fit });
+    expect(fit).toHaveBeenCalledTimes(2); // asked each time: the job's fitter is what remembers
+    expect(a.text).toContain('SHARED SHORT NOTES');
+    expect(b.modelCalls).toBe(3 + 1); // the fitter's calls plus the brief itself
+    expect(scribe).toHaveBeenCalledTimes(1); // only the brief: no shortening of its own
+  });
+
   it('does not condense when nothing is configured and the notes are small', async () => {
     const condense = vi.fn(async () => 'a short reply');
     await writeFromNotes({ scribe: condense, bard: condense }, ['a short note'], {
@@ -564,5 +581,23 @@ describe('the storytellers (Stage 12 G)', () => {
     expect(brief).toContain('Vecna');
     expect(brief).toMatch(/continuity warning where the session went against them/);
     expect(brief).not.toContain('END');
+  });
+});
+
+describe('parseStoredNotes', () => {
+  it('reads the stored notes of a chaptered session back, one block per chapter', () => {
+    const stored = formatNotes([
+      { title: 'Part 1: The Anchor', notes: ['## Events\n- They met.\n## Loot\n- A key.'] },
+      { title: 'Part 2', notes: ['## Events\n- They sailed.'] },
+    ]);
+    const parts = parseStoredNotes(stored);
+    expect([...parts.keys()]).toEqual(['1', '2']);
+    expect(parts.get('1')).toEqual(['## Events\n- They met.\n## Loot\n- A key.']);
+    expect(parts.get('2')).toEqual(['## Events\n- They sailed.']);
+  });
+  it('gives nothing for notes that are not in that layout, so the caller takes them again', () => {
+    expect(parseStoredNotes('- one plain line\n- another').size).toBe(0);
+    expect(parseStoredNotes('### Part 1\n\n').size).toBe(0);
+    expect(parseStoredNotes('').size).toBe(0);
   });
 });
