@@ -1348,3 +1348,9 @@ button.phone-picture-button {
   color: var(--violet-11, currentColor);
   background: var(--violet-a3, transparent);
 }
+
+/* A session's tabs on a narrow screen: the four labels may scroll rather than squeeze. */
+.phone-session-tabs {
+  overflow-x: auto;
+  flex-wrap: nowrap;
+}

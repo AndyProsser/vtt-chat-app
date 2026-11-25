@@ -36,6 +36,15 @@ path), so `status` can be a few minutes stale after a config change; `--tune` ac
 value, not a fresh on-demand query. The bigger `vtt-admin test ai|voice|full` idea and external
 connectivity checking were both parked (ROADMAP.md, Future ideas) rather than built now.
 
+## Stage 14, 0.6.4 so far (2026-11-25): built and unit-tested, not yet seen in a real window
+
+Dev builds `0.6.4-dev.N`. **None of this has been looked at in the real apps yet.**
+
+- **Icon audit and the lucide fixes** (dev.1): Coins no longer shows a door, the 11 starter boards and 4 scenes have icons, the ability tiles carry watermarks, the campaign chooser is cards with a dry quip, and Game Icons is parked in Future ideas. The context-window status fix is in dev.1 too.
+- **Language spans** (after dev.1): `[words](lang:dwarvish)` and a fenced block named for a language, in handouts, notes and tales, in both apps (`makeLangComponents` in `ui-kit`), and the bard may write them. Known limit: a search snippet shows the markup as written.
+- **History as tabs** (after dev.1): `historyTabs()` in `shared/` (pure, no wire change), a `SessionTabs` component in each app, and on the desktop a pop-out window (`session_view_open` and `session_configure` in `windows.rs`, route `#session/<id>/<tab>`). The old "More detail" fold and `partitionSummaries` are gone.
+- **Signing:** the commits on the local branches from the language-spans work onward are **unsigned** (the 1Password agent was unreachable); they are re-signed before they are pushed.
+
 ## Typography and icons, Stage 14 (0.6.3), 2026-11-24: built, seen in the real apps by Andy (fonts and the phone web app), released as 0.6.3
 
 Merged to `main` and released as 0.6.3; plan [2026-11-24-typography-and-icons.md](superpowers/plans/2026-11-24-typography-and-icons.md), design [ICONOLOGY.md](architecture/ICONOLOGY.md). **Built and unit-tested; Andy looked at the fonts and the phone web app in the real apps on 2026-11-24 ("the fonts look great, and the web app finally feels right").** The Stage 14 close still runs new screenshots and the full session 4 test.

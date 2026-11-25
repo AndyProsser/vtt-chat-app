@@ -61,6 +61,12 @@ export function onOfferConnect(handler: () => void): Promise<UnlistenFn> {
 
 /** Opens (or focuses) the viewer window for one handout. Each handout gets its own window. */
 export const handoutViewOpen = (id: string) => invoke<void>('handout_view_open', { id });
+/** Opens (or focuses) a window for one recorded session's history, on the tab it is asked to open on. */
+export const sessionViewOpen = (id: string, tab?: string) =>
+  invoke<void>('session_view_open', { id, tab: tab ?? null });
+/** Puts a session's name in this session window's title bar. */
+export const sessionConfigureWindow = (title: string) =>
+  invoke<void>('session_configure', { title });
 /** Sets this handout window's title and, for a short text handout, shrinks it to fit. */
 export const handoutConfigureWindow = (title: string, compact: boolean) =>
   invoke<void>('handout_configure', { title, compact });

@@ -3351,3 +3351,16 @@ body,
     transform: none;
   }
 }
+
+/* A session's tabs: the tab list, and the pop-out button at its end. */
+.vtt-session-tabs {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.vtt-session-tabs > :first-child {
+  flex: 1;
+  min-width: 0;
+}

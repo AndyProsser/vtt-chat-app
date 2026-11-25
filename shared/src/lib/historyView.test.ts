@@ -1,11 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  moreDetailLabel,
-  partitionSummaries,
-  splitTaleTitle,
-  summaryBlurb,
-} from './historyView.js';
+import { historyTabs, splitTaleTitle, summaryBlurb } from './historyView.js';
 
 describe('splitTaleTitle', () => {
   it('takes the title from a first-line heading and leaves the tale', () => {
@@ -32,25 +27,7 @@ describe('splitTaleTitle', () => {
   });
 });
 
-describe('partitionSummaries', () => {
-  const list = [
-    { kind: 'session' },
-    { kind: 'chapter', subject: '1' },
-    { kind: 'chapter', subject: '2' },
-    { kind: 'character', subject: 'Kestrel' },
-    { kind: 'dm-only' },
-    { kind: 'notes' },
-    { kind: 'something-new' },
-  ];
-  it('keeps the tale and the brief, folds chapters and heroes, sets the notes apart', () => {
-    const p = partitionSummaries(list);
-    expect(p.main.map((s) => s.kind)).toEqual(['session', 'dm-only', 'something-new']);
-    expect(p.more).toHaveLength(3);
-    expect(p.notes).toHaveLength(1);
-  });
-});
-
-describe('the blurb and the fold label', () => {
+describe('the blurb', () => {
   it('says what a session holds', () => {
     expect(summaryBlurb(['session', 'chapter', 'chapter', 'character'])).toBe(
       'Tale ready · 2 chapters · 1 hero',
@@ -58,10 +35,44 @@ describe('the blurb and the fold label', () => {
     expect(summaryBlurb([])).toBe('');
     expect(summaryBlurb(['chapter'])).toBe('1 chapter');
   });
-  it('labels the fold by what is folded', () => {
-    expect(moreDetailLabel([{ kind: 'chapter' }, { kind: 'chapter' }, { kind: 'character' }])).toBe(
-      'More detail (2 chapters · 1 hero)',
+});
+
+describe('historyTabs', () => {
+  const tale = { kind: 'session' };
+  const ch1 = { kind: 'chapter', subject: '1' };
+  const ch2 = { kind: 'chapter', subject: '2' };
+  const hero = { kind: 'character', subject: 'Kestrel' };
+  const brief = { kind: 'dm-only' };
+  const notes = { kind: 'notes' };
+
+  it('sets a session out as The Tale, The Heroes, The Story and The Notes, in that order', () => {
+    const tabs = historyTabs([notes, ch1, hero, tale, brief, ch2]);
+    expect(tabs.map((t) => t.label)).toEqual(['The Tale', 'The Heroes', 'The Story', 'The Notes']);
+    expect(tabs.map((t) => t.id)).toEqual(['tale', 'heroes', 'story', 'notes']);
+  });
+
+  it('puts the tale, the heroes, the chapters and the Game Master’s material under the right tab', () => {
+    const byId = Object.fromEntries(
+      historyTabs([ch1, ch2, hero, tale, notes, brief]).map((t) => [t.id, t.items]),
     );
-    expect(moreDetailLabel([])).toBe('More detail');
+    expect(byId.tale).toEqual([tale]);
+    expect(byId.heroes).toEqual([hero]);
+    expect(byId.story).toEqual([ch1, ch2]);
+    expect(byId.notes).toEqual([brief, notes]); // the brief first, then the scribe's notes
+  });
+
+  it('leaves out a tab with nothing in it, so a player never sees The Notes', () => {
+    expect(historyTabs([tale, hero]).map((t) => t.id)).toEqual(['tale', 'heroes']);
+    expect(historyTabs([tale]).map((t) => t.id)).toEqual(['tale']);
+    expect(historyTabs([])).toEqual([]);
+  });
+
+  it('keeps a kind this build does not know, with the tale, rather than dropping it', () => {
+    const odd = { kind: 'something-new' };
+    expect(historyTabs([tale, odd])[0]?.items).toEqual([tale, odd]);
+  });
+
+  it('keeps each tab’s items in the order they came', () => {
+    expect(historyTabs([ch2, ch1]).find((t) => t.id === 'story')?.items).toEqual([ch2, ch1]);
   });
 });

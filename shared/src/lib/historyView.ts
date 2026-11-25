@@ -1,7 +1,7 @@
 /**
- * What the History screens show of a recorded session, shared by the desktop and phone apps (decided with Andy,
- * 2026-11-21): the tale first, with the chapters and the hero summaries folded under "More detail"; a title the
- * storyteller gave the session at the top of the tale; and one tidy line in place of a list of kinds. Pure text
+ * What the History screens show of a recorded session, shared by the desktop and phone apps: the session as tabs (The
+ * Tale, The Heroes, The Story, The Notes; Andy, 2026-11-23); a title the storyteller gave the session at the top of the
+ * tale; and one tidy line in place of a list of kinds. Pure text
  * helpers: they read the summaries the records API already returns, so there is no wire change.
  */
 
@@ -17,23 +17,42 @@ export function splitTaleTitle(text: string): { title: string | null; body: stri
   return { title, body: lines.slice(1).join('\n').trim() };
 }
 
-export interface Partitioned<T> {
-  /** The tale and (for the Game Master) the brief: always shown. */
-  main: T[];
-  /** The chapter and hero summaries: folded under "More detail". */
-  more: T[];
-  /** The scribe's notes (Game Master only): folded behind their own button. */
-  notes: T[];
+export type HistoryTabId = 'tale' | 'heroes' | 'story' | 'notes';
+
+export interface HistoryTab<T> {
+  id: HistoryTabId;
+  label: string;
+  items: T[];
 }
 
-export function partitionSummaries<T extends { kind: string }>(list: readonly T[]): Partitioned<T> {
-  const out: Partitioned<T> = { main: [], more: [], notes: [] };
-  for (const s of list) {
-    if (s.kind === 'notes') out.notes.push(s);
-    else if (s.kind === 'chapter' || s.kind === 'character') out.more.push(s);
-    else out.main.push(s);
-  }
-  return out;
+const TAB_LABELS: Record<HistoryTabId, string> = {
+  tale: 'The Tale',
+  heroes: 'The Heroes',
+  story: 'The Story',
+  notes: 'The Notes',
+};
+
+/**
+ * A session's summaries as tabs (Andy, 2026-11-23, built 2026-11-25): The Tale, The Heroes (one summary for each
+ * hero), The Story (the chapters) and The Notes (the Game Master's brief, then the scribe's notes). One section is
+ * shown at a time. A tab with nothing in it is left out, which is how a player never sees The Notes: the server only
+ * sends them what they may read. A kind this build does not know stays with the tale rather than vanishing.
+ */
+export function historyTabs<T extends { kind: string }>(list: readonly T[]): HistoryTab<T>[] {
+  const tabOf = (kind: string): HistoryTabId =>
+    kind === 'character'
+      ? 'heroes'
+      : kind === 'chapter'
+        ? 'story'
+        : kind === 'dm-only' || kind === 'notes'
+          ? 'notes'
+          : 'tale';
+  const items: Record<HistoryTabId, T[]> = { tale: [], heroes: [], story: [], notes: [] };
+  for (const s of list) items[tabOf(s.kind)].push(s);
+  items.notes.sort((a, b) => Number(a.kind === 'notes') - Number(b.kind === 'notes'));
+  return (['tale', 'heroes', 'story', 'notes'] as const)
+    .filter((id) => items[id].length > 0)
+    .map((id) => ({ id, label: TAB_LABELS[id], items: items[id] }));
 }
 
 const plural = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`;
@@ -46,10 +65,4 @@ export function summaryBlurb(kinds: readonly string[]): string {
   if (count('chapter') > 0) parts.push(plural(count('chapter'), 'chapter', 'chapters'));
   if (count('character') > 0) parts.push(plural(count('character'), 'hero', 'heroes'));
   return parts.join(' · ');
-}
-
-/** The "More detail" button's label: how much is folded away. */
-export function moreDetailLabel(more: readonly { kind: string }[]): string {
-  const blurb = summaryBlurb(more.map((s) => s.kind));
-  return blurb ? `More detail (${blurb})` : 'More detail';
 }

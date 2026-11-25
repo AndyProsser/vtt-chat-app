@@ -130,6 +130,8 @@ pub fn run() {
             windows::panel_open,
             windows::handout_view_open,
             windows::handout_configure,
+            windows::session_view_open,
+            windows::session_configure,
             windows::window_ready,
             deeplink::take_pending_connect,
             updater::update_check,

@@ -373,6 +373,45 @@ pub fn open_handout(app: &AppHandle, id: &str) -> Result<(), String> {
     )
 }
 
+/// A window for one recorded session's history (its tale, heroes, story and notes), opened from the History
+/// list's pop-out button. Labelled by the recording's id, so opening the same session again focuses the first
+/// window and a Game Master can keep several beside each other, as with handouts.
+pub fn open_session(app: &AppHandle, id: &str, tab: Option<&str>) -> Result<(), String> {
+    if !is_plain_id(id) {
+        return Err("not a session id".into());
+    }
+    // The tab the pop-out button was pressed on, so the window opens on the same part.
+    let route = match tab {
+        Some(tab) if is_plain_id(tab) => format!("session/{id}/{tab}"),
+        _ => format!("session/{id}"),
+    };
+    open_page(
+        app,
+        &label(&format!("session-{id}")),
+        &route,
+        "Session",
+        (640.0, 760.0),
+    )
+}
+
+/// `async` for the same reason as [`panel_open`].
+#[tauri::command]
+pub async fn session_view_open(
+    app: AppHandle,
+    id: String,
+    tab: Option<String>,
+) -> Result<(), String> {
+    open_session(&app, &id, tab.as_deref())
+}
+
+/// Called by the session window once it has read the session: puts the session's name in the title bar.
+#[tauri::command]
+pub fn session_configure(window: tauri::WebviewWindow, title: String) -> Result<(), String> {
+    window
+        .set_title(&format!("Session — {title}"))
+        .map_err(|e| e.to_string())
+}
+
 /// `async` for the same reason as [`panel_open`].
 #[tauri::command]
 pub async fn handout_view_open(app: AppHandle, id: String) -> Result<(), String> {

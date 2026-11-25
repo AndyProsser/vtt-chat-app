@@ -18,6 +18,8 @@ commands.allow = [
   "panel_open",
   "handout_view_open",
   "handout_configure",
+  "session_view_open",
+  "session_configure",
   "window_ready",
   "take_pending_connect",
   "account_open_connect",

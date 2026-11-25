@@ -11,6 +11,7 @@ export const PANEL_NAMES = [
   'history',
   'inventory',
   'handout',
+  'session',
   'notes',
 ] as const;
 export type PanelName = (typeof PANEL_NAMES)[number];

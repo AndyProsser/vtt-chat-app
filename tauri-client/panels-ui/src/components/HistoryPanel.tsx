@@ -1,14 +1,10 @@
 import { TextField } from '@radix-ui/themes';
-import {
-  moreDetailLabel,
-  partitionSummaries,
-  splitTaleTitle,
-  summaryBlurb,
-} from '@vtt-chat-app/shared';
+import { summaryBlurb, type HistoryTabId } from '@vtt-chat-app/shared';
 import { ChevronDown, ChevronRight, Search, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 import { useAccount } from '../hooks/useAccount.js';
+import { useRecordingSummaries } from '../hooks/useRecordingSummaries.js';
 import { useDevBuilds } from '../hooks/useDevBuilds.js';
 import { useCampaignQuery } from '../hooks/useCampaignQuery.js';
 import { useTableFeed } from '../hooks/useTableFeed.js';
@@ -23,7 +19,6 @@ import {
   summaryLabel,
   type RecordingItem,
   type SearchHit,
-  type SummaryView,
   transcriptRows,
   type TranscriptRow,
   type SceneMarker,
@@ -31,8 +26,13 @@ import {
 } from '../lib/history.js';
 import { isDm } from '../lib/tableModel.js';
 import { useTableStore } from '../lib/tableStore.js';
-import { accountErrorMessage, campaignApi, recordsSearch } from '../lib/tauriBridge.js';
-import { MarkdownView } from './MarkdownView.js';
+import {
+  accountErrorMessage,
+  campaignApi,
+  recordsSearch,
+  sessionViewOpen,
+} from '../lib/tauriBridge.js';
+import { SessionTabs } from './SessionTabs.js';
 import { SessionDelete } from './SessionDelete.js';
 import { ToolButton } from './ToolButton.js';
 import { EmptyState } from './EmptyState.js';
@@ -239,24 +239,12 @@ function Recording({
 }
 
 function Detail({ id, canReadTranscript }: { id: string; canReadTranscript: boolean }) {
-  const [summaries, setSummaries] = useState<SummaryView[]>();
-  const [error, setError] = useState<string>();
+  const { summaries, error: loadError } = useRecordingSummaries(id);
   const [transcript, setTranscript] = useState<TranscriptRow[]>();
-  // The scribe's notes come to the DM alone and stay folded away: the tale and the brief are what is read.
-  const [showNotes, setShowNotes] = useState(false);
-  const parts = partitionSummaries(summaries ?? []);
-  const notes = parts.notes;
-  // The tale is what is read; the chapters and hero summaries are there for the table that wants them.
-  const [showMore, setShowMore] = useState(false);
-  useEffect(() => {
-    let cancelled = false;
-    campaignApi<{ summaries: SummaryView[] }>('GET', `recordings/${id}`)
-      .then((d) => !cancelled && setSummaries(d.summaries))
-      .catch((e) => !cancelled && setError(accountErrorMessage(e)));
-    return () => {
-      cancelled = true;
-    };
-  }, [id]);
+  const [transcriptError, setTranscriptError] = useState<string>();
+  // The tab being read, so the pop-out window opens on the same part.
+  const [tab, setTab] = useState<HistoryTabId>('tale');
+  const error = loadError ?? transcriptError;
 
   async function loadTranscript() {
     try {
@@ -266,7 +254,7 @@ function Detail({ id, canReadTranscript }: { id: string; canReadTranscript: bool
       );
       setTranscript(transcriptRows(d.utterances, d.markers));
     } catch (e) {
-      setError(accountErrorMessage(e));
+      setTranscriptError(accountErrorMessage(e));
     }
   }
 
@@ -280,33 +268,13 @@ function Detail({ id, canReadTranscript }: { id: string; canReadTranscript: bool
       {summaries?.length === 0 && (
         <span className="vtt-muted">No summary yet: it appears once processing finishes.</span>
       )}
-      {parts.main.map((s, i) => (
-        <SummaryCard key={i} s={s} />
-      ))}
-      {parts.more.length > 0 && (
-        <div>
-          <ToolButton
-            label={showMore ? 'Hide the chapters and hero summaries' : moreDetailLabel(parts.more)}
-            text={showMore ? 'Less detail' : moreDetailLabel(parts.more)}
-            onClick={() => setShowMore((v) => !v)}
-          >
-            {showMore ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-          </ToolButton>
-        </div>
+      {summaries && (
+        <SessionTabs
+          summaries={summaries}
+          onTabChange={setTab}
+          onPopout={() => void sessionViewOpen(id, tab).catch(console.error)}
+        />
       )}
-      {showMore && parts.more.map((s, i) => <SummaryCard key={`m${i}`} s={s} />)}
-      {notes.length > 0 && (
-        <div>
-          <ToolButton
-            label={showNotes ? 'Hide the scribe’s notes' : 'Show the scribe’s notes'}
-            text="Scribe’s notes"
-            onClick={() => setShowNotes((v) => !v)}
-          >
-            {showNotes ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-          </ToolButton>
-        </div>
-      )}
-      {showNotes && notes.map((s, i) => <SummaryCard key={`n${i}`} s={s} />)}
       {transcript ? (
         <div className="vtt-transcript">
           {transcript.length === 0 && <span className="vtt-muted">No transcript yet.</span>}
@@ -341,22 +309,5 @@ function Detail({ id, canReadTranscript }: { id: string; canReadTranscript: bool
         </div>
       )}
     </div>
-  );
-}
-
-/** One summary: the tale, the DM brief or the scribe's notes. */
-function SummaryCard({ s }: { s: SummaryView }) {
-  // The storyteller titles the tale on its first line: show that as the heading, and "The tale" beside it.
-  const tale = s.kind === 'session' ? splitTaleTitle(s.text) : { title: null, body: s.text };
-  return (
-    <article className="vtt-session">
-      <b>
-        {tale.title ?? summaryLabel(s.kind)}
-        {tale.title ? <span className="vtt-muted"> · {summaryLabel(s.kind)}</span> : null}
-        {s.subject ? `: ${s.subject}` : ''}
-        {s.title ? ` · ${s.title}` : ''}
-      </b>
-      <MarkdownView text={tale.body} />
-    </article>
   );
 }
