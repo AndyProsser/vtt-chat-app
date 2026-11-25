@@ -111,13 +111,7 @@ export async function checkNetwork(options: NetworkOptions): Promise<TestRow[]> 
     const r = await options.routerAddress();
     const rc = r ? classifyIp(r.address) : undefined;
     if (!r) {
-      rows.push(
-        row(
-          'off',
-          'Router',
-          'did not answer UPnP or NAT-PMP, so its internet address could not be read (many routers have both switched off, and a server in a container cannot ask)',
-        ),
-      );
+      rows.push(row('off', 'Router', 'did not answer UPnP or NAT-PMP, so its address is unknown'));
     } else if (rc === 'cgnat' || rc === 'private') {
       routerSettled = true;
       rows.push(

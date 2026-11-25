@@ -121,10 +121,33 @@ case ${1:-} in
         sudo -- docker run --rm --network host --entrypoint node "$image" backend/dist/cli/main.js router-address 2>/dev/null || true
       fi
     }
+    # Voice's UDP is proved by a listener on a free port of the media range, which also has to sit on the host's network: started
+    # here for the 90 s the check takes, its port handed to the test.
+    udp_echo_start() {
+      local image cid
+      image=$(dc images -q backend 2>/dev/null | head -n 1)
+      [ -n "$image" ] || return 0
+      if can_run; then
+        cid=$(docker run -d --rm --network host --entrypoint node "$image" backend/dist/cli/main.js udp-echo 2>/dev/null) || return 0
+        sleep 1
+        docker logs "$cid" 2>/dev/null | head -n 1
+      else
+        cid=$(sudo -- docker run -d --rm --network host --entrypoint node "$image" backend/dist/cli/main.js udp-echo 2>/dev/null) || return 0
+        sleep 1
+        sudo -- docker logs "$cid" 2>/dev/null | head -n 1
+      fi
+      echo "$cid" >"$udp_cid_file"
+    }
+    udp_cid_file=$(mktemp)
+    trap 'cid=$(cat "$udp_cid_file" 2>/dev/null); [ -n "$cid" ] && { docker rm -f "$cid" || sudo -- docker rm -f "$cid"; } >/dev/null 2>&1; rm -f "$udp_cid_file"' EXIT
     backend_test() {
-      local wan=""
-      case ${1:-} in reach) wan=$(router_wan | head -n 1) ;; esac
-      dc exec "${envs[@]}" -e "VTT_ROUTER_WAN=$wan" backend node backend/dist/cli/main.js test "$@"
+      local wan="" port=""
+      case ${1:-} in reach)
+        wan=$(router_wan | head -n 1)
+        port=$(udp_echo_start | head -n 1)
+        ;;
+      esac
+      dc exec "${envs[@]}" -e "VTT_ROUTER_WAN=$wan" -e "VTT_UDP_PROBE_PORT=$port" backend node backend/dist/cli/main.js test "$@"
     }
     case ${2:-} in
       ai)

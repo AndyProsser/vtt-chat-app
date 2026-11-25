@@ -20,6 +20,7 @@ import { SignupService } from '../lib/auth/signupService.js';
 import { loadConfig } from '../lib/config.js';
 import { checkReach, type VoiceTarget, type WebTarget } from '../lib/selftest/reach.js';
 import { routerWanAddress, type RouterAddress } from '../lib/selftest/router.js';
+import { startUdpEcho } from '../lib/selftest/udpEcho.js';
 import { stunPublicAddress } from '../lib/selftest/stun.js';
 import { checkVoice } from '../lib/selftest/voice.js';
 import {
@@ -69,6 +70,15 @@ const routerFromHost = async (): Promise<RouterAddress | undefined> => {
 };
 
 async function main(): Promise<number> {
+  if (process.argv[2] === 'udp-echo') {
+    // Internal: used by the vtt-admin wrapper, run with the host's network. Prints the port, answers UDP there for 90 s, exits.
+    const echo = await startUdpEcho({ lifetimeMs: 90_000 });
+    if (!echo) return 1;
+    console.log(echo.port);
+    await new Promise((r) => setTimeout(r, 90_000));
+    await echo.close();
+    return 0;
+  }
   if (process.argv[2] === 'router-address') {
     // Internal: used by the vtt-admin wrapper, run with the host's network. Prints "<address> <UPnP|NAT-PMP>", or nothing.
     const r = await routerWanAddress();
@@ -171,15 +181,29 @@ async function main(): Promise<number> {
         }),
       voiceAddress: process.env.VOICE_ADDRESS ?? '',
       voiceTcpPort: Number(process.env.VOICE_TCP_PORT) || 7881,
-      reach: (targets: { web: WebTarget; voice: VoiceTarget }) =>
-        checkReach({
-          ...targets,
-          network: {
-            resolve: lookupAll,
-            publicAddress: () => stunPublicAddress(),
-            routerAddress: routerFromHost,
-          },
-        }),
+      reach: async (targets: { web: WebTarget; voice: VoiceTarget }) => {
+        // The UDP echo must listen on the machine's own network: natively that is here, in Compose the wrapper starts one on
+        // the host and passes its port in.
+        const fromWrapper = Number(process.env.VTT_UDP_PROBE_PORT) || undefined;
+        const echo =
+          !fromWrapper && process.env.VTT_ADMIN_HOST !== 'compose'
+            ? await startUdpEcho()
+            : undefined;
+        const port = fromWrapper ?? echo?.port;
+        try {
+          return await checkReach({
+            ...targets,
+            ...(port ? { udpProbe: { port } } : {}),
+            network: {
+              resolve: lookupAll,
+              publicAddress: () => stunPublicAddress(),
+              routerAddress: routerFromHost,
+            },
+          });
+        } finally {
+          await echo?.close();
+        }
+      },
       ...(process.env.VTT_ADMIN_HOST === 'compose'
         ? {}
         : {

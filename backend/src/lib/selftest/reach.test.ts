@@ -15,6 +15,7 @@ function fakeCheckHost(
     http?: Record<string, unknown>;
     https?: Record<string, unknown>;
     tcp?: Record<string, unknown>;
+    udp?: Record<string, unknown>;
     pendingPolls?: number;
     startOk?: 0 | 1;
     down?: boolean;
@@ -23,7 +24,7 @@ function fakeCheckHost(
   const requests: { url: string; headers: Record<string, string> }[] = [];
   const ids = new Map<string, Record<string, unknown>>();
   let polls = 0;
-  const allOk = (kind: 'http' | 'tcp'): Record<string, unknown> =>
+  const allOk = (kind: 'http' | 'tcp' | 'udp'): Record<string, unknown> =>
     Object.fromEntries(
       Object.keys(NODES).map((n) => [
         n,
@@ -35,13 +36,20 @@ function fakeCheckHost(
     requests.push({ url, headers: (init?.headers ?? {}) as Record<string, string> });
     if (answers.down) throw new Error('getaddrinfo ENOTFOUND check-host.net');
     const json = (b: unknown) => new Response(JSON.stringify(b), { status: 200 });
-    const start = /check-(http|tcp)\?host=([^&]+)/.exec(url);
+    const start = /check-(http|tcp|udp)\?host=([^&]+)/.exec(url);
     if (start) {
       if (answers.startOk === 0) return json({ ok: 0, error: 'limit_exceeded' });
       const target = decodeURIComponent(start[2]!);
-      const kind = start[1] === 'tcp' ? 'tcp' : target.startsWith('https://') ? 'https' : 'http';
+      const kind =
+        start[1] === 'tcp'
+          ? 'tcp'
+          : start[1] === 'udp'
+            ? 'udp'
+            : target.startsWith('https://')
+              ? 'https'
+              : 'http';
       const id = `${kind}-${ids.size}`;
-      ids.set(id, answers[kind] ?? allOk(kind === 'tcp' ? 'tcp' : 'http'));
+      ids.set(id, answers[kind] ?? allOk(kind === 'tcp' ? 'tcp' : kind === 'udp' ? 'udp' : 'http'));
       return json({ ok: 1, request_id: id, nodes: NODES });
     }
     const result = /check-result\/([^/?]+)/.exec(url);
@@ -412,5 +420,51 @@ describe('checkReach: a proxy that answers with an error status', () => {
     expect(a.find((r) => r.name === 'HTTPS (443)')?.badge).toBe('fail');
     const b = await run('play.example.com', fakeCheckHost({ https: badGateway }));
     expect(b.find((r) => r.name === 'HTTPS (443)')?.badge).toBe('fail');
+  });
+});
+
+describe('checkReach: voice UDP, proved by an echo listener', () => {
+  const udp = { port: 50199 };
+  const denied = (a: Record<string, unknown>) =>
+    Object.fromEntries(Object.keys(NODES).map((n) => [n, [a]]));
+
+  it('asks check-host.net to send UDP to the listener’s port at the voice address, and is ok when it answers', async () => {
+    const f = fakeCheckHost();
+    const rows = await run('play.example.com', f, { udpProbe: udp });
+    expect(
+      f.requests.some((r) =>
+        decodeURIComponent(r.url).includes('check-udp?host=play.example.com:50199'),
+      ),
+    ).toBe(true);
+    const r = rows.find((x) => /Voice UDP/.test(x.name))!;
+    expect(r.badge).toBe('ok');
+    expect(r.name).toContain('50199');
+  });
+
+  it('fails, and says which ports to forward, when nothing answers', async () => {
+    const rows = await run(
+      'play.example.com',
+      fakeCheckHost({ udp: denied({ address: '1.2.3.4', timeout: 1 }) }),
+      { udpProbe: udp },
+    );
+    const r = rows.find((x) => /Voice UDP/.test(x.name))!;
+    expect(r.badge).toBe('fail');
+    expect(r.detail).toMatch(/50000-50200/);
+  });
+
+  it('fails on a refusal too, which is no answer', async () => {
+    const rows = await run(
+      'play.example.com',
+      fakeCheckHost({
+        udp: denied({ address: '1.2.3.4', error: 'Connection refused', time: 0.1 }),
+      }),
+      { udpProbe: udp },
+    );
+    expect(rows.find((x) => /Voice UDP/.test(x.name))?.badge).toBe('fail');
+  });
+
+  it('keeps the “cannot be proved” note when there is no listener', async () => {
+    const rows = await run('play.example.com', fakeCheckHost());
+    expect(rows.find((x) => /Voice UDP/.test(x.name))?.badge).toBe('off');
   });
 });

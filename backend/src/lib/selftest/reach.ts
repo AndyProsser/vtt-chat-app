@@ -42,6 +42,8 @@ export interface ReachOptions {
   /** How many places to ask from (default 3). */
   maxNodes?: number;
   /** When given, also checks the server's own address and DNS, and diagnoses CGNAT (see network.ts). */
+  /** A UDP echo listener is running on this port of the voice address's machine: ask check-host.net to send UDP to it. */
+  udpProbe?: { port: number };
   network?: Pick<NetworkOptions, 'resolve' | 'publicAddress' | 'routerAddress'>;
 }
 
@@ -114,6 +116,17 @@ const httpWorks = (answer: unknown): boolean => {
   const status = Number(first[3]);
   return Number.isInteger(status) && status >= 100 && status < 500;
 };
+/** A UDP probe worked if the listener answered: an error such as "Connection refused" or a timeout is no answer. */
+const udpWorks = (answer: unknown): boolean => {
+  const first = Array.isArray(answer) ? (answer[0] as unknown) : undefined;
+  return (
+    typeof first === 'object' &&
+    first !== null &&
+    'time' in first &&
+    !('error' in first) &&
+    !('timeout' in first)
+  );
+};
 const tcpWorks = (answer: unknown): boolean => {
   const first = Array.isArray(answer) ? (answer[0] as unknown) : undefined;
   return typeof first === 'object' && first !== null && !('error' in first) && 'time' in first;
@@ -133,7 +146,7 @@ const warn = (name: string, text: string): TestRow => ({ badge: 'warn', name, de
 
 interface Spec {
   label: string;
-  kind: 'http' | 'tcp';
+  kind: 'http' | 'tcp' | 'udp';
   target: string;
   works: (answer: unknown) => boolean;
   onNone: 'fail' | 'warn';
@@ -200,7 +213,7 @@ export async function checkReach(options: ReachOptions): Promise<TestRow[]> {
         target: `http://${web.host}/`,
         works: httpWorks,
         onNone: 'fail',
-        none: 'Port 80 is not reaching the server; check the router forwards it (HTTPS certificates need it too, unless you use the DNS challenge).',
+        none: 'Port 80 is not getting through; forward it (HTTPS certificates need it too).',
       },
       {
         label: 'HTTPS (443)',
@@ -208,7 +221,7 @@ export async function checkReach(options: ReachOptions): Promise<TestRow[]> {
         target: `https://${web.host}/api/health`,
         works: httpWorks,
         onNone: 'fail',
-        none: 'Port 443 is not reaching the server, or the backend is down; players cannot sign in.',
+        none: 'Port 443 is not getting through, or the backend is down.',
       },
     );
   } else {
@@ -218,7 +231,7 @@ export async function checkReach(options: ReachOptions): Promise<TestRow[]> {
       target: `${web.scheme}://${hostPort}/api/health`,
       works: httpWorks,
       onNone: 'fail',
-      none: `Port ${web.port} is not reaching the server, or the backend is down; players cannot sign in.`,
+      none: `Port ${web.port} is not getting through, or the backend is down.`,
     });
   }
   const sameHost = voice.host.toLowerCase() === web.host.toLowerCase();
@@ -246,6 +259,16 @@ export async function checkReach(options: ReachOptions): Promise<TestRow[]> {
         'The ICE-over-TCP fallback is closed, so players on networks that block UDP cannot join voice. Forward ' +
         `${voice.port}/tcp.${sameHost ? CLOUDFLARE_HINT : ''}`,
     });
+    if (options.udpProbe) {
+      specs.push({
+        label: `Voice UDP (${options.udpProbe.port})`,
+        kind: 'udp',
+        target: `${voice.host}:${options.udpProbe.port}`,
+        works: udpWorks,
+        onNone: 'fail',
+        none: 'Voice media cannot arrive, so calls will fall back to TCP or fail. Forward UDP 50000-50200 to this server.',
+      });
+    }
   }
 
   const get = async (path: string): Promise<unknown> => {
@@ -329,11 +352,14 @@ export async function checkReach(options: ReachOptions): Promise<TestRow[]> {
     ...webRows,
     ...voiceRows,
     ...preRows,
-    {
-      badge: 'off',
-      name: 'Voice UDP',
-      detail:
-        'cannot be proved from outside: voice opens a UDP port only for a call in progress. Join voice from a phone off your Wi-Fi to prove it (vtt-admin test voice checks your server’s side).',
-    },
+    ...(options.udpProbe
+      ? []
+      : [
+          {
+            badge: 'off' as const,
+            name: 'Voice UDP',
+            detail: 'not checked here; join voice from a phone off your Wi-Fi to prove it',
+          },
+        ]),
   ];
 }
