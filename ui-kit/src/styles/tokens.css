@@ -25,8 +25,7 @@
 /* Letters, journals and read-aloud text (handouts). Tales and notes stay in the body font: they are read at length. */
 .vtt-narrative {
   font-family: var(--vtt-font-narrative);
-  /* Read at length, so larger than the quoted speech in chat; Cormorant's small x-height needs it. */
-  font-size: calc(var(--vtt-narrative-size) * 1.12);
+  /* The size is each app's own (the desktop panels and the phone page start from different base sizes); the line spacing is shared. */
   line-height: 1.55;
 }
 

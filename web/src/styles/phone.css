@@ -1436,3 +1436,8 @@ button.phone-picture-button {
   height: 1px;
   opacity: 0;
 }
+
+/* Handouts are read at length, and Cormorant's x-height is small: about 18px from the page's 16px base. */
+.vtt-narrative {
+  font-size: calc(var(--vtt-narrative-size) * 0.94);
+}

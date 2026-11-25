@@ -846,6 +846,10 @@ body,
   opacity: 0.45;
   cursor: default;
 }
+.vtt-narrative {
+  /* Handouts are read at length, and Cormorant's x-height is small: about 18px from the panels' small (about 11px) base. */
+  font-size: calc(var(--vtt-narrative-size) * 1.36);
+}
 .vtt-tool-bare {
   border-color: transparent;
 }

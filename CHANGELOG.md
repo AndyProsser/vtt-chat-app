@@ -10,6 +10,10 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ## [Unreleased]
 
+### Changed
+
+- **Handouts are the same size in both apps.** After 0.6.4 the desktop's handout text was a little small and the phone's a little big; both now read at about 18px.
+
 ### Fixed
 
 - **The desktop campaign chooser now follows the server.** A campaign that was deleted or renamed elsewhere used to stay on the list (or keep its old name) until the app was restarted; the list is now re-read when the chooser appears and each time the window is used again.
