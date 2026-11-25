@@ -151,6 +151,10 @@ After reading real session-4 output, Andy wants the History detail reworked: ins
 
 The handout list will grow, so a Game Master needs `#tag`s on a handout and a filter by tag. Tags are stored with the handout and sent with it, so this is a **wire change** and rides this bump. (Newest first was the no-wire part of the same worry, and is in 0.6.5.)
 
+### Longer audio slices for a remote Whisper (Andy, 2026-11-25; not designed, no wire change)
+
+Found while session 4 was processing on 0.6.4: the remote GPU Whisper sat at 0% while the work crawled, because the VM cuts each speaker's track into **short speech windows** (10 to 20 seconds each; the cap is `DEFAULT_MAX_WINDOW_MS`, 60 s, in `ai/src/consts/index.ts`, found with ffmpeg `silencedetect` in `ai/src/lib/ffmpeg.ts` and `speechWindows.ts`) and sends one request per window. The VM's old CPU spends the time slicing, and each round trip carries little audio. A GPU can take **minutes of audio at once** with ease. So: let the window size depend on the backend (**minutes for a remote GPU Whisper**, short for local CPU, where a long request blocks everything), keep the silence-split boundaries so timestamps and speaker attribution stay right, and respect an endpoint's upload limit (an OpenAI-compatible server often caps a file near 25 MB). **Measure first** on a real session: time per track and the transcript's accuracy against the demo campaign's facts at 60 s, 3 min and 10 min windows, because longer windows can lose word-level timestamps and shift where a line is placed. The result belongs in [QUALITY-VALIDATION.md](docs/architecture/QUALITY-VALIDATION.md).
+
 ### Anything else
 
 Anything Stage 13 finds that cannot be fixed without a wire change is added here when found. The wire-change ideas that are not decided (polyglot masking, web push, the Admin quick-access screen) are parked in [Future ideas](#future-ideas), not in 0.7.0.
