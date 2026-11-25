@@ -1354,3 +1354,85 @@ button.phone-picture-button {
   overflow-x: auto;
   flex-wrap: nowrap;
 }
+
+/* The storyteller picker: a row for each storyteller, the chosen one outlined. */
+.phone-bard-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.phone-bard-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--vtt-edge);
+  border-radius: var(--radius-3);
+  background: var(--vtt-bubble);
+  color: var(--vtt-ink);
+  font: inherit;
+  text-align: left;
+}
+.phone-bard-option-on {
+  border-color: var(--vtt-gold);
+  box-shadow: inset 3px 0 0 var(--vtt-gold);
+}
+.phone-bard-option:disabled {
+  opacity: 0.6;
+}
+.phone-bard-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* The Game Master's notes: the heading list, and the attachments. */
+.phone-note-jump,
+.phone-note-files {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.phone-note-jump button {
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: var(--vtt-gold);
+  font: inherit;
+  text-align: left;
+}
+.phone-note-file {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.phone-note-file-open {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  padding: 6px 0;
+  border: 0;
+  background: none;
+  color: var(--vtt-ink);
+  font: inherit;
+  text-align: left;
+}
+.phone-attach {
+  display: inline-flex;
+  align-self: flex-start;
+  padding: 8px 12px;
+  border: 1px dashed var(--vtt-edge);
+  border-radius: var(--radius-3);
+  cursor: pointer;
+}
+.phone-attach input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}

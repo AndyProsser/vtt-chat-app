@@ -205,8 +205,8 @@ you hear it first.
 - Each person is recorded separately; the server turns it into a **transcript** and **summaries** after the
   session. Lines typed in the **public chat** during a recording are included, marked "(typed)".
 - **Never recorded or transcribed:** whispers, sound effects from the DM's soundboard, and anything private.
-- **Who tells the tale** (Game Master): **Settings, Campaign, Storyteller** picks one of the storytellers the server offers (the Tavern Bard by default). Everyone can see who it is. Your server's operator decides which storytellers, how long the tales may be and how strong the language may be.
-- **Read them later** with the **session history** button: the tale of the session, of each part and of each hero, and a search across them.
+- **Who tells the tale** (Game Master): **Settings, Campaign, Storyteller** picks one of the storytellers the server offers (on the phone: tap the table's name, then pick one under **Storyteller**) (the Tavern Bard by default). Everyone can see who it is. Your server's operator decides which storytellers, how long the tales may be and how strong the language may be.
+- **Read them later** with the **session history** button: the tale of the session, its heroes and its chapters as tabs (**The Tale, The Heroes, The Story**, and for the Game Master **The Notes**), and a search across them. On the desktop the pop-out button beside the tabs opens a session in a window of its own.
   The DM also sees a private brief, and can open the scribe's notes (the plain list of what happened that the tales were told from) with a button. The word-for-word transcript is not shown to players; a DM can read it in the desktop app after turning on **Settings → App → Include dev builds**.
 - **If the DM drops** (their computer crashes or their network goes), the recording carries on for a short
   grace period (30 seconds by default). After that **any player** can pause, resume or stop it from the top
@@ -293,6 +293,8 @@ _Top: the sound drawer (voices, stingers, scenes) and voice groups. Bottom: the 
   headings to prompt you; delete any you do not want. **Reading** shows the page with a list of its headings on the right
   (click to jump) and the attachments under it (click one to preview a picture or PDF). **Editing** (the pencil) is the
   Markdown editor, where you can also attach pictures and PDFs. Links open in your normal browser, never inside the app.
+  **On the phone** the Game Master has the same page (menu, **Game Master notes**): read it, tap the pencil to edit, jump to a
+  heading, and attach or open pictures and PDFs. The glossary is the desktop app's.
 - **Glossary** is your campaign's words: names, places, items, spells, with the other ways each is said. Players never see
   either tab, and the server refuses them if they ask.
 - The notes and attachments are part of a campaign's export. The server's operator sets how large one attachment may be.

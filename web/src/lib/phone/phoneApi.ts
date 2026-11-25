@@ -1,8 +1,10 @@
 import type { CharacterRecord } from '@vtt-chat-app/shared';
 
-import { request } from '../api.js';
+import { ApiError, request } from '../api.js';
 import type {
   CampaignItem,
+  GmNoteFileItem,
+  GmNotesData,
   LootItem,
   HandoutItem,
   RecordingItem,
@@ -92,9 +94,11 @@ export const decideJoinRequest = (campaignId: string, requestId: string, approve
     body: { approve },
   });
 
-/** The DM edits the name and description. */
-export const updateCampaign = (campaignId: string, body: { name: string; description: string }) =>
-  request('PATCH', `/api/campaigns/${campaignId}`, { body });
+/** The DM edits the name and description, and picks the storyteller; send only what changed. */
+export const updateCampaign = (
+  campaignId: string,
+  body: { name?: string; description?: string; bard?: string },
+) => request('PATCH', `/api/campaigns/${campaignId}`, { body });
 
 /** Which storytellers this server offers, and who will tell this campaign's tales. */
 export const storytellers = (campaignId: string) =>
@@ -289,3 +293,47 @@ export const ddbCall = (
   request<{ character: CharacterRecord }>('POST', `/api/ddb/${action}`, {
     body: { campaignId, characterId, ...(url ? { url } : {}) },
   });
+
+// ---- The Game Master's notes (the Game Master's alone; the same endpoints as the desktop app) -------------------
+
+/** The notes page, its attachments, and the largest file this server takes. */
+export const gmNotes = (campaignId: string) =>
+  request<GmNotesData>('GET', `/api/campaigns/${campaignId}/gm/notes`);
+
+export const saveGmNotes = (campaignId: string, body: string) =>
+  request('PUT', `/api/campaigns/${campaignId}/gm/notes`, { body: { body } });
+
+/** An attachment, as a Blob: fetched with the session cookie so a failure can be told from a picture that is just slow. */
+export async function gmNoteFile(campaignId: string, fileId: string): Promise<Blob> {
+  const response = await fetch(`/api/campaigns/${campaignId}/gm/notes/files/${fileId}`, {
+    credentials: 'same-origin',
+  });
+  if (!response.ok) throw new Error(`file ${response.status}`);
+  return response.blob();
+}
+
+/** Attaches a picture or PDF: the file's own bytes in the body, its name in the query (the server decides the type from the bytes). */
+export async function addGmNoteFile(campaignId: string, file: File): Promise<GmNoteFileItem> {
+  const response = await fetch(
+    `/api/campaigns/${campaignId}/gm/notes/files?name=${encodeURIComponent(file.name)}`,
+    {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'X-VTT-Client': 'web', 'Content-Type': 'application/octet-stream' },
+      body: file,
+    },
+  );
+  const text = await response.text();
+  const data = text ? (JSON.parse(text) as Record<string, unknown>) : {};
+  if (!response.ok) {
+    throw new ApiError(
+      String(data.error ?? 'error'),
+      String(data.message ?? `upload failed (${response.status})`),
+      response.status,
+    );
+  }
+  return data.file as GmNoteFileItem;
+}
+
+export const deleteGmNoteFile = (campaignId: string, fileId: string) =>
+  request('DELETE', `/api/campaigns/${campaignId}/gm/notes/files/${fileId}`);

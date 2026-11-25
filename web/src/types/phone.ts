@@ -132,3 +132,21 @@ export interface LootItem {
   /** "Added to my sheet": yours, or the party stash's. The server leaves it out for the DM. */
   confirmed?: boolean;
 }
+
+/** One picture or PDF attached to the Game Master's notes. */
+export interface GmNoteFileItem {
+  id: string;
+  name: string;
+  kind: 'image' | 'pdf';
+  mime: string;
+  bytes: number;
+  createdAt: number;
+}
+
+/** The Game Master's notes page. */
+export interface GmNotesData {
+  body: string;
+  updatedAt: number | null;
+  files: GmNoteFileItem[];
+  maxFileBytes: number;
+}

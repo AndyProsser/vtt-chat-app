@@ -24,6 +24,7 @@ import { HistoryTab } from './HistoryTab.js';
 import { InventoryTab } from './InventoryTab.js';
 import { useUnconfirmed } from '../../hooks/useUnconfirmed.js';
 import { CampaignInfoScreen } from './CampaignInfoScreen.js';
+import { GmNotesScreen } from './GmNotesScreen.js';
 import { InviteScreen } from './InviteScreen.js';
 import { JoinRequestsScreen } from './JoinRequestsScreen.js';
 import { OpenTables } from './OpenTables.js';
@@ -198,7 +199,7 @@ function Shell({
   const isDm = campaign?.role === 'dm';
   const pending = usePhoneStore((s) => s.joinPending.length);
   const [screen, setScreen] = useState<
-    'tables' | 'requests' | 'characters' | 'campaign' | 'invite'
+    'tables' | 'requests' | 'characters' | 'campaign' | 'invite' | 'notes'
   >();
   // The DM changed the name, description or storyteller (a live frame): read the list again.
   const campaignRev = usePhoneStore((s) => s.campaignRev);
@@ -303,6 +304,11 @@ function Shell({
                     </DropdownMenu.Item>
                   )}
                   {isDm && (
+                    <DropdownMenu.Item onSelect={() => setScreen('notes')}>
+                      Game Master notes
+                    </DropdownMenu.Item>
+                  )}
+                  {isDm && (
                     <DropdownMenu.Item onSelect={() => setScreen('requests')}>
                       Join requests
                       {pending > 0 && (
@@ -384,6 +390,11 @@ function Shell({
           {screen === 'invite' && isDm && (
             <SubScreen title="Invite" onBack={() => setScreen(undefined)}>
               <InviteScreen campaignId={campaignId} />
+            </SubScreen>
+          )}
+          {screen === 'notes' && isDm && (
+            <SubScreen title="Game Master notes" onBack={() => setScreen(undefined)}>
+              <GmNotesScreen campaignId={campaignId} />
             </SubScreen>
           )}
           {screen === 'requests' && isDm && (
