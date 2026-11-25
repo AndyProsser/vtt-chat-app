@@ -388,3 +388,29 @@ describe('checkReach: web behind Cloudflare, voice direct', () => {
     expect(rows.some((r) => /voice address/i.test(r.name))).toBe(false);
   });
 });
+
+describe('checkReach: a proxy that answers with an error status', () => {
+  const forbidden = Object.fromEntries(
+    Object.keys(NODES).map((n) => [n, [[0, 0.04, 'Forbidden', '403', '104.21.67.121']]]),
+  );
+  const refused = Object.fromEntries(
+    Object.keys(NODES).map((n) => [n, [[0, 3, 'Connection refused']]]),
+  );
+  const badGateway = Object.fromEntries(
+    Object.keys(NODES).map((n) => [n, [[0, 0.1, 'Bad Gateway', '502', '104.21.67.121']]]),
+  );
+
+  it('counts a 403 (Cloudflare turning the probe away) as reached: something answered', async () => {
+    const rows = await run(
+      'play.example.com',
+      fakeCheckHost({ http: forbidden, https: forbidden }),
+    );
+    expect(rows.find((r) => r.name === 'HTTPS (443)')?.badge).toBe('ok');
+  });
+  it('still fails a refused connection and a 502 (the proxy cannot reach the server)', async () => {
+    const a = await run('play.example.com', fakeCheckHost({ https: refused }));
+    expect(a.find((r) => r.name === 'HTTPS (443)')?.badge).toBe('fail');
+    const b = await run('play.example.com', fakeCheckHost({ https: badGateway }));
+    expect(b.find((r) => r.name === 'HTTPS (443)')?.badge).toBe('fail');
+  });
+});

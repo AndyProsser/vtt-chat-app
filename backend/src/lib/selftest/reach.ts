@@ -106,9 +106,13 @@ function tally(
   return out;
 }
 
+/** A web probe worked if the server (or the proxy in front) answered: a 4xx such as Cloudflare's bot-blocking 403 is an answer, a 5xx or no answer is not. */
 const httpWorks = (answer: unknown): boolean => {
   const first = Array.isArray(answer) ? (answer[0] as unknown) : undefined;
-  return Array.isArray(first) && first[0] === 1;
+  if (!Array.isArray(first)) return false;
+  if (first[0] === 1) return true;
+  const status = Number(first[3]);
+  return Number.isInteger(status) && status >= 100 && status < 500;
 };
 const tcpWorks = (answer: unknown): boolean => {
   const first = Array.isArray(answer) ? (answer[0] as unknown) : undefined;

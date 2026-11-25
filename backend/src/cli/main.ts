@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { createWriteStream } from 'node:fs';
-import { lookup } from 'node:dns/promises';
+import { lookup, Resolver } from 'node:dns/promises';
 import { readFile, rename, rm, stat } from 'node:fs/promises';
 import { Valkey } from 'iovalkey';
 
@@ -48,8 +48,18 @@ import { syncFromConfig } from '../lib/updates/runSync.js';
  *
  *   docker compose exec backend node backend/dist/cli/main.js status
  */
-const lookupAll = async (host: string): Promise<string[]> =>
-  (await lookup(host, { all: true })).map((a) => a.address);
+/** What a name resolves to for the rest of the internet: public resolvers first (your own DNS may answer differently inside your network), your own as the fallback. */
+const lookupAll = async (host: string): Promise<string[]> => {
+  try {
+    const resolver = new Resolver({ timeout: 3000, tries: 1 });
+    resolver.setServers(['1.1.1.1', '8.8.8.8']);
+    const found = await resolver.resolve4(host);
+    if (found.length > 0) return found;
+  } catch {
+    /* fall through to the system resolver */
+  }
+  return (await lookup(host, { all: true })).map((a) => a.address);
+};
 
 /** In a container the router cannot be asked (multicast stays on the bridge), so the wrapper script asks from the host's network and passes the answer in. */
 const routerFromHost = async (): Promise<RouterAddress | undefined> => {
