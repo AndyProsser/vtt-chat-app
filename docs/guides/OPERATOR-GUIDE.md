@@ -441,7 +441,7 @@ no inbound 80 or 443 at all, so the web rows prove the tunnel, not your router; 
 
 **`test reach` also looks for CGNAT.** Many home ISPs share one public IPv4 address between customers (carrier-grade NAT), and then nothing
 outside can reach the server however you forward ports. The test asks a STUN server (Google's, which LiveKit already uses) what address the
-server appears as, checks that your DNS names point at it, and when nothing outside can get in it says CGNAT is likely. To confirm, compare the
+server appears as, checks that your DNS names point at it, and when nothing outside can get in it says CGNAT is likely. The test also **asks your router** for its own internet address over UPnP or NAT-PMP (from the host's network, even in Docker): if the router reports a shared address, or one different from what the internet sees, that **proves** CGNAT. Many routers have both switched off, and then the test says it could not ask. To confirm by hand, compare the
 WAN IP on your router's admin page with the address the test shows: if they differ, or the router shows `100.64.x.x` to `100.127.x.x`, you are
 behind CGNAT. **The best fix is to ask your ISP to take you off CGNAT**; if they will not, the server needs to run somewhere with a public address. This project only detects and warns. See [Behind CGNAT?](../architecture/DEPLOYMENT-AND-TRANSPORT.md#behind-cgnat-the-servers-side).
 

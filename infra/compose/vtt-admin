@@ -109,7 +109,23 @@ case ${1:-} in
       fi
       dc exec "${envs[@]}" worker node ai/dist/cli/selftest.js "$@"
     }
-    backend_test() { dc exec "${envs[@]}" backend node backend/dist/cli/main.js test "$@"; }
+    # The router can only be asked from the host's own network (UPnP and NAT-PMP do not cross Docker's bridge), so a throwaway
+    # container with the host network asks, and the answer goes to the test as VTT_ROUTER_WAN. No answer is fine: it stays unknown.
+    router_wan() {
+      local image
+      image=$(dc images -q backend 2>/dev/null | head -n 1)
+      [ -n "$image" ] || return 0
+      if can_run; then
+        docker run --rm --network host --entrypoint node "$image" backend/dist/cli/main.js router-address 2>/dev/null || true
+      else
+        sudo -- docker run --rm --network host --entrypoint node "$image" backend/dist/cli/main.js router-address 2>/dev/null || true
+      fi
+    }
+    backend_test() {
+      local wan=""
+      case ${1:-} in reach) wan=$(router_wan | head -n 1) ;; esac
+      dc exec "${envs[@]}" -e "VTT_ROUTER_WAN=$wan" backend node backend/dist/cli/main.js test "$@"
+    }
     case ${2:-} in
       ai)
         shift 2

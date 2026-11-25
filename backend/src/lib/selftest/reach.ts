@@ -42,7 +42,7 @@ export interface ReachOptions {
   /** How many places to ask from (default 3). */
   maxNodes?: number;
   /** When given, also checks the server's own address and DNS, and diagnoses CGNAT (see network.ts). */
-  network?: Pick<NetworkOptions, 'resolve' | 'publicAddress'>;
+  network?: Pick<NetworkOptions, 'resolve' | 'publicAddress' | 'routerAddress'>;
 }
 
 /**

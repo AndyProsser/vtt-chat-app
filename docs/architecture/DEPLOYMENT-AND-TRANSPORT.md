@@ -77,7 +77,9 @@ carrier-grade NAT, so the whole street shares one public IPv4 address and nothin
 whatever you forward on your router. `vtt-admin test reach` diagnoses it: it asks a STUN server (Google's, the same one LiveKit
 already uses) what address the server appears as, and says so if that is in the shared `100.64.0.0/10` range; and when
 nothing outside can reach a server that looks public, it says CGNAT is likely and how to confirm it (the router's WAN IP
-differs from that address, or is itself `100.64.x.x`-`100.127.x.x`).
+differs from that address, or is itself `100.64.x.x`-`100.127.x.x`). It also asks the router for that WAN IP itself, over NAT-PMP
+and UPnP, which turns the guess into proof when the router answers. Multicast does not cross Docker's bridge, so under Compose the
+`vtt-admin` wrapper asks from a throwaway container on the host network and hands the answer to the test.
 
 **This project does not work around it; it detects and warns, so a less technical operator does not lose hours to
 port forwarding that can never work.** The best fix is to **ask the ISP to take the line off CGNAT** (some do for free, some

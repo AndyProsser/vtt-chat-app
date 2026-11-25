@@ -1,6 +1,7 @@
 import type { TestRow } from '@vtt-chat-app/shared';
 
 import { classifyIp } from './address.js';
+import type { RouterAddress } from './router.js';
 
 /**
  * "Is this server's address one the outside world can reach at all?" Many home ISPs put customers behind carrier-grade
@@ -18,6 +19,8 @@ export interface NetworkOptions {
   /** Whether the outside check reached the web side / the voice TCP port; undefined when not asked. */
   webReachable?: boolean;
   voiceReachable?: boolean;
+  /** What the home router says its internet address is (UPnP / NAT-PMP); nothing when it does not answer. */
+  routerAddress?: () => Promise<RouterAddress | undefined>;
 }
 
 const CGNAT_HELP =
@@ -103,6 +106,48 @@ export async function checkNetwork(options: NetworkOptions): Promise<TestRow[]> 
     );
   }
 
+  let routerSettled = false;
+  if (options.routerAddress && !(own && (ownClass === 'cgnat' || ownClass === 'private'))) {
+    const r = await options.routerAddress();
+    const rc = r ? classifyIp(r.address) : undefined;
+    if (!r) {
+      rows.push(
+        row(
+          'off',
+          'Router',
+          'did not answer UPnP or NAT-PMP, so its internet address could not be read (many routers have both switched off, and a server in a container cannot ask)',
+        ),
+      );
+    } else if (rc === 'cgnat' || rc === 'private') {
+      routerSettled = true;
+      rows.push(
+        row(
+          'fail',
+          'CGNAT',
+          `your router reports its own internet address as ${r.address} (via ${r.via}), a shared address. ${CGNAT_HELP}`,
+        ),
+      );
+    } else if (own && r.address !== own) {
+      routerSettled = true;
+      rows.push(
+        row(
+          'fail',
+          'CGNAT',
+          `your router says its internet address is ${r.address} (via ${r.via}) but the internet sees this server as ${own}, so another layer of NAT sits between them: CGNAT at your ISP, a second router, or a VPN. ${CGNAT_HELP}`,
+        ),
+      );
+    } else {
+      routerSettled = true;
+      rows.push(
+        row(
+          'ok',
+          'Router',
+          `its internet address (${r.address}, via ${r.via}) is the one the internet sees, so there is no CGNAT`,
+        ),
+      );
+    }
+  }
+
   const usable = ownClass === 'public' ? own : undefined;
   rows.push(await checkName(options.webHost, true, usable, options.resolve));
   if (options.voiceHost.toLowerCase() !== options.webHost.toLowerCase()) {
@@ -112,6 +157,7 @@ export async function checkNetwork(options: NetworkOptions): Promise<TestRow[]> 
   if (
     ownClass !== 'cgnat' &&
     ownClass !== 'private' &&
+    !routerSettled &&
     options.webReachable === false &&
     options.voiceReachable === false
   ) {

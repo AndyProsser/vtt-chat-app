@@ -103,3 +103,55 @@ describe('checkNetwork: when the public address cannot be learned', () => {
     expect(find(rows, /play\.example\.com/)?.badge).toBe('ok');
   });
 });
+
+describe('checkNetwork: asking the router', () => {
+  const router =
+    (address: string | undefined, via: 'UPnP' | 'NAT-PMP' = 'UPnP') =>
+    async () =>
+      address ? { address, via } : undefined;
+
+  it('proves there is no CGNAT when the router’s address is the one the internet sees', async () => {
+    const rows = await checkNetwork(opts({ routerAddress: router('203.0.113.9') }));
+    const r = find(rows, /router/i)!;
+    expect(r.badge).toBe('ok');
+    expect(r.detail).toMatch(/UPnP/);
+    expect(rows.some((x) => /CGNAT/i.test(x.name))).toBe(false);
+  });
+
+  it('proves CGNAT when the router itself has a shared address', async () => {
+    const rows = await checkNetwork(
+      opts({
+        publicAddress: async () => '198.51.100.20',
+        routerAddress: router('100.72.1.5', 'NAT-PMP'),
+      }),
+    );
+    const r = find(rows, /CGNAT/i)!;
+    expect(r.badge).toBe('fail');
+    expect(r.detail).toContain('100.72.1.5');
+    expect(r.detail).toMatch(/NAT-PMP/);
+    expect(r.detail).toMatch(/ask the ISP/i);
+  });
+
+  it('proves another layer of NAT when the router’s address differs from the internet’s', async () => {
+    const rows = await checkNetwork(opts({ routerAddress: router('198.51.100.20') }));
+    const r = find(rows, /CGNAT/i)!;
+    expect(r.badge).toBe('fail');
+    expect(r.detail).toContain('198.51.100.20');
+    expect(r.detail).toContain('203.0.113.9');
+  });
+
+  it('says plainly when the router does not answer, and still gives the manual test if nothing gets in', async () => {
+    const rows = await checkNetwork(
+      opts({ routerAddress: router(undefined), webReachable: false, voiceReachable: false }),
+    );
+    expect(find(rows, /router/i)?.badge).toBe('off');
+    expect(find(rows, /CGNAT\?/)?.badge).toBe('warn');
+  });
+
+  it('does not repeat the CGNAT guess once the router has settled it', async () => {
+    const rows = await checkNetwork(
+      opts({ routerAddress: router('203.0.113.9'), webReachable: false, voiceReachable: false }),
+    );
+    expect(find(rows, /CGNAT/i)).toBeUndefined();
+  });
+});

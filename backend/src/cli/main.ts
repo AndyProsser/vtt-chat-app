@@ -19,6 +19,7 @@ import { AccountService } from '../lib/auth/accountService.js';
 import { SignupService } from '../lib/auth/signupService.js';
 import { loadConfig } from '../lib/config.js';
 import { checkReach, type VoiceTarget, type WebTarget } from '../lib/selftest/reach.js';
+import { routerWanAddress, type RouterAddress } from '../lib/selftest/router.js';
 import { stunPublicAddress } from '../lib/selftest/stun.js';
 import { checkVoice } from '../lib/selftest/voice.js';
 import {
@@ -50,7 +51,20 @@ import { syncFromConfig } from '../lib/updates/runSync.js';
 const lookupAll = async (host: string): Promise<string[]> =>
   (await lookup(host, { all: true })).map((a) => a.address);
 
+/** In a container the router cannot be asked (multicast stays on the bridge), so the wrapper script asks from the host's network and passes the answer in. */
+const routerFromHost = async (): Promise<RouterAddress | undefined> => {
+  if (process.env.VTT_ADMIN_HOST !== 'compose') return routerWanAddress();
+  const [address, via] = (process.env.VTT_ROUTER_WAN ?? '').split(' ');
+  return address && (via === 'UPnP' || via === 'NAT-PMP') ? { address, via } : undefined;
+};
+
 async function main(): Promise<number> {
+  if (process.argv[2] === 'router-address') {
+    // Internal: used by the vtt-admin wrapper, run with the host's network. Prints "<address> <UPnP|NAT-PMP>", or nothing.
+    const r = await routerWanAddress();
+    if (r) console.log(`${r.address} ${r.via}`);
+    return 0;
+  }
   const config = loadConfig();
   if (config.databaseUrl === undefined) {
     console.error(
@@ -150,7 +164,11 @@ async function main(): Promise<number> {
       reach: (targets: { web: WebTarget; voice: VoiceTarget }) =>
         checkReach({
           ...targets,
-          network: { resolve: lookupAll, publicAddress: () => stunPublicAddress() },
+          network: {
+            resolve: lookupAll,
+            publicAddress: () => stunPublicAddress(),
+            routerAddress: routerFromHost,
+          },
         }),
       ...(process.env.VTT_ADMIN_HOST === 'compose'
         ? {}
