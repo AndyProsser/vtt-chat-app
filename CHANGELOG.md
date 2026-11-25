@@ -10,6 +10,10 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ## [Unreleased]
 
+### Fixed
+
+- **The desktop campaign chooser now follows the server.** A campaign that was deleted or renamed elsewhere used to stay on the list (or keep its old name) until the app was restarted; the list is now re-read when the chooser appears and each time the window is used again.
+
 ## [0.6.4] - 2026-11-25
 
 A session's history reads as tabs, handouts and tales can set a line in an in-world language's own typeface, the phone

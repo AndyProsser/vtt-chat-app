@@ -7,7 +7,13 @@ import { useConnectLink } from '../../hooks/useConnectLink.js';
 import { avatarValue } from '../../lib/avatars.js';
 import { CampaignChooser } from '../CampaignChooser.js';
 import { initials } from '../../lib/rail.js';
-import { accountErrorMessage, accountRename, accountSetAvatar } from '../../lib/tauriBridge.js';
+import {
+  accountAddCampaign,
+  accountErrorMessage,
+  accountRename,
+  accountSetAvatar,
+} from '../../lib/tauriBridge.js';
+import { useRefreshWhile } from '../../hooks/useRefreshWhile.js';
 import { PictureButton } from '../PictureButton.js';
 import { Portrait } from '../Portrait.js';
 import { ToolButton } from '../ToolButton.js';
@@ -27,6 +33,15 @@ export function AccountSection() {
   const [code, setCode] = useState('');
   const link = useConnectLink();
   const address = server ?? status?.server ?? '';
+
+  // The chooser's list is read from the server on request, so re-read it when it appears and when the window is used again:
+  // a campaign deleted or renamed elsewhere must not stay on it.
+  const choosing = Boolean(
+    status && status.signedIn && status.campaignId === null && status.campaigns.length > 0,
+  );
+  useRefreshWhile(choosing, () => {
+    void accountAddCampaign('refresh', '').then(account.applyStatus, () => undefined);
+  });
 
   if (!status) return null;
 
