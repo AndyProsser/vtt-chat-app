@@ -59,7 +59,7 @@ flowchart LR
 
 ## Stage 14 — Polish on protocol 4: 0.6.3 and 0.6.4 (planned 2026-11-24)
 
-**Status:** 🟡 In progress (planned with Andy, 2026-11-24). **0.6.3 (the font and icon work) was seen in the real apps by Andy and tagged on 2026-11-24**; 0.6.4 is next. **Depends on:** [Stage 13](#stage-13--quality-validation-closed-2026-11-24), which Andy closed on 2026-11-24, so its "bug fixes only" rule has ended and this stage may add features.
+**Status:** 🟡 In progress (planned with Andy, 2026-11-24). **0.6.3 (the font and icon work) was seen in the real apps by Andy and tagged on 2026-11-24; 0.6.4 (the larger items below) was tagged on 2026-11-25. The stage closes when Andy's full session 4 run on 0.6.4 passes.** **Depends on:** [Stage 13](#stage-13--quality-validation-closed-2026-11-24), which Andy closed on 2026-11-24, so its "bug fixes only" rule has ended and this stage may add features.
 **The rule:** **no wire change.** Everything here ships as a patch on protocol 4, so a 0.6.3 or 0.6.4 app and server mix freely with 0.6.2 (they must match on MAJOR.MINOR only). Anything that turns out to need the wire moves to [Stage 15](#stage-15--protocol-5-and-070-planned-2026-11-21).
 **Andy, 2026-11-24:** build the font work in 0.6.3 as far as possible; then everything else that needs no bump, **small things in 0.6.3 and larger in 0.6.4**; the items that need a bump come after (Stage 15); the ideas move down.
 
