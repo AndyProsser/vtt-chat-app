@@ -1,14 +1,14 @@
 import { Badge, Callout, Card, Flex, SegmentedControl, Text } from '@radix-ui/themes';
 import {
-  confirmGroup,
-  groupForConfirming,
   canConfirm,
   defaultLootFilter,
   smartLootFilter,
   isConfirmed,
   filterLootItems,
   lootActions,
+  LOOT_FILTER_LABEL,
   lootFiltersFor,
+  lootGroups,
   lootRequest,
   needsConfirming,
   type LootAction,
@@ -29,14 +29,6 @@ import { IconTool } from './IconTool.js';
 import { usePhoneStore } from '../../lib/phone/phoneStore.js';
 import type { LootItem } from '../../types/phone.js';
 
-const FILTER_LABEL: Record<LootFilter, string> = {
-  available: 'Available',
-  taken: 'Taken',
-  all: 'All',
-  own: 'Mine',
-  party: 'Party',
-  unconfirmed: 'To confirm',
-};
 const RARITY_COLOR: Record<string, 'gray' | 'green' | 'blue' | 'violet' | 'orange' | 'red'> = {
   common: 'gray',
   uncommon: 'green',
@@ -68,8 +60,10 @@ export function InventoryTab({ campaignId }: { campaignId: string }) {
   const view = filters.includes(filter) ? filter : defaultLootFilter(dm);
   const filtered = filterLootItems(data ?? [], view, selfId);
   // To confirm is grouped: what is mine first, then the party stash, which makes copying to a sheet easier.
-  const groups = view === 'unconfirmed' ? groupForConfirming(filtered) : undefined;
-  const shown = groups ? [...groups.mine, ...groups.party] : filtered;
+  const groups = lootGroups(view, filtered, dm);
+  const shown = groups ? groups.flatMap((g) => g.items) : filtered;
+  const groupAt = new Map<string, NonNullable<typeof groups>[number]>();
+  groups?.forEach((g) => groupAt.set(g.items[0]!.id, g));
   const players = members.filter((m) => m.role !== 'dm');
 
   async function run(item: LootItem, action: LootAction, userId?: string) {
@@ -116,7 +110,7 @@ export function InventoryTab({ campaignId }: { campaignId: string }) {
         >
           {filters.map((f) => (
             <SegmentedControl.Item key={f} value={f}>
-              {FILTER_LABEL[f]}
+              {LOOT_FILTER_LABEL[f]}
             </SegmentedControl.Item>
           ))}
         </SegmentedControl.Root>
@@ -138,14 +132,10 @@ export function InventoryTab({ campaignId }: { campaignId: string }) {
                 : 'Nothing in this list.'}
         </Text>
       )}
-      {shown.map((item, index) => {
+      {shown.map((item) => {
         const actions = lootActions(item, selfId, dm);
         const onSheet = isConfirmed(item, selfId);
-        const head = groups
-          ? confirmGroup(item) === 'mine'
-            ? index === 0 && { label: 'Mine', items: groups.mine }
-            : index === groups.mine.length && { label: 'Party stash', items: groups.party }
-          : false;
+        const head = groupAt.get(item.id);
         return (
           <Fragment key={item.id}>
             {head && (
@@ -153,12 +143,14 @@ export function InventoryTab({ campaignId }: { campaignId: string }) {
                 <Text size="2" weight="bold" color="gray">
                   {head.label} ({head.items.length})
                 </Text>
-                <IconTool
-                  small
-                  label={`Mark all ${head.items.length} in ${head.label} as added to my character sheet`}
-                  icon="listChecks"
-                  onClick={() => void confirmAll(head.items)}
-                />
+                {head.markAll && (
+                  <IconTool
+                    small
+                    label={`Mark all ${head.items.length} in ${head.label} as added to my character sheet`}
+                    icon="listChecks"
+                    onClick={() => void confirmAll(head.items)}
+                  />
+                )}
               </Flex>
             )}
             <Card size="2">

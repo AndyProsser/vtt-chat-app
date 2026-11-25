@@ -52,12 +52,12 @@ export function lootRequest(
   return { path: action, body: {} };
 }
 
-/** The loot list's filters (ROADMAP Stage 10, 11). The DM: Available | Taken | All. Players: Not confirmed | All | Own | Party | Available. */
+/** The loot list's filters (ROADMAP Stage 10, 11). The DM: Available | Taken | All. Players: New | Available | Mine | Party | All. */
 export type LootFilter = 'available' | 'taken' | 'all' | 'own' | 'party' | 'unconfirmed';
 
 /** The filters this person gets, in the order they are shown. */
 export function lootFiltersFor(dm: boolean): LootFilter[] {
-  return dm ? ['available', 'taken', 'all'] : ['unconfirmed', 'all', 'own', 'party', 'available'];
+  return dm ? ['available', 'taken', 'all'] : ['unconfirmed', 'available', 'own', 'party', 'all'];
 }
 
 /** The filter the list opens on. */
@@ -99,6 +99,55 @@ export function smartLootFilter(
   if (items.some((i) => needsConfirming(i, selfId))) return 'unconfirmed';
   if (items.some((i) => !i.claimedBy)) return 'available';
   return 'own';
+}
+
+/** The tab names, as people read them: the Game Master's and a player's. */
+export const LOOT_FILTER_LABEL: Record<LootFilter, string> = {
+  unconfirmed: 'New',
+  available: 'Available',
+  own: 'Mine',
+  party: 'Party',
+  taken: 'Taken',
+  all: 'All',
+};
+
+/** A run of items under one heading; `markAll` shows the "added to my sheet" button for the whole group. */
+export interface LootGroup<T> {
+  label: string;
+  items: T[];
+  markAll: boolean;
+}
+
+/**
+ * The headings a list is grouped under, or none for a flat list. A player's **New** list is Mine then Party stash, each with a
+ * mark-all button; their **All** list is Available, Mine and Party stash, with no button (nothing there is to be ticked in bulk).
+ * Empty groups are left out.
+ */
+export function lootGroups<T extends LootHeld>(
+  view: LootFilter,
+  items: readonly T[],
+  dm: boolean,
+): LootGroup<T>[] | undefined {
+  if (dm) return undefined;
+  const party = (i: T) => Boolean(i.claimedBy) && i.claimedFor === 'party';
+  const groups: LootGroup<T>[] | undefined =
+    view === 'unconfirmed'
+      ? [
+          { label: 'Mine', items: items.filter((i) => !party(i)), markAll: true },
+          { label: 'Party stash', items: items.filter(party), markAll: true },
+        ]
+      : view === 'all'
+        ? [
+            { label: 'Available', items: items.filter((i) => !i.claimedBy), markAll: false },
+            {
+              label: 'Mine',
+              items: items.filter((i) => Boolean(i.claimedBy) && !party(i)),
+              markAll: false,
+            },
+            { label: 'Party stash', items: items.filter(party), markAll: false },
+          ]
+        : undefined;
+  return groups?.filter((g) => g.items.length > 0);
 }
 
 /** The two groups in the "to confirm" list, in the order they are shown. */

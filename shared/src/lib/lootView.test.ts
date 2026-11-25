@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   groupForConfirming,
   defaultLootFilter,
+  lootGroups,
   smartLootFilter,
   filterLootItems,
   lootActions,
@@ -82,11 +83,37 @@ describe('filterLootItems', () => {
   });
   it('offers the DM Available | Taken | All and players All | Own | Party | Available', () => {
     expect(lootFiltersFor(true)).toEqual(['available', 'taken', 'all']);
-    expect(lootFiltersFor(false)).toEqual(['unconfirmed', 'all', 'own', 'party', 'available']);
+    expect(lootFiltersFor(false)).toEqual(['unconfirmed', 'available', 'own', 'party', 'all']);
   });
   it('opens on Available for everyone', () => {
     expect(defaultLootFilter(true)).toBe('available');
     expect(defaultLootFilter(false)).toBe('unconfirmed');
+  });
+});
+
+describe('lootGroups', () => {
+  const open = { id: 'o', claimedBy: null };
+  const mine = { id: 'm', claimedBy: 'p1', claimedFor: 'self' as const };
+  const stash = { id: 's', claimedBy: 'p1', claimedFor: 'party' as const };
+  const names = (g: ReturnType<typeof lootGroups<typeof open>>) =>
+    g?.map((x) => `${x.label}:${x.items.map((i) => i.id)}:${x.markAll}`);
+  it('groups New as Mine then Party stash, each with the mark-all button', () => {
+    expect(names(lootGroups('unconfirmed', [stash, mine], false))).toEqual([
+      'Mine:m:true',
+      'Party stash:s:true',
+    ]);
+  });
+  it('groups All as Available, Mine, Party stash, with no mark-all button', () => {
+    expect(names(lootGroups('all', [stash, mine, open], false))).toEqual([
+      'Available:o:false',
+      'Mine:m:false',
+      'Party stash:s:false',
+    ]);
+  });
+  it('leaves out an empty group, and groups no other list and nothing for the Game Master', () => {
+    expect(names(lootGroups('all', [open], false))).toEqual(['Available:o:false']);
+    expect(lootGroups('own', [mine], false)).toBeUndefined();
+    expect(lootGroups('all', [open, mine], true)).toBeUndefined();
   });
 });
 

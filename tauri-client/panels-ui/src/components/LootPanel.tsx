@@ -1,3 +1,4 @@
+import { Tabs } from '@radix-ui/themes';
 import {
   Backpack,
   Inbox,
@@ -11,10 +12,11 @@ import {
 } from 'lucide-react';
 import {
   canConfirm,
-  confirmGroup,
-  groupForConfirming,
   isConfirmed,
+  LOOT_FILTER_LABEL,
+  lootGroups,
   needsConfirming,
+  unconfirmedCount,
 } from '@vtt-chat-app/shared';
 import { Fragment, useEffect, useMemo, useState } from 'react';
 
@@ -50,14 +52,6 @@ const FILTER_ICON = {
   party: Users,
   unconfirmed: ListTodo,
 } as const;
-const FILTER_LABEL: Record<LootFilter, string> = {
-  available: 'Available',
-  taken: 'Taken',
-  all: 'All',
-  own: 'Mine',
-  party: 'Party stash',
-  unconfirmed: 'Not added to my sheet yet',
-};
 
 /**
  * The party inventory: a shared pool. The DM drops items and coin (a roll, the SRD catalog or
@@ -102,9 +96,12 @@ export function LootPanel() {
   );
   const order = useMemo(() => (loot ?? []).map((i) => i.id), [loot]);
   const leaving = useLeaving(filtered, order, view);
-  // To confirm is grouped: what is mine first, then the party stash, which makes copying to a sheet easier.
-  const groups = view === 'unconfirmed' ? groupForConfirming(leaving) : undefined;
-  const shown = groups ? [...groups.mine, ...groups.party] : leaving;
+  // New and All are grouped (see lootGroups); only New has the mark-all button, which makes copying to a sheet easier.
+  const newCount = unconfirmedCount(loot ?? [], status?.userId ?? null);
+  const groups = lootGroups(view, leaving, dm);
+  const shown = groups ? groups.flatMap((g) => g.items) : leaving;
+  const groupAt = new Map<string, typeof groups extends (infer G)[] | undefined ? G : never>();
+  groups?.forEach((g) => groupAt.set(g.items[0]!.id, g));
 
   return (
     <div className="vtt-inventory">
@@ -117,21 +114,20 @@ export function LootPanel() {
         </div>
       )}
       {dm && <LootWorkbench onDropped={reload} players={players} />}
-      <div className="vtt-form-row" role="radiogroup" aria-label="Show">
-        {filtersFor(dm).map((f) => {
-          const Icon = FILTER_ICON[f];
-          return (
-            <ToolButton
-              key={f}
-              label={FILTER_LABEL[f]}
-              pressed={view === f}
-              onClick={() => setPickedFilter(f)}
-            >
-              <Icon size={14} />
-            </ToolButton>
-          );
-        })}
-      </div>
+      <Tabs.Root value={view} onValueChange={(v) => setPickedFilter(v as LootFilter)}>
+        <Tabs.List size="1">
+          {filtersFor(dm).map((f) => {
+            const Icon = FILTER_ICON[f];
+            return (
+              <Tabs.Trigger key={f} value={f}>
+                <Icon size={13} aria-hidden style={{ marginRight: 4 }} />
+                {LOOT_FILTER_LABEL[f]}
+                {f === 'unconfirmed' && newCount > 0 ? ` (${newCount})` : ''}
+              </Tabs.Trigger>
+            );
+          })}
+        </Tabs.List>
+      </Tabs.Root>
       {data &&
         shown.length === 0 &&
         (data.loot.length === 0 ? (
@@ -145,13 +141,9 @@ export function LootPanel() {
         ) : (
           <p className="vtt-muted">Nothing matches this filter.</p>
         ))}
-      {shown.map((item, index) => {
+      {shown.map((item) => {
         const open = !item.claimedBy;
-        const head = groups
-          ? confirmGroup(item) === 'mine'
-            ? index === 0 && { label: 'Mine', items: groups.mine }
-            : index === groups.mine.length && { label: 'Party stash', items: groups.party }
-          : false;
+        const head = groupAt.get(item.id);
         const className = [
           'vtt-loot',
           open ? '' : 'vtt-loot-taken',
@@ -166,19 +158,21 @@ export function LootPanel() {
                 <h3>
                   {head.label} ({head.items.length})
                 </h3>
-                <ToolButton
-                  className="vtt-tool-wide"
-                  label={`Mark all ${head.items.length} in ${head.label} as added to my character sheet`}
-                  onClick={() =>
-                    void run(async () => {
-                      for (const it of head.items)
-                        if (!it.leaving && needsConfirming(it, status?.userId ?? null))
-                          await campaignApi('POST', `loot/${it.id}/confirm`, { confirmed: true });
-                    })
-                  }
-                >
-                  <ListChecks size={14} />
-                </ToolButton>
+                {head.markAll && (
+                  <ToolButton
+                    className="vtt-tool-wide"
+                    label={`Mark all ${head.items.length} in ${head.label} as added to my character sheet`}
+                    onClick={() =>
+                      void run(async () => {
+                        for (const it of head.items)
+                          if (!it.leaving && needsConfirming(it, status?.userId ?? null))
+                            await campaignApi('POST', `loot/${it.id}/confirm`, { confirmed: true });
+                      })
+                    }
+                  >
+                    <ListChecks size={14} />
+                  </ToolButton>
+                )}
               </div>
             )}
             <div className={className} aria-hidden={item.leaving}>

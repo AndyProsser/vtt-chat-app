@@ -194,7 +194,8 @@ The DM drops items and coin into the **party inventory**, and a card appears in 
 - Everyone can always see what is still unclaimed (the inventory window, "Still in the pool").
 - **Re-drop** (DM): an item still on the table can be posted into the chat again; the card **moves** to the bottom (there are never two cards for one item).
 - **Added to my sheet** (since 0.6.0): a small round check box at the right of an item you hold, the party stash and your share of split coin. Tick it once the item is on your real game sheet. It unticks itself whenever the item moves, only you see your own ticks (the DM never does), and while it is ticked the item's take, store and put-back buttons are greyed out: untick it first to move it.
-- **To confirm** is the list you open on: what still needs adding to your sheet, in two groups, **Mine** (what you took, were given or share) and **Party stash**, each with an icon at the right of its heading that ticks the whole group. The Loot icon shows how many are waiting. The buttons are icons: hover (or long-press) for what each does.
+- The inventory has five tabs: **New | Available | Mine | Party | All**. It opens where there is something to do: **New** (what still needs adding to your sheet) if there is anything, otherwise **Available** (what is left to take), otherwise **Mine**. **New** and **All** are grouped, **New** as **Mine** and **Party stash** and **All** as **Available**, **Mine** and **Party stash**; only in **New** does each heading have an icon that ticks the whole group. The Loot icon shows how many are waiting. The buttons are icons: hover (or long-press) for what each does.
+- Coin in the chat has the same **split** button as the inventory.
 
 ## 8. Recording and summaries
 
