@@ -52,6 +52,7 @@ import {
   WhisperReadiness,
 } from '../lib/localAi/keepers.js';
 import { createOllamaContextChecker } from '../lib/localAi/contextChecker.js';
+import type { OllamaContextStatus } from '../types/localAi.js';
 import { createLocalAiReporter, reportWorst, writeLocalAiStatus } from '../lib/localAi/status.js';
 import type { GenerateText } from '../types/index.js';
 import { createOllamaGenerate } from '../lib/ollama.js';
@@ -253,24 +254,29 @@ async function main(): Promise<void> {
    * here. `remote` is only opportunistic: it may not be Ollama at all, and a check against it then simply
    * resolves `unreachable: true`, never affecting job processing either way.
    */
+  let lastContextCheck: OllamaContextStatus | null = null;
   const checkOllamaContext = async (): Promise<void> => {
     try {
       const ai = await records.getAiSettings();
       if (ai.llm.kind === 'local') {
         reporter.context(
-          await createOllamaContextChecker({
+          (lastContextCheck = await createOllamaContextChecker({
             kind: 'local',
             baseUrl: ollamaUrl,
             model: ollamaModel,
-          }),
+          })),
         );
       } else if (ai.llm.kind === 'remote' && ai.llm.url !== null && ai.llm.model !== null) {
+        // A remote model that is idle is loaded once to read its real window (its own OLLAMA_CONTEXT_LENGTH, which
+        // only a loaded model reports), then the reading is reused for a day: a gaming PC's GPU is not ours to hold.
         reporter.context(
-          await createOllamaContextChecker({
+          (lastContextCheck = await createOllamaContextChecker({
             kind: 'remote',
             baseUrl: ai.llm.url,
             model: ai.llm.model,
-          }),
+            probeIfIdle: true,
+            previous: lastContextCheck,
+          })),
         );
       }
       // claude/openai, or remote with no url/model yet: nothing to check; vtt-admin status handles those

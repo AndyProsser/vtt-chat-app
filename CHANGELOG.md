@@ -18,6 +18,7 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ### Changed
 
+- **`vtt-admin status` and `--tune` can read a remote model's real window even while it sits idle.** Ollama only reports a window for a model that is loaded, so for a `remote` model the worker now loads an idle one once (an empty request, kept in memory for 30 seconds), reads what the server serves, and keeps that reading for a day; the status line says how old it is. The status check also now grades a remote model by what the server serves: exactly what is configured is **ok** (it no longer warns that the model could do more), more than configured says to run `--tune`, and a window nobody has read yet says to set `ai.llm.context` to the server's `OLLAMA_CONTEXT_LENGTH` instead of offering a `--tune` that cannot work.
 - **Better icons on the DM's sound deck and scenes.** The Coins sound no longer shows a door, the starter sound boards (Unease, Combat, Spells, Creatures, Undead and horrors, Hits and falls, Movement, Mood, Jingles, Taunts, Villain) each have an icon instead of the same sparkle, and four starter scenes (Pending doom, Boss: symphonic metal, Run away!, Infernal) no longer share the clapperboard.
 
 ### Fixed

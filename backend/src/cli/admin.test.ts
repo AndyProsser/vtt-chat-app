@@ -425,6 +425,86 @@ describe('status: the AI context check', () => {
     expect(text).toContain('8192');
   });
 
+  const remote = async (context?: string) => {
+    await run('settings set ai.llm.kind remote');
+    await run('settings set ai.llm.url http://gpu:11434');
+    await run('settings set ai.llm.model qwen3');
+    if (context) await run(`settings set ai.llm.context ${context}`);
+  };
+
+  it('is ok when a remote server is serving exactly what is configured, though the model could do more', async () => {
+    await remote('12288');
+    expect(
+      await run('status', [], {
+        localAi: localAi({
+          kind: 'remote',
+          model: 'qwen3',
+          live: 12288,
+          modelMax: 40960,
+          unreachable: false,
+        }),
+      }),
+    ).toBe(0);
+    const text = out.join('\n');
+    expect(text).toMatch(/ok\s+AI\s+context window: 12288 tokens/i);
+    expect(text).not.toMatch(/warn\s+AI/i);
+  });
+
+  it('says what the server is serving, not what the model could do, when the server offers more than is configured', async () => {
+    await remote('8192');
+    expect(
+      await run('status', [], {
+        localAi: localAi({
+          kind: 'remote',
+          model: 'qwen3',
+          live: 12288,
+          modelMax: 40960,
+          unreachable: false,
+        }),
+      }),
+    ).toBe(0);
+    const text = out.join('\n');
+    expect(text).toMatch(/warn\s+AI/i);
+    expect(text).toMatch(/serving 12288/);
+    expect(text).toMatch(/--tune/);
+  });
+
+  it('does not offer --tune for a remote model whose window nobody has read, and says what to do instead', async () => {
+    await remote('8192');
+    expect(
+      await run('status', [], {
+        localAi: localAi({ kind: 'remote', model: 'qwen3', modelMax: 40960, unreachable: false }),
+      }),
+    ).toBe(0);
+    const text = out.join('\n');
+    expect(text).toMatch(/warn\s+AI/i);
+    expect(text).not.toMatch(/--tune/);
+    expect(text).toMatch(/OLLAMA_CONTEXT_LENGTH/);
+  });
+
+  it('says how old a carried-forward reading of the window is', async () => {
+    await remote('12288');
+    expect(
+      await run('status', [], {
+        now: () => 1_000 + 3 * 3_600_000,
+        localAi: {
+          at: 1,
+          llm: null,
+          whisper: null,
+          llmContext: {
+            kind: 'remote',
+            model: 'qwen3',
+            live: 12288,
+            liveAt: 1_000,
+            unreachable: false,
+            checkedAt: 1_000 + 3 * 3_600_000 - 60_000,
+          },
+        },
+      }),
+    ).toBe(0);
+    expect(out.join('\n')).toMatch(/window read 3h/);
+  });
+
   it('warns "not checked" on a kind mismatch instead of comparing against stale data', async () => {
     await run('settings set ai.llm.kind local');
     expect(
@@ -496,6 +576,8 @@ describe('status: the AI context check', () => {
     ).toBe(0);
     expect(await store.getSettings()).toEqual(before);
     expect(out.join('\n')).toMatch(/could not tune/i);
+    expect(out.join('\n')).toMatch(/15 minutes/);
+    expect(out.join('\n')).toMatch(/ai\.llm\.context/);
   });
 
   it('--tune run again with nothing changed reports "already matches" and does not write again', async () => {

@@ -369,8 +369,14 @@ function aiContextRows(
   now: number,
 ): Row[] {
   const { llm } = settings;
-  const row = (badge: BadgeKind, text: string, age?: number): Row[] => [
-    [badge, 'AI', age !== undefined ? `${text} (checked ${duration(age / 1000)} ago)` : text],
+  const row = (badge: BadgeKind, text: string, age?: number, liveAge?: number): Row[] => [
+    [
+      badge,
+      'AI',
+      age === undefined
+        ? text
+        : `${text} (checked ${duration(age / 1000)} ago${liveAge !== undefined ? `; window read ${duration(liveAge / 1000)} ago` : ''})`,
+    ],
   ];
 
   if (llm.kind === 'claude') {
@@ -388,12 +394,15 @@ function aiContextRows(
     return row('warn', 'context window: not checked yet');
   }
   const age = Math.max(0, now - checked.checkedAt);
+  // A remote model that sits idle keeps its last reading for a day (the worker loads it once to read it): say so.
+  const liveAge = checked.liveAt !== undefined ? Math.max(0, now - checked.liveAt) : undefined;
   const configured = contextWindowTokens(llm, false);
   if (checked.live !== undefined && checked.live < configured) {
     return row(
       'fail',
       `context window: Ollama is only serving ${checked.live} tokens, but ${configured} is configured`,
       age,
+      liveAge,
     );
   }
   if (checked.modelMax !== undefined && checked.modelMax < configured) {
@@ -401,21 +410,41 @@ function aiContextRows(
       'fail',
       `context window: the model's own maximum is ${checked.modelMax} tokens, but ${configured} is configured`,
       age,
+      liveAge,
     );
   }
-  if (checked.modelMax !== undefined && checked.modelMax > configured) {
+  if (checked.live !== undefined && checked.live > configured) {
     return row(
       'warn',
-      `context window: configured for ${configured} tokens, but the model supports up to ${checked.modelMax} — vtt-admin status --tune to use more`,
+      `context window: configured for ${configured} tokens, but Ollama is serving ${checked.live} — vtt-admin status --tune to use them`,
       age,
+      liveAge,
     );
   }
-  // Nothing was actually determined (both signals absent) — whether or not either request itself
-  // technically failed — is "unknown", never a silent `ok`.
+  if (
+    checked.live === undefined &&
+    checked.modelMax !== undefined &&
+    checked.modelMax > configured
+  ) {
+    // A remote server's window is its own OLLAMA_CONTEXT_LENGTH, which only a loaded model reveals; `local`'s is
+    // whatever the app asks for, so the model's maximum is a real option there.
+    return row(
+      'warn',
+      llm.kind === 'local'
+        ? `context window: configured for ${configured} tokens, but the model supports up to ${checked.modelMax} — vtt-admin status --tune to use more`
+        : `context window: configured for ${configured} tokens; the model supports up to ${checked.modelMax}, but the server's own window is not known yet (the worker reads it on its next check): set ai.llm.context to the server's OLLAMA_CONTEXT_LENGTH`,
+      age,
+      liveAge,
+    );
+  }
   if (checked.live === undefined && checked.modelMax === undefined) {
     return row('warn', 'context window: unknown (could not reach Ollama to check)', age);
   }
-  return row('ok', `context window: ${configured} tokens`, age);
+  const spare =
+    checked.live !== undefined && checked.modelMax !== undefined && checked.modelMax > checked.live
+      ? ` (the server is set to ${checked.live}; the model could do ${checked.modelMax})`
+      : '';
+  return row('ok', `context window: ${configured} tokens${spare}`, age, liveAge);
 }
 
 /**
@@ -441,7 +470,13 @@ async function tuneAiContext(deps: Ctx, current: InstanceSettings): Promise<void
   const live = fresh?.live;
   const value = live ?? (llm.kind === 'local' ? fresh?.modelMax : undefined);
   if (value === undefined) {
-    deps.out(deps.ui.warn('could not tune: nothing has been determined yet'));
+    deps.out(
+      deps.ui.warn(
+        llm.kind === 'remote'
+          ? "could not tune: the remote model's real window is not known yet. The worker loads an idle model and reads it on its next check (within 15 minutes): run this again then, or set ai.llm.context by hand to the server's OLLAMA_CONTEXT_LENGTH"
+          : 'could not tune: nothing has been determined yet',
+      ),
+    );
     return;
   }
   if (llm.context === value) {

@@ -472,11 +472,14 @@ details. A GPU PC does the same work in minutes with the better models. So:
    truncation shows as a failure, not just a warning; unused headroom (the model could serve more than is
    configured) shows as a warning with both numbers. `./vtt-admin status --tune` writes `ai.llm.context`
    for you, from what Ollama is actually serving right now — no need to copy `OLLAMA_CONTEXT_LENGTH`'s
-   number by hand. For `remote` this needs the model to be loaded at the time you run it (it never guesses
-   from the model's maximum there, since nothing confirms the remote server would actually serve that much);
-   if nothing is loaded, run a job first, or wait for the worker's own periodic check, then try again. It
-   has nothing to apply (and says so) until the worker has checked at least once, and Claude/OpenAI are never
-   affected — Claude's real window comes from a built-in table, OpenAI has no table and always shows as
+   number by hand. For `remote` it never guesses from the model's maximum (nothing confirms the remote
+   server would actually serve that much); it uses what the server reports for the loaded model. **Ollama only
+   reports a window for a loaded model, so when the remote model is idle the worker loads it once** (an empty
+   request that generates nothing, kept in memory for 30 seconds, so a gaming PC's GPU is not held), reads the
+   window, and **keeps that reading for a day** (the status line says how old it is), reading it afresh whenever
+   a job has the model loaded anyway. Right after the worker starts, or after you change the remote model or
+   address, give it up to 15 minutes, then run `--tune`. Until a window has been read, `--tune` has nothing
+   to apply (and says so), and Claude/OpenAI are never affected — Claude's real window comes from a built-in table, OpenAI has no table and always shows as
    unknown.
 
 2. On the VM, point the worker at it, with the VM's own CPU as the fallback:
