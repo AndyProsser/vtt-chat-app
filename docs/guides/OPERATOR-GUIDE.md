@@ -439,6 +439,13 @@ server, the web rows prove Cloudflare answers, and the voice row checks your own
 `tcp_port` in `livekit.yaml`), set `VOICE_TCP_PORT` with `vtt-admin config set VOICE_TCP_PORT <port>`. Behind a Cloudflare Tunnel there is
 no inbound 80 or 443 at all, so the web rows prove the tunnel, not your router; voice still needs its own direct address and forwarded ports.
 
+**`test reach` also looks for CGNAT.** Many home ISPs share one public IPv4 address between customers (carrier-grade NAT), and then nothing
+outside can reach the server however you forward ports. The test asks a STUN server (Google's, which LiveKit already uses) what address the
+server appears as, checks that your DNS names point at it, and when nothing outside can get in it says CGNAT is likely. To confirm, compare the
+WAN IP on your router's admin page with the address the test shows: if they differ, or the router shows `100.64.x.x` to `100.127.x.x`, you are
+behind CGNAT. **There is no software-only fix** (UDP cannot be proxied through an address nobody can reach); the options are a public IP from the
+ISP, IPv6, or a small VPS relaying over WireGuard. See [Behind CGNAT?](../architecture/DEPLOYMENT-AND-TRANSPORT.md#behind-cgnat-the-servers-side).
+
 **`test reach` uses check-host.net**, a free public service that opens the connections from several countries, because nothing inside your
 network can see how it looks from outside. It is only ever run when you ask for it by name (or `--external`); it is told your server's host
 name (public anyway) and nothing else, and nothing depends on it. It is a free service with its own fair-use limits: if it refuses or is down,

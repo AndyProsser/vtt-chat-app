@@ -309,3 +309,42 @@ describe('checkReach: an address nothing outside can reach', () => {
     },
   );
 });
+
+describe('checkReach: carrier-grade NAT', () => {
+  const allDown = {
+    http: Object.fromEntries(Object.keys(NODES).map((n) => [n, [[0, 3, 'Connection refused']]])),
+    https: Object.fromEntries(Object.keys(NODES).map((n) => [n, [[0, 3, 'Connection refused']]])),
+    tcp: Object.fromEntries(
+      Object.keys(NODES).map((n) => [n, [{ error: 'Connection timed out' }]]),
+    ),
+  };
+  const network = (publicAddress: string | undefined) => ({
+    resolve: async () => ['203.0.113.9'],
+    publicAddress: async () => publicAddress,
+  });
+
+  it('adds the address checks and, when nothing outside gets in, suspects CGNAT', async () => {
+    const rows = await run('play.example.com', fakeCheckHost(allDown), {
+      network: network('203.0.113.9'),
+    });
+    expect(rows.some((r) => /public address/i.test(r.name) && r.badge === 'ok')).toBe(true);
+    expect(rows.find((r) => /CGNAT/i.test(r.name))?.badge).toBe('warn');
+  });
+
+  it('says so plainly when the server’s own address is a shared one', async () => {
+    const rows = await run('play.example.com', fakeCheckHost(), { network: network('100.72.1.5') });
+    expect(rows.find((r) => /CGNAT/i.test(r.name))?.badge).toBe('fail');
+  });
+
+  it('stays quiet about CGNAT when everything is reachable', async () => {
+    const rows = await run('play.example.com', fakeCheckHost(), {
+      network: network('203.0.113.9'),
+    });
+    expect(rows.some((r) => /CGNAT/i.test(r.name))).toBe(false);
+  });
+
+  it('adds nothing when no network checks are given', async () => {
+    const rows = await run('play.example.com');
+    expect(rows.some((r) => /public address|DNS/i.test(r.name))).toBe(false);
+  });
+});

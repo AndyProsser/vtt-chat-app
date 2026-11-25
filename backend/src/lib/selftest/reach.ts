@@ -1,5 +1,8 @@
 import type { TestRow } from '@vtt-chat-app/shared';
 
+import { classifyIp } from './address.js';
+import { checkNetwork, type NetworkOptions } from './network.js';
+
 /**
  * "Can people outside my network reach my server?", answered by check-host.net, a free public service that opens the
  * connections from several countries (https://check-host.net/about/api). Optional and only ever asked for by name
@@ -12,7 +15,6 @@ import type { TestRow } from '@vtt-chat-app/shared';
 
 const API = 'https://check-host.net';
 const USER_AGENT = 'vtt-chat-app vtt-admin (self-hosted server reachability check)';
-const ICE_TCP_PORT = 7881;
 const POLL_EVERY_MS = 2_000;
 
 /** Where the web side of this server answers. */
@@ -38,6 +40,8 @@ export interface ReachOptions {
   timeoutMs?: number;
   /** How many places to ask from (default 3). */
   maxNodes?: number;
+  /** When given, also checks the server's own address and DNS, and diagnoses CGNAT (see network.ts). */
+  network?: Pick<NetworkOptions, 'resolve' | 'publicAddress'>;
 }
 
 /**
@@ -68,25 +72,12 @@ export function reachTargets(
   };
 }
 
-/** Whether a host name or address could be reached from the internet at all (a private or local one cannot). */
+/** Whether a host name or address could be reached from the internet at all (a private, shared or local one cannot). */
 export function isPublicHost(host: string): boolean {
   const h = host.toLowerCase();
   if (h === 'localhost' || /\.(local|lan|internal|home|localdomain)$/.test(h)) return false;
-  const v4 = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(h);
-  if (v4) {
-    const [a, b] = [Number(v4[1]), Number(v4[2])];
-    return !(
-      a === 10 ||
-      a === 127 ||
-      a === 0 ||
-      (a === 169 && b === 254) ||
-      (a === 172 && b >= 16 && b <= 31) ||
-      (a === 192 && b === 168) ||
-      (a === 100 && b >= 64 && b <= 127)
-    );
-  }
-  if (h.includes(':')) return !(h === '::1' || /^f[cd]/.test(h) || h.startsWith('fe80'));
-  return true;
+  const kind = classifyIp(h);
+  return kind === undefined || kind === 'public';
 }
 
 type Place = [string, string, string, string, string]; // country code, country, city, ip, asn
@@ -267,8 +258,10 @@ export async function checkReach(options: ReachOptions): Promise<TestRow[]> {
     }
   }
 
+  const none = new Map<string, boolean>(); // label -> true when no place reached it at all
   const rows = specs.map((spec, i): TestRow => {
     const t = tally(started[i]!, answers.get(started[i]!.id), spec.works);
+    none.set(spec.label, t.ok.length === 0 && t.failed.length > 0);
     const everyone = t.failed.length === 0 && t.pending.length === 0;
     if (t.ok.length > 0 && everyone) return { badge: 'ok', name: spec.label, detail: detail(t) };
     if (t.ok.length === 0 && t.failed.length > 0) {
@@ -276,10 +269,31 @@ export async function checkReach(options: ReachOptions): Promise<TestRow[]> {
     }
     return warn(spec.label, detail(t));
   });
+  const webRows = rows.filter((r) => !r.name.startsWith('Voice'));
+  const voiceRows = rows.filter((r) => r.name.startsWith('Voice'));
+  // "Nothing outside gets in" is only a verdict when every place failed every time, not when answers were just late.
+  const unreachable = (rs: TestRow[]): boolean | undefined =>
+    rs.length === 0
+      ? undefined
+      : rs.every((r) => none.get(r.name))
+        ? false
+        : rs.every((r) => r.badge === 'ok')
+          ? true
+          : undefined;
+  const networkRows = options.network
+    ? await checkNetwork({
+        webHost: web.host,
+        voiceHost: voice.host,
+        ...options.network,
+        webReachable: unreachable(webRows),
+        voiceReachable: unreachable(voiceRows),
+      })
+    : [];
   // The voice row goes after the web rows, then UDP, in the order people read them.
   return [
-    ...rows.filter((r) => !r.name.startsWith('Voice')),
-    ...rows.filter((r) => r.name.startsWith('Voice')),
+    ...networkRows,
+    ...webRows,
+    ...voiceRows,
     ...preRows,
     {
       badge: 'off',

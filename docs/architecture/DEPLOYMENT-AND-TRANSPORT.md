@@ -70,6 +70,28 @@ Some networks block UDP and every port except 443. Options, in the order we reco
    open a UDP range at all, or wants relays near players. It is configured as an extra ICE server
    in LiveKit/client config. It is a convenience, not a dependency; nothing may require it.
 
+### Behind CGNAT? (the server's side)
+
+Players behind CGNAT are fine (see above). The **server** is the problem: many home ISPs put customers behind
+carrier-grade NAT, so the whole street shares one public IPv4 address and nothing from outside can reach your server,
+whatever you forward on your router. `vtt-admin test reach` diagnoses it: it asks a STUN server (Google's, the same one LiveKit
+already uses) what address the server appears as, and says so if that is in the shared `100.64.0.0/10` range; and when
+nothing outside can reach a server that looks public, it says CGNAT is likely and how to confirm it (the router's WAN IP
+differs from that address, or is itself `100.64.x.x`-`100.127.x.x`).
+
+**There is no software-only workaround.** Voice media is UDP aimed at the server's public address; with no public address
+there is nothing to aim at. UPnP and hole punching help clients, not a server nobody can address first, and Cloudflare Tunnel
+cannot carry UDP. The ways out, cheapest first:
+
+1. **Ask the ISP** for a public IPv4 address or to opt out of CGNAT (often a business plan or a small monthly fee).
+2. **IPv6**, if the ISP gives you a routable one and every player has IPv6 too (many do not, so this is a partial fix).
+3. **A small VPS as a relay.** Rent the cheapest VPS with a public IP, connect it to the server over WireGuard, and forward
+   UDP `50000-50200` and TCP `7881` (and `443` if you want it there too) through the tunnel; then
+   `vtt-admin voice-address <the VPS address>`. Players connect to the VPS, which passes the packets on. The cost is one
+   extra hop of latency and a monthly VPS bill; a VPS in the same region as the players keeps it small.
+4. **A mesh VPN** (Headscale or Tailscale) works for a closed group where everyone installs it, but it makes joining harder than
+   the invite link, so it is a last resort.
+
 ### What does _not_ work
 
 **Cloudflare Tunnel cannot carry WebRTC media** (UDP) or the TCP ICE fallback. It can front the

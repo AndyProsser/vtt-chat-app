@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { createWriteStream } from 'node:fs';
+import { lookup } from 'node:dns/promises';
 import { readFile, rename, rm, stat } from 'node:fs/promises';
 import { Valkey } from 'iovalkey';
 
@@ -18,6 +19,7 @@ import { AccountService } from '../lib/auth/accountService.js';
 import { SignupService } from '../lib/auth/signupService.js';
 import { loadConfig } from '../lib/config.js';
 import { checkReach, type VoiceTarget, type WebTarget } from '../lib/selftest/reach.js';
+import { stunPublicAddress } from '../lib/selftest/stun.js';
 import { checkVoice } from '../lib/selftest/voice.js';
 import {
   ArchiveError,
@@ -45,6 +47,9 @@ import { syncFromConfig } from '../lib/updates/runSync.js';
  *
  *   docker compose exec backend node backend/dist/cli/main.js status
  */
+const lookupAll = async (host: string): Promise<string[]> =>
+  (await lookup(host, { all: true })).map((a) => a.address);
+
 async function main(): Promise<number> {
   const config = loadConfig();
   if (config.databaseUrl === undefined) {
@@ -142,7 +147,11 @@ async function main(): Promise<number> {
         }),
       voiceAddress: process.env.VOICE_ADDRESS ?? '',
       voiceTcpPort: Number(process.env.VOICE_TCP_PORT) || 7881,
-      reach: (targets: { web: WebTarget; voice: VoiceTarget }) => checkReach(targets),
+      reach: (targets: { web: WebTarget; voice: VoiceTarget }) =>
+        checkReach({
+          ...targets,
+          network: { resolve: lookupAll, publicAddress: () => stunPublicAddress() },
+        }),
       ...(process.env.VTT_ADMIN_HOST === 'compose'
         ? {}
         : {
