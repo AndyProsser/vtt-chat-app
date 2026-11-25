@@ -445,7 +445,7 @@ server appears as, checks that your DNS names point at it, and when nothing outs
 WAN IP on your router's admin page with the address the test shows: if they differ, or the router shows `100.64.x.x` to `100.127.x.x`, you are
 behind CGNAT. **The best fix is to ask your ISP to take you off CGNAT**; if they will not, the server needs to run somewhere with a public address. This project only detects and warns. See [Behind CGNAT?](../architecture/DEPLOYMENT-AND-TRANSPORT.md#behind-cgnat-the-servers-side).
 
-**`test reach` uses check-host.net**, a free public service that opens the connections from several countries, because nothing inside your
+**`test reach` uses check-host.net**, a free public service that opens the connections from several countries (one of them near your server, found from its address; it has none in Australia or New Zealand, so Singapore or Indonesia stand in), because nothing inside your
 network can see how it looks from outside. It is only ever run when you ask for it by name (or `--external`); it is told your server's host
 name (public anyway) and nothing else, and nothing depends on it. It is a free service with its own fair-use limits: if it refuses or is down,
 the test says so and you try again later. Voice's **UDP** is proved too: LiveKit opens a media port only for a call in progress, so the test starts a short-lived echo listener on a free port in the media range (50000-50200), has check-host.net send UDP to it, and a reply proves the router forwards the range to this machine. A failure means forward UDP 50000-50200. (A phone off your Wi-Fi joining a call remains the final end-to-end proof.) `test voice` checks your server's side and `test reach` the TCP fallback port.

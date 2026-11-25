@@ -36,6 +36,16 @@ function fakeCheckHost(
     requests.push({ url, headers: (init?.headers ?? {}) as Record<string, string> });
     if (answers.down) throw new Error('getaddrinfo ENOTFOUND check-host.net');
     const json = (b: unknown) => new Response(JSON.stringify(b), { status: 200 });
+    if (/\/nodes\/hosts/.test(url)) {
+      return json({
+        nodes: {
+          'sg1.node.check-host.net': { location: ['sg', 'Singapore', 'Singapore'] },
+          'us1.node.check-host.net': { location: ['us', 'USA', 'Los Angeles'] },
+          'de1.node.check-host.net': { location: ['de', 'Germany', 'Frankfurt'] },
+          'gb1.node.check-host.net': { location: ['gb', 'UK', 'London'] },
+        },
+      });
+    }
     const start = /check-(http|tcp|udp)\?host=([^&]+)/.exec(url);
     if (start) {
       if (answers.startOk === 0) return json({ ok: 0, error: 'limit_exceeded' });
@@ -466,5 +476,31 @@ describe('checkReach: voice UDP, proved by an echo listener', () => {
   it('keeps the “cannot be proved” note when there is no listener', async () => {
     const rows = await run('play.example.com', fakeCheckHost());
     expect(rows.find((x) => /Voice UDP/.test(x.name))?.badge).toBe('off');
+  });
+});
+
+describe('checkReach: asking from near the server', () => {
+  it('names the nearest node for every check, then fills the rest from elsewhere', async () => {
+    const f = fakeCheckHost();
+    await run('play.example.com', f, { locate: async () => 'au' });
+    const starts = f.requests
+      .map((r) => decodeURIComponent(r.url))
+      .filter((u) => /check-(http|tcp)\?/.test(u));
+    expect(starts.length).toBeGreaterThan(0);
+    for (const u of starts) {
+      expect(u).toContain('node=sg1.node.check-host.net');
+      expect((u.match(/node=/g) ?? []).length).toBe(3);
+      expect(u).not.toContain('max_nodes');
+    }
+  });
+
+  it('falls back to check-host’s own choice when the country or the node list cannot be learned', async () => {
+    const f = fakeCheckHost();
+    await run('play.example.com', f, {
+      locate: async () => {
+        throw new Error('down');
+      },
+    });
+    expect(f.requests.some((r) => /max_nodes=3/.test(r.url))).toBe(true);
   });
 });

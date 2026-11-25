@@ -20,6 +20,7 @@ import { SignupService } from '../lib/auth/signupService.js';
 import { loadConfig } from '../lib/config.js';
 import { checkReach, type VoiceTarget, type WebTarget } from '../lib/selftest/reach.js';
 import { routerWanAddress, type RouterAddress } from '../lib/selftest/router.js';
+import { serverCountry } from '../lib/selftest/nodes.js';
 import { startUdpEcho } from '../lib/selftest/udpEcho.js';
 import { stunPublicAddress } from '../lib/selftest/stun.js';
 import { checkVoice } from '../lib/selftest/voice.js';
@@ -194,6 +195,10 @@ async function main(): Promise<number> {
           return await checkReach({
             ...targets,
             ...(port ? { udpProbe: { port } } : {}),
+            locate: async () => {
+              const own = await stunPublicAddress();
+              return own ? serverCountry(own) : undefined;
+            },
             network: {
               resolve: lookupAll,
               publicAddress: () => stunPublicAddress(),

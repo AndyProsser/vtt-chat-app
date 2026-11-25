@@ -1,5 +1,6 @@
 import type { TestRow } from '@vtt-chat-app/shared';
 
+import { pickNodes, type NodeList } from './nodes.js';
 import { classifyIp } from './address.js';
 import { isCloudflareIp } from './cloudflare.js';
 import { checkNetwork, type NetworkOptions } from './network.js';
@@ -42,6 +43,8 @@ export interface ReachOptions {
   /** How many places to ask from (default 3). */
   maxNodes?: number;
   /** When given, also checks the server's own address and DNS, and diagnoses CGNAT (see network.ts). */
+  /** The country (two letters) the server is in, so one of the places asked is near it; nothing when unknown. */
+  locate?: () => Promise<string | undefined>;
   /** A UDP echo listener is running on this port of the voice address's machine: ask check-host.net to send UDP to it. */
   udpProbe?: { port: number };
   network?: Pick<NetworkOptions, 'resolve' | 'publicAddress' | 'routerAddress'>;
@@ -276,9 +279,23 @@ export async function checkReach(options: ReachOptions): Promise<TestRow[]> {
     if (!res.ok) throw new Error(`check-host.net answered ${res.status}`);
     return res.json();
   };
+  // One of the places is near the server (and the same ones are used for every check, so the rows compare).
+  let chosen: string[] | undefined;
+  if (options.locate) {
+    try {
+      const country = await options.locate();
+      const hosts = (await get('/nodes/hosts')) as { nodes?: NodeList };
+      if (hosts.nodes) chosen = pickNodes(hosts.nodes, country, maxNodes);
+    } catch {
+      /* check-host.net picks the places itself */
+    }
+  }
+  const which = chosen?.length
+    ? chosen.map((n) => `node=${encodeURIComponent(n)}`).join('&')
+    : `max_nodes=${maxNodes}`;
   const start = async (spec: Spec): Promise<Started> => {
     const r = (await get(
-      `/check-${spec.kind}?host=${encodeURIComponent(spec.target)}&max_nodes=${maxNodes}`,
+      `/check-${spec.kind}?host=${encodeURIComponent(spec.target)}&${which}`,
     )) as { ok?: number; request_id?: string; nodes?: Record<string, Place> };
     if (r.ok !== 1 || !r.request_id || !r.nodes) throw new Error('refused');
     return { id: r.request_id, places: r.nodes };
