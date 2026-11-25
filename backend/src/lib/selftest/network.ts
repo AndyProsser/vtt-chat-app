@@ -22,9 +22,8 @@ export interface NetworkOptions {
 
 const CGNAT_HELP =
   'Your ISP shares one public address between many customers (carrier-grade NAT), so port forwarding on your router cannot help. ' +
-  'Options: ask the ISP for a public IPv4 address (often a business plan or an extra fee), use IPv6 if every player has it, ' +
-  'or rent a small VPS and relay to the server over WireGuard (forward UDP 50000-50200 and TCP 7881/443), then run vtt-admin voice-address <the VPS address>. ' +
-  'Cloudflare Tunnel cannot carry voice.';
+  'The best fix is to ask the ISP to take your line off CGNAT (some do for free, some charge, some only for business plans). ' +
+  'If they will not, the server has to run somewhere that has a public address, such as a host who has one.';
 
 const row = (badge: TestRow['badge'], name: string, detail: string): TestRow => ({
   badge,

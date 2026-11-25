@@ -1,6 +1,7 @@
 import type { TestRow } from '@vtt-chat-app/shared';
 
 import { classifyIp } from './address.js';
+import { isCloudflareIp } from './cloudflare.js';
 import { checkNetwork, type NetworkOptions } from './network.js';
 
 /**
@@ -140,7 +141,8 @@ const CLOUDFLARE_HINT =
 
 /** Asks check-host.net to open the connections, waits for the answers, and says what it found. */
 export async function checkReach(options: ReachOptions): Promise<TestRow[]> {
-  const { web, voice } = options;
+  const { web } = options;
+  let voice = options.voice;
   const name = 'Reach from outside';
   if (!isPublicHost(web.host)) {
     return [
@@ -149,6 +151,31 @@ export async function checkReach(options: ReachOptions): Promise<TestRow[]> {
         `${web.host} is not a public address (it is private or local), so nothing outside your network can reach it. Set the server's public host name.`,
       ),
     ];
+  }
+  // Web behind Cloudflare and no voice address chosen: voice cannot go through Cloudflare, so check it at this server's own address.
+  const autoRows: TestRow[] = [];
+  let skipVoice = false;
+  if (options.network && voice.host.toLowerCase() === web.host.toLowerCase()) {
+    const addresses = await options.network.resolve(web.host).catch(() => [] as string[]);
+    if (addresses.length > 0 && addresses.every(isCloudflareIp)) {
+      const own = await options.network.publicAddress();
+      if (own && classifyIp(own) === 'public') {
+        voice = { host: own, port: voice.port };
+        autoRows.push({
+          badge: 'ok',
+          name: 'Voice address',
+          detail: `${web.host} is behind Cloudflare, which cannot carry voice, so voice is checked at this server's own address ${own}. Make sure voice points there (vtt-admin voice-address).`,
+        });
+      } else {
+        autoRows.push(
+          warn(
+            'Voice address',
+            `${web.host} is behind Cloudflare, which cannot carry voice, and this server's own address could not be learned, so voice was not checked. Set it with vtt-admin voice-address <address>.`,
+          ),
+        );
+        skipVoice = true;
+      }
+    }
   }
   const doFetch = options.fetchImpl ?? fetch;
   const sleep = options.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
@@ -195,7 +222,9 @@ export async function checkReach(options: ReachOptions): Promise<TestRow[]> {
     sameHost && voice.port === 7881
       ? 'Voice TCP (7881)'
       : `Voice TCP (${voice.host}:${voice.port})`;
-  if (!isPublicHost(voice.host)) {
+  if (skipVoice) {
+    // already explained by the Voice address row
+  } else if (!isPublicHost(voice.host)) {
     preRows.push(
       warn(
         voiceLabel,
@@ -292,6 +321,7 @@ export async function checkReach(options: ReachOptions): Promise<TestRow[]> {
   // The voice row goes after the web rows, then UDP, in the order people read them.
   return [
     ...networkRows,
+    ...autoRows,
     ...webRows,
     ...voiceRows,
     ...preRows,

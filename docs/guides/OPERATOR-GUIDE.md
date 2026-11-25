@@ -443,8 +443,7 @@ no inbound 80 or 443 at all, so the web rows prove the tunnel, not your router; 
 outside can reach the server however you forward ports. The test asks a STUN server (Google's, which LiveKit already uses) what address the
 server appears as, checks that your DNS names point at it, and when nothing outside can get in it says CGNAT is likely. To confirm, compare the
 WAN IP on your router's admin page with the address the test shows: if they differ, or the router shows `100.64.x.x` to `100.127.x.x`, you are
-behind CGNAT. **There is no software-only fix** (UDP cannot be proxied through an address nobody can reach); the options are a public IP from the
-ISP, IPv6, or a small VPS relaying over WireGuard. See [Behind CGNAT?](../architecture/DEPLOYMENT-AND-TRANSPORT.md#behind-cgnat-the-servers-side).
+behind CGNAT. **The best fix is to ask your ISP to take you off CGNAT**; if they will not, the server needs to run somewhere with a public address. This project only detects and warns. See [Behind CGNAT?](../architecture/DEPLOYMENT-AND-TRANSPORT.md#behind-cgnat-the-servers-side).
 
 **`test reach` uses check-host.net**, a free public service that opens the connections from several countries, because nothing inside your
 network can see how it looks from outside. It is only ever run when you ask for it by name (or `--external`); it is told your server's host

@@ -79,18 +79,10 @@ already uses) what address the server appears as, and says so if that is in the 
 nothing outside can reach a server that looks public, it says CGNAT is likely and how to confirm it (the router's WAN IP
 differs from that address, or is itself `100.64.x.x`-`100.127.x.x`).
 
-**There is no software-only workaround.** Voice media is UDP aimed at the server's public address; with no public address
-there is nothing to aim at. UPnP and hole punching help clients, not a server nobody can address first, and Cloudflare Tunnel
-cannot carry UDP. The ways out, cheapest first:
-
-1. **Ask the ISP** for a public IPv4 address or to opt out of CGNAT (often a business plan or a small monthly fee).
-2. **IPv6**, if the ISP gives you a routable one and every player has IPv6 too (many do not, so this is a partial fix).
-3. **A small VPS as a relay.** Rent the cheapest VPS with a public IP, connect it to the server over WireGuard, and forward
-   UDP `50000-50200` and TCP `7881` (and `443` if you want it there too) through the tunnel; then
-   `vtt-admin voice-address <the VPS address>`. Players connect to the VPS, which passes the packets on. The cost is one
-   extra hop of latency and a monthly VPS bill; a VPS in the same region as the players keeps it small.
-4. **A mesh VPN** (Headscale or Tailscale) works for a closed group where everyone installs it, but it makes joining harder than
-   the invite link, so it is a last resort.
+**This project does not work around it; it detects and warns, so a less technical operator does not lose hours to
+port forwarding that can never work.** The best fix is to **ask the ISP to take the line off CGNAT** (some do for free, some
+charge, some only for business plans). If they will not, the server has to run somewhere that has a public address, so
+someone else may need to host it. Finding another route (IPv6, relays, tunnels) is left to the operator.
 
 ### What does _not_ work
 

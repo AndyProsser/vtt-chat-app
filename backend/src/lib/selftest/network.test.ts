@@ -37,7 +37,7 @@ describe('checkNetwork: carrier-grade NAT', () => {
     expect(r.badge).toBe('fail');
     expect(r.detail).toMatch(/shared|carrier-grade/i);
     expect(r.detail).toMatch(/port forward/i);
-    expect(r.detail).toMatch(/public IPv4|public IP address|relay/i);
+    expect(r.detail).toMatch(/ask the ISP/i);
   });
 
   it('fails when DNS points at a CGNAT or private address, since nothing outside can reach it', async () => {

@@ -348,3 +348,43 @@ describe('checkReach: carrier-grade NAT', () => {
     expect(rows.some((r) => /public address|DNS/i.test(r.name))).toBe(false);
   });
 });
+
+describe('checkReach: web behind Cloudflare, voice direct', () => {
+  const behindCf = (publicAddress: string | undefined) => ({
+    network: {
+      resolve: async () => ['104.21.0.5', '172.67.10.1'],
+      publicAddress: async () => publicAddress,
+    },
+  });
+
+  it('checks voice at the server’s own address by itself, and says why', async () => {
+    const f = fakeCheckHost();
+    const rows = await run('play.example.com', f, behindCf('203.0.113.9'));
+    expect(
+      f.requests.some((r) => decodeURIComponent(r.url).includes('check-tcp?host=203.0.113.9:7881')),
+    ).toBe(true);
+    const info = rows.find((r) => /voice address/i.test(r.name))!;
+    expect(info.badge).toBe('ok');
+    expect(info.detail).toMatch(/Cloudflare/);
+    expect(info.detail).toContain('203.0.113.9');
+  });
+
+  it('warns that voice cannot be checked when the server’s own address is unknown', async () => {
+    const f = fakeCheckHost();
+    const rows = await run('play.example.com', f, behindCf(undefined));
+    expect(rows.find((r) => /voice address/i.test(r.name))?.badge).toBe('warn');
+    expect(f.requests.some((r) => decodeURIComponent(r.url).includes('check-tcp'))).toBe(false);
+  });
+
+  it('leaves an operator-chosen voice address alone', async () => {
+    const f = fakeCheckHost();
+    const rows = await run('play.example.com', f, {
+      ...behindCf('203.0.113.9'),
+      voice: { host: '198.51.100.4', port: 7881 },
+    });
+    expect(f.requests.some((r) => decodeURIComponent(r.url).includes('198.51.100.4:7881'))).toBe(
+      true,
+    );
+    expect(rows.some((r) => /voice address/i.test(r.name))).toBe(false);
+  });
+});
