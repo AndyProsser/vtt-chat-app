@@ -18,3 +18,5 @@ export {
 export type { ReadingPrefs } from './types/languageFont.js';
 export { useLanguageSwitches } from './hooks/useLanguageSwitches.js';
 export { READING_SWITCHES } from './consts/readingSwitches.js';
+export { LangBlock, LangSpan, makeLangComponents } from './components/langMarkdown.js';
+export { langFromFence, langUrlTransform, parseLangHref } from './lib/langSpan.js';

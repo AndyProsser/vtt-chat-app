@@ -245,6 +245,8 @@
 
 ## Task 11: Language spans in handouts and tales
 
+**Done 2026-11-25.** Differences from the plan below: the Markdown components live in `ui-kit` as `makeLangComponents` (one place for both apps) rather than `LangSpan` being wired by hand in each; the storyteller rule is in `buildStoryPrompt` for every storyteller; the search-snippet limit is recorded in the design doc.
+
 **Files:**
 
 - Create: `ui-kit/src/lib/langSpan.ts`, `ui-kit/src/lib/langSpan.test.ts`, `ui-kit/src/components/LangSpan.tsx`

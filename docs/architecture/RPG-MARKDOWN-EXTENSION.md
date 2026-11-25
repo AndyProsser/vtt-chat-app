@@ -1,6 +1,6 @@
 # Language Spans in Markdown
 
-**Status:** Designed and accepted (Andy, 2026-11-24; cut down from the first "RPG Markdown" draft). **Not built** (Stage 14, 0.6.4). It draws on the font work that shipped in 0.6.3 ([ICONOLOGY.md](ICONOLOGY.md)).
+**Status:** Designed and accepted (Andy, 2026-11-24; cut down from the first "RPG Markdown" draft). **Built 2026-11-25** (Stage 14, 0.6.4): both apps render it, the storyteller may write it; **not yet seen in a real window**. It draws on the font work that shipped in 0.6.3 ([ICONOLOGY.md](ICONOLOGY.md)).
 **Wire change:** none. The span is ordinary Markdown text stored as today.
 **Plan:** Task 11 of [2026-11-24-typography-and-icons.md](../superpowers/plans/2026-11-24-typography-and-icons.md).
 
@@ -54,7 +54,7 @@ It is the same `languageTextStyle` chat uses, so a language looks the same in a 
 
 ## For the AI storyteller
 
-One line is added to the storyteller prompt: _the foreign speech of a language may be written as
+One rule is added to the bard's prompt (`buildStoryPrompt`, every storyteller): _the foreign speech of a language may be written as
 `[text](lang:<language>)`; use it sparingly, only when the notes or chat name the language_. The tale keeps its
 creative licence ([bard creative licence](RECORDING-AND-SUMMARIES.md)); the span adds no facts. Spoken audio does not
 carry a language tag, so the storyteller only knows a language where a chat line (`/say-elvish`) or the DM's notes say so.
@@ -76,3 +76,8 @@ Cut on purpose, because each is either already handled elsewhere or not needed t
 **Polyglot** is unchanged and still future: it would be a server-side mask over the text a reader may not understand
 (masking in the client would leak it), and the span format leaves room for it because the language is kept as data
 next to the unaltered text.
+
+## Known limits
+
+- **Search snippets show the markup.** The records search matches the stored text, so a tale's search snippet can show `[Khazad ul barak](lang:dwarvish)` as written, and a search for the language's name (`dwarvish`) finds tales with a span in it. Both are harmless; stripping the link in snippets is a later polish.
+- **Only handouts, notes and tales render it** (everything that goes through the app's Markdown view). Chat lines use `/say-<language>`, which already does the same job.

@@ -306,6 +306,7 @@ export function buildStoryPrompt(
       ...style.how,
       closeness,
       quotes,
+      "- Rarely, and only when the notes name the language being spoken, set the foreign words as a link, [the words](lang:<language>), for example [Khazad ul barak](lang:dwarvish), using the language's plain name (dwarvish, elvish, goblin, orc, and so on). It is a way of showing the words in that language's lettering; it adds nothing to the story, and nothing else is ever put in a link.",
       '- Tell the moments that mattered and the people who made them. Not everyone in the notes belongs in the tale: a character or creature who did little may be left out or pass in a clause. Never list who was present, and never give someone a moment just to include them.',
       ...(chaos
         ? [

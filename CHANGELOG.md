@@ -12,6 +12,7 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ### Added
 
+- **Language spans in handouts, notes and tales.** A few words, or a whole inscription, can be set in an in-world language's font: write `[Khazad ul barak](lang:dwarvish)` in a handout, or a fenced block whose first line names the language (a fence opened with `elvish`). It is plain Markdown, so anywhere else it reads as an ordinary link or code block with every word intact. The storyteller may use it too, sparingly and only when the notes name the language. The reading switches turn it off like any other language font.
 - **A livelier campaign chooser** (desktop). Each campaign is a card with its storyteller's badge, its name, a line from its description and a crown if you run it, instead of a plain button; and each visit shows a dry one-liner from a character who never existed (never the same one twice running).
 - **A faint picture behind each ability score** in the character screens of both apps (a dumbbell for Strength, wind for Dexterity, a pulse for Constitution, a brain for Intelligence, a compass for Wisdom, a sparkle for Charisma).
 

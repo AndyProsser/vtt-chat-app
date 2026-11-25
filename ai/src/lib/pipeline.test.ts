@@ -4,6 +4,7 @@ import type { TrackTranscript, Utterance } from '../types/index.js';
 import { chunkLines } from './chunk.js';
 import { formatTimestamp, formatUtterance } from './format.js';
 import { mergeTranscripts } from './merge.js';
+import { BARD_IDS } from '@vtt-chat-app/shared';
 import { BARD_SAMPLING } from '../consts/index.js';
 import { createOllamaGenerate } from './ollama.js';
 import {
@@ -238,6 +239,21 @@ describe('prompts', () => {
     expect(buildStoryPrompt('session', ['Aria opened the door.'], {})).toMatch(
       /may be left out or pass in a clause/,
     );
+  });
+
+  it('lets every storyteller set foreign speech as a language span, sparingly and only when a language is named', () => {
+    for (const storyteller of BARD_IDS) {
+      const prompt = buildStoryPrompt('session', ['Aria spoke Elvish to the guard.'], {
+        storyteller,
+      });
+      expect(prompt, storyteller).toContain('[the words](lang:<language>)');
+      expect(prompt, storyteller).toMatch(/only when the notes name the language/);
+    }
+  });
+
+  it('does not offer language spans to the notes-taking scribe or the Chronicler', () => {
+    expect(buildNotesPrompt('A line.', 1, 1, {})).not.toContain('lang:');
+    expect(buildChroniclerPrompt(['Aria opened the door.'], {})).not.toContain('lang:');
   });
 
   it('shows the scribe’s notes as one bullet per event, with a heading per part', () => {
