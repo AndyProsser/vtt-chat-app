@@ -33,6 +33,9 @@ import {
   WandSparkles,
   Weight,
   Axe,
+  Drama,
+  Music,
+  PawPrint,
   BookOpen,
   Bell,
   Coins,
@@ -84,6 +87,18 @@ const BOARD_RULES: Rules = [
   ['cloth', Shirt],
   ['metal', Anvil],
   ['handle', Hand],
+  // The starter boards (backend/assets/sounds/catalogue.json), named for what they hold.
+  ['unease', Eye],
+  ['combat', Swords],
+  ['spell', WandSparkles],
+  ['creature', PawPrint],
+  ['undead', Ghost],
+  ['hits and falls', Hammer],
+  ['movement', Footprints],
+  ['mood', Moon],
+  ['jingle', Music],
+  ['taunt', Megaphone],
+  ['villain', Drama],
 ];
 
 // Matched against "<board> <label>" too; these come first because they are the specific ones.
@@ -133,6 +148,7 @@ const LABEL_RULES: Rules = [
   ['chain', Link],
   ['cave-in', Mountain],
   ['rock', Mountain],
+  ['coin', Coins],
   ['key in lock', KeyRound],
   ['knock', Hand],
   ['smash', Hammer],

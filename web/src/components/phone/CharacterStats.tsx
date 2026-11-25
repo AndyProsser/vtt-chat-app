@@ -6,7 +6,7 @@ import {
   type CharacterSheet,
 } from '@vtt-chat-app/shared';
 
-import { SenseIcon, VitalIcon } from '@vtt-chat-app/ui-kit';
+import { AbilityMark, SenseIcon, VitalIcon } from '@vtt-chat-app/ui-kit';
 
 /**
  * A linked character's numbers as tiles, in the spirit of the D&D Beyond sheet: armour class, hit points and
@@ -40,6 +40,7 @@ export function CharacterStats({ sheet }: { sheet: CharacterSheet }) {
       <div className="phone-abilities">
         {abilityTiles(sheet).map((t) => (
           <div key={t.key} className="phone-ability" data-ability={t.key}>
+            <AbilityMark ability={t.key} />
             <span>{t.label}</span>
             <b>{t.value}</b>
             <i>{t.sub}</i>

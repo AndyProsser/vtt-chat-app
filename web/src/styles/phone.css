@@ -1168,6 +1168,8 @@ button.phone-picture-button {
   gap: 6px;
 }
 .phone-ability {
+  position: relative;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1176,6 +1178,9 @@ button.phone-picture-button {
   border: 1px solid var(--vtt-edge);
   border-radius: var(--radius-3);
   background: var(--vtt-bubble);
+}
+.phone-ability > :not(.ui-watermark) {
+  position: relative; /* above the watermark */
 }
 .phone-ability span {
   font-size: 10px;

@@ -19,6 +19,7 @@ import {
   Sparkles,
   Sprout,
   Sword,
+  Swords,
   TreePine,
   Volume2,
   Wine,
@@ -84,5 +85,26 @@ describe('the starter stingers', () => {
         .map((x) => `${b.name}: ${x.label}`),
     );
     expect(plain).toEqual([]);
+  });
+});
+
+describe('the starter catalogue (the audit of 2026-11-25)', () => {
+  const catalogue = JSON.parse(
+    readFileSync('../../backend/assets/sounds/catalogue.json', 'utf8'),
+  ) as { boards: { name: string }[] };
+
+  it('shows coins as coins, not as the door of the board they sit on', () => {
+    expect(soundIcon('Coins', 'Doors, traps and loot')).toBe(Coins);
+  });
+
+  it('gives every starter board an icon of its own, not the generic sparkle', () => {
+    const generic = catalogue.boards
+      .filter((b) => boardIcon(b.name) === Sparkles)
+      .map((b) => b.name);
+    expect(generic).toEqual([]);
+  });
+
+  it('gives the combat board crossed swords', () => {
+    expect(boardIcon('Combat')).toBe(Swords);
   });
 });

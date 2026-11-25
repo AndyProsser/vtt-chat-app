@@ -10,6 +10,15 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ## [Unreleased]
 
+### Added
+
+- **A livelier campaign chooser** (desktop). Each campaign is a card with its storyteller's badge, its name, a line from its description and a crown if you run it, instead of a plain button; and each visit shows a dry one-liner from a character who never existed (never the same one twice running).
+- **A faint picture behind each ability score** in the character screens of both apps (a dumbbell for Strength, wind for Dexterity, a pulse for Constitution, a brain for Intelligence, a compass for Wisdom, a sparkle for Charisma).
+
+### Changed
+
+- **Better icons on the DM's sound deck and scenes.** The Coins sound no longer shows a door, the starter sound boards (Unease, Combat, Spells, Creatures, Undead and horrors, Hits and falls, Movement, Mood, Jingles, Taunts, Villain) each have an icon instead of the same sparkle, and four starter scenes (Pending doom, Boss: symphonic metal, Run away!, Infernal) no longer share the clapperboard.
+
 ### Fixed
 
 - **`vtt-admin status` showed "context window: not checked yet" for ever, and `--tune` had nothing to apply.** The worker was checking and saving the model's real context window, but the status command dropped it when reading it back. Both now see the check (it still appears a minute or two after the worker starts, then every 15 minutes). Found on the 0.6.3 test server.

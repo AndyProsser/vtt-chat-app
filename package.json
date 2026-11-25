@@ -35,7 +35,8 @@
     "campaign:check": "node infra/records-smoke/campaign-fixture.ts check",
     "campaign:test": "node --test infra/records-smoke/",
     "campaign:dry": "node infra/records-smoke/campaign-run.ts dry",
-    "fonts:specimen": "node scripts/fonts/specimen.mjs"
+    "fonts:specimen": "node scripts/fonts/specimen.mjs",
+    "icons:audit": "node scripts/icons/audit.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

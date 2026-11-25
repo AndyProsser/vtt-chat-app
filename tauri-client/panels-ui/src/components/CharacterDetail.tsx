@@ -7,7 +7,7 @@ import {
   vitalTiles,
   type CharacterSheet,
 } from '@vtt-chat-app/shared';
-import { SenseIcon, VitalIcon } from '@vtt-chat-app/ui-kit';
+import { AbilityMark, SenseIcon, VitalIcon } from '@vtt-chat-app/ui-kit';
 
 import type { Member } from '../types/index.js';
 
@@ -59,6 +59,7 @@ export function CharacterDetail({
         <div className="vtt-abilities">
           {abilityTiles(sheet).map((t) => (
             <div key={t.key} className="vtt-ability" data-ability={t.key}>
+              <AbilityMark ability={t.key} />
               <span>{t.label}</span>
               <b>{t.value}</b>
               <i>{t.sub}</i>

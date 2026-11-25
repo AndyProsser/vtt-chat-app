@@ -1,5 +1,11 @@
-import type { SenseKind } from '@vtt-chat-app/shared';
+import type { ABILITY_KEYS, SenseKind } from '@vtt-chat-app/shared';
 import {
+  Brain,
+  Compass,
+  Dumbbell,
+  HeartPulse,
+  Sparkles,
+  Wind,
   ArrowLeft,
   Backpack,
   CalendarClock,
@@ -115,3 +121,16 @@ export const VITAL_ICON = {
   hp: ICON.heart,
   pp: ICON.eye,
 } as const satisfies Record<'ac' | 'hp' | 'pp', LucideIcon>;
+
+/**
+ * A picture for each ability score, drawn faintly behind its tile as a watermark (not on its own: the label and the
+ * number say what it is). Lucide has no quill or owl, so Wisdom is the compass and Charisma the sparkle.
+ */
+export const ABILITY_ICON: Record<(typeof ABILITY_KEYS)[number], LucideIcon> = {
+  str: Dumbbell,
+  dex: Wind,
+  con: HeartPulse,
+  int: Brain,
+  wis: Compass,
+  cha: Sparkles,
+};

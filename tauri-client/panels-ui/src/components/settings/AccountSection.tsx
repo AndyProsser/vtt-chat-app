@@ -1,10 +1,11 @@
-import { Badge, Button, Callout, Flex, Heading, Text, TextField } from '@radix-ui/themes';
+import { Callout, Flex, Text, TextField } from '@radix-ui/themes';
 import { Camera, Check, LogOut, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { useAccount } from '../../hooks/useAccount.js';
 import { useConnectLink } from '../../hooks/useConnectLink.js';
 import { avatarValue } from '../../lib/avatars.js';
+import { CampaignChooser } from '../CampaignChooser.js';
 import { initials } from '../../lib/rail.js';
 import { accountErrorMessage, accountRename, accountSetAvatar } from '../../lib/tauriBridge.js';
 import { PictureButton } from '../PictureButton.js';
@@ -38,18 +39,12 @@ export function AccountSection() {
   if (status.signedIn && status.campaignId === null && status.campaigns.length > 0) {
     return (
       <Flex direction="column" gap="3">
-        <Heading size="4">Choose a campaign</Heading>
-        {status.campaigns.map((c) => (
-          <Button
-            key={c.id}
-            variant="soft"
-            size="3"
-            disabled={account.busy}
-            onClick={() => void account.selectCampaign(c.id)}
-          >
-            {c.name} {c.role === 'dm' && <Badge color="violet">DM</Badge>}
-          </Button>
-        ))}
+        <CampaignChooser
+          campaigns={status.campaigns}
+          name={status.displayName}
+          busy={account.busy}
+          onChoose={(id) => void account.selectCampaign(id)}
+        />
         {errorBox}
       </Flex>
     );

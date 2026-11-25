@@ -186,6 +186,8 @@
 
 ## Task 8: Icon audit: do stats and stingers need Game Icons?
 
+**Done 2026-11-25** (`scripts/icons/audit.ts`, run as `npm run icons:audit`). Verdict: Game Icons not needed for what the apps show today; see ICONOLOGY.md. Task 9 is therefore **not built** (the audit's list is empty).
+
 **Files:**
 
 - Create: `scripts/icons/audit.ts`; add `"icons:audit": "node scripts/icons/audit.ts"` to the root `package.json`
@@ -202,6 +204,8 @@
 - [ ] **Step 5: Commit** `docs: icon audit verdict`.
 
 ## Task 9 (gated on Task 8's list being non-empty): Game Icons for the signed-off list
+
+**Not built (2026-11-25): Task 8's list is empty, and Andy moved Game Icons to Future ideas.** Kept for when a screen needs damage-type, condition or class icons.
 
 **Files:**
 

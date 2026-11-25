@@ -26,3 +26,12 @@
 .vtt-narrative {
   font-family: var(--vtt-font-narrative);
 }
+
+/* A faint picture in the corner of a tile (ability scores). The tile is position: relative with overflow: hidden. */
+.ui-watermark {
+  position: absolute;
+  right: -5px;
+  bottom: -7px;
+  opacity: 0.11;
+  pointer-events: none;
+}

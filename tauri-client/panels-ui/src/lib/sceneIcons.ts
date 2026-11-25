@@ -1,5 +1,8 @@
 import {
   Anchor,
+  Crown,
+  Footprints,
+  Hourglass,
   Beer,
   Building2,
   Castle,
@@ -67,6 +70,11 @@ const RULES: ReadonlyArray<readonly [string, LucideIcon]> = [
   ['wind', Wind],
   ['night', Moon],
   ['music', Music],
+  // The starter scenes the first rules missed (the audit of 2026-11-25).
+  ['doom', Hourglass],
+  ['boss', Crown],
+  ['run', Footprints],
+  ['infernal', Flame],
 ];
 
 /** The icon for a scene, from its name; the tooltip carries the name itself. */

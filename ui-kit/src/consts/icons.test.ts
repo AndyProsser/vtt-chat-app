@@ -1,11 +1,11 @@
-import type { SenseKind } from '@vtt-chat-app/shared';
+import { ABILITY_KEYS, type SenseKind } from '@vtt-chat-app/shared';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
 import { Icon } from '../components/Icon.js';
-import { ICON, SENSE_ICON, VITAL_ICON } from './icons.js';
-import { SenseIcon, VitalIcon } from '../components/Icon.js';
+import { ABILITY_ICON, ICON, SENSE_ICON, VITAL_ICON } from './icons.js';
+import { AbilityMark, SenseIcon, VitalIcon } from '../components/Icon.js';
 
 const SENSES: SenseKind[] = ['darkvision', 'blindsight', 'tremorsense', 'truesight'];
 
@@ -67,5 +67,24 @@ describe('<SenseIcon> and <VitalIcon>', () => {
   it('fall back to the shield for a vital this build does not know', () => {
     const html = renderToStaticMarkup(createElement(VitalIcon, { vital: 'xp', size: 16 }));
     expect(html).toContain('lucide-shield');
+  });
+});
+
+describe('ability watermarks', () => {
+  it('gives each of the six abilities an icon of its own', () => {
+    const names = ABILITY_KEYS.map((k) => ABILITY_ICON[k].displayName);
+    expect(names.every(Boolean)).toBe(true);
+    expect(new Set(names).size).toBe(ABILITY_KEYS.length);
+  });
+
+  it('draws a hidden watermark for an ability', () => {
+    const html = renderToStaticMarkup(createElement(AbilityMark, { ability: 'str', size: 40 }));
+    expect(html).toContain('ui-watermark');
+    expect(html).toContain('aria-hidden="true"');
+    expect(html).toContain('width="40"');
+  });
+
+  it('draws nothing for an ability this build does not know', () => {
+    expect(renderToStaticMarkup(createElement(AbilityMark, { ability: 'luck' }))).toBe('');
   });
 });

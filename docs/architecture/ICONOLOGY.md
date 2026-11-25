@@ -191,6 +191,19 @@ The rule:
 4. **Attribute.** Game Icons is **CC BY 3.0, not public domain**. Each icon's author must be credited. The import
    script writes the credits file, and the app's About/credits screen shows it. Without that, do not ship the icons.
 
+**Audit result (2026-11-25, `npm run icons:audit`).** The audit read every icon the apps draw (75 sound effects, the starter
+boards and scenes, the quick numbers and senses, the six ability scores and the 19 loot item types) and set a Game Icons
+candidate beside any that were generic, shared, missing or not a sound. What it found:
+
+- **Lucide already covers the stingers.** None of the 75 effects falls back to a generic icon, and almost all are distinct and
+  apt. The faults were in the _mapping rules_, not the library, and are fixed with lucide: Coins showed the door of the board
+  it sits on, 11 of 12 starter boards were the generic sparkle, and 4 scenes fell to the clapperboard.
+- **What lucide says weakly:** a dragon (Dragon roar, Fireball, Fire spell and the devil line all share the flame), the six
+  ability scores (text only today, no icon), and "wondrous" items (the sparkle). Game Icons has a good picture for each.
+- **Verdict (Andy, 2026-11-25): Game Icons is not adopted yet, and is parked in the roadmap's Future ideas.** The ability-score tiles got lucide watermarks instead (a dumbbell, a wind, a pulsing heart, a brain, a compass and a sparkle). Nothing on a screen today is blocked by lucide, and adopting it costs a build
+  script, a credits screen and a CC BY 3.0 obligation. **Revisit when** the apps gain a screen that needs the vocabulary lucide
+  lacks: ability-score icons, damage types, conditions or class badges (none exists yet), or if Andy wants a dragon.
+
 Candidate areas, for the audit to confirm or drop:
 
 | Area         | Examples                                                                                                   |

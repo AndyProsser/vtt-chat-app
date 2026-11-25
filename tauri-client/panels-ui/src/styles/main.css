@@ -2831,6 +2831,8 @@ body,
   gap: 4px;
 }
 .vtt-ability {
+  position: relative;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -2839,6 +2841,9 @@ body,
   border: 1px solid var(--vtt-edge);
   border-radius: var(--vtt-radius-control);
   background: color-mix(in srgb, var(--vtt-bar) 60%, transparent);
+}
+.vtt-ability > :not(.ui-watermark) {
+  position: relative; /* above the watermark */
 }
 .vtt-ability span {
   font-size: 9px;
@@ -3213,4 +3218,136 @@ body,
 .vtt-round-check-on {
   background: var(--vtt-gold);
   color: var(--vtt-bg);
+}
+
+/* The campaign chooser: a card for each campaign, and a dry word underneath. */
+.vtt-chooser {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.vtt-chooser-head h2 {
+  margin: 0;
+  font-family: var(--vtt-font-head);
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: var(--vtt-gold);
+}
+.vtt-chooser-head p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  opacity: 0.7;
+}
+.vtt-chooser-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.vtt-camp-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid var(--vtt-edge);
+  border-radius: var(--vtt-radius-bubble);
+  background: var(--vtt-bubble);
+  color: var(--vtt-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: inset 3px 0 0 transparent;
+  transition:
+    transform 120ms ease,
+    box-shadow 120ms ease,
+    border-color 120ms ease;
+}
+.vtt-camp-card:hover:not(:disabled),
+.vtt-camp-card:focus-visible {
+  border-color: var(--vtt-gold);
+  box-shadow:
+    inset 3px 0 0 var(--vtt-gold),
+    0 4px 14px color-mix(in srgb, var(--vtt-glow) 35%, transparent);
+  transform: translateY(-1px);
+  outline: none;
+}
+.vtt-camp-card:disabled {
+  opacity: 0.55;
+  cursor: progress;
+}
+.vtt-camp-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.vtt-camp-text b {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.25;
+  overflow-wrap: break-word;
+}
+.vtt-camp-text small {
+  font-size: 12px;
+  opacity: 0.65;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.vtt-camp-dm {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--vtt-gold) 18%, transparent);
+  color: var(--vtt-gold);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.vtt-camp-go {
+  flex: none;
+  opacity: 0.35;
+  transition:
+    transform 120ms ease,
+    opacity 120ms ease;
+}
+.vtt-camp-card:hover:not(:disabled) .vtt-camp-go {
+  opacity: 0.9;
+  transform: translateX(2px);
+}
+.vtt-quip {
+  margin: 6px 0 0;
+  padding: 12px 14px;
+  border-left: 3px solid var(--vtt-gold);
+  border-radius: 0 var(--vtt-radius-control) var(--vtt-radius-control) 0;
+  background: color-mix(in srgb, var(--vtt-gold) 8%, transparent);
+}
+.vtt-quip blockquote {
+  margin: 0;
+  font-family: var(--vtt-font-narrative);
+  font-size: 17px;
+  font-style: italic;
+  line-height: 1.35;
+}
+.vtt-quip figcaption {
+  margin-top: 6px;
+  font-size: 11px;
+  opacity: 0.6;
+}
+@media (prefers-reduced-motion: reduce) {
+  .vtt-camp-card,
+  .vtt-camp-go {
+    transition: none;
+  }
+  .vtt-camp-card:hover:not(:disabled) {
+    transform: none;
+  }
 }
