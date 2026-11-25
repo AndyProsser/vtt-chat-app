@@ -16,6 +16,7 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ### Changed
 
+- **Handouts are listed newest first** (desktop and phone), so the one just shown is at the top.
 - **One `/say`, with a language picker.** Type `/say` and a list of languages opens; **Tab** or Enter picks one, and with no pick the line is Common. A language is never guessed from the first word, so `/say orc ahead!` is plain speech unless you picked Orc. The `/say-elvish` form still works.
 - **`/take` and `/stash`.** `/take rope` takes an available item for yourself and `/stash rope` for the party (a list of what is available opens as you type); on their own they open the inventory on the **Available** tab (desktop and phone). `/loot` still just opens the inventory.
 - **An action (`/do`) shows an icon instead of a `*`**, in both apps.

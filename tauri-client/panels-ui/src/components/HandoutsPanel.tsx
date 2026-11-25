@@ -14,6 +14,7 @@ import {
   Trash2,
   X,
 } from 'lucide-react';
+import { newestFirst } from '@vtt-chat-app/shared';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { useAccount } from '../hooks/useAccount.js';
@@ -477,7 +478,10 @@ export function HandoutsPanel() {
   ]);
   const [query, setQuery] = useState('');
   const [actionError, setActionError] = useState<string>();
-  const shown = useMemo(() => searchHandouts(data?.handouts ?? [], query), [data, query]);
+  const shown = useMemo(
+    () => newestFirst(searchHandouts(data?.handouts ?? [], query)),
+    [data, query],
+  );
 
   async function act(path: string) {
     try {

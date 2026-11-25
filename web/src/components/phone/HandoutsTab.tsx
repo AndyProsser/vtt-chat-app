@@ -1,5 +1,5 @@
 import { Badge, Button, Callout, Card, Flex, Heading, Text } from '@radix-ui/themes';
-import { plainPreview } from '@vtt-chat-app/shared';
+import { newestFirst, plainPreview } from '@vtt-chat-app/shared';
 import { useEffect, useRef, useState } from 'react';
 
 import { useConfirmClick } from '../../hooks/useConfirmClick.js';
@@ -132,7 +132,7 @@ export function HandoutsTab({ campaignId }: { campaignId: string }) {
             : 'Nothing shared yet. Handouts the DM shows you appear here.'}
         </Text>
       )}
-      {(data ?? []).map((h) => (
+      {newestFirst(data ?? []).map((h) => (
         <Card key={h.id} asChild size="2">
           <button
             type="button"
