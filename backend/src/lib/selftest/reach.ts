@@ -1,6 +1,6 @@
 import type { TestRow } from '@vtt-chat-app/shared';
 
-import { pickNodes, type NodeList } from './nodes.js';
+import { missingCountries, pickNodes, type NodeList } from './nodes.js';
 import { classifyIp } from './address.js';
 import { isCloudflareIp } from './cloudflare.js';
 import { checkNetwork, type NetworkOptions } from './network.js';
@@ -45,6 +45,8 @@ export interface ReachOptions {
   /** When given, also checks the server's own address and DNS, and diagnoses CGNAT (see network.ts). */
   /** The country (two letters) the server is in, so one of the places asked is near it; nothing when unknown. */
   locate?: () => Promise<string | undefined>;
+  /** Countries to ask from first (`--from gb,us`), for a site that blocks the rest of the world. */
+  from?: string[];
   /** A UDP echo listener is running on this port of the voice address's machine: ask check-host.net to send UDP to it. */
   udpProbe?: { port: number };
   network?: Pick<NetworkOptions, 'resolve' | 'publicAddress' | 'routerAddress'>;
@@ -285,7 +287,19 @@ export async function checkReach(options: ReachOptions): Promise<TestRow[]> {
     try {
       const country = await options.locate();
       const hosts = (await get('/nodes/hosts')) as { nodes?: NodeList };
-      if (hosts.nodes) chosen = pickNodes(hosts.nodes, country, maxNodes);
+      if (hosts.nodes) {
+        const from = options.from ?? [];
+        chosen = pickNodes(hosts.nodes, country, maxNodes, Math.random, from);
+        const none = missingCountries(hosts.nodes, from);
+        if (none.length > 0) {
+          autoRows.push(
+            warn(
+              'Places',
+              `check-host.net has no place in ${none.join(', ')}, so those were skipped.`,
+            ),
+          );
+        }
+      }
     } catch {
       /* check-host.net picks the places itself */
     }

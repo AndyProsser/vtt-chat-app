@@ -47,10 +47,15 @@ export function pickDownloads(
 }
 
 /** Reads `downloads.json` from the updates dir; `{}` when absent, unreadable or not what we wrote. */
-export async function readDownloadsFile(dir: string | undefined): Promise<ClientDownloads> {
+export async function readDownloadsFile(
+  dir: string | undefined,
+  channel: 'release' | 'dev' = 'release',
+): Promise<ClientDownloads> {
   if (!dir) return {};
   try {
-    const parsed: unknown = JSON.parse(await readFile(path.join(dir, DOWNLOADS_FILE), 'utf8'));
+    const file =
+      channel === 'dev' ? path.join(dir, 'dev', DOWNLOADS_FILE) : path.join(dir, DOWNLOADS_FILE);
+    const parsed: unknown = JSON.parse(await readFile(file, 'utf8'));
     const out: ClientDownloads = {};
     if (parsed && typeof parsed === 'object') {
       for (const k of KEYS) {
@@ -64,13 +69,22 @@ export async function readDownloadsFile(dir: string | undefined): Promise<Client
   }
 }
 
-/** Explicit `CLIENT_URL_*` values win, per platform; the synced file fills whatever they leave empty. */
+/**
+ * Explicit `CLIENT_URL_*` values win; the synced file is what is offered otherwise. With `dev` (a player who turned on "Include
+ * dev builds" opening the page from the app) the dev build's installers come first, and the release's are the fallback when
+ * there is no newer dev build.
+ */
 export async function resolveDownloads(
   explicit: ClientDownloads,
   updatesDir: string | undefined,
+  options: { dev?: boolean } = {},
 ): Promise<ClientDownloads> {
   const hasExplicit = Object.keys(explicit ?? {}).length > 0;
-  const synced = await readDownloadsFile(updatesDir);
   // An operator who set any CLIENT_URL_* is choosing where players go; do not mix in GitHub links for the rest.
-  return hasExplicit ? explicit : synced;
+  if (hasExplicit) return explicit;
+  if (options.dev) {
+    const dev = await readDownloadsFile(updatesDir, 'dev');
+    if (Object.keys(dev).length > 0) return dev;
+  }
+  return readDownloadsFile(updatesDir);
 }

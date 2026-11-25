@@ -131,6 +131,27 @@ describe('syncUpdates, github source', () => {
     expect(downloads.linux).toContain('v0.3.3-dev.1');
   });
 
+  it('records the dev build’s installers apart, for players who opted in, and drops them once a release outranks it', async () => {
+    await syncUpdates(
+      base({
+        fetchImpl: fakeGithub([{ tag: 'v0.3.3' }, { tag: 'v0.3.4-dev.1', prerelease: true }]),
+        includeDev: true,
+      }),
+    );
+    const dev = JSON.parse(await readFile(path.join(dir, 'dev', 'downloads.json'), 'utf8'));
+    expect(dev.linux).toContain('v0.3.4-dev.1');
+    expect(JSON.parse(await readFile(path.join(dir, 'downloads.json'), 'utf8')).linux).toContain(
+      'v0.3.3/',
+    );
+    await syncUpdates(
+      base({
+        fetchImpl: fakeGithub([{ tag: 'v0.3.4' }, { tag: 'v0.3.4-dev.1', prerelease: true }]),
+        includeDev: true,
+      }),
+    );
+    expect(await readdir(path.join(dir, 'dev'))).not.toContain('downloads.json');
+  });
+
   it('does not offer a release whose other platforms are still uploading, and keeps the previous one', async () => {
     const result = await syncUpdates(
       base({ fetchImpl: fakeGithub([{ tag: 'v0.3.2' }, { tag: 'v0.3.3', partial: true }]) }),

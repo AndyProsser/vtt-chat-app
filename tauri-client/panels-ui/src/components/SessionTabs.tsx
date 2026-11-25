@@ -1,7 +1,7 @@
 import { Tabs } from '@radix-ui/themes';
 import { historyTabs, type HistoryTabId } from '@vtt-chat-app/shared';
-import { ExternalLink } from 'lucide-react';
-import { useState } from 'react';
+import { Maximize2 } from 'lucide-react';
+import { useState, type ReactNode } from 'react';
 
 import type { SummaryView } from '../lib/history.js';
 import { SummaryCard } from './SummaryCard.js';
@@ -16,23 +16,31 @@ export function SessionTabs({
   initialTab,
   onTabChange,
   onPopout,
+  transcript,
 }: {
   summaries: SummaryView[];
   initialTab?: HistoryTabId;
   onTabChange?: (tab: HistoryTabId) => void;
   onPopout?: () => void;
+  /** The Game Master's raw transcript, as one more tab at the end; its content mounts only when the tab is opened. */
+  transcript?: ReactNode;
 }) {
   const tabs = historyTabs(summaries);
-  const [chosen, setChosen] = useState<HistoryTabId | undefined>(initialTab);
-  if (tabs.length === 0) return null;
+  const TRANSCRIPT = 'transcript';
+  const [chosen, setChosen] = useState<string | undefined>(initialTab);
+  if (tabs.length === 0 && !transcript) return null;
   // A tab that is not there (a player asked to open on The Notes) falls back to the first one.
-  const value = tabs.some((t) => t.id === chosen) ? chosen : tabs[0]!.id;
+  const value =
+    (transcript && chosen === TRANSCRIPT) || tabs.some((t) => t.id === chosen)
+      ? chosen
+      : (tabs[0]?.id ?? TRANSCRIPT);
   return (
     <Tabs.Root
       value={value}
       onValueChange={(id) => {
         setChosen(id as HistoryTabId);
-        onTabChange?.(id as HistoryTabId);
+        // The transcript has no window of its own: the pop-out keeps opening on the last real tab.
+        if (id !== TRANSCRIPT) onTabChange?.(id as HistoryTabId);
       }}
     >
       <div className="vtt-session-tabs">
@@ -42,10 +50,16 @@ export function SessionTabs({
               {t.label}
             </Tabs.Trigger>
           ))}
+          {transcript && <Tabs.Trigger value={TRANSCRIPT}>Transcript</Tabs.Trigger>}
         </Tabs.List>
         {onPopout && (
-          <ToolButton label="Open in its own window" square onClick={onPopout}>
-            <ExternalLink size={14} />
+          <ToolButton
+            label="Open in its own window"
+            square
+            className="vtt-tool-bare"
+            onClick={onPopout}
+          >
+            <Maximize2 size={14} />
           </ToolButton>
         )}
       </div>
@@ -58,6 +72,7 @@ export function SessionTabs({
           </div>
         </Tabs.Content>
       ))}
+      {transcript && <Tabs.Content value={TRANSCRIPT}>{transcript}</Tabs.Content>}
     </Tabs.Root>
   );
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { pickNodes, serverCountry, type NodeList } from './nodes.js';
+import { missingCountries, pickNodes, serverCountry, type NodeList } from './nodes.js';
 
 const node = (cc: string, city = 'X'): { location: [string, string, string] } => ({
   location: [cc, cc.toUpperCase(), city],
@@ -42,6 +42,22 @@ describe('pickNodes', () => {
 
   it('never returns more than exist', () => {
     expect(pickNodes(ALL, 'de', 50, first)).toHaveLength(Object.keys(ALL).length);
+  });
+});
+
+describe('pickNodes: countries the operator asked for', () => {
+  it('puts one node from each requested country first, before the nearest', () => {
+    const picked = pickNodes(ALL, 'au', 3, first, ['gb', 'us']);
+    expect(picked.slice(0, 2).map((n) => n.slice(0, 2))).toEqual(['gb', 'us']);
+    expect(picked).toHaveLength(3);
+  });
+  it('skips a requested country with no node and still fills the count', () => {
+    const picked = pickNodes(ALL, 'au', 3, first, ['nz', 'gb']);
+    expect(picked[0]).toBe('gb1.node.check-host.net');
+    expect(picked).toHaveLength(3);
+  });
+  it('can say which requested countries have no node', () => {
+    expect(missingCountries(ALL, ['nz', 'gb', 'AU'])).toEqual(['nz', 'au']);
   });
 });
 

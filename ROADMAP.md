@@ -97,6 +97,10 @@ Design: [ICONOLOGY.md](docs/architecture/ICONOLOGY.md). Plan: [2026-11-24-typogr
 
 Moved here from the ideas list: it is the main candidate for this bump, with Step H. The idea is a campaign knowledge graph as the core memory (events, entities, relationships, story threads), so each AI call gets a small pre-resolved "story package" and cost stays flat as a campaign grows, instead of re-reading and condensing growing notes (the problem chunking patched). Andy's specs and the two tensions already flagged against this project's homelab scale are in [CAMPAIGN-GRAPH-MEMORY.md](docs/architecture/proposals/CAMPAIGN-GRAPH-MEMORY.md); the current memory is `ai/src/lib/memory.ts`. **Step H and the graph overlap (both reshape what the glossary and memory hold), so design them together before building either.** Wire need: probably, for whatever the apps show of it.
 
+### Session history read and unread (Andy, 2026-11-25; needs the server, so it rides this bump)
+
+Mark each session in the history as **read or unread**, like email. It is **per player**, stored on the server (a player's phone and desktop share it): a session counts as read when the player has it **open for more than 5 seconds**, so a glance while scrolling does not. A **count of unread sessions** shows on the history icon of the panel (desktop) and the page (phone). A **Read all** button sits at the top of the panel, and a player can mark one session unread again. **Check first:** the read marks are one small table (player, recording, read-at) and one new endpoint pair, so a wire change; the count can ride the existing campaign snapshot.
+
 ### Step H: memory in the glossary, and the lore pipeline (Andy, 2026-11-21; extended 2026-11-24; designed in outline, not built)
 
 Moved here from Stage 12. It needs a wire change, so it rides this bump.

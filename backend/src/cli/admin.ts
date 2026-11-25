@@ -89,7 +89,10 @@ export interface AdminDeps {
    */
   selfTest?: {
     voice?: () => Promise<TestRow[]>;
-    reach?: (targets: { web: WebTarget; voice: VoiceTarget }) => Promise<TestRow[]>;
+    reach?: (
+      targets: { web: WebTarget; voice: VoiceTarget },
+      options?: { from: string[] },
+    ) => Promise<TestRow[]>;
     ai?: (flags: { local: boolean; remote: boolean; cloud: boolean }) => Promise<TestRow[]>;
     /** The server's public address (`PUBLIC_URL`) and voice address (`VOICE_ADDRESS`), which `test reach` asks about. */
     publicUrl?: string;
@@ -975,17 +978,32 @@ function modelsLine(models: Job['models']): string {
 }
 
 const TEST_USAGE =
-  'usage: test ai [--local] [--remote] [--cloud] | test voice | test reach | test full [--external]';
+  'usage: test ai [--local] [--remote] [--cloud] | test voice | test reach [--from gb,us] | test full [--external] [--from gb,us]';
 
 /** `vtt-admin test`: prove that the AI, the voice server and (on request) the outside route to this server all work. */
 async function selfTests(deps: Ctx, sub: string | undefined, rest: string[]): Promise<number> {
   const { ui } = deps;
   const checks = deps.selfTest ?? {};
   const known = sub === 'ai' || sub === 'voice' || sub === 'reach' || sub === 'full';
+  // `--from gb,us` (or `--from=gb,us`): ask check-host.net from these countries first, for a site that blocks the rest.
+  let from: string[] = [];
+  let badFrom = false;
+  if (sub === 'reach' || sub === 'full') {
+    for (let i = 0; i < rest.length; i++) {
+      const a = rest[i]!;
+      if (a !== '--from' && !a.startsWith('--from=')) continue;
+      const value = a === '--from' ? rest[i + 1] : a.slice('--from='.length);
+      const codes = (value ?? '').split(',').map((c) => c.trim().toLowerCase());
+      if (!value || codes.some((c) => !/^[a-z]{2}$/.test(c))) badFrom = true;
+      else from = codes;
+      rest.splice(i, a === '--from' ? 2 : 1);
+      break;
+    }
+  }
   const allowed =
     sub === 'ai' ? ['--local', '--remote', '--cloud'] : sub === 'full' ? ['--external'] : [];
   const unknown = rest.find((a) => !allowed.includes(a));
-  if (!known || unknown !== undefined) {
+  if (!known || unknown !== undefined || badFrom) {
     deps.err(unknown && known ? `unknown option ${unknown}. ${TEST_USAGE}` : TEST_USAGE);
     return 2;
   }
@@ -1045,7 +1063,7 @@ async function selfTests(deps: Ctx, sub: string | undefined, rest: string[]): Pr
       );
       show(
         'From outside: can people on the internet reach this server?',
-        await checks.reach(targets),
+        await checks.reach(targets, { from }),
       );
     }
   } else if (sub === 'full') {

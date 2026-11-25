@@ -1413,6 +1413,24 @@ describe('test: is everything working?', () => {
     expect(out.join('\n')).toMatch(/vtt-admin test ai/);
   });
 
+  it('test reach --from asks from those countries first, in either spelling, and refuses a bad one', async () => {
+    const seen: (string[] | undefined)[] = [];
+    const selfTest = {
+      publicUrl: 'https://play.example.com',
+      reach: async (_t: unknown, o?: { from: string[] }) => (
+        seen.push(o?.from),
+        [ok('HTTPS (443)')]
+      ),
+    };
+    expect(await run('test reach --from gb,US', [], { selfTest })).toBe(0);
+    expect(await run('test reach --from=au', [], { selfTest })).toBe(0);
+    expect(await run('test full --external --from nz', [], { selfTest })).toBe(0);
+    expect(seen).toEqual([['gb', 'us'], ['au'], ['nz']]);
+    expect(await run('test reach --from', [], { selfTest })).toBe(2);
+    expect(await run('test reach --from 123', [], { selfTest })).toBe(2);
+    expect(await run('test ai --from gb', [], { selfTest })).toBe(2);
+  });
+
   it('test on its own, or with something else, shows how to use it', async () => {
     expect(await run('test', [], { selfTest: {} })).toBe(2);
     expect(out.join('\n') + err.join('\n')).toMatch(

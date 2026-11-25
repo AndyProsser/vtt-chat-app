@@ -1,4 +1,4 @@
-import { mkdtemp, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -67,5 +67,30 @@ describe('resolveDownloads precedence', () => {
     });
     await writeFile(path.join(dir, 'downloads.json'), 'not json');
     expect(await resolveDownloads({}, dir)).toEqual({});
+  });
+});
+
+describe('resolveDownloads for dev builds', () => {
+  it('prefers the dev set when asked, falls back to the release set, and lets explicit URLs win', async () => {
+    const dir = await mkdtemp(path.join(tmpdir(), 'downloads-dev-'));
+    await mkdir(path.join(dir, 'dev'));
+    await writeFile(
+      path.join(dir, 'downloads.json'),
+      JSON.stringify({ linux: 'https://dl.test/rel.AppImage' }),
+    );
+    expect(await resolveDownloads({}, dir, { dev: true })).toEqual({
+      linux: 'https://dl.test/rel.AppImage',
+    });
+    await writeFile(
+      path.join(dir, 'dev', 'downloads.json'),
+      JSON.stringify({ linux: 'https://dl.test/dev.AppImage' }),
+    );
+    expect(await resolveDownloads({}, dir, { dev: true })).toEqual({
+      linux: 'https://dl.test/dev.AppImage',
+    });
+    expect(await resolveDownloads({}, dir)).toEqual({ linux: 'https://dl.test/rel.AppImage' });
+    expect(await resolveDownloads({ windows: 'https://mine/w' }, dir, { dev: true })).toEqual({
+      windows: 'https://mine/w',
+    });
   });
 });

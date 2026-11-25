@@ -182,12 +182,12 @@ export const SERVER_SECTIONS: HelpSection[] = [
         summary: 'prove LiveKit is up, accepts our keys, and that a session can be recorded',
       },
       {
-        usage: 'test reach',
+        usage: 'test reach [--from gb,us]',
         summary:
-          'ask check-host.net (a free public service) whether the internet can reach this server on HTTP, HTTPS and the voice TCP port',
+          'ask check-host.net (a free public service) whether the internet can reach this server on HTTP, HTTPS and the voice TCP and UDP ports (--from picks the countries to ask from first)',
       },
       {
-        usage: 'test full [--external]',
+        usage: 'test full [--external] [--from gb,us]',
         summary: 'ai and voice together; --external adds the reach check',
       },
     ],

@@ -148,6 +148,11 @@ export async function syncUpdates(options: SyncOptions): Promise<SyncResult> {
     const assets = manifests.release ? releaseAssets : devAssets;
     await writeAtomic(path.join(options.dir, DOWNLOADS_FILE), pickDownloads(assets));
   }
+  // The dev build's installers, offered to players who opted in (the app opens the download page with ?dev=1). Gone again once a
+  // release outranks it, so the page never offers an older build than the release.
+  const devDownloads = path.join(options.dir, 'dev', DOWNLOADS_FILE);
+  if (manifests.dev) await writeAtomic(devDownloads, pickDownloads(devAssets));
+  else await rm(devDownloads, { force: true });
   const devFeed = manifests.dev ?? manifests.release;
   if (devFeed) await writeAtomic(path.join(options.dir, 'dev', 'latest.json'), devFeed);
 

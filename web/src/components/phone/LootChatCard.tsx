@@ -29,7 +29,8 @@ export function LootChatCard({
   onDone: () => void;
 }) {
   const [problem, setProblem] = useState<string>();
-  const actions = lootActions(item, selfId, dm);
+  // "Post it again" lives on the inventory screen, not on the card in chat.
+  const actions = lootActions(item, selfId, dm).filter((a) => a !== 'redrop');
   const players = members.filter((m) => m.role !== 'dm');
 
   async function run(action: LootAction, userId?: string) {

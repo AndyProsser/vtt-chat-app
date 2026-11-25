@@ -103,4 +103,29 @@ describe('SessionTabs', () => {
     show(<SessionTabs summaries={[]} />);
     expect(host.querySelector('[role="tablist"]')).toBeNull();
   });
+
+  it('adds a Transcript tab at the end for the Game Master, which mounts only when opened', () => {
+    const mounted = vi.fn();
+    const Transcript = () => {
+      mounted();
+      return <p>00:01 Fenimore sang.</p>;
+    };
+    show(<SessionTabs summaries={ALL} transcript={<Transcript />} />);
+    expect(tabNames()).toEqual(['The Tale', 'The Heroes', 'The Story', 'The Notes', 'Transcript']);
+    expect(mounted).not.toHaveBeenCalled();
+    click(tab('Transcript'));
+    expect(host.textContent).toContain('Fenimore sang.');
+  });
+
+  it('has no Transcript tab unless one is given', () => {
+    show(<SessionTabs summaries={ALL} />);
+    expect(tabNames()).not.toContain('Transcript');
+  });
+
+  it('keeps the pop-out on the last real tab when the Transcript is open', () => {
+    const onTabChange = vi.fn();
+    show(<SessionTabs summaries={ALL} onTabChange={onTabChange} transcript={<p>x</p>} />);
+    click(tab('Transcript'));
+    expect(onTabChange).not.toHaveBeenCalled();
+  });
 });

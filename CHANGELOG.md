@@ -22,6 +22,11 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ### Changed
 
+- **A handout reads larger.** The letter and journal face (Cormorant) is set bigger with more line spacing, in both apps; the reading switches still turn it off.
+- **The history window opens larger, and the transcript is a tab.** The Game Master's transcript (with "Include dev builds" on) is a **Transcript** tab beside The Notes instead of a button below. The pop-out button is now the same expand icon as the handouts, and both lose their border.
+- **No "post it again" on a loot card in chat** (desktop and phone): it lives on the inventory screen, where the Game Master manages loot.
+- **`vtt-admin test reach --from gb,us`** asks from those countries first (a site that blocks the rest of the world; check-host.net has no places in Australia or New Zealand).
+- **A player on dev builds is offered the dev installers.** The app opens the download page with `?dev=1` when "Include dev builds" is on, so a Linux `.deb` or `.rpm` (which cannot update itself) gets the dev version; the server keeps `dev/downloads.json` for it, and drops it once a release outranks the dev build. `vtt-admin updates sync` writes it.
 - **`vtt-admin status` and `--tune` can read a remote model's real window even while it sits idle.** Ollama only reports a window for a model that is loaded, so for a `remote` model the worker now loads an idle one once (an empty request, kept in memory for 30 seconds), reads what the server serves, and keeps that reading for a day; the status line says how old it is. The status check also now grades a remote model by what the server serves: exactly what is configured is **ok** (it no longer warns that the model could do more), more than configured says to run `--tune`, and a window nobody has read yet says to set `ai.llm.context` to the server's `OLLAMA_CONTEXT_LENGTH` instead of offering a `--tune` that cannot work.
 - **Better icons on the DM's sound deck and scenes.** The Coins sound no longer shows a door, the starter sound boards (Unease, Combat, Spells, Creatures, Undead and horrors, Hits and falls, Movement, Mood, Jingles, Taunts, Villain) each have an icon instead of the same sparkle, and four starter scenes (Pending doom, Boss: symphonic metal, Run away!, Infernal) no longer share the clapperboard.
 

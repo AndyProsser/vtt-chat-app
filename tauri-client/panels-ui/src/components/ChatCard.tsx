@@ -146,6 +146,7 @@ function LootCard({
           selfId={selfId}
           dm={dm}
           players={players}
+          inChat
         />
         {expandable && (
           <button

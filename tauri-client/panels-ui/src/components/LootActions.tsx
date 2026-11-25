@@ -22,6 +22,7 @@ export function LootActions({
   players,
   onDone,
   disabled = false,
+  inChat = false,
 }: {
   item: {
     id: string;
@@ -34,9 +35,11 @@ export function LootActions({
   onDone?: () => void;
   /** Greyed out: an item the player has put on their sheet stays where it is until they untick it. */
   disabled?: boolean;
+  /** On a chat card: no "post it again" there; that lives on the inventory screen. */
+  inChat?: boolean;
 }) {
   const [error, setError] = useState<string>();
-  const actions = lootActions(item, selfId, dm);
+  const actions = lootActions(item, selfId, dm).filter((a) => !(inChat && a === 'redrop'));
   if (actions.length === 0) return null;
 
   async function run(call: () => Promise<unknown>) {

@@ -152,6 +152,7 @@ function Item({
             ))}
           <ToolButton
             label="Open it large, in its own window"
+            className="vtt-tool-bare"
             onClick={() => void handoutViewOpen(h.id)}
           >
             <Maximize2 size={14} />

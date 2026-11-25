@@ -119,12 +119,18 @@ function DownloadContent({ onBack }: { onBack?: () => void }) {
   const [tab, setTab] = useState<Tab>(detected === 'other' ? 'windows' : detected);
   const [downloads, setDownloads] = useState<Downloads>({});
   const [error, setError] = useState<string>();
+  // The desktop app opens this page with ?dev=1 when its player turned on "Include dev builds", so a .deb or .rpm (which cannot
+  // update itself) is offered the dev installers too.
+  const dev = new URLSearchParams(window.location.search).get('dev') === '1';
   useEffect(() => {
-    void request<Downloads>('GET', '/api/downloads').then(setDownloads, (e: unknown) => {
-      if (e instanceof ApiError && e.status === 401) markSignedOut();
-      setError(failure(e));
-    });
-  }, []);
+    void request<Downloads>('GET', dev ? '/api/downloads?dev=1' : '/api/downloads').then(
+      setDownloads,
+      (e: unknown) => {
+        if (e instanceof ApiError && e.status === 401) markSignedOut();
+        setError(failure(e));
+      },
+    );
+  }, [dev]);
 
   return (
     <Flex direction="column" gap="4" className="fit">
@@ -135,6 +141,13 @@ function DownloadContent({ onBack }: { onBack?: () => void }) {
           <SignOutButton />
         </Flex>
       </Flex>
+      {dev && !error && (
+        <Callout.Root color="gray">
+          <Callout.Text>
+            Dev builds are on: these are the newest early versions, which may have rough edges.
+          </Callout.Text>
+        </Callout.Root>
+      )}
       {error && (
         <Callout.Root color="orange">
           <Callout.Text>{error}</Callout.Text>

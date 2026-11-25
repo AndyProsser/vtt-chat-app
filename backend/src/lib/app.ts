@@ -199,7 +199,8 @@ export function createApp({
   app.use('/api/version', versionRoutes(version));
   app.use('/api', protocolGate(version));
 
-  const downloads = () => resolveDownloads(config.clientDownloads, config.updatesDir);
+  const downloads = (dev: boolean) =>
+    resolveDownloads(config.clientDownloads, config.updatesDir, { dev });
   const inviteLimiter = new RateLimiter(20, 15 * MINUTE);
   app.use('/api/invites', inviteRoutes({ campaigns, inviteLimiter }));
   app.use(
@@ -207,8 +208,8 @@ export function createApp({
     signupRoutes({ signups, signupLimiter: new RateLimiter(5, 60 * MINUTE) }),
   );
   // Where to get the app. Signed-in accounts only: the links are not on the public status page or the invite preview.
-  app.get('/api/downloads', requireAuth(accounts), async (_req, res) => {
-    res.json(await downloads());
+  app.get('/api/downloads', requireAuth(accounts), async (req, res) => {
+    res.json(await downloads(req.query.dev === '1'));
   });
   if (status) app.use('/api/status', statusApi(status));
   if (config.statusDir) {

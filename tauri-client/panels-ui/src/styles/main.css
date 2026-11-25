@@ -846,6 +846,9 @@ body,
   opacity: 0.45;
   cursor: default;
 }
+.vtt-tool-bare {
+  border-color: transparent;
+}
 .vtt-tool-square {
   border-radius: var(--vtt-radius-pill-square);
 }

@@ -26,11 +26,19 @@ export function pickNodes(
   country: string | undefined,
   count: number,
   random: () => number = Math.random,
+  preferred: string[] = [],
 ): string[] {
   const names = Object.keys(all);
   const picked: string[] = [];
+  // Countries the operator asked for (a site that blocks other countries is only reachable from some): one node each, first.
+  for (const cc of preferred.map((c) => c.toLowerCase())) {
+    const home = names.filter((n) => countryOf(all, n) === cc);
+    if (home.length > 0 && picked.length < count)
+      picked.push(home[Math.floor(random() * home.length)]!);
+  }
   const near = country ? [country, ...(NEAREST[country] ?? [])] : [];
   for (const cc of near) {
+    if (picked.length >= count) break;
     const home = names.filter((n) => countryOf(all, n) === cc);
     if (home.length > 0) {
       picked.push(home[Math.floor(random() * home.length)]!);
@@ -56,6 +64,12 @@ export function pickNodes(
     if (!picked.includes(n)) picked.push(n);
   }
   return picked.slice(0, count);
+}
+
+/** Of the countries asked for, the ones check-host.net has no node in. */
+export function missingCountries(all: NodeList, wanted: string[]): string[] {
+  const have = new Set(Object.values(all).map((n) => n.location[0]));
+  return wanted.map((c) => c.toLowerCase()).filter((c) => !have.has(c));
 }
 
 /** The two-letter country of an IP address, as check-host.net's own IP page reports it; nothing if it cannot be learned. */

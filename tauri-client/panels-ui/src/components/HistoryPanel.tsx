@@ -1,7 +1,7 @@
 import { TextField } from '@radix-ui/themes';
 import { summaryBlurb, type HistoryTabId } from '@vtt-chat-app/shared';
 import { ChevronDown, ChevronRight, Search, X } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { useAccount } from '../hooks/useAccount.js';
 import { useRecordingSummaries } from '../hooks/useRecordingSummaries.js';
@@ -239,24 +239,9 @@ function Recording({
 }
 
 function Detail({ id, canReadTranscript }: { id: string; canReadTranscript: boolean }) {
-  const { summaries, error: loadError } = useRecordingSummaries(id);
-  const [transcript, setTranscript] = useState<TranscriptRow[]>();
-  const [transcriptError, setTranscriptError] = useState<string>();
+  const { summaries, error } = useRecordingSummaries(id);
   // The tab being read, so the pop-out window opens on the same part.
   const [tab, setTab] = useState<HistoryTabId>('tale');
-  const error = loadError ?? transcriptError;
-
-  async function loadTranscript() {
-    try {
-      const d = await campaignApi<{ utterances: Utterance[]; markers?: SceneMarker[] }>(
-        'GET',
-        `recordings/${id}/transcript`,
-      );
-      setTranscript(transcriptRows(d.utterances, d.markers));
-    } catch (e) {
-      setTranscriptError(accountErrorMessage(e));
-    }
-  }
 
   return (
     <div className="vtt-sessions">
@@ -273,40 +258,53 @@ function Detail({ id, canReadTranscript }: { id: string; canReadTranscript: bool
           summaries={summaries}
           onTabChange={setTab}
           onPopout={() => void sessionViewOpen(id, tab).catch(console.error)}
+          transcript={canReadTranscript ? <TranscriptTab id={id} /> : undefined}
         />
       )}
-      {transcript ? (
-        <div className="vtt-transcript">
-          {transcript.length === 0 && <span className="vtt-muted">No transcript yet.</span>}
-          {transcript.map((row, i) =>
-            row.kind === 'scene' ? (
-              <p
-                key={i}
-                className="vtt-muted"
-                style={{ borderBlockStart: '1px solid currentColor' }}
-              >
-                {clock(row.atMs)} · <b>Scene: {row.name}</b>
-              </p>
-            ) : (
-              <p key={i}>
-                <span className="vtt-muted">{clock(row.line.startMs)}</span>{' '}
-                <b>{speakerName(row.line.speaker)}</b>
-                {row.line.typed ? <span className="vtt-muted"> (typed)</span> : null}{' '}
-                {row.line.text}
-              </p>
-            ),
-          )}
-        </div>
-      ) : !canReadTranscript ? null : (
-        <div>
-          <ToolButton
-            label="Show the full transcript"
-            text="Transcript"
-            onClick={() => void loadTranscript()}
-          >
-            <ChevronRight size={14} />
-          </ToolButton>
-        </div>
+    </div>
+  );
+}
+
+/** The raw transcript, loaded when its tab is opened (the Game Master's, and only with "Include dev builds" on). */
+function TranscriptTab({ id }: { id: string }) {
+  const [rows, setRows] = useState<TranscriptRow[]>();
+  const [error, setError] = useState<string>();
+  useEffect(() => {
+    let cancelled = false;
+    campaignApi<{ utterances: Utterance[]; markers?: SceneMarker[] }>(
+      'GET',
+      `recordings/${id}/transcript`,
+    ).then(
+      (d) => !cancelled && setRows(transcriptRows(d.utterances, d.markers)),
+      (e: unknown) => !cancelled && setError(accountErrorMessage(e)),
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
+  if (error) {
+    return (
+      <div className="vtt-composer-error" role="alert" style={{ position: 'static' }}>
+        {error}
+      </div>
+    );
+  }
+  if (!rows) return <span className="vtt-muted">Loading the transcript…</span>;
+  return (
+    <div className="vtt-transcript">
+      {rows.length === 0 && <span className="vtt-muted">No transcript yet.</span>}
+      {rows.map((row, i) =>
+        row.kind === 'scene' ? (
+          <p key={i} className="vtt-muted" style={{ borderBlockStart: '1px solid currentColor' }}>
+            {clock(row.atMs)} · <b>Scene: {row.name}</b>
+          </p>
+        ) : (
+          <p key={i}>
+            <span className="vtt-muted">{clock(row.line.startMs)}</span>{' '}
+            <b>{speakerName(row.line.speaker)}</b>
+            {row.line.typed ? <span className="vtt-muted"> (typed)</span> : null} {row.line.text}
+          </p>
+        ),
       )}
     </div>
   );

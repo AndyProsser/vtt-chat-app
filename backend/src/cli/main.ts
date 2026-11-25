@@ -182,7 +182,10 @@ async function main(): Promise<number> {
         }),
       voiceAddress: process.env.VOICE_ADDRESS ?? '',
       voiceTcpPort: Number(process.env.VOICE_TCP_PORT) || 7881,
-      reach: async (targets: { web: WebTarget; voice: VoiceTarget }) => {
+      reach: async (
+        targets: { web: WebTarget; voice: VoiceTarget },
+        options?: { from: string[] },
+      ) => {
         // The UDP echo must listen on the machine's own network: natively that is here, in Compose the wrapper starts one on
         // the host and passes its port in.
         const fromWrapper = Number(process.env.VTT_UDP_PROBE_PORT) || undefined;
@@ -195,6 +198,7 @@ async function main(): Promise<number> {
           return await checkReach({
             ...targets,
             ...(port ? { udpProbe: { port } } : {}),
+            ...(options?.from.length ? { from: options.from } : {}),
             locate: async () => {
               const own = await stunPublicAddress();
               return own ? serverCountry(own) : undefined;

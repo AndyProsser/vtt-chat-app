@@ -91,8 +91,14 @@ pub fn update_can_install() -> bool {
 }
 
 /// The server's download page, where the newest installers for every platform are listed.
-fn download_page_url(server: &str) -> String {
-    format!("{}/download", server.trim_end_matches('/'))
+/// A player who turned on "Include dev builds" gets the page with `?dev=1`, which lists the dev installers.
+fn download_page_url(server: &str, dev_builds: bool) -> String {
+    let page = format!("{}/download", server.trim_end_matches('/'));
+    if dev_builds {
+        format!("{page}?dev=1")
+    } else {
+        page
+    }
 }
 
 /// Opens the signed-in server's download page in the system browser. The address is built here from
@@ -108,7 +114,10 @@ pub async fn update_open_download(
         .await
         .ok_or("sign in to a server first: the download page is on it")?;
     app.opener()
-        .open_url(download_page_url(&server), None::<&str>)
+        .open_url(
+            download_page_url(&server, dev_builds_wanted(&app)),
+            None::<&str>,
+        )
         .map_err(|_| "could not open your browser".to_string())
 }
 
@@ -262,12 +271,20 @@ mod tests {
     #[test]
     fn the_download_page_is_under_the_server_whatever_its_trailing_slash() {
         assert_eq!(
-            download_page_url("https://play.example.com/"),
+            download_page_url("https://play.example.com/", false),
             "https://play.example.com/download"
         );
         assert_eq!(
-            download_page_url("http://localhost:3000"),
+            download_page_url("http://localhost:3000", false),
             "http://localhost:3000/download"
+        );
+    }
+
+    #[test]
+    fn a_player_on_dev_builds_opens_the_download_page_for_them() {
+        assert_eq!(
+            download_page_url("https://play.example.com/", true),
+            "https://play.example.com/download?dev=1"
         );
     }
 

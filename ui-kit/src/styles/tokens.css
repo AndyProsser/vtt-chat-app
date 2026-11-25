@@ -25,6 +25,9 @@
 /* Letters, journals and read-aloud text (handouts). Tales and notes stay in the body font: they are read at length. */
 .vtt-narrative {
   font-family: var(--vtt-font-narrative);
+  /* Read at length, so larger than the quoted speech in chat; Cormorant's small x-height needs it. */
+  font-size: calc(var(--vtt-narrative-size) * 1.12);
+  line-height: 1.55;
 }
 
 /* A faint picture in the corner of a tile (ability scores). The tile is position: relative with overflow: hidden. */

@@ -504,3 +504,13 @@ describe('checkReach: asking from near the server', () => {
     expect(f.requests.some((r) => /max_nodes=3/.test(r.url))).toBe(true);
   });
 });
+
+describe('checkReach: --from', () => {
+  it('asks from the requested countries first, and says when check-host.net has none in one', async () => {
+    const f = fakeCheckHost();
+    const rows = await run('play.example.com', f, { locate: async () => 'au', from: ['gb', 'nz'] });
+    const u = decodeURIComponent(f.requests.find((r) => /check-http\?/.test(r.url))!.url);
+    expect(u.indexOf('node=gb1')).toBeGreaterThan(-1);
+    expect(rows.find((r) => r.name === 'Places')?.detail).toContain('nz');
+  });
+});

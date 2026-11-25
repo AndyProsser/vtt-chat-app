@@ -28,7 +28,7 @@ pub const PANELS: &[Panel] = &[
     Panel {
         name: "history",
         title: "Session history — VTT Chat",
-        size: (460.0, 600.0),
+        size: (640.0, 780.0),
     },
     Panel {
         name: "inventory",
