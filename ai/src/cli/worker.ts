@@ -146,6 +146,8 @@ async function main(): Promise<void> {
   const records = new PostgresRecordsStore(pool);
   const handler = createProcessRecordingHandler({
     records,
+    // So a job can say which local model it used (jobs list, status).
+    localModelNames: { llm: ollamaModel, ...(twoModels ? { story: storyModel } : {}) },
     // Local AI waits while a table records, when ai.pause-while-recording is on.
     gate: createQuietGate({ records, log }),
     localTranscribe: (language, prompt) =>

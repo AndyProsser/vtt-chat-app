@@ -32,6 +32,7 @@ const toJob = (r: Row): Job => ({
   lastError: (r.last_error as string | null) ?? null,
   released: (r.order_released as boolean | undefined) ?? false,
   usage: (r.usage as Job['usage']) ?? null,
+  models: (r.models as Job['models']) ?? null,
   createdAt: r.created_at as number,
   updatedAt: r.updated_at as number,
 });

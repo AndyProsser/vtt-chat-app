@@ -4,6 +4,7 @@ import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 
 import type { RecordingTrack } from '../../types/index.js';
 import { openTestDb, TEST_DATABASE_URL, type TestDb } from '../testing.js';
+import { PostgresJobQueue } from '../jobs/postgresQueue.js';
 import { PostgresRecordsStore } from './postgresRecordsStore.js';
 
 /** Real-database behaviour: the privacy trigger, atomic transcripts, and read isolation. */
@@ -191,6 +192,39 @@ describe.skipIf(TEST_DATABASE_URL === undefined)('PostgresRecordsStore', () => {
     expect((await store.getAiSettings()).fallback.afterSeconds).toBe(600);
     const rec = await store.getRecording(recordingId);
     expect(await store.campaignName(rec?.campaignId ?? '')).toBe('Strahd');
+  });
+});
+
+describe.skipIf(TEST_DATABASE_URL === undefined)('which models a job used, on Postgres', () => {
+  let db: TestDb;
+  beforeEach(async () => {
+    db ??= await openTestDb();
+    await db.reset();
+  });
+
+  it('keeps what a job used, replaces it on the next attempt, and gives it back with the job', async () => {
+    const queue = new PostgresJobQueue(db.pool);
+    const store = new PostgresRecordsStore(db.pool);
+    const job = await queue.enqueue({ kind: 'process-recording' }, 1);
+    expect((await queue.get(job.id))?.models ?? null).toBeNull();
+    await store.setJobModels(job.id, {
+      transcription: 'Whisper (local)',
+      scribe: 'qwen3:8b (local)',
+      bard: 'qwen3:8b (local)',
+    });
+    expect((await queue.get(job.id))?.models).toEqual({
+      transcription: 'Whisper (local)',
+      scribe: 'qwen3:8b (local)',
+      bard: 'qwen3:8b (local)',
+    });
+    await store.setJobModels(job.id, {
+      transcription: 'large-v3-turbo (remote)',
+      scribe: 'qwen3:4b (local)',
+      bard: 'qwen3:4b (local)',
+      fellBack: ['llm'],
+    });
+    expect((await queue.get(job.id))?.models?.fellBack).toEqual(['llm']);
+    expect((await queue.get(job.id))?.models?.transcription).toBe('large-v3-turbo (remote)');
   });
 });
 

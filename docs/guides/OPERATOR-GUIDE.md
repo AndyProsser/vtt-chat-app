@@ -343,7 +343,10 @@ version runs **one worker** (a second worker stands by until the first stops; ru
 tables recording at once therefore queue their processing one after the other. Within one table the queue keeps the
 sessions **in the order they were recorded**: if a session's job fails, the table's later sessions wait for it (so the
 campaign memory and tales stay in order) until you `jobs retry` it, or `jobs release <id>` it to let the later ones go
-ahead without it. `jobs list` says what a waiting job is waiting for.
+ahead without it. `jobs list` says what a waiting job is waiting for, and in its **models** column which models did the work (the
+transcriber, then the scribe and the storyteller, such as `large-v3-turbo (remote), qwen3:8b (remote)`), with a note when a remote one was
+unreachable and the local one finished the job; `status` shows the same for the **last tale**, so a tale's quality can be traced to the
+model that wrote it. A job that ran before this was added shows none.
 
 **What the summaries are.** A recording is summarised in two passes. A _scribe_ reads the transcript once and writes
 down what happened, big and small. A _bard_ then tells it, from the scribe's notes, as a short heroic tale with dry

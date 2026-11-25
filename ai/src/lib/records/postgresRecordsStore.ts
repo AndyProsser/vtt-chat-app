@@ -18,6 +18,7 @@ import type {
   StoredSummary,
   StoredSummaryKind,
   TrackTranscript,
+  JobModels,
 } from '../../types/index.js';
 import type { LlmUsage } from '../../consts/claude.js';
 import type { MemoryEntry } from '../memory.js';
@@ -489,6 +490,13 @@ export class PostgresRecordsStore implements RecordsStore {
       [campaignId, name.trim()],
     );
     return rowCount ?? 0;
+  }
+
+  async setJobModels(jobId: string, models: JobModels): Promise<void> {
+    await this.pool.query('UPDATE jobs SET models = $2 WHERE id = $1', [
+      jobId,
+      JSON.stringify(models),
+    ]);
   }
 
   async addJobUsage(jobId: string, usage: LlmUsage): Promise<void> {

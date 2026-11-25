@@ -115,6 +115,51 @@ describe('process-recording handler', () => {
     expect(records.jobUsage.get('j')?.calls).toBe(4);
   });
 
+  it('records which models did the job, so a tale can be traced to the model that wrote it', async () => {
+    await handler({ localModelNames: { llm: 'qwen3:8b', story: 'gemma3:12b' } }).run(job());
+    expect(records.jobModels.get('j')).toEqual({
+      transcription: 'Whisper (local)',
+      scribe: 'qwen3:8b (local)',
+      bard: 'gemma3:12b (local)',
+    });
+  });
+
+  it('says so when a remote model could not be reached and the local one did the work', async () => {
+    records.aiSettings = {
+      ...records.aiSettings,
+      llm: {
+        ...records.aiSettings.llm,
+        kind: 'remote',
+        url: 'http://gpu:11434',
+        model: 'qwen3:8b',
+      },
+    };
+    await handler({
+      localModelNames: { llm: 'qwen3:4b' },
+      // The remote would be tried over the network: stand in for "it did not answer" with the local providers.
+      buildProviders: (_settings, deps) => {
+        deps.onFallback?.('llm', 'the remote server did not answer');
+        return buildJobProviders(DEFAULT_AI_SETTINGS, deps);
+      },
+    }).run(job());
+    expect(records.jobModels.get('j')).toMatchObject({
+      scribe: 'qwen3:4b (local)',
+      fellBack: ['llm'],
+    });
+  });
+
+  it('records the models even when the job then fails', async () => {
+    await expect(
+      handler({
+        localModelNames: { llm: 'qwen3:8b' },
+        transcribeAudioFile: async () => {
+          throw new Error('boom');
+        },
+      }).run(job()),
+    ).rejects.toThrow('boom');
+    expect(records.jobModels.get('j')?.scribe).toBe('qwen3:8b (local)');
+  });
+
   it('transcribes every track, writes both summaries and marks the recording processed', async () => {
     await handler().run(job());
     expect(transcribed.sort()).toEqual(['/audio/t-alice.ogg', '/audio/t-bob.ogg']);

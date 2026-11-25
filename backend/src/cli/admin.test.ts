@@ -611,6 +611,52 @@ describe('jobs and recordings', () => {
     expect(out.join('\n')).toContain('claude-sonnet-5-5 110k in / 10k out, about $0.32');
   });
 
+  it('names the models a job used, so a tale can be traced to the model that wrote it', async () => {
+    const job = await jobs.enqueue({ kind: PROCESS_RECORDING_JOB, recordingId: 'r1' }, 1);
+    jobs.jobs.get(job.id)!.models = {
+      transcription: 'large-v3-turbo (remote)',
+      scribe: 'qwen3:8b (remote)',
+      bard: 'qwen3:8b (remote)',
+    };
+    await run('jobs list');
+    const text = out.join('\n');
+    expect(text).toContain('qwen3:8b (remote)');
+    expect(text).toContain('large-v3-turbo (remote)');
+  });
+
+  it('says in jobs list when the local model did the work because the remote could not be reached', async () => {
+    const job = await jobs.enqueue({ kind: PROCESS_RECORDING_JOB, recordingId: 'r1' }, 1);
+    jobs.jobs.get(job.id)!.models = {
+      transcription: 'Whisper (local)',
+      scribe: 'qwen3:4b (local)',
+      bard: 'qwen3:4b (local)',
+      fellBack: ['llm'],
+    };
+    await run('jobs list');
+    expect(out.join('\n')).toMatch(/fell back/i);
+  });
+
+  it('says in status which models wrote the last tale', async () => {
+    const job = await jobs.enqueue({ kind: PROCESS_RECORDING_JOB, recordingId: 'r1' }, 1);
+    await jobs.claim(2, 1000);
+    await jobs.complete(job.id, 3);
+    jobs.jobs.get(job.id)!.models = {
+      transcription: 'large-v3-turbo (remote)',
+      scribe: 'qwen3:8b (remote)',
+      bard: 'gemma3:12b (remote)',
+    };
+    expect(await run('status')).toBe(0);
+    const text = out.join('\n');
+    expect(text).toMatch(/last tale/i);
+    expect(text).toContain('qwen3:8b (remote)');
+    expect(text).toContain('gemma3:12b (remote)');
+  });
+
+  it('says nothing about models in status when no job has recorded any', async () => {
+    expect(await run('status')).toBe(0);
+    expect(out.join('\n')).not.toMatch(/last tale/i);
+  });
+
   it('puts a failed job back in the queue and the recording back to stopped', async () => {
     await rec('r1', 'failed');
     const job = await jobs.enqueue(

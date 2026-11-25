@@ -12,6 +12,7 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ### Added
 
+- **`vtt-admin jobs list` and `status` name the models a job used.** A new **models** column says who heard the audio and who wrote the notes and the tale (`large-v3-turbo (remote), qwen3:8b (remote)`), with a note when a remote one could not be reached and the local one finished the job; `status` shows the **last tale**'s models. It is recorded even when the job fails. Jobs that ran before this show none. Adds one nullable column to the jobs table (migration 0046, applied by the update).
 - **A livelier campaign chooser** (desktop). Each campaign is a card with its storyteller's badge, its name, a line from its description and a crown if you run it, instead of a plain button; and each visit shows a dry one-liner from a character who never existed (never the same one twice running).
 - **A faint picture behind each ability score** in the character screens of both apps (a dumbbell for Strength, wind for Dexterity, a pulse for Constitution, a brain for Intelligence, a compass for Wisdom, a sparkle for Charisma).
 

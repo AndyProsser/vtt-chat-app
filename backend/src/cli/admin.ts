@@ -555,6 +555,17 @@ async function instanceRows(deps: Ctx, now: number): Promise<Row[]> {
       ? ['warn', 'AI jobs', `${queue}  ${ui.hint('vtt-admin jobs list failed')}`]
       : ['ok', 'AI jobs', queue],
   );
+  // Which models wrote the last tale, so its quality can be traced to them.
+  const last = (await deps.jobs.list(['done']))
+    .filter((j) => j.models)
+    .sort((a, b) => b.updatedAt - a.updatedAt)[0];
+  if (last?.models) {
+    rows.push([
+      'off',
+      'last tale',
+      `${modelsLine(last.models)} ${ui.dim(`(${duration((now - last.updatedAt) / 1000)} ago)`)}`,
+    ]);
+  }
 
   if (deps.updatesDir) {
     const feeds = await readFeeds(deps.updatesDir);
@@ -892,6 +903,19 @@ function cloudUsage(usage: Job['usage']): string {
   }`;
 }
 
+/** "large-v3-turbo (remote), qwen3:8b (remote)": who heard the audio and who wrote, and a note when a remote one could not be reached. */
+function modelsLine(models: Job['models']): string {
+  if (!models) return '';
+  const writer =
+    models.scribe === models.bard
+      ? models.scribe
+      : `${models.scribe} (notes), ${models.bard} (tale)`;
+  const fell = models.fellBack?.length
+    ? ` — fell back to local for ${models.fellBack.map((w) => (w === 'llm' ? 'the model' : 'transcription')).join(' and ')}`
+    : '';
+  return `${models.transcription}, ${writer}${fell}`;
+}
+
 async function jobs(deps: Ctx, command: string | undefined, rest: string[]): Promise<number> {
   const now = deps.now ?? Date.now;
   switch (command) {
@@ -926,6 +950,7 @@ async function jobs(deps: Ctx, command: string | undefined, rest: string[]): Pro
           j.kind,
           `${j.attempts}/${j.maxAttempts}`,
           cloudUsage(j.usage),
+          modelsLine(j.models),
           holders.has(j.id)
             ? ui.dim(holders.get(j.id) as string)
             : j.lastError
@@ -934,7 +959,7 @@ async function jobs(deps: Ctx, command: string | undefined, rest: string[]): Pro
                 ? ui.dim('released from the order rule')
                 : '',
         ]),
-        { header: ['id', 'state', 'kind', 'tries', 'cloud AI', 'last error / waiting'] },
+        { header: ['id', 'state', 'kind', 'tries', 'cloud AI', 'models', 'last error / waiting'] },
       ).forEach(deps.out);
       if (list.some((j) => j.state === 'failed')) {
         deps.out('');
