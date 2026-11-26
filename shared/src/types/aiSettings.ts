@@ -26,9 +26,13 @@ export interface AiFallbackSetting {
   /** How often to retry the remote while waiting. */
   retrySeconds: number;
   /** The longest recording the LLM may fall back to the local model for; above it, if remote is
-   *  unavailable, the job fails instead of running on CPU (never applies to transcription). 0
-   *  means local fallback is never allowed (every real recording has some duration). */
-  maxLocalMinutes: number;
+   *  unavailable, the job fails instead of running on CPU (never applies to transcription). `null`
+   *  (the default) means no limit: a job is never refused up front — a stuck single call still
+   *  times out (`LOCAL_GENERATE_TIMEOUT_MS`), but a merely slow one keeps going for as long as it
+   *  takes, resuming from its already-completed chapters on any retry. 0 means local fallback is
+   *  never allowed at all (every real recording has some duration) — an explicit opt-out, not the
+   *  default. */
+  maxLocalMinutes: number | null;
 }
 
 export interface AiTaleSettings {

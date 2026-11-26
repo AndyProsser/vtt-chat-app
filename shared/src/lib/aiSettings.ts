@@ -13,7 +13,7 @@ export const DEFAULT_AI_SETTINGS: AiSettings = {
   transcription: { kind: 'local', url: null, model: null, language: 'en', glossary: 'corrections' },
   llm: { kind: 'local', url: null, model: null, priceIn: null, priceOut: null, context: null },
   // 10 minutes unreachable before giving up on the remote; retry every 30 s meanwhile.
-  fallback: { enabled: true, afterSeconds: 600, retrySeconds: 30, maxLocalMinutes: 20 },
+  fallback: { enabled: true, afterSeconds: 600, retrySeconds: 30, maxLocalMinutes: null },
   tale: { length: 'default', content: 'default', storytellersOff: [] },
   memory: { enabled: true },
   processing: { pauseWhileRecording: false, activeConcurrency: 2, cpuThresholdPercent: 70 },
@@ -39,7 +39,7 @@ export const AI_SETTING_KEYS = {
   'ai.fallback.after-seconds': 'whole number of seconds, 0 = immediately',
   'ai.fallback.retry-seconds': 'whole number of seconds, at least 1',
   'ai.fallback.max-local-minutes':
-    'whole number of minutes, 0 or more (0 = never; the LLM only, above it a job fails instead of running on local CPU)',
+    'whole number of minutes, or "none" for no limit (default; the LLM only — 0 = never fall back to local at all, a number = a cap, above which a job fails instead of running on local CPU)',
   'ai.memory.enabled': 'true | false (campaign memory: one more model call per session)',
   'ai.pause-while-recording':
     'true | false (local AI waits while any table is recording; delays tales, protects the recording on a busy machine)',
@@ -213,8 +213,11 @@ export function setAiSetting(settings: AiSettings, key: AiSettingKey, value: str
       next.fallback.retrySeconds = parseSeconds(value, 1);
       break;
     case 'ai.fallback.max-local-minutes':
-      // 0 means "never fall back to local for the LLM" (every real recording has some duration).
-      next.fallback.maxLocalMinutes = parseWholeNumber(value, 0);
+      // "none" (the default) is no limit; 0 means "never fall back to local for the LLM" (every
+      // real recording has some duration).
+      next.fallback.maxLocalMinutes = NONE.has(value.trim().toLowerCase())
+        ? null
+        : parseWholeNumber(value, 0);
       break;
     case 'ai.tale.length': {
       const v = value.trim().toLowerCase();
@@ -285,6 +288,8 @@ export function normaliseAiSettings(raw: unknown): AiSettings {
     typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : null;
   const int = (v: unknown, fallback: number, min: number): number =>
     typeof v === 'number' && Number.isInteger(v) && v >= min ? v : fallback;
+  const intOrNull = (v: unknown, fallback: number | null, min: number): number | null =>
+    v === null ? null : typeof v === 'number' && Number.isInteger(v) && v >= min ? v : fallback;
   const intInRange = (v: unknown, fallback: number, min: number, max: number): number =>
     typeof v === 'number' && Number.isInteger(v) && v >= min && v <= max ? v : fallback;
   const t = o.transcription ?? {};
@@ -315,7 +320,7 @@ export function normaliseAiSettings(raw: unknown): AiSettings {
       enabled: typeof f.enabled === 'boolean' ? f.enabled : d.fallback.enabled,
       afterSeconds: int(f.afterSeconds, d.fallback.afterSeconds, 0),
       retrySeconds: int(f.retrySeconds, d.fallback.retrySeconds, 1),
-      maxLocalMinutes: int(f.maxLocalMinutes, d.fallback.maxLocalMinutes, 0),
+      maxLocalMinutes: intOrNull(f.maxLocalMinutes, d.fallback.maxLocalMinutes, 0),
     },
     memory: { enabled: typeof m.enabled === 'boolean' ? m.enabled : d.memory.enabled },
     processing: {

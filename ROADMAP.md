@@ -168,10 +168,12 @@ one clip sliced-but-not-yet-transcribed at a time, so there is no backlog to cap
 
 **Summarisation reliability on local CPU (interim fix), built 2026-11-26**: a real CPU-only job
 died with "fetch failed" at almost exactly the one-hour mark, repeatedly — a hardcoded timeout,
-not infrastructure flakiness. Local-CPU fallback for the LLM is now gated on recording duration
-(`ai.fallback.max-local-minutes`), a repeat-limit abort is reported distinctly instead of
-triggering a silent fallback, and note-taking chunks are smaller. Interim only; a few hints this
-turned up for the Campaign Graph (below) are in
+not infrastructure flakiness. A local call now gets its own (45-minute) liveness timeout rather
+than relying on that one; a job is never refused up front for being long (CLAUDE.md §5's "never
+lost" upheld, by Andy's explicit direction — 8+ hours overnight is fine), only a genuinely stuck
+call fails, and that just costs one attempt, resumed from already-done chapters on retry. A
+repeat-limit abort is reported distinctly instead of triggering a silent fallback, and note-taking
+chunks are smaller. Interim only; a few hints this turned up for the Campaign Graph (below) are in
 [CAMPAIGN-GRAPH-MEMORY.md](docs/architecture/proposals/CAMPAIGN-GRAPH-MEMORY.md#hints-noticed-while-fixing-the-pipelines-reliability-065-2026-11-26).
 See [BUILD-STATUS.md](docs/BUILD-STATUS.md#ai-summary-pipeline-reliability-interim-2026-11-26).
 

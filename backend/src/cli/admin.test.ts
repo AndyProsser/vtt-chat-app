@@ -108,7 +108,7 @@ describe('settings', () => {
     expect(text).toContain('campaign-creation                    closed');
     expect(text).toContain('ai.transcription.kind                local');
     expect(text).toContain('ai.fallback.after-seconds            600');
-    expect(text).toContain('ai.fallback.max-local-minutes        20');
+    expect(text).toContain('ai.fallback.max-local-minutes        none');
   });
 
   it('lists the keys it accepts', async () => {

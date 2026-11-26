@@ -3,7 +3,8 @@
 **Status:** approved and built (2026-11-26); see the implementation plan and
 [BUILD-STATUS.md](../../BUILD-STATUS.md#ai-summary-pipeline-reliability-interim-2026-11-26).
 **Scope:** an interim reliability fix for the records/summary pipeline (`ai/`). Not the Campaign
-Graph (0.7+) — this only stops the pipeline from burning hours of CPU and then failing anyway.
+Graph (0.7+) — this only stops a local-CPU job from grinding for hours and *still* failing
+anyway; running for hours and succeeding is fine and expected.
 
 ## 1. Why
 
@@ -33,10 +34,27 @@ a silent fallback; long-running calls should be avoided by chunking smaller with
 tolerated via a long timeout. For 0.6.5 specifically, "good enough" is the bar — a DM's 5-minute
 recap, not the full Campaign Graph (0.7+).
 
+**Refined after the first build and review, same day:** the "job is small" framing turned out to
+describe the wrong thing — recording length doesn't predict whether a job will get *stuck*, only
+how long it legitimately takes. Andy's revised, final direction: uphold CLAUDE.md §5's "never
+lost" promise — a job should never be refused for being long; it should run for as long as it
+genuinely takes (explicitly: 8+ hours overnight is fine, nobody's waiting). What he actually wants
+caught is a job that's *stuck*, not merely slow, and ideally extended rather than failed if it's
+still making progress. True mid-call progress-watching (streaming tokens from Ollama rather than
+waiting for the whole response) would need a bigger change than an interim fix warrants — flagged
+as a real 0.7+ possibility. What's buildable now, and what §5d/§5e below settle on: no upfront
+duration gate by default, classification and retry (§5a–§5c) to catch a genuinely stuck call, and
+a per-call liveness bound (§5e) generous enough not to kill legitimate slow work — which delivers
+the same practical outcome (a slow job keeps going; a stuck one fails that attempt and resumes on
+retry from its already-completed chapters) without the architecture change real streaming would need.
+
 ## 2. Goals
 
-- A job that can't realistically finish on local CPU fails cleanly and reasonably quickly, instead
-  of grinding for hours and then failing anyway.
+- A job is never refused up front for being long; it runs for as long as it genuinely takes
+  (including many hours), by default — CLAUDE.md §5's "never lost" promise, upheld, not narrowed.
+- A single call that is genuinely *stuck* (not merely slow) is caught and fails that attempt,
+  rather than blocking the worker indefinitely; the job resumes from its already-completed
+  chapters on retry, so a stuck call costs that one attempt, not the whole recording.
 - A remote model choking on content (repeat-limit / prediction-aborted) is distinguishable, in the
   logs and in `vtt-admin jobs list failed`, from a remote server that is actually unreachable.
 - No single model call can silently run for the full hour before anyone finds out it won't finish.
@@ -118,10 +136,24 @@ New operator setting, alongside the existing `ai.fallback.*` group:
   summarisation stage that's the acute pain here. `fallback.enabled` continues to govern
   transcription exactly as today; the new setting only affects the `generate`/`story` roles.
 
+**Revised after review (2026-11-26, same day): the default is now `null` — no limit.** The
+first pass defaulted to 20 minutes, which the final review correctly flagged as effectively
+disabling LLM fallback for every real session (3–5 hours), contradicting CLAUDE.md §5's
+documented "never lost" promise. Andy's call: keep that promise. A job is never refused up front
+by default; `ai.fallback.max-local-minutes` becomes an **opt-in** cap for an operator who
+specifically wants queue-failure-over-CPU-grinding behaviour (0 = never fall back to local at
+all; a number = that many minutes; `null`/"none", the default = no limit). What actually protects
+against the original bug (a job silently grinding for nothing) is 5a–5c (classification and
+retry) and 5e (the per-call timeout) below, not an upfront duration guess — those catch a
+genuinely *stuck* call; a merely *slow* one is allowed to keep going for as long as it takes,
+including Andy's explicit "8+ hours overnight is fine."
+
 Wiring: `processRecording.ts` computes `llmFallbackAllowed` from the recording's duration right
 after `getRecording()` (the very start of `runJob`, well before `buildJobProviders` is called):
-`stoppedAt === null` (shouldn't happen for a job that's processing, but if it does) is treated as
-unknown duration and fails safe (`llmFallbackAllowed = false`). `buildJobProviders`/
+`llmFallbackAllowed` is `true` whenever `maxLocalMinutes` is `null`, or whenever the duration is
+at or under a configured cap. `stoppedAt === null` (shouldn't happen for a job that's processing,
+but if it does) is treated as an infinite duration — safe (and a no-op) under the default of no
+cap, and fails safe the same way "too long" would if an operator has set one. `buildJobProviders`/
 `fromSettings.ts`'s `role()` helper uses the flag to decide what backs the failover's fallback
 slot:
 
@@ -145,15 +177,17 @@ for a job that's actually about to fail without ever calling local. `role()` onl
 option is left out, so `createFailover` is a no-op there and the only record of what happened is
 `tooLarge`'s own thrown error — the job's real, honest failure reason.
 
-### 5e. A shorter, dedicated timeout for local calls
+### 5e. A dedicated per-call timeout for local calls — a liveness bound, not a size gate
 
-Defense in depth, independent of 5d (in case the size estimate is wrong, or an operator disables
-the gate by setting `max-local-minutes` very high): give `createOllamaGenerate` its own, shorter
-`timeoutMs` (proposed default **20 minutes**), via `AbortSignal.timeout`, rather than relying
-solely on `longFetch`'s blanket 60-minute Agent timeout. A remote GPU call may legitimately need
-most of an hour for a large prompt; a local CPU call that hasn't finished in 20 minutes on a
-properly small job is a sign something is already wrong, and failing fast there costs 20 minutes
-of CPU instead of 60.
+Give `createOllamaGenerate` its own `timeoutMs` (default **45 minutes**, revised up from an
+initial 20 after review — a single 6,000-char chunk (5f) was measured close to 20 minutes on the
+project's own no-AVX test VM, RECORDING-AND-SUMMARIES.md, leaving too little margin), via
+`AbortSignal.timeout`, rather than relying solely on `longFetch`'s blanket 60-minute Agent
+timeout. This is **not** "fail fast on a slow job": with 5d defaulting to no overall limit, a
+slow-but-working job is expected to run for hours, call after call. It is a bound on any *one*
+call's liveness — the worker processes one job at a time, so a genuinely hung call (a wedged
+model, an OOM stall) would otherwise block the worker indefinitely; 45 minutes catches that
+without being mistaken for "the job is too slow," which it is explicitly allowed to be.
 
 ### 5f. Smaller chunks, by default
 
@@ -231,19 +265,18 @@ step in this plan that can be dropped without weakening anything else here.
 
 ## 8. Open numbers (my calls, easily changed)
 
-- `ai.fallback.max-local-minutes` default: **20 minutes**. Corrected during review: a real figure
-  *does* already exist, in [RECORDING-AND-SUMMARIES.md](../../architecture/RECORDING-AND-SUMMARIES.md)
-  ("Sampling" measurements) — on the project's own no-AVX Xeon VM, the summary model read 3.2 and
-  wrote 1.8 tokens/s (a modern CPU: roughly 50–100/8–12), and that doc already concludes "the
-  summary model on a CPU without AVX does not work in practice," recommending a remote LLM
-  (OPERATOR-GUIDE) for exactly that hardware. At those rates, one 6,000-char chunk (5f) is itself
-  close to the 20-minute mark — so on hardware like that VM, this default won't read as
-  "conservative": expect most jobs to legitimately fail the gate rather than succeed on local,
-  which is the intended improvement over the old silent multi-hour grind, not a miscalibration.
-  20 minutes is sized for a modern, AVX-capable CPU, where it has real headroom; it's
-  operator-tunable via `vtt-admin settings` either way, and a no-AVX box's honest answer is
-  closer to "configure a remote LLM," which the project already tells operators to do.
-- Local generate timeout (5e): **20 minutes**.
+- `ai.fallback.max-local-minutes` default: **`null` (no limit) — revised after review**, per
+  Andy's explicit direction ("I want this to complete even if it takes 8+ hours"; "the promise
+  [of never losing a recording] upheld"). The setting itself stays as an opt-in cap for an
+  operator who wants the opposite (fail fast rather than ever grind on local CPU) — 0 means never,
+  a number means that many minutes.
+- Local generate timeout (5e): **45 minutes** (revised up from an initial 20 after review — a real
+  figure for the project's own no-AVX Xeon VM already exists in
+  [RECORDING-AND-SUMMARIES.md](../../architecture/RECORDING-AND-SUMMARIES.md) ("Sampling"
+  measurements): the summary model read 3.2 and wrote 1.8 tokens/s there (a modern CPU: roughly
+  50–100/8–12), so a single 6,000-char chunk (5f) is itself close to 20 minutes on that hardware —
+  too little margin for a liveness bound that must not be mistaken for "the job is too slow,"
+  which 5d now explicitly allows it to be).
 - `DEFAULT_CHUNK_CHARS` (5f): **6,000** characters (half of today's 12,000).
 
 ## 9. What's left to the plan

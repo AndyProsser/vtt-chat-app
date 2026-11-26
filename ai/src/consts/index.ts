@@ -60,11 +60,15 @@ export const DEFAULT_MAX_WINDOW_MS = 60_000;
 /** A single transcription or summary call may legitimately take minutes on CPU. */
 export const DEFAULT_PROVIDER_TIMEOUT_MS = 15 * 60_000;
 /**
- * A local Ollama generate call that hasn't finished in this long is a sign something is already
- * wrong: failing here costs 20 minutes, not `longFetch`'s full 60-minute Agent timeout, which is
- * the only other backstop a local call has.
+ * A single local Ollama call's liveness bound: not "fail fast on a slow job" (the worker processes
+ * one job at a time, so a merely slow-but-working call should run to completion, however long the
+ * whole recording ends up taking) but "don't let a genuinely hung call (a wedged model, an OOM
+ * stall) block the worker forever." 45 minutes gives real headroom on the slowest hardware this
+ * project has measured (a single 6,000-char chunk is itself close to 20 minutes on a no-AVX CPU;
+ * see RECORDING-AND-SUMMARIES.md) while still being a real bound, short of `longFetch`'s 60-minute
+ * Agent timeout, the only other backstop a local call has.
  */
-export const LOCAL_GENERATE_TIMEOUT_MS = 20 * 60_000;
+export const LOCAL_GENERATE_TIMEOUT_MS = 45 * 60_000;
 /** How long to wait between attempts while a remote backend is unreachable. */
 export const DEFAULT_RETRY_INTERVAL_MS = 30_000;
 /** How long a remote may stay unreachable before a job falls back to local (CLAUDE.md §5). */

@@ -29,36 +29,49 @@ tripping on a chunk that genuinely couldn't finish on CPU in time, plus a remote
 limit" abort being classified identically to the server being unreachable, silently triggering
 the same permanent fallback-to-local a real outage would.
 
-Local-CPU fallback for the LLM (never Whisper — CLAUDE.md §5 keeps that one explicitly fine) is
-now gated on the recording's duration: `ai.fallback.max-local-minutes`, default **20 minutes**.
-Sized for a modern, AVX-capable CPU — on the project's own no-AVX test VM (measured elsewhere:
-[RECORDING-AND-SUMMARIES.md](RECORDING-AND-SUMMARIES.md), "Sampling" — 3.2 read / 1.8 write
+**Revised the same day, after review and a follow-up conversation with Andy:** the first build
+gated local-CPU LLM fallback on the recording's duration (`ai.fallback.max-local-minutes`,
+default 20 minutes). Review correctly flagged that this effectively disabled fallback for any real
+session (3–5 hours), contradicting CLAUDE.md §5's "never lost" promise. Andy's call: uphold it —
+a job should never be refused for being long, and should run as long as it genuinely takes
+("I just want this to complete even if it takes 8+ hours… no one cares because they are
+sleeping"). `ai.fallback.max-local-minutes` now defaults to **no limit** (`null`) and stays only
+as an *opt-in* cap for an operator who deliberately wants the opposite (0 = never fall back to
+local, a number = that many minutes). What actually protects against the original bug — a job
+grinding for nothing — is the repeat-limit classification and retry-once-then-fail (below), plus
+a per-call liveness bound, not a guess about total duration: those catch a call that's genuinely
+*stuck*, and a merely *slow* one is allowed to keep going, call after call, for as long as it
+takes. A local generate call's own timeout (`LOCAL_GENERATE_TIMEOUT_MS`) is **45 minutes** (raised
+from an initial 20 during review — on the project's own no-AVX test VM, measured elsewhere
+([RECORDING-AND-SUMMARIES.md](RECORDING-AND-SUMMARIES.md), "Sampling": 3.2 read / 1.8 write
 tokens/s, versus roughly 50–100/8–12 on a modern CPU), a single 6,000-char chunk is itself close
-to 20 minutes, so expect most jobs on hardware like that to legitimately hit the gate rather than
-squeeze under it; that doc already tells an operator in that position to configure a remote LLM,
-which this fix doesn't change. Operator-tunable via `vtt-admin settings` either way. Above the
-limit, a remote-unavailable job fails outright and says so, instead of running on CPU anyway. A
-local generate call also gets its own 20-minute timeout
-(`LOCAL_GENERATE_TIMEOUT_MS`) as defense in depth, separate from the 60-minute one `longFetch`
-still gives a remote call. The default note-taking chunk size (`DEFAULT_CHUNK_CHARS`) is halved,
-12,000 → 6,000 characters, to bound a single call's worst-case generation time further. A
-repeat-limit abort is retried once on the same backend before the job fails with a message that
-names it plainly, rather than a generic "fetch failed"/"unreachable". The scribe's note-taking
-prompt was also tightened to prioritise consequential events over exhaustive completeness — a
-deliberate, flagged relaxation of the scribe's own completeness instruction (not of Stage 12 D's
-"decision 7," the unreadable-notes retry ladder, which this leaves untouched), scoped to this
-release and meant to be revisited once the Campaign Graph (0.7+) exists.
+to 20 minutes, which left too little margin for a bound meant to catch only a genuinely hung call,
+not a slow one). This is deliberately a liveness check, not a size gate: if a call times out, that
+one attempt fails, and the job resumes from its already-completed chapters on retry (existing
+machinery, unchanged) — a stuck call costs one attempt, never the whole recording.
 
-**Explicitly out of scope** (interim fix, not the real solution): the Campaign Graph itself;
-automatic re-chunking when a repeat-limit abort recurs ("job optimisation"); cross-chapter LLM
-concurrency.
+The default note-taking chunk size (`DEFAULT_CHUNK_CHARS`) is halved, 12,000 → 6,000 characters,
+to bound a single call's worst-case generation time further. A repeat-limit abort is retried once
+on the same backend before the job fails with a message that names it plainly, rather than a
+generic "fetch failed"/"unreachable". The scribe's note-taking prompt was also tightened to
+prioritise consequential events over exhaustive completeness — a deliberate, flagged relaxation of
+the scribe's own completeness instruction (not of Stage 12 D's "decision 7," the unreadable-notes
+retry ladder, which this leaves untouched), scoped to this release and meant to be revisited once
+the Campaign Graph (0.7+) exists.
 
-**Verified:** `npm test -w shared && npm test -w ai && npm test -w backend`, `npm run lint` and
-`npm run format:check` all clean. **Not yet verified:** a real local-only run against the actual
-recording that triggered this — the whole
-point of `ai.fallback.max-local-minutes`'s default being a guess is that nobody has run one yet
-under this fix to see whether 20 minutes is remotely the right order of magnitude for this
-hardware.
+**Explicitly out of scope** (interim fix, not the real solution): the Campaign Graph itself; real
+mid-call progress-watching (streaming tokens from Ollama and extending a live call rather than
+waiting for the whole response) — Andy asked about this directly; it's a real 0.7+ possibility,
+not built here, because it needs switching every local/remote generate call from `stream: false`
+to `stream: true`, a bigger architectural change than this fix's bounded-timeout-plus-resumable-
+retry approach, which delivers the same practical outcome (slow jobs finish, stuck ones don't
+block forever) without it; automatic re-chunking when a repeat-limit abort recurs ("job
+optimisation"); cross-chapter LLM concurrency.
+
+**Verified:** `npm test -w shared && npm test -w ai && npm test -w backend`, `npm run lint`,
+`npm run format:check` and `npm run typecheck` all clean. **Not yet verified:** a real local-only
+run against the actual recording that triggered this, to see how many hours it genuinely takes
+end to end and whether 45 minutes gives real chunks enough margin on that hardware.
 
 ## Adaptive audio-pipeline concurrency, 2026-11-26
 

@@ -595,9 +595,10 @@ only 4 of the 8 cores; it now uses them all at low priority (`small.en` 1.71× �
 **The summary model on a CPU without AVX does not work in practice:** `qwen3.5:4b` read 3.2 and wrote 1.8 tokens a
 second on the Xeon (a modern CPU: roughly 50–100 and 8–12), so one 12-minute session's notes ran past the worker's
 one-hour request limit. Such a server sends summaries to a remote LLM (OPERATOR-GUIDE). (2026-11-26: that one-hour
-limit is now one of two — a local call also gets its own, shorter `LOCAL_GENERATE_TIMEOUT_MS` — and `ai.fallback.
-max-local-minutes` means a remote-unavailable job on hardware this slow now fails cleanly instead of grinding for
-hours; see BUILD-STATUS's "AI summary pipeline reliability (interim)" entry.)
+limit is now one of two — a local call also gets its own `LOCAL_GENERATE_TIMEOUT_MS`, 45 minutes — but it is a
+liveness check on one call, not an overall job limit: a job on hardware this slow is still allowed to run for
+hours, call after call, by design (never refused up front, per CLAUDE.md §5's "never lost"); see BUILD-STATUS's
+"AI summary pipeline reliability (interim)" entry.)
 
 **Sampling was the real problem.** The Ollama path sent no temperature, so each model's own defaults applied:
 `qwen3.5` ships temperature 1.0 and **presence_penalty 1.5**, which penalises every word already used. Notes have to

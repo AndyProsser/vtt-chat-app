@@ -102,13 +102,19 @@ export function createProcessRecordingHandler(deps: ProcessRecordingDeps): JobHa
 
     const settings: AiSettings = await deps.records.getAiSettings();
     seen.settings = settings;
-    // How long this is allowed to grind on local CPU for the LLM (never Whisper — see CLAUDE.md §5):
-    // unknown duration (stoppedAt somehow still null) fails safe, same as "too long".
+    // Whether this may run the LLM (never Whisper — CLAUDE.md §5) on local CPU if remote is
+    // unavailable. `maxLocalMinutes: null` (the default) means no limit: never refused up front,
+    // so a slow-but-working job keeps going for as long as it takes — a stuck single call still
+    // times out on its own (`LOCAL_GENERATE_TIMEOUT_MS`), but that is a per-call bound, not a
+    // reason to refuse the whole job before trying. An operator may still set an explicit cap.
+    // Unknown duration (stoppedAt somehow still null) fails safe when a cap is set, same as "too long".
     const durationMinutes =
       recording.stoppedAt !== null
         ? (recording.stoppedAt - recording.startedAt) / 60_000
         : Number.POSITIVE_INFINITY;
-    const llmFallbackAllowed = durationMinutes <= settings.fallback.maxLocalMinutes;
+    const llmFallbackAllowed =
+      settings.fallback.maxLocalMinutes === null ||
+      durationMinutes <= settings.fallback.maxLocalMinutes;
     // The campaign's names (Stage 12): Whisper's starting prompt when the operator has it on, and the corrections
     // after. Gathered once per job; none of it for a recording whose campaign is gone.
     const mode = settings.transcription.glossary;

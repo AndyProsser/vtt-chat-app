@@ -97,13 +97,16 @@ describe('setAiSetting', () => {
     );
   });
 
-  it('defaults ai.fallback.max-local-minutes to 20', () => {
-    expect(DEFAULT_AI_SETTINGS.fallback.maxLocalMinutes).toBe(20);
+  it('defaults ai.fallback.max-local-minutes to no limit (null): never lost, by default', () => {
+    expect(DEFAULT_AI_SETTINGS.fallback.maxLocalMinutes).toBeNull();
   });
 
-  it('sets ai.fallback.max-local-minutes', () => {
-    const next = setAiSetting(DEFAULT_AI_SETTINGS, 'ai.fallback.max-local-minutes', '45');
-    expect(next.fallback.maxLocalMinutes).toBe(45);
+  it('sets ai.fallback.max-local-minutes, and clears it back to "none" (no limit)', () => {
+    const capped = setAiSetting(DEFAULT_AI_SETTINGS, 'ai.fallback.max-local-minutes', '45');
+    expect(capped.fallback.maxLocalMinutes).toBe(45);
+    expect(
+      setAiSetting(capped, 'ai.fallback.max-local-minutes', 'none').fallback.maxLocalMinutes,
+    ).toBeNull();
   });
 
   it('accepts 0 for ai.fallback.max-local-minutes, meaning "never fall back to local"', () => {
@@ -158,15 +161,24 @@ describe('normaliseAiSettings', () => {
       enabled: false,
       afterSeconds: 600,
       retrySeconds: 7,
-      maxLocalMinutes: 20,
+      maxLocalMinutes: null,
     });
   });
 
-  it('normalises a missing or junk ai.fallback.max-local-minutes to the default', () => {
-    expect(normaliseAiSettings({ fallback: {} }).fallback.maxLocalMinutes).toBe(20);
+  it('normalises a missing or junk ai.fallback.max-local-minutes to the default (no limit)', () => {
+    expect(normaliseAiSettings({ fallback: {} }).fallback.maxLocalMinutes).toBeNull();
     expect(
       normaliseAiSettings({ fallback: { maxLocalMinutes: 'lots' } }).fallback.maxLocalMinutes,
-    ).toBe(20);
+    ).toBeNull();
+  });
+
+  it('keeps a stored numeric cap, and a stored null, as they are', () => {
+    expect(
+      normaliseAiSettings({ fallback: { maxLocalMinutes: 45 } }).fallback.maxLocalMinutes,
+    ).toBe(45);
+    expect(
+      normaliseAiSettings({ fallback: { maxLocalMinutes: null } }).fallback.maxLocalMinutes,
+    ).toBeNull();
   });
 });
 

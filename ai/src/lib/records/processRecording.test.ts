@@ -595,8 +595,8 @@ describe('process-recording handler', () => {
     expect(prompts).toHaveLength(0); // local was never actually asked to summarise
   });
 
-  it('treats an unknown duration (stoppedAt still null) as too long, not as 0', async () => {
-    await records.putRecording({ ...recording, stoppedAt: null });
+  it('falls back to local for a many-hour recording when no cap is configured (never lost, by default)', async () => {
+    await records.putRecording({ ...recording, stoppedAt: 5 * 60 * 60_000 }); // a 5-hour recording
     records.aiSettings = setAiSetting(
       setAiSetting(
         setAiSetting(DEFAULT_AI_SETTINGS, 'ai.llm.kind', 'remote'),
@@ -605,6 +605,34 @@ describe('process-recording handler', () => {
       ),
       'ai.fallback.after-seconds',
       '0',
+    );
+    const h = handler({
+      buildProviders: (settings, d) =>
+        buildJobProviders(settings, {
+          ...d,
+          fetchImpl: (async () => {
+            throw new TypeError('fetch failed');
+          }) as unknown as typeof fetch,
+        }),
+    });
+    await h.run(job());
+    expect((await records.getSummary(REC, 'session', ''))?.text).toMatch(/^summary #/);
+  });
+
+  it('with an explicit cap set, treats an unknown duration (stoppedAt still null) as too long, not as 0', async () => {
+    await records.putRecording({ ...recording, stoppedAt: null });
+    records.aiSettings = setAiSetting(
+      setAiSetting(
+        setAiSetting(
+          setAiSetting(DEFAULT_AI_SETTINGS, 'ai.llm.kind', 'remote'),
+          'ai.llm.url',
+          'http://gpu:11434',
+        ),
+        'ai.fallback.after-seconds',
+        '0',
+      ),
+      'ai.fallback.max-local-minutes',
+      '10',
     );
     const h = handler({
       buildProviders: (settings, d) =>
