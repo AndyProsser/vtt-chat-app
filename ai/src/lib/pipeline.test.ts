@@ -514,6 +514,27 @@ describe('createOllamaGenerate', () => {
       /response/,
     );
   });
+
+  it('keeps the real reason in the error, not just the status', async () => {
+    const bad = (async () =>
+      new Response(
+        'model runner has unexpectedly stopped: prediction aborted, token repeat limit reached',
+        { status: 500 },
+      )) as unknown as typeof fetch;
+    await expect(createOllamaGenerate({ model: 'm', fetchImpl: bad })('p')).rejects.toThrow(
+      /repeat limit/,
+    );
+  });
+
+  it('gives the fetch a signal, so a call that never resolves can be aborted', async () => {
+    let seenSignal: AbortSignal | undefined;
+    const fetchImpl = (async (_url: string, init: RequestInit) => {
+      seenSignal = init.signal as AbortSignal;
+      return new Response(JSON.stringify({ response: 'ok' }), { status: 200 });
+    }) as unknown as typeof fetch;
+    await createOllamaGenerate({ model: 'm', fetchImpl })('p');
+    expect(seenSignal).toBeInstanceOf(AbortSignal);
+  });
 });
 
 describe('the storytellers (Stage 12 G)', () => {

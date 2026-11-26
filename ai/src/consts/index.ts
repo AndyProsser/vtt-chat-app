@@ -58,6 +58,12 @@ export const DEFAULT_MAX_WINDOW_MS = 60_000;
 
 /** A single transcription or summary call may legitimately take minutes on CPU. */
 export const DEFAULT_PROVIDER_TIMEOUT_MS = 15 * 60_000;
+/**
+ * A local Ollama generate call that hasn't finished in this long is a sign something is already
+ * wrong: failing here costs 20 minutes, not `longFetch`'s full 60-minute Agent timeout, which is
+ * the only other backstop a local call has.
+ */
+export const LOCAL_GENERATE_TIMEOUT_MS = 20 * 60_000;
 /** How long to wait between attempts while a remote backend is unreachable. */
 export const DEFAULT_RETRY_INTERVAL_MS = 30_000;
 /** How long a remote may stay unreachable before a job falls back to local (CLAUDE.md §5). */

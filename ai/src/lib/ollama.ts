@@ -1,4 +1,9 @@
-import { DEFAULT_OLLAMA_URL, SCRIBE_SAMPLING, type Sampling } from '../consts/index.js';
+import {
+  DEFAULT_OLLAMA_URL,
+  LOCAL_GENERATE_TIMEOUT_MS,
+  SCRIBE_SAMPLING,
+  type Sampling,
+} from '../consts/index.js';
 import type { GenerateText } from '../types/index.js';
 import { longFetch } from './longFetch.js';
 
@@ -18,6 +23,8 @@ export interface OllamaOptions {
   keepAlive?: string;
   /** How to sample; default the scribe's (low temperature, no presence penalty). Never the model's own defaults. */
   sampling?: Sampling;
+  /** How long one call may run before it is aborted. Default {@link LOCAL_GENERATE_TIMEOUT_MS}. */
+  timeoutMs?: number;
   /** Injected for tests. */
   fetchImpl?: typeof fetch;
 }
@@ -50,9 +57,13 @@ export function createOllamaGenerate(options: OllamaOptions): GenerateText {
           ...(numCtx ? { num_ctx: numCtx } : {}),
         },
       }),
+      signal: AbortSignal.timeout(options.timeoutMs ?? LOCAL_GENERATE_TIMEOUT_MS),
     });
     if (!response.ok) {
-      throw new Error(`ollama request failed with status ${response.status}`);
+      const detail = (await response.text().catch(() => '')).slice(0, 300);
+      throw new Error(
+        `ollama request failed with status ${response.status}${detail ? `: ${detail}` : ''}`,
+      );
     }
     const body = (await response.json()) as { response?: unknown };
     if (typeof body.response !== 'string') {
