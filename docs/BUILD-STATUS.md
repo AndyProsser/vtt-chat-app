@@ -17,6 +17,43 @@ Last full TypeScript run (2026-11-21, after the OpenAI connector): backend 825 p
 
 **Observed by Andy 2026-11-20:** with the microphone and speakers side by side, a scene's sound is briefly picked up by the DM's microphone, and the echo canceller learns to remove it after a short time. Worth watching in the audio measurements (Stage 12): feeding the soundboard to the canceller as a reference from the first sample would shorten it.
 
+## AI summary pipeline reliability (interim), 2026-11-26
+
+**Built and unit-tested**, following
+[docs/superpowers/plans/2026-11-26-ai-pipeline-reliability-interim-fix.md](../docs/superpowers/plans/2026-11-26-ai-pipeline-reliability-interim-fix.md)
+(design: [docs/superpowers/specs/2026-11-26-ai-pipeline-reliability-design.md](../docs/superpowers/specs/2026-11-26-ai-pipeline-reliability-design.md)).
+Found while running a real GPU-vs-CPU timing comparison: the job died with "fetch failed" at
+almost exactly the one-hour mark, three times across its retries. Root cause was a hardcoded
+60-minute request timeout (`longFetch.ts`) — the only timeout a local Ollama call actually had —
+tripping on a chunk that genuinely couldn't finish on CPU in time, plus a remote "token repeat
+limit" abort being classified identically to the server being unreachable, silently triggering
+the same permanent fallback-to-local a real outage would.
+
+Local-CPU fallback for the LLM (never Whisper — CLAUDE.md §5 keeps that one explicitly fine) is
+now gated on the recording's duration: `ai.fallback.max-local-minutes`, **default 20 minutes and
+genuinely untuned** — no real local-CPU tokens/sec figure exists yet, so this is a deliberately
+conservative starting guess, meant to be adjusted via `vtt-admin settings` once a real run gives
+Andy an actual throughput number. Above it, a remote-unavailable job fails outright and says so,
+instead of running on CPU anyway. A local generate call also gets its own 20-minute timeout
+(`LOCAL_GENERATE_TIMEOUT_MS`) as defense in depth, separate from the 60-minute one `longFetch`
+still gives a remote call. The default note-taking chunk size (`DEFAULT_CHUNK_CHARS`) is halved,
+12,000 → 6,000 characters, to bound a single call's worst-case generation time further. A
+repeat-limit abort is retried once on the same backend before the job fails with a message that
+names it plainly, rather than a generic "fetch failed"/"unreachable". The scribe's note-taking
+prompt was also tightened to prioritise consequential events over exhaustive completeness — a
+deliberate, flagged relaxation of Stage 12 D's "never a weaker fallback" decision, scoped to this
+release and meant to be revisited once the Campaign Graph (0.7+) exists.
+
+**Explicitly out of scope** (interim fix, not the real solution): the Campaign Graph itself;
+automatic re-chunking when a repeat-limit abort recurs ("job optimisation"); cross-chapter LLM
+concurrency.
+
+**Verified:** `npm test -w shared && npm test -w ai && npm test -w backend` all clean. **Not yet
+verified:** a real local-only run against the actual recording that triggered this — the whole
+point of `ai.fallback.max-local-minutes`'s default being a guess is that nobody has run one yet
+under this fix to see whether 20 minutes is remotely the right order of magnitude for this
+hardware.
+
 ## Adaptive audio-pipeline concurrency, 2026-11-26
 
 **Built and unit-tested**, following

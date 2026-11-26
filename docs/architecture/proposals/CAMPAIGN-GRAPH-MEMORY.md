@@ -452,3 +452,31 @@ Not an exhaustive list — just what jumped out on a first read, for whoever pic
   pipeline) would backfill into this model, if at all — the specs' own G2 goal explicitly says historical
   transcripts should rarely need reprocessing, which argues for a one-time backfill at most, not routine
   reprocessing.
+
+## Hints noticed while fixing the pipeline's reliability (0.6.5, 2026-11-26)
+
+Not design work — just what fell out of chasing why a CPU-only job burned hours then failed
+anyway ([2026-11-26-ai-pipeline-reliability-design.md](../../superpowers/specs/2026-11-26-ai-pipeline-reliability-design.md)),
+worth having in front of whoever does the real design pass:
+
+- `ai/src/lib/notes.ts`'s `NOTE_SECTIONS` (events, decisions, combat, npcs, locations, loot, quests, secrets,
+  moments, quotes) is already a small, fixed schema of fact categories — a reasonable seed for the graph's
+  entity/fact types, answering the first open question above in part: this much of "what already exists"
+  maps onto the graph fairly directly.
+- `ai/src/lib/memory.ts` (`buildMemoryPrompt`/`applyMemoryUpdate`/`relevantMemory`) already extracts durable
+  facts from a session's notes and carries them forward as a flat list, re-surfaced by relevance next time.
+  That's graph-lite: the Campaign Graph is naturally this mechanism's evolution (a connected structure
+  instead of a flat list), not a system built alongside it.
+- The 0.6.5 fix halves the default note-taking chunk size (12k → 6k characters) for reliability reasons
+  unrelated to this proposal. A side effect: chunks are now smaller, more addressable units of "what
+  happened in this slice." If the graph ends up extracting structured facts chunk-by-chunk rather than from
+  a whole session's notes, this is a head start, not just a reliability measure.
+- The 0.6.5 fix's one real trade-off — asking the scribe to prioritise consequential events over exhaustive
+  completeness, specifically to keep a chunk's generation time bounded on CPU — is exactly the kind of cost
+  this proposal is meant to make unnecessary: cheap, schema'd fact extraction doesn't need to narrate
+  everything to be thorough about facts. Once the graph exists, that prompt change may be safe to relax or
+  drop; it's a stop-gap, not a direction this project is otherwise committed to.
+- Also worth checking once the graph's call shape is being designed: 0.6.5 made "the model aborted on this
+  content" (a repeat-limit abort) a distinct, loggable signal for the first time, separate from the server
+  being unreachable. Whether short, constrained, schema'd extraction calls turn out more resistant to that
+  failure mode than today's open-ended narrative ones is a real, checkable question once there's data.

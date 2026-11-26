@@ -199,6 +199,19 @@ Update this file as threads open, progress, or close — stale entries here are 
 - **License/IP notice** in `README.md` was reworded (no longer embeds or scrapes DDB). Worth a
   glance from Andy.
 
+- **Hints for the Campaign Graph, from the 0.6.5 pipeline-reliability interim fix (2026-11-26).**
+  While fixing why a CPU-only job burned hours then failed, a few things fell out worth carrying
+  into the knowledge-graph design pass
+  ([CAMPAIGN-GRAPH-MEMORY.md](../docs/architecture/proposals/CAMPAIGN-GRAPH-MEMORY.md), where the
+  fuller version of these notes now lives): `ai/src/lib/notes.ts`'s `NOTE_SECTIONS` is already a
+  small, fixed schema of fact categories, a reasonable seed for the graph's entity/fact types;
+  `ai/src/lib/memory.ts` already extracts durable facts and carries them forward as a flat list,
+  which the graph is naturally the evolution of, not a parallel system; this fix's smaller
+  note-taking chunks (12k → 6k chars) are also smaller, more addressable units, a head start if
+  the graph ends up extracting chunk-by-chunk; and the fix's one real trade-off — asking the
+  scribe to prioritise consequential events over exhaustive completeness, to keep calls fast on
+  CPU — is specifically the kind of cost the graph is meant to make unnecessary, so it's a
+  stop-gap worth revisiting once the graph exists, not a direction.
 - **Deployment buildout (decided 2026-11-11, not built):** version rules (in force), server-chosen client builds with
   optional local mirror, container build workflow, and web-app-owned onboarding/auth (intent only; needs its own design).
   See [docs/architecture/VERSIONING-AND-DEPLOYMENT.md](../docs/architecture/VERSIONING-AND-DEPLOYMENT.md). Order: Wayland
