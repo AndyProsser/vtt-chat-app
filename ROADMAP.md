@@ -159,6 +159,13 @@ Found while session 4 was processing on 0.6.4: the remote GPU Whisper sat at 0% 
 
 **Preparing the audio in parallel, ahead of the GPU (Andy, 2026-11-25).** The slicing is the slow part and it is CPU work on the VM (8 cores), so it can be done as a **batch before and alongside transcription**: (1) the silence scan and the cutting of every track run at the same time, one track per core, as tracks are independent (11 tracks on an 8-core VM); (2) within a track, cut all the windows in **one ffmpeg pass** (the segment muxer, or one decode with several outputs) instead of starting an ffmpeg per window, which decodes from the seek point each time; (3) a **queue of ready clips** that the transcriber drains, so the GPU never waits for a slice. Order is kept by the window index, as now. Disk is the limit to watch: ready clips are temporary files, so the queue has a size cap.
 
+**Part (1) is built, 2026-11-26**, and scaled by how busy the instance actually is rather than a
+fixed core count: see [BUILD-STATUS.md](docs/BUILD-STATUS.md#adaptive-audio-pipeline-concurrency-2026-11-26).
+Whisper itself stays one request at a time, closing the "GPU answers one at a time anyway" finding
+above by never opening more than one. **Parts (2) and (3) (one ffmpeg pass per track; a disk-capped
+ready-clip queue) turned out unnecessary once (1) was built this way** — each track only ever has
+one clip sliced-but-not-yet-transcribed at a time, so there is no backlog to cap or batch.
+
 ### Anything else
 
 Anything Stage 13 finds that cannot be fixed without a wire change is added here when found. The wire-change ideas that are not decided (polyglot masking, web push, the Admin quick-access screen) are parked in [Future ideas](#future-ideas), not in 0.7.0.

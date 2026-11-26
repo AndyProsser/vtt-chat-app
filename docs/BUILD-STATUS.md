@@ -17,6 +17,37 @@ Last full TypeScript run (2026-11-21, after the OpenAI connector): backend 825 p
 
 **Observed by Andy 2026-11-20:** with the microphone and speakers side by side, a scene's sound is briefly picked up by the DM's microphone, and the echo canceller learns to remove it after a short time. Worth watching in the audio measurements (Stage 12): feeding the soundboard to the canceller as a reference from the first sample would shorten it.
 
+## Adaptive audio-pipeline concurrency, 2026-11-26
+
+**Built and unit-tested**, following
+[docs/superpowers/plans/2026-11-26-adaptive-audio-pipeline-concurrency.md](../docs/superpowers/plans/2026-11-26-adaptive-audio-pipeline-concurrency.md)
+(design: [docs/superpowers/specs/2026-11-26-adaptive-audio-pipeline-concurrency-design.md](../docs/superpowers/specs/2026-11-26-adaptive-audio-pipeline-concurrency-design.md)).
+Found while checking a real session's processing time on the VM: tracks transcribed one at a time,
+and within a track, windows one at a time — Whisper spends most of its time waiting on the next
+sliced clip, not transcribing. `processRecording.ts`'s track loop now dispatches several tracks at
+once through a small concurrency pool (`dynamicPool.ts`), with a shared mutex keeping Whisper
+itself at one request in flight regardless of how many tracks run concurrently. How many tracks run
+at once comes from a new activity governor (`activityGovernor.ts`): a disposable mirror of the
+backend's online-user count (new `instance_runtime` table, written by `hub.ts` on every
+connect/disconnect) drives it first — nobody online uses up to the host's core count, anyone online
+drops to a conservative default (`ai.processing.active-concurrency`, 2) — and CPU load
+(`ai.processing.cpu-threshold-percent`, 70%) is a backup clamp to 1, consulted only once presence
+says someone's there. An unreadable presence signal fails toward "someone's online," the opposite
+of `quietGate`'s own fail-open convention, since here the wrong default is the one that would
+contend with a real player. `quietGate`'s existing hard pause (`ai.pause-while-recording`) now also
+covers this track dispatch, closing a gap where parallel clip-prep would otherwise have run even
+while a table recorded elsewhere.
+
+**Explicitly out of scope** (Andy, during planning): cross-recording concurrency — the worker still
+processes exactly one job (one recording) at a time, tables strictly in order; multiple concurrent
+Whisper requests — the bottleneck identified was clip preparation, not Whisper's own throughput.
+
+**Verified:** `npm run lint && npm run build && npm run typecheck && npm test && npm run format:check`
+all clean across the whole repo. **Not yet verified:** a real multi-track reprocess on the dev VM
+actually overlapping tracks in the worker log (the plan's own "Done when" calls for a manual
+spot-check before trusting this in practice); the Postgres-backed `onlineUserCount` test runs only
+in skipped form in every environment used so far (no `TEST_DATABASE_URL` set).
+
 ## AI context-window tuning via `vtt-admin status`, 2026-11-24
 
 **Built, on branch `worktree-ai-context-tuning`, following
