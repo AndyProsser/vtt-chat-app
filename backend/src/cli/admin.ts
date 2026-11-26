@@ -226,6 +226,7 @@ function settingValues(s: InstanceSettings): [string, string | null][] {
     ['ai.fallback.enabled', String(s.ai.fallback.enabled)],
     ['ai.fallback.after-seconds', String(s.ai.fallback.afterSeconds)],
     ['ai.fallback.retry-seconds', String(s.ai.fallback.retrySeconds)],
+    ['ai.fallback.max-local-minutes', String(s.ai.fallback.maxLocalMinutes)],
     ['ai.memory.enabled', String(s.ai.memory.enabled)],
     ['ai.pause-while-recording', String(s.ai.processing.pauseWhileRecording)],
     ['ai.processing.active-concurrency', String(s.ai.processing.activeConcurrency)],
