@@ -599,7 +599,9 @@ export class PostgresRecordsStore implements RecordsStore {
   }
 
   async onlineUserCount(): Promise<number> {
-    const { rows } = await this.pool.query('SELECT online_users FROM instance_runtime WHERE id = 1');
+    const { rows } = await this.pool.query(
+      'SELECT online_users FROM instance_runtime WHERE id = 1',
+    );
     return (rows[0]?.online_users as number | undefined) ?? 0;
   }
 }

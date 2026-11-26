@@ -187,7 +187,11 @@ export function setAiSetting(settings: AiSettings, key: AiSettingKey, value: str
       next.processing.pauseWhileRecording = parseBool(value);
       break;
     case 'ai.processing.active-concurrency':
-      next.processing.activeConcurrency = parseWholeNumberInRange(value, 1, Number.MAX_SAFE_INTEGER);
+      next.processing.activeConcurrency = parseWholeNumberInRange(
+        value,
+        1,
+        Number.MAX_SAFE_INTEGER,
+      );
       break;
     case 'ai.processing.cpu-threshold-percent':
       next.processing.cpuThresholdPercent = parseWholeNumberInRange(value, 1, 100);
