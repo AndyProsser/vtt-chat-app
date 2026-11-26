@@ -71,6 +71,7 @@ import {
   scheduleRetentionPurges,
 } from '../lib/records/purgeRecording.js';
 import { createQuietGate } from '../lib/records/quietGate.js';
+import { createActivityGovernor } from '../lib/records/activityGovernor.js';
 import { freePercentOf, sweepDiskPurges } from '../lib/records/diskPurge.js';
 import { transcribeTrackFile } from '../lib/records/transcribeTrack.js';
 import { createOpenAiTranscribe, fitsAudioContext } from '../lib/providers/openaiCompat.js';
@@ -151,6 +152,9 @@ async function main(): Promise<void> {
     localModelNames: { llm: ollamaModel, ...(twoModels ? { story: storyModel } : {}) },
     // Local AI waits while a table records, when ai.pause-while-recording is on.
     gate: createQuietGate({ records, log }),
+    // How many tracks transcribe at once right now: presence-first, CPU load a backup clamp.
+    trackConcurrency: createActivityGovernor({ records, settings: records.getAiSettings })
+      .trackConcurrency,
     localTranscribe: (language, prompt) =>
       localUrl && whisperReady
         ? holdForWhisper(

@@ -35,6 +35,7 @@ import { fitNotes, type FitResult } from '../fitNotes.js';
 import { formatNotes, parseStoredNotes } from '../prompts.js';
 import { stripThinking, takeNotes, writeFromNotes, type SummaryModels } from '../summarise.js';
 import { planSummaries } from '../summaryPlan.js';
+import { createDynamicPool } from './dynamicPool.js';
 import type { RecordsStore } from './recordsStore.js';
 
 export const PROCESS_RECORDING_JOB = 'process-recording';
@@ -59,8 +60,11 @@ export interface ProcessRecordingDeps {
   };
   now?: () => number;
   log?: (line: string) => void;
-  /** Asked before each Whisper window and model call (`createQuietGate`); absent means never wait. */
+  /** Asked before each Whisper window, model call, and (since Task 5) track dispatch
+   *  (`createQuietGate`); absent means never wait. */
   gate?: () => Promise<void>;
+  /** How many tracks may transcribe at once right now (the activity governor); absent means 1 (serial, today's behaviour). */
+  trackConcurrency?: (tracksRemaining: number) => Promise<number>;
   /** The local models' names (the worker's `OLLAMA_MODEL` and `OLLAMA_STORY_MODEL`), so a job can say which it used. */
   localModelNames?: LocalModelNames;
   /** Overridable for tests that inject `fetch`. */
@@ -139,22 +143,37 @@ export function createProcessRecordingHandler(deps: ProcessRecordingDeps): JobHa
           }
         : call;
 
-    // 1. Transcribe each track that has not been done yet.
-    for (const track of await deps.records.listTracks(recording.id)) {
-      if (track.private) {
-        log(`${recording.id}: skipping private track ${track.id}`);
-        continue;
-      }
-      if (track.transcribedAt !== null) continue;
-      log(`${recording.id}: transcribing ${track.speakerName}`);
-      const heard = await deps.transcribeAudioFile(
-        track.filePath,
-        gated(providers.transcribe.call),
-      );
-      const segments =
-        mode === 'corrections' || mode === 'both' ? correctSegments(heard, vocabulary) : heard;
-      await deps.records.saveTrackTranscript(track.id, segments, now());
+    // 1. Transcribe every track that has not been done yet, several at once (bounded by the
+    // activity governor), while Whisper itself still sees only one request in flight at a time.
+    const tracks = await deps.records.listTracks(recording.id);
+    for (const track of tracks) {
+      if (track.private) log(`${recording.id}: skipping private track ${track.id}`);
     }
+    const needsWork = tracks.filter((track) => !track.private && track.transcribedAt === null);
+    const trackPool = createDynamicPool({
+      currentLimit: async () => (await deps.trackConcurrency?.(needsWork.length)) ?? 1,
+      ...(gate ? { gate } : {}),
+    });
+    // However many tracks run at once, Whisper itself only ever sees one request at a time.
+    const whisperMutex = createDynamicPool({ currentLimit: async () => 1 });
+    const mutexedTranscribeWav: TranscribeWav = (wav) =>
+      whisperMutex.run(() => gated(providers.transcribe.call)(wav));
+
+    const settled = await Promise.allSettled(
+      needsWork.map((track) =>
+        trackPool.run(async () => {
+          log(`${recording.id}: transcribing ${track.speakerName}`);
+          const heard = await deps.transcribeAudioFile(track.filePath, mutexedTranscribeWav);
+          const segments =
+            mode === 'corrections' || mode === 'both' ? correctSegments(heard, vocabulary) : heard;
+          await deps.records.saveTrackTranscript(track.id, segments, now());
+        }),
+      ),
+    );
+    // One track's failure never costs the others their already-saved work: every track that
+    // succeeded is saved above before this throws, so a retry only has to redo the one that failed.
+    const failed = settled.find((r): r is PromiseRejectedResult => r.status === 'rejected');
+    if (failed) throw failed.reason;
 
     // 2. Merge, 3. summarise.
     // Spoken lines, plus what people typed into the public chat during the recording (never whispers).

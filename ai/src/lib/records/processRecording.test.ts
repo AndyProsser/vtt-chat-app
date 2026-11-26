@@ -82,7 +82,7 @@ beforeEach(async () => {
 });
 
 describe('process-recording handler', () => {
-  it('asks the gate before every model call, so a recording can hold processing back', async () => {
+  it('asks the gate before every model call and before each track is dispatched', async () => {
     let asked = 0;
     await handler({
       gate: async () => {
@@ -90,7 +90,75 @@ describe('process-recording handler', () => {
       },
     }).run(job());
     expect(prompts.length).toBeGreaterThan(0);
-    expect(asked).toBe(prompts.length);
+    // + the fixture's 2 tracks (alice, bob): since Task 5, the gate also covers track dispatch.
+    expect(asked).toBe(prompts.length + 2);
+  });
+
+  it('runs up to trackConcurrency() tracks at once, not one at a time', async () => {
+    await records.putTrack(track('t-carol', 'carol'));
+    await records.putTrack(track('t-dave', 'dave'));
+    let running = 0;
+    let maxRunning = 0;
+    await handler({
+      trackConcurrency: async () => 2,
+      transcribeAudioFile: async (file) => {
+        running++;
+        maxRunning = Math.max(maxRunning, running);
+        await new Promise((r) => setTimeout(r, 10));
+        running--;
+        transcribed.push(file);
+        return say('ok');
+      },
+    }).run(job());
+    expect(maxRunning).toBe(2);
+    expect(transcribed).toHaveLength(4);
+  });
+
+  it('saves the tracks that succeeded even when another track fails', async () => {
+    await records.putTrack(track('t-carol', 'carol'));
+    const saved: string[] = [];
+    const failing = handler({
+      trackConcurrency: async () => 3,
+      transcribeAudioFile: async (file) => {
+        if (file.includes('bob')) throw new Error('whisper exploded');
+        return say('ok');
+      },
+    });
+    const originalSave = records.saveTrackTranscript.bind(records);
+    records.saveTrackTranscript = async (trackId, segments, at) => {
+      saved.push(trackId);
+      return originalSave(trackId, segments, at);
+    };
+    await expect(failing.run(job())).rejects.toThrow('whisper exploded');
+    expect(saved.sort()).toEqual(['t-alice', 't-carol']);
+  });
+
+  it('behaves exactly as before with a single non-private track', async () => {
+    // bob already has a transcript from an earlier attempt — only alice still needs work.
+    await records.putTrack(track('t-bob', 'bob', { startOffsetMs: 2000, transcribedAt: 1 }));
+    let seenRemaining: number | undefined;
+    await handler({
+      trackConcurrency: async (remaining) => {
+        seenRemaining = remaining;
+        return remaining;
+      },
+    }).run(job());
+    expect(seenRemaining).toBe(1);
+    expect(transcribed).toEqual(['/audio/t-alice.ogg']);
+  });
+
+  it("sizes trackConcurrency by tracks still needing work, not the recording's raw track count", async () => {
+    await records.putTrack(track('t-carol', 'carol', { private: true }));
+    await records.putTrack(track('t-dave', 'dave', { transcribedAt: 1 }));
+    let seenRemaining: number | undefined;
+    await handler({
+      trackConcurrency: async (remaining) => {
+        seenRemaining = remaining;
+        return remaining;
+      },
+    }).run(job());
+    // alice + bob still need work; carol is private and dave is already transcribed.
+    expect(seenRemaining).toBe(2);
   });
 
   it('adds up what Claude was asked and records it on the job, even when the job then fails', async () => {
