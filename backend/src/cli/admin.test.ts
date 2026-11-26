@@ -105,9 +105,9 @@ describe('settings', () => {
   it('shows every setting with its default', async () => {
     expect(await run('settings show')).toBe(0);
     const text = out.join('\n');
-    expect(text).toContain('campaign-creation          closed');
-    expect(text).toContain('ai.transcription.kind      local');
-    expect(text).toContain('ai.fallback.after-seconds  600');
+    expect(text).toContain('campaign-creation                    closed');
+    expect(text).toContain('ai.transcription.kind                local');
+    expect(text).toContain('ai.fallback.after-seconds            600');
   });
 
   it('lists the keys it accepts', async () => {
@@ -987,7 +987,7 @@ describe('campaign directory setting', () => {
     expect((await store.getSettings()).campaignDirectory).toBe('off');
     out.length = 0;
     await run('settings show');
-    expect(out.join('\n')).toContain('campaign-directory         off');
+    expect(out.join('\n')).toContain('campaign-directory                   off');
     out.length = 0;
     await run('settings keys');
     expect(out.join('\n')).toContain('campaign-directory');
@@ -1002,10 +1002,27 @@ describe('audio-purge-next-session', () => {
     expect((await store.getSettings()).audioPurgeOnNextSession).toBe('on');
     out.length = 0;
     await run('settings show');
-    expect(out.join('\n')).toContain('audio-purge-next-session   on');
+    expect(out.join('\n')).toContain('audio-purge-next-session             on');
     out.length = 0;
     await run('settings keys');
     expect(out.join('\n')).toContain('audio-purge-next-session');
+  });
+});
+
+describe('ai.processing.* concurrency settings', () => {
+  it('shows, lists in keys, and echoes a real value (not "(none)") on set', async () => {
+    out.length = 0;
+    await run('settings show');
+    expect(out.join('\n')).toContain('ai.processing.active-concurrency     2');
+    expect(out.join('\n')).toContain('ai.processing.cpu-threshold-percent  70');
+    out.length = 0;
+    await run('settings keys');
+    expect(out.join('\n')).toContain('ai.processing.active-concurrency');
+    expect(out.join('\n')).toContain('ai.processing.cpu-threshold-percent');
+    out.length = 0;
+    expect(await run('settings set ai.processing.active-concurrency 4')).toBe(0);
+    expect(out.join('\n')).toContain('set ai.processing.active-concurrency = 4');
+    expect(out.join('\n')).not.toContain('(none)');
   });
 });
 
@@ -1016,7 +1033,7 @@ describe('signup requests', () => {
   it('is off by default and the setting validates', async () => {
     expect((await store.getSettings()).signupRequests).toBe('off');
     await run('settings show');
-    expect(out.join('\n')).toContain('signup.requests            off');
+    expect(out.join('\n')).toContain('signup.requests                      off');
     expect(await run('settings set signup.requests maybe')).toBe(1);
     expect(await run('settings set signup.requests on')).toBe(0);
     expect((await store.getSettings()).signupRequests).toBe('on');

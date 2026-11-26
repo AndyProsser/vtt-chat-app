@@ -114,6 +114,29 @@ describe('process-recording handler', () => {
     expect(transcribed).toHaveLength(4);
   });
 
+  it('keeps Whisper itself to one request at a time, however many tracks run concurrently', async () => {
+    await records.putTrack(track('t-carol', 'carol'));
+    await records.putTrack(track('t-dave', 'dave'));
+    let inFlight = 0;
+    let maxInFlight = 0;
+    await handler({
+      trackConcurrency: async () => 4,
+      // Unlike every other fake in this file, this one actually calls the `transcribeWav` it's
+      // given — so it exercises the shared Whisper mutex, not just the track-dispatch pool.
+      transcribeAudioFile: async (file, transcribeWav) => transcribeWav(file),
+      localTranscribe: () => async (wav) => {
+        inFlight++;
+        maxInFlight = Math.max(maxInFlight, inFlight);
+        await new Promise((r) => setTimeout(r, 10));
+        inFlight--;
+        transcribed.push(wav);
+        return say('ok');
+      },
+    }).run(job());
+    expect(maxInFlight).toBe(1);
+    expect(transcribed).toHaveLength(4);
+  });
+
   it('saves the tracks that succeeded even when another track fails', async () => {
     await records.putTrack(track('t-carol', 'carol'));
     const saved: string[] = [];

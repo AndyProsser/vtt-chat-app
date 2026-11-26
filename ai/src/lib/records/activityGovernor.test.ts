@@ -48,6 +48,18 @@ describe('createActivityGovernor', () => {
     expect(await governor.trackConcurrency(11)).toBe(2); // the active-tier default, not 8
   });
 
+  test('treats a settings read failure as the safe answer (concurrency 1), never throws or hangs', async () => {
+    const governor = createActivityGovernor({
+      records: { onlineUserCount: async () => 0 }, // would otherwise mean "use the whole box"
+      settings: async () => {
+        throw new Error('db unreachable');
+      },
+      loadavg: () => [0],
+      cpuCount: () => 8,
+    });
+    await expect(governor.trackConcurrency(11)).resolves.toBe(1);
+  });
+
   test('reuses a recent answer instead of re-reading on every call', async () => {
     let calls = 0;
     const governor = createActivityGovernor({

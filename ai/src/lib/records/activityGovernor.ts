@@ -48,7 +48,16 @@ export function createActivityGovernor(options: ActivityGovernorOptions): Activi
 
   return {
     async trackConcurrency(tracksRemaining: number): Promise<number> {
-      const { onlineUsers, processing } = await read();
+      // A settings-read failure (the presence read already falls back to 1 above) must not throw
+      // here: this runs inside a fire-and-forget pool dispatch, so an unhandled rejection would
+      // crash the worker mid-job instead of just answering conservatively.
+      let state: { onlineUsers: number; processing: AiSettings['processing'] };
+      try {
+        state = await read();
+      } catch {
+        return Math.min(1, tracksRemaining);
+      }
+      const { onlineUsers, processing } = state;
       if (onlineUsers === 0) return Math.min(cpuCount(), tracksRemaining);
       const load = readLoadavg()[0] ?? 0;
       const busy = load / cpuCount() >= processing.cpuThresholdPercent / 100;

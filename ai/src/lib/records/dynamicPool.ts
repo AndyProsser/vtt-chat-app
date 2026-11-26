@@ -30,7 +30,12 @@ export function createDynamicPool(options: DynamicPoolOptions): DynamicPool {
     try {
       for (;;) {
         if (queue.length === 0) return;
-        const limit = await options.currentLimit();
+        // A failing or nonsensical limit must never stop the pool making progress: this loop is
+        // always invoked fire-and-forget (`void tryDispatch()`), so letting it throw here would be
+        // an unhandled rejection that could crash the host process mid-job, and a limit of 0 (or
+        // NaN, read as "unbounded" by `>=`) would otherwise deadlock or blow past any real cap.
+        const rawLimit = await options.currentLimit().catch(() => 1);
+        const limit = Number.isFinite(rawLimit) && rawLimit >= 1 ? rawLimit : 1;
         if (running >= limit || queue.length === 0) return;
         running++;
         const next = queue.shift();

@@ -193,7 +193,13 @@ const SETTING_SECTIONS: [title: string, matches: (key: string) => boolean][] = [
   ['Transcription (Whisper)', (k) => k.startsWith('ai.transcription.')],
   ['Summary model (LLM)', (k) => k.startsWith('ai.llm.')],
   ['Fallback to local AI', (k) => k.startsWith('ai.fallback.')],
-  ['Processing and memory', (k) => k === 'ai.pause-while-recording' || k.startsWith('ai.memory.')],
+  [
+    'Processing and memory',
+    (k) =>
+      k === 'ai.pause-while-recording' ||
+      k.startsWith('ai.memory.') ||
+      k.startsWith('ai.processing.'),
+  ],
   ['Storyteller', (k) => k.startsWith('ai.tale.') || k.startsWith('ai.storyteller')],
 ];
 
@@ -222,6 +228,8 @@ function settingValues(s: InstanceSettings): [string, string | null][] {
     ['ai.fallback.retry-seconds', String(s.ai.fallback.retrySeconds)],
     ['ai.memory.enabled', String(s.ai.memory.enabled)],
     ['ai.pause-while-recording', String(s.ai.processing.pauseWhileRecording)],
+    ['ai.processing.active-concurrency', String(s.ai.processing.activeConcurrency)],
+    ['ai.processing.cpu-threshold-percent', String(s.ai.processing.cpuThresholdPercent)],
     ['ai.tale.length', s.ai.tale.length],
     ['ai.tale.content', s.ai.tale.content],
     ...BARD_IDS.map((id): [string, string] => [
