@@ -177,6 +177,24 @@ chunks are smaller. Interim only; a few hints this turned up for the Campaign Gr
 [CAMPAIGN-GRAPH-MEMORY.md](docs/architecture/proposals/CAMPAIGN-GRAPH-MEMORY.md#hints-noticed-while-fixing-the-pipelines-reliability-065-2026-11-26).
 See [BUILD-STATUS.md](docs/BUILD-STATUS.md#ai-summary-pipeline-reliability-interim-2026-11-26).
 
+**Real progress-watching for a local LLM call (Andy, 2026-11-26; for 0.7 to catch, not 0.6.5).**
+Asked directly while fixing the above: can a long local call's *actual* progress be checked, so a
+genuinely slow-but-working call is extended rather than bounded by a flat timeout? Not with
+today's client: every local and remote generate call uses `stream: false` (`ollama.ts`,
+`openaiCompat.ts`) — the job queue is written around "one prompt in, one whole answer out," so
+there is nothing to watch mid-call. The real fix is switching to `stream: true` and reading
+Ollama's token stream as it arrives: a call that is still producing tokens is live, however slow,
+and only a call that has gone quiet (no new tokens for some window) is actually stuck — a much
+better signal than "has this calendar-clock timeout elapsed yet," especially across wildly
+different hardware (the same 6,000-char chunk measured close to 20 minutes on the project's own
+no-AVX Xeon and plausibly a tenth of that on a modern CPU). This is a real architecture change,
+not a tweak — `takeNotes`/`writeFromNotes` and the whole `GenerateText` interface would need a
+streaming-aware shape — so 0.6.5 ships with a generous flat per-call timeout (45 minutes,
+`LOCAL_GENERATE_TIMEOUT_MS`) instead and no overall job-duration limit, which is a cruder but
+buildable-today approximation of the same goal. Worth real design time in 0.7, likely alongside
+whatever the Campaign Graph's own call shape ends up being (shorter, schema'd calls may make this
+less urgent than it looks today).
+
 ### Anything else
 
 Anything Stage 13 finds that cannot be fixed without a wire change is added here when found. The wire-change ideas that are not decided (polyglot masking, web push, the Admin quick-access screen) are parked in [Future ideas](#future-ideas), not in 0.7.0.
