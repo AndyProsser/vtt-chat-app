@@ -139,3 +139,47 @@ describe('secondary windows draw', () => {
     expect((await draw(<SettingsContent />)).length).toBeGreaterThan(0);
   });
 });
+
+/** Renders and keeps the host mounted (cleaned up by the same `afterEach` as `draw`), for tests
+ *  that click something after the panel settles. */
+async function drawKept(element: ReactElement): Promise<HTMLElement> {
+  const host = document.createElement('div');
+  document.body.append(host);
+  mounted.push(host);
+  const root = createRoot(host);
+  await act(async () => {
+    root.render(<Theme>{element}</Theme>);
+  });
+  await act(async () => {
+    await new Promise((r) => setTimeout(r, 20));
+  });
+  return host;
+}
+
+function click(host: HTMLElement, label: string): Promise<void> {
+  return act(async () => {
+    host
+      .querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`)
+      ?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    await new Promise((r) => setTimeout(r, 20));
+  });
+}
+
+describe('the new-item forms hide behind the panel\'s Add button', () => {
+  // Radix's Popover.Content portals into document.body, not under the trigger's own host element.
+  it('Handouts: the new-handout form is closed, then opens on Add, as the DM', async () => {
+    const { HandoutsPanel } = await import('./HandoutsPanel.js');
+    const host = await drawKept(<HandoutsPanel />);
+    expect(document.querySelector('[aria-label="New handout"]')).toBeNull();
+    await click(host, 'Add a handout');
+    expect(document.querySelector('[aria-label="New handout"]')).not.toBeNull();
+  });
+
+  it('Party inventory: the loot bench is closed, then opens on Add, as the DM', async () => {
+    const { LootPanel } = await import('./LootPanel.js');
+    const host = await drawKept(<LootPanel />);
+    expect(document.querySelector('[aria-label="Loot bench"]')).toBeNull();
+    await click(host, 'Add loot');
+    expect(document.querySelector('[aria-label="Loot bench"]')).not.toBeNull();
+  });
+});

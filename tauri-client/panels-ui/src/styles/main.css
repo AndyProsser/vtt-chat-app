@@ -859,6 +859,13 @@ body,
   margin: 0;
   line-height: 1.2;
 }
+/* A panel heading with a trailing action (e.g. "Add"), hard right. */
+.vtt-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
 /* Buttons inside a card (a handout, a session) read as icons; toggles, filters and anything outside a card keep their border. */
 .vtt-session .vtt-tool:not(.vtt-tool-on) {
   border-color: transparent;
@@ -2514,6 +2521,13 @@ body,
   overflow: visible;
   padding: 0;
   background: transparent;
+}
+/* The new-handout / new-loot forms, dropped from the panel's own "Add" button: as wide as the
+   panel comfortably allows, so the form reads the same as it did inline. */
+.vtt-panel-add-pop {
+  width: min(380px, calc(100vw - 16px));
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
 }
 
 /* A small "back" button (the delete choices in Session history). */

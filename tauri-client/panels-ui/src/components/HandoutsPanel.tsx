@@ -1,4 +1,4 @@
-import { TextField } from '@radix-ui/themes';
+import { Popover, TextField } from '@radix-ui/themes';
 import {
   ClipboardPaste,
   Check,
@@ -478,6 +478,7 @@ export function HandoutsPanel() {
   ]);
   const [query, setQuery] = useState('');
   const [actionError, setActionError] = useState<string>();
+  const [adding, setAdding] = useState(false);
   const shown = useMemo(
     () => newestFirst(searchHandouts(data?.handouts ?? [], query)),
     [data, query],
@@ -518,13 +519,32 @@ export function HandoutsPanel() {
   const problem = error ?? actionError;
   return (
     <div className="vtt-sessions">
-      <h2 className="vtt-head vtt-panel-title">Handouts</h2>
+      <div className="vtt-panel-head">
+        <h2 className="vtt-head vtt-panel-title">Handouts</h2>
+        {dm && (
+          <Popover.Root open={adding} onOpenChange={setAdding}>
+            <Popover.Trigger>
+              <ToolButton label="Add a handout">
+                <Plus size={14} />
+              </ToolButton>
+            </Popover.Trigger>
+            <Popover.Content size="1" align="end" className="vtt-panel-add-pop">
+              <NewHandout
+                onDone={() => {
+                  reload();
+                  setAdding(false);
+                }}
+                onError={setActionError}
+              />
+            </Popover.Content>
+          </Popover.Root>
+        )}
+      </div>
       {problem && (
         <div className="vtt-composer-error" role="alert" style={{ position: 'static' }}>
           {problem}
         </div>
       )}
-      {dm && <NewHandout onDone={reload} onError={setActionError} />}
       {(data?.handouts.length ?? 0) > 0 && (
         <div className="vtt-form-row">
           <Search size={14} aria-hidden />

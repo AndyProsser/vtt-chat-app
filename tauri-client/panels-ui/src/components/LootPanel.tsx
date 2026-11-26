@@ -1,10 +1,11 @@
-import { Tabs } from '@radix-ui/themes';
+import { Popover, Tabs } from '@radix-ui/themes';
 import {
   Backpack,
   Inbox,
   List,
   ListChecks,
   ListTodo,
+  Plus,
   Trash2,
   User,
   UserCheck,
@@ -71,6 +72,7 @@ export function LootPanel() {
   // and then left alone: it must not jump while you tick items off.
   const [pickedFilter, setPickedFilter] = useState<LootFilter>();
   const [auto, setAuto] = useState<LootFilter>();
+  const [adding, setAdding] = useState(false);
   // /take and /stash ask for a tab (see inventoryRequest).
   useEffect(() => watchInventoryTabRequests(setPickedFilter), []);
   const ready = data !== undefined && status?.userId != null && members.length > 0;
@@ -108,15 +110,34 @@ export function LootPanel() {
 
   return (
     <div className="vtt-inventory">
-      <h2 className="vtt-head vtt-panel-title">
-        <Backpack size={18} style={{ verticalAlign: '-3px' }} /> Party inventory
-      </h2>
+      <div className="vtt-panel-head">
+        <h2 className="vtt-head vtt-panel-title">
+          <Backpack size={18} style={{ verticalAlign: '-3px' }} /> Party inventory
+        </h2>
+        {dm && (
+          <Popover.Root open={adding} onOpenChange={setAdding}>
+            <Popover.Trigger>
+              <ToolButton label="Add loot">
+                <Plus size={14} />
+              </ToolButton>
+            </Popover.Trigger>
+            <Popover.Content size="1" align="end" className="vtt-panel-add-pop">
+              <LootWorkbench
+                onDropped={() => {
+                  reload();
+                  setAdding(false);
+                }}
+                players={players}
+              />
+            </Popover.Content>
+          </Popover.Root>
+        )}
+      </div>
       {problem && (
         <div className="vtt-composer-error" role="alert" style={{ position: 'static' }}>
           {problem}
         </div>
       )}
-      {dm && <LootWorkbench onDropped={reload} players={players} />}
       <Tabs.Root value={view} onValueChange={(v) => setPickedFilter(v as LootFilter)}>
         <Tabs.List size="1">
           {filtersFor(dm).map((f) => {
