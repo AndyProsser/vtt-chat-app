@@ -21,8 +21,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 
-import { glowLevel, rarityLabel, typeLabel } from '../lib/itemStyle.js';
-import type { ItemType, Rarity } from '../types/index.js';
+import { glowLevel, rarityLabel, typeLabel, type ItemType, type Rarity } from '@vtt-chat-app/shared';
 
 const ICON: Record<ItemType, LucideIcon> = {
   weapon: Sword,

@@ -1,4 +1,6 @@
-import type { CharacterSheet } from '@vtt-chat-app/shared';
+import type { CharacterSheet, ItemType, Rarity } from '@vtt-chat-app/shared';
+
+export type { ItemType, LootDraft, Rarity, SrdItem } from '@vtt-chat-app/shared';
 
 /** `account_status` — never carries the session token. */
 export interface AccountStatus {
@@ -200,52 +202,6 @@ export interface Handout {
   /** Pictures in a picture handout (1 for a PDF, 0 for a note). */
   fileCount: number;
   visibility: 'dm' | 'all' | 'some';
-}
-
-export type ItemType =
-  | 'weapon'
-  | 'ammunition'
-  | 'armor'
-  | 'shield'
-  | 'potion'
-  | 'scroll'
-  | 'ring'
-  | 'rod'
-  | 'staff'
-  | 'wand'
-  | 'wondrous'
-  | 'gear'
-  | 'tool'
-  | 'mount'
-  | 'trade'
-  | 'gem'
-  | 'art'
-  | 'coin'
-  | 'other';
-export type Rarity = 'common' | 'uncommon' | 'rare' | 'very rare' | 'legendary' | 'artifact';
-
-/** One thing in a random roll or a custom drop, before the DM drops it. */
-export interface LootDraft {
-  name: string;
-  kind: 'item' | 'coin';
-  quantity: number;
-  description?: string;
-  itemType: ItemType;
-  rarity: Rarity | null;
-  srdId?: string;
-  /** Give it straight to this player when dropped (client-side choice; not part of a roll). */
-  assignTo?: string;
-}
-
-export interface SrdItem {
-  id: string;
-  name: string;
-  type: ItemType;
-  magic: boolean;
-  rarity: Rarity | null;
-  attunement?: boolean;
-  valueGp?: number;
-  blurb?: string;
 }
 
 export type ClaimedFor = 'self' | 'party' | 'split' | 'assigned';

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { RARITIES, glowLevel, rarityLabel, typeLabel } from './itemStyle.js';
+import { RARITIES } from '../srd/types.js';
+import { glowLevel, rarityLabel, typeLabel } from './itemStyle.js';
 
 describe('rarity glow', () => {
   it('grows with each step up the SRD rarity ladder, and mundane items do not glow', () => {

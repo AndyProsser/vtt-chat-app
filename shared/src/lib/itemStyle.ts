@@ -1,36 +1,4 @@
-import type { ItemType, Rarity } from '../types/index.js';
-
-/** The SRD's rarity names, weakest first. */
-export const RARITIES: readonly Rarity[] = [
-  'common',
-  'uncommon',
-  'rare',
-  'very rare',
-  'legendary',
-  'artifact',
-];
-
-export const ITEM_TYPES: readonly ItemType[] = [
-  'weapon',
-  'ammunition',
-  'armor',
-  'shield',
-  'potion',
-  'scroll',
-  'ring',
-  'rod',
-  'staff',
-  'wand',
-  'wondrous',
-  'gear',
-  'tool',
-  'mount',
-  'trade',
-  'gem',
-  'art',
-  'coin',
-  'other',
-];
+import { RARITIES, type ItemType, type Rarity } from '../srd/types.js';
 
 /** How strongly a magic item glows: 0 for none, then 1–6 up the rarity ladder. */
 export function glowLevel(rarity: Rarity | null): number {

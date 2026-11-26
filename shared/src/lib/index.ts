@@ -16,3 +16,5 @@ export * from './nextSession.js';
 export * from './historyView.js';
 export * from './gmNotes.js';
 export * from './selfTest.js';
+export * from './itemStyle.js';
+export * from './lootDraft.js';

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import type { LootDraft, SrdItem } from '../types/index.js';
-import { batchBody, customDraft, draftFromItem, replaceAt, withAssignee } from './lootDraft.js';
+import type { SrdItem } from '../srd/types.js';
+import { batchBody, customDraft, draftFromItem, replaceAt, withAssignee, type LootDraft } from './lootDraft.js';
 
 const potion: SrdItem = {
   id: 'potion-of-healing',

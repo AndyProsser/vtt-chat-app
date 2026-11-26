@@ -2,16 +2,23 @@ import { Checkbox, TextField } from '@radix-ui/themes';
 import { Coins, Dices, Gem, PackagePlus, RotateCw, Search, X } from 'lucide-react';
 import { useState } from 'react';
 
-import { ITEM_TYPES, RARITIES, rarityLabel, typeLabel } from '../lib/itemStyle.js';
 import {
   batchBody,
   customDraft,
   draftFromItem,
+  ITEM_TYPES,
+  RARITIES,
+  rarityLabel,
   replaceAt,
+  typeLabel,
   withAssignee,
-} from '../lib/lootDraft.js';
+  type ItemType,
+  type LootDraft,
+  type Rarity,
+  type SrdItem,
+} from '@vtt-chat-app/shared';
 import { accountErrorMessage, campaignApi } from '../lib/tauriBridge.js';
-import type { ItemType, LootDraft, Member, Rarity, SrdItem } from '../types/index.js';
+import type { Member } from '../types/index.js';
 import { ItemIcon } from './ItemIcon.js';
 import { PlayerSelect } from './PlayerSelect.js';
 import { Dropdown } from './Dropdown.js';

@@ -1,4 +1,17 @@
-import type { LootDraft, SrdItem } from '../types/index.js';
+import type { ItemType, Rarity, SrdItem } from '../srd/types.js';
+
+/** One thing in a random roll or a custom drop, before the DM drops it. */
+export interface LootDraft {
+  name: string;
+  kind: 'item' | 'coin';
+  quantity: number;
+  description?: string;
+  itemType: ItemType;
+  rarity: Rarity | null;
+  srdId?: string;
+  /** Give it straight to this player when dropped (client-side choice; not part of a roll). */
+  assignTo?: string;
+}
 
 /** A catalog item as a draft ready to be dropped (one of them). */
 export function draftFromItem(item: SrdItem): LootDraft {
@@ -18,8 +31,8 @@ export function customDraft(input: {
   name: string;
   quantity: number;
   coin: boolean;
-  itemType: LootDraft['itemType'];
-  rarity: LootDraft['rarity'];
+  itemType: ItemType;
+  rarity: Rarity | null;
 }): LootDraft | undefined {
   const name = input.name.trim();
   const quantity = Math.floor(input.quantity);
