@@ -97,6 +97,21 @@ describe('setAiSetting', () => {
     );
   });
 
+  it('defaults ai.fallback.max-local-minutes to 20', () => {
+    expect(DEFAULT_AI_SETTINGS.fallback.maxLocalMinutes).toBe(20);
+  });
+
+  it('sets ai.fallback.max-local-minutes', () => {
+    const next = setAiSetting(DEFAULT_AI_SETTINGS, 'ai.fallback.max-local-minutes', '45');
+    expect(next.fallback.maxLocalMinutes).toBe(45);
+  });
+
+  it('rejects ai.fallback.max-local-minutes below 1', () => {
+    expect(() =>
+      setAiSetting(DEFAULT_AI_SETTINGS, 'ai.fallback.max-local-minutes', '0'),
+    ).toThrow(SettingError);
+  });
+
   it('knows every documented key', () => {
     for (const key of Object.keys(AI_SETTING_KEYS)) {
       expect(isAiSettingKey(key)).toBe(true);
@@ -131,7 +146,19 @@ describe('normaliseAiSettings', () => {
       bogus: true,
     });
     expect(out.transcription).toMatchObject({ kind: 'remote', url: 'http://a:1', language: 'en' });
-    expect(out.fallback).toEqual({ enabled: false, afterSeconds: 600, retrySeconds: 7 });
+    expect(out.fallback).toEqual({
+      enabled: false,
+      afterSeconds: 600,
+      retrySeconds: 7,
+      maxLocalMinutes: 20,
+    });
+  });
+
+  it('normalises a missing or junk ai.fallback.max-local-minutes to the default', () => {
+    expect(normaliseAiSettings({ fallback: {} }).fallback.maxLocalMinutes).toBe(20);
+    expect(
+      normaliseAiSettings({ fallback: { maxLocalMinutes: 'lots' } }).fallback.maxLocalMinutes,
+    ).toBe(20);
   });
 });
 

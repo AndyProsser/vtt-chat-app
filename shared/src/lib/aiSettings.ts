@@ -13,7 +13,7 @@ export const DEFAULT_AI_SETTINGS: AiSettings = {
   transcription: { kind: 'local', url: null, model: null, language: 'en', glossary: 'corrections' },
   llm: { kind: 'local', url: null, model: null, priceIn: null, priceOut: null, context: null },
   // 10 minutes unreachable before giving up on the remote; retry every 30 s meanwhile.
-  fallback: { enabled: true, afterSeconds: 600, retrySeconds: 30 },
+  fallback: { enabled: true, afterSeconds: 600, retrySeconds: 30, maxLocalMinutes: 20 },
   tale: { length: 'default', content: 'default', storytellersOff: [] },
   memory: { enabled: true },
   processing: { pauseWhileRecording: false, activeConcurrency: 2, cpuThresholdPercent: 70 },
@@ -38,6 +38,8 @@ export const AI_SETTING_KEYS = {
   'ai.fallback.enabled': 'true | false',
   'ai.fallback.after-seconds': 'whole number of seconds, 0 = immediately',
   'ai.fallback.retry-seconds': 'whole number of seconds, at least 1',
+  'ai.fallback.max-local-minutes':
+    'whole number of minutes, at least 1 (the LLM only; above it, a job fails instead of running on local CPU)',
   'ai.memory.enabled': 'true | false (campaign memory: one more model call per session)',
   'ai.pause-while-recording':
     'true | false (local AI waits while any table is recording; delays tales, protects the recording on a busy machine)',
@@ -202,6 +204,9 @@ export function setAiSetting(settings: AiSettings, key: AiSettingKey, value: str
     case 'ai.fallback.retry-seconds':
       next.fallback.retrySeconds = parseSeconds(value, 1);
       break;
+    case 'ai.fallback.max-local-minutes':
+      next.fallback.maxLocalMinutes = parseSeconds(value, 1);
+      break;
     case 'ai.tale.length': {
       const v = value.trim().toLowerCase();
       if (!(TALE_LENGTHS as readonly string[]).includes(v))
@@ -301,6 +306,7 @@ export function normaliseAiSettings(raw: unknown): AiSettings {
       enabled: typeof f.enabled === 'boolean' ? f.enabled : d.fallback.enabled,
       afterSeconds: int(f.afterSeconds, d.fallback.afterSeconds, 0),
       retrySeconds: int(f.retrySeconds, d.fallback.retrySeconds, 1),
+      maxLocalMinutes: int(f.maxLocalMinutes, d.fallback.maxLocalMinutes, 1),
     },
     memory: { enabled: typeof m.enabled === 'boolean' ? m.enabled : d.memory.enabled },
     processing: {

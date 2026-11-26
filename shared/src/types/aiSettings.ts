@@ -25,6 +25,9 @@ export interface AiFallbackSetting {
   afterSeconds: number;
   /** How often to retry the remote while waiting. */
   retrySeconds: number;
+  /** The longest recording the LLM may fall back to the local model for; above it, if remote is
+   *  unavailable, the job fails instead of running on CPU (never applies to transcription). */
+  maxLocalMinutes: number;
 }
 
 export interface AiTaleSettings {
