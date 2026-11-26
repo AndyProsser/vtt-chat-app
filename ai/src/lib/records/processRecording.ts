@@ -102,6 +102,13 @@ export function createProcessRecordingHandler(deps: ProcessRecordingDeps): JobHa
 
     const settings: AiSettings = await deps.records.getAiSettings();
     seen.settings = settings;
+    // How long this is allowed to grind on local CPU for the LLM (never Whisper — see CLAUDE.md §5):
+    // unknown duration (stoppedAt somehow still null) fails safe, same as "too long".
+    const durationMinutes =
+      recording.stoppedAt !== null
+        ? (recording.stoppedAt - recording.startedAt) / 60_000
+        : Number.POSITIVE_INFINITY;
+    const llmFallbackAllowed = durationMinutes <= settings.fallback.maxLocalMinutes;
     // The campaign's names (Stage 12): Whisper's starting prompt when the operator has it on, and the corrections
     // after. Gathered once per job; none of it for a recording whose campaign is gone.
     const mode = settings.transcription.glossary;
@@ -126,6 +133,7 @@ export function createProcessRecordingHandler(deps: ProcessRecordingDeps): JobHa
       localTranscribe: deps.localTranscribe,
       localGenerate: deps.localGenerate,
       ...(deps.localStory ? { localStory: deps.localStory } : {}),
+      llmFallbackAllowed,
       onUsage: checkedOnUsage,
       onFallback: (what, reason) => {
         seen.fellBack.add(what);

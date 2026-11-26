@@ -564,6 +564,37 @@ describe('process-recording handler', () => {
     expect(log.join('\n')).toContain('fell back to local');
   });
 
+  it('fails instead of grinding on local CPU when the recording is too long for it', async () => {
+    await records.putRecording({ ...recording, stoppedAt: 30 * 60_000 }); // a 30-minute recording
+    records.aiSettings = setAiSetting(
+      setAiSetting(
+        setAiSetting(
+          setAiSetting(DEFAULT_AI_SETTINGS, 'ai.llm.kind', 'remote'),
+          'ai.llm.url',
+          'http://gpu:11434',
+        ),
+        'ai.fallback.after-seconds',
+        '0',
+      ),
+      'ai.fallback.max-local-minutes',
+      '10', // the recording (30 min) is well over this
+    );
+    const log: string[] = [];
+    const h = handler({
+      log: (l) => log.push(l),
+      buildProviders: (settings, d) =>
+        buildJobProviders(settings, {
+          ...d,
+          fetchImpl: (async () => {
+            throw new TypeError('fetch failed');
+          }) as unknown as typeof fetch,
+        }),
+    });
+    await expect(h.run(job())).rejects.toThrow(/too long|max-local-minutes/i);
+    expect(log.join('\n')).not.toContain('fell back to local');
+    expect(prompts).toHaveLength(0); // local was never actually asked to summarise
+  });
+
   it('fails clearly for a recording that does not exist', async () => {
     await expect(handler().run({ ...job(), recordingId: 'nope' })).rejects.toThrow(
       /does not exist/,
