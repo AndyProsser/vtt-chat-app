@@ -1,0 +1,765 @@
+-------------------------------------
+Translated Report (Full Report Below)
+-------------------------------------
+Process:             vtt-chat-app [976]
+Path:                /Applications/VTT Chat.app/Contents/MacOS/vtt-chat-app
+Identifier:          app.vttchat.desktop
+Version:             0.6.4 (0.6.4)
+Code Type:           X86-64 (Native)
+Role:                Foreground
+Parent Process:      vtt-chat-app [975]
+Coalition:           app.vttchat.desktop [1109]
+Responsible Process: vtt-chat-app [975]
+User ID:             501
+
+Date/Time:           2026-11-26 14:06:00.2329 +0800
+Launch Time:         2026-11-26 14:05:52.5954 +0800
+Hardware Model:      VMware20,1
+OS Version:          macOS 26.7.3 (25G342)
+Release Type:        User
+
+Crash Reporter Key:  2FB7ED08-E538-CE36-BEC2-C53068B0A39F
+Incident Identifier: E1352BF4-7576-43BA-8C75-00F8B81B12B6
+
+Time Awake Since Boot: 1000 seconds
+
+System Integrity Protection: enabled
+
+Triggered by Thread: 25  signaling_thread 0x0x600000f0f320
+
+Exception Type:    EXC_BAD_ACCESS (SIGSEGV)
+Exception Subtype: UNKNOWN_0xD at 0x0000000000000000
+Exception Codes:   0x000000000000000d, 0x0000000000000000
+
+Termination Reason:  Namespace SIGNAL, Code 11, Segmentation fault: 11
+Terminating Process: exc handler [976]
+
+
+VM Region Info: 0 is not in any region.  Bytes before following region: 4481167360
+      REGION TYPE                    START - END         [ VSIZE] PRT/MAX SHRMOD  REGION DETAIL
+      UNUSED SPACE AT START
+--->
+      __TEXT                      10b193000-10d810000    [ 38.5M] r-x/r-x SM=COW  /Applications/VTT Chat.app/Contents/MacOS/vtt-chat-app
+
+Thread 0:: main Dispatch queue: com.apple.main-thread
+0   libsystem_kernel.dylib        	    0x7ff80e895b4e mach_msg2_trap + 10
+1   libsystem_kernel.dylib        	    0x7ff80e8a3f57 mach_msg2_internal + 83
+2   libsystem_kernel.dylib        	    0x7ff80e89cb66 mach_msg_overwrite + 586
+3   libsystem_kernel.dylib        	    0x7ff80e895e56 mach_msg + 19
+4   CoreFoundation                	    0x7ff80e9956bf __CFRunLoopServiceMachPort + 145
+5   CoreFoundation                	    0x7ff80e994158 __CFRunLoopRun + 1354
+6   CoreFoundation                	    0x7ff80ea5c367 _CFRunLoopRunSpecificWithOptions + 496
+7   HIToolbox                     	    0x7ff81b6edb8b RunCurrentEventLoopInMode + 283
+8   HIToolbox                     	    0x7ff81b6f0c4d ReceiveNextEventCommon + 599
+9   HIToolbox                     	    0x7ff81b8790ca _BlockUntilNextEventMatchingListInMode + 37
+10  AppKit                        	    0x7ff812f22f94 _DPSBlockUntilNextEventMatchingListInMode + 172
+11  AppKit                        	    0x7ff8128189c5 _DPSNextEvent + 800
+12  AppKit                        	    0x7ff8134c6e7b -[NSApplication(NSEventRouting) _nextEventMatchingEventMask:untilDate:inMode:dequeue:] + 1265
+13  AppKit                        	    0x7ff8134c6951 -[NSApplication(NSEventRouting) nextEventMatchingMask:untilDate:inMode:dequeue:] + 67
+14  AppKit                        	    0x7ff81280985c -[NSApplication run] + 472
+15  vtt-chat-app                  	       0x10b704bcb _RINvMs3_NtNtNtCsjqx1hY3JPhz_3tao13platform_impl8platform10event_loopINtB6_9EventLoopINtCsftrGOzhMfxW_17tauri_runtime_wry7MessageNtCsgFt6obHJNcS_5tauri16EventLoopMessageEE3runNCINvB1n_18make_event_handlerB22_NCINvMsf_NtB24_3appNtB3s_3App28make_run_event_loop_callbackNCNvCs1DnmKGsAMIX_16vtt_chat_app_lib3runs1_0E0E0EB4k_ + 571
+16  vtt-chat-app                  	       0x10b71d74c _RINvXsy_CsftrGOzhMfxW_17tauri_runtime_wryINtB6_3WryNtCsgFt6obHJNcS_5tauri16EventLoopMessageEINtCsh525rs26Z54_13tauri_runtime7RuntimeBN_E3runNCINvMsf_NtBP_3appNtB2n_3App28make_run_event_loop_callbackNCNvCs1DnmKGsAMIX_16vtt_chat_app_lib3runs1_0E0EB3e_ + 316
+17  vtt-chat-app                  	       0x10b696523 _RNvCs1DnmKGsAMIX_16vtt_chat_app_lib3run + 23107
+18  vtt-chat-app                  	       0x10b194886 _RINvNtNtCs1rYdSYAaNmr_3std3sys9backtrace28___rust_begin_short_backtraceFEuuECslwqX0hkCZTW_12vtt_chat_app + 6
+19  vtt-chat-app                  	       0x10b19489c _RNCINvNtCs1rYdSYAaNmr_3std2rt10lang_startuE0CslwqX0hkCZTW_12vtt_chat_app + 12
+20  vtt-chat-app                  	       0x10d0102e5 _RNvNtCs1rYdSYAaNmr_3std2rt19lang_start_internal + 901
+21  vtt-chat-app                  	       0x10b19499c main + 44
+22  dyld                          	    0x7ff80e4f41d8 start + 3240
+
+Thread 1:: soundboard
+0   libsystem_kernel.dylib        	    0x7ff80e895aca semaphore_wait_trap + 10
+1   libdispatch.dylib             	    0x7ff80e7219de _dispatch_sema4_wait + 16
+2   libdispatch.dylib             	    0x7ff80e721ea7 _dispatch_semaphore_wait_slow + 98
+3   vtt-chat-app                  	       0x10d000c90 _RNvMs_NtNtCs1rYdSYAaNmr_3std6thread6threadNtB4_6Thread4park + 48
+4   vtt-chat-app                  	       0x10b9fc968 _RNCNvMs1_NtNtNtCs1rYdSYAaNmr_3std4sync4mpmc4listINtB7_7ChannelINtNtCs4XKWvl56i1_4core6result6ResultuNtNtCslOvjSTxizM4_5alloc6string6StringEE4recvs_0Cs4rnhi2h4wOy_12rust_livekit + 232
+5   vtt-chat-app                  	       0x10b9ff264 _RNvMs1_NtNtNtCs1rYdSYAaNmr_3std4sync4mpmc4listINtB5_7ChannelNtNtNtCs4rnhi2h4wOy_12rust_livekit5sound6engine7CommandE4recvB12_ + 660
+6   vtt-chat-app                  	       0x10ba0daa6 _RNvNtNtCs4rnhi2h4wOy_12rust_livekit5sound6engine3run + 950
+7   vtt-chat-app                  	       0x10ba16c69 _RINvNtNtCs1rYdSYAaNmr_3std3sys9backtrace28___rust_begin_short_backtraceNCNvMs_NtNtCs4rnhi2h4wOy_12rust_livekit5sound6engineNtB1e_11SoundEngine5spawn0uEB1i_ + 9
+8   vtt-chat-app                  	       0x10ba1eced _RNSNvYNCINvNtNtCs1rYdSYAaNmr_3std6thread9lifecycle15spawn_uncheckedNCNvMs_NtNtCs4rnhi2h4wOy_12rust_livekit5sound6engineNtB1a_11SoundEngine5spawn0uEs_0INtNtNtCs4XKWvl56i1_4core3ops8function6FnOnceuE9call_once6vtableB1e_ + 125
+9   vtt-chat-app                  	       0x10d019c45 _RNvNvMs0_NtNtNtCs1rYdSYAaNmr_3std3sys6thread4unixNtB7_6Thread3new12thread_start + 469
+10  libsystem_pthread.dylib       	    0x7ff80e8d9d49 _pthread_start + 115
+11  libsystem_pthread.dylib       	    0x7ff80e8d582f thread_start + 15
+
+Thread 2:
+
+Thread 3:
+
+Thread 4:
+
+Thread 5:: com.apple.NSEventThread
+0   libsystem_kernel.dylib        	    0x7ff80e895b4e mach_msg2_trap + 10
+1   libsystem_kernel.dylib        	    0x7ff80e8a3f57 mach_msg2_internal + 83
+2   libsystem_kernel.dylib        	    0x7ff80e89cb66 mach_msg_overwrite + 586
+3   libsystem_kernel.dylib        	    0x7ff80e895e56 mach_msg + 19
+4   CoreFoundation                	    0x7ff80e9956bf __CFRunLoopServiceMachPort + 145
+5   CoreFoundation                	    0x7ff80e994158 __CFRunLoopRun + 1354
+6   CoreFoundation                	    0x7ff80ea5c367 _CFRunLoopRunSpecificWithOptions + 496
+7   AppKit                        	    0x7ff81296a6a0 _NSEventThread + 158
+8   libsystem_pthread.dylib       	    0x7ff80e8d9d49 _pthread_start + 115
+9   libsystem_pthread.dylib       	    0x7ff80e8d582f thread_start + 15
+
+Thread 6:: tokio-rt-worker
+0   libsystem_kernel.dylib        	    0x7ff80e89a7ce kevent + 10
+1   vtt-chat-app                  	       0x10cf54d4e _RNvMNtCs4vT97PLZKgJ_3mio4pollNtB2_4Poll4poll + 94
+2   vtt-chat-app                  	       0x10cf4af5e _RNvMNtNtNtCsdPvCFRJTm4m_5tokio7runtime2io6driverNtB2_6Driver4turn + 478
+3   vtt-chat-app                  	       0x10cf3e767 _RNvMNtNtCsdPvCFRJTm4m_5tokio7runtime4timeNtB2_6Driver13park_internal + 567
+4   vtt-chat-app                  	       0x10cf3301e _RNvMs_NtNtNtNtCsdPvCFRJTm4m_5tokio7runtime9scheduler12multi_thread6workerNtB4_7Context13park_internal + 254
+5   vtt-chat-app                  	       0x10cf3451a _RNvMs_NtNtNtNtCsdPvCFRJTm4m_5tokio7runtime9scheduler12multi_thread6workerNtB4_7Context3run + 4618
+6   vtt-chat-app                  	       0x10cf4032b _RINvMNtNtNtCsdPvCFRJTm4m_5tokio7runtime7context6scopedINtB3_6ScopedNtNtB7_9scheduler7ContextE3setNCNCNvNtNtB15_12multi_thread6worker3run00uEB9_ + 43
+7   vtt-chat-app                  	       0x10cf3877f _RINvNtNtNtCsdPvCFRJTm4m_5tokio7runtime7context7runtime13enter_runtimeNCNvNtNtNtB6_9scheduler12multi_thread6worker3run0uEB8_ + 495
+8   vtt-chat-app                  	       0x10cf35049 _RNvNtNtNtNtCsdPvCFRJTm4m_5tokio7runtime9scheduler12multi_thread6worker3run + 169
+9   vtt-chat-app                  	       0x10cf471eb _RNvXs0_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4taskINtB5_12BlockingTaskNCNvMNtNtNtB9_9scheduler12multi_thread6workerNtB1g_6Launch6launch0ENtNtNtCs4XKWvl56i1_4core6future6future6Future4pollBb_ + 59
+10  vtt-chat-app                  	       0x10cf4c80b _RNvMs4_NtNtNtCsdPvCFRJTm4m_5tokio7runtime4task4coreINtB5_4CoreINtNtNtB9_8blocking4task12BlockingTaskNCNvMNtNtNtB9_9scheduler12multi_thread6workerNtB1F_6Launch6launch0ENtNtB13_8schedule16BlockingScheduleE4pollBb_ + 75
+11  vtt-chat-app                  	       0x10cf2fac0 _RNvMs0_NtNtNtCsdPvCFRJTm4m_5tokio7runtime4task7harnessINtB5_7HarnessINtNtNtB9_8blocking4task12BlockingTaskNCNvMNtNtNtB9_9scheduler12multi_thread6workerNtB1L_6Launch6launch0ENtNtB19_8schedule16BlockingScheduleE4pollBb_ + 176
+12  vtt-chat-app                  	       0x10cf52a8b _RNvMs5_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4poolNtB5_5Inner3run + 411
+13  vtt-chat-app                  	       0x10cf40c10 _RINvNtNtCs1rYdSYAaNmr_3std3sys9backtrace28___rust_begin_short_backtraceNCNvMs4_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4poolNtB1f_7Spawner12spawn_thread0uEB1l_ + 128
+14  vtt-chat-app                  	       0x10cf4dd8d _RNSNvYNCINvNtNtCs1rYdSYAaNmr_3std6thread9lifecycle15spawn_uncheckedNCNvMs4_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4poolNtB1b_7Spawner12spawn_thread0uEs_0INtNtNtCs4XKWvl56i1_4core3ops8function6FnOnceuE9call_once6vtableB1h_ + 221
+15  vtt-chat-app                  	       0x10d019c45 _RNvNvMs0_NtNtNtCs1rYdSYAaNmr_3std3sys6thread4unixNtB7_6Thread3new12thread_start + 469
+16  libsystem_pthread.dylib       	    0x7ff80e8d9d49 _pthread_start + 115
+17  libsystem_pthread.dylib       	    0x7ff80e8d582f thread_start + 15
+
+Thread 7:: tokio-rt-worker
+0   libsystem_kernel.dylib        	    0x7ff80e898712 __psynch_cvwait + 10
+1   libsystem_pthread.dylib       	    0x7ff80e8da1f7 _pthread_cond_wait + 994
+2   vtt-chat-app                  	       0x10cf38e6e _RNvMs1_NtNtNtNtCsdPvCFRJTm4m_5tokio7runtime9scheduler12multi_thread4parkNtB5_5Inner12park_condvar + 430
+3   vtt-chat-app                  	       0x10cf3305a _RNvMs_NtNtNtNtCsdPvCFRJTm4m_5tokio7runtime9scheduler12multi_thread6workerNtB4_7Context13park_internal + 314
+4   vtt-chat-app                  	       0x10cf3451a _RNvMs_NtNtNtNtCsdPvCFRJTm4m_5tokio7runtime9scheduler12multi_thread6workerNtB4_7Context3run + 4618
+5   vtt-chat-app                  	       0x10cf4032b _RINvMNtNtNtCsdPvCFRJTm4m_5tokio7runtime7context6scopedINtB3_6ScopedNtNtB7_9scheduler7ContextE3setNCNCNvNtNtB15_12multi_thread6worker3run00uEB9_ + 43
+6   vtt-chat-app                  	       0x10cf3877f _RINvNtNtNtCsdPvCFRJTm4m_5tokio7runtime7context7runtime13enter_runtimeNCNvNtNtNtB6_9scheduler12multi_thread6worker3run0uEB8_ + 495
+7   vtt-chat-app                  	       0x10cf35049 _RNvNtNtNtNtCsdPvCFRJTm4m_5tokio7runtime9scheduler12multi_thread6worker3run + 169
+8   vtt-chat-app                  	       0x10cf471eb _RNvXs0_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4taskINtB5_12BlockingTaskNCNvMNtNtNtB9_9scheduler12multi_thread6workerNtB1g_6Launch6launch0ENtNtNtCs4XKWvl56i1_4core6future6future6Future4pollBb_ + 59
+9   vtt-chat-app                  	       0x10cf4c80b _RNvMs4_NtNtNtCsdPvCFRJTm4m_5tokio7runtime4task4coreINtB5_4CoreINtNtNtB9_8blocking4task12BlockingTaskNCNvMNtNtNtB9_9scheduler12multi_thread6workerNtB1F_6Launch6launch0ENtNtB13_8schedule16BlockingScheduleE4pollBb_ + 75
+10  vtt-chat-app                  	       0x10cf2fac0 _RNvMs0_NtNtNtCsdPvCFRJTm4m_5tokio7runtime4task7harnessINtB5_7HarnessINtNtNtB9_8blocking4task12BlockingTaskNCNvMNtNtNtB9_9scheduler12multi_thread6workerNtB1L_6Launch6launch0ENtNtB19_8schedule16BlockingScheduleE4pollBb_ + 176
+11  vtt-chat-app                  	       0x10cf52a8b _RNvMs5_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4poolNtB5_5Inner3run + 411
+12  vtt-chat-app                  	       0x10cf40c10 _RINvNtNtCs1rYdSYAaNmr_3std3sys9backtrace28___rust_begin_short_backtraceNCNvMs4_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4poolNtB1f_7Spawner12spawn_thread0uEB1l_ + 128
+13  vtt-chat-app                  	       0x10cf4dd8d _RNSNvYNCINvNtNtCs1rYdSYAaNmr_3std6thread9lifecycle15spawn_uncheckedNCNvMs4_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4poolNtB1b_7Spawner12spawn_thread0uEs_0INtNtNtCs4XKWvl56i1_4core3ops8function6FnOnceuE9call_once6vtableB1h_ + 221
+14  vtt-chat-app                  	       0x10d019c45 _RNvNvMs0_NtNtNtCs1rYdSYAaNmr_3std3sys6thread4unixNtB7_6Thread3new12thread_start + 469
+15  libsystem_pthread.dylib       	    0x7ff80e8d9d49 _pthread_start + 115
+16  libsystem_pthread.dylib       	    0x7ff80e8d582f thread_start + 15
+
+Thread 8:: tokio-rt-worker
+0   libsystem_kernel.dylib        	    0x7ff80e898712 __psynch_cvwait + 10
+1   libsystem_pthread.dylib       	    0x7ff80e8da1f7 _pthread_cond_wait + 994
+2   vtt-chat-app                  	       0x10c02c394 webrtc::Event::Wait(webrtc::TimeDelta, webrtc::TimeDelta) + 324
+3   vtt-chat-app                  	       0x10c055a61 webrtc::Thread::BlockingCallImpl(webrtc::FunctionView<void ()>, webrtc::Location const&) + 433
+4   vtt-chat-app                  	       0x10c9d5004 webrtc::CreateModularPeerConnectionFactory(webrtc::PeerConnectionFactoryDependencies) + 260
+5   vtt-chat-app                  	       0x10cbfb8bc livekit_ffi::PeerConnectionFactory::PeerConnectionFactory(std::__1::shared_ptr<livekit_ffi::RtcRuntime>, bool, bool) + 2060
+6   vtt-chat-app                  	       0x10cbfd4a1 std::__1::shared_ptr<livekit_ffi::PeerConnectionFactory> std::__1::allocate_shared[abi:ne190102]<livekit_ffi::PeerConnectionFactory, std::__1::allocator<livekit_ffi::PeerConnectionFactory>, std::__1::shared_ptr<livekit_ffi::RtcRuntime>, bool&, bool&, 0>(std::__1::allocator<livekit_ffi::PeerConnectionFactory> const&, std::__1::shared_ptr<livekit_ffi::RtcRuntime>&&, bool&, bool&) + 113
+7   vtt-chat-app                  	       0x10cbfc602 livekit_ffi::create_peer_connection_factory_with_options(bool, bool) + 82
+8   vtt-chat-app                  	       0x10cbf2863 livekit_ffi$cxxbridge1$198$create_peer_connection_factory_with_options + 19
+9   vtt-chat-app                  	       0x10be790c5 _RNvNtNtCsky3z2tnmPaA_10webrtc_sys23peer_connection_factory3ffi43create_peer_connection_factory_with_options + 21
+10  vtt-chat-app                  	       0x10bc2c94f _RNvMs0_NtNtCskK9cENHXLhX_7livekit10rtc_engine10lk_runtimeNtB5_9LkRuntime8instance + 399
+11  vtt-chat-app                  	       0x10bc9ccf1 _RNvMs3_NtCskK9cENHXLhX_7livekit14platform_audioNtB5_13PlatformAudio3new + 609
+12  vtt-chat-app                  	       0x10b434315 _RNCNvMs0_Cs4rnhi2h4wOy_12rust_livekitNtB7_13LiveKitClient20connect_with_backend0Cs1DnmKGsAMIX_16vtt_chat_app_lib + 373
+13  vtt-chat-app                  	       0x10b4572b4 _RNCNvNtCs1DnmKGsAMIX_16vtt_chat_app_lib8commands13connect_voice0B5_ + 1332
+14  vtt-chat-app                  	       0x10b458d90 _RNCNvNtCs1DnmKGsAMIX_16vtt_chat_app_lib8commands13voice_connect0B5_ + 2560
+15  vtt-chat-app                  	       0x10b4694bb _RNvXs_NtNtCs4XKWvl56i1_4core6future6futureINtNtB8_3pin3PinINtNtCslOvjSTxizM4_5alloc5boxed3BoxNCINvMsi_NtCsgFt6obHJNcS_5tauri3ipcNtB1C_14InvokeResolver30respond_async_serialized_innerNCNCNCNvCs1DnmKGsAMIX_16vtt_chat_app_lib3runs2_0sy_00E0EENtB4_6Future4pollB32_ + 3211
+16  vtt-chat-app                  	       0x10b4007f9 <deduplicated_symbol> + 57
+17  vtt-chat-app                  	       0x10b1f1a9a _RNvMs0_NtNtNtCsdPvCFRJTm4m_5tokio7runtime4task7harnessINtB5_7HarnessINtNtCs4XKWvl56i1_4core3pin3PinINtNtCslOvjSTxizM4_5alloc5boxed3BoxNCINvMsi_NtCsgFt6obHJNcS_5tauri3ipcNtB2h_14InvokeResolver30respond_async_serialized_innerNCNCNCNvCs1DnmKGsAMIX_16vtt_chat_app_lib3runs2_0sy_00E0EEINtNtB1E_4sync3ArcNtNtNtNtB9_9scheduler12multi_thread6handle6HandleEE4pollB3H_ + 106
+18  vtt-chat-app                  	       0x10cf34d14 _RNvMs_NtNtNtNtCsdPvCFRJTm4m_5tokio7runtime9scheduler12multi_thread6workerNtB4_7Context8run_task + 500
+19  vtt-chat-app                  	       0x10cf340bf _RNvMs_NtNtNtNtCsdPvCFRJTm4m_5tokio7runtime9scheduler12multi_thread6workerNtB4_7Context3run + 3503
+20  vtt-chat-app                  	       0x10cf4032b _RINvMNtNtNtCsdPvCFRJTm4m_5tokio7runtime7context6scopedINtB3_6ScopedNtNtB7_9scheduler7ContextE3setNCNCNvNtNtB15_12multi_thread6worker3run00uEB9_ + 43
+21  vtt-chat-app                  	       0x10cf3877f _RINvNtNtNtCsdPvCFRJTm4m_5tokio7runtime7context7runtime13enter_runtimeNCNvNtNtNtB6_9scheduler12multi_thread6worker3run0uEB8_ + 495
+22  vtt-chat-app                  	       0x10cf35049 _RNvNtNtNtNtCsdPvCFRJTm4m_5tokio7runtime9scheduler12multi_thread6worker3run + 169
+23  vtt-chat-app                  	       0x10cf471eb _RNvXs0_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4taskINtB5_12BlockingTaskNCNvMNtNtNtB9_9scheduler12multi_thread6workerNtB1g_6Launch6launch0ENtNtNtCs4XKWvl56i1_4core6future6future6Future4pollBb_ + 59
+24  vtt-chat-app                  	       0x10cf4c80b _RNvMs4_NtNtNtCsdPvCFRJTm4m_5tokio7runtime4task4coreINtB5_4CoreINtNtNtB9_8blocking4task12BlockingTaskNCNvMNtNtNtB9_9scheduler12multi_thread6workerNtB1F_6Launch6launch0ENtNtB13_8schedule16BlockingScheduleE4pollBb_ + 75
+25  vtt-chat-app                  	       0x10cf2fac0 _RNvMs0_NtNtNtCsdPvCFRJTm4m_5tokio7runtime4task7harnessINtB5_7HarnessINtNtNtB9_8blocking4task12BlockingTaskNCNvMNtNtNtB9_9scheduler12multi_thread6workerNtB1L_6Launch6launch0ENtNtB19_8schedule16BlockingScheduleE4pollBb_ + 176
+26  vtt-chat-app                  	       0x10cf52a8b _RNvMs5_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4poolNtB5_5Inner3run + 411
+27  vtt-chat-app                  	       0x10cf40c10 _RINvNtNtCs1rYdSYAaNmr_3std3sys9backtrace28___rust_begin_short_backtraceNCNvMs4_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4poolNtB1f_7Spawner12spawn_thread0uEB1l_ + 128
+28  vtt-chat-app                  	       0x10cf4dd8d _RNSNvYNCINvNtNtCs1rYdSYAaNmr_3std6thread9lifecycle15spawn_uncheckedNCNvMs4_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4poolNtB1b_7Spawner12spawn_thread0uEs_0INtNtNtCs4XKWvl56i1_4core3ops8function6FnOnceuE9call_once6vtableB1h_ + 221
+29  vtt-chat-app                  	       0x10d019c45 _RNvNvMs0_NtNtNtCs1rYdSYAaNmr_3std3sys6thread4unixNtB7_6Thread3new12thread_start + 469
+30  libsystem_pthread.dylib       	    0x7ff80e8d9d49 _pthread_start + 115
+31  libsystem_pthread.dylib       	    0x7ff80e8d582f thread_start + 15
+
+Thread 9:: tokio-rt-worker
+0   libsystem_kernel.dylib        	    0x7ff80e898712 __psynch_cvwait + 10
+1   libsystem_pthread.dylib       	    0x7ff80e8da1f7 _pthread_cond_wait + 994
+2   vtt-chat-app                  	       0x10cf38e6e _RNvMs1_NtNtNtNtCsdPvCFRJTm4m_5tokio7runtime9scheduler12multi_thread4parkNtB5_5Inner12park_condvar + 430
+3   vtt-chat-app                  	       0x10cf3305a _RNvMs_NtNtNtNtCsdPvCFRJTm4m_5tokio7runtime9scheduler12multi_thread6workerNtB4_7Context13park_internal + 314
+4   vtt-chat-app                  	       0x10cf3451a _RNvMs_NtNtNtNtCsdPvCFRJTm4m_5tokio7runtime9scheduler12multi_thread6workerNtB4_7Context3run + 4618
+5   vtt-chat-app                  	       0x10cf4032b _RINvMNtNtNtCsdPvCFRJTm4m_5tokio7runtime7context6scopedINtB3_6ScopedNtNtB7_9scheduler7ContextE3setNCNCNvNtNtB15_12multi_thread6worker3run00uEB9_ + 43
+6   vtt-chat-app                  	       0x10cf3877f _RINvNtNtNtCsdPvCFRJTm4m_5tokio7runtime7context7runtime13enter_runtimeNCNvNtNtNtB6_9scheduler12multi_thread6worker3run0uEB8_ + 495
+7   vtt-chat-app                  	       0x10cf35049 _RNvNtNtNtNtCsdPvCFRJTm4m_5tokio7runtime9scheduler12multi_thread6worker3run + 169
+8   vtt-chat-app                  	       0x10cf471eb _RNvXs0_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4taskINtB5_12BlockingTaskNCNvMNtNtNtB9_9scheduler12multi_thread6workerNtB1g_6Launch6launch0ENtNtNtCs4XKWvl56i1_4core6future6future6Future4pollBb_ + 59
+9   vtt-chat-app                  	       0x10cf4c80b _RNvMs4_NtNtNtCsdPvCFRJTm4m_5tokio7runtime4task4coreINtB5_4CoreINtNtNtB9_8blocking4task12BlockingTaskNCNvMNtNtNtB9_9scheduler12multi_thread6workerNtB1F_6Launch6launch0ENtNtB13_8schedule16BlockingScheduleE4pollBb_ + 75
+10  vtt-chat-app                  	       0x10cf2fac0 _RNvMs0_NtNtNtCsdPvCFRJTm4m_5tokio7runtime4task7harnessINtB5_7HarnessINtNtNtB9_8blocking4task12BlockingTaskNCNvMNtNtNtB9_9scheduler12multi_thread6workerNtB1L_6Launch6launch0ENtNtB19_8schedule16BlockingScheduleE4pollBb_ + 176
+11  vtt-chat-app                  	       0x10cf52a8b _RNvMs5_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4poolNtB5_5Inner3run + 411
+12  vtt-chat-app                  	       0x10cf40c10 _RINvNtNtCs1rYdSYAaNmr_3std3sys9backtrace28___rust_begin_short_backtraceNCNvMs4_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4poolNtB1f_7Spawner12spawn_thread0uEB1l_ + 128
+13  vtt-chat-app                  	       0x10cf4dd8d _RNSNvYNCINvNtNtCs1rYdSYAaNmr_3std6thread9lifecycle15spawn_uncheckedNCNvMs4_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4poolNtB1b_7Spawner12spawn_thread0uEs_0INtNtNtCs4XKWvl56i1_4core3ops8function6FnOnceuE9call_once6vtableB1h_ + 221
+14  vtt-chat-app                  	       0x10d019c45 _RNvNvMs0_NtNtNtCs1rYdSYAaNmr_3std3sys6thread4unixNtB7_6Thread3new12thread_start + 469
+15  libsystem_pthread.dylib       	    0x7ff80e8d9d49 _pthread_start + 115
+16  libsystem_pthread.dylib       	    0x7ff80e8d582f thread_start + 15
+
+Thread 10:: tokio-rt-worker
+0   libsystem_kernel.dylib        	    0x7ff80e898712 __psynch_cvwait + 10
+1   libsystem_pthread.dylib       	    0x7ff80e8da1f7 _pthread_cond_wait + 994
+2   vtt-chat-app                  	       0x10cf38e6e _RNvMs1_NtNtNtNtCsdPvCFRJTm4m_5tokio7runtime9scheduler12multi_thread4parkNtB5_5Inner12park_condvar + 430
+3   vtt-chat-app                  	       0x10cf3305a _RNvMs_NtNtNtNtCsdPvCFRJTm4m_5tokio7runtime9scheduler12multi_thread6workerNtB4_7Context13park_internal + 314
+4   vtt-chat-app                  	       0x10cf3451a _RNvMs_NtNtNtNtCsdPvCFRJTm4m_5tokio7runtime9scheduler12multi_thread6workerNtB4_7Context3run + 4618
+5   vtt-chat-app                  	       0x10cf4032b _RINvMNtNtNtCsdPvCFRJTm4m_5tokio7runtime7context6scopedINtB3_6ScopedNtNtB7_9scheduler7ContextE3setNCNCNvNtNtB15_12multi_thread6worker3run00uEB9_ + 43
+6   vtt-chat-app                  	       0x10cf3877f _RINvNtNtNtCsdPvCFRJTm4m_5tokio7runtime7context7runtime13enter_runtimeNCNvNtNtNtB6_9scheduler12multi_thread6worker3run0uEB8_ + 495
+7   vtt-chat-app                  	       0x10cf35049 _RNvNtNtNtNtCsdPvCFRJTm4m_5tokio7runtime9scheduler12multi_thread6worker3run + 169
+8   vtt-chat-app                  	       0x10cf471eb _RNvXs0_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4taskINtB5_12BlockingTaskNCNvMNtNtNtB9_9scheduler12multi_thread6workerNtB1g_6Launch6launch0ENtNtNtCs4XKWvl56i1_4core6future6future6Future4pollBb_ + 59
+9   vtt-chat-app                  	       0x10cf4c80b _RNvMs4_NtNtNtCsdPvCFRJTm4m_5tokio7runtime4task4coreINtB5_4CoreINtNtNtB9_8blocking4task12BlockingTaskNCNvMNtNtNtB9_9scheduler12multi_thread6workerNtB1F_6Launch6launch0ENtNtB13_8schedule16BlockingScheduleE4pollBb_ + 75
+10  vtt-chat-app                  	       0x10cf2fac0 _RNvMs0_NtNtNtCsdPvCFRJTm4m_5tokio7runtime4task7harnessINtB5_7HarnessINtNtNtB9_8blocking4task12BlockingTaskNCNvMNtNtNtB9_9scheduler12multi_thread6workerNtB1L_6Launch6launch0ENtNtB19_8schedule16BlockingScheduleE4pollBb_ + 176
+11  vtt-chat-app                  	       0x10cf52a8b _RNvMs5_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4poolNtB5_5Inner3run + 411
+12  vtt-chat-app                  	       0x10cf40c10 _RINvNtNtCs1rYdSYAaNmr_3std3sys9backtrace28___rust_begin_short_backtraceNCNvMs4_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4poolNtB1f_7Spawner12spawn_thread0uEB1l_ + 128
+13  vtt-chat-app                  	       0x10cf4dd8d _RNSNvYNCINvNtNtCs1rYdSYAaNmr_3std6thread9lifecycle15spawn_uncheckedNCNvMs4_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4poolNtB1b_7Spawner12spawn_thread0uEs_0INtNtNtCs4XKWvl56i1_4core3ops8function6FnOnceuE9call_once6vtableB1h_ + 221
+14  vtt-chat-app                  	       0x10d019c45 _RNvNvMs0_NtNtNtCs1rYdSYAaNmr_3std3sys6thread4unixNtB7_6Thread3new12thread_start + 469
+15  libsystem_pthread.dylib       	    0x7ff80e8d9d49 _pthread_start + 115
+16  libsystem_pthread.dylib       	    0x7ff80e8d582f thread_start + 15
+
+Thread 11:: tokio-rt-worker
+0   libsystem_kernel.dylib        	    0x7ff80e898712 __psynch_cvwait + 10
+1   libsystem_pthread.dylib       	    0x7ff80e8da1f7 _pthread_cond_wait + 994
+2   vtt-chat-app                  	       0x10cf38e6e _RNvMs1_NtNtNtNtCsdPvCFRJTm4m_5tokio7runtime9scheduler12multi_thread4parkNtB5_5Inner12park_condvar + 430
+3   vtt-chat-app                  	       0x10cf3305a _RNvMs_NtNtNtNtCsdPvCFRJTm4m_5tokio7runtime9scheduler12multi_thread6workerNtB4_7Context13park_internal + 314
+4   vtt-chat-app                  	       0x10cf3451a _RNvMs_NtNtNtNtCsdPvCFRJTm4m_5tokio7runtime9scheduler12multi_thread6workerNtB4_7Context3run + 4618
+5   vtt-chat-app                  	       0x10cf4032b _RINvMNtNtNtCsdPvCFRJTm4m_5tokio7runtime7context6scopedINtB3_6ScopedNtNtB7_9scheduler7ContextE3setNCNCNvNtNtB15_12multi_thread6worker3run00uEB9_ + 43
+6   vtt-chat-app                  	       0x10cf3877f _RINvNtNtNtCsdPvCFRJTm4m_5tokio7runtime7context7runtime13enter_runtimeNCNvNtNtNtB6_9scheduler12multi_thread6worker3run0uEB8_ + 495
+7   vtt-chat-app                  	       0x10cf35049 _RNvNtNtNtNtCsdPvCFRJTm4m_5tokio7runtime9scheduler12multi_thread6worker3run + 169
+8   vtt-chat-app                  	       0x10cf471eb _RNvXs0_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4taskINtB5_12BlockingTaskNCNvMNtNtNtB9_9scheduler12multi_thread6workerNtB1g_6Launch6launch0ENtNtNtCs4XKWvl56i1_4core6future6future6Future4pollBb_ + 59
+9   vtt-chat-app                  	       0x10cf4c80b _RNvMs4_NtNtNtCsdPvCFRJTm4m_5tokio7runtime4task4coreINtB5_4CoreINtNtNtB9_8blocking4task12BlockingTaskNCNvMNtNtNtB9_9scheduler12multi_thread6workerNtB1F_6Launch6launch0ENtNtB13_8schedule16BlockingScheduleE4pollBb_ + 75
+10  vtt-chat-app                  	       0x10cf2fac0 _RNvMs0_NtNtNtCsdPvCFRJTm4m_5tokio7runtime4task7harnessINtB5_7HarnessINtNtNtB9_8blocking4task12BlockingTaskNCNvMNtNtNtB9_9scheduler12multi_thread6workerNtB1L_6Launch6launch0ENtNtB19_8schedule16BlockingScheduleE4pollBb_ + 176
+11  vtt-chat-app                  	       0x10cf52a8b _RNvMs5_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4poolNtB5_5Inner3run + 411
+12  vtt-chat-app                  	       0x10cf40c10 _RINvNtNtCs1rYdSYAaNmr_3std3sys9backtrace28___rust_begin_short_backtraceNCNvMs4_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4poolNtB1f_7Spawner12spawn_thread0uEB1l_ + 128
+13  vtt-chat-app                  	       0x10cf4dd8d _RNSNvYNCINvNtNtCs1rYdSYAaNmr_3std6thread9lifecycle15spawn_uncheckedNCNvMs4_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4poolNtB1b_7Spawner12spawn_thread0uEs_0INtNtNtCs4XKWvl56i1_4core3ops8function6FnOnceuE9call_once6vtableB1h_ + 221
+14  vtt-chat-app                  	       0x10d019c45 _RNvNvMs0_NtNtNtCs1rYdSYAaNmr_3std3sys6thread4unixNtB7_6Thread3new12thread_start + 469
+15  libsystem_pthread.dylib       	    0x7ff80e8d9d49 _pthread_start + 115
+16  libsystem_pthread.dylib       	    0x7ff80e8d582f thread_start + 15
+
+Thread 12:: tokio-rt-worker
+0   libsystem_kernel.dylib        	    0x7ff80e898712 __psynch_cvwait + 10
+1   libsystem_pthread.dylib       	    0x7ff80e8da1f7 _pthread_cond_wait + 994
+2   vtt-chat-app                  	       0x10cf38e6e _RNvMs1_NtNtNtNtCsdPvCFRJTm4m_5tokio7runtime9scheduler12multi_thread4parkNtB5_5Inner12park_condvar + 430
+3   vtt-chat-app                  	       0x10cf3305a _RNvMs_NtNtNtNtCsdPvCFRJTm4m_5tokio7runtime9scheduler12multi_thread6workerNtB4_7Context13park_internal + 314
+4   vtt-chat-app                  	       0x10cf3451a _RNvMs_NtNtNtNtCsdPvCFRJTm4m_5tokio7runtime9scheduler12multi_thread6workerNtB4_7Context3run + 4618
+5   vtt-chat-app                  	       0x10cf4032b _RINvMNtNtNtCsdPvCFRJTm4m_5tokio7runtime7context6scopedINtB3_6ScopedNtNtB7_9scheduler7ContextE3setNCNCNvNtNtB15_12multi_thread6worker3run00uEB9_ + 43
+6   vtt-chat-app                  	       0x10cf3877f _RINvNtNtNtCsdPvCFRJTm4m_5tokio7runtime7context7runtime13enter_runtimeNCNvNtNtNtB6_9scheduler12multi_thread6worker3run0uEB8_ + 495
+7   vtt-chat-app                  	       0x10cf35049 _RNvNtNtNtNtCsdPvCFRJTm4m_5tokio7runtime9scheduler12multi_thread6worker3run + 169
+8   vtt-chat-app                  	       0x10cf471eb _RNvXs0_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4taskINtB5_12BlockingTaskNCNvMNtNtNtB9_9scheduler12multi_thread6workerNtB1g_6Launch6launch0ENtNtNtCs4XKWvl56i1_4core6future6future6Future4pollBb_ + 59
+9   vtt-chat-app                  	       0x10cf4c80b _RNvMs4_NtNtNtCsdPvCFRJTm4m_5tokio7runtime4task4coreINtB5_4CoreINtNtNtB9_8blocking4task12BlockingTaskNCNvMNtNtNtB9_9scheduler12multi_thread6workerNtB1F_6Launch6launch0ENtNtB13_8schedule16BlockingScheduleE4pollBb_ + 75
+10  vtt-chat-app                  	       0x10cf2fac0 _RNvMs0_NtNtNtCsdPvCFRJTm4m_5tokio7runtime4task7harnessINtB5_7HarnessINtNtNtB9_8blocking4task12BlockingTaskNCNvMNtNtNtB9_9scheduler12multi_thread6workerNtB1L_6Launch6launch0ENtNtB19_8schedule16BlockingScheduleE4pollBb_ + 176
+11  vtt-chat-app                  	       0x10cf52a8b _RNvMs5_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4poolNtB5_5Inner3run + 411
+12  vtt-chat-app                  	       0x10cf40c10 _RINvNtNtCs1rYdSYAaNmr_3std3sys9backtrace28___rust_begin_short_backtraceNCNvMs4_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4poolNtB1f_7Spawner12spawn_thread0uEB1l_ + 128
+13  vtt-chat-app                  	       0x10cf4dd8d _RNSNvYNCINvNtNtCs1rYdSYAaNmr_3std6thread9lifecycle15spawn_uncheckedNCNvMs4_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4poolNtB1b_7Spawner12spawn_thread0uEs_0INtNtNtCs4XKWvl56i1_4core3ops8function6FnOnceuE9call_once6vtableB1h_ + 221
+14  vtt-chat-app                  	       0x10d019c45 _RNvNvMs0_NtNtNtCs1rYdSYAaNmr_3std3sys6thread4unixNtB7_6Thread3new12thread_start + 469
+15  libsystem_pthread.dylib       	    0x7ff80e8d9d49 _pthread_start + 115
+16  libsystem_pthread.dylib       	    0x7ff80e8d582f thread_start + 15
+
+Thread 13:: tokio-rt-worker
+0   libsystem_kernel.dylib        	    0x7ff80e898712 __psynch_cvwait + 10
+1   libsystem_pthread.dylib       	    0x7ff80e8da1f7 _pthread_cond_wait + 994
+2   vtt-chat-app                  	       0x10cf38e6e _RNvMs1_NtNtNtNtCsdPvCFRJTm4m_5tokio7runtime9scheduler12multi_thread4parkNtB5_5Inner12park_condvar + 430
+3   vtt-chat-app                  	       0x10cf3305a _RNvMs_NtNtNtNtCsdPvCFRJTm4m_5tokio7runtime9scheduler12multi_thread6workerNtB4_7Context13park_internal + 314
+4   vtt-chat-app                  	       0x10cf3451a _RNvMs_NtNtNtNtCsdPvCFRJTm4m_5tokio7runtime9scheduler12multi_thread6workerNtB4_7Context3run + 4618
+5   vtt-chat-app                  	       0x10cf4032b _RINvMNtNtNtCsdPvCFRJTm4m_5tokio7runtime7context6scopedINtB3_6ScopedNtNtB7_9scheduler7ContextE3setNCNCNvNtNtB15_12multi_thread6worker3run00uEB9_ + 43
+6   vtt-chat-app                  	       0x10cf3877f _RINvNtNtNtCsdPvCFRJTm4m_5tokio7runtime7context7runtime13enter_runtimeNCNvNtNtNtB6_9scheduler12multi_thread6worker3run0uEB8_ + 495
+7   vtt-chat-app                  	       0x10cf35049 _RNvNtNtNtNtCsdPvCFRJTm4m_5tokio7runtime9scheduler12multi_thread6worker3run + 169
+8   vtt-chat-app                  	       0x10cf471eb _RNvXs0_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4taskINtB5_12BlockingTaskNCNvMNtNtNtB9_9scheduler12multi_thread6workerNtB1g_6Launch6launch0ENtNtNtCs4XKWvl56i1_4core6future6future6Future4pollBb_ + 59
+9   vtt-chat-app                  	       0x10cf4c80b _RNvMs4_NtNtNtCsdPvCFRJTm4m_5tokio7runtime4task4coreINtB5_4CoreINtNtNtB9_8blocking4task12BlockingTaskNCNvMNtNtNtB9_9scheduler12multi_thread6workerNtB1F_6Launch6launch0ENtNtB13_8schedule16BlockingScheduleE4pollBb_ + 75
+10  vtt-chat-app                  	       0x10cf2fac0 _RNvMs0_NtNtNtCsdPvCFRJTm4m_5tokio7runtime4task7harnessINtB5_7HarnessINtNtNtB9_8blocking4task12BlockingTaskNCNvMNtNtNtB9_9scheduler12multi_thread6workerNtB1L_6Launch6launch0ENtNtB19_8schedule16BlockingScheduleE4pollBb_ + 176
+11  vtt-chat-app                  	       0x10cf52a8b _RNvMs5_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4poolNtB5_5Inner3run + 411
+12  vtt-chat-app                  	       0x10cf40c10 _RINvNtNtCs1rYdSYAaNmr_3std3sys9backtrace28___rust_begin_short_backtraceNCNvMs4_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4poolNtB1f_7Spawner12spawn_thread0uEB1l_ + 128
+13  vtt-chat-app                  	       0x10cf4dd8d _RNSNvYNCINvNtNtCs1rYdSYAaNmr_3std6thread9lifecycle15spawn_uncheckedNCNvMs4_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4poolNtB1b_7Spawner12spawn_thread0uEs_0INtNtNtCs4XKWvl56i1_4core3ops8function6FnOnceuE9call_once6vtableB1h_ + 221
+14  vtt-chat-app                  	       0x10d019c45 _RNvNvMs0_NtNtNtCs1rYdSYAaNmr_3std3sys6thread4unixNtB7_6Thread3new12thread_start + 469
+15  libsystem_pthread.dylib       	    0x7ff80e8d9d49 _pthread_start + 115
+16  libsystem_pthread.dylib       	    0x7ff80e8d582f thread_start + 15
+
+Thread 14:: away-idle
+0   libsystem_kernel.dylib        	    0x7ff80e8985e2 __semwait_signal + 10
+1   libsystem_c.dylib             	    0x7ff80e7790d8 nanosleep + 199
+2   vtt-chat-app                  	       0x10d013262 _RNvNtNtCs1rYdSYAaNmr_3std6thread9functions5sleep + 114
+3   vtt-chat-app                  	       0x10b8e9839 _RNvNtCs1DnmKGsAMIX_16vtt_chat_app_lib10away_watch4poll + 185
+4   vtt-chat-app                  	       0x10b7a127f _RINvNtNtCs1rYdSYAaNmr_3std3sys9backtrace28___rust_begin_short_backtraceNCNvNtCs1DnmKGsAMIX_16vtt_chat_app_lib10away_watch5start0uEB1d_ + 15
+5   vtt-chat-app                  	       0x10b8dbab5 _RNSNvYNCINvNtNtCs1rYdSYAaNmr_3std6thread9lifecycle15spawn_uncheckedNCNvNtCs1DnmKGsAMIX_16vtt_chat_app_lib10away_watch5start0uEs_0INtNtNtCs4XKWvl56i1_4core3ops8function6FnOnceuE9call_once6vtableB19_ + 261
+6   vtt-chat-app                  	       0x10d019c45 _RNvNvMs0_NtNtNtCs1rYdSYAaNmr_3std3sys6thread4unixNtB7_6Thread3new12thread_start + 469
+7   libsystem_pthread.dylib       	    0x7ff80e8d9d49 _pthread_start + 115
+8   libsystem_pthread.dylib       	    0x7ff80e8d582f thread_start + 15
+
+Thread 15:: JavaScriptCore libpas scavenger
+0   libsystem_kernel.dylib        	    0x7ff80e898712 __psynch_cvwait + 10
+1   libsystem_pthread.dylib       	    0x7ff80e8da1f7 _pthread_cond_wait + 994
+2   JavaScriptCore                	    0x7ff91090d2aa scavenger_thread_main + 1722
+3   libsystem_pthread.dylib       	    0x7ff80e8d9d49 _pthread_start + 115
+4   libsystem_pthread.dylib       	    0x7ff80e8d582f thread_start + 15
+
+Thread 16:
+
+Thread 17:: WebCore: Scrolling
+0   libsystem_kernel.dylib        	    0x7ff80e895b4e mach_msg2_trap + 10
+1   libsystem_kernel.dylib        	    0x7ff80e8a3f57 mach_msg2_internal + 83
+2   libsystem_kernel.dylib        	    0x7ff80e89cb66 mach_msg_overwrite + 586
+3   libsystem_kernel.dylib        	    0x7ff80e895e56 mach_msg + 19
+4   CoreFoundation                	    0x7ff80e9956bf __CFRunLoopServiceMachPort + 145
+5   CoreFoundation                	    0x7ff80e994158 __CFRunLoopRun + 1354
+6   CoreFoundation                	    0x7ff80ea5c367 _CFRunLoopRunSpecificWithOptions + 496
+7   CoreFoundation                	    0x7ff80ea0651e CFRunLoopRun + 40
+8   JavaScriptCore                	    0x7ff90e97da10 WTF::Detail::CallableWrapper<WTF::RunLoop::create(WTF::ASCIILiteral, WTF::ThreadType, WTF::Thread::QOS)::$_0, void>::call() + 208
+9   JavaScriptCore                	    0x7ff90ea02402 WTF::Thread::entryPoint(WTF::Thread::NewThreadContext*) + 226
+10  JavaScriptCore                	    0x7ff90e702b09 WTF::wtfThreadEntryPoint(void*) + 9
+11  libsystem_pthread.dylib       	    0x7ff80e8d9d49 _pthread_start + 115
+12  libsystem_pthread.dylib       	    0x7ff80e8d582f thread_start + 15
+
+Thread 18:: Log work queue
+0   libsystem_kernel.dylib        	    0x7ff80e895aca semaphore_wait_trap + 10
+1   WebKit                        	    0x7ff918a171cd WTF::Detail::CallableWrapper<IPC::StreamConnectionWorkQueue::startProcessingThread()::$_0, void>::call() + 37
+2   JavaScriptCore                	    0x7ff90ea02402 WTF::Thread::entryPoint(WTF::Thread::NewThreadContext*) + 226
+3   JavaScriptCore                	    0x7ff90e702b09 WTF::wtfThreadEntryPoint(void*) + 9
+4   libsystem_pthread.dylib       	    0x7ff80e8d9d49 _pthread_start + 115
+5   libsystem_pthread.dylib       	    0x7ff80e8d582f thread_start + 15
+
+Thread 19:: tokio-rt-worker
+0   libsystem_kernel.dylib        	    0x7ff80e898712 __psynch_cvwait + 10
+1   libsystem_pthread.dylib       	    0x7ff80e8da229 _pthread_cond_wait + 1044
+2   vtt-chat-app                  	       0x10cff6293 _RNvMNtNtNtNtCs1rYdSYAaNmr_3std3sys4sync7condvar7pthreadNtB2_7Condvar12wait_timeout + 163
+3   vtt-chat-app                  	       0x10cf529be _RNvMs5_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4poolNtB5_5Inner3run + 206
+4   vtt-chat-app                  	       0x10cf40c10 _RINvNtNtCs1rYdSYAaNmr_3std3sys9backtrace28___rust_begin_short_backtraceNCNvMs4_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4poolNtB1f_7Spawner12spawn_thread0uEB1l_ + 128
+5   vtt-chat-app                  	       0x10cf4dd8d _RNSNvYNCINvNtNtCs1rYdSYAaNmr_3std6thread9lifecycle15spawn_uncheckedNCNvMs4_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4poolNtB1b_7Spawner12spawn_thread0uEs_0INtNtNtCs4XKWvl56i1_4core3ops8function6FnOnceuE9call_once6vtableB1h_ + 221
+6   vtt-chat-app                  	       0x10d019c45 _RNvNvMs0_NtNtNtCs1rYdSYAaNmr_3std3sys6thread4unixNtB7_6Thread3new12thread_start + 469
+7   libsystem_pthread.dylib       	    0x7ff80e8d9d49 _pthread_start + 115
+8   libsystem_pthread.dylib       	    0x7ff80e8d582f thread_start + 15
+
+Thread 20:: CVDisplayLink
+0   libsystem_kernel.dylib        	    0x7ff80e898712 __psynch_cvwait + 10
+1   libsystem_pthread.dylib       	    0x7ff80e8da229 _pthread_cond_wait + 1044
+2   CoreVideo                     	    0x7ff81937d911 CVDisplayLink::waitUntil(unsigned long long) + 375
+3   CoreVideo                     	    0x7ff81937c854 CVDisplayLink::runIOThread() + 524
+4   libsystem_pthread.dylib       	    0x7ff80e8d9d49 _pthread_start + 115
+5   libsystem_pthread.dylib       	    0x7ff80e8d582f thread_start + 15
+
+Thread 21:: caulk.messenger.shared:17
+0   libsystem_kernel.dylib        	    0x7ff80e895aca semaphore_wait_trap + 10
+1   caulk                         	    0x7ff81b1acb50 caulk::semaphore::timed_wait(double) + 158
+2   caulk                         	    0x7ff81b1aca72 caulk::concurrent::details::worker_thread::run() + 30
+3   caulk                         	    0x7ff81b1ac7a6 void* caulk::thread_proxy<std::__1::tuple<caulk::thread::attributes, void (caulk::concurrent::details::worker_thread::*)(), std::__1::tuple<caulk::concurrent::details::worker_thread*>>>(void*) + 41
+4   libsystem_pthread.dylib       	    0x7ff80e8d9d49 _pthread_start + 115
+5   libsystem_pthread.dylib       	    0x7ff80e8d582f thread_start + 15
+
+Thread 22:: caulk.messenger.shared:high
+0   libsystem_kernel.dylib        	    0x7ff80e895aca semaphore_wait_trap + 10
+1   caulk                         	    0x7ff81b1acb50 caulk::semaphore::timed_wait(double) + 158
+2   caulk                         	    0x7ff81b1aca72 caulk::concurrent::details::worker_thread::run() + 30
+3   caulk                         	    0x7ff81b1ac7a6 void* caulk::thread_proxy<std::__1::tuple<caulk::thread::attributes, void (caulk::concurrent::details::worker_thread::*)(), std::__1::tuple<caulk::concurrent::details::worker_thread*>>>(void*) + 41
+4   libsystem_pthread.dylib       	    0x7ff80e8d9d49 _pthread_start + 115
+5   libsystem_pthread.dylib       	    0x7ff80e8d582f thread_start + 15
+
+Thread 23:: network_thread 0x0x600000f0f310
+0   libsystem_kernel.dylib        	    0x7ff80e89c88a poll + 10
+1   vtt-chat-app                  	       0x10c058d51 webrtc::PhysicalSocketServer::WaitPoll(webrtc::TimeDelta, bool) + 657
+2   vtt-chat-app                  	       0x10c058aa5 webrtc::PhysicalSocketServer::Wait(webrtc::TimeDelta, bool) + 21
+3   vtt-chat-app                  	       0x10c054bd9 webrtc::Thread::Get(int) + 537
+4   vtt-chat-app                  	       0x10c05406b webrtc::Thread::ProcessMessages(int) + 155
+5   vtt-chat-app                  	       0x10c05562b webrtc::Thread::PreRun(void*) + 91
+6   libsystem_pthread.dylib       	    0x7ff80e8d9d49 _pthread_start + 115
+7   libsystem_pthread.dylib       	    0x7ff80e8d582f thread_start + 15
+
+Thread 24:: worker_thread 0x0x600000f0f318
+0   libsystem_kernel.dylib        	    0x7ff80e898712 __psynch_cvwait + 10
+1   libsystem_pthread.dylib       	    0x7ff80e8da1f7 _pthread_cond_wait + 994
+2   vtt-chat-app                  	       0x10c02c48b webrtc::Event::Wait(webrtc::TimeDelta, webrtc::TimeDelta) + 571
+3   vtt-chat-app                  	       0x10c0539d7 webrtc::NullSocketServer::Wait(webrtc::TimeDelta, bool) + 23
+4   vtt-chat-app                  	       0x10c054bd9 webrtc::Thread::Get(int) + 537
+5   vtt-chat-app                  	       0x10c05406b webrtc::Thread::ProcessMessages(int) + 155
+6   vtt-chat-app                  	       0x10c05562b webrtc::Thread::PreRun(void*) + 91
+7   libsystem_pthread.dylib       	    0x7ff80e8d9d49 _pthread_start + 115
+8   libsystem_pthread.dylib       	    0x7ff80e8d582f thread_start + 15
+
+Thread 25 Crashed:: signaling_thread 0x0x600000f0f320
+0   libunwind.dylib               	    0x7ff81e8b64b0 _Unwind_RaiseException + 240
+1   libc++abi.dylib               	    0x7ff80e87edb4 __cxa_throw + 61
+2   libobjc.A.dylib               	    0x7ff80e481131 objc_exception_throw + 317
+3   CoreFoundation                	    0x7ff80eab46c7 +[NSObject(NSObject) doesNotRecognizeSelector:] + 337
+4   CoreFoundation                	    0x7ff80e975a5d ___forwarding___ + 1308
+5   CoreFoundation                	    0x7ff80e9754b8 _CF_forwarding_prep_0 + 120
+6   vtt-chat-app                  	       0x10c94ce54 (anonymous namespace)::MaxSupportedLevelForProfile(webrtc::H264Profile) + 164
+7   vtt-chat-app                  	       0x10c94c9b4 __RTCMaxSupportedH264ProfileLevelConstrainedHigh_block_invoke + 20
+8   libdispatch.dylib             	    0x7ff80e7368b2 _dispatch_client_callout + 6
+9   libdispatch.dylib             	    0x7ff80e7226ca _dispatch_once_callout + 20
+10  vtt-chat-app                  	       0x10c94c98d RTCMaxSupportedH264ProfileLevelConstrainedHigh + 45
+11  vtt-chat-app                  	       0x10c947122 +[RTCVideoEncoderH264 supportedCodecs] + 50
+12  vtt-chat-app                  	       0x10c94b435 +[RTCDefaultVideoEncoderFactory supportedCodecs] + 69
+13  vtt-chat-app                  	       0x10c94b74f -[RTCDefaultVideoEncoderFactory supportedCodecs] + 47
+14  vtt-chat-app                  	       0x10c94becd -[RTCVideoEncoderFactorySimulcast supportedCodecs] + 61
+15  vtt-chat-app                  	       0x10c93d0f0 webrtc::ObjCVideoEncoderFactory::GetSupportedFormats() const + 96
+16  vtt-chat-app                  	       0x10cc0bbc6 livekit_ffi::VideoEncoderFactory::InternalFactory::GetSupportedFormats() const + 118
+17  vtt-chat-app                  	       0x10cc0e652 livekit_ffi::VideoEncoderFactory::GetSupportedFormats() const + 18
+18  vtt-chat-app                  	       0x10cbbb9dd std::__1::vector<webrtc::SdpVideoFormat, std::__1::allocator<webrtc::SdpVideoFormat>> webrtc::(anonymous namespace)::GetDefaultSupportedFormats<webrtc::VideoEncoderFactory>(webrtc::VideoEncoderFactory const*, bool, webrtc::FieldTrialsView const&) + 77
+19  vtt-chat-app                  	       0x10cbba744 webrtc::WebRtcVideoEngine::LegacySendCodecs(bool) const + 100
+20  vtt-chat-app                  	       0x10beef170 webrtc::TypedCodecVendor::TypedCodecVendor(webrtc::MediaEngineInterface const*, webrtc::MediaType, bool, bool, webrtc::FieldTrialsView const&) + 800
+21  vtt-chat-app                  	       0x10bf543ac webrtc::CodecVendor::CodecVendor(webrtc::MediaEngineInterface const*, bool, webrtc::FieldTrialsView const&) + 268
+22  vtt-chat-app                  	       0x10befc432 webrtc::PeerConnectionFactory::PeerConnectionFactory(webrtc::Environment, webrtc::scoped_refptr<webrtc::ConnectionContext>, webrtc::PeerConnectionFactoryDependencies*) + 162
+23  vtt-chat-app                  	       0x10befe58c webrtc::RefCountedObject<webrtc::PeerConnectionFactory>::RefCountedObject<webrtc::Environment&, webrtc::scoped_refptr<webrtc::ConnectionContext>&, webrtc::PeerConnectionFactoryDependencies*>(webrtc::Environment&, webrtc::scoped_refptr<webrtc::ConnectionContext>&, webrtc::PeerConnectionFactoryDependencies*&&) + 108
+24  vtt-chat-app                  	       0x10befc324 webrtc::PeerConnectionFactory::Create(webrtc::PeerConnectionFactoryDependencies) + 212
+25  vtt-chat-app                  	       0x10c9d4f58 webrtc::CreateModularPeerConnectionFactory(webrtc::PeerConnectionFactoryDependencies) + 88
+26  vtt-chat-app                  	       0x10c9d5053 void webrtc::FunctionView<void ()>::CallVoidPtr<webrtc::scoped_refptr<webrtc::PeerConnectionFactoryInterface> webrtc::Thread::BlockingCall<webrtc::CreateModularPeerConnectionFactory(webrtc::PeerConnectionFactoryDependencies)::$_0, webrtc::scoped_refptr<webrtc::PeerConnectionFactoryInterface>, void>(webrtc::CreateModularPeerConnectionFactory(webrtc::PeerConnectionFactoryDependencies)::$_0&&, webrtc::Location const&)::'lambda'()>(webrtc::FunctionView<void ()>::VoidUnion) + 51
+27  vtt-chat-app                  	       0x10c0550d4 webrtc::Thread::Dispatch(absl::AnyInvocable<void () &&>) + 148
+28  vtt-chat-app                  	       0x10c0540ad webrtc::Thread::ProcessMessages(int) + 221
+29  vtt-chat-app                  	       0x10c05562b webrtc::Thread::PreRun(void*) + 91
+30  libsystem_pthread.dylib       	    0x7ff80e8d9d49 _pthread_start + 115
+31  libsystem_pthread.dylib       	    0x7ff80e8d582f thread_start + 15
+
+
+Thread 25 crashed with X86 Thread State (64-bit):
+  rax: 0x0020019008070c10  rbx: 0x0000600001022220  rcx: 0x0000600001022220  rdx: 0x434c4e47432b2b00
+  rdi: 0x0000000000000001  rsi: 0x0000000000000001  rbp: 0x0000700006059870  rsp: 0x0000700006058c70
+   r8: 0x00007000060591a8   r9: 0x00000000ffffff80  r10: 0x00007ff80e75e0d4  r11: 0x0000000000000f20
+  r12: 0x0000700006059808  r13: 0x0000000000000068  r14: 0x00007000060591a8  r15: 0x0000000000000003
+  rip: 0x00007ff81e8b64b0  rfl: 0x0000000000010202  cr2: 0x0000000000000000
+
+Logical CPU:     1
+Error Code:      0x00000000
+Trap Number:     13
+
+
+Binary Images:
+       0x10b193000 -        0x10d80ffff app.vttchat.desktop (0.6.4) <3e40bb82-a582-3d25-8101-8fda7ff185ac> /Applications/VTT Chat.app/Contents/MacOS/vtt-chat-app
+       0x10f458000 -        0x10f464fff libobjc-trampolines.dylib (*) <9564e919-df67-3ce5-bb9b-8a9cbab201e1> /usr/lib/libobjc-trampolines.dylib
+    0x7ff80e895000 -     0x7ff80e8d35cf libsystem_kernel.dylib (*) <a6d8c216-4f74-3793-bd68-0156d505de47> /usr/lib/system/libsystem_kernel.dylib
+    0x7ff80e919000 -     0x7ff80edd6a04 com.apple.CoreFoundation (6.9) <b7f5aeea-bdbd-3bbd-a1d1-baf62215be44> /System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation
+    0x7ff81b648000 -     0x7ff81b924bce com.apple.HIToolbox (2.1.1) <712d1800-c63f-3298-89c9-3e1b26d572f4> /System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/HIToolbox.framework/Versions/A/HIToolbox
+    0x7ff8127db000 -     0x7ff813fd7b16 com.apple.AppKit (6.9) <e618d025-5817-3377-984d-da92213b1a78> /System/Library/Frameworks/AppKit.framework/Versions/C/AppKit
+    0x7ff80e4e1000 -     0x7ff80e58d84f dyld (*) <22cc4f6a-197f-37c2-bbfd-3b5e8229e756> /usr/lib/dyld
+               0x0 - 0xffffffffffffffff ??? (*) <00000000-0000-0000-0000-000000000000> ???
+    0x7ff80e71f000 -     0x7ff80e766d91 libdispatch.dylib (*) <9418808d-59a5-39ef-be7a-361b04adb17e> /usr/lib/system/libdispatch.dylib
+    0x7ff80e8d4000 -     0x7ff80e8dfebf libsystem_pthread.dylib (*) <091a35d0-ecf6-3370-bf9b-860e41cd07e2> /usr/lib/system/libsystem_pthread.dylib
+    0x7ff80e76a000 -     0x7ff80e7f1e9f libsystem_c.dylib (*) <7680836e-f1bc-39b8-9996-5d290985a05f> /usr/lib/system/libsystem_c.dylib
+    0x7ff90e700000 -     0x7ff910bea5e3 com.apple.JavaScriptCore (21624) <2e7f5f6d-bfe7-366f-b12d-14176f41fdef> /System/Library/Frameworks/JavaScriptCore.framework/Versions/A/JavaScriptCore
+    0x7ff9177f8000 -     0x7ff918e5a7a0 com.apple.WebKit (21624) <95269498-0b88-3aeb-b1e5-5734195c090c> /System/Library/Frameworks/WebKit.framework/Versions/A/WebKit
+    0x7ff81937a000 -     0x7ff8193ed567 com.apple.CoreVideo (1.8) <6939ac9c-8573-3a0d-bd9b-51d97e90f8b4> /System/Library/Frameworks/CoreVideo.framework/Versions/A/CoreVideo
+    0x7ff81b1ab000 -     0x7ff81b1cf91f com.apple.audio.caulk (1.0) <b654abcf-daf4-3555-a964-06d125afef47> /System/Library/PrivateFrameworks/caulk.framework/Versions/A/caulk
+    0x7ff81e8b4000 -     0x7ff81e8bc567 libunwind.dylib (*) <e3bdc4ff-d124-35c6-8cb5-5698619d3a5f> /usr/lib/system/libunwind.dylib
+    0x7ff80e87d000 -     0x7ff80e8945f7 libc++abi.dylib (*) <dcc1ed82-53fb-3215-a780-9af30533093e> /usr/lib/libc++abi.dylib
+    0x7ff80e46d000 -     0x7ff80e4b138b libobjc.A.dylib (*) <3d3e4632-64dd-3015-a0a8-ccd98d931065> /usr/lib/libobjc.A.dylib
+
+External Modification Summary:
+  Calls made by other processes targeting this process:
+    task_for_pid: 0
+    thread_create: 0
+    thread_set_state: 0
+  Calls made by this process:
+    task_for_pid: 0
+    thread_create: 0
+    thread_set_state: 0
+  Calls made by all processes on this machine:
+    task_for_pid: 0
+    thread_create: 0
+    thread_set_state: 0
+
+VM Region Summary:
+ReadOnly portion of Libraries: Total=1.5G resident=0K(0%) swapped_out_or_unallocated=1.5G(100%)
+Writable regions: Total=5.8G written=0K(0%) resident=0K(0%) swapped_out=0K(0%) unallocated=5.8G(100%)
+
+                                VIRTUAL   REGION
+REGION TYPE                        SIZE    COUNT (non-coalesced)
+===========                     =======  =======
+Activity Tracing                   256K        1
+ColorSync                           12K        2
+CoreAnimation                      172K       39
+CoreGraphics                        16K        3
+CoreServices                      9700K        1
+CoreUI image data                  352K        5
+Foundation                          16K        1
+IOKit                             7940K        1
+Image IO                            20K        2
+JS JIT generated code              1.0G        3
+JS VM Gigacage (reserved)          4.0G        1         reserved VM address space (unallocated)
+Kernel Alloc Once                    8K        1
+MALLOC                           611.3M       72
+MALLOC guard page                   64K       16
+STACK GUARD                        100K       25
+Stack                             37.2M       26
+Stack Guard                       56.0M        1
+VM_ALLOCATE                        356K       25
+VM_ALLOCATE (reserved)            1536K       12         reserved VM address space (unallocated)
+WebKit Malloc                    192.5M       16
+__CTF                               824        1
+__DATA                            49.2M     1010
+__DATA_CONST                     123.4M     1057
+__DATA_DIRTY                      8876K      896
+__FONT_DATA                        2352        1
+__GLSLBUILTINS                    5174K        1
+__LINKEDIT                       168.0M        3
+__OBJC_RO                         65.2M        1
+__OBJC_RW                         2598K        1
+__TEXT                             1.3G     1076
+__TPRO_CONST                         16        2
+mapped file                      247.8M       29
+shared memory                      800K       19
+===========                     =======  =======
+TOTAL                              7.8G     4350
+TOTAL, minus reserved VM space     3.8G     4350
+
+
+-----------
+Full Report
+-----------
+
+{"app_name":"vtt-chat-app","timestamp":"2026-11-26 14:06:02.00 +0800","app_version":"0.6.4","slice_uuid":"3e40bb82-a582-3d25-8101-8fda7ff185ac","build_version":"0.6.4","platform":1,"bundleID":"app.vttchat.desktop","share_with_app_devs":0,"is_first_party":0,"bug_type":"309","os_version":"macOS 26.7.3 (25G342)","roots_installed":0,"name":"vtt-chat-app","incident_id":"E1352BF4-7576-43BA-8C75-00F8B81B12B6"}
+{
+  "uptime" : 1000,
+  "procRole" : "Foreground",
+  "version" : 2,
+  "userID" : 501,
+  "deployVersion" : 210,
+  "modelCode" : "VMware20,1",
+  "coalitionID" : 1109,
+  "osVersion" : {
+    "train" : "macOS 26.7.3",
+    "build" : "25G342",
+    "releaseType" : "User"
+  },
+  "captureTime" : "2026-11-26 14:06:00.2329 +0800",
+  "codeSigningMonitor" : 0,
+  "incident" : "E1352BF4-7576-43BA-8C75-00F8B81B12B6",
+  "pid" : 976,
+  "cpuType" : "X86-64",
+  "procLaunch" : "2026-11-26 14:05:52.5954 +0800",
+  "procStartAbsTime" : 1052975207729,
+  "procExitAbsTime" : 1060594480305,
+  "procName" : "vtt-chat-app",
+  "procPath" : "\/Applications\/VTT Chat.app\/Contents\/MacOS\/vtt-chat-app",
+  "bundleInfo" : {"CFBundleShortVersionString":"0.6.4","CFBundleVersion":"0.6.4","CFBundleIdentifier":"app.vttchat.desktop"},
+  "storeInfo" : {"deviceIdentifierForVendor":"D0C00C07-6F2C-543B-A825-C482BF6088EB","thirdParty":true},
+  "parentProc" : "vtt-chat-app",
+  "parentPid" : 975,
+  "coalitionName" : "app.vttchat.desktop",
+  "crashReporterKey" : "2FB7ED08-E538-CE36-BEC2-C53068B0A39F",
+  "appleIntelligenceStatus" : {"reasons":["deviceNotCapable"],"state":"unavailable"},
+  "developerMode" : 1,
+  "responsiblePid" : 975,
+  "responsibleProc" : "vtt-chat-app",
+  "codeSigningID" : "",
+  "codeSigningTeamID" : "",
+  "codeSigningValidationCategory" : 0,
+  "codeSigningTrustLevel" : 4294967295,
+  "codeSigningAuxiliaryInfo" : 0,
+  "bootSessionUUID" : "2DF231F1-0517-4D49-B70B-CDF7EAE27592",
+  "sip" : "enabled",
+  "vmRegionInfo" : "0 is not in any region.  Bytes before following region: 4481167360\n      REGION TYPE                    START - END         [ VSIZE] PRT\/MAX SHRMOD  REGION DETAIL\n      UNUSED SPACE AT START\n--->  \n      __TEXT                      10b193000-10d810000    [ 38.5M] r-x\/r-x SM=COW  \/Applications\/VTT Chat.app\/Contents\/MacOS\/vtt-chat-app",
+  "exception" : {"codes":"0x000000000000000d, 0x0000000000000000","rawCodes":[13,0],"type":"EXC_BAD_ACCESS","signal":"SIGSEGV","subtype":"UNKNOWN_0xD at 0x0000000000000000"},
+  "termination" : {"flags":0,"code":11,"namespace":"SIGNAL","indicator":"Segmentation fault: 11","byProc":"exc handler","byPid":976},
+  "vmregioninfo" : "0 is not in any region.  Bytes before following region: 4481167360\n      REGION TYPE                    START - END         [ VSIZE] PRT\/MAX SHRMOD  REGION DETAIL\n      UNUSED SPACE AT START\n--->  \n      __TEXT                      10b193000-10d810000    [ 38.5M] r-x\/r-x SM=COW  \/Applications\/VTT Chat.app\/Contents\/MacOS\/vtt-chat-app",
+  "extMods" : {"caller":{"thread_create":0,"thread_set_state":0,"task_for_pid":0},"system":{"thread_create":0,"thread_set_state":0,"task_for_pid":0},"targeted":{"thread_create":0,"thread_set_state":0,"task_for_pid":0},"warnings":0},
+  "faultingThread" : 25,
+  "threads" : [{"threadState":{"r13":{"value":21592279046},"rax":{"value":268451845},"rflags":{"value":518},"cpu":{"value":0},"r14":{"value":2},"rsi":{"value":21592279046},"r8":{"value":1275534608},"cr2":{"value":0},"rdx":{"value":8589934592},"r10":{"value":16505559318528},"r9":{"value":16505559318528},"r15":{"value":1275534608},"rbx":{"value":140701867597680},"trap":{"value":133},"err":{"value":16777263},"r11":{"value":518},"rip":{"value":140703372499790},"rbp":{"value":140701867597520},"rsp":{"value":140701867597416},"r12":{"value":16505559318528},"rcx":{"value":140701867597416},"flavor":"x86_THREAD_STATE","rdi":{"value":140701867597680}},"id":17493,"name":"main","queue":"com.apple.main-thread","frames":[{"imageOffset":2894,"symbol":"mach_msg2_trap","symbolLocation":10,"imageIndex":2},{"imageOffset":61271,"symbol":"mach_msg2_internal","symbolLocation":83,"imageIndex":2},{"imageOffset":31590,"symbol":"mach_msg_overwrite","symbolLocation":586,"imageIndex":2},{"imageOffset":3670,"symbol":"mach_msg","symbolLocation":19,"imageIndex":2},{"imageOffset":509631,"symbol":"__CFRunLoopServiceMachPort","symbolLocation":145,"imageIndex":3},{"imageOffset":504152,"symbol":"__CFRunLoopRun","symbolLocation":1354,"imageIndex":3},{"imageOffset":1323879,"symbol":"_CFRunLoopRunSpecificWithOptions","symbolLocation":496,"imageIndex":3},{"imageOffset":678795,"symbol":"RunCurrentEventLoopInMode","symbolLocation":283,"imageIndex":4},{"imageOffset":691277,"symbol":"ReceiveNextEventCommon","symbolLocation":599,"imageIndex":4},{"imageOffset":2298058,"symbol":"_BlockUntilNextEventMatchingListInMode","symbolLocation":37,"imageIndex":4},{"imageOffset":7634836,"symbol":"_DPSBlockUntilNextEventMatchingListInMode","symbolLocation":172,"imageIndex":5},{"imageOffset":252357,"symbol":"_DPSNextEvent","symbolLocation":800,"imageIndex":5},{"imageOffset":13549179,"symbol":"-[NSApplication(NSEventRouting) _nextEventMatchingEventMask:untilDate:inMode:dequeue:]","symbolLocation":1265,"imageIndex":5},{"imageOffset":13547857,"symbol":"-[NSApplication(NSEventRouting) nextEventMatchingMask:untilDate:inMode:dequeue:]","symbolLocation":67,"imageIndex":5},{"imageOffset":190556,"symbol":"-[NSApplication run]","symbolLocation":472,"imageIndex":5},{"imageOffset":5708747,"symbol":"_RINvMs3_NtNtNtCsjqx1hY3JPhz_3tao13platform_impl8platform10event_loopINtB6_9EventLoopINtCsftrGOzhMfxW_17tauri_runtime_wry7MessageNtCsgFt6obHJNcS_5tauri16EventLoopMessageEE3runNCINvB1n_18make_event_handlerB22_NCINvMsf_NtB24_3appNtB3s_3App28make_run_event_loop_callbackNCNvCs1DnmKGsAMIX_16vtt_chat_app_lib3runs1_0E0E0EB4k_","symbolLocation":571,"imageIndex":0},{"imageOffset":5809996,"symbol":"_RINvXsy_CsftrGOzhMfxW_17tauri_runtime_wryINtB6_3WryNtCsgFt6obHJNcS_5tauri16EventLoopMessageEINtCsh525rs26Z54_13tauri_runtime7RuntimeBN_E3runNCINvMsf_NtBP_3appNtB2n_3App28make_run_event_loop_callbackNCNvCs1DnmKGsAMIX_16vtt_chat_app_lib3runs1_0E0EB3e_","symbolLocation":316,"imageIndex":0},{"imageOffset":5256483,"symbol":"_RNvCs1DnmKGsAMIX_16vtt_chat_app_lib3run","symbolLocation":23107,"imageIndex":0},{"imageOffset":6278,"symbol":"_RINvNtNtCs1rYdSYAaNmr_3std3sys9backtrace28___rust_begin_short_backtraceFEuuECslwqX0hkCZTW_12vtt_chat_app","symbolLocation":6,"imageIndex":0},{"imageOffset":6300,"symbol":"_RNCINvNtCs1rYdSYAaNmr_3std2rt10lang_startuE0CslwqX0hkCZTW_12vtt_chat_app","symbolLocation":12,"imageIndex":0},{"imageOffset":31970021,"symbol":"_RNvNtCs1rYdSYAaNmr_3std2rt19lang_start_internal","symbolLocation":901,"imageIndex":0},{"imageOffset":6556,"symbol":"main","symbolLocation":44,"imageIndex":0},{"imageOffset":78296,"symbol":"start","symbolLocation":3240,"imageIndex":6}]},{"id":17506,"name":"soundboard","threadState":{"r13":{"value":4294967295},"rax":{"value":14},"rflags":{"value":582},"cpu":{"value":0},"r14":{"value":105553118397136},"rsi":{"value":18446744073709551615},"r8":{"value":18446744069414584320},"cr2":{"value":0},"rdx":{"value":0},"r10":{"value":0},"r9":{"value":0},"r15":{"value":18446744073709551615},"rbx":{"value":105553118397200},"trap":{"value":133},"err":{"value":16777252},"r11":{"value":582},"rip":{"value":140703372499658},"rbp":{"value":123145377389184},"rsp":{"value":123145377389160},"r12":{"value":105553165598736},"rcx":{"value":123145377389160},"flavor":"x86_THREAD_STATE","rdi":{"value":5891}},"frames":[{"imageOffset":2762,"symbol":"semaphore_wait_trap","symbolLocation":10,"imageIndex":2},{"imageOffset":10718,"symbol":"_dispatch_sema4_wait","symbolLocation":16,"imageIndex":8},{"imageOffset":11943,"symbol":"_dispatch_semaphore_wait_slow","symbolLocation":98,"imageIndex":8},{"imageOffset":31906960,"symbol":"_RNvMs_NtNtCs1rYdSYAaNmr_3std6thread6threadNtB4_6Thread4park","symbolLocation":48,"imageIndex":0},{"imageOffset":8821096,"symbol":"_RNCNvMs1_NtNtNtCs1rYdSYAaNmr_3std4sync4mpmc4listINtB7_7ChannelINtNtCs4XKWvl56i1_4core6result6ResultuNtNtCslOvjSTxizM4_5alloc6string6StringEE4recvs_0Cs4rnhi2h4wOy_12rust_livekit","symbolLocation":232,"imageIndex":0},{"imageOffset":8831588,"symbol":"_RNvMs1_NtNtNtCs1rYdSYAaNmr_3std4sync4mpmc4listINtB5_7ChannelNtNtNtCs4rnhi2h4wOy_12rust_livekit5sound6engine7CommandE4recvB12_","symbolLocation":660,"imageIndex":0},{"imageOffset":8891046,"symbol":"_RNvNtNtCs4rnhi2h4wOy_12rust_livekit5sound6engine3run","symbolLocation":950,"imageIndex":0},{"imageOffset":8928361,"symbol":"_RINvNtNtCs1rYdSYAaNmr_3std3sys9backtrace28___rust_begin_short_backtraceNCNvMs_NtNtCs4rnhi2h4wOy_12rust_livekit5sound6engineNtB1e_11SoundEngine5spawn0uEB1i_","symbolLocation":9,"imageIndex":0},{"imageOffset":8961261,"symbol":"_RNSNvYNCINvNtNtCs1rYdSYAaNmr_3std6thread9lifecycle15spawn_uncheckedNCNvMs_NtNtCs4rnhi2h4wOy_12rust_livekit5sound6engineNtB1a_11SoundEngine5spawn0uEs_0INtNtNtCs4XKWvl56i1_4core3ops8function6FnOnceuE9call_once6vtableB1e_","symbolLocation":125,"imageIndex":0},{"imageOffset":32009285,"symbol":"_RNvNvMs0_NtNtNtCs1rYdSYAaNmr_3std3sys6thread4unixNtB7_6Thread3new12thread_start","symbolLocation":469,"imageIndex":0},{"imageOffset":23881,"symbol":"_pthread_start","symbolLocation":115,"imageIndex":9},{"imageOffset":6191,"symbol":"thread_start","symbolLocation":15,"imageIndex":9}]},{"id":17509,"frames":[],"threadState":{"r13":{"value":0},"rax":{"value":33554800},"rflags":{"value":512},"cpu":{"value":0},"r14":{"value":0},"rsi":{"value":10755},"r8":{"value":409604},"cr2":{"value":0},"rdx":{"value":123145377939456},"r10":{"value":0},"r9":{"value":18446744073709551615},"r15":{"value":0},"rbx":{"value":123145378463744},"trap":{"value":133},"err":{"value":33554800},"r11":{"value":582},"rip":{"value":140703372761100},"rbp":{"value":0},"rsp":{"value":123145378463744},"r12":{"value":0},"rcx":{"value":0},"flavor":"x86_THREAD_STATE","rdi":{"value":123145378463744}}},{"id":17519,"frames":[],"threadState":{"r13":{"value":0},"rax":{"value":33554800},"rflags":{"value":512},"cpu":{"value":0},"r14":{"value":0},"rsi":{"value":18435},"r8":{"value":409602},"cr2":{"value":0},"rdx":{"value":123145378476032},"r10":{"value":0},"r9":{"value":18446744073709551615},"r15":{"value":0},"rbx":{"value":123145379000320},"trap":{"value":133},"err":{"value":33554800},"r11":{"value":582},"rip":{"value":140703372761100},"rbp":{"value":0},"rsp":{"value":123145379000320},"r12":{"value":0},"rcx":{"value":0},"flavor":"x86_THREAD_STATE","rdi":{"value":123145379000320}}},{"id":17520,"frames":[],"threadState":{"r13":{"value":0},"rax":{"value":33554800},"rflags":{"value":512},"cpu":{"value":0},"r14":{"value":1},"rsi":{"value":85763},"r8":{"value":409604},"cr2":{"value":0},"rdx":{"value":123145379012608},"r10":{"value":0},"r9":{"value":18446744073709551615},"r15":{"value":123145379535744},"rbx":{"value":123145379536896},"trap":{"value":133},"err":{"value":33554800},"r11":{"value":582},"rip":{"value":140703372761100},"rbp":{"value":0},"rsp":{"value":123145379536896},"r12":{"value":1982472},"rcx":{"value":0},"flavor":"x86_THREAD_STATE","rdi":{"value":123145379536896}}},{"id":17544,"name":"com.apple.NSEventThread","threadState":{"r13":{"value":21592279046},"rax":{"value":268451845},"rflags":{"value":518},"cpu":{"value":0},"r14":{"value":2},"rsi":{"value":21592279046},"r8":{"value":0},"cr2":{"value":0},"rdx":{"value":8589934592},"r10":{"value":133053791862784},"r9":{"value":133053791862784},"r15":{"value":0},"rbx":{"value":123145380069520},"trap":{"value":133},"err":{"value":16777263},"r11":{"value":518},"rip":{"value":140703372499790},"rbp":{"value":123145380069360},"rsp":{"value":123145380069256},"r12":{"value":133053791862784},"rcx":{"value":123145380069256},"flavor":"x86_THREAD_STATE","rdi":{"value":123145380069520}},"frames":[{"imageOffset":2894,"symbol":"mach_msg2_trap","symbolLocation":10,"imageIndex":2},{"imageOffset":61271,"symbol":"mach_msg2_internal","symbolLocation":83,"imageIndex":2},{"imageOffset":31590,"symbol":"mach_msg_overwrite","symbolLocation":586,"imageIndex":2},{"imageOffset":3670,"symbol":"mach_msg","symbolLocation":19,"imageIndex":2},{"imageOffset":509631,"symbol":"__CFRunLoopServiceMachPort","symbolLocation":145,"imageIndex":3},{"imageOffset":504152,"symbol":"__CFRunLoopRun","symbolLocation":1354,"imageIndex":3},{"imageOffset":1323879,"symbol":"_CFRunLoopRunSpecificWithOptions","symbolLocation":496,"imageIndex":3},{"imageOffset":1636000,"symbol":"_NSEventThread","symbolLocation":158,"imageIndex":5},{"imageOffset":23881,"symbol":"_pthread_start","symbolLocation":115,"imageIndex":9},{"imageOffset":6191,"symbol":"thread_start","symbolLocation":15,"imageIndex":9}]},{"id":17546,"name":"tokio-rt-worker","threadState":{"r13":{"value":0},"rax":{"value":4},"rflags":{"value":583},"cpu":{"value":0},"r14":{"value":140651414034952},"rsi":{"value":0},"r8":{"value":1024},"cr2":{"value":0},"rdx":{"value":0},"r10":{"value":140651421773312},"r9":{"value":123145382180968},"r15":{"value":1},"rbx":{"value":105553118410040},"trap":{"value":133},"err":{"value":33554795},"r11":{"value":582},"rip":{"value":140703372519374},"rbp":{"value":123145382180992},"rsp":{"value":123145382180952},"r12":{"value":140651414035056},"rcx":{"value":123145382180952},"flavor":"x86_THREAD_STATE","rdi":{"value":3}},"frames":[{"imageOffset":22478,"symbol":"kevent","symbolLocation":10,"imageIndex":2},{"imageOffset":31202638,"symbol":"_RNvMNtCs4vT97PLZKgJ_3mio4pollNtB2_4Poll4poll","symbolLocation":94,"imageIndex":0},{"imageOffset":31162206,"symbol":"_RNvMNtNtNtCsdPvCFRJTm4m_5tokio7runtime2io6driverNtB2_6Driver4turn","symbolLocation":478,"imageIndex":0},{"imageOffset":31111015,"symbol":"_RNvMNtNtCsdPvCFRJTm4m_5tokio7runtime4timeNtB2_6Driver13park_internal","symbolLocation":567,"imageIndex":0},{"imageOffset":31064094,"symbol":"_RNvMs_NtNtNtNtCsdPvCFRJTm4m_5tokio7runtime9scheduler12multi_thread6workerNtB4_7Context13park_internal","symbolLocation":254,"imageIndex":0},{"imageOffset":31069466,"symbol":"_RNvMs_NtNtNtNtCsdPvCFRJTm4m_5tokio7runtime9scheduler12multi_thread6workerNtB4_7Context3run","symbolLocation":4618,"imageIndex":0},{"imageOffset":31118123,"symbol":"_RINvMNtNtNtCsdPvCFRJTm4m_5tokio7runtime7context6scopedINtB3_6ScopedNtNtB7_9scheduler7ContextE3setNCNCNvNtNtB15_12multi_thread6worker3run00uEB9_","symbolLocation":43,"imageIndex":0},{"imageOffset":31086463,"symbol":"_RINvNtNtNtCsdPvCFRJTm4m_5tokio7runtime7context7runtime13enter_runtimeNCNvNtNtNtB6_9scheduler12multi_thread6worker3run0uEB8_","symbolLocation":495,"imageIndex":0},{"imageOffset":31072329,"symbol":"_RNvNtNtNtNtCsdPvCFRJTm4m_5tokio7runtime9scheduler12multi_thread6worker3run","symbolLocation":169,"imageIndex":0},{"imageOffset":31146475,"symbol":"_RNvXs0_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4taskINtB5_12BlockingTaskNCNvMNtNtNtB9_9scheduler12multi_thread6workerNtB1g_6Launch6launch0ENtNtNtCs4XKWvl56i1_4core6future6future6Future4pollBb_","symbolLocation":59,"imageIndex":0},{"imageOffset":31168523,"symbol":"_RNvMs4_NtNtNtCsdPvCFRJTm4m_5tokio7runtime4task4coreINtB5_4CoreINtNtNtB9_8blocking4task12BlockingTaskNCNvMNtNtNtB9_9scheduler12multi_thread6workerNtB1F_6Launch6launch0ENtNtB13_8schedule16BlockingScheduleE4pollBb_","symbolLocation":75,"imageIndex":0},{"imageOffset":31050432,"symbol":"_RNvMs0_NtNtNtCsdPvCFRJTm4m_5tokio7runtime4task7harnessINtB5_7HarnessINtNtNtB9_8blocking4task12BlockingTaskNCNvMNtNtNtB9_9scheduler12multi_thread6workerNtB1L_6Launch6launch0ENtNtB19_8schedule16BlockingScheduleE4pollBb_","symbolLocation":176,"imageIndex":0},{"imageOffset":31193739,"symbol":"_RNvMs5_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4poolNtB5_5Inner3run","symbolLocation":411,"imageIndex":0},{"imageOffset":31120400,"symbol":"_RINvNtNtCs1rYdSYAaNmr_3std3sys9backtrace28___rust_begin_short_backtraceNCNvMs4_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4poolNtB1f_7Spawner12spawn_thread0uEB1l_","symbolLocation":128,"imageIndex":0},{"imageOffset":31174029,"symbol":"_RNSNvYNCINvNtNtCs1rYdSYAaNmr_3std6thread9lifecycle15spawn_uncheckedNCNvMs4_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4poolNtB1b_7Spawner12spawn_thread0uEs_0INtNtNtCs4XKWvl56i1_4core3ops8function6FnOnceuE9call_once6vtableB1h_","symbolLocation":221,"imageIndex":0},{"imageOffset":32009285,"symbol":"_RNvNvMs0_NtNtNtCs1rYdSYAaNmr_3std3sys6thread4unixNtB7_6Thread3new12thread_start","symbolLocation":469,"imageIndex":0},{"imageOffset":23881,"symbol":"_pthread_start","symbolLocation":115,"imageIndex":9},{"imageOffset":6191,"symbol":"thread_start","symbolLocation":15,"imageIndex":9}]},{"id":17547,"name":"tokio-rt-worker","threadState":{"r13":{"value":16496969388032},"rax":{"value":260},"rflags":{"value":583},"cpu":{"value":0},"r14":{"value":3840},"rsi":{"value":16496969388032},"r8":{"value":0},"cr2":{"value":0},"rdx":{"value":3840},"r10":{"value":0},"r9":{"value":160},"r15":{"value":0},"rbx":{"value":123145384292352},"trap":{"value":133},"err":{"value":33554737},"r11":{"value":582},"rip":{"value":140703372510994},"rbp":{"value":123145384290560},"rsp":{"value":123145384290408},"r12":{"value":22},"rcx":{"value":123145384290408},"flavor":"x86_THREAD_STATE","rdi":{"value":105553165886320}},"frames":[{"imageOffset":14098,"symbol":"__psynch_cvwait","symbolLocation":10,"imageIndex":2},{"imageOffset":25079,"symbol":"_pthread_cond_wait","symbolLocation":994,"imageIndex":9},{"imageOffset":31088238,"symbol":"_RNvMs1_NtNtNtNtCsdPvCFRJTm4m_5tokio7runtime9scheduler12multi_thread4parkNtB5_5Inner12park_condvar","symbolLocation":430,"imageIndex":0},{"imageOffset":31064154,"symbol":"_RNvMs_NtNtNtNtCsdPvCFRJTm4m_5tokio7runtime9scheduler12multi_thread6workerNtB4_7Context13park_internal","symbolLocation":314,"imageIndex":0},{"imageOffset":31069466,"symbol":"_RNvMs_NtNtNtNtCsdPvCFRJTm4m_5tokio7runtime9scheduler12multi_thread6workerNtB4_7Context3run","symbolLocation":4618,"imageIndex":0},{"imageOffset":31118123,"symbol":"_RINvMNtNtNtCsdPvCFRJTm4m_5tokio7runtime7context6scopedINtB3_6ScopedNtNtB7_9scheduler7ContextE3setNCNCNvNtNtB15_12multi_thread6worker3run00uEB9_","symbolLocation":43,"imageIndex":0},{"imageOffset":31086463,"symbol":"_RINvNtNtNtCsdPvCFRJTm4m_5tokio7runtime7context7runtime13enter_runtimeNCNvNtNtNtB6_9scheduler12multi_thread6worker3run0uEB8_","symbolLocation":495,"imageIndex":0},{"imageOffset":31072329,"symbol":"_RNvNtNtNtNtCsdPvCFRJTm4m_5tokio7runtime9scheduler12multi_thread6worker3run","symbolLocation":169,"imageIndex":0},{"imageOffset":31146475,"symbol":"_RNvXs0_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4taskINtB5_12BlockingTaskNCNvMNtNtNtB9_9scheduler12multi_thread6workerNtB1g_6Launch6launch0ENtNtNtCs4XKWvl56i1_4core6future6future6Future4pollBb_","symbolLocation":59,"imageIndex":0},{"imageOffset":31168523,"symbol":"_RNvMs4_NtNtNtCsdPvCFRJTm4m_5tokio7runtime4task4coreINtB5_4CoreINtNtNtB9_8blocking4task12BlockingTaskNCNvMNtNtNtB9_9scheduler12multi_thread6workerNtB1F_6Launch6launch0ENtNtB13_8schedule16BlockingScheduleE4pollBb_","symbolLocation":75,"imageIndex":0},{"imageOffset":31050432,"symbol":"_RNvMs0_NtNtNtCsdPvCFRJTm4m_5tokio7runtime4task7harnessINtB5_7HarnessINtNtNtB9_8blocking4task12BlockingTaskNCNvMNtNtNtB9_9scheduler12multi_thread6workerNtB1L_6Launch6launch0ENtNtB19_8schedule16BlockingScheduleE4pollBb_","symbolLocation":176,"imageIndex":0},{"imageOffset":31193739,"symbol":"_RNvMs5_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4poolNtB5_5Inner3run","symbolLocation":411,"imageIndex":0},{"imageOffset":31120400,"symbol":"_RINvNtNtCs1rYdSYAaNmr_3std3sys9backtrace28___rust_begin_short_backtraceNCNvMs4_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4poolNtB1f_7Spawner12spawn_thread0uEB1l_","symbolLocation":128,"imageIndex":0},{"imageOffset":31174029,"symbol":"_RNSNvYNCINvNtNtCs1rYdSYAaNmr_3std6thread9lifecycle15spawn_uncheckedNCNvMs4_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4poolNtB1b_7Spawner12spawn_thread0uEs_0INtNtNtCs4XKWvl56i1_4core3ops8function6FnOnceuE9call_once6vtableB1h_","symbolLocation":221,"imageIndex":0},{"imageOffset":32009285,"symbol":"_RNvNvMs0_NtNtNtCs1rYdSYAaNmr_3std3sys6thread4unixNtB7_6Thread3new12thread_start","symbolLocation":469,"imageIndex":0},{"imageOffset":23881,"symbol":"_pthread_start","symbolLocation":115,"imageIndex":9},{"imageOffset":6191,"symbol":"thread_start","symbolLocation":15,"imageIndex":9}]},{"id":17548,"name":"tokio-rt-worker","threadState":{"r13":{"value":4294967552},"rax":{"value":260},"rflags":{"value":583},"cpu":{"value":0},"r14":{"value":0},"rsi":{"value":4294967552},"r8":{"value":0},"cr2":{"value":0},"rdx":{"value":0},"r10":{"value":0},"r9":{"value":160},"r15":{"value":999999000},"rbx":{"value":123145386401792},"trap":{"value":133},"err":{"value":33554737},"r11":{"value":582},"rip":{"value":140703372510994},"rbp":{"value":123145386385760},"rsp":{"value":123145386385608},"r12":{"value":22},"rcx":{"value":123145386385608},"flavor":"x86_THREAD_STATE","rdi":{"value":123145386386048}},"frames":[{"imageOffset":14098,"symbol":"__psynch_cvwait","symbolLocation":10,"imageIndex":2},{"imageOffset":25079,"symbol":"_pthread_cond_wait","symbolLocation":994,"imageIndex":9},{"imageOffset":15307668,"symbol":"webrtc::Event::Wait(webrtc::TimeDelta, webrtc::TimeDelta)","symbolLocation":324,"imageIndex":0},{"imageOffset":15477345,"symbol":"webrtc::Thread::BlockingCallImpl(webrtc::FunctionView<void ()>, webrtc::Location const&)","symbolLocation":433,"imageIndex":0},{"imageOffset":25436164,"symbol":"webrtc::CreateModularPeerConnectionFactory(webrtc::PeerConnectionFactoryDependencies)","symbolLocation":260,"imageIndex":0},{"imageOffset":27691196,"symbol":"livekit_ffi::PeerConnectionFactory::PeerConnectionFactory(std::__1::shared_ptr<livekit_ffi::RtcRuntime>, bool, bool)","symbolLocation":2060,"imageIndex":0},{"imageOffset":27698337,"symbol":"std::__1::shared_ptr<livekit_ffi::PeerConnectionFactory> std::__1::allocate_shared[abi:ne190102]<livekit_ffi::PeerConnectionFactory, std::__1::allocator<livekit_ffi::PeerConnectionFactory>, std::__1::shared_ptr<livekit_ffi::RtcRuntime>, bool&, bool&, 0>(std::__1::allocator<livekit_ffi::PeerConnectionFactory> const&, std::__1::shared_ptr<livekit_ffi::RtcRuntime>&&, bool&, bool&)","symbolLocation":113,"imageIndex":0},{"imageOffset":27694594,"symbol":"livekit_ffi::create_peer_connection_factory_with_options(bool, bool)","symbolLocation":82,"imageIndex":0},{"imageOffset":27654243,"symbol":"livekit_ffi$cxxbridge1$198$create_peer_connection_factory_with_options","symbolLocation":19,"imageIndex":0},{"imageOffset":13525189,"symbol":"_RNvNtNtCsky3z2tnmPaA_10webrtc_sys23peer_connection_factory3ffi43create_peer_connection_factory_with_options","symbolLocation":21,"imageIndex":0},{"imageOffset":11114831,"symbol":"_RNvMs0_NtNtCskK9cENHXLhX_7livekit10rtc_engine10lk_runtimeNtB5_9LkRuntime8instance","symbolLocation":399,"imageIndex":0},{"imageOffset":11574513,"symbol":"_RNvMs3_NtCskK9cENHXLhX_7livekit14platform_audioNtB5_13PlatformAudio3new","symbolLocation":609,"imageIndex":0},{"imageOffset":2757397,"symbol":"_RNCNvMs0_Cs4rnhi2h4wOy_12rust_livekitNtB7_13LiveKitClient20connect_with_backend0Cs1DnmKGsAMIX_16vtt_chat_app_lib","symbolLocation":373,"imageIndex":0},{"imageOffset":2900660,"symbol":"_RNCNvNtCs1DnmKGsAMIX_16vtt_chat_app_lib8commands13connect_voice0B5_","symbolLocation":1332,"imageIndex":0},{"imageOffset":2907536,"symbol":"_RNCNvNtCs1DnmKGsAMIX_16vtt_chat_app_lib8commands13voice_connect0B5_","symbolLocation":2560,"imageIndex":0},{"imageOffset":2974907,"symbol":"_RNvXs_NtNtCs4XKWvl56i1_4core6future6futureINtNtB8_3pin3PinINtNtCslOvjSTxizM4_5alloc5boxed3BoxNCINvMsi_NtCsgFt6obHJNcS_5tauri3ipcNtB1C_14InvokeResolver30respond_async_serialized_innerNCNCNCNvCs1DnmKGsAMIX_16vtt_chat_app_lib3runs2_0sy_00E0EENtB4_6Future4pollB32_","symbolLocation":3211,"imageIndex":0},{"imageOffset":2545657,"symbol":"<deduplicated_symbol>","symbolLocation":57,"imageIndex":0},{"imageOffset":387738,"symbol":"_RNvMs0_NtNtNtCsdPvCFRJTm4m_5tokio7runtime4task7harnessINtB5_7HarnessINtNtCs4XKWvl56i1_4core3pin3PinINtNtCslOvjSTxizM4_5alloc5boxed3BoxNCINvMsi_NtCsgFt6obHJNcS_5tauri3ipcNtB2h_14InvokeResolver30respond_async_serialized_innerNCNCNCNvCs1DnmKGsAMIX_16vtt_chat_app_lib3runs2_0sy_00E0EEINtNtB1E_4sync3ArcNtNtNtNtB9_9scheduler12multi_thread6handle6HandleEE4pollB3H_","symbolLocation":106,"imageIndex":0},{"imageOffset":31071508,"symbol":"_RNvMs_NtNtNtNtCsdPvCFRJTm4m_5tokio7runtime9scheduler12multi_thread6workerNtB4_7Context8run_task","symbolLocation":500,"imageIndex":0},{"imageOffset":31068351,"symbol":"_RNvMs_NtNtNtNtCsdPvCFRJTm4m_5tokio7runtime9scheduler12multi_thread6workerNtB4_7Context3run","symbolLocation":3503,"imageIndex":0},{"imageOffset":31118123,"symbol":"_RINvMNtNtNtCsdPvCFRJTm4m_5tokio7runtime7context6scopedINtB3_6ScopedNtNtB7_9scheduler7ContextE3setNCNCNvNtNtB15_12multi_thread6worker3run00uEB9_","symbolLocation":43,"imageIndex":0},{"imageOffset":31086463,"symbol":"_RINvNtNtNtCsdPvCFRJTm4m_5tokio7runtime7context7runtime13enter_runtimeNCNvNtNtNtB6_9scheduler12multi_thread6worker3run0uEB8_","symbolLocation":495,"imageIndex":0},{"imageOffset":31072329,"symbol":"_RNvNtNtNtNtCsdPvCFRJTm4m_5tokio7runtime9scheduler12multi_thread6worker3run","symbolLocation":169,"imageIndex":0},{"imageOffset":31146475,"symbol":"_RNvXs0_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4taskINtB5_12BlockingTaskNCNvMNtNtNtB9_9scheduler12multi_thread6workerNtB1g_6Launch6launch0ENtNtNtCs4XKWvl56i1_4core6future6future6Future4pollBb_","symbolLocation":59,"imageIndex":0},{"imageOffset":31168523,"symbol":"_RNvMs4_NtNtNtCsdPvCFRJTm4m_5tokio7runtime4task4coreINtB5_4CoreINtNtNtB9_8blocking4task12BlockingTaskNCNvMNtNtNtB9_9scheduler12multi_thread6workerNtB1F_6Launch6launch0ENtNtB13_8schedule16BlockingScheduleE4pollBb_","symbolLocation":75,"imageIndex":0},{"imageOffset":31050432,"symbol":"_RNvMs0_NtNtNtCsdPvCFRJTm4m_5tokio7runtime4task7harnessINtB5_7HarnessINtNtNtB9_8blocking4task12BlockingTaskNCNvMNtNtNtB9_9scheduler12multi_thread6workerNtB1L_6Launch6launch0ENtNtB19_8schedule16BlockingScheduleE4pollBb_","symbolLocation":176,"imageIndex":0},{"imageOffset":31193739,"symbol":"_RNvMs5_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4poolNtB5_5Inner3run","symbolLocation":411,"imageIndex":0},{"imageOffset":31120400,"symbol":"_RINvNtNtCs1rYdSYAaNmr_3std3sys9backtrace28___rust_begin_short_backtraceNCNvMs4_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4poolNtB1f_7Spawner12spawn_thread0uEB1l_","symbolLocation":128,"imageIndex":0},{"imageOffset":31174029,"symbol":"_RNSNvYNCINvNtNtCs1rYdSYAaNmr_3std6thread9lifecycle15spawn_uncheckedNCNvMs4_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4poolNtB1b_7Spawner12spawn_thread0uEs_0INtNtNtCs4XKWvl56i1_4core3ops8function6FnOnceuE9call_once6vtableB1h_","symbolLocation":221,"imageIndex":0},{"imageOffset":32009285,"symbol":"_RNvNvMs0_NtNtNtCs1rYdSYAaNmr_3std3sys6thread4unixNtB7_6Thread3new12thread_start","symbolLocation":469,"imageIndex":0},{"imageOffset":23881,"symbol":"_pthread_start","symbolLocation":115,"imageIndex":9},{"imageOffset":6191,"symbol":"thread_start","symbolLocation":15,"imageIndex":9}]},{"id":17549,"name":"tokio-rt-worker","threadState":{"r13":{"value":26392574040320},"rax":{"value":260},"rflags":{"value":583},"cpu":{"value":0},"r14":{"value":6144},"rsi":{"value":26392574040320},"r8":{"value":0},"cr2":{"value":0},"rdx":{"value":6144},"r10":{"value":0},"r9":{"value":160},"r15":{"value":0},"rbx":{"value":123145388511232},"trap":{"value":133},"err":{"value":33554737},"r11":{"value":582},"rip":{"value":140703372510994},"rbp":{"value":123145388509440},"rsp":{"value":123145388509288},"r12":{"value":22},"rcx":{"value":123145388509288},"flavor":"x86_THREAD_STATE","rdi":{"value":105553165575600}},"frames":[{"imageOffset":14098,"symbol":"__psynch_cvwait","symbolLocation":10,"imageIndex":2},{"imageOffset":25079,"symbol":"_pthread_cond_wait","symbolLocation":994,"imageIndex":9},{"imageOffset":31088238,"symbol":"_RNvMs1_NtNtNtNtCsdPvCFRJTm4m_5tokio7runtime9scheduler12multi_thread4parkNtB5_5Inner12park_condvar","symbolLocation":430,"imageIndex":0},{"imageOffset":31064154,"symbol":"_RNvMs_NtNtNtNtCsdPvCFRJTm4m_5tokio7runtime9scheduler12multi_thread6workerNtB4_7Context13park_internal","symbolLocation":314,"imageIndex":0},{"imageOffset":31069466,"symbol":"_RNvMs_NtNtNtNtCsdPvCFRJTm4m_5tokio7runtime9scheduler12multi_thread6workerNtB4_7Context3run","symbolLocation":4618,"imageIndex":0},{"imageOffset":31118123,"symbol":"_RINvMNtNtNtCsdPvCFRJTm4m_5tokio7runtime7context6scopedINtB3_6ScopedNtNtB7_9scheduler7ContextE3setNCNCNvNtNtB15_12multi_thread6worker3run00uEB9_","symbolLocation":43,"imageIndex":0},{"imageOffset":31086463,"symbol":"_RINvNtNtNtCsdPvCFRJTm4m_5tokio7runtime7context7runtime13enter_runtimeNCNvNtNtNtB6_9scheduler12multi_thread6worker3run0uEB8_","symbolLocation":495,"imageIndex":0},{"imageOffset":31072329,"symbol":"_RNvNtNtNtNtCsdPvCFRJTm4m_5tokio7runtime9scheduler12multi_thread6worker3run","symbolLocation":169,"imageIndex":0},{"imageOffset":31146475,"symbol":"_RNvXs0_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4taskINtB5_12BlockingTaskNCNvMNtNtNtB9_9scheduler12multi_thread6workerNtB1g_6Launch6launch0ENtNtNtCs4XKWvl56i1_4core6future6future6Future4pollBb_","symbolLocation":59,"imageIndex":0},{"imageOffset":31168523,"symbol":"_RNvMs4_NtNtNtCsdPvCFRJTm4m_5tokio7runtime4task4coreINtB5_4CoreINtNtNtB9_8blocking4task12BlockingTaskNCNvMNtNtNtB9_9scheduler12multi_thread6workerNtB1F_6Launch6launch0ENtNtB13_8schedule16BlockingScheduleE4pollBb_","symbolLocation":75,"imageIndex":0},{"imageOffset":31050432,"symbol":"_RNvMs0_NtNtNtCsdPvCFRJTm4m_5tokio7runtime4task7harnessINtB5_7HarnessINtNtNtB9_8blocking4task12BlockingTaskNCNvMNtNtNtB9_9scheduler12multi_thread6workerNtB1L_6Launch6launch0ENtNtB19_8schedule16BlockingScheduleE4pollBb_","symbolLocation":176,"imageIndex":0},{"imageOffset":31193739,"symbol":"_RNvMs5_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4poolNtB5_5Inner3run","symbolLocation":411,"imageIndex":0},{"imageOffset":31120400,"symbol":"_RINvNtNtCs1rYdSYAaNmr_3std3sys9backtrace28___rust_begin_short_backtraceNCNvMs4_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4poolNtB1f_7Spawner12spawn_thread0uEB1l_","symbolLocation":128,"imageIndex":0},{"imageOffset":31174029,"symbol":"_RNSNvYNCINvNtNtCs1rYdSYAaNmr_3std6thread9lifecycle15spawn_uncheckedNCNvMs4_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4poolNtB1b_7Spawner12spawn_thread0uEs_0INtNtNtCs4XKWvl56i1_4core3ops8function6FnOnceuE9call_once6vtableB1h_","symbolLocation":221,"imageIndex":0},{"imageOffset":32009285,"symbol":"_RNvNvMs0_NtNtNtCs1rYdSYAaNmr_3std3sys6thread4unixNtB7_6Thread3new12thread_start","symbolLocation":469,"imageIndex":0},{"imageOffset":23881,"symbol":"_pthread_start","symbolLocation":115,"imageIndex":9},{"imageOffset":6191,"symbol":"thread_start","symbolLocation":15,"imageIndex":9}]},{"id":17550,"name":"tokio-rt-worker","threadState":{"r13":{"value":13198434503936},"rax":{"value":260},"rflags":{"value":583},"cpu":{"value":0},"r14":{"value":3072},"rsi":{"value":13198434503936},"r8":{"value":0},"cr2":{"value":0},"rdx":{"value":3072},"r10":{"value":0},"r9":{"value":160},"r15":{"value":0},"rbx":{"value":123145390620672},"trap":{"value":133},"err":{"value":33554737},"r11":{"value":582},"rip":{"value":140703372510994},"rbp":{"value":123145390618880},"rsp":{"value":123145390618728},"r12":{"value":22},"rcx":{"value":123145390618728},"flavor":"x86_THREAD_STATE","rdi":{"value":105553165553648}},"frames":[{"imageOffset":14098,"symbol":"__psynch_cvwait","symbolLocation":10,"imageIndex":2},{"imageOffset":25079,"symbol":"_pthread_cond_wait","symbolLocation":994,"imageIndex":9},{"imageOffset":31088238,"symbol":"_RNvMs1_NtNtNtNtCsdPvCFRJTm4m_5tokio7runtime9scheduler12multi_thread4parkNtB5_5Inner12park_condvar","symbolLocation":430,"imageIndex":0},{"imageOffset":31064154,"symbol":"_RNvMs_NtNtNtNtCsdPvCFRJTm4m_5tokio7runtime9scheduler12multi_thread6workerNtB4_7Context13park_internal","symbolLocation":314,"imageIndex":0},{"imageOffset":31069466,"symbol":"_RNvMs_NtNtNtNtCsdPvCFRJTm4m_5tokio7runtime9scheduler12multi_thread6workerNtB4_7Context3run","symbolLocation":4618,"imageIndex":0},{"imageOffset":31118123,"symbol":"_RINvMNtNtNtCsdPvCFRJTm4m_5tokio7runtime7context6scopedINtB3_6ScopedNtNtB7_9scheduler7ContextE3setNCNCNvNtNtB15_12multi_thread6worker3run00uEB9_","symbolLocation":43,"imageIndex":0},{"imageOffset":31086463,"symbol":"_RINvNtNtNtCsdPvCFRJTm4m_5tokio7runtime7context7runtime13enter_runtimeNCNvNtNtNtB6_9scheduler12multi_thread6worker3run0uEB8_","symbolLocation":495,"imageIndex":0},{"imageOffset":31072329,"symbol":"_RNvNtNtNtNtCsdPvCFRJTm4m_5tokio7runtime9scheduler12multi_thread6worker3run","symbolLocation":169,"imageIndex":0},{"imageOffset":31146475,"symbol":"_RNvXs0_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4taskINtB5_12BlockingTaskNCNvMNtNtNtB9_9scheduler12multi_thread6workerNtB1g_6Launch6launch0ENtNtNtCs4XKWvl56i1_4core6future6future6Future4pollBb_","symbolLocation":59,"imageIndex":0},{"imageOffset":31168523,"symbol":"_RNvMs4_NtNtNtCsdPvCFRJTm4m_5tokio7runtime4task4coreINtB5_4CoreINtNtNtB9_8blocking4task12BlockingTaskNCNvMNtNtNtB9_9scheduler12multi_thread6workerNtB1F_6Launch6launch0ENtNtB13_8schedule16BlockingScheduleE4pollBb_","symbolLocation":75,"imageIndex":0},{"imageOffset":31050432,"symbol":"_RNvMs0_NtNtNtCsdPvCFRJTm4m_5tokio7runtime4task7harnessINtB5_7HarnessINtNtNtB9_8blocking4task12BlockingTaskNCNvMNtNtNtB9_9scheduler12multi_thread6workerNtB1L_6Launch6launch0ENtNtB19_8schedule16BlockingScheduleE4pollBb_","symbolLocation":176,"imageIndex":0},{"imageOffset":31193739,"symbol":"_RNvMs5_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4poolNtB5_5Inner3run","symbolLocation":411,"imageIndex":0},{"imageOffset":31120400,"symbol":"_RINvNtNtCs1rYdSYAaNmr_3std3sys9backtrace28___rust_begin_short_backtraceNCNvMs4_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4poolNtB1f_7Spawner12spawn_thread0uEB1l_","symbolLocation":128,"imageIndex":0},{"imageOffset":31174029,"symbol":"_RNSNvYNCINvNtNtCs1rYdSYAaNmr_3std6thread9lifecycle15spawn_uncheckedNCNvMs4_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4poolNtB1b_7Spawner12spawn_thread0uEs_0INtNtNtCs4XKWvl56i1_4core3ops8function6FnOnceuE9call_once6vtableB1h_","symbolLocation":221,"imageIndex":0},{"imageOffset":32009285,"symbol":"_RNvNvMs0_NtNtNtCs1rYdSYAaNmr_3std3sys6thread4unixNtB7_6Thread3new12thread_start","symbolLocation":469,"imageIndex":0},{"imageOffset":23881,"symbol":"_pthread_start","symbolLocation":115,"imageIndex":9},{"imageOffset":6191,"symbol":"thread_start","symbolLocation":15,"imageIndex":9}]},{"id":17551,"name":"tokio-rt-worker","threadState":{"r13":{"value":23094039156224},"rax":{"value":260},"rflags":{"value":583},"cpu":{"value":0},"r14":{"value":5376},"rsi":{"value":23094039156224},"r8":{"value":0},"cr2":{"value":0},"rdx":{"value":5376},"r10":{"value":0},"r9":{"value":160},"r15":{"value":0},"rbx":{"value":123145392730112},"trap":{"value":133},"err":{"value":33554737},"r11":{"value":582},"rip":{"value":140703372510994},"rbp":{"value":123145392728320},"rsp":{"value":123145392728168},"r12":{"value":22},"rcx":{"value":123145392728168},"flavor":"x86_THREAD_STATE","rdi":{"value":105553165575744}},"frames":[{"imageOffset":14098,"symbol":"__psynch_cvwait","symbolLocation":10,"imageIndex":2},{"imageOffset":25079,"symbol":"_pthread_cond_wait","symbolLocation":994,"imageIndex":9},{"imageOffset":31088238,"symbol":"_RNvMs1_NtNtNtNtCsdPvCFRJTm4m_5tokio7runtime9scheduler12multi_thread4parkNtB5_5Inner12park_condvar","symbolLocation":430,"imageIndex":0},{"imageOffset":31064154,"symbol":"_RNvMs_NtNtNtNtCsdPvCFRJTm4m_5tokio7runtime9scheduler12multi_thread6workerNtB4_7Context13park_internal","symbolLocation":314,"imageIndex":0},{"imageOffset":31069466,"symbol":"_RNvMs_NtNtNtNtCsdPvCFRJTm4m_5tokio7runtime9scheduler12multi_thread6workerNtB4_7Context3run","symbolLocation":4618,"imageIndex":0},{"imageOffset":31118123,"symbol":"_RINvMNtNtNtCsdPvCFRJTm4m_5tokio7runtime7context6scopedINtB3_6ScopedNtNtB7_9scheduler7ContextE3setNCNCNvNtNtB15_12multi_thread6worker3run00uEB9_","symbolLocation":43,"imageIndex":0},{"imageOffset":31086463,"symbol":"_RINvNtNtNtCsdPvCFRJTm4m_5tokio7runtime7context7runtime13enter_runtimeNCNvNtNtNtB6_9scheduler12multi_thread6worker3run0uEB8_","symbolLocation":495,"imageIndex":0},{"imageOffset":31072329,"symbol":"_RNvNtNtNtNtCsdPvCFRJTm4m_5tokio7runtime9scheduler12multi_thread6worker3run","symbolLocation":169,"imageIndex":0},{"imageOffset":31146475,"symbol":"_RNvXs0_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4taskINtB5_12BlockingTaskNCNvMNtNtNtB9_9scheduler12multi_thread6workerNtB1g_6Launch6launch0ENtNtNtCs4XKWvl56i1_4core6future6future6Future4pollBb_","symbolLocation":59,"imageIndex":0},{"imageOffset":31168523,"symbol":"_RNvMs4_NtNtNtCsdPvCFRJTm4m_5tokio7runtime4task4coreINtB5_4CoreINtNtNtB9_8blocking4task12BlockingTaskNCNvMNtNtNtB9_9scheduler12multi_thread6workerNtB1F_6Launch6launch0ENtNtB13_8schedule16BlockingScheduleE4pollBb_","symbolLocation":75,"imageIndex":0},{"imageOffset":31050432,"symbol":"_RNvMs0_NtNtNtCsdPvCFRJTm4m_5tokio7runtime4task7harnessINtB5_7HarnessINtNtNtB9_8blocking4task12BlockingTaskNCNvMNtNtNtB9_9scheduler12multi_thread6workerNtB1L_6Launch6launch0ENtNtB19_8schedule16BlockingScheduleE4pollBb_","symbolLocation":176,"imageIndex":0},{"imageOffset":31193739,"symbol":"_RNvMs5_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4poolNtB5_5Inner3run","symbolLocation":411,"imageIndex":0},{"imageOffset":31120400,"symbol":"_RINvNtNtCs1rYdSYAaNmr_3std3sys9backtrace28___rust_begin_short_backtraceNCNvMs4_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4poolNtB1f_7Spawner12spawn_thread0uEB1l_","symbolLocation":128,"imageIndex":0},{"imageOffset":31174029,"symbol":"_RNSNvYNCINvNtNtCs1rYdSYAaNmr_3std6thread9lifecycle15spawn_uncheckedNCNvMs4_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4poolNtB1b_7Spawner12spawn_thread0uEs_0INtNtNtCs4XKWvl56i1_4core3ops8function6FnOnceuE9call_once6vtableB1h_","symbolLocation":221,"imageIndex":0},{"imageOffset":32009285,"symbol":"_RNvNvMs0_NtNtNtCs1rYdSYAaNmr_3std3sys6thread4unixNtB7_6Thread3new12thread_start","symbolLocation":469,"imageIndex":0},{"imageOffset":23881,"symbol":"_pthread_start","symbolLocation":115,"imageIndex":9},{"imageOffset":6191,"symbol":"thread_start","symbolLocation":15,"imageIndex":9}]},{"id":17552,"name":"tokio-rt-worker","threadState":{"r13":{"value":6601364735744},"rax":{"value":260},"rflags":{"value":583},"cpu":{"value":0},"r14":{"value":1536},"rsi":{"value":6601364735744},"r8":{"value":0},"cr2":{"value":0},"rdx":{"value":1536},"r10":{"value":0},"r9":{"value":160},"r15":{"value":0},"rbx":{"value":123145394839552},"trap":{"value":133},"err":{"value":33554737},"r11":{"value":582},"rip":{"value":140703372510994},"rbp":{"value":123145394837760},"rsp":{"value":123145394837608},"r12":{"value":22},"rcx":{"value":123145394837608},"flavor":"x86_THREAD_STATE","rdi":{"value":105553165685296}},"frames":[{"imageOffset":14098,"symbol":"__psynch_cvwait","symbolLocation":10,"imageIndex":2},{"imageOffset":25079,"symbol":"_pthread_cond_wait","symbolLocation":994,"imageIndex":9},{"imageOffset":31088238,"symbol":"_RNvMs1_NtNtNtNtCsdPvCFRJTm4m_5tokio7runtime9scheduler12multi_thread4parkNtB5_5Inner12park_condvar","symbolLocation":430,"imageIndex":0},{"imageOffset":31064154,"symbol":"_RNvMs_NtNtNtNtCsdPvCFRJTm4m_5tokio7runtime9scheduler12multi_thread6workerNtB4_7Context13park_internal","symbolLocation":314,"imageIndex":0},{"imageOffset":31069466,"symbol":"_RNvMs_NtNtNtNtCsdPvCFRJTm4m_5tokio7runtime9scheduler12multi_thread6workerNtB4_7Context3run","symbolLocation":4618,"imageIndex":0},{"imageOffset":31118123,"symbol":"_RINvMNtNtNtCsdPvCFRJTm4m_5tokio7runtime7context6scopedINtB3_6ScopedNtNtB7_9scheduler7ContextE3setNCNCNvNtNtB15_12multi_thread6worker3run00uEB9_","symbolLocation":43,"imageIndex":0},{"imageOffset":31086463,"symbol":"_RINvNtNtNtCsdPvCFRJTm4m_5tokio7runtime7context7runtime13enter_runtimeNCNvNtNtNtB6_9scheduler12multi_thread6worker3run0uEB8_","symbolLocation":495,"imageIndex":0},{"imageOffset":31072329,"symbol":"_RNvNtNtNtNtCsdPvCFRJTm4m_5tokio7runtime9scheduler12multi_thread6worker3run","symbolLocation":169,"imageIndex":0},{"imageOffset":31146475,"symbol":"_RNvXs0_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4taskINtB5_12BlockingTaskNCNvMNtNtNtB9_9scheduler12multi_thread6workerNtB1g_6Launch6launch0ENtNtNtCs4XKWvl56i1_4core6future6future6Future4pollBb_","symbolLocation":59,"imageIndex":0},{"imageOffset":31168523,"symbol":"_RNvMs4_NtNtNtCsdPvCFRJTm4m_5tokio7runtime4task4coreINtB5_4CoreINtNtNtB9_8blocking4task12BlockingTaskNCNvMNtNtNtB9_9scheduler12multi_thread6workerNtB1F_6Launch6launch0ENtNtB13_8schedule16BlockingScheduleE4pollBb_","symbolLocation":75,"imageIndex":0},{"imageOffset":31050432,"symbol":"_RNvMs0_NtNtNtCsdPvCFRJTm4m_5tokio7runtime4task7harnessINtB5_7HarnessINtNtNtB9_8blocking4task12BlockingTaskNCNvMNtNtNtB9_9scheduler12multi_thread6workerNtB1L_6Launch6launch0ENtNtB19_8schedule16BlockingScheduleE4pollBb_","symbolLocation":176,"imageIndex":0},{"imageOffset":31193739,"symbol":"_RNvMs5_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4poolNtB5_5Inner3run","symbolLocation":411,"imageIndex":0},{"imageOffset":31120400,"symbol":"_RINvNtNtCs1rYdSYAaNmr_3std3sys9backtrace28___rust_begin_short_backtraceNCNvMs4_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4poolNtB1f_7Spawner12spawn_thread0uEB1l_","symbolLocation":128,"imageIndex":0},{"imageOffset":31174029,"symbol":"_RNSNvYNCINvNtNtCs1rYdSYAaNmr_3std6thread9lifecycle15spawn_uncheckedNCNvMs4_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4poolNtB1b_7Spawner12spawn_thread0uEs_0INtNtNtCs4XKWvl56i1_4core3ops8function6FnOnceuE9call_once6vtableB1h_","symbolLocation":221,"imageIndex":0},{"imageOffset":32009285,"symbol":"_RNvNvMs0_NtNtNtCs1rYdSYAaNmr_3std3sys6thread4unixNtB7_6Thread3new12thread_start","symbolLocation":469,"imageIndex":0},{"imageOffset":23881,"symbol":"_pthread_start","symbolLocation":115,"imageIndex":9},{"imageOffset":6191,"symbol":"thread_start","symbolLocation":15,"imageIndex":9}]},{"id":17553,"name":"tokio-rt-worker","threadState":{"r13":{"value":10999411247872},"rax":{"value":260},"rflags":{"value":583},"cpu":{"value":0},"r14":{"value":2560},"rsi":{"value":10999411247872},"r8":{"value":0},"cr2":{"value":0},"rdx":{"value":2560},"r10":{"value":0},"r9":{"value":160},"r15":{"value":0},"rbx":{"value":123145396948992},"trap":{"value":133},"err":{"value":33554737},"r11":{"value":582},"rip":{"value":140703372510994},"rbp":{"value":123145396947200},"rsp":{"value":123145396947048},"r12":{"value":22},"rcx":{"value":123145396947048},"flavor":"x86_THREAD_STATE","rdi":{"value":105553165575360}},"frames":[{"imageOffset":14098,"symbol":"__psynch_cvwait","symbolLocation":10,"imageIndex":2},{"imageOffset":25079,"symbol":"_pthread_cond_wait","symbolLocation":994,"imageIndex":9},{"imageOffset":31088238,"symbol":"_RNvMs1_NtNtNtNtCsdPvCFRJTm4m_5tokio7runtime9scheduler12multi_thread4parkNtB5_5Inner12park_condvar","symbolLocation":430,"imageIndex":0},{"imageOffset":31064154,"symbol":"_RNvMs_NtNtNtNtCsdPvCFRJTm4m_5tokio7runtime9scheduler12multi_thread6workerNtB4_7Context13park_internal","symbolLocation":314,"imageIndex":0},{"imageOffset":31069466,"symbol":"_RNvMs_NtNtNtNtCsdPvCFRJTm4m_5tokio7runtime9scheduler12multi_thread6workerNtB4_7Context3run","symbolLocation":4618,"imageIndex":0},{"imageOffset":31118123,"symbol":"_RINvMNtNtNtCsdPvCFRJTm4m_5tokio7runtime7context6scopedINtB3_6ScopedNtNtB7_9scheduler7ContextE3setNCNCNvNtNtB15_12multi_thread6worker3run00uEB9_","symbolLocation":43,"imageIndex":0},{"imageOffset":31086463,"symbol":"_RINvNtNtNtCsdPvCFRJTm4m_5tokio7runtime7context7runtime13enter_runtimeNCNvNtNtNtB6_9scheduler12multi_thread6worker3run0uEB8_","symbolLocation":495,"imageIndex":0},{"imageOffset":31072329,"symbol":"_RNvNtNtNtNtCsdPvCFRJTm4m_5tokio7runtime9scheduler12multi_thread6worker3run","symbolLocation":169,"imageIndex":0},{"imageOffset":31146475,"symbol":"_RNvXs0_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4taskINtB5_12BlockingTaskNCNvMNtNtNtB9_9scheduler12multi_thread6workerNtB1g_6Launch6launch0ENtNtNtCs4XKWvl56i1_4core6future6future6Future4pollBb_","symbolLocation":59,"imageIndex":0},{"imageOffset":31168523,"symbol":"_RNvMs4_NtNtNtCsdPvCFRJTm4m_5tokio7runtime4task4coreINtB5_4CoreINtNtNtB9_8blocking4task12BlockingTaskNCNvMNtNtNtB9_9scheduler12multi_thread6workerNtB1F_6Launch6launch0ENtNtB13_8schedule16BlockingScheduleE4pollBb_","symbolLocation":75,"imageIndex":0},{"imageOffset":31050432,"symbol":"_RNvMs0_NtNtNtCsdPvCFRJTm4m_5tokio7runtime4task7harnessINtB5_7HarnessINtNtNtB9_8blocking4task12BlockingTaskNCNvMNtNtNtB9_9scheduler12multi_thread6workerNtB1L_6Launch6launch0ENtNtB19_8schedule16BlockingScheduleE4pollBb_","symbolLocation":176,"imageIndex":0},{"imageOffset":31193739,"symbol":"_RNvMs5_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4poolNtB5_5Inner3run","symbolLocation":411,"imageIndex":0},{"imageOffset":31120400,"symbol":"_RINvNtNtCs1rYdSYAaNmr_3std3sys9backtrace28___rust_begin_short_backtraceNCNvMs4_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4poolNtB1f_7Spawner12spawn_thread0uEB1l_","symbolLocation":128,"imageIndex":0},{"imageOffset":31174029,"symbol":"_RNSNvYNCINvNtNtCs1rYdSYAaNmr_3std6thread9lifecycle15spawn_uncheckedNCNvMs4_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4poolNtB1b_7Spawner12spawn_thread0uEs_0INtNtNtCs4XKWvl56i1_4core3ops8function6FnOnceuE9call_once6vtableB1h_","symbolLocation":221,"imageIndex":0},{"imageOffset":32009285,"symbol":"_RNvNvMs0_NtNtNtCs1rYdSYAaNmr_3std3sys6thread4unixNtB7_6Thread3new12thread_start","symbolLocation":469,"imageIndex":0},{"imageOffset":23881,"symbol":"_pthread_start","symbolLocation":115,"imageIndex":9},{"imageOffset":6191,"symbol":"thread_start","symbolLocation":15,"imageIndex":9}]},{"id":17562,"name":"away-idle","threadState":{"r13":{"value":140651413964800},"rax":{"value":4},"rflags":{"value":583},"cpu":{"value":0},"r14":{"value":123145399047936},"rsi":{"value":0},"r8":{"value":15},"cr2":{"value":0},"rdx":{"value":1},"r10":{"value":1},"r9":{"value":0},"r15":{"value":0},"rbx":{"value":123145399047936},"trap":{"value":133},"err":{"value":33554766},"r11":{"value":582},"rip":{"value":140703372510690},"rbp":{"value":123145399047920},"rsp":{"value":123145399047864},"r12":{"value":9223372036854775807},"rcx":{"value":123145399047864},"flavor":"x86_THREAD_STATE","rdi":{"value":7683}},"frames":[{"imageOffset":13794,"symbol":"__semwait_signal","symbolLocation":10,"imageIndex":2},{"imageOffset":61656,"symbol":"nanosleep","symbolLocation":199,"imageIndex":10},{"imageOffset":31982178,"symbol":"_RNvNtNtCs1rYdSYAaNmr_3std6thread9functions5sleep","symbolLocation":114,"imageIndex":0},{"imageOffset":7694393,"symbol":"_RNvNtCs1DnmKGsAMIX_16vtt_chat_app_lib10away_watch4poll","symbolLocation":185,"imageIndex":0},{"imageOffset":6349439,"symbol":"_RINvNtNtCs1rYdSYAaNmr_3std3sys9backtrace28___rust_begin_short_backtraceNCNvNtCs1DnmKGsAMIX_16vtt_chat_app_lib10away_watch5start0uEB1d_","symbolLocation":15,"imageIndex":0},{"imageOffset":7637685,"symbol":"_RNSNvYNCINvNtNtCs1rYdSYAaNmr_3std6thread9lifecycle15spawn_uncheckedNCNvNtCs1DnmKGsAMIX_16vtt_chat_app_lib10away_watch5start0uEs_0INtNtNtCs4XKWvl56i1_4core3ops8function6FnOnceuE9call_once6vtableB19_","symbolLocation":261,"imageIndex":0},{"imageOffset":32009285,"symbol":"_RNvNvMs0_NtNtNtCs1rYdSYAaNmr_3std3sys6thread4unixNtB7_6Thread3new12thread_start","symbolLocation":469,"imageIndex":0},{"imageOffset":23881,"symbol":"_pthread_start","symbolLocation":115,"imageIndex":9},{"imageOffset":6191,"symbol":"thread_start","symbolLocation":15,"imageIndex":9}]},{"id":17564,"name":"JavaScriptCore libpas scavenger","threadState":{"r13":{"value":58278411253248},"rax":{"value":260},"rflags":{"value":583},"cpu":{"value":0},"r14":{"value":0},"rsi":{"value":58278411253248},"r8":{"value":0},"cr2":{"value":0},"rdx":{"value":0},"r10":{"value":0},"r9":{"value":160},"r15":{"value":124998896},"rbx":{"value":123145399595008},"trap":{"value":133},"err":{"value":33554737},"r11":{"value":582},"rip":{"value":140703372510994},"rbp":{"value":123145399594816},"rsp":{"value":123145399594664},"r12":{"value":22},"rcx":{"value":123145399594664},"flavor":"x86_THREAD_STATE","rdi":{"value":4793219200}},"frames":[{"imageOffset":14098,"symbol":"__psynch_cvwait","symbolLocation":10,"imageIndex":2},{"imageOffset":25079,"symbol":"_pthread_cond_wait","symbolLocation":994,"imageIndex":9},{"imageOffset":35705514,"symbol":"scavenger_thread_main","symbolLocation":1722,"imageIndex":11},{"imageOffset":23881,"symbol":"_pthread_start","symbolLocation":115,"imageIndex":9},{"imageOffset":6191,"symbol":"thread_start","symbolLocation":15,"imageIndex":9}]},{"id":17577,"frames":[],"threadState":{"r13":{"value":0},"rax":{"value":33554800},"rflags":{"value":512},"cpu":{"value":0},"r14":{"value":1},"rsi":{"value":71187},"r8":{"value":409604},"cr2":{"value":0},"rdx":{"value":123145399607296},"r10":{"value":0},"r9":{"value":18446744073709551615},"r15":{"value":123145400130424},"rbx":{"value":123145400131584},"trap":{"value":133},"err":{"value":33554800},"r11":{"value":582},"rip":{"value":140703372761100},"rbp":{"value":0},"rsp":{"value":123145400131584},"r12":{"value":5193733},"rcx":{"value":0},"flavor":"x86_THREAD_STATE","rdi":{"value":123145400131584}}},{"id":17581,"name":"WebCore: Scrolling","threadState":{"r13":{"value":21592279046},"rax":{"value":268451845},"rflags":{"value":518},"cpu":{"value":0},"r14":{"value":2},"rsi":{"value":21592279046},"r8":{"value":0},"cr2":{"value":0},"rdx":{"value":8589934592},"r10":{"value":343060512768000},"r9":{"value":343060512768000},"r15":{"value":0},"rbx":{"value":123145401737168},"trap":{"value":133},"err":{"value":16777263},"r11":{"value":518},"rip":{"value":140703372499790},"rbp":{"value":123145401737008},"rsp":{"value":123145401736904},"r12":{"value":343060512768000},"rcx":{"value":123145401736904},"flavor":"x86_THREAD_STATE","rdi":{"value":123145401737168}},"frames":[{"imageOffset":2894,"symbol":"mach_msg2_trap","symbolLocation":10,"imageIndex":2},{"imageOffset":61271,"symbol":"mach_msg2_internal","symbolLocation":83,"imageIndex":2},{"imageOffset":31590,"symbol":"mach_msg_overwrite","symbolLocation":586,"imageIndex":2},{"imageOffset":3670,"symbol":"mach_msg","symbolLocation":19,"imageIndex":2},{"imageOffset":509631,"symbol":"__CFRunLoopServiceMachPort","symbolLocation":145,"imageIndex":3},{"imageOffset":504152,"symbol":"__CFRunLoopRun","symbolLocation":1354,"imageIndex":3},{"imageOffset":1323879,"symbol":"_CFRunLoopRunSpecificWithOptions","symbolLocation":496,"imageIndex":3},{"imageOffset":972062,"symbol":"CFRunLoopRun","symbolLocation":40,"imageIndex":3},{"imageOffset":2611728,"symbol":"WTF::Detail::CallableWrapper<WTF::RunLoop::create(WTF::ASCIILiteral, WTF::ThreadType, WTF::Thread::QOS)::$_0, void>::call()","symbolLocation":208,"imageIndex":11},{"imageOffset":3154946,"symbol":"WTF::Thread::entryPoint(WTF::Thread::NewThreadContext*)","symbolLocation":226,"imageIndex":11},{"imageOffset":11017,"symbol":"WTF::wtfThreadEntryPoint(void*)","symbolLocation":9,"imageIndex":11},{"imageOffset":23881,"symbol":"_pthread_start","symbolLocation":115,"imageIndex":9},{"imageOffset":6191,"symbol":"thread_start","symbolLocation":15,"imageIndex":9}]},{"id":17632,"name":"Log work queue","threadState":{"r13":{"value":4932562688},"rax":{"value":14},"rflags":{"value":582},"cpu":{"value":0},"r14":{"value":4932522448},"rsi":{"value":140708746473512,"symbolLocation":0,"symbol":"bmalloc_megapage_table"},"r8":{"value":52481},"cr2":{"value":0},"rdx":{"value":1407379817382176},"r10":{"value":0},"r9":{"value":950456952468275201},"r15":{"value":4932512808},"rbx":{"value":4932512512},"trap":{"value":133},"err":{"value":16777252},"r11":{"value":582},"rip":{"value":140703372499658},"rbp":{"value":123145403887424},"rsp":{"value":123145403887384},"r12":{"value":123145403887616},"rcx":{"value":123145403887384},"flavor":"x86_THREAD_STATE","rdi":{"value":77587}},"frames":[{"imageOffset":2762,"symbol":"semaphore_wait_trap","symbolLocation":10,"imageIndex":2},{"imageOffset":19001805,"symbol":"WTF::Detail::CallableWrapper<IPC::StreamConnectionWorkQueue::startProcessingThread()::$_0, void>::call()","symbolLocation":37,"imageIndex":12},{"imageOffset":3154946,"symbol":"WTF::Thread::entryPoint(WTF::Thread::NewThreadContext*)","symbolLocation":226,"imageIndex":11},{"imageOffset":11017,"symbol":"WTF::wtfThreadEntryPoint(void*)","symbolLocation":9,"imageIndex":11},{"imageOffset":23881,"symbol":"_pthread_start","symbolLocation":115,"imageIndex":9},{"imageOffset":6191,"symbol":"thread_start","symbolLocation":15,"imageIndex":9}]},{"id":17636,"name":"tokio-rt-worker","threadState":{"r13":{"value":12098922875904},"rax":{"value":260},"rflags":{"value":663},"cpu":{"value":0},"r14":{"value":2816},"rsi":{"value":12098922875904},"r8":{"value":0},"cr2":{"value":0},"rdx":{"value":2816},"r10":{"value":0},"r9":{"value":160},"r15":{"value":0},"rbx":{"value":3072},"trap":{"value":133},"err":{"value":33554737},"r11":{"value":663},"rip":{"value":140703372510994},"rbp":{"value":123145405996240},"rsp":{"value":123145405996088},"r12":{"value":22},"rcx":{"value":123145405996088},"flavor":"x86_THREAD_STATE","rdi":{"value":105553165880080}},"frames":[{"imageOffset":14098,"symbol":"__psynch_cvwait","symbolLocation":10,"imageIndex":2},{"imageOffset":25129,"symbol":"_pthread_cond_wait","symbolLocation":1044,"imageIndex":9},{"imageOffset":31863443,"symbol":"_RNvMNtNtNtNtCs1rYdSYAaNmr_3std3sys4sync7condvar7pthreadNtB2_7Condvar12wait_timeout","symbolLocation":163,"imageIndex":0},{"imageOffset":31193534,"symbol":"_RNvMs5_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4poolNtB5_5Inner3run","symbolLocation":206,"imageIndex":0},{"imageOffset":31120400,"symbol":"_RINvNtNtCs1rYdSYAaNmr_3std3sys9backtrace28___rust_begin_short_backtraceNCNvMs4_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4poolNtB1f_7Spawner12spawn_thread0uEB1l_","symbolLocation":128,"imageIndex":0},{"imageOffset":31174029,"symbol":"_RNSNvYNCINvNtNtCs1rYdSYAaNmr_3std6thread9lifecycle15spawn_uncheckedNCNvMs4_NtNtNtCsdPvCFRJTm4m_5tokio7runtime8blocking4poolNtB1b_7Spawner12spawn_thread0uEs_0INtNtNtCs4XKWvl56i1_4core3ops8function6FnOnceuE9call_once6vtableB1h_","symbolLocation":221,"imageIndex":0},{"imageOffset":32009285,"symbol":"_RNvNvMs0_NtNtNtCs1rYdSYAaNmr_3std3sys6thread4unixNtB7_6Thread3new12thread_start","symbolLocation":469,"imageIndex":0},{"imageOffset":23881,"symbol":"_pthread_start","symbolLocation":115,"imageIndex":9},{"imageOffset":6191,"symbol":"thread_start","symbolLocation":15,"imageIndex":9}]},{"id":17713,"name":"CVDisplayLink","threadState":{"r13":{"value":185821760104960},"rax":{"value":260},"rflags":{"value":663},"cpu":{"value":0},"r14":{"value":0},"rsi":{"value":185821760104960},"r8":{"value":0},"cr2":{"value":0},"rdx":{"value":0},"r10":{"value":0},"r9":{"value":65704},"r15":{"value":33886204},"rbx":{"value":43520},"trap":{"value":133},"err":{"value":33554737},"r11":{"value":663},"rip":{"value":140703372510994},"rbp":{"value":123145402277344},"rsp":{"value":123145402277192},"r12":{"value":22},"rcx":{"value":123145402277192},"flavor":"x86_THREAD_STATE","rdi":{"value":140651396129400}},"frames":[{"imageOffset":14098,"symbol":"__psynch_cvwait","symbolLocation":10,"imageIndex":2},{"imageOffset":25129,"symbol":"_pthread_cond_wait","symbolLocation":1044,"imageIndex":9},{"imageOffset":14609,"symbol":"CVDisplayLink::waitUntil(unsigned long long)","symbolLocation":375,"imageIndex":13},{"imageOffset":10324,"symbol":"CVDisplayLink::runIOThread()","symbolLocation":524,"imageIndex":13},{"imageOffset":23881,"symbol":"_pthread_start","symbolLocation":115,"imageIndex":9},{"imageOffset":6191,"symbol":"thread_start","symbolLocation":15,"imageIndex":9}]},{"id":17746,"name":"caulk.messenger.shared:17","threadState":{"r13":{"value":0},"rax":{"value":14},"rflags":{"value":515},"cpu":{"value":0},"r14":{"value":105553143553168},"rsi":{"value":105553151220544},"r8":{"value":105553151220544},"cr2":{"value":0},"rdx":{"value":10},"r10":{"value":0},"r9":{"value":25},"r15":{"value":0},"rbx":{"value":105553143553025},"trap":{"value":133},"err":{"value":16777252},"r11":{"value":515},"rip":{"value":140703372499658},"rbp":{"value":123145377927024},"rsp":{"value":123145377926984},"r12":{"value":0},"rcx":{"value":123145377926984},"flavor":"x86_THREAD_STATE","rdi":{"value":11571}},"frames":[{"imageOffset":2762,"symbol":"semaphore_wait_trap","symbolLocation":10,"imageIndex":2},{"imageOffset":6992,"symbol":"caulk::semaphore::timed_wait(double)","symbolLocation":158,"imageIndex":14},{"imageOffset":6770,"symbol":"caulk::concurrent::details::worker_thread::run()","symbolLocation":30,"imageIndex":14},{"imageOffset":6054,"symbol":"void* caulk::thread_proxy<std::__1::tuple<caulk::thread::attributes, void (caulk::concurrent::details::worker_thread::*)(), std::__1::tuple<caulk::concurrent::details::worker_thread*>>>(void*)","symbolLocation":41,"imageIndex":14},{"imageOffset":23881,"symbol":"_pthread_start","symbolLocation":115,"imageIndex":9},{"imageOffset":6191,"symbol":"thread_start","symbolLocation":15,"imageIndex":9}]},{"id":17747,"name":"caulk.messenger.shared:high","threadState":{"r13":{"value":0},"rax":{"value":14},"rflags":{"value":515},"cpu":{"value":0},"r14":{"value":105553143553584},"rsi":{"value":105553151221824},"r8":{"value":105553151221824},"cr2":{"value":0},"rdx":{"value":12},"r10":{"value":0},"r9":{"value":27},"r15":{"value":0},"rbx":{"value":105553143553537},"trap":{"value":133},"err":{"value":16777252},"r11":{"value":515},"rip":{"value":140703372499658},"rbp":{"value":123145400668016},"rsp":{"value":123145400667976},"r12":{"value":0},"rcx":{"value":123145400667976},"flavor":"x86_THREAD_STATE","rdi":{"value":9779}},"frames":[{"imageOffset":2762,"symbol":"semaphore_wait_trap","symbolLocation":10,"imageIndex":2},{"imageOffset":6992,"symbol":"caulk::semaphore::timed_wait(double)","symbolLocation":158,"imageIndex":14},{"imageOffset":6770,"symbol":"caulk::concurrent::details::worker_thread::run()","symbolLocation":30,"imageIndex":14},{"imageOffset":6054,"symbol":"void* caulk::thread_proxy<std::__1::tuple<caulk::thread::attributes, void (caulk::concurrent::details::worker_thread::*)(), std::__1::tuple<caulk::concurrent::details::worker_thread*>>>(void*)","symbolLocation":41,"imageIndex":14},{"imageOffset":23881,"symbol":"_pthread_start","symbolLocation":115,"imageIndex":9},{"imageOffset":6191,"symbol":"thread_start","symbolLocation":15,"imageIndex":9}]},{"id":17770,"name":"network_thread 0x0x600000f0f310","threadState":{"r13":{"value":15},"rax":{"value":4},"rflags":{"value":515},"cpu":{"value":0},"r14":{"value":105553141564960},"rsi":{"value":1},"r8":{"value":105553141565120},"cr2":{"value":0},"rdx":{"value":4294967295},"r10":{"value":2},"r9":{"value":0},"r15":{"value":105553127008992},"rbx":{"value":1},"trap":{"value":133},"err":{"value":33554662},"r11":{"value":514},"rip":{"value":140703372527754},"rbp":{"value":123145401204304},"rsp":{"value":123145401204120},"r12":{"value":0},"rcx":{"value":123145401204120},"flavor":"x86_THREAD_STATE","rdi":{"value":105553153157312}},"frames":[{"imageOffset":30858,"symbol":"poll","symbolLocation":10,"imageIndex":2},{"imageOffset":15490385,"symbol":"webrtc::PhysicalSocketServer::WaitPoll(webrtc::TimeDelta, bool)","symbolLocation":657,"imageIndex":0},{"imageOffset":15489701,"symbol":"webrtc::PhysicalSocketServer::Wait(webrtc::TimeDelta, bool)","symbolLocation":21,"imageIndex":0},{"imageOffset":15473625,"symbol":"webrtc::Thread::Get(int)","symbolLocation":537,"imageIndex":0},{"imageOffset":15470699,"symbol":"webrtc::Thread::ProcessMessages(int)","symbolLocation":155,"imageIndex":0},{"imageOffset":15476267,"symbol":"webrtc::Thread::PreRun(void*)","symbolLocation":91,"imageIndex":0},{"imageOffset":23881,"symbol":"_pthread_start","symbolLocation":115,"imageIndex":9},{"imageOffset":6191,"symbol":"thread_start","symbolLocation":15,"imageIndex":9}]},{"id":17771,"name":"worker_thread 0x0x600000f0f318","threadState":{"r13":{"value":2203318223616},"rax":{"value":260},"rflags":{"value":583},"cpu":{"value":0},"r14":{"value":512},"rsi":{"value":2203318223616},"r8":{"value":0},"cr2":{"value":0},"rdx":{"value":512},"r10":{"value":0},"r9":{"value":160},"r15":{"value":0},"rbx":{"value":123145402814464},"trap":{"value":133},"err":{"value":33554737},"r11":{"value":582},"rip":{"value":140703372510994},"rbp":{"value":123145402813936},"rsp":{"value":123145402813784},"r12":{"value":22},"rcx":{"value":123145402813784},"flavor":"x86_THREAD_STATE","rdi":{"value":105553136219584}},"frames":[{"imageOffset":14098,"symbol":"__psynch_cvwait","symbolLocation":10,"imageIndex":2},{"imageOffset":25079,"symbol":"_pthread_cond_wait","symbolLocation":994,"imageIndex":9},{"imageOffset":15307915,"symbol":"webrtc::Event::Wait(webrtc::TimeDelta, webrtc::TimeDelta)","symbolLocation":571,"imageIndex":0},{"imageOffset":15469015,"symbol":"webrtc::NullSocketServer::Wait(webrtc::TimeDelta, bool)","symbolLocation":23,"imageIndex":0},{"imageOffset":15473625,"symbol":"webrtc::Thread::Get(int)","symbolLocation":537,"imageIndex":0},{"imageOffset":15470699,"symbol":"webrtc::Thread::ProcessMessages(int)","symbolLocation":155,"imageIndex":0},{"imageOffset":15476267,"symbol":"webrtc::Thread::PreRun(void*)","symbolLocation":91,"imageIndex":0},{"imageOffset":23881,"symbol":"_pthread_start","symbolLocation":115,"imageIndex":9},{"imageOffset":6191,"symbol":"thread_start","symbolLocation":15,"imageIndex":9}]},{"triggered":true,"id":17772,"instructionState":{"instructionStream":{"bytes":[0,0,76,141,101,152,65,191,3,0,0,0,15,31,64,0,72,139,133,56,249,255,255,76,137,247,49,246,255,80,64,133,192,15,132,150,0,0,0,15,136,150,0,0,0,72,139,133,56,249,255,255,76,137,247,76,137,230,255,80,72,72,131,125,160,0,116,127,72,139,69,176,72,133,192,116,195,72,139,19,191,1,0,0,0,190,1,0,0,0,72,137,217,77,137,240,255,208,131,248,8,116,169,131,248,6,117,87,72,139,133,56,249,255,255,72,141,189,56,249,255,255,190,254,255,255,255,255,80,16,137,193,132,201,116,22,72,139,133,56,249,255,255,72,141,189,56,249,255,255,190,254,255,255,255,255,80,24,72,137,67,24,72,141,189,0,244,255,255,72,141,181,56,249,255,255,72,137,218,232,248,9,0,0,65,137,199,235,6,65,191,5],"offset":96}},"name":"signaling_thread 0x0x600000f0f320","threadState":{"r13":{"value":104},"rax":{"value":9008917376338960},"rflags":{"value":66050},"cpu":{"value":1},"r14":{"value":123145403339176},"rsi":{"value":1},"r8":{"value":123145403339176},"cr2":{"value":0},"rdx":{"value":4849336966747728640},"r10":{"value":140703371223252},"r9":{"value":4294967168},"r15":{"value":3},"rbx":{"value":105553133183520},"trap":{"value":13},"err":{"value":0},"r11":{"value":3872},"rip":{"value":140703641068720,"matchesCrashFrame":1},"rbp":{"value":123145403340912},"rsp":{"value":123145403337840},"r12":{"value":123145403340808},"rcx":{"value":105553133183520},"flavor":"x86_THREAD_STATE","rdi":{"value":1}},"frames":[{"imageOffset":9392,"symbol":"_Unwind_RaiseException","symbolLocation":240,"imageIndex":15},{"imageOffset":7604,"symbol":"__cxa_throw","symbolLocation":61,"imageIndex":16},{"imageOffset":82225,"symbol":"objc_exception_throw","symbolLocation":317,"imageIndex":17},{"imageOffset":1685191,"symbol":"+[NSObject(NSObject) doesNotRecognizeSelector:]","symbolLocation":337,"imageIndex":3},{"imageOffset":379485,"symbol":"___forwarding___","symbolLocation":1308,"imageIndex":3},{"imageOffset":378040,"symbol":"_CF_forwarding_prep_0","symbolLocation":120,"imageIndex":3},{"imageOffset":24878676,"symbol":"(anonymous namespace)::MaxSupportedLevelForProfile(webrtc::H264Profile)","symbolLocation":164,"imageIndex":0},{"imageOffset":24877492,"symbol":"__RTCMaxSupportedH264ProfileLevelConstrainedHigh_block_invoke","symbolLocation":20,"imageIndex":0},{"imageOffset":96434,"symbol":"_dispatch_client_callout","symbolLocation":6,"imageIndex":8},{"imageOffset":14026,"symbol":"_dispatch_once_callout","symbolLocation":20,"imageIndex":8},{"imageOffset":24877453,"symbol":"RTCMaxSupportedH264ProfileLevelConstrainedHigh","symbolLocation":45,"imageIndex":0},{"imageOffset":24854818,"symbol":"+[RTCVideoEncoderH264 supportedCodecs]","symbolLocation":50,"imageIndex":0},{"imageOffset":24871989,"symbol":"+[RTCDefaultVideoEncoderFactory supportedCodecs]","symbolLocation":69,"imageIndex":0},{"imageOffset":24872783,"symbol":"-[RTCDefaultVideoEncoderFactory supportedCodecs]","symbolLocation":47,"imageIndex":0},{"imageOffset":24874701,"symbol":"-[RTCVideoEncoderFactorySimulcast supportedCodecs]","symbolLocation":61,"imageIndex":0},{"imageOffset":24813808,"symbol":"webrtc::ObjCVideoEncoderFactory::GetSupportedFormats() const","symbolLocation":96,"imageIndex":0},{"imageOffset":27757510,"symbol":"livekit_ffi::VideoEncoderFactory::InternalFactory::GetSupportedFormats() const","symbolLocation":118,"imageIndex":0},{"imageOffset":27768402,"symbol":"livekit_ffi::VideoEncoderFactory::GetSupportedFormats() const","symbolLocation":18,"imageIndex":0},{"imageOffset":27429341,"symbol":"std::__1::vector<webrtc::SdpVideoFormat, std::__1::allocator<webrtc::SdpVideoFormat>> webrtc::(anonymous namespace)::GetDefaultSupportedFormats<webrtc::VideoEncoderFactory>(webrtc::VideoEncoderFactory const*, bool, webrtc::FieldTrialsView const&)","symbolLocation":77,"imageIndex":0},{"imageOffset":27424580,"symbol":"webrtc::WebRtcVideoEngine::LegacySendCodecs(bool) const","symbolLocation":100,"imageIndex":0},{"imageOffset":14008688,"symbol":"webrtc::TypedCodecVendor::TypedCodecVendor(webrtc::MediaEngineInterface const*, webrtc::MediaType, bool, bool, webrtc::FieldTrialsView const&)","symbolLocation":800,"imageIndex":0},{"imageOffset":14422956,"symbol":"webrtc::CodecVendor::CodecVendor(webrtc::MediaEngineInterface const*, bool, webrtc::FieldTrialsView const&)","symbolLocation":268,"imageIndex":0},{"imageOffset":14062642,"symbol":"webrtc::PeerConnectionFactory::PeerConnectionFactory(webrtc::Environment, webrtc::scoped_refptr<webrtc::ConnectionContext>, webrtc::PeerConnectionFactoryDependencies*)","symbolLocation":162,"imageIndex":0},{"imageOffset":14071180,"symbol":"webrtc::RefCountedObject<webrtc::PeerConnectionFactory>::RefCountedObject<webrtc::Environment&, webrtc::scoped_refptr<webrtc::ConnectionContext>&, webrtc::PeerConnectionFactoryDependencies*>(webrtc::Environment&, webrtc::scoped_refptr<webrtc::ConnectionContext>&, webrtc::PeerConnectionFactoryDependencies*&&)","symbolLocation":108,"imageIndex":0},{"imageOffset":14062372,"symbol":"webrtc::PeerConnectionFactory::Create(webrtc::PeerConnectionFactoryDependencies)","symbolLocation":212,"imageIndex":0},{"imageOffset":25435992,"symbol":"webrtc::CreateModularPeerConnectionFactory(webrtc::PeerConnectionFactoryDependencies)","symbolLocation":88,"imageIndex":0},{"imageOffset":25436243,"symbol":"void webrtc::FunctionView<void ()>::CallVoidPtr<webrtc::scoped_refptr<webrtc::PeerConnectionFactoryInterface> webrtc::Thread::BlockingCall<webrtc::CreateModularPeerConnectionFactory(webrtc::PeerConnectionFactoryDependencies)::$_0, webrtc::scoped_refptr<webrtc::PeerConnectionFactoryInterface>, void>(webrtc::CreateModularPeerConnectionFactory(webrtc::PeerConnectionFactoryDependencies)::$_0&&, webrtc::Location const&)::'lambda'()>(webrtc::FunctionView<void ()>::VoidUnion)","symbolLocation":51,"imageIndex":0},{"imageOffset":15474900,"symbol":"webrtc::Thread::Dispatch(absl::AnyInvocable<void () &&>)","symbolLocation":148,"imageIndex":0},{"imageOffset":15470765,"symbol":"webrtc::Thread::ProcessMessages(int)","symbolLocation":221,"imageIndex":0},{"imageOffset":15476267,"symbol":"webrtc::Thread::PreRun(void*)","symbolLocation":91,"imageIndex":0},{"imageOffset":23881,"symbol":"_pthread_start","symbolLocation":115,"imageIndex":9},{"imageOffset":6191,"symbol":"thread_start","symbolLocation":15,"imageIndex":9}]}],
+  "usedImages" : [
+  {
+    "source" : "P",
+    "arch" : "x86_64",
+    "base" : 4481167360,
+    "CFBundleShortVersionString" : "0.6.4",
+    "CFBundleIdentifier" : "app.vttchat.desktop",
+    "size" : 40357888,
+    "uuid" : "3e40bb82-a582-3d25-8101-8fda7ff185ac",
+    "path" : "\/Applications\/VTT Chat.app\/Contents\/MacOS\/vtt-chat-app",
+    "name" : "vtt-chat-app",
+    "CFBundleVersion" : "0.6.4"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64h",
+    "base" : 4551180288,
+    "size" : 53248,
+    "uuid" : "9564e919-df67-3ce5-bb9b-8a9cbab201e1",
+    "path" : "\/usr\/lib\/libobjc-trampolines.dylib",
+    "name" : "libobjc-trampolines.dylib"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64",
+    "base" : 140703372496896,
+    "size" : 255440,
+    "uuid" : "a6d8c216-4f74-3793-bd68-0156d505de47",
+    "path" : "\/usr\/lib\/system\/libsystem_kernel.dylib",
+    "name" : "libsystem_kernel.dylib"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64h",
+    "base" : 140703373037568,
+    "CFBundleShortVersionString" : "6.9",
+    "CFBundleIdentifier" : "com.apple.CoreFoundation",
+    "size" : 4971013,
+    "uuid" : "b7f5aeea-bdbd-3bbd-a1d1-baf62215be44",
+    "path" : "\/System\/Library\/Frameworks\/CoreFoundation.framework\/Versions\/A\/CoreFoundation",
+    "name" : "CoreFoundation",
+    "CFBundleVersion" : "5026.6.7.5"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64",
+    "base" : 140703588188160,
+    "CFBundleShortVersionString" : "2.1.1",
+    "CFBundleIdentifier" : "com.apple.HIToolbox",
+    "size" : 3001295,
+    "uuid" : "712d1800-c63f-3298-89c9-3e1b26d572f4",
+    "path" : "\/System\/Library\/Frameworks\/Carbon.framework\/Versions\/A\/Frameworks\/HIToolbox.framework\/Versions\/A\/HIToolbox",
+    "name" : "HIToolbox"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64",
+    "base" : 140703438843904,
+    "CFBundleShortVersionString" : "6.9",
+    "CFBundleIdentifier" : "com.apple.AppKit",
+    "size" : 25152279,
+    "uuid" : "e618d025-5817-3377-984d-da92213b1a78",
+    "path" : "\/System\/Library\/Frameworks\/AppKit.framework\/Versions\/C\/AppKit",
+    "name" : "AppKit",
+    "CFBundleVersion" : "2685.70.102"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64",
+    "base" : 140703368613888,
+    "size" : 706640,
+    "uuid" : "22cc4f6a-197f-37c2-bbfd-3b5e8229e756",
+    "path" : "\/usr\/lib\/dyld",
+    "name" : "dyld"
+  },
+  {
+    "size" : 0,
+    "source" : "A",
+    "base" : 0,
+    "uuid" : "00000000-0000-0000-0000-000000000000"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64",
+    "base" : 140703370964992,
+    "size" : 294290,
+    "uuid" : "9418808d-59a5-39ef-be7a-361b04adb17e",
+    "path" : "\/usr\/lib\/system\/libdispatch.dylib",
+    "name" : "libdispatch.dylib"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64",
+    "base" : 140703372754944,
+    "size" : 48832,
+    "uuid" : "091a35d0-ecf6-3370-bf9b-860e41cd07e2",
+    "path" : "\/usr\/lib\/system\/libsystem_pthread.dylib",
+    "name" : "libsystem_pthread.dylib"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64",
+    "base" : 140703371272192,
+    "size" : 556704,
+    "uuid" : "7680836e-f1bc-39b8-9996-5d290985a05f",
+    "path" : "\/usr\/lib\/system\/libsystem_c.dylib",
+    "name" : "libsystem_c.dylib"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64",
+    "base" : 140707665805312,
+    "CFBundleShortVersionString" : "21624",
+    "CFBundleIdentifier" : "com.apple.JavaScriptCore",
+    "size" : 38708708,
+    "uuid" : "2e7f5f6d-bfe7-366f-b12d-14176f41fdef",
+    "path" : "\/System\/Library\/Frameworks\/JavaScriptCore.framework\/Versions\/A\/JavaScriptCore",
+    "name" : "JavaScriptCore",
+    "CFBundleVersion" : "21624.5.1.11.3"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64",
+    "base" : 140707817816064,
+    "CFBundleShortVersionString" : "21624",
+    "CFBundleIdentifier" : "com.apple.WebKit",
+    "size" : 23472033,
+    "uuid" : "95269498-0b88-3aeb-b1e5-5734195c090c",
+    "path" : "\/System\/Library\/Frameworks\/WebKit.framework\/Versions\/A\/WebKit",
+    "name" : "WebKit",
+    "CFBundleVersion" : "21624.5.1.11.3"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64",
+    "base" : 140703551692800,
+    "CFBundleShortVersionString" : "1.8",
+    "CFBundleIdentifier" : "com.apple.CoreVideo",
+    "size" : 472424,
+    "uuid" : "6939ac9c-8573-3a0d-bd9b-51d97e90f8b4",
+    "path" : "\/System\/Library\/Frameworks\/CoreVideo.framework\/Versions\/A\/CoreVideo",
+    "name" : "CoreVideo",
+    "CFBundleVersion" : "0.0"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64",
+    "base" : 140703583350784,
+    "CFBundleShortVersionString" : "1.0",
+    "CFBundleIdentifier" : "com.apple.audio.caulk",
+    "size" : 149792,
+    "uuid" : "b654abcf-daf4-3555-a964-06d125afef47",
+    "path" : "\/System\/Library\/PrivateFrameworks\/caulk.framework\/Versions\/A\/caulk",
+    "name" : "caulk"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64",
+    "base" : 140703641059328,
+    "size" : 34152,
+    "uuid" : "e3bdc4ff-d124-35c6-8cb5-5698619d3a5f",
+    "path" : "\/usr\/lib\/system\/libunwind.dylib",
+    "name" : "libunwind.dylib"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64",
+    "base" : 140703372398592,
+    "size" : 95736,
+    "uuid" : "dcc1ed82-53fb-3215-a780-9af30533093e",
+    "path" : "\/usr\/lib\/libc++abi.dylib",
+    "name" : "libc++abi.dylib"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64h",
+    "base" : 140703368138752,
+    "size" : 279436,
+    "uuid" : "3d3e4632-64dd-3015-a0a8-ccd98d931065",
+    "path" : "\/usr\/lib\/libobjc.A.dylib",
+    "name" : "libobjc.A.dylib"
+  }
+],
+  "sharedCache" : {
+  "base" : 140703323959296,
+  "size" : 30064771072,
+  "uuid" : "5a3da575-f02e-33dc-9b14-f663050011e6"
+},
+  "vmSummary" : "ReadOnly portion of Libraries: Total=1.5G resident=0K(0%) swapped_out_or_unallocated=1.5G(100%)\nWritable regions: Total=5.8G written=0K(0%) resident=0K(0%) swapped_out=0K(0%) unallocated=5.8G(100%)\n\n                                VIRTUAL   REGION \nREGION TYPE                        SIZE    COUNT (non-coalesced) \n===========                     =======  ======= \nActivity Tracing                   256K        1 \nColorSync                           12K        2 \nCoreAnimation                      172K       39 \nCoreGraphics                        16K        3 \nCoreServices                      9700K        1 \nCoreUI image data                  352K        5 \nFoundation                          16K        1 \nIOKit                             7940K        1 \nImage IO                            20K        2 \nJS JIT generated code              1.0G        3 \nJS VM Gigacage (reserved)          4.0G        1         reserved VM address space (unallocated)\nKernel Alloc Once                    8K        1 \nMALLOC                           611.3M       72 \nMALLOC guard page                   64K       16 \nSTACK GUARD                        100K       25 \nStack                             37.2M       26 \nStack Guard                       56.0M        1 \nVM_ALLOCATE                        356K       25 \nVM_ALLOCATE (reserved)            1536K       12         reserved VM address space (unallocated)\nWebKit Malloc                    192.5M       16 \n__CTF                               824        1 \n__DATA                            49.2M     1010 \n__DATA_CONST                     123.4M     1057 \n__DATA_DIRTY                      8876K      896 \n__FONT_DATA                        2352        1 \n__GLSLBUILTINS                    5174K        1 \n__LINKEDIT                       168.0M        3 \n__OBJC_RO                         65.2M        1 \n__OBJC_RW                         2598K        1 \n__TEXT                             1.3G     1076 \n__TPRO_CONST                         16        2 \nmapped file                      247.8M       29 \nshared memory                      800K       19 \n===========                     =======  ======= \nTOTAL                              7.8G     4350 \nTOTAL, minus reserved VM space     3.8G     4350 \n",
+  "legacyInfo" : {
+  "threadTriggered" : {
+    "name" : "signaling_thread 0x0x600000f0f320"
+  }
+},
+  "logWritingSignature" : "22961f00aa6e22593acddc160efde9383b714bb7",
+  "roots_installed" : 0,
+  "bug_type" : "309",
+  "trmStatus" : 2105856,
+  "trialInfo" : {
+  "rollouts" : [
+    {
+      "rolloutId" : "60f8ddccefea4203d95cbeef",
+      "factorPackIds" : [
+
+      ],
+      "deploymentId" : 240000025
+    },
+    {
+      "rolloutId" : "682ef9612c2ae30e2f38d3a4",
+      "factorPackIds" : [
+
+      ],
+      "deploymentId" : 240000006
+    }
+  ],
+  "experiments" : [
+
+  ]
+}
+}
