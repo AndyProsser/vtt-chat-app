@@ -267,6 +267,27 @@ describe('createOpenAiGenerate', () => {
     });
     await expect(generate('p')).rejects.toThrow(/no message content/);
   });
+
+  it("treats a repeat-limit abort as the model's own problem, not \"unreachable\"", async () => {
+    const fetchImpl = vi.fn(async () =>
+      json(
+        {
+          error:
+            'model runner has unexpectedly stopped: prediction aborted, token repeat limit reached',
+        },
+        500,
+      ),
+    );
+    const generate = createOpenAiGenerate({
+      baseUrl: 'http://x',
+      model: 'm',
+      fetchImpl: asFetch(fetchImpl),
+    });
+    const error = await generate('p').catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(Error);
+    expect(error).not.toBeInstanceOf(ProviderUnavailableError);
+    expect((error as Error).message).toMatch(/repeat limit/);
+  });
 });
 
 describe('createFailover', () => {

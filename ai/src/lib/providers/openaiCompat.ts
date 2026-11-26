@@ -9,7 +9,7 @@ import {
 } from '../../consts/index.js';
 import type { GenerateText, Segment, TranscribeWav } from '../../types/index.js';
 import { isNonSpeech } from '../whisperJson.js';
-import { isTransientStatus, ProviderUnavailableError } from './errors.js';
+import { isModelAbortMessage, isTransientStatus, ProviderUnavailableError } from './errors.js';
 import { longFetch } from '../longFetch.js';
 
 export interface OpenAiCompatOptions {
@@ -106,6 +106,8 @@ async function post(
   if (!response.ok) {
     const detail = (await response.text().catch(() => '')).slice(0, 300);
     const message = `${route} failed with status ${response.status}${detail ? `: ${detail}` : ''}`;
+    // The model gave up on this content, not the server being unreachable: never a reason to fail over.
+    if (isModelAbortMessage(detail)) throw new Error(message);
     throw isTransientStatus(response.status)
       ? new ProviderUnavailableError(message)
       : new Error(message);

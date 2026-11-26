@@ -5,6 +5,7 @@ import {
   MAX_REDUCE_DEPTH,
 } from '../consts/index.js';
 import type { SummaryContext } from '../types/index.js';
+import { isModelAbortMessage } from './providers/errors.js';
 import { buildCondensePrompt } from './prompts.js';
 import { estimateTokens } from './tokenBudget.js';
 
@@ -74,10 +75,6 @@ export function clipToWords(text: string, limit: number): string {
   return result.join('\n');
 }
 
-/** The server gave up on a model that was repeating itself: a fault of this text and this call, not of the connection. */
-const isRepeatAbort = (e: unknown): boolean =>
-  /repeat limit|prediction aborted/i.test(e instanceof Error ? e.message : String(e));
-
 const words = (notes: readonly string[]): number => notes.reduce((n, t) => n + wordCount(t), 0);
 
 export async function fitNotes(
@@ -99,6 +96,9 @@ export async function fitNotes(
     return scribe(prompt);
   };
 
+  const abortedOn = (e: unknown): boolean =>
+    isModelAbortMessage(e instanceof Error ? e.message : String(e));
+
   /** One group shortened to about `limit` words: asked, told once if it wrote too much, then clipped. */
   const shorten = async (group: string[], limit: number): Promise<string> => {
     // A model that aborts on this text (Ollama: "token repeat limit reached") is tried once more, then the group is
@@ -107,11 +107,11 @@ export async function fitNotes(
     try {
       first = await call(buildCondensePrompt(group, context, limit));
     } catch (e) {
-      if (!isRepeatAbort(e)) throw e;
+      if (!abortedOn(e)) throw e;
       try {
         first = await call(buildCondensePrompt(group, context, limit));
       } catch (again) {
-        if (!isRepeatAbort(again)) throw again;
+        if (!abortedOn(again)) throw again;
         return clipToWords(group.join('\n\n'), limit);
       }
     }

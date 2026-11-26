@@ -14,3 +14,11 @@ export class ProviderUnavailableError extends Error {
 export function isTransientStatus(status: number): boolean {
   return status === 408 || status === 429 || status >= 500;
 }
+
+/**
+ * The model itself gave up on this content (Ollama: "prediction aborted, token repeat limit
+ * reached"), not the server being unreachable — a config/content problem on a server that is up.
+ */
+export function isModelAbortMessage(message: string): boolean {
+  return /repeat limit|prediction aborted/i.test(message);
+}
