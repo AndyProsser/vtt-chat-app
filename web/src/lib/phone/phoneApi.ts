@@ -1,4 +1,11 @@
-import type { CharacterRecord } from '@vtt-chat-app/shared';
+import {
+  batchBody,
+  type CharacterRecord,
+  type ItemType,
+  type LootDraft,
+  type Rarity,
+  type SrdItem,
+} from '@vtt-chat-app/shared';
 
 import { ApiError, request } from '../api.js';
 import type {
@@ -166,6 +173,29 @@ export const lootDo = (
   itemId: string,
   req: { path: string; body: Record<string, unknown> },
 ) => request('POST', `/api/campaigns/${campaignId}/loot/${itemId}/${req.path}`, { body: req.body });
+
+// ---- the DM's loot bench: stage a random roll, an SRD search result or a custom item, then drop them all ----
+
+export const lootRoll = (campaignId: string, cr: number, kind: 'individual' | 'hoard') =>
+  request<{ drafts: LootDraft[] }>('POST', `/api/campaigns/${campaignId}/loot/roll`, {
+    body: { cr, kind },
+  });
+
+export const lootReroll = (campaignId: string, cr: number, draft: LootDraft) =>
+  request<{ draft: LootDraft }>('POST', `/api/campaigns/${campaignId}/loot/roll/reroll`, {
+    body: { cr, draft },
+  });
+
+export const lootCatalog = (
+  campaignId: string,
+  query: { q?: string; type?: ItemType; rarity?: Rarity; limit?: number },
+) =>
+  request<{ items: SrdItem[] }>('POST', `/api/campaigns/${campaignId}/loot/catalog`, {
+    body: query,
+  });
+
+export const lootBatch = (campaignId: string, drafts: LootDraft[]) =>
+  request('POST', `/api/campaigns/${campaignId}/loot/batch`, { body: batchBody(drafts) });
 
 /** Ticks (or un-ticks) "I have added this to my game sheet" for an item you hold, the party stash or your share. */
 export const lootConfirm = (campaignId: string, itemId: string, confirmed: boolean) =>

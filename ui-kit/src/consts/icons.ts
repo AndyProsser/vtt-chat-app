@@ -26,6 +26,10 @@ import {
   Laugh,
   Utensils,
   Ear,
+  Coins,
+  Gem,
+  PackagePlus,
+  RotateCw,
   Search,
   Swords,
   WandSparkles,
@@ -143,6 +147,12 @@ export const ICON = {
   qrCode: QrCode,
   userPlus: UserPlus,
   logOut: LogOut,
+  search: Search,
+  coins: Coins,
+  gem: Gem,
+  dice: Dices,
+  rotate: RotateCw,
+  packagePlus: PackagePlus,
 } as const satisfies Record<string, LucideIcon>;
 
 export type IconName = keyof typeof ICON;

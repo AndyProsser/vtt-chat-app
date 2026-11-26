@@ -13,6 +13,7 @@ the GitHub release notes and refuses to build a release without one. How to writ
 ### Added
 
 - **Split coin from the chat card** (desktop). An unclaimed pile of coin in chat has the same "split the coin equally" button as the inventory, with the same list of players to share it among.
+- **The Game Master's loot bench is now on the phone and web app too.** Tap Add on Party inventory for the same tools the desktop app has: roll individual or hoard treasure for a CR, search the SRD catalog, add a custom item or a pile of coin, give any of them straight to a player, then drop them all into the pool at once.
 
 ### Changed
 

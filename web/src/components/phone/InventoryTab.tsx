@@ -18,6 +18,7 @@ import { Fragment, useEffect, useState } from 'react';
 
 import { holder } from '../../lib/phone/lootCards.js';
 import { GiveSelect } from './GiveSelect.js';
+import { LootBench } from './LootBench.js';
 import { LootButtons } from './LootButtons.js';
 
 import { useIsDm } from '../../hooks/useIsDm.js';
@@ -56,6 +57,7 @@ export function InventoryTab({ campaignId }: { campaignId: string }) {
   }, [auto, data, selfId, dm]);
   const filter = chosen ?? auto ?? defaultLootFilter(dm);
   const [problem, setProblem] = useState<string>();
+  const [bench, setBench] = useState(false);
   const filters = lootFiltersFor(dm);
   const view = filters.includes(filter) ? filter : defaultLootFilter(dm);
   const filtered = filterLootItems(data ?? [], view, selfId);
@@ -100,6 +102,20 @@ export function InventoryTab({ campaignId }: { campaignId: string }) {
     }
   }
 
+  if (bench) {
+    return (
+      <LootBench
+        campaignId={campaignId}
+        players={players}
+        onClose={() => setBench(false)}
+        onDropped={() => {
+          reload();
+          setBench(false);
+        }}
+      />
+    );
+  }
+
   return (
     <Flex direction="column" gap="3" className="phone-pad">
       <Flex align="center" justify="between" gap="2" wrap="wrap">
@@ -114,6 +130,7 @@ export function InventoryTab({ campaignId }: { campaignId: string }) {
             </SegmentedControl.Item>
           ))}
         </SegmentedControl.Root>
+        {dm && <IconTool label="Add loot" icon="packagePlus" onClick={() => setBench(true)} />}
       </Flex>
       {(error || problem) && (
         <Callout.Root color="red">

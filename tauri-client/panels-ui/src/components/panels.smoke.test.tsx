@@ -165,7 +165,7 @@ function click(host: HTMLElement, label: string): Promise<void> {
   });
 }
 
-describe('the new-item forms hide behind the panel\'s Add button', () => {
+describe("the new-item forms hide behind the panel's Add button", () => {
   // Radix's Popover.Content portals into document.body, not under the trigger's own host element.
   it('Handouts: the new-handout form is closed, then opens on Add, as the DM', async () => {
     const { HandoutsPanel } = await import('./HandoutsPanel.js');
