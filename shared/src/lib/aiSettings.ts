@@ -39,7 +39,7 @@ export const AI_SETTING_KEYS = {
   'ai.fallback.after-seconds': 'whole number of seconds, 0 = immediately',
   'ai.fallback.retry-seconds': 'whole number of seconds, at least 1',
   'ai.fallback.max-local-minutes':
-    'whole number of minutes, at least 1 (the LLM only; above it, a job fails instead of running on local CPU)',
+    'whole number of minutes, 0 or more (0 = never; the LLM only, above it a job fails instead of running on local CPU)',
   'ai.memory.enabled': 'true | false (campaign memory: one more model call per session)',
   'ai.pause-while-recording':
     'true | false (local AI waits while any table is recording; delays tales, protects the recording on a busy machine)',
@@ -115,6 +115,14 @@ function parseBool(value: string): boolean {
 
 function parseSeconds(value: string, min: number): number {
   if (!/^\d+$/.test(value.trim())) throw new SettingError('must be a whole number of seconds');
+  const n = Number(value);
+  if (n < min) throw new SettingError(`must be at least ${min}`);
+  return n;
+}
+
+/** Like {@link parseSeconds}, without a unit baked into the message — for a field that isn't seconds. */
+function parseWholeNumber(value: string, min: number): number {
+  if (!/^\d+$/.test(value.trim())) throw new SettingError('must be a whole number');
   const n = Number(value);
   if (n < min) throw new SettingError(`must be at least ${min}`);
   return n;
@@ -205,7 +213,8 @@ export function setAiSetting(settings: AiSettings, key: AiSettingKey, value: str
       next.fallback.retrySeconds = parseSeconds(value, 1);
       break;
     case 'ai.fallback.max-local-minutes':
-      next.fallback.maxLocalMinutes = parseSeconds(value, 1);
+      // 0 means "never fall back to local for the LLM" (every real recording has some duration).
+      next.fallback.maxLocalMinutes = parseWholeNumber(value, 0);
       break;
     case 'ai.tale.length': {
       const v = value.trim().toLowerCase();
@@ -306,7 +315,7 @@ export function normaliseAiSettings(raw: unknown): AiSettings {
       enabled: typeof f.enabled === 'boolean' ? f.enabled : d.fallback.enabled,
       afterSeconds: int(f.afterSeconds, d.fallback.afterSeconds, 0),
       retrySeconds: int(f.retrySeconds, d.fallback.retrySeconds, 1),
-      maxLocalMinutes: int(f.maxLocalMinutes, d.fallback.maxLocalMinutes, 1),
+      maxLocalMinutes: int(f.maxLocalMinutes, d.fallback.maxLocalMinutes, 0),
     },
     memory: { enabled: typeof m.enabled === 'boolean' ? m.enabled : d.memory.enabled },
     processing: {

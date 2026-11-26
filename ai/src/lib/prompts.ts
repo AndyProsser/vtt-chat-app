@@ -87,7 +87,8 @@ export function buildNotesPrompt(
       'Under each heading write one bullet per thing, in the order things happened. For each: who did what, to whom or what, and how it turned out.',
       // 0.6.5 interim (deliberate, revisit at 0.7): asks for what's consequential rather than
       // everything, so a chunk's notes stay short enough to finish reliably on local CPU. Stage
-      // 12 D's "never a weaker fallback" held while notes were exhaustive; the Campaign Graph
+      // 12 D's own retry ladder for unreadable notes (decision 7, unaffected by this) still holds;
+      // this instead relaxes how exhaustive a *readable* answer must be. The Campaign Graph
       // (0.7+) is meant to be thorough about facts again without this cost.
       'Write a summary of events and actions, not a line-by-line retelling: these notes must end up noticeably shorter than the transcript above. Merge a back-and-forth about one small thing into a single line, and leave out table talk that is not part of the game. Keep what matters: turning points, decisions with real consequences, named NPCs, places and items, and anything the table would want reminded of later. A routine or minor beat may be condensed to one line or left out rather than kept in full.',
       'Never go beyond the transcript: do not continue the story, and do not describe anything that no line of the transcript says.',

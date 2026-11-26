@@ -185,6 +185,7 @@ export async function takeNotes(
         if (!abortedOn(again)) throw again;
         throw new Error(
           `the scribe's notes for part ${index + 1} of ${chunks.length} could not be written: the model aborted generation (repeat limit) — check its context size or repeat-penalty settings`,
+          { cause: again },
         );
       }
     }

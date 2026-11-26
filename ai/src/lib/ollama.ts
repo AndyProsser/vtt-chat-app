@@ -40,25 +40,40 @@ export function createOllamaGenerate(options: OllamaOptions): GenerateText {
 
   return async (prompt) => {
     const numCtx = typeof options.numCtx === 'function' ? await options.numCtx() : options.numCtx;
-    const response = await doFetch(`${baseUrl}/api/generate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: options.model,
-        prompt,
-        stream: false,
-        // Reasoning models (Qwen3, DeepSeek-R1…) would otherwise think aloud first: minutes of tokens
-        // nobody reads. Models that cannot think ignore it.
-        think: false,
-        ...(options.keepAlive !== undefined ? { keep_alive: options.keepAlive } : {}),
-        options: {
-          temperature: sampling.temperature,
-          presence_penalty: sampling.presencePenalty,
-          ...(numCtx ? { num_ctx: numCtx } : {}),
-        },
-      }),
-      signal: AbortSignal.timeout(options.timeoutMs ?? LOCAL_GENERATE_TIMEOUT_MS),
-    });
+    const timeoutMs = options.timeoutMs ?? LOCAL_GENERATE_TIMEOUT_MS;
+    let response: Response;
+    try {
+      response = await doFetch(`${baseUrl}/api/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: options.model,
+          prompt,
+          stream: false,
+          // Reasoning models (Qwen3, DeepSeek-R1…) would otherwise think aloud first: minutes of tokens
+          // nobody reads. Models that cannot think ignore it.
+          think: false,
+          ...(options.keepAlive !== undefined ? { keep_alive: options.keepAlive } : {}),
+          options: {
+            temperature: sampling.temperature,
+            presence_penalty: sampling.presencePenalty,
+            ...(numCtx ? { num_ctx: numCtx } : {}),
+          },
+        }),
+        signal: AbortSignal.timeout(timeoutMs),
+      });
+    } catch (error) {
+      // `AbortSignal.timeout` rejects with a `TimeoutError` whose own message ("The operation was
+      // aborted due to timeout") says nothing about which timeout or why — name it, so a job's
+      // failure reason is legible without reading this file.
+      if (error instanceof Error && error.name === 'TimeoutError') {
+        throw new Error(
+          `local Ollama call exceeded its ${Math.round(timeoutMs / 60_000)}-minute timeout (LOCAL_GENERATE_TIMEOUT_MS)`,
+          { cause: error },
+        );
+      }
+      throw error;
+    }
     if (!response.ok) {
       const detail = (await response.text().catch(() => '')).slice(0, 300);
       throw new Error(

@@ -311,12 +311,17 @@ describe(`Store contract (${backend.kind})`, () => {
       ai: {
         ...settings.ai,
         transcription: { ...settings.ai.transcription, kind: 'remote', url: 'http://gpu:8080' },
-        fallback: { enabled: false, afterSeconds: 90, retrySeconds: 5 },
+        fallback: { enabled: false, afterSeconds: 90, retrySeconds: 5, maxLocalMinutes: 45 },
       },
     });
     const back = await store.getSettings();
     expect(back.ai.transcription).toMatchObject({ kind: 'remote', url: 'http://gpu:8080' });
-    expect(back.ai.fallback).toEqual({ enabled: false, afterSeconds: 90, retrySeconds: 5 });
+    expect(back.ai.fallback).toEqual({
+      enabled: false,
+      afterSeconds: 90,
+      retrySeconds: 5,
+      maxLocalMinutes: 45,
+    });
   });
 
   it('returns the seeded default settings on a fresh store', async () => {

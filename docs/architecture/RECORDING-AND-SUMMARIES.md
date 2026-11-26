@@ -562,8 +562,9 @@ flowchart LR
   with invention: the end-to-end test's four-line recap came back as a dungeon crawl. The scribe is likewise told that
   notes never run past the transcript. Still seen after both rules: `qwen3:8b` adds a small invented beat to a
   four-line recording, and a bard may name the Game Master's account when the notes do.
-- **A piece is 12,000 characters** (was 24,000): thorough notes run nearly as long as what they describe, and both must
-  fit the 8k context the worker asks Ollama for.
+- **A piece is 6,000 characters** (was 24,000, then 12,000; halved again 2026-11-26 as part of the pipeline-reliability
+  fix below, to bound a single CPU call's worst-case time): notes run nearly as long as what they describe, and both
+  must fit the 8k context the worker asks Ollama for.
 - **One model or two.** `OLLAMA_MODEL` plays both roles; `OLLAMA_STORY_MODEL` gives the bard its own (the status line
   then reports the worse of the two). A remote LLM plays both.
 
@@ -593,7 +594,10 @@ only 4 of the 8 cores; it now uses them all at low priority (`small.en` 1.71× �
 
 **The summary model on a CPU without AVX does not work in practice:** `qwen3.5:4b` read 3.2 and wrote 1.8 tokens a
 second on the Xeon (a modern CPU: roughly 50–100 and 8–12), so one 12-minute session's notes ran past the worker's
-one-hour request limit. Such a server sends summaries to a remote LLM (OPERATOR-GUIDE).
+one-hour request limit. Such a server sends summaries to a remote LLM (OPERATOR-GUIDE). (2026-11-26: that one-hour
+limit is now one of two — a local call also gets its own, shorter `LOCAL_GENERATE_TIMEOUT_MS` — and `ai.fallback.
+max-local-minutes` means a remote-unavailable job on hardware this slow now fails cleanly instead of grinding for
+hours; see BUILD-STATUS's "AI summary pipeline reliability (interim)" entry.)
 
 **Sampling was the real problem.** The Ollama path sent no temperature, so each model's own defaults applied:
 `qwen3.5` ships temperature 1.0 and **presence_penalty 1.5**, which penalises every word already used. Notes have to

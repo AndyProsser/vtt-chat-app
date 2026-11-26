@@ -268,7 +268,7 @@ describe('createOpenAiGenerate', () => {
     await expect(generate('p')).rejects.toThrow(/no message content/);
   });
 
-  it("treats a repeat-limit abort as the model's own problem, not \"unreachable\"", async () => {
+  it('treats a repeat-limit abort as the model\'s own problem, not "unreachable"', async () => {
     const fetchImpl = vi.fn(async () =>
       json(
         {

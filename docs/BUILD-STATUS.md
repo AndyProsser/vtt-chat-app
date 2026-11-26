@@ -30,26 +30,32 @@ limit" abort being classified identically to the server being unreachable, silen
 the same permanent fallback-to-local a real outage would.
 
 Local-CPU fallback for the LLM (never Whisper — CLAUDE.md §5 keeps that one explicitly fine) is
-now gated on the recording's duration: `ai.fallback.max-local-minutes`, **default 20 minutes and
-genuinely untuned** — no real local-CPU tokens/sec figure exists yet, so this is a deliberately
-conservative starting guess, meant to be adjusted via `vtt-admin settings` once a real run gives
-Andy an actual throughput number. Above it, a remote-unavailable job fails outright and says so,
-instead of running on CPU anyway. A local generate call also gets its own 20-minute timeout
+now gated on the recording's duration: `ai.fallback.max-local-minutes`, default **20 minutes**.
+Sized for a modern, AVX-capable CPU — on the project's own no-AVX test VM (measured elsewhere:
+[RECORDING-AND-SUMMARIES.md](RECORDING-AND-SUMMARIES.md), "Sampling" — 3.2 read / 1.8 write
+tokens/s, versus roughly 50–100/8–12 on a modern CPU), a single 6,000-char chunk is itself close
+to 20 minutes, so expect most jobs on hardware like that to legitimately hit the gate rather than
+squeeze under it; that doc already tells an operator in that position to configure a remote LLM,
+which this fix doesn't change. Operator-tunable via `vtt-admin settings` either way. Above the
+limit, a remote-unavailable job fails outright and says so, instead of running on CPU anyway. A
+local generate call also gets its own 20-minute timeout
 (`LOCAL_GENERATE_TIMEOUT_MS`) as defense in depth, separate from the 60-minute one `longFetch`
 still gives a remote call. The default note-taking chunk size (`DEFAULT_CHUNK_CHARS`) is halved,
 12,000 → 6,000 characters, to bound a single call's worst-case generation time further. A
 repeat-limit abort is retried once on the same backend before the job fails with a message that
 names it plainly, rather than a generic "fetch failed"/"unreachable". The scribe's note-taking
 prompt was also tightened to prioritise consequential events over exhaustive completeness — a
-deliberate, flagged relaxation of Stage 12 D's "never a weaker fallback" decision, scoped to this
+deliberate, flagged relaxation of the scribe's own completeness instruction (not of Stage 12 D's
+"decision 7," the unreadable-notes retry ladder, which this leaves untouched), scoped to this
 release and meant to be revisited once the Campaign Graph (0.7+) exists.
 
 **Explicitly out of scope** (interim fix, not the real solution): the Campaign Graph itself;
 automatic re-chunking when a repeat-limit abort recurs ("job optimisation"); cross-chapter LLM
 concurrency.
 
-**Verified:** `npm test -w shared && npm test -w ai && npm test -w backend` all clean. **Not yet
-verified:** a real local-only run against the actual recording that triggered this — the whole
+**Verified:** `npm test -w shared && npm test -w ai && npm test -w backend`, `npm run lint` and
+`npm run format:check` all clean. **Not yet verified:** a real local-only run against the actual
+recording that triggered this — the whole
 point of `ai.fallback.max-local-minutes`'s default being a guess is that nobody has run one yet
 under this fix to see whether 20 minutes is remotely the right order of magnitude for this
 hardware.

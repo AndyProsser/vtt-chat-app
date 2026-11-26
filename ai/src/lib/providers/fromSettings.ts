@@ -158,19 +158,31 @@ export function buildJobProviders(settings: AiSettings, deps: ProviderDeps): Job
       'the recording is too long to fall back to the local model (ai.fallback.max-local-minutes); configure a remote LLM or wait for it to come back',
     );
   };
-  const role = (local: GenerateText, remote: GenerateText | undefined): Failover<string, string> =>
-    remote
-      ? createFailover(
-          remote,
-          fallback.enabled ? (llmFallbackAllowed ? local : tooLarge) : undefined,
-          {
-            ...timing,
-            ...(llmFallbackAllowed
-              ? { onFallback: (reason: string) => deps.onFallback?.('llm', reason) }
-              : {}),
-          },
-        )
-      : createFailover(local, undefined, timing);
+  // A remote kind was asked for but could not be built (no key/URL) — that is a fallback in
+  // everything but name (the `onFallback` calls above already say so), so the size gate applies
+  // to it exactly as it would to a remote that's actually down. `ai.llm.kind: 'local'` is a
+  // deliberate, always-fine choice and is never gated.
+  const llmIntendedRemote = settings.llm.kind !== 'local';
+  const role = (
+    local: GenerateText,
+    remote: GenerateText | undefined,
+  ): Failover<string, string> => {
+    if (remote) {
+      return createFailover(
+        remote,
+        fallback.enabled ? (llmFallbackAllowed ? local : tooLarge) : undefined,
+        {
+          ...timing,
+          ...(llmFallbackAllowed
+            ? { onFallback: (reason: string) => deps.onFallback?.('llm', reason) }
+            : {}),
+        },
+      );
+    }
+    if (llmIntendedRemote && !llmFallbackAllowed)
+      return createFailover(tooLarge, undefined, timing);
+    return createFailover(local, undefined, timing);
+  };
 
   return {
     transcribe,

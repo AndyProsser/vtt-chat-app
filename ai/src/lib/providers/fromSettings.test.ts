@@ -154,6 +154,26 @@ describe('buildJobProviders', () => {
     expect(localGenerate).not.toHaveBeenCalledWith('prompt');
   });
 
+  it('with the fallback off, keeps waiting forever even when the job is also too large for local', async () => {
+    // The two gates are independent: a closed size gate must never override the operator's
+    // explicit "wait forever, don't ever use local" choice.
+    const settings = setAiSetting(remote(), 'ai.fallback.enabled', 'false');
+    const ac = new AbortController();
+    let calls = 0;
+    const p = buildJobProviders(setAiSetting(settings, 'ai.fallback.retry-seconds', '1'), {
+      ...base,
+      llmFallbackAllowed: false,
+      signal: ac.signal,
+      fetchImpl: (async () => {
+        calls += 1;
+        if (calls >= 2) ac.abort(new Error('stop waiting'));
+        throw new TypeError('fetch failed');
+      }) as unknown as typeof fetch,
+    });
+    await expect(p.generate.call('prompt')).rejects.toThrow('stop waiting');
+    expect(localGenerate).not.toHaveBeenCalled();
+  });
+
   describe('claude', () => {
     const claude = (): AiSettings => setAiSetting(DEFAULT_AI_SETTINGS, 'ai.llm.kind', 'claude');
 
@@ -175,6 +195,12 @@ describe('buildJobProviders', () => {
       expect(await p.generate.call('prompt')).toBe('local summary');
       expect(await p.story.call('prompt')).toBe('local summary');
       expect(onFallback).toHaveBeenCalledWith('llm', expect.stringMatching(/ANTHROPIC_API_KEY/));
+    });
+
+    it('fails instead of running on local when the job is too large and the key is missing too', async () => {
+      const p = buildJobProviders(claude(), { ...base, llmFallbackAllowed: false });
+      await expect(p.generate.call('prompt')).rejects.toThrow(/too large|max-local-minutes/i);
+      expect(localGenerate).not.toHaveBeenCalled();
     });
   });
 

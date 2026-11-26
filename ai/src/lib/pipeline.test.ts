@@ -449,6 +449,18 @@ describe('summarise', () => {
       /part 1 of 1.*aborted generation/i,
     );
   });
+
+  it('names the right part when the abort is on a later chunk, not always "part 1"', async () => {
+    const scribe = async (prompt: string): Promise<string> => {
+      if (prompt.includes('part 2 of')) {
+        throw new Error('prediction aborted, token repeat limit reached');
+      }
+      return notesOr('notes')(prompt);
+    };
+    await expect(
+      takeNotes(scribe, manyLines(40), { chunkChars: 600, overlapLines: 1 }),
+    ).rejects.toThrow(/part 2 of \d+.*aborted generation/i);
+  });
 });
 
 describe('createOllamaGenerate', () => {
@@ -555,6 +567,18 @@ describe('createOllamaGenerate', () => {
     }) as unknown as typeof fetch;
     await createOllamaGenerate({ model: 'm', fetchImpl })('p');
     expect(seenSignal).toBeInstanceOf(AbortSignal);
+  });
+
+  it('aborts after its own timeoutMs, not the default, and says so plainly', async () => {
+    const fetchImpl = (async (_url: string, init: RequestInit) =>
+      new Promise<Response>((_resolve, reject) => {
+        (init.signal as AbortSignal).addEventListener('abort', () =>
+          reject(new DOMException('The operation was aborted due to timeout', 'TimeoutError')),
+        );
+      })) as unknown as typeof fetch;
+    await expect(
+      createOllamaGenerate({ model: 'm', timeoutMs: 10, fetchImpl })('p'),
+    ).rejects.toThrow(/exceeded its 0-minute timeout/);
   });
 });
 

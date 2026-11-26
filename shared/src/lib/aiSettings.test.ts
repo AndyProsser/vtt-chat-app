@@ -106,9 +106,17 @@ describe('setAiSetting', () => {
     expect(next.fallback.maxLocalMinutes).toBe(45);
   });
 
-  it('rejects ai.fallback.max-local-minutes below 1', () => {
+  it('accepts 0 for ai.fallback.max-local-minutes, meaning "never fall back to local"', () => {
+    const next = setAiSetting(DEFAULT_AI_SETTINGS, 'ai.fallback.max-local-minutes', '0');
+    expect(next.fallback.maxLocalMinutes).toBe(0);
+  });
+
+  it('rejects a negative or non-numeric ai.fallback.max-local-minutes', () => {
+    expect(() => setAiSetting(DEFAULT_AI_SETTINGS, 'ai.fallback.max-local-minutes', '-1')).toThrow(
+      SettingError,
+    );
     expect(() =>
-      setAiSetting(DEFAULT_AI_SETTINGS, 'ai.fallback.max-local-minutes', '0'),
+      setAiSetting(DEFAULT_AI_SETTINGS, 'ai.fallback.max-local-minutes', 'lots'),
     ).toThrow(SettingError);
   });
 

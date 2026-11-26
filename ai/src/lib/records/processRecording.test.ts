@@ -595,6 +595,30 @@ describe('process-recording handler', () => {
     expect(prompts).toHaveLength(0); // local was never actually asked to summarise
   });
 
+  it('treats an unknown duration (stoppedAt still null) as too long, not as 0', async () => {
+    await records.putRecording({ ...recording, stoppedAt: null });
+    records.aiSettings = setAiSetting(
+      setAiSetting(
+        setAiSetting(DEFAULT_AI_SETTINGS, 'ai.llm.kind', 'remote'),
+        'ai.llm.url',
+        'http://gpu:11434',
+      ),
+      'ai.fallback.after-seconds',
+      '0',
+    );
+    const h = handler({
+      buildProviders: (settings, d) =>
+        buildJobProviders(settings, {
+          ...d,
+          fetchImpl: (async () => {
+            throw new TypeError('fetch failed');
+          }) as unknown as typeof fetch,
+        }),
+    });
+    await expect(h.run(job())).rejects.toThrow(/too long|max-local-minutes/i);
+    expect(prompts).toHaveLength(0);
+  });
+
   it('fails clearly for a recording that does not exist', async () => {
     await expect(handler().run({ ...job(), recordingId: 'nope' })).rejects.toThrow(
       /does not exist/,
