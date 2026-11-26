@@ -364,6 +364,14 @@ describe('sign-up requests', () => {
     await store.putSettings({ ...(await store.getSettings()), signupRequests: 'on' });
     expect((await store.getSettings()).signupRequests).toBe('on');
   });
+
+  it('mirrors the online-user count, 0 for a fresh instance', async () => {
+    expect(await store.onlineUserCount()).toBe(0);
+    await store.recordOnlineCount(3, 1);
+    expect(await store.onlineUserCount()).toBe(3);
+    await store.recordOnlineCount(0, 2);
+    expect(await store.onlineUserCount()).toBe(0);
+  });
 });
 
 // Constraints only a real database enforces — the point of running against one.

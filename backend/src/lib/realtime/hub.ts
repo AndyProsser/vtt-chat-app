@@ -593,6 +593,7 @@ export class Hub {
         )
       : false;
     state.campaigns.add(campaignId);
+    this.mirrorOnlineCount();
 
     const missed =
       lastSeq === undefined
@@ -1052,7 +1053,19 @@ export class Hub {
         userId: auth.user.id,
         online: false,
       });
+      this.mirrorOnlineCount();
     }
+  }
+
+  /**
+   * A fire-and-forget mirror of the online-user count into the store (`instance_runtime`), so the
+   * records worker can read "is anyone around" without depending on Valkey or this process. Never
+   * awaited on the connect/disconnect hot path, never a reason either one fails.
+   */
+  private mirrorOnlineCount(): void {
+    void this.options.store
+      .recordOnlineCount(this.presence.onlineUsers(), this.now())
+      .catch(() => undefined);
   }
 
   private drop(state: ConnState, reason: string): void {

@@ -264,4 +264,6 @@ export class MemoryRecordsStore implements RecordsStore {
     [...this.recordings.values()].some(
       (r) => r.status === 'recording' && r.stoppedAt === null && r.startedAt > now - 12 * 3_600_000,
     );
+  onlineUsers = 0;
+  onlineUserCount = async () => this.onlineUsers;
 }

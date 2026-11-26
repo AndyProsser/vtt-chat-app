@@ -35,6 +35,7 @@ interface Data {
   avatarFiles: Map<string, { userId: string; createdAt: number }>;
   chat: ChatMessage[];
   invites: Map<string, Invite>;
+  onlineUsers: number;
 }
 
 function emptyData(): Data {
@@ -52,6 +53,7 @@ function emptyData(): Data {
     avatarFiles: new Map(),
     chat: [],
     invites: new Map(),
+    onlineUsers: 0,
   };
 }
 
@@ -65,6 +67,11 @@ export class MemoryStore implements Store {
   putSettings = async (settings: InstanceSettings): Promise<void> => {
     this.data.settings = copy(settings);
   };
+
+  recordOnlineCount = async (count: number): Promise<void> => {
+    this.data.onlineUsers = count;
+  };
+  onlineUserCount = async (): Promise<number> => this.data.onlineUsers;
 
   countUsers = async (): Promise<number> => this.data.users.size;
   listUsers = async (): Promise<User[]> =>

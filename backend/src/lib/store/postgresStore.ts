@@ -247,6 +247,20 @@ export class PostgresStore implements Store {
     );
   }
 
+  async recordOnlineCount(count: number, now: number): Promise<void> {
+    await this.db.query(
+      'UPDATE instance_runtime SET online_users = $1, updated_at = $2 WHERE id = 1',
+      [count, new Date(now)],
+    );
+  }
+
+  async onlineUserCount(): Promise<number> {
+    const { rows } = await this.db.query<Row>(
+      'SELECT online_users FROM instance_runtime WHERE id = 1',
+    );
+    return (rows[0]?.online_users as number | undefined) ?? 0;
+  }
+
   async countUsers(): Promise<number> {
     const { rows } = await this.db.query<{ n: string }>('SELECT count(*) AS n FROM users');
     return Number(rows[0]?.n ?? 0);

@@ -337,6 +337,15 @@ describe('Hub: subscriptions, presence and the snapshot', () => {
     });
   });
 
+  it('mirrors the online-user count into the store on connect and disconnect', async () => {
+    await connect(t, 'd1', 'dm');
+    expect(await t.store.onlineUserCount()).toBe(1);
+    await connect(t, 'p1', 'player');
+    expect(await t.store.onlineUserCount()).toBe(2);
+    t.hub.closed('p1');
+    expect(await t.store.onlineUserCount()).toBe(1);
+  });
+
   it('snapshot recent chat survives a restart (read from the store, not the replay buffer)', async () => {
     await connect(t, 'p1', 'player');
     await t.hub.receive('p1', frame('chat.message', { campaignId: t.campaignId, text: 'one' }));

@@ -193,6 +193,12 @@ describe.skipIf(TEST_DATABASE_URL === undefined)('PostgresRecordsStore', () => {
     const rec = await store.getRecording(recordingId);
     expect(await store.campaignName(rec?.campaignId ?? '')).toBe('Strahd');
   });
+
+  it('reads the online-user count the backend mirrors, 0 for a fresh instance', async () => {
+    expect(await store.onlineUserCount()).toBe(0);
+    await db.pool.query('UPDATE instance_runtime SET online_users = $1 WHERE id = 1', [2]);
+    expect(await store.onlineUserCount()).toBe(2);
+  });
 });
 
 describe.skipIf(TEST_DATABASE_URL === undefined)('which models a job used, on Postgres', () => {

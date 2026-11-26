@@ -26,6 +26,14 @@ export interface Store {
   getSettings(): Promise<InstanceSettings>;
   putSettings(settings: InstanceSettings): Promise<void>;
 
+  /**
+   * Mirrors the backend's in-memory online-user count (`presence.ts`) so the records worker can
+   * read it without depending on Valkey or the backend process itself. A disposable, best-effort
+   * signal, never presence's own source of truth.
+   */
+  recordOnlineCount(count: number, now: number): Promise<void>;
+  onlineUserCount(): Promise<number>;
+
   countUsers(): Promise<number>;
   /** Every account, oldest first. For the Admin CLI; not used on a request path. */
   listUsers(): Promise<User[]>;

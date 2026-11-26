@@ -131,4 +131,11 @@ export interface RecordsStore {
    * recording left open by a crash cannot hold processing back for ever).
    */
   anyRecordingLive(now: number): Promise<boolean>;
+  /**
+   * The backend's online-user count, mirrored into Postgres (`instance_runtime`) so the worker can
+   * read it without depending on Valkey or the backend process. A disposable, best-effort signal —
+   * never presence's own source of truth. A genuine read failure should throw, so the caller (the
+   * activity governor) decides the fail-safe direction.
+   */
+  onlineUserCount(): Promise<number>;
 }
