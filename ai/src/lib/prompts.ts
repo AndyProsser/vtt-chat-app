@@ -85,10 +85,14 @@ export function buildNotesPrompt(
     [
       LAYOUT_RULES,
       'Under each heading write one bullet per thing, in the order things happened. For each: who did what, to whom or what, and how it turned out.',
-      'Write a summary of events and actions, not a line-by-line retelling: these notes must end up noticeably shorter than the transcript above. Merge a back-and-forth about one small thing into a single line, and leave out table talk that is not part of the game. Never drop a distinct event, decision, roll that mattered, or quote to save space; shorten the telling of it instead.',
+      // 0.6.5 interim (deliberate, revisit at 0.7): asks for what's consequential rather than
+      // everything, so a chunk's notes stay short enough to finish reliably on local CPU. Stage
+      // 12 D's "never a weaker fallback" held while notes were exhaustive; the Campaign Graph
+      // (0.7+) is meant to be thorough about facts again without this cost.
+      'Write a summary of events and actions, not a line-by-line retelling: these notes must end up noticeably shorter than the transcript above. Merge a back-and-forth about one small thing into a single line, and leave out table talk that is not part of the game. Keep what matters: turning points, decisions with real consequences, named NPCs, places and items, and anything the table would want reminded of later. A routine or minor beat may be condensed to one line or left out rather than kept in full.',
       'Never go beyond the transcript: do not continue the story, and do not describe anything that no line of the transcript says.',
       'Write whole sentences, not shorthand: no arrows, no abbreviations, no "X: roll, result" fragments. Keep each one short, a single clause of who did what and how it turned out, not a paragraph.',
-      'Keep the small things as well as the big ones: a failed roll, a bad idea, a plan that went wrong, a joke or a boast made in character, a lucky escape. A line is still worth keeping even when it is brief.',
+      "Judge by what matters, not by length: a failed roll, a bad idea, a plan that went wrong, or a lucky escape is worth a line when it changed what happened; a passing joke or a line of banter that didn't is not. When in doubt, keep it brief rather than cut it.",
       'Note dice results when they are mentioned, above all critical hits, natural ones and other fumbles, and what they led to.',
       'Keep names of characters, places, creatures and items as the speakers said them, and quote the memorable lines word for word, saying who said them.',
       'Note what was found, taken, lost, promised or left unanswered.',
