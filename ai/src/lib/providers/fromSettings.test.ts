@@ -110,6 +110,33 @@ describe('buildJobProviders', () => {
     expect(p.transcribe.backend()).toBe('primary');
   });
 
+  it('fails instead of falling back to local when the job is too large for it', async () => {
+    const settings = setAiSetting(remote(), 'ai.fallback.after-seconds', '0');
+    const onFallback = vi.fn();
+    const p = buildJobProviders(settings, {
+      ...base,
+      llmFallbackAllowed: false,
+      onFallback,
+      fetchImpl: (async () => {
+        throw new TypeError('fetch failed');
+      }) as unknown as typeof fetch,
+    });
+    await expect(p.generate.call('prompt')).rejects.toThrow(/too large|max-local-minutes/i);
+    expect(localGenerate).not.toHaveBeenCalled();
+    expect(onFallback).not.toHaveBeenCalled();
+  });
+
+  it('still falls back to local when the job is small enough (the default)', async () => {
+    const settings = setAiSetting(remote(), 'ai.fallback.after-seconds', '0');
+    const p = buildJobProviders(settings, {
+      ...base,
+      fetchImpl: (async () => {
+        throw new TypeError('fetch failed');
+      }) as unknown as typeof fetch,
+    });
+    expect(await p.generate.call('prompt')).toBe('local summary');
+  });
+
   it('with the fallback off, never uses the local backend for a remote setting', async () => {
     const settings = setAiSetting(remote(), 'ai.fallback.enabled', 'false');
     const ac = new AbortController();

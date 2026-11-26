@@ -39,6 +39,8 @@ export interface ProviderDeps {
   }) => void;
   /** Called when a job moves to the local backend because the remote was unreachable. */
   onFallback?: (what: 'transcription' | 'llm', reason: string) => void;
+  /** Whether the LLM (never transcription) may fall back to local CPU for this job; default `true`. */
+  llmFallbackAllowed?: boolean;
   signal?: AbortSignal;
   fetchImpl?: typeof fetch;
 }
@@ -61,6 +63,11 @@ export function buildJobProviders(settings: AiSettings, deps: ProviderDeps): Job
   if (problems.length > 0) throw new Error(`AI settings are not usable: ${problems.join('; ')}`);
 
   const { fallback } = settings;
+  // Whether this job may finish the LLM (never Whisper — CLAUDE.md §5) on local CPU if the remote
+  // is unavailable; false when the recording is too large for that (processRecording.ts decides,
+  // from its duration against `ai.fallback.max-local-minutes`). Omitted deps default to allowed,
+  // so every caller that hasn't been updated for this keeps today's behaviour exactly.
+  const llmFallbackAllowed = deps.llmFallbackAllowed ?? true;
   const language = settings.transcription.language;
   const localTranscribe = deps.localTranscribe(language, deps.transcriptionPrompt);
   const timing = {
@@ -143,12 +150,26 @@ export function buildJobProviders(settings: AiSettings, deps: ProviderDeps): Job
         })
       : undefined;
   };
+  // Thrown instead of actually running locally when the job is too large for that (size gate):
+  // never a real fallback, so `role()` leaves `onFallback` out when this is the one in play —
+  // otherwise `createFailover` would log "fell back to local" for a job that never did.
+  const tooLarge = async (): Promise<string> => {
+    throw new Error(
+      'the recording is too long to fall back to the local model (ai.fallback.max-local-minutes); configure a remote LLM or wait for it to come back',
+    );
+  };
   const role = (local: GenerateText, remote: GenerateText | undefined): Failover<string, string> =>
     remote
-      ? createFailover(remote, fallback.enabled ? local : undefined, {
-          ...timing,
-          onFallback: (reason) => deps.onFallback?.('llm', reason),
-        })
+      ? createFailover(
+          remote,
+          fallback.enabled ? (llmFallbackAllowed ? local : tooLarge) : undefined,
+          {
+            ...timing,
+            ...(llmFallbackAllowed
+              ? { onFallback: (reason: string) => deps.onFallback?.('llm', reason) }
+              : {}),
+          },
+        )
       : createFailover(local, undefined, timing);
 
   return {
