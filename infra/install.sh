@@ -14,7 +14,7 @@
 set -euo pipefail
 
 # --- Pinned versions (bump deliberately; the checksums are fetched from the release itself) -------
-NODE_VERSION="${NODE_VERSION:-26.13.0}"          # Node 26 "Lithium" LTS
+NODE_VERSION="${NODE_VERSION:-26.13.1}"           # Node 26 "Lithium" LTS
 LIVEKIT_VERSION="${LIVEKIT_VERSION:-1.13.11}"     # the version the Compose bundle was tested with
 WHISPER_REF="${WHISPER_REF:-v1.9.5}"
 WHISPER_MODEL_FILE="${WHISPER_MODEL_FILE:-ggml-small.en-q5_1.bin}"
