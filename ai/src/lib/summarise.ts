@@ -8,6 +8,7 @@ import type { AiSettings } from '@vtt-chat-app/shared';
 import type { GenerateText, SummaryContext, SummaryKind, Utterance } from '../types/index.js';
 import { chunkLines } from './chunk.js';
 import type { StructuredNotes } from './notes.js';
+import { isModelAbortMessage } from './providers/errors.js';
 import { formatTimeline } from './format.js';
 import { mergeNotes, NOTES_MAX_WORDS, notesWords, parseNotes, renderNotes } from './notes.js';
 import { contextWindowTokens } from './tokenBudget.js';
@@ -156,13 +157,36 @@ export async function takeNotes(
     return parseNotes(await ask(buildNotesRepairPrompt(answer)));
   };
 
-  const pieces: StructuredNotes[] = [];
-  for (const [index, chunk] of chunks.entries()) {
-    const prompt = buildNotesPrompt(chunk, index, chunks.length, context);
+  const abortedOn = (e: unknown): boolean =>
+    isModelAbortMessage(e instanceof Error ? e.message : String(e));
+  const readAttempts = async (prompt: string): Promise<StructuredNotes | undefined> => {
     let parsed: StructuredNotes | undefined;
     // Still not readable: read the transcript again. Never a weaker fallback (decision 7): the job fails and retries.
     for (let attempt = 0; attempt < NOTES_READ_ATTEMPTS && !parsed; attempt += 1) {
       parsed = await read(prompt);
+    }
+    return parsed;
+  };
+
+  const pieces: StructuredNotes[] = [];
+  for (const [index, chunk] of chunks.entries()) {
+    const prompt = buildNotesPrompt(chunk, index, chunks.length, context);
+    let parsed: StructuredNotes | undefined;
+    try {
+      parsed = await readAttempts(prompt);
+    } catch (e) {
+      // A model that aborted on this content (Ollama: "token repeat limit reached") is tried once
+      // more, same backend; any other failure, such as a server that cannot be reached, is not ours
+      // to hide, and propagates immediately.
+      if (!abortedOn(e)) throw e;
+      try {
+        parsed = await readAttempts(prompt);
+      } catch (again) {
+        if (!abortedOn(again)) throw again;
+        throw new Error(
+          `the scribe's notes for part ${index + 1} of ${chunks.length} could not be written: the model aborted generation (repeat limit) — check its context size or repeat-penalty settings`,
+        );
+      }
     }
     if (!parsed) {
       throw new Error(

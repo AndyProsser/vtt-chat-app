@@ -5,11 +5,12 @@ export const DEFAULT_COALESCE_GAP_MS = 1_500;
 
 /**
  * How much transcript (or how many notes) goes into one model call. Characters, not tokens: cheap and
- * model-agnostic. ~12k chars is roughly 3k tokens. The scribe's notes of a piece can run nearly as long as the
- * piece itself (it is asked to keep everything), so input and output together must fit the 8k context the
- * worker asks Ollama for; 24k, the size before the scribe (0.5.2), would have cut long notes off.
+ * model-agnostic. ~6k chars is roughly 1.5k tokens. The scribe's notes of a piece can run nearly as long as the
+ * piece itself, so input and output together must fit the 8k context the worker asks Ollama for; 24k, the size
+ * before the scribe (0.5.2), would have cut long notes off. Halved from 12k (0.6.5): generation time is roughly
+ * proportional to output tokens, so a smaller chunk bounds a single CPU call's worst-case wall-clock time too.
  */
-export const DEFAULT_CHUNK_CHARS = 12_000;
+export const DEFAULT_CHUNK_CHARS = 6_000;
 export const DEFAULT_CHUNK_OVERLAP_LINES = 4;
 
 /**

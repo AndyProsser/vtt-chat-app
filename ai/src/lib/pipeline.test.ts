@@ -428,6 +428,27 @@ describe('summarise', () => {
   it('refuses an empty transcript instead of summarising nothing', async () => {
     await expect(summarise(async () => 'x', [], { kind: 'session' })).rejects.toThrow(/empty/);
   });
+
+  it('retries a model-abort once on the same backend before giving up', async () => {
+    let calls = 0;
+    const scribe = async (prompt: string): Promise<string> => {
+      calls += 1;
+      if (calls === 1) throw new Error('prediction aborted, token repeat limit reached');
+      return notesOr('notes')(prompt);
+    };
+    const result = await takeNotes(scribe, manyLines(3), {});
+    expect(result.notes[0]).toContain('noted'); // notesOr's default scribe answer for a readable chunk
+    expect(calls).toBe(2);
+  });
+
+  it('names the part and the reason when a model-abort recurs, instead of a generic failure', async () => {
+    const scribe = async (): Promise<string> => {
+      throw new Error('prediction aborted, token repeat limit reached');
+    };
+    await expect(takeNotes(scribe, manyLines(3), {})).rejects.toThrow(
+      /part 1 of 1.*aborted generation/i,
+    );
+  });
 });
 
 describe('createOllamaGenerate', () => {
