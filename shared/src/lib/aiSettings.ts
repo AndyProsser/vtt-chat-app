@@ -16,7 +16,7 @@ export const DEFAULT_AI_SETTINGS: AiSettings = {
   fallback: { enabled: true, afterSeconds: 600, retrySeconds: 30 },
   tale: { length: 'default', content: 'default', storytellersOff: [] },
   memory: { enabled: true },
-  processing: { pauseWhileRecording: false },
+  processing: { pauseWhileRecording: false, activeConcurrency: 2, cpuThresholdPercent: 70 },
 };
 
 /** The settable keys, in the dotted form the Admin CLI uses, with what each accepts. */
@@ -41,6 +41,10 @@ export const AI_SETTING_KEYS = {
   'ai.memory.enabled': 'true | false (campaign memory: one more model call per session)',
   'ai.pause-while-recording':
     'true | false (local AI waits while any table is recording; delays tales, protects the recording on a busy machine)',
+  'ai.processing.active-concurrency':
+    'whole number, at least 1 (how many tracks transcribe at once while someone is online; CPU load can still clamp it to 1)',
+  'ai.processing.cpu-threshold-percent':
+    'whole number, 1 to 100 (% of cores busy above which active-tier concurrency clamps to 1)',
   'ai.tale.length': 'short (CPU-only) | default | long (GPU or cloud)',
   'ai.tale.content': 'clean | default | graphic',
   'ai.storyteller.tavern': 'on (the Tavern Bard cannot be turned off)',
@@ -114,6 +118,13 @@ function parseSeconds(value: string, min: number): number {
   return n;
 }
 
+function parseWholeNumberInRange(value: string, min: number, max: number): number {
+  if (!/^\d+$/.test(value.trim())) throw new SettingError('must be a whole number');
+  const n = Number(value);
+  if (n < min || n > max) throw new SettingError(`must be between ${min} and ${max}`);
+  return n;
+}
+
 /**
  * Returns `settings` with one key changed, or throws {@link SettingError}. Never mutates. A remote
  * backend without a URL is rejected by {@link validateAiSettings}, not here, so the URL can be set
@@ -174,6 +185,12 @@ export function setAiSetting(settings: AiSettings, key: AiSettingKey, value: str
       break;
     case 'ai.pause-while-recording':
       next.processing.pauseWhileRecording = parseBool(value);
+      break;
+    case 'ai.processing.active-concurrency':
+      next.processing.activeConcurrency = parseWholeNumberInRange(value, 1, Number.MAX_SAFE_INTEGER);
+      break;
+    case 'ai.processing.cpu-threshold-percent':
+      next.processing.cpuThresholdPercent = parseWholeNumberInRange(value, 1, 100);
       break;
     case 'ai.fallback.after-seconds':
       next.fallback.afterSeconds = parseSeconds(value, 0);
@@ -250,6 +267,8 @@ export function normaliseAiSettings(raw: unknown): AiSettings {
     typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : null;
   const int = (v: unknown, fallback: number, min: number): number =>
     typeof v === 'number' && Number.isInteger(v) && v >= min ? v : fallback;
+  const intInRange = (v: unknown, fallback: number, min: number, max: number): number =>
+    typeof v === 'number' && Number.isInteger(v) && v >= min && v <= max ? v : fallback;
   const t = o.transcription ?? {};
   const l = o.llm ?? {};
   const f = o.fallback ?? {};
@@ -285,6 +304,13 @@ export function normaliseAiSettings(raw: unknown): AiSettings {
         typeof pr.pauseWhileRecording === 'boolean'
           ? pr.pauseWhileRecording
           : d.processing.pauseWhileRecording,
+      activeConcurrency: int(pr.activeConcurrency, d.processing.activeConcurrency, 1),
+      cpuThresholdPercent: intInRange(
+        pr.cpuThresholdPercent,
+        d.processing.cpuThresholdPercent,
+        1,
+        100,
+      ),
     },
     tale: {
       length: oneOf(ta.length, TALE_LENGTHS, d.tale.length),

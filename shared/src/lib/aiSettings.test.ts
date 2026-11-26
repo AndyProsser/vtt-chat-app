@@ -187,4 +187,32 @@ describe('the tale settings', () => {
         .pauseWhileRecording,
     ).toBe(false);
   });
+
+  it('sets ai.processing.active-concurrency', () => {
+    const next = setAiSetting(DEFAULT_AI_SETTINGS, 'ai.processing.active-concurrency', '3');
+    expect(next.processing.activeConcurrency).toBe(3);
+  });
+
+  it('rejects ai.processing.active-concurrency below 1', () => {
+    expect(() =>
+      setAiSetting(DEFAULT_AI_SETTINGS, 'ai.processing.active-concurrency', '0'),
+    ).toThrow(SettingError);
+  });
+
+  it('sets ai.processing.cpu-threshold-percent within 1 to 100', () => {
+    const next = setAiSetting(DEFAULT_AI_SETTINGS, 'ai.processing.cpu-threshold-percent', '55');
+    expect(next.processing.cpuThresholdPercent).toBe(55);
+  });
+
+  it('rejects ai.processing.cpu-threshold-percent above 100', () => {
+    expect(() =>
+      setAiSetting(DEFAULT_AI_SETTINGS, 'ai.processing.cpu-threshold-percent', '101'),
+    ).toThrow(SettingError);
+  });
+
+  it('normalises processing settings missing from an older stored record', () => {
+    const normalised = normaliseAiSettings({ processing: { pauseWhileRecording: true } });
+    expect(normalised.processing.activeConcurrency).toBe(2);
+    expect(normalised.processing.cpuThresholdPercent).toBe(70);
+  });
 });

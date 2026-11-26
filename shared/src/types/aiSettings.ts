@@ -77,5 +77,11 @@ export interface AiSettings {
    * (LiveKit, Egress) never compete with it for the CPU. Off by default: it delays the tales, and a server with a
    * strong GPU or a cloud backend does not need it. The call in progress finishes first (minutes, not the whole job).
    */
-  processing: { pauseWhileRecording: boolean };
+  processing: {
+    pauseWhileRecording: boolean;
+    /** How many tracks transcribe at once while someone is online (CPU load clamps it to 1). */
+    activeConcurrency: number;
+    /** % of cores busy (1-minute load average) above which active-tier concurrency clamps to 1. */
+    cpuThresholdPercent: number;
+  };
 }
