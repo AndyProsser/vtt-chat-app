@@ -13,3 +13,4 @@ pub mod mixer_audio;
 pub mod playout;
 pub mod processing;
 pub mod rate;
+pub mod voice_tone;

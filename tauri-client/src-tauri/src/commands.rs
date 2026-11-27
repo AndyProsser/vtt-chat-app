@@ -110,6 +110,7 @@ pub async fn connect_voice(app: &AppHandle, url: &str, token: &str) -> Result<()
     }
     if let Some(mixer) = client.mixer() {
         mixer.set_mic_gain(prefs.mic_gain.unwrap_or(1.0));
+        mixer.set_voice_preset(prefs.voice_preset_level());
         for (user, volume) in &prefs.volumes {
             mixer.set_player_volume(user, *volume);
         }
@@ -401,6 +402,7 @@ pub fn audio_engine(app: AppHandle, state: State<'_, SharedClient>) -> serde_jso
         "micGain": prefs.mic_gain.unwrap_or(1.0),
         "autoGain": prefs.auto_gain_on(),
         "noiseFilter": prefs.noise_filter_level().name(),
+        "voicePreset": prefs.voice_preset_level().name(),
         "volumes": prefs.volumes,
     })
 }
@@ -434,6 +436,26 @@ pub fn noise_filter_set(
     prefs.save(&dir).map_err(|e| e.to_string())?;
     if let Some(mixer) = state.lock().unwrap().as_ref().and_then(|c| c.mixer()) {
         mixer.set_noise_filter(parsed);
+    }
+    Ok(())
+}
+
+/// Sets the tone of your voice as others hear it (`off`, `natural`, `warm`, `broadcast`). Saved, and
+/// applied now if the mixer engine is in a call.
+#[tauri::command]
+pub fn voice_preset_set(
+    app: AppHandle,
+    state: State<'_, SharedClient>,
+    preset: String,
+) -> Result<(), String> {
+    let parsed = rust_livekit::engine::voice_tone::VoicePreset::from_name(&preset)
+        .ok_or("unknown voice preset")?;
+    let dir = crate::account::data_dir(&app).ok_or("no place to save the choice")?;
+    let mut prefs = crate::audio_prefs::AudioPrefs::load(&dir);
+    prefs.voice_preset = Some(parsed.name().into());
+    prefs.save(&dir).map_err(|e| e.to_string())?;
+    if let Some(mixer) = state.lock().unwrap().as_ref().and_then(|c| c.mixer()) {
+        mixer.set_voice_preset(parsed);
     }
     Ok(())
 }

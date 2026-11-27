@@ -17,6 +17,7 @@ use super::denoise::NoiseFilter;
 use super::duplex::Duplex;
 use super::io::{self, Running};
 use super::processing::ProcessingOptions;
+use super::voice_tone::VoicePreset;
 use crate::devices::DeviceList;
 use crate::voice_fx::capture::to_i16;
 use crate::voice_fx::{Voice, BLOCK, SAMPLE_RATE};
@@ -184,6 +185,11 @@ impl MixerAudio {
     /// The background-noise filter's strength, live.
     pub fn set_noise_filter(&self, level: NoiseFilter) {
         self.duplex.capture.lock().unwrap().set_noise_filter(level);
+    }
+
+    /// The tone of the voice that is sent, live.
+    pub fn set_voice_preset(&self, preset: VoicePreset) {
+        self.duplex.capture.lock().unwrap().set_voice_preset(preset);
     }
 
     pub fn set_mic_gain(&self, gain: f32) {

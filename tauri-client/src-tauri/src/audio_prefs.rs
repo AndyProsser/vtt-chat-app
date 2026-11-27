@@ -21,6 +21,9 @@ pub struct AudioPrefs {
     /// Background-noise filter strength (mixer engine only): `off`, `light`, `standard` or `strong`;
     /// `None` is standard.
     pub noise_filter: Option<String>,
+    /// The tone of your voice as others hear it (mixer engine only): `off`, `natural`, `warm` or
+    /// `broadcast`; `None` is natural.
+    pub voice_preset: Option<String>,
     /// Each person's volume (mixer engine only), by account id, 0 to 2.
     pub volumes: std::collections::HashMap<String, f32>,
 }
@@ -48,6 +51,13 @@ impl AudioPrefs {
         self.noise_filter
             .as_deref()
             .and_then(rust_livekit::engine::denoise::NoiseFilter::from_name)
+            .unwrap_or_default()
+    }
+
+    pub fn voice_preset_level(&self) -> rust_livekit::engine::voice_tone::VoicePreset {
+        self.voice_preset
+            .as_deref()
+            .and_then(rust_livekit::engine::voice_tone::VoicePreset::from_name)
             .unwrap_or_default()
     }
 
@@ -111,12 +121,32 @@ mod tests {
     }
 
     #[test]
+    fn the_voice_preset_is_natural_until_chosen_and_a_bad_name_falls_back() {
+        use rust_livekit::engine::voice_tone::VoicePreset;
+        assert_eq!(
+            AudioPrefs::default().voice_preset_level(),
+            VoicePreset::Natural
+        );
+        let chosen = AudioPrefs {
+            voice_preset: Some("broadcast".into()),
+            ..Default::default()
+        };
+        assert_eq!(chosen.voice_preset_level(), VoicePreset::Broadcast);
+        let bad = AudioPrefs {
+            voice_preset: Some("loud".into()),
+            ..Default::default()
+        };
+        assert_eq!(bad.voice_preset_level(), VoicePreset::Natural);
+    }
+
+    #[test]
     fn engine_gain_and_volumes_round_trip() {
         let mut prefs = AudioPrefs {
             engine: Some("mixer".into()),
             mic_gain: Some(1.5),
             auto_gain: Some(false),
             noise_filter: Some("strong".into()),
+            voice_preset: Some("warm".into()),
             ..Default::default()
         };
         prefs.volumes.insert("user-1".into(), 0.5);

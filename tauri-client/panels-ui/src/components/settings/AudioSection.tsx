@@ -18,6 +18,7 @@ import {
   micGainSet,
   soundboardMonitorSet,
   noiseFilterSet,
+  voicePresetSet,
   type AudioDeviceList,
 } from '../../lib/tauriBridge.js';
 import {
@@ -27,6 +28,13 @@ import {
   NOISE_FILTER_LEVELS,
   type NoiseFilterLevel,
 } from '../../lib/noiseFilter.js';
+import {
+  isVoicePreset,
+  VOICE_PRESET_HINT,
+  VOICE_PRESET_LABEL,
+  VOICE_PRESETS,
+  type VoicePresetName,
+} from '../../lib/voicePreset.js';
 import { SectionHeading } from './SectionHeading.js';
 import { SettingRow } from './SettingRow.js';
 
@@ -57,6 +65,7 @@ export function AudioSection() {
   const [gain, setGain] = useState<number>();
   const [auto, setAuto] = useState<boolean>();
   const [filter, setFilter] = useState<NoiseFilterLevel>();
+  const [tone, setTone] = useState<VoicePresetName>();
   const [monitor, setMonitor] = useState(readMonitorPref);
   const { status } = useAccount();
   const members = useTableStore((st) => st.members);
@@ -156,6 +165,26 @@ export function AudioSection() {
               </Select.Root>
             </SettingRow>
             <span className="vtt-muted">{NOISE_FILTER_HINT[filter ?? engine.noiseFilter]}</span>
+            <SettingRow label="Voice tone">
+              <Select.Root
+                value={tone ?? engine.voicePreset}
+                onValueChange={(v) => {
+                  if (!isVoicePreset(v)) return;
+                  setTone(v);
+                  void voicePresetSet(v).catch((e: unknown) => setError(accountErrorMessage(e)));
+                }}
+              >
+                <Select.Trigger aria-label="Voice tone" style={{ minWidth: 130 }} />
+                <Select.Content position="popper" sideOffset={4} className="vtt-dropdown">
+                  {VOICE_PRESETS.map((preset) => (
+                    <Select.Item key={preset} value={preset}>
+                      {VOICE_PRESET_LABEL[preset]}
+                    </Select.Item>
+                  ))}
+                </Select.Content>
+              </Select.Root>
+            </SettingRow>
+            <span className="vtt-muted">{VOICE_PRESET_HINT[tone ?? engine.voicePreset]}</span>
             <SettingRow label="Adjust microphone volume automatically">
               <Switch
                 aria-label="Adjust microphone volume automatically"

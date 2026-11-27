@@ -9,6 +9,7 @@ import type {
 
 import { ACCOUNT_ERROR_EVENT, SYNC_EVENT } from '../consts/index.js';
 import type { NoiseFilterLevel } from './noiseFilter.js';
+import type { VoicePresetName } from './voicePreset.js';
 import type { Status } from './statusStore.js';
 import type { UpdateInfo } from './updateInfo.js';
 import type {
@@ -363,6 +364,8 @@ export interface AudioEngineState {
   autoGain: boolean;
   /** Background-noise filter strength (new engine only). */
   noiseFilter: NoiseFilterLevel;
+  /** The tone of your voice as others hear it (new engine only). */
+  voicePreset: VoicePresetName;
   volumes: Record<string, number>;
 }
 export const audioEngine = () => invoke<AudioEngineState>('audio_engine');
@@ -374,6 +377,9 @@ export const micGainSet = (gain: number) => invoke<void>('mic_gain_set', { gain 
 /** Background-noise filter strength; saved, and applied now if the new engine is in a call. */
 export const noiseFilterSet = (level: NoiseFilterLevel) =>
   invoke<void>('noise_filter_set', { level });
+/** The tone of your voice; saved, and applied now if the new engine is in a call. */
+export const voicePresetSet = (preset: VoicePresetName) =>
+  invoke<void>('voice_preset_set', { preset });
 export const autoGainSet = (on: boolean) => invoke<void>('auto_gain_set', { on });
 /** The microphone's level right now, 0 to 1, or `null` when the new engine is not running. */
 export const micLevel = () => invoke<number | null>('mic_level');

@@ -60,6 +60,7 @@ commands.allow = [
   "mic_gain_set",
   "auto_gain_set",
   "noise_filter_set",
+  "voice_preset_set",
   "mic_level",
   "status_get",
   "status_set",

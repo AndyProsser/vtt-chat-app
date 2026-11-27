@@ -13,6 +13,7 @@ use crate::voice_fx::{Voice, VoiceFx, BLOCK};
 
 use super::denoise::{Denoiser, NoiseFilter};
 use super::processing::Processing;
+use super::voice_tone::{VoicePreset, VoiceTone};
 
 /// A microphone level the interface can read at any time: 0 (silent) to 1 (full scale), on a decibel
 /// scale from −60 dB, falling away gently so a meter does not flicker.
@@ -41,6 +42,7 @@ pub struct CapturePipeline {
     level: Level,
     processing: Arc<Mutex<Processing>>,
     denoise: Denoiser,
+    tone: VoiceTone,
     fx: VoiceFx,
 }
 
@@ -51,6 +53,8 @@ impl CapturePipeline {
             level,
             processing,
             denoise: Denoiser::new(NoiseFilter::Off),
+            // Off until the app says otherwise, so the engine's own tests hear the signal unchanged.
+            tone: VoiceTone::new(VoicePreset::Off),
             fx: VoiceFx::new(Voice::Normal),
         }
     }
@@ -66,6 +70,11 @@ impl CapturePipeline {
         if level != self.denoise.level() {
             self.denoise.set_level(level);
         }
+    }
+
+    /// The tone of the voice that is sent (`off`, `natural`, `warm`, `broadcast`); live, any time.
+    pub fn set_voice_preset(&mut self, preset: VoicePreset) {
+        self.tone.set_preset(preset);
     }
 
     /// Changing voice starts a fresh effect: the shifters hold a little state that must not leak across.
@@ -93,6 +102,8 @@ impl CapturePipeline {
         let cleaned = self.processing.lock().unwrap().clean(&scaled);
         // Then RNNoise (when chosen), so the meter and everyone else hear the filtered sound.
         let cleaned = self.denoise.process(&cleaned);
+        // Then the voice preset: what the filters took away, a little of it given back as tone.
+        let cleaned = self.tone.process(&cleaned);
         // The meter shows what is sent (after echo, noise and gain control), so typing the cleaner
         // removes does not pin it, and it matches what other people hear.
         self.level.update(&cleaned);

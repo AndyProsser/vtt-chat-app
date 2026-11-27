@@ -18,7 +18,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, SystemTime};
 
-use livekit::options::TrackPublishOptions;
+use livekit::options::{AudioEncoding, TrackPublishOptions};
 use livekit::prelude::*;
 use livekit::track::{LocalAudioTrack, LocalTrack};
 use livekit::{AudioProcessingOptions, PlatformAudio};
@@ -54,6 +54,11 @@ pub struct ConnectInfo {
 
 pub type ConnectInfoFuture = Pin<Box<dyn Future<Output = Result<ConnectInfo, String>> + Send>>;
 pub type ConnectInfoProvider = Arc<dyn Fn() -> ConnectInfoFuture + Send + Sync>;
+
+/// The Opus bitrate of everyone's microphone track: 64 kbps mono, about what Discord sends by default.
+/// It was left unset before 0.6.6, so the voice went out at whatever the SDK chose, and on good
+/// headsets it sounded dull. Mono speech gains little above this, and a recording's size grows only slightly.
+pub const MIC_BITRATE_BPS: u64 = 64_000;
 
 /// How often the sleep/wake detector runs, and how late a tick must be before it counts as a
 /// resume. A tick that fires 15 s late means the process was frozen, not merely busy.
@@ -614,6 +619,9 @@ async fn join_once(
             LocalTrack::Audio(microphone_track.clone()),
             TrackPublishOptions {
                 source: TrackSource::Microphone,
+                audio_encoding: Some(AudioEncoding {
+                    max_bitrate: MIC_BITRATE_BPS,
+                }),
                 ..Default::default()
             },
         )
