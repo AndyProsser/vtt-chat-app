@@ -10,13 +10,20 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ## [Unreleased]
 
-Targeted at 0.6.6: voice quality (a richer, clearer sound on good headsets), a cleaner device list on Linux,
-and a tale that stays close to what was said.
+## [0.6.6] - 2026-11-27
+
+The voice. The first real mini-session found the sound clean but flat and dull next to Discord, so this
+release is about how you sound to everyone else: tone presets, a higher bitrate, and a **Test your voice**
+button in Settings → Audio that records a few seconds and plays them back in each tone. It also fixes the
+repeated devices in the Linux audio lists and stops a tale running far longer than what was said. A **PATCH**
+release: no protocol change, so 0.6.5 apps and servers work together. **Players:** update the app (the voice
+work is all in it). **Operators:** update the server (`vtt-admin update`) for the tale limit, then
+`vtt-admin updates sync`.
 
 ### Added
 
 - **Test your voice** (Settings → Audio). Record 5 or 10 seconds of yourself, then play the same recording back in each tone (Off, Natural, Warm, Broadcast) and compare, so the voice can be tuned by ear without a second person. The recording goes through your real microphone, volume, noise filter and auto-gain settings, so it is what the call would send (minus the network and the Opus encode). It is held in memory only: never saved, never sent, gone when you press Discard or close the app. Wear headphones.
-- **Voice tone presets** (Settings → Audio → Voice tone): **Off**, **Natural** (the default), **Warm** and **Broadcast**. After the noise and echo cleaning, which take things away, the voice you send gets body, presence and a little air back, and a gentle compressor evens out loud and quiet words, so a good headset has something to reproduce. It changes the voice others hear, and what is recorded for the session, and applies at once, even mid-call. It costs a few biquad filters per 10 ms block, far less than the echo canceller. Uses the app's own audio engine (not "Compatibility audio").
+- **Voice tone presets** (Settings → Audio → Voice tone): **Off**, **Natural** (the default), **Warm** and **Broadcast**. After the noise and echo cleaning, which take things away, the voice you send gets body, presence and a little air back, and a gentle compressor evens out loud and quiet words, so a good headset has something to reproduce. Its make-up gain fades in only on the voice, not the quiet between words, so the room is not lifted with it (an earlier build did, and was heard as extra reverb). It changes the voice others hear, and what is recorded for the session, and applies at once, even mid-call. It costs a few biquad filters per 10 ms block, far less than the echo canceller. Uses the app's own audio engine (not "Compatibility audio").
 
 ### Changed
 
@@ -27,6 +34,14 @@ and a tale that stays close to what was said.
 ### Fixed
 
 - **Linux: the microphone and speaker lists showed the same device many times, plus internal nodes** (`hw:`, `plughw:`, `surround51`, `iec958`, `dmix`, `null`, `lavrate` and more), all under one name like "HDA Intel PCH". The list now shows "System default", PipeWire or PulseAudio where present, and each card's own entry, and a choice is remembered by its real id. A choice saved by name before this still works.
+
+### Known limits
+
+- **The tone presets are tuned by ear on one person's headset.** Natural, Warm and Broadcast were chosen and retuned from one listener's notes; if one sounds wrong on yours, pick another or **Off**. They affect only the voice you send, and what is recorded for the session.
+- **Test your voice shows what you send, not exactly what a friend hears.** It skips the Opus encode and the network, and it cannot judge echo (the microphone is closed while the recording plays).
+- **A faint echo or "roominess" may remain** on some setups; the stacked noise filters and the room itself both play a part. Tell us what you hear.
+- **The device list is filtered on Linux only.** Windows and macOS list real devices already and are unchanged. A saved choice made before 0.6.6 still works.
+- **The Game Master's character voices are unchanged** and still want tuning.
 
 ## [0.6.5] - 2026-11-27
 
