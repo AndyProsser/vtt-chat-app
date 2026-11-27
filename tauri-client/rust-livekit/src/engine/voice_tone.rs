@@ -111,18 +111,18 @@ impl VoicePreset {
             Self::Off => None,
             Self::Natural => Some(Compression {
                 threshold_db: -22.0,
-                ratio: 2.0,
-                makeup_db: 2.0,
+                ratio: 1.8,
+                makeup_db: 1.0,
             }),
             Self::Warm => Some(Compression {
                 threshold_db: -22.0,
-                ratio: 2.5,
-                makeup_db: 3.0,
+                ratio: 2.2,
+                makeup_db: 1.5,
             }),
             Self::Broadcast => Some(Compression {
                 threshold_db: -24.0,
-                ratio: 3.0,
-                makeup_db: 4.0,
+                ratio: 2.5,
+                makeup_db: 2.5,
             }),
         }
     }
@@ -217,6 +217,8 @@ impl Biquad {
 /// Envelope times: quick enough to catch a loud syllable, slow enough not to pump on every word.
 const ATTACK_MS: f32 = 5.0;
 const RELEASE_MS: f32 = 150.0;
+/// How far below the threshold the make-up gain fades in from nothing.
+const MAKEUP_FADE_DB: f32 = 15.0;
 /// Where the soft limiter starts to bend a peak (it never exceeds full scale).
 const LIMIT_KNEE: f32 = 0.9;
 
@@ -281,13 +283,12 @@ impl VoiceTone {
         self.envelope += (level - self.envelope) * coeff;
         let level_db = 20.0 * self.envelope.max(1e-6).log10();
         let over = (level_db - c.threshold_db).max(0.0);
-        let gain_db = c.makeup_db - over * (1.0 - 1.0 / c.ratio);
-        // Quiet passages (and silence) are not made louder, only the level that is already speech.
-        let gain_db = if level_db < c.threshold_db - 12.0 {
-            0.0
-        } else {
-            gain_db
-        };
+        // The make-up gain fades in over the 15 dB below the threshold instead of switching on, so the room
+        // between words (the reverb tail, the breath) is not lifted with the voice. A hard 12 dB switch did
+        // exactly that in 0.6.6-dev.3 and was heard as "a bit much reverb" (Andy, 2026-11-27).
+        let ramp =
+            ((level_db - (c.threshold_db - MAKEUP_FADE_DB)) / MAKEUP_FADE_DB).clamp(0.0, 1.0);
+        let gain_db = c.makeup_db * ramp - over * (1.0 - 1.0 / c.ratio);
         x * 10f32.powf(gain_db / 20.0)
     }
 }
@@ -374,6 +375,22 @@ mod tests {
             gain_at(VoicePreset::Broadcast, 12_000.0) > gain_at(VoicePreset::Natural, 12_000.0)
         );
         assert!(gain_at(VoicePreset::Warm, 12_000.0) < gain_at(VoicePreset::Natural, 12_000.0));
+    }
+
+    #[test]
+    fn the_quiet_between_words_is_not_lifted() {
+        // A tone 50 dB down stands for the room's tail. The compressor's make-up gain must not reach it, so
+        // what the preset does to it is only what its equaliser does (no more than a dB or two at 1 kHz).
+        for preset in [
+            VoicePreset::Natural,
+            VoicePreset::Warm,
+            VoicePreset::Broadcast,
+        ] {
+            let mut tone = VoiceTone::new(preset);
+            let input = sine(0.003, 1_000.0, 80);
+            let gain = db(settled_rms(&run(&mut tone, &input)) / settled_rms(&input));
+            assert!(gain < 1.5, "{preset:?} lifted the room by {gain:.1} dB");
+        }
     }
 
     #[test]
