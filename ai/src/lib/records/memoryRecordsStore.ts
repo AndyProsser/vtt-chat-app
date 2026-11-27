@@ -202,6 +202,12 @@ export class MemoryRecordsStore implements RecordsStore {
   putSummary = async (s: StoredSummary) =>
     void this.summaries.set(this.key(s.recordingId, s.kind, s.subject), { ...s });
 
+  chapterNotesCache = new Map<string, string>();
+  getChapterNotesCache = async (recordingId: string, subject: string) =>
+    this.chapterNotesCache.get(`${recordingId}|${subject}`);
+  putChapterNotesCache = async (recordingId: string, subject: string, text: string) =>
+    void this.chapterNotesCache.set(`${recordingId}|${subject}`, text);
+
   bards = new Map<string, BardId>();
   notesOf = new Map<string, string>();
   campaignBard = async (campaignId: string): Promise<BardId> =>

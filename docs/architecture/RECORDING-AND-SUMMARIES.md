@@ -736,3 +736,11 @@ A summary is the bits a table would remember at the next session, not a record o
 `fitNotes` (`ai/src/lib/fitNotes.ts`) replaces it. The notes are cut down to about 45% of the window (`FIT_TARGET_SHARE`) as a recap, each shortening call carries a hard **"at most N words"** (`buildCondensePrompt`), a model that overruns is told once with its own word count, and if it still does, `clipToWords` thins the lines evenly start to end (headings kept). A model that aborts with Ollama's "token repeat limit" is retried once, then that group is clipped; any other failure (an unreachable server) still fails the job so failover can act. So the call that follows always fits.
 
 The shortened notes are made once per recording and shared by every summary (`fit` in `processRecording.ts`), and a retry rebuilds the per-chapter notes from the stored copy (`parseStoredNotes`) instead of taking them again. Measured on the real notes of session 4 (10 parts, 44,685 characters): 11 model calls in all, against about 40 for one summary on 0.6.4.
+
+That stored copy only exists once every chapter has succeeded, so it does not help a retry whose
+note-taking itself died partway through a long, many-chapter recording — found 2026-11-27 on a real
+session that kept failing mid-way on a flaky remote server, redoing every already-finished chapter
+from scratch on each attempt. `chapter_notes_cache` (its own table, not `summaries`, so a
+half-finished chapter is never visible through the records API) fixes the finer-grained case: each
+chapter's notes are cached as soon as they're taken, and a retry checks it before calling the
+scribe again — a chapter is taken at most once across every attempt at a recording.

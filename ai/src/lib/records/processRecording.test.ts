@@ -413,6 +413,57 @@ describe('process-recording handler', () => {
     expect(await records.getSummary(REC, 'notes', '')).toBeUndefined();
   });
 
+  it('a retry after one chapter in a batch failed does not take that chapter again', async () => {
+    for (const [at, event] of [
+      [0, 'started'],
+      [5000, 'paused'],
+      [5500, 'resumed'],
+      [15000, 'paused'],
+      [15500, 'resumed'],
+      [25000, 'paused'],
+      [25500, 'resumed'],
+      [35000, 'paused'],
+      [35500, 'resumed'],
+      [45000, 'stopped'],
+    ] as const) {
+      await records.addRecordingEvent({ recordingId: REC, at, event });
+    }
+    const transcribeAudioFile = async (file: string) => {
+      if (!file.includes('t-alice')) return [];
+      return [0, 10000, 20000, 30000, 40000].map((startMs) => ({
+        startMs,
+        endMs: startMs + 1000,
+        text: `said at ${startMs}`,
+      }));
+    };
+    let scribeCalls = 0;
+    const flaky = handler({
+      transcribeAudioFile,
+      localGenerate: async (prompt) => {
+        prompts.push(prompt);
+        if (!prompt.startsWith('You are the scribe')) return `summary #${prompts.length}`;
+        scribeCalls += 1;
+        if (scribeCalls === 2) throw new Error('remote GPU unreachable'); // chapter 2, still in batch 1
+        return `## Events\n- summary #${prompts.length}`;
+      },
+    });
+    await expect(flaky.run(job())).rejects.toThrow('remote GPU unreachable');
+    expect(scribeCalls).toBe(2); // chapter 1 ready, chapter 2 failed
+    // A retry: chapter 1's notes are cached, so the scribe is asked for chapters 2, 3, 4 and 5 only.
+    let retryScribeCalls = 0;
+    const retried = handler({
+      transcribeAudioFile,
+      localGenerate: async (prompt) => {
+        prompts.push(prompt);
+        if (!prompt.startsWith('You are the scribe')) return `summary #${prompts.length}`;
+        retryScribeCalls += 1;
+        return `## Events\n- summary #${prompts.length}`;
+      },
+    });
+    await retried.run(job());
+    expect(retryScribeCalls).toBe(4);
+  });
+
   it('weaves scene, effect, voice and group cues into what the model reads, and titles the scene chapter', async () => {
     await records.putTrack(
       track('t-long', 'carol', {

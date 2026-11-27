@@ -418,6 +418,23 @@ export class PostgresRecordsStore implements RecordsStore {
     );
   }
 
+  async getChapterNotesCache(recordingId: string, subject: string): Promise<string | undefined> {
+    const { rows } = await this.pool.query<Row>(
+      'SELECT text FROM chapter_notes_cache WHERE recording_id = $1 AND subject = $2',
+      [recordingId, subject],
+    );
+    return rows[0]?.text as string | undefined;
+  }
+
+  async putChapterNotesCache(recordingId: string, subject: string, text: string): Promise<void> {
+    await this.pool.query(
+      `INSERT INTO chapter_notes_cache (recording_id, subject, text, created_at)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (recording_id, subject) DO UPDATE SET text = $3, created_at = $4`,
+      [recordingId, subject, text, Date.now()],
+    );
+  }
+
   async campaignName(campaignId: string): Promise<string | undefined> {
     const { rows } = await this.pool.query<Row>('SELECT name FROM campaigns WHERE id = $1', [
       campaignId,

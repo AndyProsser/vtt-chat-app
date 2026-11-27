@@ -154,6 +154,7 @@ export const NOT_EXPORTED: Record<string, string> = {
   join_requests: 'short-lived',
   notifications: 'short-lived',
   jobs: 'the worker queue',
+  chapter_notes_cache: 'scratch, so a retry does not redo an already-finished chapter',
 };
 
 type Row = Record<string, unknown>;

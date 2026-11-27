@@ -77,6 +77,15 @@ export interface RecordsStore {
   ): Promise<StoredSummary | undefined>;
   putSummary(summary: StoredSummary): Promise<void>;
 
+  /**
+   * A chapter's scribe's notes, cached only so a job that dies partway through a long, many-chapter
+   * recording resumes from the chapter it reached instead of chapter one every time (0.6.5 interim
+   * reliability fix). Separate from `summaries`: a half-finished chapter must never be visible through
+   * the records API, where only the complete, combined notes (`getSummary(id, 'notes', '')`) are.
+   */
+  getChapterNotesCache(recordingId: string, subject: string): Promise<string | undefined>;
+  putChapterNotesCache(recordingId: string, subject: string, text: string): Promise<void>;
+
   /** Notes that a track's audio file has been deleted. */
   markTrackPurged(trackId: string, at: number): Promise<void>;
   /**

@@ -320,6 +320,16 @@ export function createProcessRecordingHandler(deps: ProcessRecordingDeps): JobHa
           if (chapters.some((c) => c.subject === key)) taken.set(key, Promise.resolve(notes));
         }
       }
+      // A finer-grained version of the same idea (0.6.5 interim reliability fix, 2026-11-27): the combined
+      // notes above exist only once every chapter has succeeded. A job that dies partway through a long,
+      // many-chapter recording resumes from here instead — each chapter's notes, cached as soon as they're
+      // taken (below), separate from `summaries` so a half-finished chapter is never visible through the
+      // records API.
+      for (const c of chapters) {
+        if (taken.has(c.subject)) continue;
+        const cached = await deps.records.getChapterNotesCache(recording.id, c.subject);
+        if (cached !== undefined) taken.set(c.subject, Promise.resolve([cached]));
+      }
     }
     const sessionNotes = async (context: SummaryContext): Promise<string[]> => {
       if (!byChapter) return notesOf('', utterances, context);
@@ -349,7 +359,15 @@ export function createProcessRecordingHandler(deps: ProcessRecordingDeps): JobHa
           const batch = chapters.slice(i, i + CHAPTER_CONCURRENCY);
           const batchParts = await Promise.all(
             batch.map(async (c) => {
+              const alreadyCached = taken.has(c.subject);
               const notes = await notesOf(c.subject, c.utterances, c.context, chapterMaxWords);
+              if (!alreadyCached) {
+                await deps.records.putChapterNotesCache(
+                  recording.id,
+                  c.subject,
+                  notes.join('\n\n'),
+                );
+              }
               log(`${recording.id}: chapter ${c.subject} notes ready`);
               return {
                 title: `Part ${c.subject}${c.context.chapter?.title ? `: ${c.context.chapter.title}` : ''}`,

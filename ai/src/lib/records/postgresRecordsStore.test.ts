@@ -60,6 +60,20 @@ describe.skipIf(TEST_DATABASE_URL === undefined)('PostgresRecordsStore', () => {
     expect((await store.listTracks(recordingId))[0]?.transcribedAt).toBe(9000);
   });
 
+  it('round-trips a chapter notes cache entry, and lets a later write replace it', async () => {
+    expect(await store.getChapterNotesCache(recordingId, '1')).toBeUndefined();
+    await store.putChapterNotesCache(recordingId, '1', '## Events\n- the party arrives');
+    expect(await store.getChapterNotesCache(recordingId, '1')).toBe(
+      '## Events\n- the party arrives',
+    );
+    await store.putChapterNotesCache(recordingId, '1', '## Events\n- the party arrives and fights');
+    expect(await store.getChapterNotesCache(recordingId, '1')).toBe(
+      '## Events\n- the party arrives and fights',
+    );
+    // A different chapter of the same recording is its own entry.
+    expect(await store.getChapterNotesCache(recordingId, '2')).toBeUndefined();
+  });
+
   it('keeps the timeline in order, with the detail of sound and scene events', async () => {
     await store.addRecordingEvent({ recordingId, at: 10, event: 'started' });
     await store.addRecordingEvent({

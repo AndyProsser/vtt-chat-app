@@ -36,11 +36,11 @@ session (3–5 hours), contradicting CLAUDE.md §5's "never lost" promise. Andy'
 a job should never be refused for being long, and should run as long as it genuinely takes
 ("I just want this to complete even if it takes 8+ hours… no one cares because they are
 sleeping"). `ai.fallback.max-local-minutes` now defaults to **no limit** (`null`) and stays only
-as an *opt-in* cap for an operator who deliberately wants the opposite (0 = never fall back to
+as an _opt-in_ cap for an operator who deliberately wants the opposite (0 = never fall back to
 local, a number = that many minutes). What actually protects against the original bug — a job
 grinding for nothing — is the repeat-limit classification and retry-once-then-fail (below), plus
 a per-call liveness bound, not a guess about total duration: those catch a call that's genuinely
-*stuck*, and a merely *slow* one is allowed to keep going, call after call, for as long as it
+_stuck_, and a merely _slow_ one is allowed to keep going, call after call, for as long as it
 takes. A local generate call's own timeout (`LOCAL_GENERATE_TIMEOUT_MS`) is **45 minutes** (raised
 from an initial 20 during review — on the project's own no-AVX test VM, measured elsewhere
 ([RECORDING-AND-SUMMARIES.md](RECORDING-AND-SUMMARIES.md), "Sampling": 3.2 read / 1.8 write
@@ -72,6 +72,25 @@ optimisation"); cross-chapter LLM concurrency.
 `npm run format:check` and `npm run typecheck` all clean. **Not yet verified:** a real local-only
 run against the actual recording that triggered this, to see how many hours it genuinely takes
 end to end and whether 45 minutes gives real chunks enough margin on that hardware.
+
+**Real-world retest, 2026-11-27: the "fetch failed" recording, re-run against the fix.** Found the
+retry resumed only once every chapter had already succeeded, not from a mid-batch failure — the
+claim above ("the job resumes from its already-completed chapters on retry") was true for a later
+phase failing after notes were fully stored, not for note-taking itself dying partway through a
+many-chapter recording, which is exactly what this recording did on every attempt. Fixed: each
+chapter's notes are now cached as soon as they're taken (`chapter_notes_cache`, a table separate
+from `summaries` so a half-finished chapter is never visible through the records API), and a retry
+checks it before calling the scribe again. Also traced the repeat-limit abort itself to its real
+cause by replaying the failing content directly against the remote Ollama server, outside the job:
+not the model's weights (a re-pull "fixed" it only by coincidence — deleting a model forces an
+unload), not the content (a trivial one-line prompt failed too, once the server had been under
+load for a while), not `repeat_penalty` or disabling "thinking" (both tested, no effect). It is the
+server's loaded GPU/runtime state degrading under sustained serving until every call aborts,
+confirmed by forcing an unload+reload (`keep_alive: 0`) and watching the exact same failing
+prompt succeed immediately after — then degrade again within that one job's own call volume.
+Swapping to a smaller model (`qwen3.5:4b`) on the same server showed the same degradation, ruling
+out model size. That part is an operator-side Ollama/GPU issue, not something this code can fix;
+`docs/guides/OPERATOR-GUIDE.md` §11 has the diagnosis and the reload workaround.
 
 ## Adaptive audio-pipeline concurrency, 2026-11-26
 
