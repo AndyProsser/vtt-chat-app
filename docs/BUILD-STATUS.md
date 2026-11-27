@@ -92,6 +92,26 @@ Swapping to a smaller model (`qwen3.5:4b`) on the same server showed the same de
 out model size. That part is an operator-side Ollama/GPU issue, not something this code can fix;
 `docs/guides/OPERATOR-GUIDE.md` §11 has the diagnosis and the reload workaround.
 
+**Resolution, same day: the recording completed end to end for the first time.** The per-chapter
+cache meant each retry only had to redo the one chapter still failing, narrowing the problem down
+chapter by chapter instead of restarting from scratch; direct, repeated testing against the
+content showed the abort was genuinely probabilistic, not a deterministic trigger from that
+chapter's content. Andy then updated Ollama (0.40.17 → 0.40.18, a llama.cpp bump), set
+`OLLAMA_NUM_PARALLEL=1` (serializing requests — concurrent chapters had shared the GPU earlier in
+this same investigation), dropped the quantized `OLLAMA_KV_CACHE_TYPE=q8_0` for the full-precision
+default, and raised `OLLAMA_CONTEXT_LENGTH` 12288 → 16384; `ai.llm.context` was raised to match.
+After an Ollama restart with that config, the stubborn chapter succeeded and the whole job
+completed: 10 chapter summaries, 5 character tales, the DM brief, the combined notes and the
+session tale, all written. Which of those changes actually mattered isn't isolated — they were
+applied together under time pressure — but `OLLAMA_NUM_PARALLEL=1` is the best-supported one,
+matching the concurrent-GPU-load pattern observed earlier. **A real local-only (CPU fallback) run
+of this recording is still not verified** — only the remote GPU path has now completed cleanly.
+
+**Also found and fixed the same day:** a character's tale shared a chapter's word cap (~175 words);
+reading `ministral-3:8b`'s tales back (the model now in use, chosen after this same investigation)
+they ran to roughly double that. Character tales now have their own, smaller cap (100/150/200
+across short/default/long) instead of deriving from the session's.
+
 ## Adaptive audio-pipeline concurrency, 2026-11-26
 
 **Built and unit-tested**, following

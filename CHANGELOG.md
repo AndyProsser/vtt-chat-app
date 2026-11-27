@@ -10,6 +10,18 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ## [Unreleased]
 
+## [0.6.5] - 2026-11-27
+
+The Game Master's loot bench reaches the phone and web app, chat gets a language-picker `/say` and an
+icon for `/do`, and the inventory is tabs instead of one long list. Multi-speaker sessions transcribe
+their tracks concurrently instead of one at a time. The AI summary pipeline is markedly more reliable:
+a long session's notes are cut to a recap that always fits the model's window, a stuck local call fails
+in 45 minutes instead of grinding for an hour, a model's own abort is told apart from the server being
+unreachable, and a retry now resumes from the chapter it actually reached instead of redoing the whole
+recording. A **PATCH** release: no protocol change, so 0.6.4 apps and servers work together.
+**Operators:** update the server (`vtt-admin update`; it adds a table the AI pipeline uses to cache a
+chapter's notes between retries), then `vtt-admin updates sync`. **Players:** update the app.
+
 ### Added
 
 - **Split coin from the chat card** (desktop). An unclaimed pile of coin in chat has the same "split the coin equally" button as the inventory, with the same list of players to share it among.
@@ -30,9 +42,16 @@ the GitHub release notes and refuses to build a release without one. How to writ
 ### Fixed
 
 - **A long session's summary no longer wastes hours.** On a real 66-minute session the step that writes the session tale failed three times with "the prompt is longer than the context length", an hour each, and the whole job spent 800,000 tokens. The notes are now cut to a **recap** that fits the window: the model is asked for only what a table would remember (key events and turning points, big wins and fumbles, reveals, consequential decisions, the memorable and funny moments, the names that matter) with a **hard word limit**; a model that writes too much is told once, and if it still does the text is clipped by code, so the call can no longer overflow. A model that aborts on a passage ("token repeat limit") is tried once more and then that passage is clipped. The shortened notes are made **once and shared** by the session tale, every character's tale and the brief (each used to shorten the same notes again: 23 to 36 model calls each), and a **retry reuses the stored notes** instead of taking them again. On the same real notes the replay took 11 model calls where 0.6.4 took about 40 for one summary.
+- **The macOS desktop app no longer crashes the moment it asks for the microphone.** It was missing the usage-description string macOS requires before it will even show the permission prompt; without it, macOS terminates the app outright instead of asking.
 - **A character's tale is shorter: one or two paragraphs, not a chapter's worth.** It shared a chapter's word cap, which read long, especially from a model with a flair for prose; it now has its own, smaller one (about 150 words at the default length, 100–200 across short/long).
 - **The desktop campaign chooser now follows the server.** A campaign that was deleted or renamed elsewhere used to stay on the list (or keep its old name) until the app was restarted; the list is now re-read when the chooser appears and each time the window is used again.
 - **A recording that falls back to the local model no longer silently grinds for hours and then fails anyway.** A real CPU-only run kept dying with "fetch failed" at almost exactly the one-hour mark — not a network fault, but a hardcoded 60-minute timeout on a call that genuinely couldn't finish in time. Local calls now keep their real failure detail (previously just "status 500") and get their own 45-minute timeout, separate from the 60-minute one a remote call may legitimately need; that timeout is a liveness check on one call, not a verdict on the whole job — a slow-but-working recording still finishes, however many hours it takes, and if one call does get stuck, only that attempt fails: the next retry resumes from the chapters already done, not from the start. A remote model that aborts on its own content ("token repeat limit") is now reported as that, distinct from the server being unreachable, instead of silently triggering a permanent fallback to local — it's retried once, then fails with a plain explanation if it keeps happening. An operator who would rather a job fail outright than ever run on local CPU can set a new `ai.fallback.max-local-minutes`; unset (the default), there is no limit. A retry now also resumes correctly mid-recording: a long, many-chapter session that dies partway through note-taking used to redo every already-finished chapter from scratch on each attempt; each chapter's notes are cached as soon as they're taken, so a retry only redoes the one that failed.
+
+### Known limits
+
+- A real local-only (CPU fallback) run of a long recording is not yet verified end to end; the fixes above were proven on the remote-GPU path, which has now completed cleanly on a real multi-hour session.
+- Real mid-call progress-watching (streaming a generation's tokens to extend a slow-but-working call rather than waiting on a flat timeout) is not built; planned for 0.7.
+- A remote Ollama server's own GPU/runtime stability under sustained load is outside this app's control. If summaries keep aborting with "token repeat limit" across every retry, see `docs/guides/OPERATOR-GUIDE.md` §11 ("Getting more out of Ollama") before assuming it is unfixable.
 
 ## [0.6.4] - 2026-11-25
 
