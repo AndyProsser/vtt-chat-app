@@ -2523,9 +2523,11 @@ body,
   background: transparent;
 }
 /* The new-handout / new-loot forms, dropped from the panel's own "Add" button: as wide as the
-   panel comfortably allows, so the form reads the same as it did inline. */
+   panel comfortably allows, so the form reads the same as it did inline. 460px (was 380px,
+   2026-11-27: the loot form's row of CR, search and custom-item controls read cramped at that
+   width). */
 .vtt-panel-add-pop {
-  width: min(380px, calc(100vw - 16px));
+  width: min(460px, calc(100vw - 16px));
   max-height: calc(100vh - 100px);
   overflow-y: auto;
 }
