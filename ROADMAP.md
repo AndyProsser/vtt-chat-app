@@ -85,6 +85,10 @@ Design: [ICONOLOGY.md](docs/architecture/ICONOLOGY.md). Plan: [2026-11-24-typogr
 
 **Done when:** a line in each of the 18 languages looks the same in the desktop and phone apps, in light and dark; the web app has no copied icon data; force readable turns every language into Inter in both; the build-size change is measured and recorded; a handout and a tale each show a `lang:` span in the right font and read as plain text in a viewer that does not know it; the audit's verdict on Game Icons is written down; and each 0.6.4 item has shipped or been moved to Stage 15 with the reason. **The stage closes with two things (Andy, 2026-11-24): new documentation screenshots of every changed screen ([scripts/screenshots/](scripts/screenshots/README.md)), and a full run of the session 4 test to prove the system is stable and usable.**
 
+### 0.6.6: the voice (Andy, 2026-11-27; dev builds out, not yet released)
+
+The first real mini-session (2026-11-27) found the voice clean but flat and dull next to Discord, and the group **kept using Discord for voice that evening**. That makes voice quality the top bar for switching over ([READINESS.md](docs/READINESS.md), area D), so 0.6.6 is audio only, no wire change: **voice tone presets** (Natural, Warm, Broadcast; sender side) and a **64 kbps** microphone track; **Settings → Audio → Test your voice** (record 5 or 10 seconds, play it back in each tone), which Andy rated "great", with the voice "much better" after it; and the **Linux device list** fix. Retuned deeper after a first listen on dev.2 (Natural "high-pitched", Broadcast best), shipped as dev.3. Detail: [AUDIO-MIXER.md](docs/architecture/AUDIO-MIXER.md#voice-tone-and-bitrate-066). Still open: how close it gets to Discord's richness (next levers: compressor, a higher bitrate, the stacked noise filters), the faint echo, and the DM character voices (below).
+
 ---
 
 ## Stage 15 — Protocol 5 and 0.7.0 (planned 2026-11-21)
@@ -178,7 +182,7 @@ chunks are smaller. Interim only; a few hints this turned up for the Campaign Gr
 See [BUILD-STATUS.md](docs/BUILD-STATUS.md#ai-summary-pipeline-reliability-interim-2026-11-26).
 
 **Real progress-watching for a local LLM call (Andy, 2026-11-26; for 0.7 to catch, not 0.6.5).**
-Asked directly while fixing the above: can a long local call's *actual* progress be checked, so a
+Asked directly while fixing the above: can a long local call's _actual_ progress be checked, so a
 genuinely slow-but-working call is extended rather than bounded by a flat timeout? Not with
 today's client: every local and remote generate call uses `stream: false` (`ollama.ts`,
 `openaiCompat.ts`) — the job queue is written around "one prompt in, one whole answer out," so
@@ -194,6 +198,16 @@ streaming-aware shape — so 0.6.5 ships with a generous flat per-call timeout (
 buildable-today approximation of the same goal. Worth real design time in 0.7, likely alongside
 whatever the Campaign Graph's own call shape ends up being (shorter, schema'd calls may make this
 less urgent than it looks today).
+
+### Findings from the first real group session (Andy, 2026-11-27; wanted, none designed)
+
+The first real mini-session showed what a table needs from a system built for it, which Discord does not give. Each item says what it would take and what is still open; Andy confirms the shape before any is built (project rule: ask, do not guess).
+
+1. **Handouts to specific players.** The Game Master shows a handout to chosen players, not the whole table (a note passed to one rogue, a map only the ranger sees). A handout would carry who may see it, and the server would send it only to them, so it is a **wire change** and rides this bump. Open: choose who at show time or save it on the handout; whether a hidden handout is visible to the others as "something was shown"; whether History keeps it for the people it was shown to.
+2. **A Game Master taking someone aside.** An isolated channel between the Game Master and one player, for a private word. **Check first what exists:** private whispers are built (chat, `/w`), and the party split already isolates one player with the Game Master in voice (voice whispers were dropped by decision on 2026-11-14, because the split covers them). So the gap may be only how fast and how obvious it is. Open, and this decides the work: is it a **private chat thread** (a persistent DM-and-player conversation, not a one-line whisper), a **faster voice aside** (one key: this player and me, the rest hear nothing, and back again), or both. A private chat thread would need the server to keep it apart from the table's history and out of every shared summary (the whisper rule), likely a wire change.
+3. **The Game Master mutes a player for everyone** ("Dude, shut up!"). A server-enforced mute: the player's microphone stops reaching the table and they cannot unmute themselves until the Game Master lets them. It must be **visible to the muted player** (consent is visible, principle 4: they are told, and their tray icon shows it) and to the table (the rail shows them muted by the Game Master), and what they say while muted is not recorded (their track is stopped at the server). It needs a server action (LiveKit's `MutePublishedTrack`, or removing their publish permission), a state the clients show, and a Game Master control, so it is a **wire change**. Open: a timed mute or until undone; whether a muted player can still type; whether the mute ends when the recording stops.
+4. **Open a player's character sheet from the app.** From a character's card, open its D&D Beyond sheet in the browser. The link is the public sheet address the player already gave for the sync ([DDB-SYNC.md](docs/architecture/DDB-SYNC.md)), and the desktop already has `open_external_link`, so this may need **no wire change**, if the address is sent to the other members of the table, which has to be checked (it may only be held server-side). Public sheets only; this opens D&D Beyond's page in the browser and shows nothing itself, so it does not touch the "no character sheets" rule. Open: who may open whose (anyone at the table, or the Game Master only); the phone app too.
+5. **The Game Master's character voices need tuning.** Andy found them in need of tweaking at the table; what exactly was not said. They were built before the mixer engine and tuned by ear on the dev PC. A first step with no wire change: extend the new **voice test** to the character voices, so each can be recorded once and compared as it is adjusted. Open: what was wrong (too robotic, too quiet, too much delay, tiring, or one voice in particular).
 
 ### Anything else
 
