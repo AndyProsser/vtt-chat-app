@@ -133,12 +133,14 @@ Used by ear on Linux and Windows (2026-11-17) and judged solid. Still not measur
 
 **What.** `engine/voice_tone.rs`, after RNNoise and before the level meter and the character voice:
 
-| Preset    | Shape                                                                             | Compressor           |
-| --------- | --------------------------------------------------------------------------------- | -------------------- |
-| Off       | none                                                                              | none                 |
-| Natural   | low shelf +1.5 dB @120 Hz, +2 dB @3.5 kHz, high shelf +2 dB @9 kHz                | 2:1, -22 dB, +2 dB   |
-| Warm      | low shelf +4 dB @140 Hz, -1.5 dB @320 Hz, +1.5 dB @3 kHz, high shelf +1 dB @8 kHz | 2.5:1, -22 dB, +3 dB |
-| Broadcast | low shelf +3 dB @110 Hz, -2 dB @300 Hz, +3 dB @4 kHz, high shelf +3 dB @10 kHz    | 3:1, -24 dB, +4 dB   |
+| Preset    | Shape (retuned 2026-11-27, deeper)                                                    | Compressor           |
+| --------- | ------------------------------------------------------------------------------------- | -------------------- |
+| Off       | none                                                                                  | none                 |
+| Natural   | low shelf +3.5 dB @160 Hz, +1.5 dB @250 Hz, +1 dB @3 kHz, high shelf -1 dB @9 kHz     | 2:1, -22 dB, +2 dB   |
+| Warm      | low shelf +5.5 dB @170 Hz, +2 dB @250 Hz, +0.5 dB @3.5 kHz, high shelf -2.5 dB @8 kHz | 2.5:1, -22 dB, +3 dB |
+| Broadcast | low shelf +5 dB @150 Hz, +1.5 dB @250 Hz, +2.5 dB @3.5 kHz, high shelf +1 dB @10 kHz  | 3:1, -24 dB, +4 dB   |
+
+**First listen (dev.2, 2026-11-27):** "very crisp and clear" but Natural "quite high-pitched", all presets could be deeper, still short of Discord's richness, Broadcast best. EQ cannot change pitch, only tonal balance, so the retune moves weight down (more at 150 to 250 Hz) and takes lift off the top. The first values (low shelves at 110 to 140 Hz, +2 to +3 dB of air in Natural and Broadcast) were my estimates, not measurements.
 
 A soft limiter sits last, so a boost can never clip. The compressor does not lift quiet passages (nothing more than 12 dB under its threshold), so the room is not made louder between words. **Sender side, decided 2026-11-27:** it shapes the voice for everyone and needs one filter chain, not one per listener. Cost: a few biquads and one envelope follower per 10 ms block. A listener-side EQ is not built; add it only if headsets differ enough to matter.
 

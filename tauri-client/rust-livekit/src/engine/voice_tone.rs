@@ -46,52 +46,60 @@ impl VoicePreset {
     }
 
     fn bands(self) -> &'static [Band] {
+        // Retuned 2026-11-27 after Andy's first listen (dev.2): "quite high-pitched", "could all go a little
+        // deeper", Broadcast best. EQ cannot change pitch, only balance, so the fix is more low end and body
+        // (150 to 250 Hz) and less lift above 3 kHz.
         match self {
             Self::Off => &[],
             Self::Natural => &[
-                Band::LowShelf { hz: 120.0, db: 1.5 },
+                Band::LowShelf { hz: 160.0, db: 3.5 },
                 Band::Peak {
-                    hz: 3_500.0,
-                    db: 2.0,
+                    hz: 250.0,
+                    db: 1.5,
+                    q: 0.8,
+                },
+                Band::Peak {
+                    hz: 3_000.0,
+                    db: 1.0,
                     q: 0.9,
                 },
                 Band::HighShelf {
                     hz: 9_000.0,
-                    db: 2.0,
+                    db: -1.0,
                 },
             ],
             Self::Warm => &[
-                Band::LowShelf { hz: 140.0, db: 4.0 },
+                Band::LowShelf { hz: 170.0, db: 5.5 },
                 Band::Peak {
-                    hz: 320.0,
-                    db: -1.5,
-                    q: 1.0,
+                    hz: 250.0,
+                    db: 2.0,
+                    q: 0.9,
                 },
                 Band::Peak {
-                    hz: 3_000.0,
-                    db: 1.5,
+                    hz: 3_500.0,
+                    db: 0.5,
                     q: 0.9,
                 },
                 Band::HighShelf {
                     hz: 8_000.0,
-                    db: 1.0,
+                    db: -2.5,
                 },
             ],
             Self::Broadcast => &[
-                Band::LowShelf { hz: 110.0, db: 3.0 },
+                Band::LowShelf { hz: 150.0, db: 5.0 },
                 Band::Peak {
-                    hz: 300.0,
-                    db: -2.0,
-                    q: 1.0,
+                    hz: 250.0,
+                    db: 1.5,
+                    q: 0.9,
                 },
                 Band::Peak {
-                    hz: 4_000.0,
-                    db: 3.0,
+                    hz: 3_500.0,
+                    db: 2.5,
                     q: 0.8,
                 },
                 Band::HighShelf {
                     hz: 10_000.0,
-                    db: 3.0,
+                    db: 1.0,
                 },
             ],
         }
@@ -326,36 +334,46 @@ mod tests {
         assert_eq!(run(&mut tone, &input), input);
     }
 
-    #[test]
-    fn natural_adds_body_and_brightness() {
+    fn gain_at(preset: VoicePreset, hz: f32) -> f32 {
         // A quiet tone sits below the compressor's range, so only the equaliser acts.
-        for (hz, at_least_db) in [(100.0, 1.0), (3_500.0, 1.5), (12_000.0, 1.5)] {
-            let mut tone = VoiceTone::new(VoicePreset::Natural);
-            let input = sine(0.01, hz, 50);
-            let gain = db(settled_rms(&run(&mut tone, &input)) / settled_rms(&input));
-            assert!(gain >= at_least_db, "{hz} Hz gained only {gain:.1} dB");
+        let mut tone = VoiceTone::new(preset);
+        let input = sine(0.01, hz, 50);
+        db(settled_rms(&run(&mut tone, &input)) / settled_rms(&input))
+    }
+
+    #[test]
+    fn natural_adds_body_and_a_soft_top() {
+        assert!(gain_at(VoicePreset::Natural, 100.0) >= 1.5);
+        assert!(gain_at(VoicePreset::Natural, 250.0) >= 2.0);
+        assert!(
+            gain_at(VoicePreset::Natural, 12_000.0) < 0.0,
+            "the top is no longer lifted"
+        );
+    }
+
+    #[test]
+    fn every_preset_is_deeper_than_it_is_bright() {
+        for preset in [
+            VoicePreset::Natural,
+            VoicePreset::Warm,
+            VoicePreset::Broadcast,
+        ] {
+            let body = gain_at(preset, 200.0);
+            assert!(body >= 2.0, "{preset:?} adds only {body:.1} dB at 200 Hz");
+            assert!(
+                body > gain_at(preset, 3_500.0),
+                "{preset:?} is brighter than it is deep"
+            );
         }
     }
 
     #[test]
     fn warm_has_more_low_end_than_natural_and_broadcast_has_more_air() {
-        let gain_at = |preset, hz| {
-            let mut tone = VoiceTone::new(preset);
-            let input = sine(0.01, hz, 50);
-            db(settled_rms(&run(&mut tone, &input)) / settled_rms(&input))
-        };
         assert!(gain_at(VoicePreset::Warm, 100.0) > gain_at(VoicePreset::Natural, 100.0));
         assert!(
             gain_at(VoicePreset::Broadcast, 12_000.0) > gain_at(VoicePreset::Natural, 12_000.0)
         );
-    }
-
-    #[test]
-    fn broadcast_cuts_the_boxy_middle() {
-        let mut tone = VoiceTone::new(VoicePreset::Broadcast);
-        let input = sine(0.01, 300.0, 50);
-        let gain = db(settled_rms(&run(&mut tone, &input)) / settled_rms(&input));
-        assert!(gain < -0.5, "300 Hz changed by {gain:.1} dB");
+        assert!(gain_at(VoicePreset::Warm, 12_000.0) < gain_at(VoicePreset::Natural, 12_000.0));
     }
 
     #[test]

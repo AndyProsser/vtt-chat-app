@@ -12,9 +12,9 @@ export const VOICE_PRESET_LABEL: Record<VoicePresetName, string> = {
 /** What each preset does, in words a player can act on. */
 export const VOICE_PRESET_HINT: Record<VoicePresetName, string> = {
   off: 'Your microphone as it is, after noise and echo cleaning.',
-  natural: 'A little body and brightness, and a gentle levelling. A good start.',
-  warm: 'More low end and a softer top: a warm, close voice.',
-  broadcast: 'The most polish: firm lows, less boxiness, clear presence, an even level.',
+  natural: 'Fuller low end, a touch of presence and a gentle levelling. A good start.',
+  warm: 'The deepest: a lot more body and a softer top, a warm, close voice.',
+  broadcast: 'The most polish: firm lows, clear presence and air, an even level.',
 };
 
 export function isVoicePreset(value: string): value is VoicePresetName {
