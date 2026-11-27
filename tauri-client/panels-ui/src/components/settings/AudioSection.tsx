@@ -36,6 +36,7 @@ import {
   type VoicePresetName,
 } from '../../lib/voicePreset.js';
 import { SectionHeading } from './SectionHeading.js';
+import { VoiceTestRows } from './VoiceTestRows.js';
 import { SettingRow } from './SettingRow.js';
 
 const DEFAULT = '__default__';
@@ -185,6 +186,7 @@ export function AudioSection() {
               </Select.Root>
             </SettingRow>
             <span className="vtt-muted">{VOICE_PRESET_HINT[tone ?? engine.voicePreset]}</span>
+            <VoiceTestRows />
             <SettingRow label="Adjust microphone volume automatically">
               <Switch
                 aria-label="Adjust microphone volume automatically"

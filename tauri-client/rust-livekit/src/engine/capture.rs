@@ -44,6 +44,8 @@ pub struct CapturePipeline {
     denoise: Denoiser,
     tone: VoiceTone,
     fx: VoiceFx,
+    /// When set, every block as it reaches the tone stage is copied here (the voice test's recording).
+    tap: Option<Arc<Mutex<Vec<f32>>>>,
 }
 
 impl CapturePipeline {
@@ -56,6 +58,7 @@ impl CapturePipeline {
             // Off until the app says otherwise, so the engine's own tests hear the signal unchanged.
             tone: VoiceTone::new(VoicePreset::Off),
             fx: VoiceFx::new(Voice::Normal),
+            tap: None,
         }
     }
 
@@ -70,6 +73,11 @@ impl CapturePipeline {
         if level != self.denoise.level() {
             self.denoise.set_level(level);
         }
+    }
+
+    /// Copies the cleaned voice, just before the tone stage, into `tap` (or stops doing so for `None`).
+    pub fn set_tap(&mut self, tap: Option<Arc<Mutex<Vec<f32>>>>) {
+        self.tap = tap;
     }
 
     /// The tone of the voice that is sent (`off`, `natural`, `warm`, `broadcast`); live, any time.
@@ -102,6 +110,9 @@ impl CapturePipeline {
         let cleaned = self.processing.lock().unwrap().clean(&scaled);
         // Then RNNoise (when chosen), so the meter and everyone else hear the filtered sound.
         let cleaned = self.denoise.process(&cleaned);
+        if let Some(tap) = &self.tap {
+            tap.lock().unwrap().extend_from_slice(&cleaned);
+        }
         // Then the voice preset: what the filters took away, a little of it given back as tone.
         let cleaned = self.tone.process(&cleaned);
         // The meter shows what is sent (after echo, noise and gain control), so typing the cleaner

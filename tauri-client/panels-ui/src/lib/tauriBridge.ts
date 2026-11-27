@@ -10,6 +10,7 @@ import type {
 import { ACCOUNT_ERROR_EVENT, SYNC_EVENT } from '../consts/index.js';
 import type { NoiseFilterLevel } from './noiseFilter.js';
 import type { VoicePresetName } from './voicePreset.js';
+import type { VoiceTestStatus } from './voiceTest.js';
 import type { Status } from './statusStore.js';
 import type { UpdateInfo } from './updateInfo.js';
 import type {
@@ -380,6 +381,13 @@ export const noiseFilterSet = (level: NoiseFilterLevel) =>
 /** The tone of your voice; saved, and applied now if the new engine is in a call. */
 export const voicePresetSet = (preset: VoicePresetName) =>
   invoke<void>('voice_preset_set', { preset });
+/** The voice test: record 3 to 10 s, then play it back in any tone. Nothing is saved or sent. */
+export const voiceTestRecord = (seconds: number) => invoke<void>('voice_test_record', { seconds });
+export const voiceTestPlay = (preset: VoicePresetName) =>
+  invoke<void>('voice_test_play', { preset });
+export const voiceTestStop = () => invoke<void>('voice_test_stop');
+export const voiceTestClear = () => invoke<void>('voice_test_clear');
+export const voiceTestStatus = () => invoke<VoiceTestStatus>('voice_test_status');
 export const autoGainSet = (on: boolean) => invoke<void>('auto_gain_set', { on });
 /** The microphone's level right now, 0 to 1, or `null` when the new engine is not running. */
 export const micLevel = () => invoke<number | null>('mic_level');

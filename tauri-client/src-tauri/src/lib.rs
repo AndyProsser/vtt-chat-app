@@ -24,6 +24,7 @@ pub mod supervisor;
 mod tray;
 mod updater;
 mod version_check;
+mod voice_test_commands;
 mod windows;
 
 /// What the window-state plugin remembers for the main window. On Linux it remembers nothing about size,
@@ -103,6 +104,7 @@ pub fn run() {
                 .build(),
         )
         .manage(rust_livekit::SharedClient::default())
+        .manage(rust_livekit::engine::voice_test::VoiceTest::default())
         .manage(mic_gate::MicGate::default())
         .manage(status_commands::StatusState::default())
         .manage(attention::Unread::default())
@@ -155,6 +157,11 @@ pub fn run() {
             commands::noise_filter_set,
             commands::voice_preset_set,
             commands::mic_level,
+            voice_test_commands::voice_test_record,
+            voice_test_commands::voice_test_play,
+            voice_test_commands::voice_test_stop,
+            voice_test_commands::voice_test_clear,
+            voice_test_commands::voice_test_status,
             status_commands::status_get,
             status_commands::status_set,
             away_watch::away_minutes_get,

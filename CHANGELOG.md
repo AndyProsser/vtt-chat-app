@@ -15,6 +15,7 @@ and a tale that stays close to what was said.
 
 ### Added
 
+- **Test your voice** (Settings → Audio). Record 5 or 10 seconds of yourself, then play the same recording back in each tone (Off, Natural, Warm, Broadcast) and compare, so the voice can be tuned by ear without a second person. The recording goes through your real microphone, volume, noise filter and auto-gain settings, so it is what the call would send (minus the network and the Opus encode). It is held in memory only: never saved, never sent, gone when you press Discard or close the app. Wear headphones.
 - **Voice tone presets** (Settings → Audio → Voice tone): **Off**, **Natural** (the default), **Warm** and **Broadcast**. After the noise and echo cleaning, which take things away, the voice you send gets a little body, a clearer presence and some air back, and a gentle compressor evens out loud and quiet words, so a good headset has something to reproduce. It changes the voice others hear, and what is recorded for the session, and applies at once, even mid-call. It costs a few biquad filters per 10 ms block, far less than the echo canceller. Uses the app's own audio engine (not "Compatibility audio").
 
 ### Changed

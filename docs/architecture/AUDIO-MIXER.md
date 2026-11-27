@@ -146,6 +146,10 @@ A soft limiter sits last, so a boost can never clip. The compressor does not lif
 
 **Not measured.** The unit tests prove the filters' gains, the compressor's evening-out, the limiter and silence. Whether Natural _sounds_ better on Andy's headset is a listening test.
 
+## The voice test
+
+`engine/voice_test.rs`, driven from Settings → Audio (`VoiceTestRows.tsx`). It records 5 or 10 seconds through the same capture chain a call uses (gain, WebRTC cleaning, RNNoise, with the player's saved settings) and keeps the result **just before the tone stage**, so the clip can be replayed under any preset (`render`) and the presets compared on identical audio. It runs its own short-lived input and output streams, independent of any call, and the clip is held in memory only. **Not covered:** the Opus 64 kbps encode and the network, so it shows what is sent, not exactly what a friend hears; and echo cancellation (the microphone is closed while the clip plays). The panel polls the status about six times a second only while a recording or playback is running, and not while the window is hidden. Unit-tested without a sound card (`render`, the phase logic); `cargo test -p rust-livekit -- --ignored voice_test_records` runs the real devices (passed on the dev PC, which proves the streams open, not that it sounds right).
+
 ## Device list on Linux
 
 cpal's ALSA host lists every PCM, many sharing one description. `engine/device_list.rs` keeps `default`, `pipewire`, `pulse` and each card's `sysdefault:` entry, and uses the PCM id (not the name) as the id. A choice saved by name before 0.6.6 still matches by name.
