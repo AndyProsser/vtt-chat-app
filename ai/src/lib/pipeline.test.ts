@@ -634,7 +634,7 @@ describe('the storytellers (Stage 12 G)', () => {
       /at most 500 words/i,
     );
     expect(buildStoryPrompt('character', [words], { characterName: 'Aria' })).toMatch(
-      /at most 175 words/i,
+      /at most 150 words/i,
     );
     expect(buildStoryPrompt('session', notes, { taleContent: 'clean' })).toMatch(/language clean/);
     expect(buildStoryPrompt('session', notes, { taleContent: 'graphic' })).toMatch(/told plainly/);

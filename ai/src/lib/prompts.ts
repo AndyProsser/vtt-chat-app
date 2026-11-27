@@ -217,9 +217,22 @@ export function taleWords(cap: number, notes: readonly string[]): number {
  */
 export const TALE_CAP_WORDS: Record<TaleLength, number> = { short: 250, default: 350, long: 500 };
 
-/** A chapter's or a character's tale runs to half a session's. */
+/**
+ * A character's own thread, not the whole session: one or two paragraphs (retuned 2026-11-27, Andy, after
+ * reading ministral-3:8b's character tales back at roughly double this — its prose runs longer than
+ * qwen3.5's did at the same target).
+ */
+export const CHARACTER_TALE_CAP_WORDS: Record<TaleLength, number> = {
+  short: 100,
+  default: 150,
+  long: 200,
+};
+
+/** A chapter's tale runs to half a session's; a character's has its own, shorter cap. */
 const capFor = (kind: Exclude<SummaryKind, 'dm-only'>, context: SummaryContext): number => {
-  const session = TALE_CAP_WORDS[context.taleLength ?? 'default'];
+  const length = context.taleLength ?? 'default';
+  if (kind === 'character') return CHARACTER_TALE_CAP_WORDS[length];
+  const session = TALE_CAP_WORDS[length];
   return kind === 'session' ? session : Math.round(session / 2);
 };
 
