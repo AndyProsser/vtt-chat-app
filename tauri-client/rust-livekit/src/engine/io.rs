@@ -10,6 +10,7 @@ use std::time::{Duration, Instant};
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 
+use super::device_list::{curate, RawDevice};
 use super::duplex::Duplex;
 use crate::devices::{DeviceEntry, DeviceList};
 
@@ -60,16 +61,22 @@ const DEVICE_LIST_TTL: Duration = Duration::from_secs(5);
 
 fn scan_devices() -> DeviceList {
     let host = cpal::default_host();
+    let alsa = cfg!(target_os = "linux");
     let entries = |devices: Option<Vec<cpal::Device>>| -> Vec<DeviceEntry> {
-        devices
+        let raw = devices
             .unwrap_or_default()
             .iter()
-            .filter_map(|d| d.description().ok().map(|x| x.name().to_string()))
-            .map(|name| DeviceEntry {
-                id: name.clone(),
-                name,
+            .filter_map(|d| d.description().ok())
+            .map(|x| RawDevice {
+                // On ALSA the driver is the PCM id, which is unique; the name is not.
+                key: match x.driver() {
+                    Some(pcm) if alsa && !pcm.is_empty() => pcm.to_string(),
+                    _ => x.name().to_string(),
+                },
+                name: x.name().to_string(),
             })
-            .collect()
+            .collect();
+        curate(raw, alsa)
     };
     DeviceList {
         inputs: entries(host.input_devices().ok().map(Iterator::collect)),
@@ -77,10 +84,20 @@ fn scan_devices() -> DeviceList {
     }
 }
 
-fn find(devices: impl Iterator<Item = cpal::Device>, name: &str) -> Option<cpal::Device> {
-    devices
-        .into_iter()
-        .find(|d| d.description().is_ok_and(|x| x.name() == name))
+/// The device a saved choice names: by its id (the PCM id on ALSA), or by name for a choice saved before
+/// 0.6.6, when the name was the id.
+fn find(devices: impl Iterator<Item = cpal::Device>, wanted: &str) -> Option<cpal::Device> {
+    let devices: Vec<cpal::Device> = devices.collect();
+    let by_id = devices.iter().position(|d| {
+        d.description()
+            .is_ok_and(|x| x.driver() == Some(wanted) || x.name() == wanted && x.driver().is_none())
+    });
+    let index = by_id.or_else(|| {
+        devices
+            .iter()
+            .position(|d| d.description().is_ok_and(|x| x.name() == wanted))
+    })?;
+    devices.into_iter().nth(index)
 }
 
 /// Starts the microphone (`device` by name, or the system default) feeding `duplex.on_input`.

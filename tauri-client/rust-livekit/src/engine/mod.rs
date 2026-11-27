@@ -3,6 +3,7 @@
 
 pub mod capture;
 pub mod denoise;
+pub mod device_list;
 pub mod duplex;
 pub mod io;
 #[cfg(test)]
