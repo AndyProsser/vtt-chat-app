@@ -19,7 +19,12 @@ import {
   buildNotesPrompt,
   buildNotesRepairPrompt,
   buildStoryPrompt,
+  taleLimit,
 } from './prompts.js';
+import { trimTaleToWords } from './taleLength.js';
+
+/** How far past its word limit a tale may run before it is cut back (a model rarely lands on the number). */
+const TALE_SLACK = 1.3;
 
 /** Greedily packs whole notes into groups of at most `maxChars`; an oversize note stands alone. */
 export function groupByBudget(notes: readonly string[], maxChars: number): string[][] {
@@ -255,7 +260,11 @@ export async function writeFromNotes(
   const text =
     options.kind === 'dm-only'
       ? await call(scribe, buildChroniclerPrompt(notes, context))
-      : tidyTale(await call(bard, buildStoryPrompt(options.kind, notes, context)));
+      : trimTaleToWords(
+          tidyTale(await call(bard, buildStoryPrompt(options.kind, notes, context))),
+          // The prompt asks for the limit; a model gets some slack, then the tale is cut to whole sentences.
+          Math.ceil(taleLimit(options.kind, notes, context) * TALE_SLACK),
+        );
   return { kind: options.kind, text, dmOnly: options.kind === 'dm-only', modelCalls };
 }
 

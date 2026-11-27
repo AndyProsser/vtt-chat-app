@@ -217,7 +217,7 @@ describe('prompts', () => {
     expect(bard).toMatch(/humiliating fumbles/);
     expect(bard).toMatch(/Dry wit and gallows humour/);
     expect(bard).toMatch(/Keep close to the facts/);
-    expect(bard).toMatch(/at most 30 words/i); // four words of notes: the limit follows the notes, not the cap
+    expect(bard).toMatch(/at most 20 words/i); // four words of notes: the limit follows the notes, not the cap
     expect(bard).toContain('campaign "The Sunken Temple"');
     expect(bard).toContain('Aria opened the door.');
     expect(bard).not.toContain('--- part'); // one block of notes is shown as it is
@@ -232,8 +232,28 @@ describe('prompts', () => {
     expect(taleWords(350, notes(300))).toBe(240);
     expect(taleWords(350, notes(2000))).toBe(350);
     expect(taleWords(200, notes(2000))).toBe(200);
-    expect(taleWords(350, notes(3))).toBe(30);
+    expect(taleWords(350, notes(3))).toBe(20);
     expect(buildStoryPrompt('session', notes(2000), {})).toMatch(/at most 350 words/i); // the default ceiling
+  });
+
+  it('asks for one or two sentences when almost nothing was said', () => {
+    const prompt = buildStoryPrompt('session', ['Aria said hello to the innkeeper.'], {});
+    expect(prompt).toMatch(/one or two sentences and at most 20 words/i);
+    expect(prompt).toMatch(/no new events, characters, places/i);
+  });
+
+  it('cuts a runaway tale back to its limit, whatever the model wrote', async () => {
+    const sentence = 'The innkeeper nodded and poured another round for the weary band.';
+    const runaway = Array.from({ length: 20 }, () => sentence).join(' ');
+    const models = {
+      scribe: async () => 'Aria said hello to the innkeeper.',
+      bard: async () => runaway,
+    };
+    const result = await writeFromNotes(models, ['Aria said hello to the innkeeper.'], {
+      kind: 'session',
+    });
+    expect(result.text.split(/\s+/).length).toBeLessThanOrEqual(26);
+    expect(result.text.endsWith('.')).toBe(true);
   });
 
   it('tells the bard that not everyone belongs in the tale', () => {
@@ -369,10 +389,10 @@ describe('summarise', () => {
       modelCalls: 3 + notes.length * 0,
     }));
     const big = ['word '.repeat(9000)];
-    const a = await writeFromNotes({ scribe, bard }, big, { kind: 'session', context: {}, fit });
+    await writeFromNotes({ scribe, bard }, big, { kind: 'session', context: {}, fit });
     const b = await writeFromNotes({ scribe, bard }, big, { kind: 'dm-only', context: {}, fit });
     expect(fit).toHaveBeenCalledTimes(2); // asked each time: the job's fitter is what remembers
-    expect(a.text).toContain('SHARED SHORT NOTES');
+    expect(bard.mock.calls[0]?.[0]).toContain('SHARED SHORT NOTES'); // what the bard was given, not its (cut) reply
     expect(b.modelCalls).toBe(3 + 1); // the fitter's calls plus the brief itself
     expect(scribe).toHaveBeenCalledTimes(1); // only the brief: no shortening of its own
   });

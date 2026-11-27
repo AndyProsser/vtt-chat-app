@@ -198,6 +198,15 @@ export function buildCondensePrompt(
 }
 
 /**
+ * The least a tale is allowed to be cut down to: a few seconds of talk make a tale of a sentence or two, under
+ * twenty words (decided 2026-11-27, Andy, after ten seconds of audio became a 200-word tale).
+ */
+export const TALE_FLOOR_WORDS = 20;
+
+/** A tale this short (or shorter) is told as one or two sentences, not a story. */
+const TINY_TALE_WORDS = 40;
+
+/**
  * How many words a tale may run: the kind's cap, or less when the notes are short. A bard given six lines of
  * notes and "at most 350 words" fills the space with invention (seen 2026-11-16: a four-line recap became a
  * dungeon crawl), so the limit follows the notes: a tale is never longer than what it retells.
@@ -207,7 +216,7 @@ export function taleWords(cap: number, notes: readonly string[]): number {
     .join(' ')
     .split(/\s+/)
     .filter((w) => w !== '').length;
-  return Math.min(cap, Math.max(30, Math.round((words * 0.8) / 10) * 10));
+  return Math.min(cap, Math.max(TALE_FLOOR_WORDS, Math.round((words * 0.8) / 10) * 10));
 }
 
 /**
@@ -227,6 +236,15 @@ export const CHARACTER_TALE_CAP_WORDS: Record<TaleLength, number> = {
   default: 150,
   long: 200,
 };
+
+/** The most words this tale may run, for the prompt and for the hard stop after it. */
+export function taleLimit(
+  kind: Exclude<SummaryKind, 'dm-only'>,
+  notes: readonly string[],
+  context: SummaryContext,
+): number {
+  return taleWords(capFor(kind, context), notes);
+}
 
 /** A chapter's tale runs to half a session's; a character's has its own, shorter cap. */
 const capFor = (kind: Exclude<SummaryKind, 'dm-only'>, context: SummaryContext): number => {
@@ -251,9 +269,12 @@ function tale(
   context: SummaryContext,
   notes: readonly string[],
 ): string {
-  const words = taleWords(capFor(kind, context), notes);
+  const words = taleLimit(kind, notes, context);
   switch (kind) {
     case 'session':
+      if (words <= TINY_TALE_WORDS) {
+        return `Tell the tale of this session${campaignOf(context)} to the players who lived it. Very little happened, so the tale is one or two sentences and at most ${words} words. Say only what the notes say, in your own voice.`;
+      }
       return `Tell the tale of this session${campaignOf(context)} to the players who lived it. At most ${words} words, and shorter when little happened: a night of talk with little action gets a short tale.`;
     case 'chapter': {
       if (!context.chapter) throw new Error('a chapter summary needs context.chapter');
@@ -348,7 +369,7 @@ export function buildStoryPrompt(
   const secrets = chaos ? gmNotesBlock(context.gmNotes) : undefined;
   const closeness = chaos
     ? '- Names of the heroes and the places stay as the notes have them, so the table knows whose tale it is.'
-    : '- Keep close to the facts: who did it, what came of it, who won, what was found, and every name stay as the notes have them. A little invention in how it is told is fine, but no new events, characters, treasure or speeches that change what happened.';
+    : '- Keep close to the facts: who did it, what came of it, who won, what was found, and every name stay as the notes have them. Small touches in how it is told are fine (a sound, a gesture, a turn of phrase, a bit of colour), but nothing made up that the notes do not support: no new events, characters, places, creatures, treasure, speeches or outcomes. When unsure, leave it out.';
   const quotes =
     "- The notes keep memorable quotes. Use one or two where they fit, in the speaker's own words.";
   const content = CONTENT_RULES[context.taleContent ?? 'default'];
