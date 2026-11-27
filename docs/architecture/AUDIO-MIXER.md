@@ -126,3 +126,26 @@ bar; the platform engine can only show on/off because the SDK exposes no level.
 ## Not verified (needs the dev PC)
 
 Used by ear on Linux and Windows (2026-11-17) and judged solid. Still not measured: USB headsets and Bluetooth, latency, drift over an hour, and CPU. `docs/BUILD-STATUS.md` tracks it.
+
+## Voice tone and bitrate (0.6.6)
+
+**Why.** Everything in the capture chain before this subtracts: WebRTC's high-pass, echo cancellation and gain control, the hum notches, and RNNoise. On good headsets the result was clean but flat and dull, and the track was published with no bitrate chosen. Andy's first real session (2026-11-27) found richness, not echo, the most noticeable gap compared with Discord.
+
+**What.** `engine/voice_tone.rs`, after RNNoise and before the level meter and the character voice:
+
+| Preset    | Shape                                                                             | Compressor           |
+| --------- | --------------------------------------------------------------------------------- | -------------------- |
+| Off       | none                                                                              | none                 |
+| Natural   | low shelf +1.5 dB @120 Hz, +2 dB @3.5 kHz, high shelf +2 dB @9 kHz                | 2:1, -22 dB, +2 dB   |
+| Warm      | low shelf +4 dB @140 Hz, -1.5 dB @320 Hz, +1.5 dB @3 kHz, high shelf +1 dB @8 kHz | 2.5:1, -22 dB, +3 dB |
+| Broadcast | low shelf +3 dB @110 Hz, -2 dB @300 Hz, +3 dB @4 kHz, high shelf +3 dB @10 kHz    | 3:1, -24 dB, +4 dB   |
+
+A soft limiter sits last, so a boost can never clip. The compressor does not lift quiet passages (nothing more than 12 dB under its threshold), so the room is not made louder between words. **Sender side, decided 2026-11-27:** it shapes the voice for everyone and needs one filter chain, not one per listener. Cost: a few biquads and one envelope follower per 10 ms block. A listener-side EQ is not built; add it only if headsets differ enough to matter.
+
+**Bitrate.** `MIC_BITRATE_BPS` (64 kbps, mono) is set on the microphone track's publish options. Before 0.6.6 it was left to the SDK.
+
+**Not measured.** The unit tests prove the filters' gains, the compressor's evening-out, the limiter and silence. Whether Natural _sounds_ better on Andy's headset is a listening test.
+
+## Device list on Linux
+
+cpal's ALSA host lists every PCM, many sharing one description. `engine/device_list.rs` keeps `default`, `pipewire`, `pulse` and each card's `sysdefault:` entry, and uses the PCM id (not the name) as the id. A choice saved by name before 0.6.6 still matches by name.

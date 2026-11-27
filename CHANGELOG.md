@@ -10,6 +10,23 @@ the GitHub release notes and refuses to build a release without one. How to writ
 
 ## [Unreleased]
 
+Targeted at 0.6.6: voice quality (a richer, clearer sound on good headsets), a cleaner device list on Linux,
+and a tale that stays close to what was said.
+
+### Added
+
+- **Voice tone presets** (Settings → Audio → Voice tone): **Off**, **Natural** (the default), **Warm** and **Broadcast**. After the noise and echo cleaning, which take things away, the voice you send gets a little body, a clearer presence and some air back, and a gentle compressor evens out loud and quiet words, so a good headset has something to reproduce. It changes the voice others hear, and what is recorded for the session, and applies at once, even mid-call. It costs a few biquad filters per 10 ms block, far less than the echo canceller. Uses the app's own audio engine (not "Compatibility audio").
+
+### Changed
+
+- **Voice is sent at 64 kbps (mono Opus), up from the SDK's unset default.** The bitrate was never chosen before, and on good headsets the voice sounded flat and dull. 64 kbps is about what Discord sends by default; speech gains little above it. Recordings grow only slightly.
+- **A tale is cut to its word limit.** The prompt always asked for "at most N words", but a model given a few seconds of talk could still write 200 and fill the space with invented events (seen on a ten-second test). The limit now follows the notes down to under 20 words (one or two sentences when almost nothing was said), and a tale that still runs more than 30% over is cut back to whole sentences. The bard may add small touches (a sound, a gesture, a turn of phrase) but not new events, characters, places, creatures, treasure, speeches or outcomes.
+- **The Game Master's new-handout and new-loot forms are wider** (460px, up from 380px).
+
+### Fixed
+
+- **Linux: the microphone and speaker lists showed the same device many times, plus internal nodes** (`hw:`, `plughw:`, `surround51`, `iec958`, `dmix`, `null`, `lavrate` and more), all under one name like "HDA Intel PCH". The list now shows "System default", PipeWire or PulseAudio where present, and each card's own entry, and a choice is remembered by its real id. A choice saved by name before this still works.
+
 ## [0.6.5] - 2026-11-27
 
 The Game Master's loot bench reaches the phone and web app, chat gets a language-picker `/say` and an

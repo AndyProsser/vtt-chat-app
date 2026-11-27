@@ -17,6 +17,10 @@ Last full TypeScript run (2026-11-21, after the OpenAI connector): backend 825 p
 
 **Observed by Andy 2026-11-20:** with the microphone and speakers side by side, a scene's sound is briefly picked up by the DM's microphone, and the echo canceller learns to remove it after a short time. Worth watching in the audio measurements (Stage 12): feeding the soundboard to the canceller as a reference from the first sample would shorten it.
 
+## 0.6.6 (unreleased), 2026-11-27: voice tone, 64 kbps, Linux device list, tale length — built and unit-tested, not yet heard
+
+Built after Andy's first real mini-session found the voice flat and dull next to Discord, with a faint echo. Unit-tested without a sound card: `engine/voice_tone.rs` (filter gains, compressor, limiter, silence), `engine/device_list.rs` (the Linux PCM filter), the tale's word limit and hard trim (`ai/src/lib/taleLength.ts`), the preset's saved setting and the Settings row. **Not verified:** that Natural, Warm or Broadcast _sounds_ better on real headsets (a listening test on dev.1), that 64 kbps reaches the receiver (check the track's bitrate in a call), the device list on Windows and macOS (unchanged by design, not re-run), and the cause of the faint echo, which is still open (it may be the RNNoise Light blend or the noise stack; Andy did not run the A/B). A tale on a ten-second recording has not been re-run on the real job.
+
 ## AI summary pipeline reliability (interim), 2026-11-26
 
 **Built and unit-tested**, following
